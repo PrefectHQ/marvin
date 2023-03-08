@@ -1,0 +1,9 @@
+black[jupyter]>=22.12
+pre-commit>=2.21.0
+pytest-asyncio>=0.20.3
+pytest-sugar>=0.9.6
+pytest-env>=0.8.1
+pytest>=7.2.0
+pdbpp>=0.10.3 
+pyperclip>=1.8.2
+ipython>=8.0

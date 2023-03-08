@@ -1,0 +1,15 @@
+# Things to always exclude
+global-exclude .git*
+global-exclude .ipynb_checkpoints
+global-exclude *.py[co]
+global-exclude __pycache__/**
+
+# Top-level Config
+include LICENSE
+include MANIFEST.in
+include setup.cfg
+include requirements.txt
+
+# Prompt templates
+graft src/marvin/programs
+graft src/marvin/prompts
