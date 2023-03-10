@@ -1,0 +1,29 @@
+[tool.pytest.ini_options]
+markers = ["ai: mark a test as dependent on external AI APIs."]
+norecursedirs = [
+    "*.egg-info",
+    ".git",
+    ".mypy_cache",
+    "node_modules",
+    ".pytest_cache .vscode"
+]
+asyncio_mode = 'auto'
+filterwarnings = [
+    "ignore:'crypt' is deprecated and slated for removal in Python 3.13:DeprecationWarning"
+]
+env = [
+    "MARVIN_TEST_MODE=1",
+    "D:MARVIN_DATABASE_CONNECTION_URL=sqlite+aiosqlite:////tmp/marvin-tests/test.sqlite",
+    "MARVIN_LOG_CONSOLE_WIDTH=120",
+    "MARVIN_LOG_LEVEL=DEBUG",
+]
+
+[tool.isort]
+skip = "__init__.py"
+profile = "black"
+skip_gitignore = true
+multi_line_output = 3
+
+[tool.ruff]
+extend-select = ["I"]
+extend-exclude = ["__init__.py"]

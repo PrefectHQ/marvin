@@ -1,4 +1,9 @@
 repos:
+  # - repo: https://github.com/charliermarsh/ruff-pre-commit
+  #   # Ruff version.
+  #   rev: 'v0.0.245'
+  #   hooks:
+  #     - id: ruff
   - repo: https://github.com/pycqa/autoflake
     rev: v2.0.0
     hooks:

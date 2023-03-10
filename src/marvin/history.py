@@ -10,7 +10,7 @@ from marvin.models.messages import Message, MessageCreate
 from marvin.utilities.types import MarvinBaseModel
 
 
-class Memory(MarvinBaseModel, abc.ABC):
+class History(MarvinBaseModel, abc.ABC):
     @abc.abstractmethod
     async def add_message(self, message: MessageCreate):
         raise NotImplementedError()
@@ -24,7 +24,7 @@ class Memory(MarvinBaseModel, abc.ABC):
         raise NotImplementedError()
 
 
-class ThreadMemory(Memory):
+class ThreadHistory(History):
     thread_id: ThreadID = Field(default_factory=ThreadID.new)
 
     async def add_message(self, message: MessageCreate):
@@ -50,7 +50,7 @@ class ThreadMemory(Memory):
         self.thread_id = ThreadID.new()
 
 
-class InMemory(Memory):
+class InMemoryHistory(History):
     messages: list[Message] = Field(default_factory=list)
 
     async def add_message(self, message: MessageCreate):
@@ -58,7 +58,7 @@ class InMemory(Memory):
 
     async def get_messages(self, n: int = None) -> list[Message]:
         if n is None:
-            return self.messages
+            return self.messages.copy()
         return self.messages[-n:]
 
     async def clear(self):
