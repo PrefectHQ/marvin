@@ -4,7 +4,7 @@ import httpx
 def assert_status_code(response: httpx.Response, status_code: int):
     try:
         full_response = response.json()
-    except:
+    except Exception:
         full_response = response.text
     error_message = (
         f"assert {response.status_code} == {status_code}"

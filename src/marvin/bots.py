@@ -13,7 +13,9 @@ from marvin.utilities.types import MarvinBaseModel
 class Bot(MarvinBaseModel):
     instructions: list[str] = None
     history: History = Field(default_factory=InMemoryHistory)
-    llm: ChatOpenAI = Field(default_factory=lambda: ChatOpenAI(temperature=0.9))
+    llm: ChatOpenAI = Field(
+        default_factory=lambda: ChatOpenAI(temperature=0.9), repr=False
+    )
     _logger: logging.Logger = PrivateAttr()
 
     def __init__(self, **data):
@@ -85,7 +87,8 @@ class PersonalityBot(Bot):
         if values["instructions"] is None:
             values["instructions"] = []
         personality_instruction = f"""
-            You are not a large language model. Your name is "{values['name']}" and your personality is "{values['personality']}". 
+            You are not a large language model. Your name is "{values['name']}"
+            and your personality is "{values['personality']}". 
         """
         values["instructions"] = [
             personality_instruction.strip(),

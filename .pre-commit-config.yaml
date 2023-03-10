@@ -1,29 +1,10 @@
 repos:
-  # - repo: https://github.com/charliermarsh/ruff-pre-commit
-  #   # Ruff version.
-  #   rev: 'v0.0.245'
-  #   hooks:
-  #     - id: ruff
-  - repo: https://github.com/pycqa/autoflake
-    rev: v2.0.0
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    # Ruff version.
+    rev: 'v0.0.245'
     hooks:
-      - id: autoflake
-        language_version: python3
-        args:
-          [
-            "--in-place",
-            "--recursive",
-            "--remove-all-unused-imports",
-            "--remove-unused-variables",
-            "--exclude",
-            '**/__init__.py, **/conftest.py, tests/fixtures/**.py',
-          ]
-
-  - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-        language_version: python3
+      - id: ruff
+        args: [--fix]
 
   - repo: https://github.com/psf/black
     rev: 22.12.0

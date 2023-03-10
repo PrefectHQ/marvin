@@ -94,8 +94,8 @@ def split_text(
         chunk_overlap (float): The fraction of overlap between chunks.
         last_chunk_threshold (float): If the last chunk is less than this fraction of
             the chunk_size, it will be added to the prior chunk
-        return_index (bool): If True, return a tuple of (chunk, index) where index is the
-            character index of the start of the chunk in the original text.
+        return_index (bool): If True, return a tuple of (chunk, index) where
+            index is the character index of the start of the chunk in the original text.
     """
     if chunk_overlap is None:
         chunk_overlap = 0.1
@@ -148,8 +148,8 @@ async def extract_keywords(text: str, n_keywords: int = None) -> list[str]:
 
 def create_minimap_fn(content: str) -> Callable[[int], str]:
     """
-    Given a document with markdown headers, returns a function that outputs the current headers
-    for any character position in the document.
+    Given a document with markdown headers, returns a function that outputs the
+    current headers for any character position in the document.
     """
     minimap: dict[int, str] = {}
     in_code_block = False
@@ -188,7 +188,8 @@ def create_minimap_fn(content: str) -> Callable[[int], str]:
     def get_location_fn(n: int) -> str:
         if n < 0:
             raise ValueError("n must be >= 0")
-        # get the stack of headers that is closest to - but before - the current position
+        # get the stack of headers that is closest to - but before - the current
+        # position
         stack = minimap.get(max((k for k in minimap if k <= n), default=0), {})
 
         ordered_stack = [stack.get(i) for i in range(1, 6)]
