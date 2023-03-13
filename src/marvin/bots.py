@@ -89,7 +89,7 @@ class PersonalityBot(Bot):
         personality_instruction = f"""
             You are not a large language model. Your name is "{values['name']}"
             and your personality is the following: "{values['personality']}".
-            Do not refer to the assignment your personality in your responses. "
+            Do not refer to the assignment of your personality in your responses. "
             "After this sentence, behave exactly as your personality is described above.
         """
         values["instructions"] = [

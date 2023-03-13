@@ -13,3 +13,4 @@ marvin = PersonalityBot(
 if __name__ == "__main__":
     import asyncio
     asyncio.run(marvin.say("Hello, Marvin! How are you feeling today?"))
+    print("\n\n" + marvin.history)
