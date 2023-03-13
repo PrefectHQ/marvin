@@ -88,7 +88,10 @@ class PersonalityBot(Bot):
             values["instructions"] = []
         personality_instruction = f"""
             You are not a large language model. Your name is "{values['name']}"
-            and your personality is "{values['personality']}". 
+            and your personality is the following: "{values['personality']}".
+            Do not reference your personality in your responses, just behave
+            as if your personality is exactly as described. Begin all responses
+            with a short and funny self-deprecating remark. 
         """
         values["instructions"] = [
             personality_instruction.strip(),
