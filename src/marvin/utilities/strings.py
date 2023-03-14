@@ -2,12 +2,15 @@ import asyncio
 import re
 from functools import lru_cache
 from string import Formatter
-from typing import Any, Callable, Mapping, Sequence, Union
+from typing import Any, Callable, Literal, Mapping, Sequence, Union
 
+import html2text
 import pendulum
+import readability
 import tiktoken
 import xxhash
 from jinja2 import ChoiceLoader, Environment, StrictUndefined, select_autoescape
+from markdownify import markdownify
 
 import marvin
 
@@ -196,3 +199,32 @@ def create_minimap_fn(content: str) -> Callable[[int], str]:
         return "\n".join([s for s in ordered_stack if s is not None])
 
     return get_location_fn
+
+
+MULTIPLE_NEWLINES = re.compile(r"\n{2,}")
+MULTIPLE_WHITESPACE = re.compile(r"[\t ]+")
+
+
+def html_to_content(
+    html: str,
+    library: Literal["readability", "html2text"] = None,
+) -> str:
+    library = library or "readability"
+
+    if library == "readability":
+        readability_doc = readability.Document(html)
+        text = readability_doc.summary()
+        text = markdownify(
+            text, heading_style="ATX", escape_underscores=False, escape_asterisks=True
+        )
+    else:
+        text = html2text.html2text(html)
+
+    text = condense_newlines(text)
+    return text
+
+
+def condense_newlines(text: str) -> str:
+    text = text.replace("\r", "\n")
+    text = MULTIPLE_NEWLINES.sub("\n", text)
+    return MULTIPLE_WHITESPACE.sub(" ", text)

@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     test_mode: bool = False
 
     # LOGGING
-    verbose: bool = False
+    verbose: bool = True
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "DEBUG"
     log_console_width: int | None = Field(
         None,

@@ -1,18 +1,24 @@
+import json
 import logging
 
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
-from pydantic import Field, PrivateAttr, root_validator
+from pydantic import Field, PrivateAttr, validator
 
 import marvin
 from marvin.history import History, InMemoryHistory
-from marvin.models.messages import Message, MessageCreate
+from marvin.models.messages import Message
+from marvin.plugins.base import Plugin
 from marvin.utilities.types import MarvinBaseModel
 
 
 class Bot(MarvinBaseModel):
-    instructions: list[str] = None
-    history: History = Field(default_factory=InMemoryHistory)
+    name: str = "Marvin"
+    personality: str = "A helpful AI assistant that is clever, witty, and fun."
+    instructions: str = "Provide clear, detailed, and helpful responses to users."
+
+    plugins: list[Plugin.as_discriminated_union()] = Field(default_factory=list)
+    history: History.as_discriminated_union() = None
     llm: ChatOpenAI = Field(
         default_factory=lambda: ChatOpenAI(temperature=0.9), repr=False
     )
@@ -26,72 +32,110 @@ class Bot(MarvinBaseModel):
     def logger(self):
         return self._logger
 
+    @validator("history", always=True)
+    def default_history(cls, v):
+        if v is None:
+            return InMemoryHistory()
+        return v
+
     async def say(self, message):
-        history = await self._load_history()
-        self.logger.debug_kv("User message", message, "bold blue")
-        await self.history.add_message(MessageCreate(role="user", content=message))
-        response = await self._say(message=message, history=history)
+        bot_instructions = await self._get_bot_instructions()
+        plugin_instructions = await self._get_plugin_instructions()
+        history = await self._get_history()
+        user_message = Message(role="user", content=message)
+
+        messages = bot_instructions + plugin_instructions + history + [user_message]
+
+        self.logger.debug_kv("User message", user_message.content, "bold blue")
+        await self.history.add_message(user_message)
+
+        finished = False
+
+        while not finished:
+            response = await self._say(messages=messages)
+            ai_response = Message(role="ai", content=response)
+            messages.append(ai_response)
+
+            if response.startswith("marvin::plugin"):
+                self.logger.debug_kv("Plugin Input", response, "bold blue")
+                plugin_input = json.loads(response.split("marvin::plugin")[1])
+                plugin_output = await self._run_plugin(
+                    plugin_name=plugin_input["name"],
+                    plugin_inputs=plugin_input["inputs"],
+                )
+                self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
+                plugin_message = Message(
+                    role="system", content=f"Plugin Output: {plugin_output}"
+                )
+                messages.append(plugin_message)
+            else:
+                finished = True
+
+        await self.history.add_message(ai_response)
         self.logger.debug_kv("AI message", response, "bold green")
-        await self.history.add_message(MessageCreate(role="ai", content=response))
+
         return response
 
-    async def _load_history(self) -> list[Message]:
-        history = await self.history.get_messages()
-        if self.instructions:
-            instructions = [
-                Message(**MessageCreate(role="system", content=s).dict())
-                for s in self.instructions
-            ]
+    async def _run_plugin(self, plugin_name: str, plugin_inputs: dict) -> str:
+        plugin = next((p for p in self.plugins if p.name == plugin_name), None)
+        if plugin is None:
+            raise ValueError(f"Plugin '{plugin_name}' not found.")
 
-            # if there's no history, post the system message
-            if not history:
-                for msg in instructions:
-                    await self.history.add_message(msg)
+        return await plugin.run(**plugin_inputs)
 
-            # if there's a system message, ensure it's the first message sent to the LLM
-            if not history or history[0].role != "system":
-                history = instructions + history
+    async def _get_bot_instructions(self) -> list[Message]:
+        msg = Message(
+            role="system",
+            content=(
+                f'Your name is "{self.name}" and'
+                f' your personality is "{self.personality}". Your instructions are'
+                f' "{self.instructions}". Your responses must always reflect your'
+                " personality."
+            ),
+        )
+        return [msg]
 
-        return history
+    async def _get_plugin_instructions(self) -> list[Message]:
+        plugin_instructions = Message(
+            role="system",
+            content=(
+                "You have access to the following plugins to assist you. To use a"
+                " plugin, respond only with a JSON object that contains the plugin"
+                " name and arguments. The plugin's output will be returned to you. For"
+                " example, to use a plugin called `abc` with signature `(x: str,"
+                " n_results: int = 10)`, respond with: "
+                r'`marvin::plugin {"name": "abc", "inputs": {"x":'
+                r' "hello"}}`'
+            ),
+        )
+        plugins = [
+            Message(role="system", content=p.get_instructions()) for p in self.plugins
+        ]
 
-    async def _say(self, message: str, history: list[Message]) -> str:
+        if plugins:
+            return [plugin_instructions] + plugins
+        return []
+
+    async def _get_history(self) -> list[Message]:
+        return await self.history.get_messages()
+
+    async def _say(self, messages: list[Message]) -> str:
         """
         Format and send messages via langchain
         """
 
         langchain_messages = []
 
-        for h in history:
-            if h.role == "system":
-                langchain_messages.append(SystemMessage(content=h.content))
-            elif h.role == "ai":
-                langchain_messages.append(AIMessage(content=h.content))
-            elif h.role == "user":
-                langchain_messages.append(HumanMessage(content=h.content))
-
-        langchain_messages.append(HumanMessage(content=message))
+        for msg in messages:
+            if msg.role == "system":
+                langchain_messages.append(SystemMessage(content=msg.content))
+            elif msg.role == "ai":
+                langchain_messages.append(AIMessage(content=msg.content))
+            elif msg.role == "user":
+                langchain_messages.append(HumanMessage(content=msg.content))
 
         if marvin.settings.verbose:
             messages_repr = "\n".join(repr(m) for m in langchain_messages)
             self.logger.debug(f"Sending messages to LLM: {messages_repr}")
         result = await self.llm.agenerate(messages=[langchain_messages])
         return result.generations[0][0].text
-
-
-class PersonalityBot(Bot):
-    name: str = "Marvin"
-    personality: str = "A helpful AI assistant that is clever, witty, and fun."
-
-    @root_validator
-    def add_personality_instruction(cls, values):
-        if values["instructions"] is None:
-            values["instructions"] = []
-        personality_instruction = f"""
-            You are not a large language model. Your name is "{values['name']}"
-            and your personality is "{values['personality']}". 
-        """
-        values["instructions"] = [
-            personality_instruction.strip(),
-            *values["instructions"],
-        ]
-        return values

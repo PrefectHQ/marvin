@@ -1,14 +1,16 @@
 import json
 import re
 from functools import lru_cache
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, Literal, TypeVar, Union
 
 import pydantic
 import ulid
 from fastapi import APIRouter, Response, status
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel, constr
+from pydantic import BaseModel, Field, constr
+from pydantic.fields import ModelField
 from sqlalchemy import TypeDecorator
+from typing_extensions import Annotated
 
 from marvin.infra.db import JSONType
 
@@ -74,6 +76,27 @@ class MarvinBaseModel(BaseModel):
         excluded = set(self.__exclude_fields__ or []).union(exclude or [])
         excluded_kwargs = {e: getattr(self, e) for e in excluded if e not in updated}
         return type(self)(**updated, **excluded_kwargs)
+
+
+class DiscriminatingTypeModel(MarvinBaseModel):
+    def __init_subclass__(cls, **kwargs):
+        # create a literal qualified name field called `type`
+        value = f"{cls.__module__}.{cls.__name__}"
+        annotation = Literal[value]
+
+        tag_field = ModelField.infer(
+            name="type",
+            value=value,
+            annotation=annotation,
+            class_validators=None,
+            config=cls.__config__,
+        )
+        cls.__fields__["type"] = tag_field
+
+    @classmethod
+    def as_discriminated_union(cls):
+        union = Union[tuple(get_all_subclasses(cls))]
+        return Annotated[union, Field(discriminator="type")]
 
 
 class MarvinRouter(APIRouter):
@@ -172,3 +195,11 @@ def pydantic_column_type(pydantic_type):
             return x == y
 
     return PydanticJSONType
+
+
+def get_all_subclasses(cls):
+    return (
+        {cls}
+        .union(cls.__subclasses__())
+        .union([s for c in cls.__subclasses__() for s in get_all_subclasses(c)])
+    )
