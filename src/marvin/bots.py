@@ -88,7 +88,7 @@ class Bot(MarvinBaseModel):
             role="system",
             content=(
                 f'Your name is "{self.name}" and'
-                f' your personality is "{self.personality}". Your instructions are'
+                f' your personality is: {self.personality}. Your instructions are:'
                 f' "{self.instructions}". Your responses must always reflect your'
                 " personality."
             ),
@@ -99,13 +99,14 @@ class Bot(MarvinBaseModel):
         plugin_instructions = Message(
             role="system",
             content=(
-                "You have access to the following plugins to assist you. To use a"
+                "You have access to some plugins to assist you. To use a"
                 " plugin, respond only with a JSON object that contains the plugin"
                 " name and arguments. The plugin's output will be returned to you. For"
                 " example, to use a plugin called `abc` with signature `(x: str,"
                 " n_results: int = 10)`, respond with: "
                 r'`marvin::plugin {"name": "abc", "inputs": {"x":'
                 r' "hello"}}`'
+                "The plugins you have access to are:"
             ),
         )
         plugins = [

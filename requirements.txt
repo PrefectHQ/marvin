@@ -2,10 +2,11 @@ aiosqlite==0.18.0
 asyncpg==0.27.0
 beautifulsoup4==4.11.2
 bleach==6.0.0
+chromadb
 cloudpickle==2.2.1
 duckduckgo_search==2.8.0
 fake-useragent==1.1.1
-fastapi==0.89.1
+fastapi>=0.89.1
 google_api_python_client==2.72.0
 html2text==2020.1.16
 httpx==0.23.3

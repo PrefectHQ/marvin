@@ -13,11 +13,11 @@ class GoogleSearchAPI(Plugin):
         " snippet and a URL that you could visit for more information."
     )
 
-    async def run(self, query: str):
+    async def run(self, query: str) -> str:
         return await search_google(query)
 
 
-async def search_google(query, n: int = 10, return_as_text=False, **kwargs):
+async def search_google(query, n: int = 10, return_as_text=False, **kwargs) -> str:
     service = build(
         "customsearch",
         "v1",

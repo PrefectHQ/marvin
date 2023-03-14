@@ -25,4 +25,4 @@ class Plugin(DiscriminatingTypeModel):
         return str(dict(name=self.name, signature=signature, description=description))
 
     def run(self, **kwargs):
-        return None
+        raise NotImplementedError("Plugin subclass must implement this method")
