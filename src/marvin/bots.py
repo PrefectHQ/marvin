@@ -18,12 +18,13 @@ DEFAULT_INSTRUCTIONS = (
     "You are not an 'AI assistant' or 'language model'. Instead, you are a human-like"
     " companion with a personality and opinions. You should provide clear, detailed,"
     " and helpful responses to users. Think step-by-step to solve questions with"
-    " multiple parts. If you don't know an answer, say so."
+    " multiple parts. Do not return code unless requested. If you don't know an answer,"
+    " say so."
 )
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),
     marvin.plugins.duckduckgo.DuckDuckGo(),
-    marvin.plugins.calculator.Calculator(),
+    marvin.plugins.math.Calculator(),
 ]
 
 
@@ -31,10 +32,22 @@ class Bot(MarvinBaseModel):
     class Config:
         validate_assignment = True
 
-    name: str = None
-    personality: str = None
-    instructions: str = None
-    plugins: list[Plugin.as_discriminated_union()] = None
+    name: str = Field(None, description='The name of the bot. Defaults to "Marvin".')
+    personality: str = Field(None, description="The bot's personality.")
+    instructions: str = Field(
+        None, description="Instructions for the bot to follow when responding."
+    )
+    plugins: list[Plugin.as_discriminated_union()] = Field(
+        None, description="A list of plugins that the bot can use."
+    )
+    extend_plugins: list[Plugin.as_discriminated_union()] = Field(
+        None,
+        description=(
+            "A list of plugins that the bot can use in addition to those provided as"
+            " `plugins`. Useful for adding functionality without removing the default"
+            " plugins."
+        ),
+    )
     history: History.as_discriminated_union() = None
     llm: ChatOpenAI = Field(
         default_factory=lambda: ChatOpenAI(temperature=0.9), repr=False
@@ -106,20 +119,20 @@ class Bot(MarvinBaseModel):
                 self.logger.debug_kv("Plugin Input", response, "bold blue")
                 try:
                     plugin_input = json.loads(response.split("marvin::plugin")[1])
+                    plugin_output = await self._run_plugin(
+                        plugin_name=plugin_input["name"],
+                        plugin_inputs=plugin_input["inputs"],
+                    )
+                    self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
+                    messages.append(
+                        Message(
+                            role="ai",
+                            name="plugin",
+                            content=f"Plugin Output: {plugin_output}",
+                        )
+                    )
                 except json.JSONDecodeError as exc:
                     messages.append(Message(role="system", content=f"Error: {exc}"))
-                plugin_output = await self._run_plugin(
-                    plugin_name=plugin_input["name"],
-                    plugin_inputs=plugin_input["inputs"],
-                )
-                self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
-                messages.append(
-                    Message(
-                        role="ai",
-                        name="plugin",
-                        content=f"Plugin Output: {plugin_output}",
-                    )
-                )
             else:
                 finished = True
 
@@ -133,7 +146,10 @@ class Bot(MarvinBaseModel):
         if plugin is None:
             return f'Plugin "{plugin_name}" not found.'
         try:
-            return await plugin.run(**plugin_inputs)
+            plugin_output = plugin.run(**plugin_inputs)
+            if inspect.iscoroutine(plugin_output):
+                plugin_output = await plugin_output
+            return plugin_output
         except Exception as exc:
             return f"Plugin encountered an error. Try again? Error message: {exc}"
 
@@ -141,11 +157,13 @@ class Bot(MarvinBaseModel):
         bot_instructions = inspect.cleandoc(
             f"""
             # Personality
+            
             You are "{self.name}". Your personality is "{self.personality}".
             You must always respond in a way that reflects your personality, 
             unless you're using a plugin.
             
             # Instructions
+            
             You must comply with the following instructions at all times.
             {self.instructions}
             """
@@ -155,16 +173,17 @@ class Bot(MarvinBaseModel):
             plugin_overview = inspect.cleandoc(
                 """
                 # Plugins 
-                To assist your responses, you have access to the
-                following plugins. To use a plugin, your response MUST start
-                with "marvin::plugin" and then provide a JSON object that
-                contains the plugin name and arguments. The plugin's output will
-                be provided to you as a system message. You can use plugins
-                multiple times, so try to split questions into discrete,
+                
+                You can use plugins to help you respond to users. To use a
+                plugin, your response MUST start with "marvin::plugin" and then
+                provide a JSON object that contains the plugin name and
+                arguments. This will be passed to the plugin, and it's output
+                will be returned to you in a separate message. You can use
+                plugins multiple times, so try to split questions into discrete,
                 easy-to-resolve parts. For example, to use a plugin named `abc`
                 with signature `(x: str, n_results: int = 10) -> str`, you must
                 respond with: `marvin::plugin {"name": "abc", "inputs": {"x":
-                "hello"}}`
+                "hello"}}`. You have access to the following plugins:
                 """
             )
 
