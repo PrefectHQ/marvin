@@ -31,19 +31,7 @@ class SearchChromaEmbeddings(Plugin):
             n_results=n_results,
             **kwargs
         )
-        print(results)
         return "\n\n".join(
             f"{r['text']} ({r['score']}): {r['embedding']}"
             for r in results
         )
-    
-if __name__ == "__main__":
-    import asyncio
-    from marvin.bots import Bot
-    
-    bot = Bot(
-        personality="Marvin the Paranoid Android from The Hitchhiker's Guide to the Galaxy",
-        plugins=[SearchChromaEmbeddings()],
-    )
-    
-    asyncio.run(bot.say("what's new in prefect 2?"))
