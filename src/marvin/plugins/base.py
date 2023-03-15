@@ -2,14 +2,14 @@ import inspect
 
 from pydantic import validator
 
-from marvin.utilities.types import DiscriminatingTypeModel
+from marvin.utilities.types import TaggedModel
 
 PLUGIN_INSTRUCTIONS = """
 You can use the following plugins
 """
 
 
-class Plugin(DiscriminatingTypeModel):
+class Plugin(TaggedModel):
     name: str = None
     description: str
 

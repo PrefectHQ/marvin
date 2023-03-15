@@ -31,6 +31,7 @@ class SearchChromaEmbeddings(Plugin):
             n_results=n_results,
             **kwargs
         )
+        print(results)
         return "\n\n".join(
             f"{r['text']} ({r['score']}): {r['embedding']}"
             for r in results

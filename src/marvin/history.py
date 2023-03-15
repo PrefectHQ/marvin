@@ -7,10 +7,10 @@ import marvin
 from marvin.infra.db import session_context
 from marvin.models.ids import ThreadID
 from marvin.models.messages import Message, MessageCreate
-from marvin.utilities.types import DiscriminatingTypeModel
+from marvin.utilities.types import TaggedModel
 
 
-class History(DiscriminatingTypeModel, abc.ABC):
+class History(TaggedModel, abc.ABC):
     @abc.abstractmethod
     async def add_message(self, message: MessageCreate):
         raise NotImplementedError()

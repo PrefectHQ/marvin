@@ -78,7 +78,7 @@ class MarvinBaseModel(BaseModel):
         return type(self)(**updated, **excluded_kwargs)
 
 
-class DiscriminatingTypeModel(MarvinBaseModel):
+class TaggedModel(MarvinBaseModel):
     def __init_subclass__(cls, **kwargs):
         # create a literal qualified name field called `type`
         value = f"{cls.__module__}.{cls.__name__}"
