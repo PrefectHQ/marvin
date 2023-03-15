@@ -28,3 +28,4 @@ uvicorn==0.20.0
 wikipedia==1.4.0
 xxhash==3.2.0
 yake==0.4.8
+typer==0.7.0

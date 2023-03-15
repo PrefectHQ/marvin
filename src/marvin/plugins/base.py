@@ -19,7 +19,7 @@ class Plugin(DiscriminatingTypeModel):
             return cls.__name__
         return v
 
-    def get_instructions(self) -> str:
+    def get_full_description(self) -> str:
         signature = str(inspect.signature(self.run))
         description = self.description.format(**self.dict())
         return str(dict(name=self.name, signature=signature, description=description))

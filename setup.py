@@ -14,6 +14,9 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     include_package_data=True,
+    entry_points={
+        "console_scripts": ["marvin=marvin.cli.cli:main_sync"],
+    },
     # Requirements
     python_requires=">=3.10",
     install_requires=required_deps,
