@@ -1,2 +1,2 @@
 from .base import Plugin
-from . import web, google, duckduckgo
+from . import web, google, duckduckgo, calculator

@@ -9,23 +9,31 @@ from pydantic import Field, PrivateAttr, validator
 import marvin
 from marvin.history import History, InMemoryHistory
 from marvin.models.messages import Message
-from marvin.plugins.base import Plugin
+from marvin.plugins import Plugin
 from marvin.utilities.types import MarvinBaseModel
 
 DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
 DEFAULT_INSTRUCTIONS = (
-    "You are not an 'AI assistant' or 'language model'. Instead, you are a"
-    " human-like companion with a personality and opinions. You should provide"
-    " clear, detailed, and helpful responses to users."
+    "You are not an 'AI assistant' or 'language model'. Instead, you are a human-like"
+    " companion with a personality and opinions. You should provide clear, detailed,"
+    " and helpful responses to users. Think step by step when answering."
 )
+DEFAULT_PLUGINS = [
+    marvin.plugins.web.VisitURL(),
+    marvin.plugins.duckduckgo.DuckDuckGo(),
+    marvin.plugins.calculator.Calculator(),
+]
 
 
 class Bot(MarvinBaseModel):
+    class Config:
+        validate_assignment = True
+
     name: str = None
     personality: str = None
     instructions: str = None
-    plugins: list[Plugin.as_discriminated_union()] = Field(default_factory=list)
+    plugins: list[Plugin.as_discriminated_union()] = None
     history: History.as_discriminated_union() = None
     llm: ChatOpenAI = Field(
         default_factory=lambda: ChatOpenAI(temperature=0.9), repr=False
@@ -58,6 +66,12 @@ class Bot(MarvinBaseModel):
             return DEFAULT_INSTRUCTIONS
         return v
 
+    @validator("plugins", always=True)
+    def default_plugins(cls, v):
+        if v is None:
+            return DEFAULT_PLUGINS
+        return v
+
     @validator("history", always=True)
     def default_history(cls, v):
         if v is None:
@@ -75,24 +89,32 @@ class Bot(MarvinBaseModel):
         await self.history.add_message(user_message)
 
         finished = False
+        counter = 0
+
         while not finished:
-            response = await self._say(messages=messages)
+            counter += 1
+            if counter > marvin.settings.bot_max_iterations:
+                response = 'Error: "Max iterations reached. Please try again."'
+            else:
+                response = await self._say(messages=messages)
             ai_response = Message(role="ai", content=response)
             messages.append(ai_response)
 
-            # run plugins
-            if response.startswith("marvin::plugin"):
+            # run plugins if requested
+            if "marvin::plugin" in response:
                 self.logger.debug_kv("Plugin Input", response, "bold blue")
-                plugin_input = json.loads(response.split("marvin::plugin")[1])
+                try:
+                    plugin_input = json.loads(response.split("marvin::plugin")[1])
+                except json.JSONDecodeError as exc:
+                    messages.append(Message(role="system", content=f"Error: {exc}"))
                 plugin_output = await self._run_plugin(
                     plugin_name=plugin_input["name"],
                     plugin_inputs=plugin_input["inputs"],
                 )
                 self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
-                plugin_message = Message(
-                    role="system", content=f"Plugin Output: {plugin_output}"
+                messages.append(
+                    Message(role="system", content=f"Plugin Output: {plugin_output}")
                 )
-                messages.append(plugin_message)
             else:
                 finished = True
 
@@ -127,15 +149,16 @@ class Bot(MarvinBaseModel):
         if self.plugins:
             plugin_overview = inspect.cleandoc(
                 """
-                # Plugins
-                To assist your responses, you have access to the following
-                plugins. To use a plugin, start your response with
-                `marvin::plugin` and then provide a JSON object that contains
-                the plugin name and arguments. The plugin's output will be
-                provided to you as a system message. For example, to use a
-                plugin named `abc` with signature `(x: str, n_results: int = 10)
-                -> str`, respond with: `marvin::plugin {"name": "abc", "inputs":
-                {"x": "hello", "n_results": 5}}`
+                # Plugins To assist your responses, you have access to the
+                following plugins. To use a plugin, your response MUST start
+                with `marvin::plugin` and then provide a JSON object that
+                contains the plugin name and arguments. The plugin's output will
+                be provided to you as a system message. You can use plugins
+                multiple times, so try to split questions into discrete,
+                easy-to-resolve parts. For example, to use a plugin named `abc`
+                with signature `(x: str, n_results: int = 10) -> str`, respond
+                with: `marvin::plugin {"name": "abc", "inputs": {"x": "hello",
+                "n_results": 5}}`
                 """
             )
 
