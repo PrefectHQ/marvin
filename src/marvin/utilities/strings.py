@@ -8,6 +8,7 @@ import html2text
 import pendulum
 import readability
 import tiktoken
+import trafilatura
 import xxhash
 from jinja2 import ChoiceLoader, Environment, StrictUndefined, select_autoescape
 from markdownify import markdownify
@@ -207,11 +208,13 @@ MULTIPLE_WHITESPACE = re.compile(r"[\t ]+")
 
 def html_to_content(
     html: str,
-    library: Literal["readability", "html2text"] = None,
+    library: Literal["readability", "html2text", "trafilatura"] = None,
 ) -> str:
-    library = library or "readability"
+    library = library or "trafilatura"
 
-    if library == "readability":
+    if library == "trafilatura":
+        text = trafilatura.extract(html, include_formatting=True, include_links=True)
+    elif library == "readability":
         readability_doc = readability.Document(html)
         text = readability_doc.summary()
         text = markdownify(

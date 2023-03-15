@@ -17,6 +17,7 @@ spinner_messages = [
     "Doing AI things...",
     "Loading bot.exe...",
     "Solving for x...",
+    "Catching up on the news...",
     "Consulting my magic 8-bit ball...",
     "Artificial neurons firing...",
     "Checking my sources...",
@@ -35,8 +36,8 @@ async def chat(
     bot = marvin.Bot(name=name, personality=personality, instructions=instructions)
 
     print(
-        f"[bold blue]:robot: {bot.name}[/] is listening! Type [bold]`exit`[/bold] to"
-        " quit."
+        f"[bold blue]:robot: {bot.name}[/] is listening! [italic](Type"
+        " `exit` to quit)[/]"
     )
 
     try:

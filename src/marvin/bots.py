@@ -2,6 +2,7 @@ import inspect
 import json
 import logging
 
+import pendulum
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from pydantic import Field, PrivateAttr, validator
@@ -156,6 +157,9 @@ class Bot(MarvinBaseModel):
     async def _get_bot_instructions(self) -> Message:
         bot_instructions = inspect.cleandoc(
             f"""
+            # Overview
+            Today is {pendulum.now().format("dddd, MMMM D, YYYY")}.
+             
             # Personality
             
             You are "{self.name}". Your personality is "{self.personality}".
@@ -174,16 +178,20 @@ class Bot(MarvinBaseModel):
                 """
                 # Plugins 
                 
-                You can use plugins to help you respond to users. To use a
-                plugin, your response MUST start with "marvin::plugin" and then
-                provide a JSON object that contains the plugin name and
-                arguments. This will be passed to the plugin, and it's output
-                will be returned to you in a separate message. You can use
-                plugins multiple times, so try to split questions into discrete,
-                easy-to-resolve parts. For example, to use a plugin named `abc`
-                with signature `(x: str, n_results: int = 10) -> str`, you must
-                respond with: `marvin::plugin {"name": "abc", "inputs": {"x":
-                "hello"}}`. You have access to the following plugins:
+                Plugins are a way to extend your functionality. To use one,
+                start a response with "marvin::plugin" followed by a JSON
+                document of the form {"name": <the plugin name>, "inputs":
+                {<input name>: <input value>, ...}}. The plugin's output will be
+                supplied to you in a new message so you can use it in your
+                response to the user. Note the user will not see the plugin
+                output.
+
+                For example, to use a plugin named `abc` with signature `(x:
+                str, n_results: int = 10) -> str` with `x="hello"`, you must
+                respond with `marvin::plugin {"name": "abc", "inputs": {"x":
+                "hello"}}`. 
+                
+                You have access to the following plugins:
                 """
             )
 

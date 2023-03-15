@@ -4,8 +4,11 @@ duckduckgo_search==2.8.0
 fake-useragent==1.1.1
 google_api_python_client==2.72.0
 html2text==2020.1.16
+htmldate[speed]==1.4.1
 markdownify==0.11.6
 readability-lxml==0.8.1
 selectolax==0.3.12
 simpleeval==0.9.13
+trafilatura==1.4.1
+cchardet==2.1.7
 wikipedia==1.4.0
