@@ -1,6 +1,7 @@
 from setuptools import find_packages, setup
 
 required_deps = open("requirements.txt").read().strip().split("\n")
+plugin_deps = open("requirements-plugins.txt").read().strip().split("\n")
 dev_deps = open("requirements-dev.txt").read().strip().split("\n")
 
 setup(
@@ -19,8 +20,8 @@ setup(
     },
     # Requirements
     python_requires=">=3.10",
-    install_requires=required_deps,
+    install_requires=required_deps + plugin_deps,
     extras_require={
-        "dev": required_deps + dev_deps,
+        "dev": required_deps + plugin_deps + dev_deps,
     },
 )

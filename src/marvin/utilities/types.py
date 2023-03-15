@@ -95,7 +95,7 @@ class TaggedModel(MarvinBaseModel):
 
     @classmethod
     def as_discriminated_union(cls):
-        union = Union[*get_all_subclasses(cls)]
+        union = Union[tuple(get_all_subclasses(cls))]
         return Annotated[union, Field(discriminator="type")]
 
 
@@ -198,7 +198,7 @@ def pydantic_column_type(pydantic_type):
 
 
 def get_all_subclasses(cls):
-    return tuple(
+    return (
         {cls}
         .union(cls.__subclasses__())
         .union([s for c in cls.__subclasses__() for s in get_all_subclasses(c)])

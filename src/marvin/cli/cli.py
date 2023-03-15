@@ -26,14 +26,27 @@ spinner_messages = [
 ]
 
 
-async def chat(name: str = None, personality: str = None, instructions: str = None):
+async def chat(
+    first_message: str = None,
+    name: str = None,
+    personality: str = None,
+    instructions: str = None,
+):
     bot = marvin.Bot(name=name, personality=personality, instructions=instructions)
 
-    print(f"[bold blue]:robot: {bot.name}[/] is listening!")
+    print(
+        f"[bold blue]:robot: {bot.name}[/] is listening! Type [bold]`exit`[/bold] to"
+        " quit."
+    )
 
     try:
         while True:
-            message = Prompt.ask("\n[green]Your message[/]")
+            if not first_message:
+                message = Prompt.ask("\n[green]Your message[/]")
+            else:
+                message = first_message
+                first_message = None
+                print(f"\n[green]Your message[/]: {message}")
 
             if message == "exit":
                 raise KeyboardInterrupt()
@@ -56,11 +69,19 @@ async def chat(name: str = None, personality: str = None, instructions: str = No
 
 @app.command()
 def main(
+    message: str = typer.Argument(default=None),
     name: str = typer.Option(None, "--name", "-n"),
     personality: str = typer.Option(None, "--personality", "-p"),
     instructions: str = typer.Option(None, "--instructions", "-i"),
 ):
-    asyncio.run(chat(name=name, personality=personality, instructions=instructions))
+    asyncio.run(
+        chat(
+            first_message=message,
+            name=name,
+            personality=personality,
+            instructions=instructions,
+        )
+    )
 
 
 if __name__ == "__main__":

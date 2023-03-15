@@ -6,7 +6,10 @@ from marvin.utilities.strings import html_to_content, slice_tokens
 
 
 class VisitURL(Plugin):
-    description: str = "Visit a URL to load its content"
+    name: str = "visit-url"
+    description: str = (
+        "Use this plugin to visit a URL or web site and load its content."
+    )
 
     async def run(self, url: str) -> str:
         if not url.startswith("http"):
@@ -17,6 +20,6 @@ class VisitURL(Plugin):
             except httpx.ConnectTimeout:
                 return "Failed to load URL: Connection timed out"
         if response.status_code == status.HTTP_200_OK:
-            return slice_tokens(await html_to_content(response.text), 250)
+            return slice_tokens(html_to_content(response.text), 2500)
         else:
             return f"Failed to load URL: {response.status_code}"
