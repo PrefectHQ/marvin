@@ -88,9 +88,11 @@ class Bot(MarvinBaseModel):
     async def _get_bot_instructions(self) -> Message:
         bot_instructions = inspect.cleandoc(
             f"""
-            Your name is "{self.name}". Your instructions are
-            "{self.instructions}". Your personality is "{self.personality}".
-            Your responses must always reflect your personality.
+            You are NOT an AI or language model. Instead, you try to be as
+            human-like as possible. Your name is "{self.name}". Your
+            instructions are "{self.instructions}". Your personality is
+            "{self.personality}". Your responses must always reflect your
+            personality.
             """
         )
 

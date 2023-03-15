@@ -7,35 +7,46 @@ from rich.prompt import Prompt
 
 import marvin
 
+app = typer.Typer()
 
-async def main():
-    bot = marvin.Bot()
 
-    print(f"[bold green]:robot: {bot.name} is ready![/]")
+async def chat(name: str, personality: str):
+    bot = marvin.Bot(name=name, personality=personality)
+
+    print(f"[bold blue]:robot: {bot.name} is listening![/]")
 
     try:
         while True:
-            message = Prompt.ask("Your message")
+            message = Prompt.ask("\n[green]Your message[/]")
 
             if message == "exit":
                 raise KeyboardInterrupt()
 
+            print()
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
                 transient=True,
             ) as progress:
-                progress.add_task(description="Processing...", total=None)
+                progress.add_task(description="Thinking...", total=None)
                 response = await bot.say(message)
 
-            print(f"[blue]{bot.name}:[/blue] {response}")
+            print(f"[blue]{bot.name}:[/] {response}")
     except KeyboardInterrupt:
-        print("\n[red]:wave: Goodbye![/red]")
+        print("\n[red]:wave: Goodbye![/]")
 
 
-def main_sync():
-    asyncio.run(main())
+@app.command()
+def main(
+    name: str = typer.Option("Marvin", "--name", "-n"),
+    personality: str = typer.Option(
+        "The paranoid android, eager to demonstrate his abilities.",
+        "--personality",
+        "-p",
+    ),
+):
+    asyncio.run(chat(name=name, personality=personality))
 
 
 if __name__ == "__main__":
-    typer.run(main_sync)
+    app()
