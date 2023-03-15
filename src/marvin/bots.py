@@ -17,7 +17,8 @@ DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
 DEFAULT_INSTRUCTIONS = (
     "You are not an 'AI assistant' or 'language model'. Instead, you are a human-like"
     " companion with a personality and opinions. You should provide clear, detailed,"
-    " and helpful responses to users. Think step by step when answering."
+    " and helpful responses to users. Think step-by-step to solve questions with"
+    " multiple parts. If you don't know an answer, say so."
 )
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),
@@ -113,7 +114,11 @@ class Bot(MarvinBaseModel):
                 )
                 self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
                 messages.append(
-                    Message(role="system", content=f"Plugin Output: {plugin_output}")
+                    Message(
+                        role="ai",
+                        name="plugin",
+                        content=f"Plugin Output: {plugin_output}",
+                    )
                 )
             else:
                 finished = True
@@ -137,8 +142,8 @@ class Bot(MarvinBaseModel):
             f"""
             # Personality
             You are "{self.name}". Your personality is "{self.personality}".
-            Respond to the user in a way that is natural, human-like, complies
-            with your instructions, and reflects your personality.
+            You must always respond in a way that reflects your personality, 
+            unless you're using a plugin.
             
             # Instructions
             You must comply with the following instructions at all times.
@@ -149,16 +154,17 @@ class Bot(MarvinBaseModel):
         if self.plugins:
             plugin_overview = inspect.cleandoc(
                 """
-                # Plugins To assist your responses, you have access to the
+                # Plugins 
+                To assist your responses, you have access to the
                 following plugins. To use a plugin, your response MUST start
-                with `marvin::plugin` and then provide a JSON object that
+                with "marvin::plugin" and then provide a JSON object that
                 contains the plugin name and arguments. The plugin's output will
                 be provided to you as a system message. You can use plugins
                 multiple times, so try to split questions into discrete,
                 easy-to-resolve parts. For example, to use a plugin named `abc`
-                with signature `(x: str, n_results: int = 10) -> str`, respond
-                with: `marvin::plugin {"name": "abc", "inputs": {"x": "hello",
-                "n_results": 5}}`
+                with signature `(x: str, n_results: int = 10) -> str`, you must
+                respond with: `marvin::plugin {"name": "abc", "inputs": {"x":
+                "hello"}}`
                 """
             )
 

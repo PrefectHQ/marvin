@@ -14,6 +14,9 @@ math_functions = {
     "log": math.log10,
     "abs": operator.abs,
     "^": operator.pow,
+    "e": math.e,
+    "pi": math.pi,
+    "π": math.pi,
 }
 
 
