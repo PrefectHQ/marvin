@@ -45,11 +45,15 @@ class Settings(BaseSettings):
     database_echo: bool = False
     database_connection_url: SecretStr = "sqlite+aiosqlite:////$HOME/marvin.db"
 
+    # CHROMA
+    default_collection: str = "marvin"
+
     # REDIS
     redis_connection_url: SecretStr = ""
 
     # BOTS
     bot_create_profile_picture: bool = False
+    bot_max_iterations: int = 10
 
     @root_validator
     def initial_setup(cls, values):

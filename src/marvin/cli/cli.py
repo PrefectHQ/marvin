@@ -29,7 +29,10 @@ spinner_messages = [
 async def chat(name: str = None, personality: str = None, instructions: str = None):
     bot = marvin.Bot(name=name, personality=personality, instructions=instructions)
 
-    print(f"[bold blue]:robot: {bot.name}[/] is listening!")
+    print(
+        f"[bold blue]:robot: {bot.name}[/] is listening! Type [bold]`exit`[/bold] to"
+        " quit."
+    )
 
     try:
         while True:
