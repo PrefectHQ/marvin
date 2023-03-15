@@ -1,4 +1,5 @@
 import asyncio
+import random
 
 import typer
 from rich import print
@@ -9,11 +10,26 @@ import marvin
 
 app = typer.Typer()
 
+spinner_messages = [
+    "Thinking...",
+    "Processing...",
+    "Beep boop, definitely not a bot...",
+    "Doing AI things...",
+    "Loading bot.exe...",
+    "Solving for x...",
+    "Consulting my magic 8-bit ball...",
+    "Artificial neurons firing...",
+    "Checking my sources...",
+    "Summoning digital spirits...",
+    "Juggling 1s and 0s...",
+    "Engaging my neural net...",
+]
 
-async def chat(name: str, personality: str):
-    bot = marvin.Bot(name=name, personality=personality)
 
-    print(f"[bold blue]:robot: {bot.name} is listening![/]")
+async def chat(name: str = None, personality: str = None, instructions: str = None):
+    bot = marvin.Bot(name=name, personality=personality, instructions=instructions)
+
+    print(f"[bold blue]:robot: {bot.name}[/] is listening!")
 
     try:
         while True:
@@ -28,7 +44,9 @@ async def chat(name: str, personality: str):
                 TextColumn("[progress.description]{task.description}"),
                 transient=True,
             ) as progress:
-                progress.add_task(description="Thinking...", total=None)
+                progress.add_task(
+                    description=random.choice(spinner_messages), total=None
+                )
                 response = await bot.say(message)
 
             print(f"[blue]{bot.name}:[/] {response}")
@@ -38,14 +56,11 @@ async def chat(name: str, personality: str):
 
 @app.command()
 def main(
-    name: str = typer.Option("Marvin", "--name", "-n"),
-    personality: str = typer.Option(
-        "The paranoid android, eager to demonstrate his abilities.",
-        "--personality",
-        "-p",
-    ),
+    name: str = typer.Option(None, "--name", "-n"),
+    personality: str = typer.Option(None, "--personality", "-p"),
+    instructions: str = typer.Option(None, "--instructions", "-i"),
 ):
-    asyncio.run(chat(name=name, personality=personality))
+    asyncio.run(chat(name=name, personality=personality, instructions=instructions))
 
 
 if __name__ == "__main__":

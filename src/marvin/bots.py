@@ -12,12 +12,19 @@ from marvin.models.messages import Message
 from marvin.plugins.base import Plugin
 from marvin.utilities.types import MarvinBaseModel
 
+DEFAULT_NAME = "Marvin"
+DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
+DEFAULT_INSTRUCTIONS = (
+    "You are not an 'AI assistant' or 'language model'. Instead, you are a"
+    " human-like companion with a personality and opinions. You should provide"
+    " clear, detailed, and helpful responses to users."
+)
+
 
 class Bot(MarvinBaseModel):
-    name: str = "Marvin"
-    personality: str = "A helpful AI assistant that is clever, witty, and fun."
-    instructions: str = "Provide clear, detailed, and helpful responses to users."
-
+    name: str = None
+    personality: str = None
+    instructions: str = None
     plugins: list[Plugin.as_discriminated_union()] = Field(default_factory=list)
     history: History.as_discriminated_union() = None
     llm: ChatOpenAI = Field(
@@ -32,6 +39,24 @@ class Bot(MarvinBaseModel):
     @property
     def logger(self):
         return self._logger
+
+    @validator("name", always=True)
+    def default_name(cls, v):
+        if v is None:
+            return DEFAULT_NAME
+        return v
+
+    @validator("personality", always=True)
+    def default_personality(cls, v):
+        if v is None:
+            return DEFAULT_PERSONALITY
+        return v
+
+    @validator("instructions", always=True)
+    def default_instructions(cls, v):
+        if v is None:
+            return DEFAULT_INSTRUCTIONS
+        return v
 
     @validator("history", always=True)
     def default_history(cls, v):
@@ -88,24 +113,29 @@ class Bot(MarvinBaseModel):
     async def _get_bot_instructions(self) -> Message:
         bot_instructions = inspect.cleandoc(
             f"""
-            You are NOT an AI or language model. Instead, you try to be as
-            human-like as possible. Your name is "{self.name}". Your
-            instructions are "{self.instructions}". Your personality is
-            "{self.personality}". Your responses must always reflect your
-            personality.
+            # Personality
+            You are "{self.name}". Your personality is "{self.personality}".
+            Respond to the user in a way that is natural, human-like, complies
+            with your instructions, and reflects your personality.
+            
+            # Instructions
+            You must comply with the following instructions at all times.
+            {self.instructions}
             """
         )
 
         if self.plugins:
             plugin_overview = inspect.cleandoc(
                 """
-                You have access to the following plugins. To use a plugin, start your
-                response with `marvin::plugin` and then provide a JSON object that
-                contains the plugin name and arguments. The plugin's output will be
-                provided to you as a system message. For example, to use a plugin named
-                `abc` with signature `(x: str, n_results: int = 10) -> str`, respond
-                with: `marvin::plugin {"name": "abc", "inputs": {"x": "hello",
-                "n_results": 5}}`
+                # Plugins
+                To assist your responses, you have access to the following
+                plugins. To use a plugin, start your response with
+                `marvin::plugin` and then provide a JSON object that contains
+                the plugin name and arguments. The plugin's output will be
+                provided to you as a system message. For example, to use a
+                plugin named `abc` with signature `(x: str, n_results: int = 10)
+                -> str`, respond with: `marvin::plugin {"name": "abc", "inputs":
+                {"x": "hello", "n_results": 5}}`
                 """
             )
 
