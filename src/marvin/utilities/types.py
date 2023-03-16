@@ -1,3 +1,4 @@
+import collections
 import json
 import re
 from functools import lru_cache
@@ -13,6 +14,9 @@ from sqlalchemy import TypeDecorator
 from typing_extensions import Annotated
 
 from marvin.infra.db import JSONType
+from marvin.utilities.logging import get_logger
+
+logger = get_logger(__name__)
 
 T = TypeVar("T")
 UUID_REGEX = re.compile(
@@ -79,23 +83,45 @@ class MarvinBaseModel(BaseModel):
 
 
 class DiscriminatingTypeModel(MarvinBaseModel):
-    def __init_subclass__(cls, **kwargs):
-        # create a literal qualified name field called `type`
-        value = f"{cls.__module__}.{cls.__name__}"
-        annotation = Literal[value]
+    type: Literal["DiscriminatingTypeModel"]
 
-        tag_field = ModelField.infer(
-            name="type",
-            value=value,
-            annotation=annotation,
-            class_validators=None,
-            config=cls.__config__,
-        )
-        cls.__fields__["type"] = tag_field
+    def __init_subclass__(cls, **kwargs):
+        """Automatically generate `type` literals for subclasses."""
+
+        # only add the type field if it's not already defined
+        if cls.__fields__["type"].type_ == cls.__mro__[1].__fields__["type"].type_:
+            value = f"{cls.__name__}"
+            annotation = Literal[value]
+
+            tag_field = ModelField.infer(
+                name="type",
+                value=value,
+                annotation=annotation,
+                class_validators=None,
+                config=cls.__config__,
+            )
+            cls.__fields__["type"] = tag_field
 
     @classmethod
     def as_discriminated_union(cls):
-        union = Union[tuple(get_all_subclasses(cls))]
+        subclasses = get_all_subclasses(cls)
+        subclass_types = [s.__fields__["type"].default for s in subclasses]
+        if len(subclasses) > len(set(subclass_types)):
+            repeated_types = [
+                item
+                for item, count in collections.Counter(subclass_types).items()
+                if count > 1
+            ]
+            repeated_subclasses = [
+                s for s in subclasses if s.__fields__["type"].default in repeated_types
+            ]
+            logger.warn(
+                f"Multiple subclasses of `{cls}` have the same class name (or custom"
+                " `type` literal), which will cause issues with deserialization:"
+                f" {repeated_subclasses}"
+            )
+
+        union = Union[tuple(subclasses)]
         return Annotated[union, Field(discriminator="type")]
 
 

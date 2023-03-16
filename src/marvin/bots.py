@@ -41,14 +41,6 @@ class Bot(MarvinBaseModel):
     plugins: list[Plugin.as_discriminated_union()] = Field(
         None, description="A list of plugins that the bot can use."
     )
-    extend_plugins: list[Plugin.as_discriminated_union()] = Field(
-        None,
-        description=(
-            "A list of plugins that the bot can use in addition to those provided as"
-            " `plugins`. Useful for adding functionality without removing the default"
-            " plugins."
-        ),
-    )
     history: History.as_discriminated_union() = None
     llm: ChatOpenAI = Field(
         default_factory=lambda: ChatOpenAI(temperature=0.9), repr=False
