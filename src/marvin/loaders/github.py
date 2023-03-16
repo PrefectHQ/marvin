@@ -155,10 +155,6 @@ class GitHubRepoLoader:
         self.glob = glob
         self.exclude_glob = exclude_glob
 
-    def _split_text_into_chunks(self, text: str, max_tokens: int) -> List[str]:
-        return textwrap.wrap(" ".join(text.split()), max_tokens)
-
-
     async def load(self) -> Digest:
         """Load files from GitHub that match the glob pattern."""
         tmp_dir = tempfile.mkdtemp()
@@ -185,17 +181,12 @@ class GitHubRepoLoader:
                 with open(file, "r") as f:
                     text = f.read()
 
-                metadata_base = {
+                metadata = {
                     "source": "/".join([self.repo.replace(".git", ""), "tree/main", str(file.relative_to(tmp_dir))])
                 }
-
-                text_chunks = self._split_text_into_chunks(text, 4096)
-                for index, chunk in enumerate(text_chunks):
-                    metadata = metadata_base.copy()
-                    metadata["id"] = f"{metadata['source']}#{index}"
-                    digest.ids.append(metadata["id"])
-                    digest.documents.append(chunk)
-                    digest.metadatas.append(metadata)
+                digest.ids.append(metadata["source"])
+                digest.documents.append(text)
+                digest.metadatas.append(metadata)
             return digest
         finally:
             shutil.rmtree(tmp_dir)
