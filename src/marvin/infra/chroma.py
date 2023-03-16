@@ -1,29 +1,34 @@
+import functools
 from typing import Literal
 
 import chromadb
+import chromadb.config
 
 import marvin
 from marvin.utilities.async_utils import run_async
 
-_chroma_client = None
 
-
-def get_client() -> chromadb.Client:
-    global _chroma_client
-    if _chroma_client is None:
-        _chroma_client = chromadb.Client()
-    return _chroma_client
+@functools.lru_cache(maxsize=10)
+def get_client(settings: chromadb.config.Settings = None) -> chromadb.Client:
+    return chromadb.Client(settings=settings or marvin.settings.chroma)
 
 
 class Chroma:
-    def __init__(self, collection: str = None):
-        self.client = get_client()
+    def __init__(
+        self,
+        topic_name: str = None,
+        settings: chromadb.config.Settings = None,
+    ):
+        self.client = get_client(settings=settings)
         self.collection = self.client.get_or_create_collection(
-            collection or marvin.settings.chroma_default_collection
+            topic_name or marvin.settings.default_topic
         )
 
     async def delete(self, ids: list[str] = None, where: dict = None):
         await run_async(self.collection.delete, ids=ids, where=where)
+
+    async def delete_collection(self, collection_name: str):
+        await run_async(self.client.delete_collection, collection_name=collection_name)
 
     async def add(
         self,
@@ -32,9 +37,14 @@ class Chroma:
         metadatas: list[dict] = None,
         ids: list[str] = None,
     ):
-        await self.collection.add(
-            documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids
+        await run_async(
+            self.collection.add,
+            documents=documents,
+            embeddings=embeddings,
+            metadatas=metadatas,
+            ids=ids,
         )
+        await run_async(self.client.persist)
 
     async def query(
         self,
