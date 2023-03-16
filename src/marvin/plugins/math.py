@@ -1,5 +1,6 @@
 import math
 import operator
+import random
 
 from simpleeval import simple_eval
 
@@ -30,3 +31,12 @@ class Calculator(Plugin):
 
     async def run(self, expression: str) -> str:
         return simple_eval(expression, functions=math_functions)
+
+
+class RandomNumber(Plugin):
+    name: str = "rng"
+
+    description: str = "Use this plugin to generate a random number between `a` and `b`"
+
+    def run(self, a: float, b: float) -> float:
+        return a + (b - a) * random.random()
