@@ -33,17 +33,17 @@ class Chroma:
 
     async def add(
         self,
-        ids: list[str] = None,
+        documents: list[str] = None,
         embeddings: list[list[float]] = None,
         metadatas: list[dict] = None,
-        documents: list[str] = None,
+        ids: list[str] = None,
     ):
         await run_async(
             self.collection.add,
-            ids=ids,
+            documents=documents,
             embeddings=embeddings,
             metadatas=metadatas,
-            documents=documents,
+            ids=ids,
         )
         await run_async(self.client.persist)
 
