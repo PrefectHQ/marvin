@@ -15,6 +15,8 @@ class ChromaSettings(chromadb.config.Settings):
         env_prefix = "MARVIN_CHROMA_"
 
     chroma_db_impl: Literal["duckdb", "duckdb+parquet"] = "duckdb+parquet"
+
+    # relative paths will be prefixed with the marvin home directory
     persist_directory: str = "chroma"
 
 
