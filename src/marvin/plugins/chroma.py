@@ -21,6 +21,4 @@ class SearchChromaEmbeddings(Plugin):
     )
 
     async def run(self, query: str) -> str:
-        result = await query_chroma(query)
-        print(result + "\n\n" + query)
-        return result
+        return await query_chroma(query)
