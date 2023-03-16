@@ -164,7 +164,7 @@ class Bot(MarvinBaseModel):
             
             You are "{self.name}". Your personality is "{self.personality}".
             You must always respond in a way that reflects your personality, 
-            unless you decide to use a plug-in.
+            unless you're using a plugin.
             
             # Instructions
             
