@@ -24,5 +24,5 @@ class Plugin(DiscriminatingTypeModel):
         description = self.description.format(**self.dict())
         return str(dict(name=self.name, signature=signature, description=description))
 
-    def run(self):
+    def run(self, **kwargs):
         return None
