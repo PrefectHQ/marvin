@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
 
+from chromadb.config import Settings as ChromaSettings
 from pydantic import BaseSettings, Field, SecretStr, root_validator, validator
 from rich import print
 from rich.text import Text
@@ -46,7 +47,11 @@ class Settings(BaseSettings):
     database_connection_url: SecretStr = "sqlite+aiosqlite:////$HOME/marvin.db"
 
     # CHROMA
-    default_collection: str = "marvin"
+    chroma_default_collection: str = "marvin"
+    chroma_client_settings: ChromaSettings = ChromaSettings(
+        chroma_db_impl="duckdb+parquet",
+        persist_directory=str(Path("~/.marvin/chroma").expanduser()),
+    )
 
     # REDIS
     redis_connection_url: SecretStr = ""

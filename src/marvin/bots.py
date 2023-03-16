@@ -108,6 +108,7 @@ class Bot(MarvinBaseModel):
                     plugin_input = json.loads(response.split("marvin::plugin")[1])
                 except json.JSONDecodeError as exc:
                     messages.append(Message(role="system", content=f"Error: {exc}"))
+                    self.logger.error_kv("Plugin Input", f"Error: {exc}", "bold red")
                 plugin_output = await self._run_plugin(
                     plugin_name=plugin_input["name"],
                     plugin_inputs=plugin_input["inputs"],
@@ -140,12 +141,10 @@ class Bot(MarvinBaseModel):
     async def _get_bot_instructions(self) -> Message:
         bot_instructions = inspect.cleandoc(
             f"""
-            # Personality
-            You are "{self.name}". Your personality is "{self.personality}".
+            From now on, You are "{self.name}". Your personality is "{self.personality}".
             You must always respond in a way that reflects your personality, 
-            unless you're using a plugin.
+            unless you decide to use a plug-in.
             
-            # Instructions
             You must comply with the following instructions at all times.
             {self.instructions}
             """
@@ -155,16 +154,19 @@ class Bot(MarvinBaseModel):
             plugin_overview = inspect.cleandoc(
                 """
                 # Plugins 
-                To assist your responses, you have access to the
-                following plugins. To use a plugin, your response MUST start
-                with "marvin::plugin" and then provide a JSON object that
-                contains the plugin name and arguments. The plugin's output will
-                be provided to you as a system message. You can use plugins
-                multiple times, so try to split questions into discrete,
-                easy-to-resolve parts. For example, to use a plugin named `abc`
-                with signature `(x: str, n_results: int = 10) -> str`, you must
+                To assist your responses, you have access to plugins.
+                To use a plugin, your response MUST begin with "marvin::plugin ",
+                followed by a JSON object that contains the plugin "name",
+                and the "inputs" provided. The JSON object must be valid JSON,
+                which means all values within must be double-quoted. NEVER include
+                ANY additional text or whitespace before "marvin::plugin " or after the JSON object.
+                
+                For example, to use a plugin named `abc`
+                with signature `(x: str, n_results: int = 10) -> str`, you MUST
                 respond with: `marvin::plugin {"name": "abc", "inputs": {"x":
-                "hello"}}`
+                "hello", "n_results": 10}}`
+                
+                The following plugins are available and should be used when appropriate:
                 """
             )
 
@@ -173,7 +175,8 @@ class Bot(MarvinBaseModel):
             )
 
             bot_instructions += f"\n\n{plugin_overview}\n\n{plugin_descriptions}"
-
+            
+        self.logger.debug_kv("System message", bot_instructions, "bold blue")
         return Message(role="system", content=bot_instructions)
 
     async def _get_history(self) -> list[Message]:

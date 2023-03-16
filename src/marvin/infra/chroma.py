@@ -1,8 +1,7 @@
-from typing import Literal
-
 import chromadb
-
 import marvin
+from chromadb.api.models.Collection import Collection
+from chromadb.api.types import Include, QueryResult
 from marvin.utilities.async_utils import run_async
 
 _chroma_client = None
@@ -11,14 +10,14 @@ _chroma_client = None
 def get_client() -> chromadb.Client:
     global _chroma_client
     if _chroma_client is None:
-        _chroma_client = chromadb.Client()
+        _chroma_client = chromadb.Client(marvin.settings.chroma_client_settings)
     return _chroma_client
 
 
 class Chroma:
-    def __init__(self, collection: str = None):
-        self.client = get_client()
-        self.collection = self.client.get_or_create_collection(
+    def __init__(self, collection: str = None): # topic
+        self.client: chromadb.Client = get_client()
+        self.collection: Collection = self.client.get_or_create_collection(
             collection or marvin.settings.chroma_default_collection
         )
 
@@ -27,13 +26,17 @@ class Chroma:
 
     async def add(
         self,
+        ids: list[str],
         documents: list[str] = None,
         embeddings: list[list[float]] = None,
         metadatas: list[dict] = None,
-        ids: list[str] = None,
     ):
-        await self.collection.add(
-            documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids
+        await run_async(
+            self.collection.add,
+            ids=ids,
+            documents=documents,
+            embeddings=embeddings,
+            metadatas=metadatas
         )
 
     async def query(
@@ -43,9 +46,9 @@ class Chroma:
         n_results: int = 10,
         where: dict = None,
         where_document: dict = None,
-        include: list[Literal["embeddings", "documents", "metadata"]] = None,
+        include: Include = ["metadatas"],
         **kwargs
-    ):
+    ) -> QueryResult:
         return await run_async(
             self.collection.query,
             query_embeddings=query_embeddings,
@@ -53,7 +56,7 @@ class Chroma:
             n_results=n_results,
             where=where,
             where_document=where_document,
-            include=include or [],
+            include=include,
             **kwargs
         )
 
@@ -61,7 +64,7 @@ class Chroma:
         self,
         ids: list[str] = None,
         where: dict = None,
-        include: list[Literal["embeddings", "documents", "metadata"]] = None,
+        include: Include = None,
     ):
         await run_async(
             self.collection.get, ids=ids, where=where, include=include or []
