@@ -1,15 +1,19 @@
 """Loaders for GitHub."""
 import asyncio
 import fnmatch
+import functools
 import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
 import httpx
+from pydantic import BaseModel, Field, validator
+
+from marvin.loaders.base import Loader
 from marvin.models.digests import Digest
-from pydantic import BaseModel, Field
+from marvin.utilities.logging import read_stream
 
 
 class GitHubUser(BaseModel):
@@ -42,27 +46,28 @@ class GitHubIssue(BaseModel):
     user: GitHubUser = Field(default_factory=GitHubUser)
 
 
-class GithubIssueLoader:
+class GithubIssueLoader(Loader):
     """Loader for GitHub issues for a given repository."""
 
-    def __init__(self, repo: str, n_issues: int):
-        """
-        Initialize the loader with the given repository.
+    repo: str = Field(...)
+    n_issues: int = Field(default=50)
+    request_headers: Dict[str, str] = Field(default_factory=dict)
 
-        Args:
-            repo: The name of the repository, in the format "<owner>/<repo>"
-        """
-        self.repo = repo
-        self.n_issues = n_issues
-        self.request_headers = {
-            "Accept": "application/vnd.github.v3+json",
-        }
-        # If a GitHub token is available, use it to increase the rate limit
+    @validator("request_headers")
+    def auth_headers(cls, v):
+        """Add authentication headers if a GitHub token is available."""
+        v.update({"Accept": "application/vnd.github.v3+json"})
         if token := os.environ.get("GITHUB_TOKEN"):
-            self.request_headers["Authorization"] = f"Bearer {token}"
+            v["Authorization"] = f"Bearer {token}"
+        return v
 
+    @staticmethod
+    @functools.lru_cache(maxsize=128)
     def _get_issue_comments(
-        self, issue_number: int, per_page: int = 100
+        repo: str,
+        request_headers: Dict[str, str],
+        issue_number: int,
+        per_page: int = 100,
     ) -> List[GitHubComment]:
         """
         Get a list of all comments for the given issue.
@@ -70,13 +75,13 @@ class GithubIssueLoader:
         Returns:
             A list of dictionaries, each representing a comment.
         """
-        url = f"https://api.github.com/repos/{self.repo}/issues/{issue_number}/comments"
+        url = f"https://api.github.com/repos/{repo}/issues/{issue_number}/comments"
         comments = []
         page = 1
         while True:
             response = httpx.get(
                 url=url,
-                headers=self.request_headers,
+                headers=request_headers,
                 params={"per_page": per_page, "page": page},
             )
             response.raise_for_status()
@@ -124,8 +129,7 @@ class GithubIssueLoader:
             A list of `Document` objects, each representing an issue.
         """
         digest = Digest()
-        issues = self._get_issues()
-        for issue in issues:
+        for issue in self._get_issues():
             text = f"{issue.title}\n{issue.body}"
             for comment in self._get_issue_comments(issue.number):
                 text += f"\n\n{comment.user.login}: {comment.body}\n\n"
@@ -134,35 +138,43 @@ class GithubIssueLoader:
                 "title": issue.title,
                 "labels": ",".join([label.name for label in issue.labels]),
             }
-            digest.ids.append(f"{self.repo}#{issue.number}")
+            digest.ids.append(f"gh_issue/{issue.number}")
             digest.documents.append(text)
             digest.metadatas.append(metadata)
         return digest
 
 
-class GitHubRepoLoader:
+class GitHubRepoLoader(Loader):
     """Loader for files on GitHub that match a glob pattern."""
 
-    def __init__(self, repo: str, glob: str, exclude_glob: str | None = None):
-        """Initialize with the GitHub repository and glob pattern.
+    repo: str = Field(...)
+    glob: str = Field(default="*")
+    exclude_glob: str | None = Field(default=None)
 
-        Attrs:
-            repo: The organization and repository name, e.g. "prefecthq/prefect"
-            glob: The glob pattern to match files, e.g. "**/*.md"
-            exclude_glob: A glob pattern to exclude files, e.g. "**/docs/api-ref/**"
-
-        """
-        self.repo = f"https://github.com/{repo}.git"
-        self.glob = glob
-        self.exclude_glob = exclude_glob
+    @validator("repo")
+    def validate_repo(cls, v):
+        """Validate the GitHub repository."""
+        if "/" not in v:
+            raise ValueError(
+                "Must provide a GitHub repository in the format 'owner/repo'"
+            )
+        return f"https://github.com/{v}.git"
 
     async def load(self) -> Digest:
         """Load files from GitHub that match the glob pattern."""
         tmp_dir = tempfile.mkdtemp()
         try:
             process = await asyncio.create_subprocess_exec(
-                *["git", "clone", "--depth", "1", self.repo, tmp_dir]
+                *["git", "clone", "--depth", "1", self.repo, tmp_dir],
+                stderr=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
             )
+
+            await asyncio.gather(
+                read_stream(process.stdout, self.logger.debug),
+                read_stream(process.stderr, self.logger.debug),
+            )
+
             if (await process.wait()) != 0:
                 raise OSError(
                     f"Failed to clone repository:\n {process.stderr.decode()}"
@@ -197,7 +209,3 @@ class GitHubRepoLoader:
             return digest
         finally:
             shutil.rmtree(tmp_dir)
-
-    async def load_and_store(self, topic_name: str) -> None:
-        # topic_name --> collection name
-        pass

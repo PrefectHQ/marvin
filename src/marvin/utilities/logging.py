@@ -79,3 +79,10 @@ def add_logging_methods(logger):
 setup_logging()
 if marvin.settings.rich_tracebacks:
     install_rich_tracebacks()
+
+
+async def read_stream(stream, log_func):
+    while not stream.at_eof():
+        line = await stream.readline()
+        if line:
+            log_func(line.decode().strip())

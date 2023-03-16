@@ -8,7 +8,7 @@ async def query_chroma(query: str, n: int = 4):
     results = await chroma.query(
         query_texts=[query],
         n_results=n,
-        include=["documents", "metadatas"],
+        include=["documents"],
     )
     summary = "\n\n".join(
         f"({link}): {doc}" for link, doc in zip(results["ids"], results["documents"])
@@ -17,10 +17,10 @@ async def query_chroma(query: str, n: int = 4):
     return slice_tokens(summary, 2000)
 
 
-class SearchChromaEmbeddings(Plugin):
+class ChromaVectorstore(Plugin):
     description: str = (
-        "Search Chroma for documents similar to a query - "
-        "Use this plugin when asked about prefect."
+        "Search Chroma for documents that are similar to a user query - "
+        "Use this plugin when asked about Prefect-related things."
     )
 
     async def run(self, query: str) -> str:

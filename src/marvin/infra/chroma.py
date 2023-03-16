@@ -2,6 +2,7 @@ import functools
 
 import chromadb
 import chromadb.config
+from chromadb.api.models.Collection import Collection
 from chromadb.api.types import Include, QueryResult
 
 import marvin
@@ -20,7 +21,7 @@ class Chroma:
         settings: chromadb.config.Settings = None,
     ):
         self.client = get_client(settings=settings)
-        self.collection = self.client.get_or_create_collection(
+        self.collection: Collection = self.client.get_or_create_collection(
             topic_name or marvin.settings.default_topic
         )
 
@@ -32,17 +33,17 @@ class Chroma:
 
     async def add(
         self,
-        ids: list[str],
-        documents: list[str] = None,
+        ids: list[str] = None,
         embeddings: list[list[float]] = None,
         metadatas: list[dict] = None,
+        documents: list[str] = None,
     ):
         await run_async(
             self.collection.add,
-            documents=documents,
+            ids=ids,
             embeddings=embeddings,
             metadatas=metadatas,
-            ids=ids,
+            documents=documents,
         )
         await run_async(self.client.persist)
 
