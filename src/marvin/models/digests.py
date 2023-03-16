@@ -1,5 +1,7 @@
-from marvin.models.base import MarvinBaseModel
 from pydantic import Field
+
+from marvin.models.base import MarvinBaseModel
+
 
 class Digest(MarvinBaseModel):
     ids: list[str] = Field(default_factory=list)

@@ -200,7 +200,7 @@ class Bot(MarvinBaseModel):
             )
 
             bot_instructions += f"\n\n{plugin_overview}\n\n{plugin_descriptions}"
-            
+
         self.logger.debug_kv("System message", bot_instructions, "bold blue")
         return Message(role="system", content=bot_instructions)
 

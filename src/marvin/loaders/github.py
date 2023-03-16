@@ -1,16 +1,16 @@
 """Loaders for GitHub."""
 import asyncio
 import fnmatch
-import httpx
 import os
 import shutil
 import tempfile
-import textwrap
 from pathlib import Path
-from pydantic import BaseModel, Field
 from typing import List
 
+import httpx
 from marvin.models.digests import Digest
+from pydantic import BaseModel, Field
+
 
 class GitHubUser(BaseModel):
     """GitHub user."""
@@ -40,6 +40,7 @@ class GitHubIssue(BaseModel):
     body: str | None = Field(default="")
     labels: List[GitHubLabel] = Field(default_factory=GitHubLabel)
     user: GitHubUser = Field(default_factory=GitHubUser)
+
 
 class GithubIssueLoader:
     """Loader for GitHub issues for a given repository."""
@@ -176,13 +177,19 @@ class GitHubRepoLoader:
                     for file in matched_files
                     if not fnmatch.fnmatch(file, self.exclude_glob)
                 ]
-            
+
             for file in matched_files:
                 with open(file, "r") as f:
                     text = f.read()
 
                 metadata = {
-                    "source": "/".join([self.repo.replace(".git", ""), "tree/main", str(file.relative_to(tmp_dir))])
+                    "source": "/".join(
+                        [
+                            self.repo.replace(".git", ""),
+                            "tree/main",
+                            str(file.relative_to(tmp_dir)),
+                        ]
+                    )
                 }
                 digest.ids.append(metadata["source"])
                 digest.documents.append(text)
@@ -190,7 +197,7 @@ class GitHubRepoLoader:
             return digest
         finally:
             shutil.rmtree(tmp_dir)
-            
+
     async def load_and_store(self, topic_name: str) -> None:
         # topic_name --> collection name
         pass

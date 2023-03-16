@@ -1,7 +1,8 @@
 import chromadb
-import marvin
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import Include, QueryResult
+
+import marvin
 from marvin.utilities.async_utils import run_async
 
 _chroma_client = None
@@ -15,7 +16,7 @@ def get_client() -> chromadb.Client:
 
 
 class Chroma:
-    def __init__(self, collection: str = None): # topic
+    def __init__(self, collection: str = None):  # topic
         self.client: chromadb.Client = get_client()
         self.collection: Collection = self.client.get_or_create_collection(
             collection or marvin.settings.chroma_default_collection
@@ -36,7 +37,7 @@ class Chroma:
             ids=ids,
             documents=documents,
             embeddings=embeddings,
-            metadatas=metadatas
+            metadatas=metadatas,
         )
 
     async def query(
