@@ -2,12 +2,22 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
 
-from chromadb.config import Settings as ChromaSettings
+import chromadb
 from pydantic import BaseSettings, Field, SecretStr, root_validator, validator
 from rich import print
 from rich.text import Text
 
 import marvin
+
+
+class ChromaSettings(chromadb.config.Settings):
+    class Config:
+        env_prefix = "MARVIN_CHROMA_"
+
+    chroma_db_impl: Literal["duckdb", "duckdb+parquet"] = "duckdb+parquet"
+
+    # relative paths will be prefixed with the marvin home directory
+    persist_directory: str = "chroma"
 
 
 class Settings(BaseSettings):
@@ -42,16 +52,15 @@ class Settings(BaseSettings):
         "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
     )
 
+    # CHROMA
+    chroma: ChromaSettings = Field(default_factory=ChromaSettings)
+
+    # DOCUMENTS
+    default_topic = "marvin"
+
     # DATABASE
     database_echo: bool = False
-    database_connection_url: SecretStr = "sqlite+aiosqlite:////$HOME/marvin.db"
-
-    # CHROMA
-    chroma_default_collection: str = "marvin"
-    chroma_client_settings: ChromaSettings = ChromaSettings(
-        chroma_db_impl="duckdb+parquet",
-        persist_directory=str(Path("~/.marvin/chroma").expanduser()),
-    )
+    database_connection_url: SecretStr = "sqlite+aiosqlite:////$MARVIN_HOME/marvin.db"
 
     # REDIS
     redis_connection_url: SecretStr = ""
@@ -71,11 +80,20 @@ class Settings(BaseSettings):
             )
         values["embeddings_cache_path"].parent.mkdir(parents=True, exist_ok=True)
 
+        # prefix HOME to chroma path
+        chroma_persist_directory = Path(values["chroma"]["persist_directory"])
+        if not chroma_persist_directory.is_absolute():
+            chroma_persist_directory = values["home"] / chroma_persist_directory
+            values["chroma"] = ChromaSettings(
+                **values["chroma"].dict(exclude={"persist_directory"}),
+                persist_directory=str(chroma_persist_directory),
+            )
+
         # interpolate HOME into database connection URL
         values["database_connection_url"] = SecretStr(
             values["database_connection_url"]
             .get_secret_value()
-            .replace("$HOME", str(values["home"]))
+            .replace("$MARVIN_HOME", str(values["home"]))
         )
 
         # print if verbose = True
