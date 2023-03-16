@@ -6,7 +6,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import httpx
 from pydantic import BaseModel, Field, validator
@@ -46,14 +46,14 @@ class GitHubIssue(BaseModel):
     user: GitHubUser = Field(default_factory=GitHubUser)
 
 
-class GithubIssueLoader(Loader):
+class GitHubIssueLoader(Loader):
     """Loader for GitHub issues for a given repository."""
 
     repo: str = Field(...)
     n_issues: int = Field(default=50)
     request_headers: Dict[str, str] = Field(default_factory=dict)
 
-    @validator("request_headers")
+    @validator("request_headers", always=True)
     def auth_headers(cls, v):
         """Add authentication headers if a GitHub token is available."""
         v.update({"Accept": "application/vnd.github.v3+json"})
@@ -62,10 +62,10 @@ class GithubIssueLoader(Loader):
         return v
 
     @staticmethod
-    @functools.lru_cache(maxsize=128)
+    @functools.lru_cache()
     def _get_issue_comments(
         repo: str,
-        request_headers: Dict[str, str],
+        request_header_items: Tuple[Tuple[str, str]],
         issue_number: int,
         per_page: int = 100,
     ) -> List[GitHubComment]:
@@ -81,7 +81,7 @@ class GithubIssueLoader(Loader):
         while True:
             response = httpx.get(
                 url=url,
-                headers=request_headers,
+                headers=dict(request_header_items),
                 params={"per_page": per_page, "page": page},
             )
             response.raise_for_status()
@@ -121,7 +121,7 @@ class GithubIssueLoader(Loader):
             page += 1
         return issues
 
-    def load(self) -> Digest:
+    async def load(self) -> Digest:
         """
         Load all issues for the given repository.
 
@@ -131,7 +131,9 @@ class GithubIssueLoader(Loader):
         digest = Digest()
         for issue in self._get_issues():
             text = f"{issue.title}\n{issue.body}"
-            for comment in self._get_issue_comments(issue.number):
+            for comment in self._get_issue_comments(
+                self.repo, tuple(self.request_headers.items()), issue.number
+            ):
                 text += f"\n\n{comment.user.login}: {comment.body}\n\n"
             metadata = {
                 "source": issue.html_url,

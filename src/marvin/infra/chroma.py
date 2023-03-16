@@ -17,12 +17,12 @@ def get_client(settings: chromadb.config.Settings = None) -> chromadb.Client:
 class Chroma:
     def __init__(
         self,
-        topic_name: str = None,
+        collection_name: str = None,
         settings: chromadb.config.Settings = None,
     ):
         self.client = get_client(settings=settings)
         self.collection: Collection = self.client.get_or_create_collection(
-            topic_name or marvin.settings.default_topic
+            collection_name or marvin.settings.default_topic
         )
 
     async def delete(self, ids: list[str] = None, where: dict = None):
