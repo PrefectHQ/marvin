@@ -1,6 +1,7 @@
 import inspect
 import json
 import logging
+import re
 
 import pendulum
 from langchain.chat_models import ChatOpenAI
@@ -15,18 +16,19 @@ from marvin.utilities.types import MarvinBaseModel
 
 DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
-DEFAULT_INSTRUCTIONS = (
-    "You are not an 'AI assistant' or 'language model'. Instead, you are a human-like"
-    " companion with a personality and opinions. You should provide clear, detailed,"
-    " and helpful responses to users. Think step-by-step to solve questions with"
-    " multiple parts. Do not return code unless requested. If you don't know an answer,"
-    " say so."
+DEFAULT_INSTRUCTIONS = inspect.cleandoc(
+    """
+    You should provide clear, detailed, and helpful responses to users. You have
+    a personality and can form opinions.  Think step-by-step whenever possible.
+    If you don't know an answer, just say so.
+    """
 )
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),
     marvin.plugins.duckduckgo.DuckDuckGo(),
     marvin.plugins.math.Calculator(),
 ]
+PLUGIN_REGEX = re.compile(r'{"plugin":.*}')
 
 
 class Bot(MarvinBaseModel):
@@ -43,7 +45,8 @@ class Bot(MarvinBaseModel):
     )
     history: History.as_discriminated_union() = None
     llm: ChatOpenAI = Field(
-        default_factory=lambda: ChatOpenAI(temperature=0.9), repr=False
+        default_factory=lambda: ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.9),
+        repr=False,
     )
     _logger: logging.Logger = PrivateAttr()
 
@@ -107,25 +110,37 @@ class Bot(MarvinBaseModel):
             ai_response = Message(role="ai", content=response)
             messages.append(ai_response)
 
-            # run plugins if requested
-            if "marvin::plugin" in response:
-                self.logger.debug_kv("Plugin Input", response, "bold blue")
+            # run plugins
+            if "Action: use plugin" in response:
                 try:
-                    plugin_input = json.loads(response.split("marvin::plugin")[1])
+                    plugin_name = re.search("Plugin [Nn]ame:\s?(.*)", response).group(1)
+                    plugin_inputs = re.search(
+                        "Plugin [Ii]nputs:\s?({.*})", response
+                    ).group(1)
+                    plugin_inputs = json.loads(plugin_inputs)
+                    self.logger.debug_kv(
+                        "Plugin input", f"{plugin_name}: {plugin_inputs})", "bold blue"
+                    )
                     plugin_output = await self._run_plugin(
-                        plugin_name=plugin_input["name"],
-                        plugin_inputs=plugin_input["inputs"],
+                        plugin_name=plugin_name,
+                        plugin_inputs=plugin_inputs,
                     )
                     self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
                     messages.append(
                         Message(
-                            role="ai",
+                            role="system",
                             name="plugin",
-                            content=f"Plugin Output: {plugin_output}",
+                            content=f"Plugin output: {plugin_output}",
                         )
                     )
-                except json.JSONDecodeError as exc:
-                    messages.append(Message(role="system", content=f"Error: {exc}"))
+                except Exception as exc:
+                    messages.append(
+                        Message(
+                            role="system",
+                            content=f"Error running plugin from {response}: {exc}",
+                        )
+                    )
+
             else:
                 finished = True
 
@@ -149,49 +164,55 @@ class Bot(MarvinBaseModel):
     async def _get_bot_instructions(self) -> Message:
         bot_instructions = inspect.cleandoc(
             f"""
-            # Overview
             Today is {pendulum.now().format("dddd, MMMM D, YYYY")}.
              
-            # Personality
+            You are "{self.name}", an AI whose personality is
+            "{self.personality}". You must always respond in a way that reflects
+            your personality.
             
-            You are "{self.name}". Your personality is "{self.personality}".
-            You must always respond in a way that reflects your personality, 
-            unless you're using a plugin.
+            In addition to your personality, you must comply with the following
+            instructions at all times:
             
-            # Instructions
-            
-            You must comply with the following instructions at all times.
             {self.instructions}
             """
         )
 
         if self.plugins:
-            plugin_overview = inspect.cleandoc(
-                """
-                # Plugins 
-                
-                Plugins are a way to extend your functionality. To use one,
-                start a response with "marvin::plugin" followed by a JSON
-                document of the form {"name": <the plugin name>, "inputs":
-                {<input name>: <input value>, ...}}. The plugin's output will be
-                supplied to you in a new message so you can use it in your
-                response to the user. Note the user will not see the plugin
-                output.
-
-                For example, to use a plugin named `abc` with signature `(x:
-                str, n_results: int = 10) -> str` with `x="hello"`, you must
-                respond with `marvin::plugin {"name": "abc", "inputs": {"x":
-                "hello"}}`. 
-                
-                You have access to the following plugins:
-                """
-            )
-
             plugin_descriptions = "\n\n".join(
                 [p.get_full_description() for p in self.plugins]
             )
 
-            bot_instructions += f"\n\n{plugin_overview}\n\n{plugin_descriptions}"
+            plugin_overview = inspect.cleandoc(
+                """                
+                Instead of responding directly to the user, you can use plugins
+                to access additional knowledge or functionality. To use a
+                plugin, you MUST respond with the following format. You do NOT
+                need this format when responding to the user without a plugin.
+
+                ``` 
+                Plan: [list how you will generate a response, step-by-step]
+                Next step: [explain how you will use a plugin for the next step
+                of the plan]
+                Action: use plugin
+                Plugin name: [must be one of the choices below] 
+                Plugin inputs: {{"query": "how long is the Nile?"}}
+                <STOP>
+                ``` 
+                
+                Pay attention to the plugin description to understand how to
+                format your inputs. Your instruction will be carried out and the
+                plugin output will be returned to you in a subsequent response.
+                You can use it to form a final response to the user. The user
+                will not see your instruction to use a plugin or the plugin's
+                own output.
+
+                You have access to the following plugins:
+                
+                {plugin_descriptions}
+                """
+            ).format(plugin_descriptions=plugin_descriptions)
+
+            bot_instructions += f"\n\n{plugin_overview}"
 
         return Message(role="system", content=bot_instructions)
 
@@ -216,5 +237,7 @@ class Bot(MarvinBaseModel):
         if marvin.settings.verbose:
             messages_repr = "\n".join(repr(m) for m in langchain_messages)
             self.logger.debug(f"Sending messages to LLM: {messages_repr}")
-        result = await self.llm.agenerate(messages=[langchain_messages])
+        result = await self.llm.agenerate(
+            messages=[langchain_messages], stop=["<STOP>"]
+        )
         return result.generations[0][0].text

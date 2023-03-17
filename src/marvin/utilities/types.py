@@ -83,37 +83,33 @@ class MarvinBaseModel(BaseModel):
 
 
 class DiscriminatingTypeModel(MarvinBaseModel):
-    type: Literal["DiscriminatingTypeModel"]
-
     def __init_subclass__(cls, **kwargs):
         """Automatically generate `type` literals for subclasses."""
 
-        # only add the type field if it's not already defined
-        if cls.__fields__["type"].type_ == cls.__mro__[1].__fields__["type"].type_:
-            value = f"{cls.__name__}"
-            annotation = Literal[value]
+        value = f"{cls.__name__}"
+        annotation = Literal[value]
 
-            tag_field = ModelField.infer(
-                name="type",
-                value=value,
-                annotation=annotation,
-                class_validators=None,
-                config=cls.__config__,
-            )
-            cls.__fields__["type"] = tag_field
+        tag_field = ModelField.infer(
+            name="type",
+            value=value,
+            annotation=annotation,
+            class_validators=None,
+            config=cls.__config__,
+        )
+        cls.__fields__["type"] = tag_field
 
     @classmethod
     def as_discriminated_union(cls):
         subclasses = get_all_subclasses(cls)
-        subclass_types = [s.__fields__["type"].default for s in subclasses]
-        if len(subclasses) > len(set(subclass_types)):
+        subclass_names = [s.__name__ for s in subclasses]
+        if len(subclasses) > len(set(subclass_names)):
             repeated_types = [
                 item
-                for item, count in collections.Counter(subclass_types).items()
+                for item, count in collections.Counter(subclass_names).items()
                 if count > 1
             ]
             repeated_subclasses = [
-                s for s in subclasses if s.__fields__["type"].default in repeated_types
+                s for s in subclasses if s.__name__ in repeated_types
             ]
             logger.warn(
                 f"Multiple subclasses of `{cls}` have the same class name (or custom"

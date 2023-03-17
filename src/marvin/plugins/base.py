@@ -32,19 +32,19 @@ class Plugin(DiscriminatingTypeModel):
                 "Either a description or a run() docstring must be provided for the"
                 " plugin."
             )
-        return v or cls.run.__doc__
+        return v
 
     def get_full_description(self) -> str:
         signature = str(inspect.signature(self.run))
         description = self.description.format(**self.dict())
         docstring = self.run.__doc__
-        return inspect.cleandoc(
-            f"""
-            {self.name}: {signature}
-            {description}
-            {docstring}
-            """
-        )
+
+        result = f"Name: {self.name}\nSignature: {signature}"
+        if description:
+            result += f"\n{description}"
+        if docstring:
+            result += f"\n{docstring}"
+        return result
 
     def run(self, **kwargs):
         return None

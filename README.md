@@ -44,5 +44,5 @@ class RandomNumber(Plugin):
 
 bot = Bot(plugins=[RandomNumber()])
 
-await bot.say('pick a random number between 41 and 43')
+await bot.say('Use the plugin to pick a random number between 41 and 43')
 ```
