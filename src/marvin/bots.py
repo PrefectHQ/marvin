@@ -185,9 +185,10 @@ class Bot(MarvinBaseModel):
             plugin_overview = inspect.cleandoc(
                 """                
                 Instead of responding directly to the user, you can use plugins
-                to access additional knowledge or functionality. To use a
-                plugin, you MUST respond with the following format. You do NOT
-                need this format when responding to the user without a plugin.
+                to access additional knowledge or functionality. You should do
+                so whenever it would be helpful. To use a plugin, you MUST
+                respond with the following format. You do NOT need this format
+                when responding to the user without a plugin.
 
                 ``` 
                 Plan: [list how you will generate a response, step-by-step]
