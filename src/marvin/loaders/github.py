@@ -184,7 +184,7 @@ class GitHubRepoLoader(Loader):
 
             # Read the contents of each file that matches the glob pattern
             digest = Digest()
-            matched_files = list(Path(tmp_dir).glob(self.glob))
+            matched_files = [p for p in Path(tmp_dir).glob(self.glob) if p.is_file()]
             if self.exclude_glob:
                 matched_files = [
                     file
@@ -193,6 +193,7 @@ class GitHubRepoLoader(Loader):
                 ]
 
             for file in matched_files:
+                self.logger.debug(f"Loading file: {file!r}")
                 with open(file, "r") as f:
                     text = f.read()
 

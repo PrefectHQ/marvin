@@ -20,7 +20,7 @@ async def query_chroma(query: str, n: int = 4):
 class ChromaVectorstore(Plugin):
     description: str = (
         "Search Chroma for documents that are similar to a user query - "
-        "Use this plugin when asked about Prefect-related things."
+        "Use this plugin whenever asked about Prefect-related things. "
     )
 
     async def run(self, query: str) -> str:

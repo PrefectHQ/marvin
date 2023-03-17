@@ -53,6 +53,8 @@ class Bot(MarvinBaseModel):
     llm: ChatOpenAI = Field(
         default_factory=lambda: ChatOpenAI(temperature=0.9), repr=False
     )
+    instructed: bool = False
+
     _logger: logging.Logger = PrivateAttr()
 
     def __init__(self, **data):
@@ -93,12 +95,15 @@ class Bot(MarvinBaseModel):
             return InMemoryHistory()
         return v
 
+    @property
+    def all_plugins(self):
+        return self.plugins + self.extend_plugins
+
     async def say(self, message):
-        bot_instructions = await self._get_bot_instructions()
         history = await self._get_history()
         user_message = Message(role="user", content=message)
 
-        messages = [bot_instructions] + history + [user_message]
+        messages = [await self._get_bot_instructions()] + history + [user_message]
 
         self.logger.debug_kv("User message", message, "bold blue")
         await self.history.add_message(user_message)
@@ -143,7 +148,7 @@ class Bot(MarvinBaseModel):
         return response
 
     async def _run_plugin(self, plugin_name: str, plugin_inputs: dict) -> str:
-        plugin = next((p for p in self.plugins if p.name == plugin_name), None)
+        plugin = next((p for p in self.all_plugins if p.name == plugin_name), None)
         if plugin is None:
             return f'Plugin "{plugin_name}" not found.'
         try:
@@ -196,7 +201,7 @@ class Bot(MarvinBaseModel):
             )
 
             plugin_descriptions = "\n\n".join(
-                [p.get_full_description() for p in self.plugins]
+                [p.get_full_description() for p in self.all_plugins]
             )
 
             bot_instructions += f"\n\n{plugin_overview}\n\n{plugin_descriptions}"

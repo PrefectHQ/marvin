@@ -95,3 +95,20 @@ async def delete_topic_by_id(
     )
     await session.execute(sa.delete(Topic).where(Topic.id == topic_id))
     await session.commit()
+
+
+@router.put(
+    "/{topic}",
+    status_code=status.HTTP_200_OK,
+)
+@provide_session()
+async def update_topic(
+    topic: str,
+    new_topic: Topic = Body(),
+    session: AsyncSession = None,
+) -> Topic:
+    db_topic = await get_topic(topic, session=session)
+    db_topic.name = new_topic.name
+    db_topic.description = new_topic.description
+    await session.commit()
+    return db_topic
