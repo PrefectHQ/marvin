@@ -46,8 +46,8 @@ async def search_ddg(query: str, n: int = 5) -> str:
 class DuckDuckGo(Plugin):
     description: str = (
         "Search the web with DuckDuckGo. Use this plugin to answer questions that are"
-        " unlikely to be in your training data or about current events. You can break"
-        " queries into multiple parts to solve problems step-by-step."
+        " unlikely to be in your training data or about current events. Works best with"
+        " simple, discrete queries for one question at a time."
     )
 
     async def run(self, query: str) -> str:

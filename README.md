@@ -38,17 +38,11 @@ Plugins add functionality to your bot beyond simple conversation. By default, bo
 from marvin import Bot, Plugin
 
 class RandomNumber(Plugin):
-    # an optional name that should be unique; the class named will be used by default
-    name: str = 'rng'
-
-    # the bot will have access to this description to decide whether it should use the plugin
-    description: str = 'Use this plugin to generate a random number between `a` and `b`'
-
-    # the plugin's run method, which can have an arbitrary signature.
     def run(self, a:float, b:float) -> float:
+        """Generate a random number between a and b"""
         return a + (b - a) * random.random()
 
-bot = Bot(extend_plugins=[RandomNumber()])
+bot = Bot(plugins=[RandomNumber()])
 
-await bot.say('pick a random number between 41 and 43')
+await bot.say('Use the plugin to pick a random number between 41 and 43')
 ```

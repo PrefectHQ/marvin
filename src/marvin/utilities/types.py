@@ -1,3 +1,4 @@
+import collections
 import json
 import re
 from functools import lru_cache
@@ -13,6 +14,9 @@ from sqlalchemy import TypeDecorator
 from typing_extensions import Annotated
 
 from marvin.infra.db import JSONType
+from marvin.utilities.logging import get_logger
+
+logger = get_logger(__name__)
 
 T = TypeVar("T")
 UUID_REGEX = re.compile(
@@ -80,8 +84,9 @@ class MarvinBaseModel(BaseModel):
 
 class DiscriminatingTypeModel(MarvinBaseModel):
     def __init_subclass__(cls, **kwargs):
-        # create a literal qualified name field called `type`
-        value = f"{cls.__module__}.{cls.__name__}"
+        """Automatically generate `type` literals for subclasses."""
+
+        value = f"{cls.__name__}"
         annotation = Literal[value]
 
         tag_field = ModelField.infer(
@@ -95,7 +100,24 @@ class DiscriminatingTypeModel(MarvinBaseModel):
 
     @classmethod
     def as_discriminated_union(cls):
-        union = Union[tuple(get_all_subclasses(cls))]
+        subclasses = get_all_subclasses(cls)
+        subclass_names = [s.__name__ for s in subclasses]
+        if len(subclasses) > len(set(subclass_names)):
+            repeated_types = [
+                item
+                for item, count in collections.Counter(subclass_names).items()
+                if count > 1
+            ]
+            repeated_subclasses = [
+                s for s in subclasses if s.__name__ in repeated_types
+            ]
+            logger.warn(
+                f"Multiple subclasses of `{cls}` have the same class name (or custom"
+                " `type` literal), which will cause issues with deserialization:"
+                f" {repeated_subclasses}"
+            )
+
+        union = Union[tuple(subclasses)]
         return Annotated[union, Field(discriminator="type")]
 
 
