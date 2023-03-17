@@ -52,6 +52,7 @@ async def chat(
             if message == "exit":
                 raise KeyboardInterrupt()
 
+            # empty print so the progress and response appear on the same line
             print()
             with Progress(
                 SpinnerColumn(),

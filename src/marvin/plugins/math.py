@@ -18,6 +18,8 @@ math_functions = {
     "e": math.e,
     "pi": math.pi,
     "π": math.pi,
+    "random": lambda a=0, b=1: a + (b - a) * random.random(),
+    "randint": random.randint,
 }
 
 

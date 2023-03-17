@@ -35,11 +35,12 @@ class Plugin(DiscriminatingTypeModel):
         return v
 
     def get_full_description(self) -> str:
-        signature = str(inspect.signature(self.run))
+        signature = inspect.signature(self.run)
+        arguments = list(signature.parameters)
         description = self.description.format(**self.dict())
         docstring = self.run.__doc__
 
-        result = f"Name: {self.name}\nSignature: {signature}"
+        result = f"Name: {self.name}\nArguments: {arguments}"
         if description:
             result += f"\n{description}"
         if docstring:
