@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, validator
 from marvin.loaders.base import Loader
 from marvin.models.digests import Digest
 from marvin.utilities.logging import read_stream
+from marvin.utilities.strings import split_text
 
 
 class GitHubUser(BaseModel):
@@ -197,6 +198,8 @@ class GitHubRepoLoader(Loader):
                 with open(file, "r") as f:
                     text = f.read()
 
+                text_chunks = split_text(text, 1000)
+                num_chunks = len(text_chunks)
                 metadata = {
                     "source": "/".join(
                         [
@@ -206,9 +209,11 @@ class GitHubRepoLoader(Loader):
                         ]
                     )
                 }
-                digest.ids.append(metadata["source"])
-                digest.documents.append(text)
-                digest.metadatas.append(metadata)
+                digest.ids.extend(
+                    [f"gh_file/{metadata['source']}/{i}" for i in range(num_chunks)]
+                )
+                digest.documents.extend(text_chunks)
+                digest.metadatas.extend([metadata] * num_chunks)
             return digest
         finally:
             shutil.rmtree(tmp_dir)

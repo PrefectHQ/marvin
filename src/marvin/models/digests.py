@@ -5,9 +5,9 @@ from marvin.models.base import MarvinBaseModel
 
 class Digest(MarvinBaseModel):
     ids: list[str] = Field(default_factory=list)
-    documents: list[str] = Field(default_factory=list)
+    documents: list[str] | None = Field(default_factory=list)
     embeddings: list[list[float]] | None = Field(default=None)
-    metadatas: list[dict] = Field(default_factory=list)
+    metadatas: list[dict] | None = Field(default_factory=list)
 
     def __repr__(self):
         return (

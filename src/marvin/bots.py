@@ -45,11 +45,13 @@ class Bot(MarvinBaseModel):
     )
     history: History.as_discriminated_union() = None
     llm: ChatOpenAI = Field(
-        default_factory=lambda: ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.9),
+        default_factory=lambda: ChatOpenAI(
+            model_name="gpt-4",
+            temperature=0.3,
+            openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
+        ),
         repr=False,
     )
-    instructed: bool = False
-
     _logger: logging.Logger = PrivateAttr()
 
     def __init__(self, **data):
@@ -90,15 +92,12 @@ class Bot(MarvinBaseModel):
             return InMemoryHistory()
         return v
 
-    @property
-    def all_plugins(self):
-        return self.plugins + self.extend_plugins
-
     async def say(self, message):
+        bot_instructions = await self._get_bot_instructions()
         history = await self._get_history()
         user_message = Message(role="user", content=message)
 
-        messages = [await self._get_bot_instructions()] + history + [user_message]
+        messages = [bot_instructions] + history + [user_message]
 
         self.logger.debug_kv("User message", message, "bold blue")
         await self.history.add_message(user_message)
@@ -155,7 +154,7 @@ class Bot(MarvinBaseModel):
         return response
 
     async def _run_plugin(self, plugin_name: str, plugin_inputs: dict) -> str:
-        plugin = next((p for p in self.all_plugins if p.name == plugin_name), None)
+        plugin = next((p for p in self.plugins if p.name == plugin_name.strip()), None)
         if plugin is None:
             return f'Plugin "{plugin_name}" not found.'
         try:
@@ -184,7 +183,7 @@ class Bot(MarvinBaseModel):
 
         if self.plugins:
             plugin_descriptions = "\n\n".join(
-                [p.get_full_description() for p in self.all_plugins]
+                [p.get_full_description() for p in self.plugins]
             )
 
             plugin_overview = inspect.cleandoc(
@@ -220,7 +219,6 @@ class Bot(MarvinBaseModel):
 
             bot_instructions += f"\n\n{plugin_overview}"
 
-        self.logger.debug_kv("System message", bot_instructions, "bold blue")
         return Message(role="system", content=bot_instructions)
 
     async def _get_history(self) -> list[Message]:

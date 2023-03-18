@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from pydantic import PrivateAttr
 
 import marvin
-from marvin.api.topics import update_topic
+from marvin.models.digests import Digest
 from marvin.utilities.types import MarvinBaseModel
 
 
@@ -32,8 +32,10 @@ class Loader(MarvinBaseModel, ABC):
     async def load_and_store(self, topic_name: str) -> None:
         """Load files from GitHub and store them in a topic."""
 
-        digest = await self.load()
+        digest: Digest = await self.load()
 
-        await update_topic(topic_name, digest)
+        chroma = marvin.infra.chroma.Chroma(topic_name)
+
+        await chroma.add(**digest.dict())
 
         self.logger.debug(f"wrote {digest!r} to topic {topic_name!r}")

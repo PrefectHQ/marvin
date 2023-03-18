@@ -12,4 +12,3 @@ class Topic(MarvinSQLModel):
     id: TopicID = Field(default_factory=TopicID.new, primary_key=True)
     name: str = Field(index=True)
     description: str = None
-    content: str = None

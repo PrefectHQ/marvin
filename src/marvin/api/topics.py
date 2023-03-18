@@ -3,7 +3,6 @@ from fastapi import Body, HTTPException, Query, status
 
 import marvin
 from marvin.infra.db import AsyncSession, provide_session
-from marvin.models.digests import Digest
 from marvin.models.topics import Topic, TopicID
 from marvin.utilities.types import MarvinRouter
 
@@ -96,16 +95,3 @@ async def delete_topic_by_id(
     )
     await session.execute(sa.delete(Topic).where(Topic.id == topic_id))
     await session.commit()
-
-
-@router.put(
-    "/{topic}",
-    status_code=status.HTTP_200_OK,
-)
-async def update_topic(
-    topic: str,
-    digest: Digest,
-):
-    chroma = marvin.infra.chroma.Chroma(collection_name=topic)
-
-    chroma.add(**digest.dict())

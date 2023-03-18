@@ -3,8 +3,8 @@ from marvin.plugins import Plugin
 from marvin.utilities.strings import slice_tokens
 
 
-async def query_chroma(query: str, n: int = 4):
-    chroma = Chroma()
+async def query_chroma(query: str, n: int = 5):
+    chroma = Chroma(collection_name="marvin")
     results = await chroma.query(
         query_texts=[query],
         n_results=n,
@@ -19,8 +19,8 @@ async def query_chroma(query: str, n: int = 4):
 
 class ChromaVectorstore(Plugin):
     description: str = (
-        "Search Chroma for documents that are similar to a user query - "
-        "Use this plugin whenever asked about Prefect-related things. "
+        "Search Chroma for documents that are similar to a user question - "
+        "Use this plugin for context whenever asked about Prefect-related things. "
     )
 
     async def run(self, query: str) -> str:

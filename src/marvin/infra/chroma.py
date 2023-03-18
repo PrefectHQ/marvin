@@ -1,15 +1,14 @@
-import functools
-
 import chromadb
 import chromadb.config
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import Include, QueryResult
+from chromadb.utils import embedding_functions
 
 import marvin
 from marvin.utilities.async_utils import run_async
 
 
-@functools.lru_cache(maxsize=10)
+# @functools.lru_cache(maxsize=10)
 def get_client(settings: chromadb.config.Settings = None) -> chromadb.Client:
     return chromadb.Client(settings=settings or marvin.settings.chroma)
 
@@ -22,7 +21,10 @@ class Chroma:
     ):
         self.client = get_client(settings=settings)
         self.collection: Collection = self.client.get_or_create_collection(
-            collection_name or marvin.settings.default_topic
+            name=collection_name or marvin.settings.default_topic,
+            embedding_function=embedding_functions.OpenAIEmbeddingFunction(
+                api_key=marvin.settings.openai_api_key.get_secret_value()
+            ),
         )
 
     async def delete(self, ids: list[str] = None, where: dict = None):
