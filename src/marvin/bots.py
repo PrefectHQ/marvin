@@ -207,8 +207,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 `{{"action": "run-plugin", "name": <must be one of
                 [{plugin_names}]>, "inputs": {{<any plugin arguments>}}}}`. 
                 
-                You should use a plugin whenever it will help you respond, and
-                you don't need to ask for permission. Do NOT provide code or
+                You don't need to ask for permission to use a plugin, though you
+                can ask the user for clarification. Do NOT provide code or
                 pseudocode for evaluating the payload. Do not speculate about
                 the plugin's output in your response. At this time, `run-plugin`
                 is the ONLY action you can take.

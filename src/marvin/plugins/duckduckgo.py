@@ -31,7 +31,7 @@ async def search_ddg(query: str, n: int = 5):
             if r is None:
                 continue
             search_results[i]["content"] = slice_tokens(
-                await html_to_content(r.text), 200
+                await html_to_content(r.text), 400
             )
 
     result = "\n\n".join(
