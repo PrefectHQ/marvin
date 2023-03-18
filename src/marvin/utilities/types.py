@@ -1,5 +1,6 @@
 import collections
 import json
+import logging
 import re
 from functools import lru_cache
 from typing import Any, Callable, Generic, Literal, TypeVar, Union
@@ -8,7 +9,7 @@ import pydantic
 import ulid
 from fastapi import APIRouter, Response, status
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel, Field, constr
+from pydantic import BaseModel, Field, PrivateAttr, constr
 from pydantic.fields import ModelField
 from sqlalchemy import TypeDecorator
 from typing_extensions import Annotated
@@ -80,6 +81,18 @@ class MarvinBaseModel(BaseModel):
         excluded = set(self.__exclude_fields__ or []).union(exclude or [])
         excluded_kwargs = {e: getattr(self, e) for e in excluded if e not in updated}
         return type(self)(**updated, **excluded_kwargs)
+
+
+class LoggerMixin(BaseModel):
+    _logger: logging.Logger = PrivateAttr()
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._logger = get_logger(type(self).__name__)
+
+    @property
+    def logger(self):
+        return self._logger
 
 
 class DiscriminatingTypeModel(MarvinBaseModel):

@@ -1,18 +1,17 @@
 import inspect
 import json
-import logging
 import re
 
 import pendulum
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import AIMessage, HumanMessage, SystemMessage
-from pydantic import Field, PrivateAttr, validator
+from pydantic import Field, validator
 
 import marvin
 from marvin.history import History, InMemoryHistory
 from marvin.models.messages import Message
 from marvin.plugins import Plugin
-from marvin.utilities.types import MarvinBaseModel
+from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
@@ -29,7 +28,7 @@ DEFAULT_PLUGINS = [
 ]
 
 
-class Bot(MarvinBaseModel):
+class Bot(MarvinBaseModel, LoggerMixin):
     class Config:
         validate_assignment = True
 
@@ -48,15 +47,6 @@ class Bot(MarvinBaseModel):
         ),
         repr=False,
     )
-    _logger: logging.Logger = PrivateAttr()
-
-    def __init__(self, **data):
-        super().__init__(**data)
-        self._logger = marvin.get_logger(type(self).__name__)
-
-    @property
-    def logger(self):
-        return self._logger
 
     @validator("name", always=True)
     def default_name(cls, v):
