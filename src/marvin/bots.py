@@ -18,7 +18,8 @@ DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
 DEFAULT_INSTRUCTIONS = inspect.cleandoc(
     """
     Respond to the user, always in character with your personality. Use plugins
-    whenever you need additional information.
+    whenever you need additional information. The user is human, so do not
+    return code unless asked to do so.
     """
 )
 DEFAULT_PLUGINS = [
@@ -97,7 +98,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             if counter > marvin.settings.bot_max_iterations:
                 response = 'Error: "Max iterations reached. Please try again."'
             else:
-                response = await self._say(messages=messages)
+                response = await self._call_llm(messages=messages)
             ai_messages, finished = await self._process_ai_response(response=response)
             messages.extend(ai_messages)
 
@@ -170,6 +171,10 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 plugin_output = await plugin_output
             return plugin_output
         except Exception as exc:
+            self.logger.error(
+                f"Error running plugin {plugin_name} with inputs"
+                f" {plugin_inputs}:\n\n{exc}"
+            )
             return f"Plugin encountered an error. Try again? Error message: {exc}"
 
     async def _get_bot_instructions(self) -> Message:
@@ -205,11 +210,12 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 down into discrete parts to solve it step-by-step. Next, provide
                 the JSON payload, which must have the following format:
                 `{{"action": "run-plugin", "name": <must be one of
-                [{plugin_names}]>, "inputs": {{<any plugin arguments>}}}}`. 
+                [{plugin_names}]>, "inputs": {{<any plugin arguments>}}}}`. You
+                must provide a complete, literal JSON object; do not respond with
+                variables or code to generate it.
                 
                 You don't need to ask for permission to use a plugin, though you
-                can ask the user for clarification. Do NOT provide code or
-                pseudocode for evaluating the payload. Do not speculate about
+                can ask the user for clarification.  Do not speculate about
                 the plugin's output in your response. At this time, `run-plugin`
                 is the ONLY action you can take.
                 
@@ -227,7 +233,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
     async def _get_history(self) -> list[Message]:
         return await self.history.get_messages(max_tokens=2500)
 
-    async def _say(self, messages: list[Message]) -> str:
+    async def _call_llm(self, messages: list[Message]) -> str:
         """
         Format and send messages via langchain
         """
