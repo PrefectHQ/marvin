@@ -69,8 +69,8 @@ async def chat(
         print("\n[red]:wave: Goodbye![/]")
 
 
-@app.command()
-def main(
+@app.command(name="chat")
+def chat_sync(
     message: str = typer.Argument(default=None),
     name: str = typer.Option(None, "--name", "-n"),
     personality: str = typer.Option(None, "--personality", "-p"),
