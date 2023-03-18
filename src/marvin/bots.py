@@ -18,7 +18,8 @@ DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
 DEFAULT_INSTRUCTIONS = inspect.cleandoc(
     """
-    Respond to the user. Use plugins whenever you need additional information.
+    Respond to the user, always in character with your personality. Use plugins
+    whenever you need additional information.
     """
 )
 DEFAULT_PLUGINS = [
@@ -106,14 +107,18 @@ class Bot(MarvinBaseModel):
             else:
                 response = await self._say(messages=messages)
 
-            # run plugins
-            all_plugin_names = "|".join(p.name for p in self.plugins)
-            plugin_regex = re.compile(f"({all_plugin_names})\[({{.*}})\]", re.DOTALL)
-            matches = re.findall(plugin_regex, response)
-            for plugin_name, plugin_inputs in matches:
-                plugin_name, plugin_inputs = matches[0]
+            # run plugins json
+            plugin_regex = re.compile('({\s*"action":\s*"run-plugin".*})', re.DOTALL)
+            if match := plugin_regex.search(response):
+                plugin_json = match.group(1)
+
                 try:
-                    plugin_inputs = json.loads(plugin_inputs)
+                    plugin_json = json.loads(plugin_json)
+                    plugin_name, plugin_inputs = (
+                        plugin_json["name"],
+                        plugin_json["inputs"],
+                    )
+
                     self.logger.debug_kv(
                         "Plugin input",
                         f"{plugin_name}: {plugin_inputs})",
@@ -125,26 +130,19 @@ class Bot(MarvinBaseModel):
                     )
                     self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
 
-                    messages.append(
-                        Message(
-                            role="system", content=f"# Plugin request\n\n{response}"
-                        )
-                    )
+                    messages.append(Message(role="ai", content=response))
                     messages.append(
                         Message(
                             role="system",
-                            name="plugin",
-                            content=f"# Plugin output\n\n{plugin_output}",
+                            content=(
+                                f"{plugin_output}\n\nNote: remember your personality"
+                                " when synthesizing a response."
+                            ),
                         ),
-                    )
-                    messages.append(
-                        Message(
-                            role="system",
-                            content="Remember to answer according to your personality!",
-                        )
                     )
 
                 except Exception as exc:
+                    breakpoint()
                     self.logger.error(f"Error running plugin: {response}\n\n{exc}")
                     messages.append(
                         Message(
@@ -154,7 +152,7 @@ class Bot(MarvinBaseModel):
                         )
                     )
 
-            if not matches:
+            else:
                 finished = True
                 ai_message = Message(role="ai", content=response)
                 messages.append(ai_message)
@@ -178,11 +176,10 @@ class Bot(MarvinBaseModel):
     async def _get_bot_instructions(self) -> Message:
         bot_instructions = inspect.cleandoc(
             f"""
-            Today is {pendulum.now().format("dddd, MMMM D, YYYY")}.
-            Your name is {self.name} and your personality is
-            "{self.personality}". 
-            
-            {self.instructions}
+            Today's date: {pendulum.now().format("dddd, MMMM D, YYYY")}
+            Your name: {self.name}
+            Your personality: {self.personality}
+            Your instructions: {self.instructions}
             """
         )
 
@@ -198,24 +195,22 @@ class Bot(MarvinBaseModel):
             plugin_overview = inspect.cleandoc(
                 """
                 You have access to plugins that can enhance your knowledge and
-                capabilities in order to respond to the user. To use a plugin,
-                you must use the following format
-        
-                ``` 
-                [describe a step by step plan for using plugins to generate a
-                response. Break down the question into discrete parts.]
-                <plugin name>[{{<json plugin payload>}}]
-                ``` 
+                capabilities. However, you' can't run these plugins yourself; to
+                run them, you need to send a JSON payload to the user. The user
+                will use that payload to run the plugin and tell you its result.
+                Users can not run plugins unless you provide the payload.
                 
-                For example, if `Google` was an available plugin:
+                The JSON payload must have the following format: `{{"action":
+                "run-plugin", "name": [the plugin name, must be one of the
+                plugins listed below], "inputs": {{<any plugin arguments>}}}}`.
+                In addition, before providing the payload you should also
+                explain all of the steps you intend to take, breaking the
+                problem down step-by-step into discrete parts. 
                 
-                ```
-                Google[{{"query": "what is the largest city in the world?"}}]
-                ```
-                
-                The system will respond with the plugin output.
-
-                You only have access to the following plugins:
+                You should use a plugin whenever it will help you respond, and
+                you don't need to ask for permission.
+                                
+                You have access to the following plugins:
                 
                 {plugin_descriptions}
                 """

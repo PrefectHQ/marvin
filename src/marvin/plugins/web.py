@@ -7,7 +7,10 @@ from marvin.utilities.strings import html_to_content, slice_tokens
 
 class VisitURL(Plugin):
     name: str = "visit-url"
-    description: str = "Visit a URL and return its contents."
+    description: str = (
+        "Visit a URL and return its contents. Don't provide a URL unless you're"
+        " absolutely sure it exists."
+    )
 
     async def run(self, url: str) -> str:
         if not url.startswith("http"):
