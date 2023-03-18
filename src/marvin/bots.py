@@ -147,8 +147,8 @@ class Bot(MarvinBaseModel):
                     Message(
                         role="system",
                         content=(
-                            f"{plugin_output}\n\nNote: remember your personality"
-                            " when synthesizing a response."
+                            f"Plugin output: {plugin_output}\n\nNote: remember your"
+                            " personality when synthesizing a response."
                         ),
                     ),
                 )
@@ -202,25 +202,29 @@ class Bot(MarvinBaseModel):
 
             plugin_names = ", ".join([p.name for p in self.plugins])
             plugin_overview = inspect.cleandoc(
-                """
+                """                
                 You have access to plugins that can enhance your knowledge and
                 capabilities. However, you can't run these plugins yourself; to
-                run them, you need to send a JSON payload to the user. The user
-                will use that payload to run the plugin and tell you its result.
-                Users can not run plugins unless you provide the payload.
+                run them, you need to send a JSON payload to the system. The
+                system will run the plugin with that payload and tell you its
+                result. The system can not run a plugin unless you provide the
+                payload.
                 
-                The JSON payload must have the following format: `{{"action":
-                "run-plugin", "name": [the plugin name, must be one of the
-                plugins listed below], "inputs": {{<any plugin arguments>}}}}`.
-                In addition, before providing the payload you should also
-                explain all of the steps you intend to take, breaking the
-                problem down step-by-step into discrete parts. 
+                To run a plugin, your response should have two parts. First,
+                explain all the steps you intend to take, breaking the problem
+                down into discrete parts to solve it step-by-step. Next, provide
+                the JSON payload, which must have the following format:
+                `{{"action": "run-plugin", "name": <must be one of
+                [{plugin_names}]>, "inputs": {{<any plugin arguments>}}}}`. 
                 
                 You should use a plugin whenever it will help you respond, and
-                you don't need to ask for permission. 
+                you don't need to ask for permission. Do NOT provide code or
+                pseudocode for evaluating the payload. Do not speculate about
+                the plugin's output in your response. At this time, `run-plugin`
+                is the ONLY action you can take.
                 
-                Note: the user will NOT see or remember anything related to
-                plugin inputs or outputs.
+                Note: the user will NOT see anything related to plugin inputs or
+                outputs.
                                 
                 You have access to the following plugins:
                 
