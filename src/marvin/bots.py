@@ -225,7 +225,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             return Message(role="system", content=plugin_overview)
 
     async def _get_history(self) -> list[Message]:
-        return await self.history.get_messages()
+        return await self.history.get_messages(max_tokens=2500)
 
     async def _say(self, messages: list[Message]) -> str:
         """
