@@ -108,60 +108,67 @@ class Bot(MarvinBaseModel):
                 response = 'Error: "Max iterations reached. Please try again."'
             else:
                 response = await self._say(messages=messages)
-
-            # run plugins json
-            plugin_regex = re.compile('({\s*"action":\s*"run-plugin".*})', re.DOTALL)
-            if match := plugin_regex.search(response):
-                plugin_json = match.group(1)
-
-                try:
-                    plugin_json = json.loads(plugin_json)
-                    plugin_name, plugin_inputs = (
-                        plugin_json["name"],
-                        plugin_json["inputs"],
-                    )
-
-                    self.logger.debug_kv(
-                        "Plugin input",
-                        f"{plugin_name}: {plugin_inputs})",
-                        "bold blue",
-                    )
-                    plugin_output = await self._run_plugin(
-                        plugin_name=plugin_name,
-                        plugin_inputs=plugin_inputs,
-                    )
-                    self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
-
-                    messages.append(Message(role="ai", content=response))
-                    messages.append(
-                        Message(
-                            role="system",
-                            content=(
-                                f"{plugin_output}\n\nNote: remember your personality"
-                                " when synthesizing a response."
-                            ),
-                        ),
-                    )
-
-                except Exception as exc:
-                    breakpoint()
-                    self.logger.error(f"Error running plugin: {response}\n\n{exc}")
-                    messages.append(
-                        Message(
-                            role="system",
-                            name="plugin",
-                            content=f"Error running plugin: {response}\n\n{exc}",
-                        )
-                    )
-
-            else:
-                finished = True
-                ai_message = Message(role="ai", content=response)
-                messages.append(ai_message)
-                await self.history.add_message(ai_message)
+            ai_messages, finished = await self._process_ai_response(response=response)
+            messages.extend(ai_messages)
 
         self.logger.debug_kv("AI message", response, "bold green")
         return response
+
+    async def _process_ai_response(self, response: str) -> bool:
+        finished = True
+        messages = []
+
+        # run plugins json
+        plugin_regex = re.compile('({\s*"action":\s*"run-plugin".*})', re.DOTALL)
+        if match := plugin_regex.search(response):
+            finished = False
+            plugin_json = match.group(1)
+
+            try:
+                plugin_json = json.loads(plugin_json)
+                plugin_name, plugin_inputs = (
+                    plugin_json["name"],
+                    plugin_json["inputs"],
+                )
+
+                self.logger.debug_kv(
+                    "Plugin input",
+                    f"{plugin_name}: {plugin_inputs})",
+                    "bold blue",
+                )
+                plugin_output = await self._run_plugin(
+                    plugin_name=plugin_name,
+                    plugin_inputs=plugin_inputs,
+                )
+                self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
+
+                messages.append(Message(role="ai", content=response))
+                messages.append(
+                    Message(
+                        role="system",
+                        content=(
+                            f"{plugin_output}\n\nNote: remember your personality"
+                            " when synthesizing a response."
+                        ),
+                    ),
+                )
+
+            except Exception as exc:
+                self.logger.error(f"Error running plugin: {response}\n\n{exc}")
+                messages.append(
+                    Message(
+                        role="system",
+                        name="plugin",
+                        content=f"Error running plugin: {response}\n\n{exc}",
+                    )
+                )
+
+        else:
+            ai_message = Message(role="ai", content=response)
+            messages.append(ai_message)
+            await self.history.add_message(ai_message)
+
+        return messages, finished
 
     async def _run_plugin(self, plugin_name: str, plugin_inputs: dict) -> str:
         plugin = next((p for p in self.plugins if p.name == plugin_name), None)
@@ -197,7 +204,7 @@ class Bot(MarvinBaseModel):
             plugin_overview = inspect.cleandoc(
                 """
                 You have access to plugins that can enhance your knowledge and
-                capabilities. However, you' can't run these plugins yourself; to
+                capabilities. However, you can't run these plugins yourself; to
                 run them, you need to send a JSON payload to the user. The user
                 will use that payload to run the plugin and tell you its result.
                 Users can not run plugins unless you provide the payload.
@@ -210,7 +217,10 @@ class Bot(MarvinBaseModel):
                 problem down step-by-step into discrete parts. 
                 
                 You should use a plugin whenever it will help you respond, and
-                you don't need to ask for permission.
+                you don't need to ask for permission. 
+                
+                Note: the user will NOT see or remember anything related to
+                plugin inputs or outputs.
                                 
                 You have access to the following plugins:
                 
