@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     embeddings_cache_warn_size: int = 4000000000  # 4GB
 
     # OPENAI
+    openai_model_name: str = "gpt-3.5-turbo"
     openai_api_key: SecretStr = Field(
         "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
     )

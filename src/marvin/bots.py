@@ -43,7 +43,9 @@ class Bot(MarvinBaseModel):
     )
     history: History.as_discriminated_union() = None
     llm: ChatOpenAI = Field(
-        default_factory=lambda: ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.8),
+        default_factory=lambda: ChatOpenAI(
+            model_name=marvin.settings.openai_model_name, temperature=0.8
+        ),
         repr=False,
     )
     _logger: logging.Logger = PrivateAttr()
