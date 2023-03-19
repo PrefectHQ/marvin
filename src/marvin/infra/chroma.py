@@ -1,4 +1,3 @@
-import functools
 from typing import Literal
 
 import chromadb
@@ -8,7 +7,6 @@ import marvin
 from marvin.utilities.async_utils import run_async
 
 
-@functools.lru_cache(maxsize=10)
 def get_client(settings: chromadb.config.Settings = None) -> chromadb.Client:
     return chromadb.Client(settings=settings or marvin.settings.chroma)
 

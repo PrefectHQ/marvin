@@ -1,5 +1,5 @@
 [tool.pytest.ini_options]
-markers = ["ai: mark a test as dependent on external AI APIs."]
+markers = ["llm: indicates that a test calls an LLM (may be slow)."]
 norecursedirs = [
     "*.egg-info",
     ".git",
@@ -13,11 +13,12 @@ filterwarnings = [
 ]
 env = [
     "MARVIN_TEST_MODE=1",
-    "D:MARVIN_DATABASE_CONNECTION_URL=sqlite+aiosqlite:////tmp/marvin-tests/test.sqlite",
+    "D:MARVIN_DATABASE_CONNECTION_URL=sqlite+aiosqlite:////tmp/test.sqlite",
     "MARVIN_LOG_CONSOLE_WIDTH=120",
     "MARVIN_LOG_LEVEL=DEBUG",
     # disable auto profile picture creation 
-    'MARVIN_BOT_CREATE_PROFILE_PICTURE=false'
+    'MARVIN_BOT_CREATE_PROFILE_PICTURE=false',
+    'MARVIN_OPENAI_MODEL_TEMPERATURE=0'
 ]
 
 [tool.isort]
@@ -29,3 +30,6 @@ multi_line_output = 3
 [tool.ruff]
 extend-select = ["I"]
 extend-exclude = ["__init__.py"]
+
+[tool.ruff.per-file-ignores]
+"conftest.py" = ["F403"]

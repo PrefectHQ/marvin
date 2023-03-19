@@ -1,0 +1,76 @@
+name: Run tests
+
+env:
+  # enable colored output
+  # https://github.com/pytest-dev/pytest/issues/7443
+  PY_COLORS: 1
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  run_basic_tests:
+    timeout-minutes: 5
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip" # caching pip dependencies
+      - name: Install Marvin
+        run: |
+          pip install .
+      - name: Run tests that don't require LLMs
+        run: |
+          pytest -v -m "not llm"
+
+  run_llm_tests:
+    timeout-minutes: 5
+
+    runs-on: ubuntu-latest
+
+    env:
+      MARVIN_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+          cache: "pip" # caching pip dependencies
+      - name: Install Marvin
+        run: |
+          pip install .
+      - name: Run tests that require LLMs
+        run: |
+          pytest -v -m "llm"
+
+  static_analysis:
+    timeout-minutes: 1
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install pre-commit
+        run: |
+          pip install pre-commit
+
+      - name: Run pre-commit
+        run: |
+          pre-commit run --show-diff-on-failure --color=always --all-files
