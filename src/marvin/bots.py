@@ -46,6 +46,10 @@ class Bot(MarvinBaseModel, LoggerMixin):
     )
     history: History.as_discriminated_union() = None
     llm: Callable = Field(default=None, repr=False)
+    include_date_in_prompt: bool = Field(
+        True,
+        description="Include the date in the prompt. Disable for testing.",
+    )
 
     @validator("llm", always=True)
     def default_llm(cls, v):
@@ -55,7 +59,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
             return ChatOpenAI(
                 model_name=marvin.settings.openai_model_name,
-                temperature=0.8,
+                temperature=marvin.settings.openai_model_temperature,
                 openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
             )
         return v
@@ -127,7 +131,12 @@ class Bot(MarvinBaseModel, LoggerMixin):
         history = await self._get_history()
         user_message = Message(role="user", content=message)
 
-        messages = [bot_instructions, plugin_instructions] + history + [user_message]
+        if plugin_instructions is not None:
+            bot_instructions = [bot_instructions, plugin_instructions]
+        else:
+            bot_instructions = [bot_instructions]
+
+        messages = bot_instructions + history + [user_message]
 
         self.logger.debug_kv("User message", message, "bold blue")
         await self.history.add_message(user_message)
@@ -243,17 +252,19 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
     async def _get_bot_instructions(self) -> Message:
         bot_instructions = inspect.cleandoc(
-            f"""
+            """
             Your name is: {self.name}
             
             Your instructions are: {self.instructions}
             
             Your personality dictates the style and tone of every response. Your
             personality is: {self.personality}
-            
-            Today's date is {pendulum.now().format("dddd, MMMM D, YYYY")}
             """
-        )
+        ).format(self=self)
+
+        if self.include_date_in_prompt:
+            date = pendulum.now().format("dddd, MMMM D, YYYY")
+            bot_instructions += f"\n\nToday's date is {date}."
 
         return Message(role="system", content=bot_instructions)
 
