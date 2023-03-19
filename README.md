@@ -1,10 +1,10 @@
-# 🤖 Marvin
+#  Marvin 🤖 💬
 
-A chatbot framework with batteries included.
+A chatbot framework with the batteries included.
 
 > "Let’s build robots with Genuine People Personalities," they said. So they tried it out with me. I’m a personality prototype. You can tell, can’t you?
 >
-> -- Marvin
+> Marvin
 
 ## Getting started
 
