@@ -2,14 +2,14 @@ import abc
 
 from pydantic import Field
 
-from marvin.models.threads import Message, MessageCreate
+from marvin.models.threads import Message
 from marvin.utilities.strings import count_tokens
 from marvin.utilities.types import DiscriminatingTypeModel
 
 
 class History(DiscriminatingTypeModel, abc.ABC):
     @abc.abstractmethod
-    async def add_message(self, message: MessageCreate):
+    async def add_message(self, message: Message):
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -47,7 +47,7 @@ class History(DiscriminatingTypeModel, abc.ABC):
 # class ThreadHistory(History):
 #     thread_id: ThreadID = Field(default_factory=ThreadID.new)
 
-#     async def add_message(self, message: MessageCreate):
+#     async def add_message(self, message: Message):
 #         await marvin.api.threads.create_message(
 #             Message(**message.dict(), thread_id=self.thread_id)
 #         )
@@ -73,7 +73,7 @@ class History(DiscriminatingTypeModel, abc.ABC):
 class InMemoryHistory(History):
     messages: list[Message] = Field(default_factory=list)
 
-    async def add_message(self, message: MessageCreate):
+    async def add_message(self, message: Message):
         self.messages.append(message)
 
     async def _load_messages(self, n: int = None) -> list[Message]:

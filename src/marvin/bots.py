@@ -52,7 +52,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             return ChatOpenAI(
                 model_name=marvin.settings.openai_model_name,
                 temperature=0.8,
-                openai_api_key=marvin.settings.openai_api_key,
+                openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
             )
         return v
 
