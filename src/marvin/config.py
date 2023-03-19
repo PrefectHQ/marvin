@@ -67,7 +67,13 @@ class Settings(BaseSettings):
     redis_connection_url: SecretStr = ""
 
     # BOTS
-    bot_create_profile_picture: bool = False
+    bot_create_profile_picture: bool = Field(
+        True,
+        description=(
+            "if True, a profile picture will be generated for new bots when they are"
+            " saved in the database."
+        ),
+    )
     bot_max_iterations: int = 10
 
     @root_validator
@@ -120,6 +126,7 @@ class Settings(BaseSettings):
             print(Text("Marvin is running in test mode!", style="yellow"))
             values["log_level"] = "DEBUG"
             values["verbose"] = True
+            values["bot_create_profile_picture"] = False
         return values
 
     def __setattr__(self, name, value):

@@ -113,7 +113,7 @@ async def destroy_db(confirm: bool = False):
 
     async with session_context(begin_transaction=True) as session:
         for table in reversed(sqlmodel.SQLModel.metadata.sorted_tables):
-            if marvin.database.engine.get_dialect() == "postgresql":
+            if get_dialect() == "postgresql":
                 await session.execute(f'DROP TABLE IF EXISTS "{table.name}" CASCADE;')
             else:
                 await session.execute(f'DROP TABLE IF EXISTS "{table.name}";')
@@ -124,7 +124,7 @@ async def destroy_db(confirm: bool = False):
 
 
 async def create_db():
-    async with marvin.database.engine.engine.begin() as conn:
+    async with engine.begin() as conn:
         await conn.run_sync(sqlmodel.SQLModel.metadata.create_all)
         marvin.get_logger("db").info_style("Database created!", "green")
 

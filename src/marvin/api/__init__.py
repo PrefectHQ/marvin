@@ -1,1 +1,1 @@
-from . import dependencies, topics, threads
+from . import dependencies, topics, threads, bots

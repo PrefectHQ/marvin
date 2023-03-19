@@ -8,6 +8,8 @@ from pydantic import Field, validator
 
 import marvin
 from marvin.history import History, InMemoryHistory
+from marvin.models.bots import BotConfig
+from marvin.models.ids import BotID
 from marvin.models.threads import Message
 from marvin.plugins import Plugin
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
@@ -16,9 +18,10 @@ DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
 DEFAULT_INSTRUCTIONS = inspect.cleandoc(
     """
-    Respond to the user, always in character with your personality. Use plugins
-    whenever you need additional information. The user is human, so do not
-    return code unless asked to do so.
+    Respond to the user, always in character based on your personality. You
+    should gently adjust your personality to match the user in order to form a
+    more engaging connection. Use plugins whenever you need additional
+    information. The user is human, so do not return code unless asked to do so.
     """
 )
 DEFAULT_PLUGINS = [
@@ -32,6 +35,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
     class Config:
         validate_assignment = True
 
+    id: BotID = Field(default_factory=BotID.new)
     name: str = Field(None, description='The name of the bot. Defaults to "Marvin".')
     personality: str = Field(None, description="The bot's personality.")
     instructions: str = Field(
@@ -86,7 +90,38 @@ class Bot(MarvinBaseModel, LoggerMixin):
             return InMemoryHistory()
         return v
 
-    async def say(self, message):
+    def to_bot_config(self) -> BotConfig:
+        return BotConfig(
+            id=self.id,
+            name=self.name,
+            personality=self.personality,
+            instructions=self.instructions,
+            plugins=[p.dict() for p in self.plugins],
+        )
+
+    @classmethod
+    async def from_bot_config(cls, bot_config: BotConfig) -> "Bot":
+        return cls(
+            name=bot_config.name,
+            personality=bot_config.personality,
+            instructions=bot_config.instructions,
+            plugins=bot_config.plugins,
+        )
+
+    async def save(self):
+        """Save this bot in the database. Overwrites any existing bot with the
+        same name."""
+        bot_config = self.to_bot_config()
+        await marvin.api.bots.delete_bot_config(name=self.name)
+        await marvin.api.bots.create_bot_config(bot_config=bot_config)
+
+    @classmethod
+    async def load(cls, name: str) -> "Bot":
+        """Load a bot from the database."""
+        bot_config = await marvin.api.bots.get_bot_config(name=name)
+        return await cls.from_bot_config(bot_config=bot_config)
+
+    async def say(self, message: str) -> Message:
         bot_instructions = await self._get_bot_instructions()
         plugin_instructions = await self._get_plugin_instructions()
         history = await self._get_history()
@@ -110,7 +145,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             messages.extend(ai_messages)
 
         self.logger.debug_kv("AI message", response, "bold green")
-        return response
+        return Message(role="ai", content=response, name=self.name)
 
     async def _process_ai_response(self, response: str) -> bool:
         finished = True

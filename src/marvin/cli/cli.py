@@ -8,7 +8,10 @@ from rich.prompt import Prompt
 
 import marvin
 
+from .db import database_app
+
 app = typer.Typer()
+app.add_typer(database_app, name="database")
 
 spinner_messages = [
     "Thinking...",
@@ -63,9 +66,9 @@ async def chat(
                 )
                 response = await bot.say(message)
 
-            print(f"[blue]{bot.name}:[/] {response}")
+            print(f"[blue]{bot.name}:[/] {response.content}")
             if single_response:
-                return
+                raise typer.Exit()
 
     except KeyboardInterrupt:
         print("\n[red]:wave: Goodbye![/]")

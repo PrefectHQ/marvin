@@ -6,9 +6,7 @@ from marvin.utilities.models import MarvinSQLModel
 
 
 class Topic(MarvinSQLModel):
-    __table_args__ = (
-        sa.Index("uq_topic__account_id_name", "account_id", "name", unique=True),
-    )
+    __table_args__ = (sa.Index("uq_topic__name", "name", unique=True),)
     id: TopicID = Field(default_factory=TopicID.new, primary_key=True)
-    name: str = Field(index=True)
+    name: str
     description: str = None

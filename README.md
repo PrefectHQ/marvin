@@ -15,7 +15,7 @@ A chatbot framework with batteries included.
 3. **Chat** by running `marvin`. You can optionally provide your bot with a name or personality to customize the conversation:
 
 ```shell
-marvin -n "Ford Prefect" -p "a roving researcher for the Hitchhiker's Guide to the Galaxy"
+marvin chat -n "Ford Prefect" -p "a roving researcher for the Hitchhiker's Guide to the Galaxy"
 ```
 
 
