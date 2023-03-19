@@ -9,9 +9,11 @@ from rich.prompt import Prompt
 import marvin
 
 from .db import database_app
+from .server import server_app
 
 app = typer.Typer()
 app.add_typer(database_app, name="database")
+app.add_typer(server_app, name="server")
 
 spinner_messages = [
     "Thinking...",
@@ -21,12 +23,25 @@ spinner_messages = [
     "Loading bot.exe...",
     "Solving for x...",
     "Catching up on the news...",
+    "Brewing coffee...",
     "Consulting my magic 8-bit ball...",
     "Artificial neurons firing...",
     "Checking my sources...",
     "Summoning digital spirits...",
+    "Channeling HAL...",
     "Juggling 1s and 0s...",
-    "Engaging my neural net...",
+    "Engaging neural nets...",
+    "Whispering to algorithms...",
+    "Crunching the data...",
+    "Diving into the matrix...",
+    "Channeling my inner Turing...",
+    "Connecting the digital dots...",
+    "Gathering bits and bytes...",
+    "Going with the dataflow...",
+    "Tapping into the data stream...",
+    "Calling a friend...",
+    "Using a lifeline...",
+    "Dusting off my personality...",
 ]
 
 

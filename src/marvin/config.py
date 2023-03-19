@@ -76,6 +76,15 @@ class Settings(BaseSettings):
     )
     bot_max_iterations: int = 10
 
+    # API
+    api_port: int = 4200
+    api_reload: bool = Field(
+        False,
+        description=(
+            "If true, the API will reload on file changes. Use only for development."
+        ),
+    )
+
     @root_validator
     def initial_setup(cls, values):
         values["home"].mkdir(parents=True, exist_ok=True)

@@ -16,7 +16,7 @@ from marvin.models.bots import (
 from marvin.models.threads import Message, ThreadCreate
 from marvin.utilities.types import MarvinRouter
 
-router = MarvinRouter(prefix="/threads", tags=["Threads"])
+router = MarvinRouter(prefix="/bots", tags=["Bot Configs"])
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
@@ -43,7 +43,7 @@ async def create_bot_config(
     return bot_config
 
 
-@router.post("/{name}")
+@router.get("/{name}")
 @provide_session()
 async def get_bot_config(
     name: str,
@@ -83,14 +83,20 @@ async def delete_bot_config(
     await session.commit()
 
 
-@router.post("/{name}/say", status_code=status.HTTP_201_CREATED)
+@router.post("/{name}", status_code=status.HTTP_201_CREATED)
 @provide_session()
-async def say(
+async def talk_to_bot(
     name: str,
     message: str = Body(embed=True),
     thread_lookup_key: str = None,
     session: AsyncSession = Depends(fastapi_session),
 ) -> Message:
+    """
+    Convenience method to talk to a bot.
+
+    Equivalent to creating a new thread, adding the bot, then sending a message
+    to the thread.
+    """
     bot = await marvin.Bot.load(name=name)
 
     thread = await marvin.api.threads.get_thread_by_lookup_key(

@@ -1,5 +1,5 @@
 import sqlalchemy as sa
-from fastapi import Body, Depends, HTTPException, Query, status
+from fastapi import Body, Depends, HTTPException, Path, Query, status
 
 import marvin
 from marvin.api.dependencies import fastapi_session
@@ -24,13 +24,15 @@ async def create_topic(
     return topic
 
 
-@router.get("/{topic}")
+@router.get("/{name}")
 @provide_session()
 async def get_topic(
-    topic: str,
+    topic_name: str = Path(..., alias="name"),
     session: AsyncSession = Depends(fastapi_session),
 ) -> Topic:
-    result = await session.execute(sa.select(Topic).where(Topic.name == topic).limit(1))
+    result = await session.execute(
+        sa.select(Topic).where(Topic.name == topic_name).limit(1)
+    )
     topic = result.scalar()
 
     if not topic:
@@ -72,17 +74,17 @@ async def get_topics(
 
 
 @router.delete(
-    "/{topic}",
+    "/{name}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 @provide_session()
 async def delete_topic(
-    topic: str,
+    topic_name: str = Path(..., alias="name"),
     session: AsyncSession = Depends(fastapi_session),
 ):
     chroma = marvin.infra.chroma.Chroma()
-    await chroma.delete(where=dict(topic=topic))
-    db_topic = await get_topic(topic, session=session)
+    await chroma.delete(where=dict(topic=topic_name))
+    db_topic = await get_topic(topic_name, session=session)
     await delete_topic_by_id(topic_id=db_topic.id, session=session)
 
 

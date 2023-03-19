@@ -1,5 +1,5 @@
 import sqlalchemy as sa
-from fastapi import Depends, HTTPException, Query, status
+from fastapi import Body, Depends, HTTPException, Path, Query, status
 
 from marvin.api.dependencies import fastapi_session
 from marvin.infra.db import AsyncSession, provide_session
@@ -33,10 +33,10 @@ async def get_thread_by_lookup_key(
     return thread
 
 
-@router.get("/{thread_id}")
+@router.get("/{id}")
 @provide_session()
 async def get_thread(
-    thread_id: ThreadID,
+    thread_id: ThreadID = Path(..., alias="id"),
     session: AsyncSession = Depends(fastapi_session),
 ) -> Thread | None:
     result = await session.execute(
@@ -48,10 +48,10 @@ async def get_thread(
     return thread
 
 
-@router.get("/{thread_id}/messages")
+@router.get("/{id}/messages")
 @provide_session()
 async def get_messages(
-    thread_id: ThreadID,
+    thread_id: ThreadID = Path(..., alias="id"),
     n: int = Query(100, ge=0, le=100),
     session: AsyncSession = Depends(fastapi_session),
 ) -> list[Message]:
@@ -65,11 +65,11 @@ async def get_messages(
     return result.scalars().all()
 
 
-@router.patch("/{thread_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.patch("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 @provide_session()
 async def update_thread(
-    thread_id: ThreadID,
-    thread: ThreadUpdate,
+    thread_id: ThreadID = Path(..., alias="id"),
+    thread: ThreadUpdate = Body(...),
     session: AsyncSession = Depends(fastapi_session),
 ):
     await session.execute(
