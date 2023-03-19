@@ -10,7 +10,6 @@ from marvin.models.threads import (
     Thread,
     ThreadCreate,
     ThreadUpdate,
-    UserMessageCreate,
 )
 from marvin.utilities.types import MarvinRouter
 
@@ -84,14 +83,14 @@ async def create_message(
     await session.commit()
 
 
-@router.post("/{id}", status_code=status.HTTP_201_CREATED)
-@provide_session()
-async def create_user_message(
-    thread_id: ThreadID = Path(..., alias="id"),
-    message: UserMessageCreate = Body(...),
-    session: AsyncSession = Depends(fastapi_session),
-) -> None:
-    await create_message(message=message, thread_id=thread_id, session=session)
+# @router.post("/{id}", status_code=status.HTTP_201_CREATED)
+# @provide_session()
+# async def create_user_message(
+#     thread_id: ThreadID = Path(..., alias="id"),
+#     message: UserMessageCreate = Body(...),
+#     session: AsyncSession = Depends(fastapi_session),
+# ) -> None:
+#     await create_message(message=message, thread_id=thread_id, session=session)
 
 
 @router.get("/{id}/messages")
