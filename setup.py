@@ -8,7 +8,7 @@ setup(
     # Package metadata
     name="marvin",
     url="https://github.com/PrefectHQ/marvin",
-    version="0.3",
+    version="0.4.0",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     # Package setup

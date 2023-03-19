@@ -1,8 +1,9 @@
+import ast
 import math
 import operator
 import random
 
-from simpleeval import simple_eval
+from simpleeval import SimpleEval, safe_power
 
 from marvin.plugins import Plugin
 
@@ -14,11 +15,16 @@ math_functions = {
     "ln": math.log,
     "log": math.log10,
     "abs": operator.abs,
-    "^": operator.pow,
     "e": math.e,
     "pi": math.pi,
     "π": math.pi,
+    "random": lambda a=0, b=1: a + (b - a) * random.random(),
+    "randint": random.randint,
 }
+
+
+_calculator = SimpleEval(functions=math_functions)
+_calculator.operators[ast.BitXor] = safe_power
 
 
 class Calculator(Plugin):
@@ -30,7 +36,7 @@ class Calculator(Plugin):
     )
 
     async def run(self, expression: str) -> str:
-        return simple_eval(expression, functions=math_functions)
+        return _calculator.eval(expression)
 
 
 class RandomNumber(Plugin):

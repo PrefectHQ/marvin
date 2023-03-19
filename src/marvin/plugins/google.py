@@ -1,7 +1,5 @@
 import inspect
 
-from googleapiclient.discovery import build
-
 import marvin
 from marvin.plugins import Plugin
 
@@ -18,6 +16,8 @@ class GoogleSearchAPI(Plugin):
 
 
 async def search_google(query, n: int = 10, return_as_text=False, **kwargs):
+    from googleapiclient.discovery import build
+
     service = build(
         "customsearch",
         "v1",

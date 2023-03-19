@@ -16,6 +16,8 @@ env = [
     "D:MARVIN_DATABASE_CONNECTION_URL=sqlite+aiosqlite:////tmp/marvin-tests/test.sqlite",
     "MARVIN_LOG_CONSOLE_WIDTH=120",
     "MARVIN_LOG_LEVEL=DEBUG",
+    # disable auto profile picture creation 
+    'MARVIN_BOT_CREATE_PROFILE_PICTURE=false'
 ]
 
 [tool.isort]

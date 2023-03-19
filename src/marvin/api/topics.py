@@ -1,7 +1,8 @@
 import sqlalchemy as sa
-from fastapi import Body, HTTPException, Query, status
+from fastapi import Body, Depends, HTTPException, Path, Query, status
 
 import marvin
+from marvin.api.dependencies import fastapi_session
 from marvin.infra.db import AsyncSession, provide_session
 from marvin.models.topics import Topic, TopicID
 from marvin.utilities.types import MarvinRouter
@@ -16,20 +17,22 @@ router = MarvinRouter(prefix="/topics", tags=["Topics"])
 @provide_session()
 async def create_topic(
     topic: Topic = Body(),
-    session: AsyncSession = None,
+    session: AsyncSession = Depends(fastapi_session),
 ) -> Topic:
     session.add(topic)
     await session.commit()
     return topic
 
 
-@router.get("/{topic}")
+@router.get("/{name}")
 @provide_session()
 async def get_topic(
-    topic: str,
-    session: AsyncSession = None,
+    topic_name: str = Path(..., alias="name"),
+    session: AsyncSession = Depends(fastapi_session),
 ) -> Topic:
-    result = await session.execute(sa.select(Topic).where(Topic.name == topic).limit(1))
+    result = await session.execute(
+        sa.select(Topic).where(Topic.name == topic_name).limit(1)
+    )
     topic = result.scalar()
 
     if not topic:
@@ -40,7 +43,7 @@ async def get_topic(
 @provide_session()
 async def get_topic_by_id(
     topic_id: TopicID,
-    session: AsyncSession = None,
+    session: AsyncSession = Depends(fastapi_session),
 ) -> Topic:
     result = await session.execute(
         sa.select(Topic).where(Topic.id == topic_id).limit(1)
@@ -55,7 +58,7 @@ async def get_topic_by_id(
 @router.get("/")
 @provide_session()
 async def get_topics(
-    session: AsyncSession = None,
+    session: AsyncSession = Depends(fastapi_session),
     limit: int = Query(25, gte=0, lte=100),
     after: str = Query(None),
 ) -> list[Topic]:
@@ -71,24 +74,24 @@ async def get_topics(
 
 
 @router.delete(
-    "/{topic}",
+    "/{name}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 @provide_session()
 async def delete_topic(
-    topic: str,
-    session: AsyncSession = None,
+    topic_name: str = Path(..., alias="name"),
+    session: AsyncSession = Depends(fastapi_session),
 ):
     chroma = marvin.infra.chroma.Chroma()
-    await chroma.delete(where=dict(topic=topic))
-    db_topic = await get_topic(topic, session=session)
+    await chroma.delete(where=dict(topic=topic_name))
+    db_topic = await get_topic(topic_name, session=session)
     await delete_topic_by_id(topic_id=db_topic.id, session=session)
 
 
 @provide_session()
 async def delete_topic_by_id(
     topic_id: TopicID,
-    session: AsyncSession = None,
+    session: AsyncSession = Depends(fastapi_session),
 ):
     await marvin.services.chroma.delete_vectors(
         filter={"topic_id": topic_id}, namespace=marvin.settings.pinecone_namespace

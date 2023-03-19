@@ -4,14 +4,10 @@ from functools import lru_cache
 from string import Formatter
 from typing import Any, Callable, Literal, Mapping, Sequence, Union
 
-import html2text
 import pendulum
-import readability
 import tiktoken
-import trafilatura
 import xxhash
 from jinja2 import ChoiceLoader, Environment, StrictUndefined, select_autoescape
-from markdownify import markdownify
 
 import marvin
 
@@ -213,14 +209,24 @@ def html_to_content(
     library = library or "trafilatura"
 
     if library == "trafilatura":
+        # defer import for performance
+        import trafilatura
+
         text = trafilatura.extract(html, include_formatting=True, include_links=True)
     elif library == "readability":
+        # defer import for performance
+        import markdownify
+        import readability
+
         readability_doc = readability.Document(html)
         text = readability_doc.summary()
-        text = markdownify(
+        text = markdownify.markdownify(
             text, heading_style="ATX", escape_underscores=False, escape_asterisks=True
         )
     else:
+        # defer import for performance
+        import html2text
+
         text = html2text.html2text(html)
 
     text = condense_newlines(text)

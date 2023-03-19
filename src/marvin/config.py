@@ -48,6 +48,7 @@ class Settings(BaseSettings):
     embeddings_cache_warn_size: int = 4000000000  # 4GB
 
     # OPENAI
+    openai_model_name: str = "gpt-3.5-turbo"
     openai_api_key: SecretStr = Field(
         "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
     )
@@ -66,8 +67,23 @@ class Settings(BaseSettings):
     redis_connection_url: SecretStr = ""
 
     # BOTS
-    bot_create_profile_picture: bool = False
+    bot_create_profile_picture: bool = Field(
+        True,
+        description=(
+            "if True, a profile picture will be generated for new bots when they are"
+            " saved in the database."
+        ),
+    )
     bot_max_iterations: int = 10
+
+    # API
+    api_port: int = 4200
+    api_reload: bool = Field(
+        False,
+        description=(
+            "If true, the API will reload on file changes. Use only for development."
+        ),
+    )
 
     @root_validator
     def initial_setup(cls, values):
@@ -119,6 +135,7 @@ class Settings(BaseSettings):
             print(Text("Marvin is running in test mode!", style="yellow"))
             values["log_level"] = "DEBUG"
             values["verbose"] = True
+            values["bot_create_profile_picture"] = False
         return values
 
     def __setattr__(self, name, value):

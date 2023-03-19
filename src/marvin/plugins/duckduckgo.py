@@ -31,7 +31,7 @@ async def search_ddg(query: str, n: int = 5) -> str:
             if r is None:
                 continue
             search_results[i]["content"] = slice_tokens(
-                await html_to_content(r.text), 200
+                await html_to_content(r.text), 400
             )
 
     result = "\n\n".join(
@@ -45,8 +45,8 @@ async def search_ddg(query: str, n: int = 5) -> str:
 
 class DuckDuckGo(Plugin):
     description: str = (
-        "Search the web with DuckDuckGo. Use this plugin to answer questions that are"
-        " unlikely to be in your training data or about current events. Works best with"
+        "Search the web with DuckDuckGo. Useful for current events. If you already know"
+        " the answer, you don't need to use this unless asked to. Works best with"
         " simple, discrete queries for one question at a time."
     )
 

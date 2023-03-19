@@ -5,7 +5,8 @@ import pendulum
 import sqlalchemy as sa
 from sqlmodel import Field
 
-from marvin.infra.db import JSONType
+import marvin
+from marvin.infra.db import AsyncSession, JSONType, provide_session
 from marvin.models.base import BaseSQLModel
 from marvin.models.ids import BotID, MessageID, ThreadID
 from marvin.utilities.types import MarvinBaseModel
@@ -13,15 +14,7 @@ from marvin.utilities.types import MarvinBaseModel
 RoleType = Literal["system", "user", "ai"]
 
 
-class BaseMessage(MarvinBaseModel):
-    timestamp: datetime.datetime = Field(default_factory=lambda: pendulum.now("utc"))
-    role: RoleType
-    name: str = None
-    content: str
-    data: dict = Field(default_factory=dict)
-
-
-class Message(BaseMessage, BaseSQLModel, table=True):
+class Message(BaseSQLModel, table=True):
     __table_args__ = (
         sa.ForeignKeyConstraint(["thread_id"], ["thread.id"], ondelete="CASCADE"),
         sa.Index(
@@ -32,7 +25,9 @@ class Message(BaseMessage, BaseSQLModel, table=True):
     )
     id: MessageID = Field(default_factory=MessageID.new, primary_key=True)
     thread_id: ThreadID
-    role: str
+    role: str  # should be one of `RoleType` at this time, could change in the future
+    content: str
+    name: str = None
     timestamp: datetime.datetime = Field(
         default_factory=lambda: pendulum.now("utc"),
         sa_column=sa.Column(
@@ -52,19 +47,9 @@ class Message(BaseMessage, BaseSQLModel, table=True):
         return self.dict(include={"role", "name", "content"}, include_none=False)
 
 
-class MessageCreate(BaseMessage):
-    pass
-
-
 class Thread(BaseSQLModel, table=True):
-    __table_args__ = (
-        sa.ForeignKeyConstraint(
-            ["parent_thread_id"], ["thread.id"], ondelete="CASCADE"
-        ),
-        sa.Index("uq_thread__lookup_key", "lookup_key", unique=True),
-    )
+    __table_args__ = (sa.Index("uq_thread__lookup_key", "lookup_key", unique=True),)
     id: ThreadID = Field(default_factory=ThreadID.new, primary_key=True)
-    parent_thread_id: ThreadID = None
     lookup_key: str = Field(
         None,
         description="Optional, user-provided key to lookup a thread.",
@@ -84,3 +69,22 @@ class Thread(BaseSQLModel, table=True):
         default_factory=dict,
         sa_column=sa.Column(JSONType, nullable=False, server_default="{}"),
     )
+
+    @provide_session()
+    async def get_messages(self, n: int = None, session: AsyncSession = None):
+        return await marvin.api.threads._get_messages_by_thread_id(
+            thread_id=self.id, n=n, session=session
+        )
+
+
+class ThreadCreate(MarvinBaseModel):
+    lookup_key: str
+    name: str = None
+    context: dict = Field(default_factory=dict)
+    is_visible: bool = False
+
+
+class ThreadUpdate(MarvinBaseModel):
+    name: str = None
+    context: dict = None
+    is_visible: bool = None
