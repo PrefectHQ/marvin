@@ -3,7 +3,7 @@ import uvicorn
 
 import marvin
 
-server_app = typer.Typer()
+server_app = typer.Typer(help="Server commands")
 
 
 @server_app.command()

@@ -4,7 +4,7 @@ import typer
 
 import marvin
 
-database_app = typer.Typer()
+database_app = typer.Typer(help="Database commands")
 
 
 @database_app.command()
