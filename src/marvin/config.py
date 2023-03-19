@@ -61,7 +61,9 @@ class Settings(BaseSettings):
 
     # DATABASE
     database_echo: bool = False
-    database_connection_url: SecretStr = "sqlite+aiosqlite:////$MARVIN_HOME/marvin.db"
+    database_connection_url: SecretStr = (
+        "sqlite+aiosqlite:////$MARVIN_HOME/marvin.sqlite"
+    )
 
     # REDIS
     redis_connection_url: SecretStr = ""

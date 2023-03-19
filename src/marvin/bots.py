@@ -7,9 +7,9 @@ import pendulum
 from pydantic import Field, validator
 
 import marvin
-from marvin.history import History, InMemoryHistory
+from marvin.history import History, ThreadHistory
 from marvin.models.bots import BotConfig
-from marvin.models.ids import BotID
+from marvin.models.ids import BotID, ThreadID
 from marvin.models.threads import Message
 from marvin.plugins import Plugin
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
@@ -87,7 +87,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
     @validator("history", always=True)
     def default_history(cls, v):
         if v is None:
-            return InMemoryHistory()
+            return ThreadHistory()
         return v
 
     def to_bot_config(self) -> BotConfig:
@@ -144,8 +144,28 @@ class Bot(MarvinBaseModel, LoggerMixin):
             ai_messages, finished = await self._process_ai_response(response=response)
             messages.extend(ai_messages)
 
-        self.logger.debug_kv("AI message", response, "bold green")
-        return Message(role="ai", content=response, name=self.name)
+        self.logger.debug_kv("AI message", messages[-1].content, "bold green")
+        return messages[-1]
+
+    async def clear_thread(self):
+        await self.history.clear()
+
+    async def set_thread(
+        self, thread_id: ThreadID = None, thread_lookup_key: str = None
+    ):
+        if thread_id is None and thread_lookup_key is None:
+            raise ValueError("Must provide either thread_id or thread_lookup_key")
+        elif thread_id is not None and thread_lookup_key is not None:
+            raise ValueError(
+                "Must provide either thread_id or thread_lookup_key, not both"
+            )
+        elif thread_id:
+            self.history = ThreadHistory(thread_id=thread_id)
+        elif thread_lookup_key:
+            thread = await marvin.api.threads.get_or_create_thread_by_lookup_key(
+                lookup_key=thread_lookup_key
+            )
+            self.history = ThreadHistory(thread_id=thread.id)
 
     async def _process_ai_response(self, response: str) -> bool:
         finished = True
@@ -197,7 +217,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 )
 
         else:
-            ai_message = Message(role="ai", content=response)
+            ai_message = Message(
+                role="ai", content=response, name=self.name, bot_id=self.id
+            )
             messages.append(ai_message)
             await self.history.add_message(ai_message)
 
@@ -222,10 +244,14 @@ class Bot(MarvinBaseModel, LoggerMixin):
     async def _get_bot_instructions(self) -> Message:
         bot_instructions = inspect.cleandoc(
             f"""
-            Today's date: {pendulum.now().format("dddd, MMMM D, YYYY")}
-            Your name: {self.name}
-            Your personality: {self.personality}
-            Your instructions: {self.instructions}
+            Your name is: {self.name}
+            
+            Your instructions are: {self.instructions}
+            
+            Your personality dictates the style and tone of every response. Your
+            personality is: {self.personality}
+            
+            Today's date is {pendulum.now().format("dddd, MMMM D, YYYY")}
             """
         )
 

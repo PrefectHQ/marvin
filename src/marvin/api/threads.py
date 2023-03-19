@@ -4,7 +4,14 @@ from fastapi import Body, Depends, HTTPException, Path, Query, status
 from marvin.api.dependencies import fastapi_session
 from marvin.infra.db import AsyncSession, provide_session
 from marvin.models.ids import ThreadID
-from marvin.models.threads import Message, Thread, ThreadCreate, ThreadUpdate
+from marvin.models.threads import (
+    Message,
+    MessageCreate,
+    Thread,
+    ThreadCreate,
+    ThreadUpdate,
+    UserMessageCreate,
+)
 from marvin.utilities.types import MarvinRouter
 
 router = MarvinRouter(prefix="/threads", tags=["Threads"])
@@ -30,6 +37,8 @@ async def get_thread_by_lookup_key(
         sa.select(Thread).where(Thread.lookup_key == lookup_key).limit(1)
     )
     thread = result.scalar()
+    if not thread:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return thread
 
 
@@ -48,6 +57,43 @@ async def get_thread(
     return thread
 
 
+@provide_session()
+async def get_or_create_thread_by_lookup_key(
+    lookup_key: str,
+    session: AsyncSession,
+) -> Thread:
+    try:
+        thread = await get_thread_by_lookup_key(lookup_key=lookup_key, session=session)
+    except HTTPException as e:
+        if e.status_code == status.HTTP_404_NOT_FOUND:
+            thread = await create_thread(
+                thread=ThreadCreate(lookup_key=lookup_key), session=session
+            )
+        else:
+            raise e
+    return thread
+
+
+@provide_session()
+async def create_message(
+    thread_id: ThreadID = Path(..., alias="id"),
+    message: MessageCreate = Body(...),
+    session: AsyncSession = Depends(fastapi_session),
+) -> None:
+    session.add(Message(**message.dict(), thread_id=thread_id))
+    await session.commit()
+
+
+@router.post("/{id}", status_code=status.HTTP_201_CREATED)
+@provide_session()
+async def create_user_message(
+    thread_id: ThreadID = Path(..., alias="id"),
+    message: UserMessageCreate = Body(...),
+    session: AsyncSession = Depends(fastapi_session),
+) -> None:
+    await create_message(message=message, thread_id=thread_id, session=session)
+
+
 @router.get("/{id}/messages")
 @provide_session()
 async def get_messages(
@@ -62,7 +108,7 @@ async def get_messages(
         .limit(n)
     )
     result = await session.execute(query)
-    return result.scalars().all()
+    return list(reversed(result.scalars().all()))
 
 
 @router.patch("/{id}", status_code=status.HTTP_204_NO_CONTENT)
