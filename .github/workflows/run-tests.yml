@@ -28,7 +28,7 @@ jobs:
           cache: "pip" # caching pip dependencies
       - name: Install Marvin
         run: |
-          pip install .
+          pip install ".[dev]"
       - name: Run tests that don't require LLMs
         run: |
           pytest -v -m "not llm"
@@ -50,7 +50,7 @@ jobs:
           cache: "pip" # caching pip dependencies
       - name: Install Marvin
         run: |
-          pip install .
+          pip install ".[dev]"
       - name: Run tests that require LLMs
         run: |
           pytest -v -m "llm"
