@@ -1,4 +1,4 @@
-# Marvin
+#  Marvin 🤖 💬
 
 A chatbot framework with batteries included.
 
