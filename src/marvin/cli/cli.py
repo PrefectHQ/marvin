@@ -32,6 +32,7 @@ async def chat(
     name: str = None,
     personality: str = None,
     instructions: str = None,
+    single_response: bool = False,
 ):
     bot = marvin.Bot(name=name, personality=personality, instructions=instructions)
 
@@ -63,6 +64,9 @@ async def chat(
                 response = await bot.say(message)
 
             print(f"[blue]{bot.name}:[/] {response}")
+            if single_response:
+                return
+
     except KeyboardInterrupt:
         print("\n[red]:wave: Goodbye![/]")
 
@@ -73,13 +77,17 @@ def chat_sync(
     name: str = typer.Option(None, "--name", "-n"),
     personality: str = typer.Option(None, "--personality", "-p"),
     instructions: str = typer.Option(None, "--instructions", "-i"),
+    single_response: bool = typer.Option(False, "--single-response"),
 ):
+    if single_response and not message:
+        raise typer.BadParameter("You must provide a message to get a single response.")
     asyncio.run(
         chat(
             first_message=message,
             name=name,
             personality=personality,
             instructions=instructions,
+            single_response=single_response,
         )
     )
 

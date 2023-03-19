@@ -82,3 +82,9 @@ class ThreadCreate(MarvinBaseModel):
     name: str = None
     context: dict = Field(default_factory=dict)
     is_visible: bool = False
+
+
+class ThreadUpdate(MarvinBaseModel):
+    name: str = None
+    context: dict = None
+    is_visible: bool = None
