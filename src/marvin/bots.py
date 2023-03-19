@@ -1,15 +1,14 @@
 import inspect
 import json
 import re
+from typing import Callable
 
 import pendulum
-from langchain.chat_models import ChatOpenAI
-from langchain.schema import AIMessage, HumanMessage, SystemMessage
 from pydantic import Field, validator
 
 import marvin
 from marvin.history import History, InMemoryHistory
-from marvin.models.messages import Message
+from marvin.models.threads import Message
 from marvin.plugins import Plugin
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
@@ -42,12 +41,20 @@ class Bot(MarvinBaseModel, LoggerMixin):
         None, description="A list of plugins that the bot can use."
     )
     history: History.as_discriminated_union() = None
-    llm: ChatOpenAI = Field(
-        default_factory=lambda: ChatOpenAI(
-            model_name=marvin.settings.openai_model_name, temperature=0.8
-        ),
-        repr=False,
-    )
+    llm: Callable = Field(default=None, repr=False)
+
+    @validator("llm", always=True)
+    def default_llm(cls, v):
+        if v is None:
+            # deferred import for performance
+            from langchain.chat_models import ChatOpenAI
+
+            return ChatOpenAI(
+                model_name=marvin.settings.openai_model_name,
+                temperature=0.8,
+                openai_api_key=marvin.settings.openai_api_key,
+            )
+        return v
 
     @validator("name", always=True)
     def default_name(cls, v):
@@ -237,6 +244,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
         """
         Format and send messages via langchain
         """
+        # deferred import for performance
+        from langchain.schema import AIMessage, HumanMessage, SystemMessage
 
         langchain_messages = []
 

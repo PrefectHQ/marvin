@@ -5,7 +5,8 @@ import pendulum
 import sqlalchemy as sa
 from sqlmodel import Field
 
-from marvin.infra.db import JSONType
+import marvin
+from marvin.infra.db import AsyncSession, JSONType, provide_session
 from marvin.models.base import BaseSQLModel
 from marvin.models.ids import BotID, MessageID, ThreadID
 from marvin.utilities.types import MarvinBaseModel
@@ -84,3 +85,9 @@ class Thread(BaseSQLModel, table=True):
         default_factory=dict,
         sa_column=sa.Column(JSONType, nullable=False, server_default="{}"),
     )
+
+    @provide_session()
+    async def get_messages(self, n: int = None, session: AsyncSession = None):
+        return await marvin.api.threads._get_messages_by_thread_id(
+            thread_id=self.id, n=n, session=session
+        )

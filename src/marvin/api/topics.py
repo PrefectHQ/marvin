@@ -1,7 +1,8 @@
 import sqlalchemy as sa
-from fastapi import Body, HTTPException, Query, status
+from fastapi import Body, Depends, HTTPException, Query, status
 
 import marvin
+from marvin.api.dependencies import fastapi_session
 from marvin.infra.db import AsyncSession, provide_session
 from marvin.models.topics import Topic, TopicID
 from marvin.utilities.types import MarvinRouter
@@ -16,7 +17,7 @@ router = MarvinRouter(prefix="/topics", tags=["Topics"])
 @provide_session()
 async def create_topic(
     topic: Topic = Body(),
-    session: AsyncSession = None,
+    session: AsyncSession = Depends(fastapi_session),
 ) -> Topic:
     session.add(topic)
     await session.commit()
@@ -27,7 +28,7 @@ async def create_topic(
 @provide_session()
 async def get_topic(
     topic: str,
-    session: AsyncSession = None,
+    session: AsyncSession = Depends(fastapi_session),
 ) -> Topic:
     result = await session.execute(sa.select(Topic).where(Topic.name == topic).limit(1))
     topic = result.scalar()
@@ -40,7 +41,7 @@ async def get_topic(
 @provide_session()
 async def get_topic_by_id(
     topic_id: TopicID,
-    session: AsyncSession = None,
+    session: AsyncSession = Depends(fastapi_session),
 ) -> Topic:
     result = await session.execute(
         sa.select(Topic).where(Topic.id == topic_id).limit(1)
@@ -55,7 +56,7 @@ async def get_topic_by_id(
 @router.get("/")
 @provide_session()
 async def get_topics(
-    session: AsyncSession = None,
+    session: AsyncSession = Depends(fastapi_session),
     limit: int = Query(25, gte=0, lte=100),
     after: str = Query(None),
 ) -> list[Topic]:
@@ -77,7 +78,7 @@ async def get_topics(
 @provide_session()
 async def delete_topic(
     topic: str,
-    session: AsyncSession = None,
+    session: AsyncSession = Depends(fastapi_session),
 ):
     chroma = marvin.infra.chroma.Chroma()
     await chroma.delete(where=dict(topic=topic))
@@ -88,7 +89,7 @@ async def delete_topic(
 @provide_session()
 async def delete_topic_by_id(
     topic_id: TopicID,
-    session: AsyncSession = None,
+    session: AsyncSession = Depends(fastapi_session),
 ):
     await marvin.services.chroma.delete_vectors(
         filter={"topic_id": topic_id}, namespace=marvin.settings.pinecone_namespace

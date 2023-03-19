@@ -35,10 +35,8 @@ async def chat(
 ):
     bot = marvin.Bot(name=name, personality=personality, instructions=instructions)
 
-    print(
-        f"[bold blue]:robot: {bot.name}[/] is listening! [italic](Type"
-        " `exit` to quit)[/]"
-    )
+    print(f"[bold blue]:robot: {bot.name}[/] is ready!")
+    print("[italic](Type `exit` to quit)[/]")
 
     try:
         while True:

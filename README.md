@@ -18,6 +18,7 @@ A chatbot framework with batteries included.
 marvin -n "Ford Prefect" -p "a roving researcher for the Hitchhiker's Guide to the Galaxy"
 ```
 
+
 ## Python API
 
 This example shows how to configure a bot programmatically, using Marvin's async API.
@@ -25,9 +26,9 @@ This example shows how to configure a bot programmatically, using Marvin's async
 ```python
 from marvin import Bot
 
-bot = Bot(name='Arthur Dent', personality='obsessed with tea')
+bot = Bot(name='Arthur', personality='knows every Star Wars meme')
 
-await bot.say('Hello!')
+await bot.say('Hello there!')
 ```
 
 ## Plugins
