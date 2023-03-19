@@ -1,4 +1,4 @@
-# Marvin
+# 🤖 Marvin
 
 A chatbot framework with batteries included.
 
@@ -8,11 +8,13 @@ A chatbot framework with batteries included.
 
 ## Getting started
 
-1. **Install** Marvin with `pip install marvin`
+Launching a bot is simple! All you need is this library and a valid [OpenAI API key](https://platform.openai.com/account/api-keys). 
 
-2. **Configure** an environment variable with your OpenAI API key: `export MARVIN_OPENAI_API_KEY=<your API key>`
+1. **Install** Marvin by running `pip install marvin`
 
-3. **Chat** by running `marvin`. You can optionally provide your bot with a name or personality to customize the conversation:
+2. **Configure** your OpenAI API key as an environment variable: `export OPENAI_API_KEY=<your API key>` (`MARVIN_OPENAI_API_KEY` also works)
+
+3. **Chat** in your CLI by running `marvin chat`. You can *optionally* provide a name or personality to customize the conversation:
 
 ```shell
 marvin chat -n "Ford Prefect" -p "a roving researcher for the Hitchhiker's Guide to the Galaxy"
@@ -31,6 +33,13 @@ bot = Bot(name='Arthur', personality='knows every Star Wars meme')
 await bot.say('Hello there!')
 ```
 
+## Rest API
+
+Launch the Marvin REST server by running `marvin server start`. You can visit `http://localhost:4200` to view the API documentation.
+
+## UI
+
+*Coming soon...*
 ## Plugins
 
 Plugins add functionality to your bot beyond simple conversation. By default, bots have access to plugins that can search the web, visit URLs, and evaluate mathematical expressions. It's easy to add new plugins or develop your own.
