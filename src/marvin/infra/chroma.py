@@ -5,7 +5,7 @@ from chromadb.api.types import Include, QueryResult
 from chromadb.utils import embedding_functions
 
 import marvin
-from marvin.documents import Document
+from marvin.models.documents import Document
 from marvin.utilities.async_utils import run_async
 
 
