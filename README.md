@@ -17,8 +17,9 @@ Launching a bot is simple! All you need is this library and a valid [OpenAI API 
 3. **Chat** in your CLI by running `marvin chat`. You can *optionally* provide a name or personality to customize the conversation:
 
 ```shell
-marvin chat -n Arthur -p "knows every Star Wars meme" Hello there
+marvin chat -p "knows every Star Wars meme" Hello there
 ```
+<img width="1034" alt="image" src="https://user-images.githubusercontent.com/153965/226232390-c98ffee3-c272-42fa-befb-70d94bebfda7.png">
 
 
 ## Python API
