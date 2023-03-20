@@ -145,9 +145,10 @@ class GitHubIssueLoader(Loader):
             documents.extend(
                 [
                     Document(
-                        id=f"gh_issue/{issue.number}-{i}",
+                        chroma_id=f"gh_issue/{issue.number}-{i}",
                         text=text,
                         metadata=metadata,
+                        type="issue",
                     )
                     for i, text in enumerate(split_text(text))
                 ]
@@ -212,9 +213,10 @@ class GitHubRepoLoader(Loader):
                 documents.extend(
                     [
                         Document(
-                            id=f"gh_file/{self.repo.replace('.git', '')}/{i}",
+                            chroma_id=f"gh_file/{self.repo.replace('.git', '')}/{i}",
                             text=text_chunk,
                             metadata=metadata,
+                            type="gh_file",
                         )
                         for i, text_chunk in enumerate(text_chunks)
                     ]

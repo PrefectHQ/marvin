@@ -24,7 +24,7 @@ class Loader(MarvinBaseModel, LoggerMixin, ABC):
 
         chroma = marvin.infra.chroma.Chroma(topic_name)
 
-        await chroma.delete(where={"source": self.__class__.__name__})
+        # TODO: add check for existing documents
 
         for batch in batched(documents, 100):
             await chroma.add(batch)

@@ -143,7 +143,6 @@ async def extract_keywords(text: str, n_keywords: int = None) -> list[str]:
     return await marvin.utilities.async_utils.run_async_process(
         _extract_keywords, text=text, n_keywords=n_keywords
     )
-    # return _extract_keywords(text=text, n_keywords=n_keywords)
 
 
 def create_minimap_fn(content: str) -> Callable[[int], str]:

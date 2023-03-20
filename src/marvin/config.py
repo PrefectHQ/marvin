@@ -59,6 +59,7 @@ class Settings(BaseSettings):
 
     # DOCUMENTS
     default_topic = "marvin"
+    default_n_keywords: int = 15
 
     # DATABASE
     database_echo: bool = False
