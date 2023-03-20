@@ -15,7 +15,12 @@ async def hello_marvin():
     bot = Bot(
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
-        plugins=[ChromaSearch()],
+        plugins=[
+            ChromaSearch(
+                "Semantic search for documents relevant to Prefect. Provide detailed,"
+                " natural language queries."
+            )
+        ],
     )
     await bot.say(
         "What are the steps to create a new Prefect deployment?"
