@@ -18,10 +18,7 @@ async def query_chroma(query: str, n: int = 5):
 
 
 class ChromaSearch(Plugin):
-    description: str = (
-        "Search Chroma for documents that are similar to a user question - "
-        "Use this plugin for context whenever asked about Prefect-related things. "
-    )
+    description: str = "Semantic search for relevant documents."
 
     async def run(self, query: str) -> str:
         return await query_chroma(query)

@@ -11,8 +11,8 @@ from typing import Dict, List, Tuple
 import httpx
 from pydantic import BaseModel, Field, validator
 
-from marvin.documents import Document
 from marvin.loaders.base import Loader
+from marvin.models.documents import Document
 from marvin.utilities.strings import split_text
 
 
@@ -62,8 +62,8 @@ class GitHubIssueLoader(Loader):
         return v
 
     @staticmethod
-    @functools.lru_cache()
-    def _get_issue_comments(
+    @functools.lru_cache(maxsize=2048)
+    async def _get_issue_comments(
         repo: str,
         request_header_items: Tuple[Tuple[str, str]],
         issue_number: int,
@@ -79,11 +79,12 @@ class GitHubIssueLoader(Loader):
         comments = []
         page = 1
         while True:
-            response = httpx.get(
-                url=url,
-                headers=dict(request_header_items),
-                params={"per_page": per_page, "page": page},
-            )
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    url=url,
+                    headers=dict(request_header_items),
+                    params={"per_page": per_page, "page": page},
+                )
             response.raise_for_status()
             if not (new_comments := response.json()):
                 break
@@ -91,7 +92,7 @@ class GitHubIssueLoader(Loader):
             page += 1
         return comments
 
-    def _get_issues(self, per_page: int = 100) -> List[GitHubIssue]:
+    async def _get_issues(self, per_page: int = 100) -> List[GitHubIssue]:
         """
         Get a list of all issues for the given repository.
 
@@ -105,15 +106,16 @@ class GitHubIssueLoader(Loader):
             if len(issues) >= self.n_issues:
                 break
             remaining = self.n_issues - len(issues)
-            response = httpx.get(
-                url=url,
-                headers=self.request_headers,
-                params={
-                    "per_page": remaining if remaining < per_page else per_page,
-                    "page": page,
-                    "include": "comments",
-                },
-            )
+            async with httpx.AsyncClient() as client:
+                response = await client.get(
+                    url=url,
+                    headers=self.request_headers,
+                    params={
+                        "per_page": remaining if remaining < per_page else per_page,
+                        "page": page,
+                        "include": "comments",
+                    },
+                )
             response.raise_for_status()
             if not (new_issues := response.json()):
                 break
@@ -129,9 +131,9 @@ class GitHubIssueLoader(Loader):
             A list of `Document` objects, each representing an issue.
         """
         documents = []
-        for issue in self._get_issues():
+        for issue in await self._get_issues():
             text = f"{issue.title}\n{issue.body}"
-            for comment in self._get_issue_comments(
+            for comment in await self._get_issue_comments(
                 self.repo, tuple(self.request_headers.items()), issue.number
             ):
                 text += f"\n\n{comment.user.login}: {comment.body}\n\n"
