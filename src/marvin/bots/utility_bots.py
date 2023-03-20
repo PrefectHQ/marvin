@@ -12,12 +12,12 @@ class UtilityBot(Bot):
     plugins: list[Plugin] = []
 
 
-summarize_bot = Bot(
+summarize_bot = UtilityBot(
     name="Gistopher",
     instructions="Provide a detailed summary of the users' messages.",
 )
 
-keyword_bot = Bot(
+keyword_bot = UtilityBot(
     name="Keysha",
     instructions=inspect.cleandoc(
         """
@@ -32,7 +32,7 @@ keyword_bot = Bot(
 )
 
 
-regex_bot = Bot(
+regex_bot = UtilityBot(
     name="Reggie",
     instructions=inspect.cleandoc(
         """
