@@ -1,20 +1,37 @@
-import marvin
 from marvin.bots import Bot
-from marvin.loaders.github import GitHubRepoLoader
+from marvin.loaders.discourse import DiscourseLoader
+from marvin.loaders.github import GitHubIssueLoader, GitHubRepoLoader
 from marvin.plugins.chroma import ChromaSearch
 
 
-async def load_prefect_docs():
-    await GitHubRepoLoader(
+async def load_prefect_things():
+    await GitHubRepoLoader(  # gimme da docs
         repo="prefecthq/prefect", glob="**/*.md", exclude_glob="**/docs/api-ref/**"
-    ).load_and_store(topic_name="marvin")
+    ).load_and_store()
+
+    await GitHubIssueLoader(  # gimme da issues
+        repo="prefecthq/prefect",
+        n_issues=50,
+    ).load_and_store()
+
+    await GitHubRepoLoader(  # gimme da source
+        repo="prefecthq/prefect", glob="**/*.py", exclude_glob="**/tests/**"
+    ).load_and_store()
+
+    await DiscourseLoader(  # gimme da discourse
+        url="https://discourse.prefect.io",
+    ).load_and_store()
 
 
 async def hello_marvin():
-    await load_prefect_docs()
+    await load_prefect_things()
     bot = Bot(
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
+        instructions=(
+            "Unless making a conversational response, use the ChromaSearch plugin to"
+            " answer questions."
+        ),
         plugins=[
             ChromaSearch(
                 description=(
@@ -26,24 +43,12 @@ async def hello_marvin():
             )
         ],
     )
-    await bot.say(
-        "What are the steps to create a new Prefect deployment?"
-        " I'm trying to deploy Prefect on a Kubernetes cluster."
-        " I'm getting an error about s3fs."
+    await bot.interactive_chat(
+        first_message="What are common pitfalls when running flows on ECS?"
     )
-    try:
-        while True:
-            user_input = input(">>> ")
-            if user_input.strip() == "exit":
-                raise KeyboardInterrupt
-            await bot.say(user_input)
-    except KeyboardInterrupt:
-        print("👋")
 
 
 if __name__ == "__main__":
-    marvin.settings.log_level = "DEBUG"
-
     import asyncio
 
     asyncio.run(hello_marvin())

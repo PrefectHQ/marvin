@@ -70,6 +70,8 @@ class Document(MarvinBaseModel):
                 minimap=minimap_fn(chr),
             ).strip()
 
+            excerpt_metadata = self.metadata.copy()
+            excerpt_metadata.update({"document_type": "excerpt"})
             excerpts.append(
                 Document(
                     type="excerpt",
@@ -78,7 +80,7 @@ class Document(MarvinBaseModel):
                     order=i,
                     keywords=keywords,
                     topic_name=marvin.settings.default_topic,
-                    metadata=self.metadata,
+                    metadata=excerpt_metadata,
                     tokens=count_tokens(excerpt_text),
                 )
             )

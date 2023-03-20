@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field, validator
 import marvin
 from marvin.loaders.base import Loader
 from marvin.models.documents import Document
-from marvin.utilities.strings import count_tokens, split_text
+from marvin.utilities.strings import count_tokens
 
 
 class GitHubUser(BaseModel):
@@ -144,14 +144,13 @@ class GitHubIssueLoader(Loader):
                 "labels": ",".join([label.name for label in issue.labels]),
             }
             documents.extend(
-                [
-                    Document(
-                        text=text,
-                        metadata=metadata,
-                        type="original",
-                    )
-                    for i, text in enumerate(split_text(text))
-                ]
+                await Document(
+                    text=text,
+                    metadata=metadata,
+                    type="original",
+                    topic_name=marvin.settings.default_topic,
+                    tokens=count_tokens(text),
+                ).to_excerpts()
             )
         return documents
 

@@ -17,7 +17,9 @@ class Loader(MarvinBaseModel, LoggerMixin, ABC):
         arbitrary_types_allowed = True
         extra = "forbid"
 
-    async def load_and_store(self, topic_name: str) -> None:
+    async def load_and_store(
+        self, topic_name: str = "marvin", batch_size: int = 100
+    ) -> None:
         """Retrieve documents via subclass' load method and write them to a topic."""
 
         documents = await self.load()
@@ -26,7 +28,7 @@ class Loader(MarvinBaseModel, LoggerMixin, ABC):
 
         # TODO: add check for existing documents
 
-        for batch in batched(documents, 100):
+        for batch in batched(documents, batch_size):
             await chroma.add(batch)
 
         self.logger.debug(f"saved {len(documents)} documents to topic {topic_name!r}")

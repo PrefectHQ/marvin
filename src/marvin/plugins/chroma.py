@@ -1,6 +1,5 @@
 from marvin.infra.chroma import Chroma
 from marvin.plugins import Plugin
-from marvin.utilities.strings import slice_tokens
 
 
 async def query_chroma(query: str, n: int = 5):
@@ -9,12 +8,12 @@ async def query_chroma(query: str, n: int = 5):
         query_texts=[query],
         n_results=n,
         include=["documents"],
-    )
-    summary = "\n\n".join(
-        f"({link}): {doc}" for link, doc in zip(results["ids"], results["documents"])
+        where={"document_type": "excerpt"},
     )
 
-    return slice_tokens(summary, 2000)
+    return "\n\n".join(
+        excerpt for excerpts in results["documents"] for excerpt in excerpts
+    )
 
 
 class ChromaSearch(Plugin):
