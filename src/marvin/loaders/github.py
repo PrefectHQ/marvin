@@ -11,9 +11,10 @@ from typing import Dict, List, Tuple
 import httpx
 from pydantic import BaseModel, Field, validator
 
+import marvin
 from marvin.loaders.base import Loader
 from marvin.models.documents import Document
-from marvin.utilities.strings import split_text
+from marvin.utilities.strings import count_tokens, split_text
 
 
 class GitHubUser(BaseModel):
@@ -145,10 +146,9 @@ class GitHubIssueLoader(Loader):
             documents.extend(
                 [
                     Document(
-                        chroma_id=f"gh_issue/{issue.number}-{i}",
                         text=text,
                         metadata=metadata,
-                        type="issue",
+                        type="original",
                     )
                     for i, text in enumerate(split_text(text))
                 ]
@@ -200,7 +200,6 @@ class GitHubRepoLoader(Loader):
                 with open(file, "r") as f:
                     text = f.read()
 
-                text_chunks = split_text(text, 1000)
                 metadata = {
                     "source": "/".join(
                         [
@@ -211,15 +210,13 @@ class GitHubRepoLoader(Loader):
                     )
                 }
                 documents.extend(
-                    [
-                        Document(
-                            chroma_id=f"gh_file/{self.repo.replace('.git', '')}/{i}",
-                            text=text_chunk,
-                            metadata=metadata,
-                            type="gh_file",
-                        )
-                        for i, text_chunk in enumerate(text_chunks)
-                    ]
+                    await Document(
+                        text=text,
+                        metadata=metadata,
+                        type="original",
+                        topic_name=marvin.settings.default_topic,
+                        tokens=count_tokens(text),
+                    ).to_excerpts()
                 )
             return documents
         finally:

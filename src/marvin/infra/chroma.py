@@ -39,9 +39,9 @@ class Chroma:
     ):
         await run_async(
             self.collection.add,
-            ids=[doc.chroma_id for doc in documents],
-            documents=[doc.text for doc in documents],
-            metadatas=[doc.metadata for doc in documents],
+            ids=[document.id for document in documents],
+            documents=[document.text for document in documents],
+            metadatas=[document.metadata for document in documents],
         )
         await run_async(self.client.persist)
 
