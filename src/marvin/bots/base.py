@@ -360,3 +360,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
             messages=[langchain_messages], stop=["Plugin output:", "Plugin Output:"]
         )
         return result.generations[0][0].text
+
+    async def interactive_chat(self, first_message: str = None):
+        await marvin.bots.interactive_chat.chat(bot=self, first_message=first_message)

@@ -1,15 +1,11 @@
-import asyncio
 import random
 
-import typer
 from rich import print as rprint
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Prompt
 
-import marvin
-
-from .cli import app
+from marvin.bots.base import Bot
 
 spinner_messages = [
     "Thinking...",
@@ -43,15 +39,7 @@ spinner_messages = [
 ]
 
 
-async def chat(
-    first_message: str = None,
-    name: str = None,
-    personality: str = None,
-    instructions: str = None,
-    single_response: bool = False,
-):
-    bot = marvin.Bot(name=name, personality=personality, instructions=instructions)
-
+async def chat(bot: Bot, first_message: str = None):
     rprint(f"\n[bold blue]:robot::speech_balloon: {bot.name}[/] is listening...\n")
 
     try:
@@ -90,38 +78,7 @@ async def chat(
                     border_style="blue",
                 )
             )
-            if single_response:
-                raise typer.Exit()
 
     except KeyboardInterrupt:
         rprint()
         rprint(Panel(":wave: Goodbye!", border_style="red"))
-
-
-@app.command(name="chat", help="Quickly chat with a custom bot")
-def chat_sync(
-    name: str = typer.Option(None, "--name", "-n", help="Your bot's name"),
-    personality: str = typer.Option(
-        None, "--personality", "-p", help="Your bot's personality"
-    ),
-    instructions: str = typer.Option(
-        None, "--instructions", "-i", help="Your bot's instructions"
-    ),
-    single_response: bool = typer.Option(
-        False, "--single-response", help="Get a single response and exit"
-    ),
-    message: list[str] = typer.Argument(
-        default=None, help="An optional initial message to send to the bot"
-    ),
-):
-    if single_response and not message:
-        raise typer.BadParameter("You must provide a message to get a single response.")
-    asyncio.run(
-        chat(
-            first_message=" ".join(message),
-            name=name,
-            personality=personality,
-            instructions=instructions,
-            single_response=single_response,
-        )
-    )
