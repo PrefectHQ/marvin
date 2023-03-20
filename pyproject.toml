@@ -16,7 +16,7 @@ env = [
     "D:MARVIN_DATABASE_CONNECTION_URL=sqlite+aiosqlite:////tmp/test.sqlite",
     "MARVIN_LOG_CONSOLE_WIDTH=120",
     "MARVIN_LOG_LEVEL=DEBUG",
-    # disable auto profile picture creation 
+    # disable auto profile picture creation
     'MARVIN_BOT_CREATE_PROFILE_PICTURE=false',
     'MARVIN_OPENAI_MODEL_TEMPERATURE=0'
 ]
@@ -29,7 +29,8 @@ multi_line_output = 3
 
 [tool.ruff]
 extend-select = ["I"]
-extend-exclude = ["__init__.py"]
 
 [tool.ruff.per-file-ignores]
-"conftest.py" = ["F403"]
+"__init__.py" = ['I', 'F401', 'E402']
+"conftest.py" = ["F401", "F403"]
+'tests/fixtures/*.py' = ['F403']
