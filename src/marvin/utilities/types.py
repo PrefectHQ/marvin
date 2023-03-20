@@ -14,7 +14,6 @@ from pydantic.fields import ModelField
 from sqlalchemy import TypeDecorator
 from typing_extensions import Annotated
 
-from marvin.infra.db import JSONType
 from marvin.utilities.logging import get_logger
 
 logger = get_logger(__name__)
@@ -163,6 +162,8 @@ def pydantic_column_type(pydantic_type):
     """
     SA Column for converting pydantic models to and from JSON
     """
+
+    from marvin.infra.db import JSONType
 
     class PydanticJSONType(TypeDecorator, Generic[T]):
         impl = JSONType()

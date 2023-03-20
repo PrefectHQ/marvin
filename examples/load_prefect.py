@@ -17,8 +17,12 @@ async def hello_marvin():
         personality="like the robot from HHGTTG, depressed but helpful",
         plugins=[
             ChromaSearch(
-                "Semantic search for documents relevant to Prefect. Provide detailed,"
-                " natural language queries."
+                description=(
+                    "Semantic search of Prefect documentation, GitHub issues, and"
+                    " related material. Useful for learning or supporting Prefect,"
+                    " workflows, flows, tasks, infrastructure, and more. Provide"
+                    " detailed, natural language queries."
+                )
             )
         ],
     )
