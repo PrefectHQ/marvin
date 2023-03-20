@@ -1,2 +1,2 @@
-from . import history, input_transformers
+from . import history, input_transformers, interactive_chat
 from .base import Bot
