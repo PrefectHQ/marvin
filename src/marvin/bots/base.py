@@ -257,7 +257,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         return messages, finished
 
     async def _run_plugin(self, plugin_name: str, plugin_inputs: dict) -> str:
-        plugin = next((p for p in self.plugins if p.name == plugin_name), None)
+        plugin = next((p for p in self.plugins if p.name == plugin_name.strip()), None)
         if plugin is None:
             return f'Plugin "{plugin_name}" not found.'
         try:

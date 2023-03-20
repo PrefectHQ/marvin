@@ -15,7 +15,7 @@ async def safe_get(client, url):
         pass
 
 
-async def search_ddg(query: str, n: int = 5):
+async def search_ddg(query: str, n: int = 5) -> str:
     answers, search_results = await asyncio.gather(
         *[
             marvin.utilities.async_utils.run_async(ddg_answers, query),
