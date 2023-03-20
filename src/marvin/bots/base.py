@@ -1,19 +1,21 @@
 import inspect
 import json
 import re
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 import pendulum
 from pydantic import Field, validator
 
 import marvin
 from marvin.bots.history import History, ThreadHistory
-from marvin.models.bots import BotConfig
+from marvin.bots.input_transformers import InputTransformer
 from marvin.models.ids import BotID, ThreadID
 from marvin.models.threads import Message
 from marvin.plugins import Plugin
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
+if TYPE_CHECKING:
+    from marvin.models.bots import BotConfig
 DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
 DEFAULT_INSTRUCTIONS = inspect.cleandoc(
@@ -49,6 +51,14 @@ class Bot(MarvinBaseModel, LoggerMixin):
     include_date_in_prompt: bool = Field(
         True,
         description="Include the date in the prompt. Disable for testing.",
+    )
+    input_transformers: list[InputTransformer.as_discriminated_union()] = Field(
+        default_factory=list,
+        description=(
+            "A list of input transformers to apply to the user input before passing it"
+            ' to the LLM. For example, you can use the "PrependText" input transformer'
+            " to prepend the user input with a string."
+        ),
     )
 
     @validator("llm", always=True)
@@ -94,22 +104,26 @@ class Bot(MarvinBaseModel, LoggerMixin):
             return ThreadHistory()
         return v
 
-    def to_bot_config(self) -> BotConfig:
+    def to_bot_config(self) -> "BotConfig":
+        from marvin.models.bots import BotConfig
+
         return BotConfig(
             id=self.id,
             name=self.name,
             personality=self.personality,
             instructions=self.instructions,
             plugins=[p.dict() for p in self.plugins],
+            input_transformers=[t.dict() for t in self.input_transformers],
         )
 
     @classmethod
-    async def from_bot_config(cls, bot_config: BotConfig) -> "Bot":
+    async def from_bot_config(cls, bot_config: "BotConfig") -> "Bot":
         return cls(
             name=bot_config.name,
             personality=bot_config.personality,
             instructions=bot_config.instructions,
             plugins=bot_config.plugins,
+            input_transformers=bot_config.input_transformers,
         )
 
     async def save(self):
@@ -126,15 +140,23 @@ class Bot(MarvinBaseModel, LoggerMixin):
         return await cls.from_bot_config(bot_config=bot_config)
 
     async def say(self, message: str) -> Message:
+        # get bot instructions
         bot_instructions = await self._get_bot_instructions()
         plugin_instructions = await self._get_plugin_instructions()
-        history = await self._get_history()
-        user_message = Message(role="user", content=message)
-
         if plugin_instructions is not None:
             bot_instructions = [bot_instructions, plugin_instructions]
         else:
             bot_instructions = [bot_instructions]
+
+        # load chat history
+        history = await self._get_history()
+
+        # apply input transformers
+        for t in self.input_transformers:
+            message = t.run(message)
+            if inspect.iscoroutine(message):
+                message = await message
+        user_message = Message(role="user", content=message)
 
         messages = bot_instructions + history + [user_message]
 
