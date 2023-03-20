@@ -2,7 +2,7 @@ import asyncio
 import re
 from functools import lru_cache
 from string import Formatter
-from typing import Any, Callable, Literal, Mapping, Sequence, Union
+from typing import Any, Callable, Mapping, Sequence, Union
 
 import pendulum
 import tiktoken
@@ -202,32 +202,11 @@ MULTIPLE_NEWLINES = re.compile(r"\n{2,}")
 MULTIPLE_WHITESPACE = re.compile(r"[\t ]+")
 
 
-def html_to_content(
-    html: str,
-    library: Literal["readability", "html2text", "trafilatura"] = None,
-) -> str:
-    library = library or "trafilatura"
+def html_to_content(html: str) -> str:
+    # defer import for performance
+    import trafilatura
 
-    if library == "trafilatura":
-        # defer import for performance
-        import trafilatura
-
-        text = trafilatura.extract(html, include_formatting=True, include_links=True)
-    elif library == "readability":
-        # defer import for performance
-        import markdownify
-        import readability
-
-        readability_doc = readability.Document(html)
-        text = readability_doc.summary()
-        text = markdownify.markdownify(
-            text, heading_style="ATX", escape_underscores=False, escape_asterisks=True
-        )
-    else:
-        # defer import for performance
-        import html2text
-
-        text = html2text.html2text(html)
+    text = trafilatura.extract(html, include_formatting=True, include_links=True)
 
     text = condense_newlines(text)
     return text
