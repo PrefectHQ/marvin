@@ -1,6 +1,9 @@
 import inspect
 
+from pydantic import Field
+
 from marvin import Bot
+from marvin.bots.history import History, InMemoryHistory
 from marvin.bots.input_transformers import InputTransformer, PrependText
 from marvin.plugins.base import Plugin
 
@@ -15,6 +18,7 @@ class UtilityBot(Bot):
     input_transformers: list[InputTransformer] = [
         PrependText(text="Process the following text:")
     ]
+    history: History = Field(default_factory=InMemoryHistory)
 
 
 summarize_bot = UtilityBot(
