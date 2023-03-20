@@ -49,6 +49,7 @@ class Settings(BaseSettings):
 
     # OPENAI
     openai_model_name: str = "gpt-3.5-turbo"
+    openai_model_temperature: float = 0.8
     openai_api_key: SecretStr = Field(
         "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
     )
@@ -61,7 +62,9 @@ class Settings(BaseSettings):
 
     # DATABASE
     database_echo: bool = False
-    database_connection_url: SecretStr = "sqlite+aiosqlite:////$MARVIN_HOME/marvin.db"
+    database_connection_url: SecretStr = (
+        "sqlite+aiosqlite:////$MARVIN_HOME/marvin.sqlite"
+    )
 
     # REDIS
     redis_connection_url: SecretStr = ""
@@ -135,7 +138,10 @@ class Settings(BaseSettings):
             print(Text("Marvin is running in test mode!", style="yellow"))
             values["log_level"] = "DEBUG"
             values["verbose"] = True
+            # don't generate profile pictures
             values["bot_create_profile_picture"] = False
+            # remove all model variance
+            values["openai_model_temperature"] = 0.0
         return values
 
     def __setattr__(self, name, value):

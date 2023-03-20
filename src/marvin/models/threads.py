@@ -8,7 +8,8 @@ from sqlmodel import Field
 import marvin
 from marvin.infra.db import AsyncSession, JSONType, provide_session
 from marvin.models.base import BaseSQLModel
-from marvin.models.ids import BotID, MessageID, ThreadID
+from marvin.models.ids import BotID, GenericID, MessageID, ThreadID
+from marvin.utilities.models import MarvinSQLModel
 from marvin.utilities.types import MarvinBaseModel
 
 RoleType = Literal["system", "user", "ai"]
@@ -45,6 +46,18 @@ class Message(BaseSQLModel, table=True):
 
     def to_dict(self) -> dict:
         return self.dict(include={"role", "name", "content"}, include_none=False)
+
+
+class MessageCreate(MarvinBaseModel):
+    role: RoleType
+    content: str
+    name: str = None
+    bot_id: BotID = None
+    data: dict = Field(default_factory=dict)
+
+
+class UserMessageCreate(MessageCreate):
+    role: Literal["user"] = "user"
 
 
 class Thread(BaseSQLModel, table=True):
@@ -88,3 +101,24 @@ class ThreadUpdate(MarvinBaseModel):
     name: str = None
     context: dict = None
     is_visible: bool = None
+
+
+class ThreadSummary(MarvinSQLModel, table=True):
+    """
+    Table for storing summaries of threads at a certain point, to assist with
+    long-term memory
+    """
+
+    __table_args__ = (
+        sa.ForeignKeyConstraint(["thread_id"], ["thread.id"], ondelete="CASCADE"),
+        sa.Index(
+            "ix_thread_summary__thread_id_timestamp",
+            "thread_id",
+            sa.text("timestamp DESC"),
+        ),
+    )
+
+    id: GenericID = Field(default_factory=GenericID.new, primary_key=True)
+    thread_id: ThreadID
+    summary: str
+    timestamp: datetime.datetime
