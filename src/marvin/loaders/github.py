@@ -11,9 +11,8 @@ from typing import Dict, List, Tuple
 import httpx
 from pydantic import BaseModel, Field, validator
 
+from marvin.documents import Document
 from marvin.loaders.base import Loader
-from marvin.models.digests import Digest
-from marvin.utilities.logging import read_stream
 from marvin.utilities.strings import split_text
 
 
@@ -122,14 +121,14 @@ class GitHubIssueLoader(Loader):
             page += 1
         return issues
 
-    async def load(self) -> Digest:
+    async def load(self) -> list[Document]:
         """
         Load all issues for the given repository.
 
         Returns:
             A list of `Document` objects, each representing an issue.
         """
-        digest = Digest()
+        documents = []
         for issue in self._get_issues():
             text = f"{issue.title}\n{issue.body}"
             for comment in self._get_issue_comments(
@@ -141,10 +140,17 @@ class GitHubIssueLoader(Loader):
                 "title": issue.title,
                 "labels": ",".join([label.name for label in issue.labels]),
             }
-            digest.ids.append(f"gh_issue/{issue.number}")
-            digest.documents.append(text)
-            digest.metadatas.append(metadata)
-        return digest
+            documents.extend(
+                [
+                    Document(
+                        id=f"gh_issue/{issue.number}-{i}",
+                        text=text,
+                        metadata=metadata,
+                    )
+                    for i, text in enumerate(split_text(text))
+                ]
+            )
+        return documents
 
 
 class GitHubRepoLoader(Loader):
@@ -163,19 +169,12 @@ class GitHubRepoLoader(Loader):
             )
         return f"https://github.com/{v}.git"
 
-    async def load(self) -> Digest:
+    async def load(self) -> list[Document]:
         """Load files from GitHub that match the glob pattern."""
         tmp_dir = tempfile.mkdtemp()
         try:
             process = await asyncio.create_subprocess_exec(
-                *["git", "clone", "--depth", "1", self.repo, tmp_dir],
-                stderr=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-            )
-
-            await asyncio.gather(
-                read_stream(process.stdout, self.logger.debug),
-                read_stream(process.stderr, self.logger.debug),
+                *["git", "clone", "--depth", "1", self.repo, tmp_dir]
             )
 
             if (await process.wait()) != 0:
@@ -184,7 +183,7 @@ class GitHubRepoLoader(Loader):
                 )
 
             # Read the contents of each file that matches the glob pattern
-            digest = Digest()
+            documents = []
             matched_files = [p for p in Path(tmp_dir).glob(self.glob) if p.is_file()]
             if self.exclude_glob:
                 matched_files = [
@@ -199,7 +198,6 @@ class GitHubRepoLoader(Loader):
                     text = f.read()
 
                 text_chunks = split_text(text, 1000)
-                num_chunks = len(text_chunks)
                 metadata = {
                     "source": "/".join(
                         [
@@ -209,11 +207,16 @@ class GitHubRepoLoader(Loader):
                         ]
                     )
                 }
-                digest.ids.extend(
-                    [f"gh_file/{metadata['source']}/{i}" for i in range(num_chunks)]
+                documents.extend(
+                    [
+                        Document(
+                            id=f"gh_file/{self.repo.replace('.git', '')}/{i}",
+                            text=text_chunk,
+                            metadata=metadata,
+                        )
+                        for i, text_chunk in enumerate(text_chunks)
+                    ]
                 )
-                digest.documents.extend(text_chunks)
-                digest.metadatas.extend([metadata] * num_chunks)
-            return digest
+            return documents
         finally:
             shutil.rmtree(tmp_dir)

@@ -5,6 +5,7 @@ from chromadb.api.types import Include, QueryResult
 from chromadb.utils import embedding_functions
 
 import marvin
+from marvin.documents import Document
 from marvin.utilities.async_utils import run_async
 
 
@@ -35,17 +36,13 @@ class Chroma:
 
     async def add(
         self,
-        documents: list[str] = None,
-        embeddings: list[list[float]] = None,
-        metadatas: list[dict] = None,
-        ids: list[str] = None,
+        documents: list[Document],
     ):
         await run_async(
             self.collection.add,
-            documents=documents,
-            embeddings=embeddings,
-            metadatas=metadatas,
-            ids=ids,
+            ids=[doc.id for doc in documents],
+            documents=[doc.text for doc in documents],
+            metadatas=[doc.metadata for doc in documents],
         )
         await run_async(self.client.persist)
 

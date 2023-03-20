@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 from pydantic import PrivateAttr
 
 import marvin
-from marvin.models.digests import Digest
+from marvin.documents import Document
+from marvin.utilities.collections import batched
 from marvin.utilities.types import MarvinBaseModel
 
 
@@ -30,12 +31,15 @@ class Loader(MarvinBaseModel, ABC):
         extra = "forbid"
 
     async def load_and_store(self, topic_name: str) -> None:
-        """Load files from GitHub and store them in a topic."""
+        """Retrieve documents via subclass' load method and write them to a topic."""
 
-        digest: Digest = await self.load()
+        documents: list[Document] = await self.load()
 
         chroma = marvin.infra.chroma.Chroma(topic_name)
 
-        await chroma.add(**digest.dict())
+        await chroma.delete(where={"source": self.__class__.__name__})
 
-        self.logger.debug(f"wrote {digest!r} to topic {topic_name!r}")
+        for batch in batched(documents, 100):
+            await chroma.add(batch)
+
+        self.logger.debug(f"saved {len(documents)} documents to topic {topic_name!r}")

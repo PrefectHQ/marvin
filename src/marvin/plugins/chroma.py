@@ -17,7 +17,7 @@ async def query_chroma(query: str, n: int = 5):
     return slice_tokens(summary, 2000)
 
 
-class ChromaVectorstore(Plugin):
+class ChromaSearch(Plugin):
     description: str = (
         "Search Chroma for documents that are similar to a user question - "
         "Use this plugin for context whenever asked about Prefect-related things. "

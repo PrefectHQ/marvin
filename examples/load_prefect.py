@@ -1,7 +1,7 @@
 import marvin
 from marvin.bots import Bot
 from marvin.loaders.github import GitHubRepoLoader
-from marvin.plugins.chroma import ChromaVectorstore
+from marvin.plugins.chroma import ChromaSearch
 
 
 async def load_prefect_docs():
@@ -15,7 +15,7 @@ async def hello_marvin():
     bot = Bot(
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
-        plugins=[ChromaVectorstore()],
+        plugins=[ChromaSearch()],
     )
     await bot.say(
         "What are the steps to create a new Prefect deployment?"
