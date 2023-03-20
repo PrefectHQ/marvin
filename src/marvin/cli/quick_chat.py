@@ -2,7 +2,8 @@ import asyncio
 import random
 
 import typer
-from rich import print
+from rich import print as rprint
+from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Prompt
 
@@ -51,23 +52,26 @@ async def chat(
 ):
     bot = marvin.Bot(name=name, personality=personality, instructions=instructions)
 
-    print(f"[bold blue]:robot: {bot.name}[/] is ready!")
-    print("[italic](Type `exit` to quit)[/]")
+    rprint(f"[bold blue]:robot: {bot.name}[/] is ready!")
 
     try:
         while True:
             if not first_message:
-                message = Prompt.ask("\n[green]Your message[/]")
+                message = Prompt.ask("\n[gray50]Your message[/]")
+                # this will clear the prompt off the screen
+                print("\033[A\033[A")
             else:
                 message = first_message
                 first_message = None
-                print(f"\n[green]Your message[/]: {message}")
+            rprint(
+                Panel(message, title="You", title_align="left", border_style="gray50")
+            )
 
             if message == "exit":
                 raise KeyboardInterrupt()
 
-            # empty print so the progress and response appear on the same line
-            print()
+            # empty rprint so the progress and response appear on the same line
+            rprint()
             with Progress(
                 SpinnerColumn(),
                 TextColumn("[progress.description]{task.description}"),
@@ -78,19 +82,24 @@ async def chat(
                 )
                 response = await bot.say(message)
 
-            print(f"[blue]{bot.name}:[/] {response.content}")
+            rprint(
+                Panel(
+                    response.content,
+                    title=bot.name,
+                    title_align="left",
+                    border_style="blue",
+                )
+            )
             if single_response:
                 raise typer.Exit()
 
     except KeyboardInterrupt:
-        print("\n[red]:wave: Goodbye![/]")
+        rprint()
+        rprint(Panel(":wave: Goodbye!", border_style="red"))
 
 
 @app.command(name="chat", help="Quickly chat with a custom bot")
 def chat_sync(
-    message: str = typer.Argument(
-        default=None, help="An optional initial message to send to the bot"
-    ),
     name: str = typer.Option(None, "--name", "-n", help="Your bot's name"),
     personality: str = typer.Option(
         None, "--personality", "-p", help="Your bot's personality"
@@ -101,12 +110,15 @@ def chat_sync(
     single_response: bool = typer.Option(
         False, "--single-response", help="Get a single response and exit"
     ),
+    message: list[str] = typer.Argument(
+        default=None, help="An optional initial message to send to the bot"
+    ),
 ):
     if single_response and not message:
         raise typer.BadParameter("You must provide a message to get a single response.")
     asyncio.run(
         chat(
-            first_message=message,
+            first_message=" ".join(message),
             name=name,
             personality=personality,
             instructions=instructions,
