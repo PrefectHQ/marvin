@@ -17,7 +17,7 @@ Launching a bot is simple! All you need is this library and a valid [OpenAI API 
 3. **Chat** in your CLI by running `marvin chat`. You can *optionally* provide a name or personality to customize the conversation:
 
 ```shell
-marvin chat -n "Ford Prefect" -p "a roving researcher for the Hitchhiker's Guide to the Galaxy"
+marvin chat -n "Ford Prefect" -p "a roving researcher for the Hitchhiker's Guide to the Galaxy" Hey Ford
 ```
 
 
