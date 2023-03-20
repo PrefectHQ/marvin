@@ -52,7 +52,7 @@ async def chat(
 ):
     bot = marvin.Bot(name=name, personality=personality, instructions=instructions)
 
-    rprint(f"\n[bold blue]:robot::speech_balloon: {bot.name}[/] is ready!\n")
+    rprint(f"\n[bold blue]:robot::speech_balloon: {bot.name}[/] is listening...\n")
 
     try:
         while True:
