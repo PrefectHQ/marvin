@@ -7,7 +7,7 @@ import pendulum
 from pydantic import Field, validator
 
 import marvin
-from marvin.history import History, ThreadHistory
+from marvin.bots.history import History, ThreadHistory
 from marvin.models.bots import BotConfig
 from marvin.models.ids import BotID, ThreadID
 from marvin.models.threads import Message
