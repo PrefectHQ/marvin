@@ -1,9 +1,31 @@
 site_name: Marvin
+nav:
+  - Welcome: index.md
+  - Getting Started:
+    - Installation: getting_started/installation.md
+    - Configuring OpenAI: getting_started/openai.md
+    - Start chatting: getting_started/chat.md
+  - ...
+  
 theme:
   name: material
-  font: inter
+  font: 
+    text: Inter
+    code: Fira Code
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - toc.follow
+    - toc.integrate 
+    - content.action.edit
+    - navigation.footer
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil 
+    view: material/eye
   palette:
-
     # Palette toggle for light mode
     - scheme: default
       primary: blue
@@ -11,7 +33,6 @@ theme:
       toggle:
         icon: material/weather-sunny 
         name: Switch to dark mode
-
     # Palette toggle for dark mode
     - scheme: slate
       primary: blue
@@ -21,3 +42,17 @@ theme:
         name: Switch to light mode
 plugins:
   - search
+  - awesome-pages
+markdown_extensions:
+  - toc:
+      permalink: true
+repo_url: https://github.com/prefecthq/marvin
+edit_uri: edit/main/docs/
+extra:
+  social:
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/prefectio
+    - icon: fontawesome/brands/github
+      link: https://github.com/prefecthq/marvin
+    - icon: fontawesome/brands/slack
+      link: https://prefect.io/slack

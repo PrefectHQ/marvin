@@ -9,7 +9,9 @@ Marvin is a batteries-included chatbot library. Go from zero-to-production immed
 ## Quick start
 1. **Install**: `pip install marvin`
 1. **Configure**: `export OPENAI_API_KEY=...`
-2. **Chat**: `marvin chat`
+1. **Chat**: `marvin chat`
+
+See [Getting Started](getting_started/installation.md) for more detail
 
 ## Features
 - Fully open-source: Marvin is Apache 2.0 licensed and built on modern open-source standards like FastAPI, Langchain, Prefect, and Chroma.
