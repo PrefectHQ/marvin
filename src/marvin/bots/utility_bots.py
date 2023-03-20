@@ -30,3 +30,21 @@ keyword_bot = Bot(
     ).replace("\n", " "),
     plugins=[],
 )
+
+
+regex_bot = Bot(
+    name="Reggie",
+    personality=(
+        "A utility bot without a personality. Does exactly as it's told, does not ask"
+        " follow-up questions."
+    ),
+    instructions=inspect.cleandoc(
+        """
+        You are a regex bot. Users will send you messages describing their
+        objective and you will reply with a regex pattern that satisfies it.
+        Users may also ask you to explain a regex pattern that they provide in
+        natural language.
+        """
+    ).replace("\n", " "),
+    plugins=[],
+)
