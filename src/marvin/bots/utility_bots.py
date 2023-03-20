@@ -1,6 +1,7 @@
 import inspect
 
 from marvin import Bot
+from marvin.bots.input_transformers import InputTransformer, PrependText
 from marvin.plugins.base import Plugin
 
 
@@ -10,6 +11,10 @@ class UtilityBot(Bot):
         " follow-up questions."
     )
     plugins: list[Plugin] = []
+    include_date_in_prompt: bool = False
+    input_transformers: list[InputTransformer] = [
+        PrependText(text="Process the following text:")
+    ]
 
 
 summarize_bot = UtilityBot(

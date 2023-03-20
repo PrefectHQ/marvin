@@ -1,6 +1,7 @@
 import sqlalchemy as sa
 from sqlmodel import Field
 
+from marvin.bots.input_transformers import InputTransformer
 from marvin.infra.db import JSONType
 from marvin.models.ids import BotID
 from marvin.plugins.base import Plugin
@@ -16,6 +17,11 @@ class BotConfig(MarvinSQLModel, table=True):
     personality: str
     instructions: str
     plugins: list[dict] = Field(
+        default_factory=[],
+        sa_column=sa.Column(JSONType, nullable=False, server_default="[]"),
+    )
+    input_transformers: list[dict] = Field(
+        default_factory=[],
         sa_column=sa.Column(JSONType, nullable=False, server_default="[]"),
     )
     profile_picture: bytes = None
@@ -25,7 +31,8 @@ class BotConfigCreate(MarvinBaseModel):
     name: str
     personality: str
     instructions: str
-    plugins: list[Plugin]
+    plugins: list[Plugin.as_discriminated_union()]
+    input_transformers: list[InputTransformer.as_discriminated_union()]
 
 
 class BotConfigUpdate(BotConfigCreate):
