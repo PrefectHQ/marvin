@@ -15,7 +15,7 @@ DocumentType = Literal["original", "excerpt", "summary"]
 
 
 EXCERPT_TEMPLATE = """
-The following is an excerpt from a {document.type} document called "{document.id}". 
+The following is an excerpt from a {document.type} document: 
 # Document details
 {document.metadata}
 # Document keywords
@@ -34,7 +34,6 @@ class Document(MarvinBaseModel):
     parent_document_id: DocumentID | None = Field(default=None)
     topic_name: str = Field(default=marvin.settings.default_topic)
     tokens: int | None = Field(default=None)
-
     order: int | None = Field(default=None)
     keywords: list[str] = Field(default_factory=list)
 
@@ -48,6 +47,10 @@ class Document(MarvinBaseModel):
         if not v:
             return count_tokens(values["text"])
         return v
+
+    @property
+    def hash(self):
+        return marvin.utilities.strings.hash_text(self.text)
 
     async def to_excerpts(
         self, chunk_tokens: int = 400, overlap: confloat(ge=0, le=1) = 0.1

@@ -2,7 +2,7 @@ from marvin.infra.chroma import Chroma
 from marvin.plugins import Plugin
 
 
-async def query_chroma(query: str, n: int = 5):
+async def query_chroma(query: str, n: int = 4):
     chroma = Chroma(collection_name="marvin")
     results = await chroma.query(
         query_texts=[query],

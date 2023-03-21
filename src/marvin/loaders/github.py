@@ -172,13 +172,17 @@ class GitHubRepoLoader(Loader):
         tmp_dir = tempfile.mkdtemp()
         try:
             process = await asyncio.create_subprocess_exec(
-                *["git", "clone", "--depth", "1", self.repo, tmp_dir]
+                *["git", "clone", "--depth", "1", self.repo, tmp_dir],
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
             )
 
             if (await process.wait()) != 0:
                 raise OSError(
-                    f"Failed to clone repository:\n {process.stderr.decode()}"
+                    f"Failed to clone repository:\n {await process.stderr.read()}"
                 )
+
+            self.logger.debug(f"{await process.stdout.read()}")
 
             # Read the contents of each file that matches the glob pattern
             documents = []

@@ -36,14 +36,24 @@ class Chroma:
     async def add(
         self,
         documents: list[Document],
-    ):
+        skip_existing: bool = False,
+    ) -> int:
+        if skip_existing:
+            existing_ids = set(self.collection.get(include=[])["ids"])
+            document_map = {document.hash: document for document in documents}
+            unique_hashes = set(document_map.keys()) - existing_ids
+            documents = [document_map[hash] for hash in unique_hashes]
+            if not documents:
+                return 0
+
         await run_async(
             self.collection.add,
-            ids=[document.id for document in documents],
+            ids=[document.hash for document in documents],
             documents=[document.text for document in documents],
             metadatas=[document.metadata for document in documents],
         )
         await run_async(self.client.persist)
+        return len(documents)
 
     async def query(
         self,
@@ -64,14 +74,4 @@ class Chroma:
             where_document=where_document,
             include=include,
             **kwargs
-        )
-
-    async def get(
-        self,
-        ids: list[str] = None,
-        where: dict = None,
-        include: Include = None,
-    ):
-        await run_async(
-            self.collection.get, ids=ids, where=where, include=include or []
         )
