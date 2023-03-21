@@ -52,7 +52,12 @@ async def chat(bot: Bot, first_message: str = None):
                 message = first_message
                 first_message = None
             rprint(
-                Panel(message, title="You", title_align="left", border_style="gray50")
+                Panel(
+                    message,
+                    title="You",
+                    title_align="left",
+                    border_style="gray50",
+                )
             )
 
             if message == "exit":

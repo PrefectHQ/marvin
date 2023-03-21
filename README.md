@@ -6,6 +6,16 @@ A batteries-included chatbot library.
 >
 > Marvin
 
+## Highlights
+
+🤖 Custom chatbots with names, personalities, and instructions
+📡 Supports ChatGPT (GPT-3.5) and GPT-4
+🔌 Plugin system for giving bots superpowers
+🌈 ChromaDB for vector search
+🐍 Async Python API
+🖥️ Interactive chat CLI
+⚡️ FastAPI REST API
+
 ## Getting started
 
 Launching a bot is simple! All you need is this library and a valid [OpenAI API key](https://platform.openai.com/account/api-keys). 
