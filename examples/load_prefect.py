@@ -24,7 +24,7 @@ async def load_prefect_things():
 
 
 async def hello_marvin():
-    await load_prefect_things()
+    # await load_prefect_things()
     bot = Bot(
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
@@ -43,9 +43,7 @@ async def hello_marvin():
             )
         ],
     )
-    await bot.interactive_chat(
-        first_message="What are common pitfalls when running flows on ECS?"
-    )
+    await bot.interactive_chat()
 
 
 if __name__ == "__main__":

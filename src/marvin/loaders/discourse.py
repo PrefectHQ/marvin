@@ -14,25 +14,29 @@ COMMON_QUESTIONS_CATEGORY_ID = 24
 class DiscoursePost(BaseModel):
     """Discourse post."""
 
-    id: int = Field(...)
-    category_id: int = Field(...)
-    cooked: str = Field(...)
-    topic_id: int = Field(...)
-    topic_slug: str = Field(...)
-    topic_title: str = Field(...)
+    base_url: str
+
+    id: int
+    category_id: int
+    cooked: str
+    topic_id: int
+    topic_slug: str
+    topic_title: str
 
     @property
     def url(self) -> str:
         """Return the URL for the post."""
-        return f"https://discourse.prefect.io/t/{self.topic_slug}/{self.topic_id}"
+        return f"{self.base_url}/t/{self.topic_slug}/{self.topic_id}"
 
 
 class DiscourseLoader(Loader):
     """Loader for Discourse posts."""
 
-    url: str = Field(...)
+    url: str = Field(default="https://discourse.prefect.io")
     n_posts: int = Field(default=50)
     request_headers: Dict[str, str] = Field(default_factory=dict)
+
+    _default_category_id: int = COMMON_QUESTIONS_CATEGORY_ID
 
     @validator("request_headers", always=True)
     def auth_headers(cls, v):
@@ -68,7 +72,13 @@ class DiscourseLoader(Loader):
             )
             response.raise_for_status()
             return [
-                DiscoursePost(**post)
+                DiscoursePost(base_url=self.url, **post)
                 for post in response.json()["latest_posts"]
-                if post["category_id"] == COMMON_QUESTIONS_CATEGORY_ID
+                if post["category_id"] == self._default_category_id
             ]
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(DiscourseLoader().load_and_store())
