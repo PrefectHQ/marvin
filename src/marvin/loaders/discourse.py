@@ -1,12 +1,11 @@
-import os
 from typing import Dict
 
 import httpx
 from pydantic import BaseModel, Field, validator
 
+import marvin
 from marvin.loaders.base import Loader
 from marvin.models.documents import Document
-from marvin.utilities.strings import count_tokens
 
 COMMON_QUESTIONS_CATEGORY_ID = 24
 
@@ -41,10 +40,18 @@ class DiscourseLoader(Loader):
     @validator("request_headers", always=True)
     def auth_headers(cls, v):
         """Add authentication headers if a Discourse token is available."""
-        if (token := os.getenv("DISCOURSE_API_KEY")) and (
-            user := os.getenv("DISCOURSE_API_USERNAME")
-        ):
-            v.update({"Api-Key": token, "Api-Username": user})
+        if not (api_key := marvin.settings.DISCOURSE_API_KEY.get_secret_value()):
+            marvin.get_logger().warning(
+                "No Discourse API key found - some endpoints may be inaccessible. You"
+                " can set `DISCOURSE_API_KEY` and `DISCOURSE_API_USERNAME` in your"
+                " environment."
+            )
+        v.update(
+            {
+                "Api-Key": api_key,
+                "Api-Username": marvin.settings.DISCOURSE_API_USERNAME,
+            }
+        )
         return v
 
     async def load(self) -> list[Document]:
@@ -59,7 +66,6 @@ class DiscourseLoader(Loader):
                         "url": post.url,
                         "category": "Common Questions",
                     },
-                    tokens=count_tokens(post.cooked),
                 ).to_excerpts()
             )
         return documents

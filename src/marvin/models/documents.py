@@ -1,4 +1,4 @@
-from pydantic import Field, confloat
+from pydantic import Field, confloat, validator
 from typing_extensions import Literal
 
 import marvin
@@ -33,7 +33,7 @@ class Document(MarvinBaseModel):
     type: DocumentType = Field(default="original")
     parent_document_id: DocumentID | None = Field(default=None)
     topic_name: str = Field(default=marvin.settings.default_topic)
-    tokens: int = Field(...)
+    tokens: int | None = Field(default=None)
 
     order: int | None = Field(default=None)
     keywords: list[str] = Field(default_factory=list)
@@ -42,6 +42,12 @@ class Document(MarvinBaseModel):
     text: str = Field(...)
     embedding: list[float] | None = Field(default=None)
     metadata: dict | None = Field(default=None)
+
+    @validator("tokens")
+    def validate_tokens(cls, v, values):
+        if not v:
+            return count_tokens(values["text"])
+        return v
 
     async def to_excerpts(
         self, chunk_tokens: int = 400, overlap: confloat(ge=0, le=1) = 0.1

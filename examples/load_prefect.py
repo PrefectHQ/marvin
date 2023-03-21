@@ -24,7 +24,7 @@ async def load_prefect_things():
 
 
 async def hello_marvin():
-    # await load_prefect_things()
+    await load_prefect_things()
     bot = Bot(
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",

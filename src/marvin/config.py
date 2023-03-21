@@ -57,6 +57,14 @@ class Settings(BaseSettings):
     # CHROMA
     chroma: ChromaSettings = Field(default_factory=ChromaSettings)
 
+    # DISCOURSE
+    DISCOURSE_API_KEY: SecretStr = Field(
+        "", env=["MARVIN_DISCOURSE_API_KEY", "DISCOURSE_API_KEY"]
+    )
+    DISCOURSE_API_USERNAME: str = Field(
+        "nate", env=["MARVIN_DISCOURSE_API_USERNAME", "DISCOURSE_API_USERNAME"]
+    )
+
     # DOCUMENTS
     default_topic = "marvin"
     default_n_keywords: int = 15

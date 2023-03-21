@@ -11,10 +11,8 @@ from typing import Dict, List, Tuple
 import httpx
 from pydantic import BaseModel, Field, validator
 
-import marvin
 from marvin.loaders.base import Loader
 from marvin.models.documents import Document
-from marvin.utilities.strings import count_tokens
 
 
 class GitHubUser(BaseModel):
@@ -133,11 +131,11 @@ class GitHubIssueLoader(Loader):
         """
         documents = []
         for issue in await self._get_issues():
-            text = f"{issue.title}\n{issue.body}"
+            text = f"**{issue.title}:**\n{issue.body}"
             for comment in await self._get_issue_comments(
                 self.repo, tuple(self.request_headers.items()), issue.number
             ):
-                text += f"\n\n{comment.user.login}: {comment.body}\n\n"
+                text += f"\n\n*{comment.user.login}:* {comment.body}\n\n"
             metadata = {
                 "source": issue.html_url,
                 "title": issue.title,
@@ -148,8 +146,6 @@ class GitHubIssueLoader(Loader):
                     text=text,
                     metadata=metadata,
                     type="original",
-                    topic_name=marvin.settings.default_topic,
-                    tokens=count_tokens(text),
                 ).to_excerpts()
             )
         return documents
@@ -213,8 +209,6 @@ class GitHubRepoLoader(Loader):
                         text=text,
                         metadata=metadata,
                         type="original",
-                        topic_name=marvin.settings.default_topic,
-                        tokens=count_tokens(text),
                     ).to_excerpts()
                 )
             return documents
