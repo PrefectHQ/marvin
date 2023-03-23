@@ -63,9 +63,18 @@ class ThreadHistory(History):
 
 class InMemoryHistory(History):
     messages: list[Message] = Field(default_factory=list)
+    max_messages: int = Field(
+        None,
+        description=(
+            "The maximum number of messages to store. Set to 1 to only store the most"
+            " recent message. Set to None to store all messages."
+        ),
+    )
 
     async def add_message(self, message: Message):
         self.messages.append(message)
+        if self.max_messages is not None:
+            self.messages = self.messages[-self.max_messages :]
 
     async def _load_messages(self, n: int = None) -> list[Message]:
         if n is None:
