@@ -79,7 +79,7 @@ async def hello_marvin():
 if __name__ == "__main__":
     import asyncio
 
-    import marvin
+    # import marvin
 
-    marvin.settings.log_level = "DEBUG"
+    # marvin.settings.log_level = "DEBUG"
     asyncio.run(hello_marvin())

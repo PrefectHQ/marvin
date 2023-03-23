@@ -6,7 +6,6 @@ GenericID = get_id_type(prefix=None)
 # Specific IDs are for specific models and generate IDs with the model's prefix.
 BotID = get_id_type(prefix="bot")
 DocumentID = get_id_type(prefix="doc")
-ExcerptID = get_id_type(prefix="exc")
 ThreadID = get_id_type(prefix="thr")
 MessageID = get_id_type(prefix="msg")
 TopicID = get_id_type(prefix="top")

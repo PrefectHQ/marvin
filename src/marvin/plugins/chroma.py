@@ -11,8 +11,6 @@ async def query_chroma(query: str, where: dict, n: int = 4):
             for op, value in where["created_at"].items()
         }
 
-    print(where)
-
     async with Chroma() as chroma:
         query_result = await chroma.query(
             query_texts=[query],
