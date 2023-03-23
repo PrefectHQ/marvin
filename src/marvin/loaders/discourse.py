@@ -1,6 +1,7 @@
 from typing import Dict
 
 import httpx
+import pendulum
 from pydantic import BaseModel, Field, validator
 
 import marvin
@@ -14,10 +15,10 @@ class DiscoursePost(BaseModel):
     """Discourse post."""
 
     base_url: str
-
     id: int
     category_id: int
     cooked: str
+    created_at: pendulum.DateTime
     topic_id: int
     topic_slug: str
     topic_title: str
@@ -62,9 +63,10 @@ class DiscourseLoader(Loader):
                 await Document(
                     text=post.cooked,
                     metadata={
+                        "source": self.source,
                         "title": post.topic_title,
                         "url": post.url,
-                        "category": "Common Questions",
+                        "created_at": post.created_at.timestamp(),
                     },
                 ).to_excerpts()
             )
@@ -82,9 +84,3 @@ class DiscourseLoader(Loader):
                 for post in response.json()["latest_posts"]
                 if post["category_id"] == self._default_category_id
             ]
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(DiscourseLoader().load_and_store())

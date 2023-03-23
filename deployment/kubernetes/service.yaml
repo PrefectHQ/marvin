@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: marvin
+spec:
+  type: ClusterIP
+  selector:
+    app: marvin
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: 8080

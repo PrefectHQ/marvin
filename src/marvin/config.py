@@ -26,6 +26,17 @@ class Settings(BaseSettings):
         env_prefix = "MARVIN_"
         validate_assignment = True
 
+    def export_to_env_file(self):
+        with open(self.Config.env_file, "w") as env_file:
+            for field_name, value in self.dict().items():
+                env_key = f"{self.Config.env_prefix}{field_name.upper()}"
+                env_value = (
+                    str(value)
+                    if not isinstance(value, SecretStr)
+                    else value.get_secret_value()
+                )
+                env_file.write(f"{env_key}={env_value}\n")
+
     home: Path = Path("~/.marvin").expanduser()
     test_mode: bool = False
 

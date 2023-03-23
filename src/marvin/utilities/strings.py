@@ -50,7 +50,7 @@ class StrictFormatter(Formatter):
             raise KeyError(extra)
 
 
-@lru_cache(maxsize=2000)
+@lru_cache(maxsize=2048)
 def hash_text(*text: str) -> str:
     bs = [t.encode() if not isinstance(t, bytes) else t for t in text]
     return xxhash.xxh3_128_hexdigest(b"".join(bs))
@@ -215,3 +215,11 @@ def condense_newlines(text: str) -> str:
     text = text.replace("\r", "\n")
     text = MULTIPLE_NEWLINES.sub("\n", text)
     return MULTIPLE_WHITESPACE.sub(" ", text)
+
+
+def rm_html_comments(text: str) -> str:
+    return re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+
+
+def rm_text_after(text: str, substring: str) -> str:
+    return text[: text.find(substring) + len(substring)] if substring in text else text

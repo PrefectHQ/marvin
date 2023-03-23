@@ -26,7 +26,7 @@ async def create_bot_config(
     session: AsyncSession = Depends(fastapi_session),
     background_tasks: BackgroundTasks = None,
 ) -> BotConfig:
-    session.add(bot_config)
+    session.add(BotConfig(**bot_config.dict()))
     await session.commit()
 
     # generate a profile picture
@@ -96,7 +96,7 @@ async def talk_to_bot(
     to the thread.
     """
     bot = await marvin.Bot.load(name=name)
-    bot.set_thread(thread_lookup_key=thread_lookup_key)
+    await bot.set_thread(thread_lookup_key=thread_lookup_key)
     response = await bot.say(message=message)
     return response
 

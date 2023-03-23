@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marvin
+  labels:
+    app: marvin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: marvin
+  template:
+    metadata:
+      labels:
+        app: marvin
+    spec:
+      serviceAccountName: marvin
+      containers:
+      - name: marvin
+        image: gcr.io/marvin/marvin:${IMAGE_TAG}
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 8080
+        command: ["uvicorn"]
+        args: ["marvin.server.server:app", "--port", "8080", "--host", "0.0.0.0"]
+        envFrom:
+          - secretRef:
+              name: marvin-secrets
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 3
+          periodSeconds: 3

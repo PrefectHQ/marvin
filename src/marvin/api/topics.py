@@ -82,8 +82,8 @@ async def delete_topic(
     topic_name: str = Path(..., alias="name"),
     session: AsyncSession = Depends(fastapi_session),
 ):
-    chroma = marvin.infra.chroma.Chroma()
-    await chroma.delete(where=dict(topic=topic_name))
+    async with marvin.infra.chroma.Chroma() as chroma:
+        await chroma.delete(where=dict(topic=topic_name))
     db_topic = await get_topic(topic_name, session=session)
     await delete_topic_by_id(topic_id=db_topic.id, session=session)
 

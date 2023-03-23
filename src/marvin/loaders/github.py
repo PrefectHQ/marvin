@@ -1,7 +1,6 @@
 """Loaders for GitHub."""
 import asyncio
 import fnmatch
-import functools
 import os
 import shutil
 import tempfile
@@ -9,10 +8,12 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import httpx
+import pendulum
 from pydantic import BaseModel, Field, validator
 
 from marvin.loaders.base import Loader
 from marvin.models.documents import Document
+from marvin.utilities.strings import rm_html_comments, rm_text_after
 
 
 class GitHubUser(BaseModel):
@@ -37,12 +38,20 @@ class GitHubLabel(BaseModel):
 class GitHubIssue(BaseModel):
     """GitHub issue."""
 
+    created_at: pendulum.DateTime = Field(...)
     html_url: str = Field(...)
     number: int = Field(...)
     title: str = Field(default="")
     body: str | None = Field(default="")
     labels: List[GitHubLabel] = Field(default_factory=GitHubLabel)
     user: GitHubUser = Field(default_factory=GitHubUser)
+
+    ignore_body_after: str = Field(default="### Checklist")
+
+    @validator("body")
+    def remove_boilerplate(cls, v):
+        """Remove HTML comments from the body."""
+        return rm_text_after(rm_html_comments(v), cls.ignore_body_after) if v else v
 
 
 class GitHubIssueLoader(Loader):
@@ -51,6 +60,8 @@ class GitHubIssueLoader(Loader):
     repo: str = Field(...)
     n_issues: int = Field(default=50)
     request_headers: Dict[str, str] = Field(default_factory=dict)
+    ignore_body_after: str = Field(default="### Checklist")
+    ignore_users: List[str] = Field(default_factory=list)
 
     @validator("request_headers", always=True)
     def auth_headers(cls, v):
@@ -61,7 +72,7 @@ class GitHubIssueLoader(Loader):
         return v
 
     @staticmethod
-    @functools.lru_cache(maxsize=2048)
+    # @functools.lru_cache(maxsize=2048)
     async def _get_issue_comments(
         repo: str,
         request_header_items: Tuple[Tuple[str, str]],
@@ -77,19 +88,19 @@ class GitHubIssueLoader(Loader):
         url = f"https://api.github.com/repos/{repo}/issues/{issue_number}/comments"
         comments = []
         page = 1
-        while True:
-            async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient() as client:
+            while True:
                 response = await client.get(
                     url=url,
                     headers=dict(request_header_items),
                     params={"per_page": per_page, "page": page},
                 )
-            response.raise_for_status()
-            if not (new_comments := response.json()):
-                break
-            comments.extend([GitHubComment(**comment) for comment in new_comments])
-            page += 1
-        return comments
+                response.raise_for_status()
+                if not (new_comments := response.json()):
+                    break
+                comments.extend([GitHubComment(**comment) for comment in new_comments])
+                page += 1
+            return comments
 
     async def _get_issues(self, per_page: int = 100) -> List[GitHubIssue]:
         """
@@ -118,7 +129,12 @@ class GitHubIssueLoader(Loader):
             response.raise_for_status()
             if not (new_issues := response.json()):
                 break
-            issues.extend([GitHubIssue(**issue) for issue in new_issues])
+            issues.extend(
+                [
+                    GitHubIssue(ignore_body_after=self.ignore_body_after, **issue)
+                    for issue in new_issues
+                ]
+            )
             page += 1
         return issues
 
@@ -131,15 +147,18 @@ class GitHubIssueLoader(Loader):
         """
         documents = []
         for issue in await self._get_issues():
-            text = f"**{issue.title}:**\n{issue.body}"
+            text = f"\n\n**{issue.title}:**\n{issue.body}"
             for comment in await self._get_issue_comments(
                 self.repo, tuple(self.request_headers.items()), issue.number
             ):
-                text += f"\n\n*{comment.user.login}:* {comment.body}\n\n"
+                if comment.user.login not in self.ignore_users:
+                    text += f"\n\n*{comment.user.login}:* {comment.body}\n\n"
             metadata = {
-                "source": issue.html_url,
+                "source": self.source,
+                "link": issue.html_url,
                 "title": issue.title,
-                "labels": ",".join([label.name for label in issue.labels]),
+                "labels": ", ".join([label.name for label in issue.labels]),
+                "created_at": issue.created_at.timestamp(),
             }
             documents.extend(
                 await Document(
@@ -155,7 +174,7 @@ class GitHubRepoLoader(Loader):
     """Loader for files on GitHub that match a glob pattern."""
 
     repo: str = Field(...)
-    glob: str = Field(default="*")
+    glob: str = Field(default="**/*.md")
     exclude_glob: str | None = Field(default=None)
 
     @validator("repo")
@@ -200,19 +219,20 @@ class GitHubRepoLoader(Loader):
                     text = f.read()
 
                 metadata = {
-                    "source": "/".join(
+                    "link": "/".join(
                         [
                             self.repo.replace(".git", ""),
                             "tree/main",
                             str(file.relative_to(tmp_dir)),
                         ]
-                    )
+                    ),
+                    "source": self.source,
+                    "created_at": pendulum.now().timestamp(),
                 }
                 documents.extend(
                     await Document(
                         text=text,
                         metadata=metadata,
-                        type="original",
                     ).to_excerpts()
                 )
             return documents

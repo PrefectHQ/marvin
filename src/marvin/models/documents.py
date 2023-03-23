@@ -1,3 +1,4 @@
+import pendulum
 from pydantic import Field, confloat, validator
 from typing_extensions import Literal
 
@@ -15,21 +16,39 @@ DocumentType = Literal["original", "excerpt", "summary"]
 
 
 EXCERPT_TEMPLATE = """
-The following is an excerpt from a {document.type} document: 
-# Document details
+The following is a {document.type} document:
+# Document metadata
 {document.metadata}
 # Document keywords
 {keywords}
 # Excerpt's location in document
 {minimap}
-# Excerpt
+# Excerpt contents:
 {excerpt}
 """
 
 
 class Document(MarvinBaseModel):
-    """A source of information that is store-able / search-able."""
+    """A source of information that is storable & searchable.
 
+    Anything that can be represented as text can be stored as a document:
+    web pages, git repos / issues, PDFs, and even just plain text files.
+
+    A document is a unit of information that can be stored in a topic, and
+    should be produced with a `Loader` of some kind.
+
+    Documents can be originals, excerpts or summaries of other documents, which
+    determines their `type`.
+    """
+
+    id: str = Field(default_factory=DocumentID.new)
+    text: str = Field(
+        ..., description="Any text content that you want to keep / embed."
+    )
+    embedding: list[float] | None = Field(default=None)
+    metadata: dict | None = Field(default=None)
+
+    source: str = Field(default="unknown")
     type: DocumentType = Field(default="original")
     parent_document_id: DocumentID | None = Field(default=None)
     topic_name: str = Field(default=marvin.settings.default_topic)
@@ -37,15 +56,22 @@ class Document(MarvinBaseModel):
     order: int | None = Field(default=None)
     keywords: list[str] = Field(default_factory=list)
 
-    id: str = Field(default_factory=DocumentID.new)
-    text: str = Field(...)
-    embedding: list[float] | None = Field(default=None)
-    metadata: dict | None = Field(default=None)
-
     @validator("tokens")
     def validate_tokens(cls, v, values):
         if not v:
             return count_tokens(values["text"])
+        return v
+
+    @validator("metadata")
+    def add_timestamp(cls, v):
+        if v and "created_at" not in v:
+            v["created_at"] = pendulum.now().isoformat()
+        return v
+
+    @validator("source")
+    def add_source(cls, v, values):
+        if values["metadata"] and "source" in values["metadata"]:
+            return values["metadata"]["source"]
         return v
 
     @property
@@ -64,7 +90,7 @@ class Document(MarvinBaseModel):
 
         for i, (text, chr) in enumerate(
             split_text(
-                self.text,
+                text=self.text,
                 chunk_size=chunk_tokens,
                 chunk_overlap=overlap,
                 return_index=True,

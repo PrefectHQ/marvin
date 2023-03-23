@@ -1,5 +1,7 @@
 import inspect
 
+import pendulum
+
 from marvin import Bot
 from marvin.bots.input_transformers import InputTransformer, PrependText
 from marvin.plugins.base import Plugin
@@ -45,6 +47,19 @@ regex_bot = UtilityBot(
         objective and you will reply with a regex pattern that satisfies it.
         Users may also ask you to explain a regex pattern that they provide in
         natural language.
+        """
+    ).replace("\n", " "),
+)
+
+datetime_bot = UtilityBot(
+    name="ISOaDate",
+    instructions=inspect.cleandoc(
+        f"""
+        You are a datetime bot. Users will send you messages describing their
+        date and time and you will reply with an ISO 8601 formatted string that
+        satisfies it. Right now, the time is {pendulum.now().isoformat()}.
+        Respond only with the appropriate ISO 8601 formatted string, include
+        NO ADDITIONAL TEXT.
         """
     ).replace("\n", " "),
 )
