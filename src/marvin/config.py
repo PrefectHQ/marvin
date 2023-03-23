@@ -1,3 +1,4 @@
+import os
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
@@ -9,9 +10,15 @@ from rich.text import Text
 
 import marvin
 
+# a configurable env file location
+ENV_FILE = Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()
+ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
+ENV_FILE.touch(exist_ok=True)
+
 
 class ChromaSettings(chromadb.config.Settings):
     class Config:
+        env_file = ".env", str(ENV_FILE)
         env_prefix = "MARVIN_CHROMA_"
 
     chroma_db_impl: Literal["duckdb", "duckdb+parquet"] = "duckdb+parquet"
@@ -22,7 +29,7 @@ class ChromaSettings(chromadb.config.Settings):
 
 class Settings(BaseSettings):
     class Config:
-        env_file = ".env"
+        env_file = ".env", str(ENV_FILE)
         env_prefix = "MARVIN_"
         validate_assignment = True
 

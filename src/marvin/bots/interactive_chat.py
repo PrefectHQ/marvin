@@ -40,7 +40,7 @@ spinner_messages = [
 
 
 async def chat(bot: Bot, first_message: str = None):
-    rprint(f"\n[bold blue]:robot::speech_balloon: {bot.name}[/] is listening...\n")
+    rprint(f"\n[bold blue]:robot::speech_balloon: {bot.name}[/] is listening...")
 
     try:
         while True:
