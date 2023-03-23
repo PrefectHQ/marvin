@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # load nest_asyncio
-# import nest_asyncio
+import nest_asyncio
 
-# nest_asyncio.apply()
+nest_asyncio.apply()
 
 # load version
 import pkg_resources
