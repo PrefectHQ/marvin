@@ -1,6 +1,8 @@
 #  Marvin 🤖💬
 
-Chatbots, no assembly required.
+
+Marvin is an open-source, batteries-included library for deploying AI tools. 
+
 
 > "Let’s build robots with Genuine People Personalities," they said. So they tried it out with me. I’m a personality prototype. You can tell, can’t you?
 >
@@ -12,7 +14,7 @@ Chatbots, no assembly required.
 
 🔋 Batteries included - get up and running instantly
 
-🔌 Plugin system so bots can use software 
+🔌 Plugin system lets bots run any software 
 
 💬 Persistent threads with multiple bots
 
@@ -28,13 +30,11 @@ Chatbots, no assembly required.
 
 ## Getting started
 
-Launching a bot is simple! All you need is this library and a valid [OpenAI API key](https://platform.openai.com/account/api-keys). 
+Launching a bot is simple!
 
 1. **Install** Marvin by running `pip install marvin`
 
-2. **Configure** your OpenAI API key as an environment variable: `export OPENAI_API_KEY=<your API key>`
-
-3. **Chat** in your CLI by running `marvin chat`. You can *optionally* provide a name or personality to customize the conversation:
+2. **Chat** by running `marvin chat`. You'll be prompted to provide an [OpenAI API key](https://platform.openai.com/account/api-keys) if it isn't already set. You can optionally provide your bot with a name, personality, or instructions to customize the conversation:
 
 ```shell
 marvin chat -p "knows every Star Wars meme" Hello there
@@ -49,14 +49,14 @@ This example shows how to configure a bot programmatically, using Marvin's async
 ```python
 from marvin import Bot
 
-bot = Bot(name='Arthur', personality='knows every Star Wars meme')
+bot = Bot(personality='knows every Star Wars meme')
 
 await bot.say('Hello there')
 ```
 
 ## Rest API
 
-Launch the Marvin REST server by running `marvin server start`. You can visit `http://localhost:4200` to view the API documentation.
+Launch the Marvin REST API by running `marvin server start`. You can visit `http://localhost:4200` to view the API documentation.
 
 ## UI
 
