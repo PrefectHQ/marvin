@@ -51,7 +51,7 @@ async def hello_marvin():
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
         instructions=(
-            "Unless making a conversational response, use the ChromaSearch plugin to"
+            "Unless making a conversational response, use the `ChromaSearch` plugin to"
             " answer questions. Provide relevant links based on any plugin output."
             " You should NEVER attempt to write your own code to answer a question."
             f" For future reference, the time now is {pendulum.now().isoformat()}."
@@ -63,11 +63,10 @@ async def hello_marvin():
                     " related material. To use, provide a detailed, natural language"
                     " `query`. If useful, also provide a `where` clause as a `dict`"
                     " that has a `source`  key that MUST point to one of the following"
-                    f" values: {listrepr(sources)}. If the user asks about certain"
-                    " dates / ranges, provide a `created_at` key to the `where` dict"
-                    " with a dict that has an operator key and a value key. The"
-                    " operator key can be one of the following: `$gte` or `$lte`. The"
-                    " value for that key should be a valid ISO 8601 timestamp."
+                    f" values: {listrepr(sources)}. If the user asks about information"
+                    " since a certain date, provide a `created_at` key to the `where`"
+                    " dict with a dict that has an operator key `$gte` and a value"
+                    " key. The value for that key MUST be a valid ISO 8601 timestamp."
                 )
             ),
             DuckDuckGo(),
@@ -79,7 +78,7 @@ async def hello_marvin():
 if __name__ == "__main__":
     import asyncio
 
-    # import marvin
+    import marvin
 
-    # marvin.settings.log_level = "DEBUG"
+    marvin.settings.log_level = "DEBUG"
     asyncio.run(hello_marvin())

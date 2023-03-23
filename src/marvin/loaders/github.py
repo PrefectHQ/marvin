@@ -1,6 +1,7 @@
 """Loaders for GitHub."""
 import asyncio
 import fnmatch
+import functools
 import os
 import shutil
 import tempfile
@@ -46,13 +47,6 @@ class GitHubIssue(BaseModel):
     labels: List[GitHubLabel] = Field(default_factory=GitHubLabel)
     user: GitHubUser = Field(default_factory=GitHubUser)
 
-    ignore_body_after: str = Field(default="### Checklist")
-
-    @validator("body")
-    def remove_boilerplate(cls, v):
-        """Remove HTML comments from the body."""
-        return rm_text_after(rm_html_comments(v), cls.ignore_body_after) if v else v
-
 
 class GitHubIssueLoader(Loader):
     """Loader for GitHub issues for a given repository."""
@@ -72,7 +66,7 @@ class GitHubIssueLoader(Loader):
         return v
 
     @staticmethod
-    # @functools.lru_cache(maxsize=2048)
+    @functools.lru_cache(maxsize=2048)
     async def _get_issue_comments(
         repo: str,
         request_header_items: Tuple[Tuple[str, str]],
@@ -129,12 +123,7 @@ class GitHubIssueLoader(Loader):
             response.raise_for_status()
             if not (new_issues := response.json()):
                 break
-            issues.extend(
-                [
-                    GitHubIssue(ignore_body_after=self.ignore_body_after, **issue)
-                    for issue in new_issues
-                ]
-            )
+            issues.extend([GitHubIssue(**issue) for issue in new_issues])
             page += 1
         return issues
 
@@ -147,7 +136,11 @@ class GitHubIssueLoader(Loader):
         """
         documents = []
         for issue in await self._get_issues():
-            text = f"\n\n**{issue.title}:**\n{issue.body}"
+            self.logger.debug(f"Found {issue.title!r}")
+            clean_issue_body = rm_text_after(
+                rm_html_comments(issue.body), self.ignore_body_after
+            )
+            text = f"\n\n**{issue.title}:**\n{clean_issue_body}"
             for comment in await self._get_issue_comments(
                 self.repo, tuple(self.request_headers.items()), issue.number
             ):
