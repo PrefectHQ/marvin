@@ -14,12 +14,15 @@ def get_client(settings: chromadb.config.Settings = None) -> chromadb.Client:
 
 
 class Chroma:
-    """A wrapper for chromadb.Client - best used as an async context manager.
+    """
 
+    A wrapper for chromadb.Client.
+
+    If used as an async context manager, it will persist the client on exiting
+    the context manager. Otherwise, it will persist on each call to `add`.
 
     Example:
-        ```python
-        async with Chroma() as chroma:
+        ```python async with Chroma() as chroma:
             await chroma.add([Document(...), ...])
         ```
     """
@@ -36,11 +39,14 @@ class Chroma:
                 api_key=marvin.settings.openai_api_key.get_secret_value()
             ),
         )
+        self._in_context = False
 
     async def __aenter__(self):
+        self._in_context = True
         return self
 
     async def __aexit__(self, exc_type, exc_value, traceback):
+        self._in_context = False
         await run_async(self.client.persist)
 
     async def delete(self, ids: list[str] = None, where: dict = None):
@@ -68,6 +74,9 @@ class Chroma:
             documents=[document.text for document in documents],
             metadatas=[document.metadata for document in documents],
         )
+
+        if not self._in_context:
+            await run_async(self.client.persist)
         return len(documents)
 
     async def query(

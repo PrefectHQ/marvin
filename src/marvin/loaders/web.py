@@ -1,19 +1,17 @@
 import asyncio
 import re
-from typing import Literal, Optional
+from typing import Optional
 
-import html2text
 import pendulum
-import readability
 from fake_useragent import UserAgent
 from httpx import AsyncClient, Response
-from markdownify import markdownify
 from pydantic import Field, HttpUrl
 from selectolax.parser import HTMLParser
 
 import marvin
 from marvin.loaders.base import Loader, MultiLoader
 from marvin.models.documents import Document
+from marvin.utilities.strings import html_to_content
 
 user_agent = UserAgent()
 
@@ -21,34 +19,6 @@ MULTIPLE_NEWLINES = re.compile(r"\n{2,}")
 MULTIPLE_WHITESPACE = re.compile(r"[\t ]+")
 
 URL_CONCURRENCY = asyncio.Semaphore(30)
-
-
-async def html_to_content(
-    html: str,
-    library: Literal["readability", "html2text"] = None,
-):
-    return await marvin.utilities.async_utils.run_async_process(
-        _html_to_content, html=html, library=library
-    )
-
-
-def _html_to_content(
-    html: str,
-    library: Literal["readability", "html2text"] = None,
-) -> str:
-    library = library or "readability"
-
-    if library == "readability":
-        readability_doc = readability.Document(html)
-        text = readability_doc.summary()
-        text = markdownify(
-            text, heading_style="ATX", escape_underscores=False, escape_asterisks=True
-        )
-    else:
-        text = html2text.html2text(html)
-
-    text = condense_newlines(text)
-    return text
 
 
 def condense_newlines(text: str) -> str:
@@ -126,19 +96,9 @@ class HTMLLoader(URLLoader):
     A loader that loads HTML, optionally converting it to markdown or stripping tags
     """
 
-    library: Literal["readability", "html2text"] = "readability"
-
     async def get_document_text(self, response: Response) -> str:
         text = await super().get_document_text(response)
-        return await html_to_content(text, library=self.library)
-
-    async def get_document_kwargs(self, response: Response) -> dict:
-        kwargs = await super().get_document_kwargs(response)
-        readability_doc = readability.Document(response.text)
-        kwargs["name"] = await marvin.utilities.async_utils.run_async_process(
-            readability_doc.title
-        )
-        return kwargs
+        return html_to_content(text)
 
 
 class SitemapLoader(URLLoader):
