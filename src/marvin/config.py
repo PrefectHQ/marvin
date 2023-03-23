@@ -33,6 +33,17 @@ class Settings(BaseSettings):
         env_prefix = "MARVIN_"
         validate_assignment = True
 
+    def export_to_env_file(self):
+        with open(self.Config.env_file, "w") as env_file:
+            for field_name, value in self.dict().items():
+                env_key = f"{self.Config.env_prefix}{field_name.upper()}"
+                env_value = (
+                    str(value)
+                    if not isinstance(value, SecretStr)
+                    else value.get_secret_value()
+                )
+                env_file.write(f"{env_key}={env_value}\n")
+
     home: Path = Path("~/.marvin").expanduser()
     test_mode: bool = False
 
@@ -64,8 +75,17 @@ class Settings(BaseSettings):
     # CHROMA
     chroma: ChromaSettings = Field(default_factory=ChromaSettings)
 
+    # DISCOURSE
+    DISCOURSE_API_KEY: SecretStr = Field(
+        "", env=["MARVIN_DISCOURSE_API_KEY", "DISCOURSE_API_KEY"]
+    )
+    DISCOURSE_API_USERNAME: str = Field(
+        "nate", env=["MARVIN_DISCOURSE_API_USERNAME", "DISCOURSE_API_USERNAME"]
+    )
+
     # DOCUMENTS
     default_topic = "marvin"
+    default_n_keywords: int = 15
 
     # DATABASE
     database_echo: bool = False

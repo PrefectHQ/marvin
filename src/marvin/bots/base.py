@@ -217,7 +217,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
                 self.logger.debug_kv(
                     "Plugin input",
-                    f"{plugin_name}: {plugin_inputs})",
+                    f"{plugin_name}: {plugin_inputs}",
                     "bold blue",
                 )
                 plugin_output = await self._run_plugin(

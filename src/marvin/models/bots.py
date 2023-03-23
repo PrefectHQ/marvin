@@ -17,11 +17,11 @@ class BotConfig(MarvinSQLModel, table=True):
     personality: str
     instructions: str
     plugins: list[dict] = Field(
-        default_factory=[],
+        default_factory=list,
         sa_column=sa.Column(JSONType, nullable=False, server_default="[]"),
     )
     input_transformers: list[dict] = Field(
-        default_factory=[],
+        default_factory=list,
         sa_column=sa.Column(JSONType, nullable=False, server_default="[]"),
     )
     profile_picture: bytes = None
@@ -29,10 +29,12 @@ class BotConfig(MarvinSQLModel, table=True):
 
 class BotConfigCreate(MarvinBaseModel):
     name: str
-    personality: str
-    instructions: str
-    plugins: list[Plugin.as_discriminated_union()]
-    input_transformers: list[InputTransformer.as_discriminated_union()]
+    personality: str = "depressed"
+    instructions: str = "Act as a helpful bot, according to your personality."
+    plugins: list[Plugin.as_discriminated_union()] = Field(default_factory=list)
+    input_transformers: list[InputTransformer.as_discriminated_union()] = Field(
+        default_factory=list
+    )
 
 
 class BotConfigUpdate(BotConfigCreate):

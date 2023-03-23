@@ -14,6 +14,19 @@ def get_client(settings: chromadb.config.Settings = None) -> chromadb.Client:
 
 
 class Chroma:
+    """
+
+    A wrapper for chromadb.Client.
+
+    If used as an async context manager, it will persist the client on exiting
+    the context manager. Otherwise, it will persist on each call to `add`.
+
+    Example:
+        ```python async with Chroma() as chroma:
+            await chroma.add([Document(...), ...])
+        ```
+    """
+
     def __init__(
         self,
         collection_name: str = None,
@@ -26,6 +39,15 @@ class Chroma:
                 api_key=marvin.settings.openai_api_key.get_secret_value()
             ),
         )
+        self._in_context = False
+
+    async def __aenter__(self):
+        self._in_context = True
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        self._in_context = False
+        await run_async(self.client.persist)
 
     async def delete(self, ids: list[str] = None, where: dict = None):
         await run_async(self.collection.delete, ids=ids, where=where)
@@ -36,14 +58,26 @@ class Chroma:
     async def add(
         self,
         documents: list[Document],
-    ):
+        skip_existing: bool = False,
+    ) -> int:
+        if skip_existing:
+            existing_ids = set(self.collection.get(include=[])["ids"])
+            document_map = {document.hash: document for document in documents}
+            unique_hashes = set(document_map.keys()) - existing_ids
+            documents = [document_map[hash] for hash in unique_hashes]
+            if not documents:
+                return 0
+
         await run_async(
             self.collection.add,
-            ids=[doc.id for doc in documents],
-            documents=[doc.text for doc in documents],
-            metadatas=[doc.metadata for doc in documents],
+            ids=[document.hash for document in documents],
+            documents=[document.text for document in documents],
+            metadatas=[document.metadata for document in documents],
         )
-        await run_async(self.client.persist)
+
+        if not self._in_context:
+            await run_async(self.client.persist)
+        return len(documents)
 
     async def query(
         self,
@@ -64,14 +98,4 @@ class Chroma:
             where_document=where_document,
             include=include,
             **kwargs
-        )
-
-    async def get(
-        self,
-        ids: list[str] = None,
-        where: dict = None,
-        include: Include = None,
-    ):
-        await run_async(
-            self.collection.get, ids=ids, where=where, include=include or []
         )

@@ -19,8 +19,9 @@ router = MarvinRouter(prefix="/threads", tags=["Threads"])
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @provide_session()
 async def create_thread(
-    thread: ThreadCreate, session: AsyncSession = Depends(fastapi_session)
+    thread_create: ThreadCreate, session: AsyncSession = Depends(fastapi_session)
 ) -> Thread:
+    thread = Thread(**thread_create.dict())
     session.add(thread)
     await session.commit()
     return thread
