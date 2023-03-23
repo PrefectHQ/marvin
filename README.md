@@ -1,10 +1,30 @@
 #  Marvin 🤖💬
 
-A batteries-included chatbot library.
+Chatbots, no assembly required.
 
 > "Let’s build robots with Genuine People Personalities," they said. So they tried it out with me. I’m a personality prototype. You can tell, can’t you?
 >
-> Marvin
+> -- Marvin
+
+## Highlights
+
+🤖 Custom bots with names, personalities, and instructions
+
+🔋 Batteries included - get up and running instantly
+
+🔌 Plugin system so bots can use software 
+
+💬 Persistent threads with multiple bots
+
+📡 Powered by ChatGPT (GPT-3.5) or GPT-4
+
+🌈 ChromaDB for vector search
+
+🐍 Async Python API
+
+🖥️ Interactive chat CLI
+
+⚡️ FastAPI REST API
 
 ## Getting started
 
@@ -12,7 +32,7 @@ Launching a bot is simple! All you need is this library and a valid [OpenAI API 
 
 1. **Install** Marvin by running `pip install marvin`
 
-2. **Configure** your OpenAI API key as an environment variable: `export OPENAI_API_KEY=<your API key>` (`MARVIN_OPENAI_API_KEY` also works)
+2. **Configure** your OpenAI API key as an environment variable: `export OPENAI_API_KEY=<your API key>`
 
 3. **Chat** in your CLI by running `marvin chat`. You can *optionally* provide a name or personality to customize the conversation:
 

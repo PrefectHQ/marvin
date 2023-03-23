@@ -178,7 +178,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         self.logger.debug_kv("AI message", messages[-1].content, "bold green")
         return messages[-1]
 
-    async def clear_thread(self):
+    async def reset_thread(self):
         await self.history.clear()
 
     async def set_thread(
@@ -362,4 +362,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         return result.generations[0][0].text
 
     async def interactive_chat(self, first_message: str = None):
+        """
+        Launch an interactive chat with the bot. Optionally provide a first message.
+        """
         await marvin.bots.interactive_chat.chat(bot=self, first_message=first_message)

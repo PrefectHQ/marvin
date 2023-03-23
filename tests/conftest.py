@@ -2,9 +2,13 @@ import asyncio
 import logging
 import sys
 
+# load nest_asyncio
+import nest_asyncio
 import pytest
 
 from .fixtures import *
+
+nest_asyncio.apply()
 
 # def pytest_collection_modifyitems(config, items):
 #     if (
