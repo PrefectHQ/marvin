@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 import json
 import re
@@ -156,6 +157,13 @@ class Bot(MarvinBaseModel, LoggerMixin):
         """Load a bot from the database."""
         bot_config = await marvin.api.bots.get_bot_config(name=name)
         return await cls.from_bot_config(bot_config=bot_config)
+
+    def say_sync(self, *args, **kwargs) -> Message:
+        """
+        A synchronous version of `say`. This is useful for testing or including
+        a bot in a synchronous framework.
+        """
+        return asyncio.run(self.say(*args, **kwargs))
 
     async def say(self, message: str) -> Message:
         # get bot instructions
