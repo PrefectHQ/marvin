@@ -1,9 +1,0 @@
-beautifulsoup4~=4.11.2
-bleach~=6.0.0
-duckduckgo_search~=2.8.0
-fake-useragent~=1.1.1
-google_api_python_client~=2.72.0
-simpleeval~=0.9.13
-trafilatura~=1.4.1
-cchardet~=2.1.7
-wikipedia~=1.4.0

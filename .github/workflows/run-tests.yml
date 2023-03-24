@@ -45,6 +45,7 @@ jobs:
         with:
           python-version: "3.10"
           cache: "pip" # caching pip dependencies
+          cache-dependency-path: "**/pyproject.toml"
       - name: Install Marvin
         run: |
           pip install ".[dev]"
@@ -67,6 +68,7 @@ jobs:
         with:
           python-version: "3.10"
           cache: "pip" # caching pip dependencies
+          cache-dependency-path: "**/pyproject.toml"
       - name: Install Marvin
         run: |
           pip install ".[dev]"
