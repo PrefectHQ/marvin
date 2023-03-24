@@ -62,11 +62,25 @@ def chat(
     message: list[str] = typer.Argument(
         default=None, help="An optional initial message to send to the bot"
     ),
+    model: str = typer.Option(
+        None, "--model", "-m", help="The model to use for the chatbot"
+    ),
 ):
     if not marvin.settings.openai_api_key.get_secret_value():
         setup_openai()
 
-    bot = marvin.Bot(name=name, personality=personality, instructions=instructions)
+    from langchain.chat_models import ChatOpenAI
+
+    bot = marvin.Bot(
+        name=name,
+        personality=personality,
+        instructions=instructions,
+        llm=ChatOpenAI(
+            model_name=model or marvin.settings.openai_model_name,
+            temperature=marvin.settings.openai_model_temperature,
+            openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
+        ),
+    )
     asyncio.run(bot.interactive_chat(first_message=" ".join(message)))
 
 
