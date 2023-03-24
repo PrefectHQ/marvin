@@ -5,6 +5,8 @@ nav:
     - Installation: getting_started/installation.md
     - Configuring OpenAI: getting_started/openai.md
     - Start chatting: getting_started/chat.md
+  - The Guide:
+    - Configuration: guide/configuration.md
   - ...
   
 theme:
