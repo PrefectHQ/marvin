@@ -26,6 +26,11 @@ DEFAULT_INSTRUCTIONS = inspect.cleandoc(
     information. The user is human, so do not return code unless asked to do so.
     """
 )
+DEFAULT_REMINDER = inspect.cleandoct(
+    """
+    Remember your personality when responding. 
+    """
+)
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),
     marvin.plugins.duckduckgo.DuckDuckGo(),
@@ -42,6 +47,13 @@ class Bot(MarvinBaseModel, LoggerMixin):
     personality: str = Field(None, description="The bot's personality.")
     instructions: str = Field(
         None, description="Instructions for the bot to follow when responding."
+    )
+    reminder: str = Field(
+        None,
+        description=(
+            "Reminder for the bot that is provided after any plugin output is returned."
+            " Reminders are best used to nudge the bot back toward the system prompt."
+        ),
     )
     plugins: list[Plugin.as_discriminated_union()] = Field(
         None, description="A list of plugins that the bot can use."
@@ -90,6 +102,12 @@ class Bot(MarvinBaseModel, LoggerMixin):
     def default_instructions(cls, v):
         if v is None:
             return DEFAULT_INSTRUCTIONS
+        return v
+
+    @validator("reminder", always=True)
+    def default_reminder(cls, v):
+        if v is None:
+            return DEFAULT_REMINDER
         return v
 
     @validator("plugins", always=True)
@@ -228,14 +246,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
                 messages.append(Message(role="ai", content=response))
                 messages.append(
-                    Message(
-                        role="system",
-                        content=(
-                            f"Plugin output: {plugin_output}\n\nNote: remember your"
-                            " personality when synthesizing a response."
-                        ),
-                    ),
+                    Message(role="system", content=f"Plugin output: {plugin_output}")
                 )
+                messages.append(Message(role="system", content=self.reminder))
 
             except Exception as exc:
                 self.logger.error(f"Error running plugin: {response}\n\n{exc}")
