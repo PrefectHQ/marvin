@@ -1,3 +1,35 @@
+[build-system]
+requires      = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "marvin"
+version = "0.5.0"
+dynamic= ["dependencies", "optional-dependencies"]
+description = "A batteries-included library for deploying custom AI tools."
+readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = ["ai", "chatbot", "llm"]
+requires-python = ">=3.10"
+
+[tools.setuptools.dynamic]
+dependencies = {file = ["requirements.txt", "requirements-loaders.txt"]}
+
+[tool.setuptools.dynamic.optional-dependencies]
+dev = {file = ["requirements-dev.txt"]}
+
+[project.urls]
+Homepage = "https://github.com/prefecthq/marvin"
+
+[project.scripts]
+marvin = "marvin.cli.cli:app"
+
+
 [tool.pytest.ini_options]
 markers = ["llm: indicates that a test calls an LLM (may be slow)."]
 norecursedirs = [
