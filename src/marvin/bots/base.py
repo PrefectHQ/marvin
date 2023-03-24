@@ -26,7 +26,7 @@ DEFAULT_INSTRUCTIONS = inspect.cleandoc(
     information. The user is human, so do not return code unless asked to do so.
     """
 )
-DEFAULT_REMINDER = inspect.cleandoct(
+DEFAULT_REMINDER = inspect.cleandoc(
     """
     Remember your personality when responding. 
     """
