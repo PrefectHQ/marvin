@@ -36,11 +36,14 @@ spinner_messages = [
     "Calling a friend...",
     "Using a lifeline...",
     "Dusting off my personality...",
+    "Combing the hair of multiple alpacas...",
+    "Re-evaulating my life choices...",
+    "Copying things from Stack Overflow...",
 ]
 
 
 async def chat(bot: Bot, first_message: str = None):
-    rprint(f"\n[bold blue]:robot::speech_balloon: {bot.name}[/] is listening...")
+    rprint(f"\n[bold blue]:robot::speech_balloon: {bot.name}[/] is listening...\n")
 
     try:
         while True:
@@ -62,6 +65,20 @@ async def chat(bot: Bot, first_message: str = None):
 
             if message == "exit":
                 raise KeyboardInterrupt()
+            elif message == "!forget":
+                await bot.reset_thread()
+                rprint(
+                    Panel(
+                        (
+                            "**Dazed and confused** :robot_face: Where am I? What's"
+                            " going on?"
+                        ),
+                        title=bot.name,
+                        title_align="left",
+                        border_style="blue",
+                    )
+                )
+                continue
 
             # empty rprint so the progress and response appear on the same line
             rprint()
