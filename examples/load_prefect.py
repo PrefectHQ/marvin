@@ -15,20 +15,20 @@ async def load_prefect_things():
         exclude=["api-ref"],
     )
 
-    GitHubIssueLoader(  # gimme da issues
+    prefect_github_issues = GitHubIssueLoader(  # gimme da issues
         repo="prefecthq/prefect",
         n_issues=50,
     )
 
-    GitHubRepoLoader(  # gimme da source
+    prefect_source_code = GitHubRepoLoader(  # gimme da source
         repo="prefecthq/prefect", glob="**/*.py", exclude_glob="**/tests/**"
     )
 
-    DiscourseLoader(  # gimme da discourse
+    prefect_discourse = DiscourseLoader(  # gimme da discourse
         url="https://discourse.prefect.io",
     )
 
-    GitHubRepoLoader(  # gimme da recipes
+    prefect_recipes = GitHubRepoLoader(  # gimme da recipes
         repo="prefecthq/prefect-recipes",
         glob="**/*.py",
         exclude_glob="prefect-v1-legacy/**",
@@ -37,10 +37,10 @@ async def load_prefect_things():
     prefect_loader = MultiLoader(
         loaders=[
             prefect_docs,
-            # prefect_github_issues,
-            # prefect_source_code,
-            # prefect_discourse,
-            # prefect_recipes,
+            prefect_github_issues,
+            prefect_source_code,
+            prefect_discourse,
+            prefect_recipes,
         ]
     )
     await prefect_loader.load_and_store()
