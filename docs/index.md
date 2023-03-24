@@ -1,6 +1,6 @@
 # Welcome 🤖💬
 
-Marvin is a batteries-included chatbot library. Go from zero-to-production immediately.
+Marvin is a batteries-included chatbot library. Go from zero-to-deploy immediately.
 
 > "Let’s build robots with Genuine People Personalities," they said. So they tried it out with me. I’m a personality prototype. You can tell, can’t you?
 >
