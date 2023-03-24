@@ -12,21 +12,24 @@ Marvin is an open-source, batteries-included library for deploying custom AI too
 
 See [Getting Started](getting_started/installation.md) for more!
 
-## Highlights
+# Highlights
+
 🤖 Custom bots with names, personalities, and instructions
 
 🔋 Batteries included - get up and running instantly
 
-🔌 Plugins lets bots run any software 
-
-💬 Persistent threads with multiple bots
+🔌 Plugins let bots run any software 
 
 📡 Powered by GPT-4 or GPT-3.5
 
-🌈 ChromaDB for vector search
+🌈 ChromaDB for vector search and uploading documents
 
-🐍 Async Python API
+🧑‍💻 Available via async Python API, interactive CLI, or FastAPI server
 
-🖥️ Interactive chat CLI
+Coming soon:
 
-⚡️ FastAPI REST API
+💬 Persistent threads with multiple bots
+
+🖼️ UI for both admin and embedding chat
+
+📊 Observability platform for viewing LLM calls and artifacts

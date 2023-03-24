@@ -6,7 +6,11 @@ nav:
     - Configuring OpenAI: getting_started/openai.md
     - Start chatting: getting_started/chat.md
   - The Guide:
+    - Overview: guide/overview.md
     - Configuration: guide/configuration.md
+    - Concepts:
+      - guide/bots.md
+  - FAQ: faq.md
   - ...
   
 theme:
