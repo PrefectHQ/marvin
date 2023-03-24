@@ -9,13 +9,11 @@ Marvin is an open-source, batteries-included library for deploying custom AI too
 
 ## Highlights
 
-
-
 🤖 Custom bots with names, personalities, and instructions
 
 🔋 Batteries included - get up and running instantly
 
-🔌 Plugin system lets bots run any software 
+🔌 Plugins lets bots run any software 
 
 💬 Persistent threads with multiple bots
 
