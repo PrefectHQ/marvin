@@ -6,29 +6,16 @@ import pendulum
 from fake_useragent import UserAgent
 from httpx import AsyncClient, Response
 from pydantic import Field, HttpUrl
-from selectolax.parser import HTMLParser
 
 import marvin
 from marvin.loaders.base import Loader, MultiLoader
 from marvin.models.documents import Document
-from marvin.utilities.strings import html_to_content
+from marvin.utilities.strings import html_to_content, parse_html
 
 user_agent = UserAgent()
 
-MULTIPLE_NEWLINES = re.compile(r"\n{2,}")
-MULTIPLE_WHITESPACE = re.compile(r"[\t ]+")
 
 URL_CONCURRENCY = asyncio.Semaphore(30)
-
-
-def condense_newlines(text: str) -> str:
-    text = text.replace("\r", "\n")
-    text = MULTIPLE_NEWLINES.sub("\n", text)
-    return MULTIPLE_WHITESPACE.sub(" ", text)
-
-
-def parse_html(html) -> HTMLParser:
-    return HTMLParser(html)
 
 
 class WebLoader(Loader):
@@ -79,9 +66,9 @@ class URLLoader(WebLoader):
             self.logger.warning_style(f"Could not load document from {url}", "red")
         return document
 
-    async def response_to_document(self, response: Response) -> list[Document]:
+    async def response_to_document(self, response: Response) -> Document:
         return Document(
-            text=response.text,
+            text=await self.get_document_text(response),
             metadata={
                 "link": str(response.url),
                 "document_type": self.document_type,
@@ -89,6 +76,9 @@ class URLLoader(WebLoader):
                 "created_at": pendulum.now().timestamp(),
             },
         )
+
+    async def get_document_text(self, response: Response) -> str:
+        return response.text
 
 
 class HTMLLoader(URLLoader):
@@ -105,6 +95,14 @@ class SitemapLoader(URLLoader):
     include: list[str | re.Pattern] = Field(default_factory=list)
     exclude: list[str | re.Pattern] = Field(default_factory=list)
     url_loader: URLLoader = Field(default_factory=HTMLLoader)
+
+    _source: str = "HTML"
+
+    # HACK: `source` is a property on `Loader` but we need "HTML" here
+    # so Chroma can find it when it queries with a filter for source
+    @property
+    def source(self) -> str:
+        return self._source
 
     async def _get_loader(self) -> Loader:
         urls = await asyncio.gather(*[self.load_sitemap(url) for url in self.urls])

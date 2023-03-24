@@ -1,8 +1,6 @@
 import asyncio
 from abc import ABC, abstractmethod
 
-from rich.progress import track
-
 import marvin
 from marvin.models.documents import Document
 from marvin.utilities.collections import batched
@@ -57,9 +55,7 @@ class MultiLoader(Loader):
         return all_documents
 
     async def load_and_store(self, topic_name: str = "marvin", batch_size: int = 5):
-        for batch_of_loaders in track(
-            batched(self.loaders, batch_size), description="Multi-Loading..."
-        ):
+        for batch_of_loaders in batched(self.loaders, batch_size):
             await asyncio.gather(
                 *[
                     loader.load_and_store(topic_name=topic_name)

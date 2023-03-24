@@ -3,30 +3,32 @@ from marvin.bots import Bot
 from marvin.loaders.base import MultiLoader
 from marvin.loaders.discourse import DiscourseLoader
 from marvin.loaders.github import GitHubIssueLoader, GitHubRepoLoader
+from marvin.loaders.web import SitemapLoader
 from marvin.plugins.chroma import ChromaSearch
 from marvin.plugins.duckduckgo import DuckDuckGo
 from prefect.utilities.collections import listrepr
 
 
 async def load_prefect_things():
-    prefect_docs = GitHubRepoLoader(  # gimme da docs
-        repo="prefecthq/prefect", glob="**/*.md", exclude_glob="**/docs/api-ref/**"
+    prefect_docs = SitemapLoader(  # gimme da docs
+        urls=["https://docs.prefect.io/sitemap.xml"],
+        exclude=["api-ref"],
     )
 
-    prefect_github_issues = GitHubIssueLoader(  # gimme da issues
+    GitHubIssueLoader(  # gimme da issues
         repo="prefecthq/prefect",
         n_issues=50,
     )
 
-    prefect_source_code = GitHubRepoLoader(  # gimme da source
+    GitHubRepoLoader(  # gimme da source
         repo="prefecthq/prefect", glob="**/*.py", exclude_glob="**/tests/**"
     )
 
-    prefect_discourse = DiscourseLoader(  # gimme da discourse
+    DiscourseLoader(  # gimme da discourse
         url="https://discourse.prefect.io",
     )
 
-    prefect_recipes = GitHubRepoLoader(  # gimme da recipes
+    GitHubRepoLoader(  # gimme da recipes
         repo="prefecthq/prefect-recipes",
         glob="**/*.py",
         exclude_glob="prefect-v1-legacy/**",
@@ -35,10 +37,10 @@ async def load_prefect_things():
     prefect_loader = MultiLoader(
         loaders=[
             prefect_docs,
-            prefect_github_issues,
-            prefect_source_code,
-            prefect_discourse,
-            prefect_recipes,
+            # prefect_github_issues,
+            # prefect_source_code,
+            # prefect_discourse,
+            # prefect_recipes,
         ]
     )
     await prefect_loader.load_and_store()
