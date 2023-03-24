@@ -1,0 +1,22 @@
+name: publish-docs 
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: write
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - uses: actions/cache@v2
+        with:
+          key: ${{ github.ref }}
+          path: .cache
+      - run: pip install ".[dev]"
+      - run: mkdocs gh-deploy --force
