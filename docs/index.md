@@ -30,6 +30,8 @@ Coming soon:
 
 💬 Persistent threads with multiple bots
 
+🚀 Automatic creation of AI-enabled programs
+
 🖼️ UI for both admin and embedding chat
 
 📊 Observability platform for viewing LLM calls and artifacts

@@ -1,7 +1,7 @@
 #  Marvin 🤖💬
 
 
-Marvin is an open-source, batteries-included library for deploying custom AI tools. 
+Marvin is an open-source, batteries-included library for building AI-enabled tools. 
 
 > "Let’s build robots with Genuine People Personalities," they said. So they tried it out with me. I’m a personality prototype. You can tell, can’t you?
 >
@@ -24,6 +24,8 @@ Marvin is an open-source, batteries-included library for deploying custom AI too
 Coming soon:
 
 💬 Persistent threads with multiple bots
+
+🚀 Automatic creation of AI-enabled programs
 
 🖼️ UI for both admin and embedding chat
 
