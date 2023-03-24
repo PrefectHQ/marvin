@@ -13,13 +13,19 @@ class InputTransformer(DiscriminatingTypeModel, abc.ABC):
 
 class PrependText(InputTransformer):
     text: str = Field(..., description="The text to prepend to the message.")
+    delimiter: str = Field(
+        " ", description="The delimiter to use between the text and the message."
+    )
 
     def run(self, message: str) -> str:
-        return f"{self.text} {message}"
+        return f"{self.text}{self.delimiter}{message}"
 
 
 class AppendText(InputTransformer):
     text: str = Field(..., description="The text to append to the message.")
+    delimiter: str = Field(
+        " ", description="The delimiter to use between the message and the text."
+    )
 
     def run(self, message: str) -> str:
-        return f"{message} {self.text}"
+        return f"{message}{self.delimiter}{self.text}"
