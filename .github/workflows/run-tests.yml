@@ -8,13 +8,8 @@ env:
 on:
   push:
     branches: ["main"]
-    paths:
-      - docs/**
-      - mkdocs.yml
   pull_request:
-    paths:
-      - docs/**
-      - mkdocs.yml
+
 permissions:
   contents: read
 
