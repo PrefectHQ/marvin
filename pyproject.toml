@@ -1,6 +1,4 @@
-[build-system]
-requires      = ["setuptools>=61.0.0", "wheel"]
-build-backend = "setuptools.build_meta"
+# package metadata
 
 [project]
 name = "marvin"
@@ -29,7 +27,12 @@ Homepage = "https://github.com/prefecthq/marvin"
 [project.scripts]
 marvin = "marvin.cli.cli:app"
 
+[build-system]
+requires      = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
+
+# pytest configuration
 [tool.pytest.ini_options]
 markers = ["llm: indicates that a test calls an LLM (may be slow)."]
 norecursedirs = [
@@ -53,12 +56,11 @@ env = [
     'MARVIN_OPENAI_MODEL_TEMPERATURE=0'
 ]
 
-[tool.isort]
-skip = "__init__.py"
-profile = "black"
-skip_gitignore = true
-multi_line_output = 3
+# black configuration
+[tool.black]
+preview = true
 
+# ruff configuration
 [tool.ruff]
 extend-select = ["I"]
 
