@@ -1,8 +1,8 @@
-name: publish-docs 
+name: build-docs 
+
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+
 permissions:
   contents: write
 jobs:
@@ -18,4 +18,4 @@ jobs:
           key: ${{ github.ref }}
           path: .cache
       - run: pip install mkdocs-material 
-      - run: mkdocs gh-deploy --force
+      - run: mkdocs build
