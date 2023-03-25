@@ -1,11 +1,23 @@
 import inspect
+from typing import Callable
 
 from pydantic import Field
 
+import marvin
 from marvin import Bot
 from marvin.bots.history import History, InMemoryHistory
 from marvin.bots.input_transformers import InputTransformer, PrependText
 from marvin.plugins.base import Plugin
+
+
+def utility_llm():
+    from langchain.chat_models import ChatOpenAI
+
+    return ChatOpenAI(
+        model_name="gpt-3.5-turbo",
+        temperature=0.2,
+        openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
+    )
 
 
 class UtilityBot(Bot):
@@ -19,6 +31,7 @@ class UtilityBot(Bot):
         PrependText(text="Process the following text:")
     ]
     history: History = Field(default_factory=InMemoryHistory)
+    llm: Callable = Field(default_factory=utility_llm)
 
 
 summarize_bot = UtilityBot(

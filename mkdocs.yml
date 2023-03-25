@@ -5,6 +5,15 @@ nav:
     - Installation: getting_started/installation.md
     - Configuring OpenAI: getting_started/openai.md
     - Start chatting: getting_started/chat.md
+  - The Guide:
+    - Overview: guide/overview.md
+    - Configuration: guide/configuration.md
+    - Concepts:
+      - guide/bots.md
+    - Development:
+      - Setting up: development/development.md
+      - Plugins: development/plugins.md
+  - FAQ: faq.md
   - ...
   
 theme:
@@ -17,10 +26,11 @@ theme:
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.sections
+    - navigation.footer
     - toc.follow
     - toc.integrate 
     - content.action.edit
-    - navigation.footer
+    - content.code.copy
   icon:
     repo: fontawesome/brands/github
     edit: material/pencil 
@@ -46,6 +56,13 @@ plugins:
 markdown_extensions:
   - toc:
       permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
 repo_url: https://github.com/prefecthq/marvin
 edit_uri: edit/main/docs/
 extra:

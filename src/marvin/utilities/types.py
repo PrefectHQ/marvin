@@ -98,7 +98,11 @@ class DiscriminatingTypeModel(MarvinBaseModel):
     def __init_subclass__(cls, **kwargs):
         """Automatically generate `type` literals for subclasses."""
 
-        value = f"{cls.__name__}"
+        if discriminator := getattr(cls, "_discriminator", None) is not None:
+            value = discriminator
+        else:
+            value = f"{cls.__name__}"
+
         annotation = Literal[value]
 
         tag_field = ModelField.infer(
@@ -239,3 +243,15 @@ def get_all_subclasses(cls):
         .union(cls.__subclasses__())
         .union([s for c in cls.__subclasses__() for s in get_all_subclasses(c)])
     )
+
+
+class Test(DiscriminatingTypeModel):
+    pass
+
+
+class Test2(Test):
+    pass
+
+
+class Test3(Test):
+    _type = "hello"

@@ -1,5 +1,6 @@
 import random
 
+import pendulum
 from rich import print as rprint
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -43,7 +44,7 @@ spinner_messages = [
 
 
 async def chat(bot: Bot, first_message: str = None):
-    rprint(f"\n[bold blue]:robot::speech_balloon: {bot.name}[/] is listening...\n")
+    rprint(f"\n[bold blue]:robot::speech_balloon: {bot.name}[/] is listening...")
 
     try:
         while True:
@@ -59,6 +60,8 @@ async def chat(bot: Bot, first_message: str = None):
                     message,
                     title="You",
                     title_align="left",
+                    subtitle=f"[gray50]{pendulum.now().format('h:m:s A')}",
+                    subtitle_align="right",
                     border_style="gray50",
                 )
             )
@@ -75,6 +78,8 @@ async def chat(bot: Bot, first_message: str = None):
                         ),
                         title=bot.name,
                         title_align="left",
+                        subtitle=f"[gray50]{pendulum.now().format('h:m:s A')}",
+                        subtitle_align="right",
                         border_style="blue",
                     )
                 )
@@ -91,12 +96,13 @@ async def chat(bot: Bot, first_message: str = None):
                     description=random.choice(spinner_messages), total=None
                 )
                 response = await bot.say(message)
-
             rprint(
                 Panel(
                     response.content,
                     title=bot.name,
                     title_align="left",
+                    subtitle=f"[gray50]{pendulum.now().format('h:m:s A')}",
+                    subtitle_align="right",
                     border_style="blue",
                 )
             )
