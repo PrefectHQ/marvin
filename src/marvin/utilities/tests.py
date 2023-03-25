@@ -29,7 +29,7 @@ async def timer():
     start_time = asyncio.get_running_loop().time()
     yield
     elapsed_time = asyncio.get_running_loop().time() - start_time
-    get_logger("timer").debug(f"{elapsed_time:.5f} seconds elapsed")
+    get_logger("timer").info(f"{elapsed_time:.5f} seconds elapsed")
 
 
 def time_it(func):

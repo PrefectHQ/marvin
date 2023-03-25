@@ -5,7 +5,7 @@ from marvin.infra.chroma import Chroma
 from marvin.plugins import Plugin
 
 
-async def query_chroma(query: str, where: dict, n: int = 4):
+async def query_chroma(query: str, where: dict, n: int = 4) -> str:
     if where and "created_at" in where:
         where["created_at"] = {
             op: pendulum.parse(value).timestamp()
@@ -19,11 +19,10 @@ async def query_chroma(query: str, where: dict, n: int = 4):
             include=["documents"],
             where={**(where or {}), "document_type": "excerpt"},
         )
-        excerpts = [
-            excerpt for excerpts in query_result["documents"] for excerpt in excerpts
-        ]
 
-    return "\n\n".join(excerpt for excerpt in excerpts)
+    return "\n\n".join(
+        excerpt for excerpts in query_result["documents"] for excerpt in excerpts
+    )
 
 
 class SimpleChromaSearch(Plugin):

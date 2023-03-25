@@ -10,10 +10,6 @@ from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 class Loader(MarvinBaseModel, LoggerMixin, ABC):
     """A base class for loaders."""
 
-    @property
-    def source(self) -> str:
-        return self.__class__.__name__
-
     @abstractmethod
     async def load(self) -> list[Document]:
         pass

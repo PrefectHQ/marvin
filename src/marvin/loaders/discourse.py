@@ -64,7 +64,7 @@ class DiscourseLoader(Loader):
                 await Document(
                     text=post.cooked,
                     metadata=Metadata(
-                        source=self.source,
+                        source=self.__class__.__name__,
                         title=post.topic_title,
                         link=post.url,
                         created_at=post.created_at.timestamp(),

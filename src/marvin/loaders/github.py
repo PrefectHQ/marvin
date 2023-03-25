@@ -154,7 +154,7 @@ class GitHubIssueLoader(Loader):
                     if comment.user.login not in self.ignore_users:
                         text += f"**[{comment.user.login}]**: {comment.body}\n\n"
             metadata = Metadata(
-                source=self.source,
+                source=self.__class__.__name__,
                 link=issue.html_url,
                 title=issue.title,
                 labels=", ".join([label.name for label in issue.labels]),
@@ -218,6 +218,7 @@ class GitHubRepoLoader(Loader):
                     text = f.read()
 
                 metadata = Metadata(
+                    source=self.__class__.__name__,
                     link="/".join(
                         [
                             self.repo.replace(".git", ""),
@@ -225,7 +226,6 @@ class GitHubRepoLoader(Loader):
                             str(file.relative_to(tmp_dir)),
                         ]
                     ),
-                    source=self.source,
                     title=file.name,
                 )
                 documents.extend(

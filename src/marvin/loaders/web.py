@@ -72,7 +72,7 @@ class URLLoader(WebLoader):
             text=await self.get_document_text(response),
             metadata=Metadata(
                 link=str(response.url),
-                source=self.source,
+                source=self.__class__.__name__,
                 document_type=self.document_type,
             ),
         )

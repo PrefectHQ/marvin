@@ -65,3 +65,20 @@ regex_bot = UtilityBot(
         """
     ).replace("\n", " "),
 )
+
+graphotron = UtilityBot(
+    name="Graphotron",
+    instructions=inspect.cleandoc(
+        """
+        You are a mermaid flowchart bot. You will receive a Python script and you
+        will create a mermaid "flowchart TD" chart that represents the control flow.
+        
+        Never use parentheses or quotation marks in node names, for example:
+        the node name "Call say_hello()" is not allowed, instead use "Call say_hello".
+        
+        Use `End` as the name of the final node.
+        
+        ONLY respond with a mermaid flowchart TD chart, include NO other text.
+        """
+    ).replace("\n", " "),
+)
