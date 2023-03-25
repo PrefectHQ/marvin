@@ -1,6 +1,7 @@
 import pendulum
 from pydantic import Field, root_validator
 
+from marvin.config import temporary_settings
 from marvin.infra.chroma import Chroma
 from marvin.plugins import Plugin
 
@@ -44,7 +45,8 @@ class SimpleChromaSearch(Plugin):
         return values
 
     async def run(self, query: str) -> str:
-        return await query_chroma(query, where=None)
+        with temporary_settings(openai_model_temperature=0.2):
+            return await query_chroma(query, where=None)
 
 
 class ChromaSearch(SimpleChromaSearch):

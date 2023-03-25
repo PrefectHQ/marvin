@@ -1,7 +1,7 @@
 from marvin.bots import Bot
 from marvin.loaders.base import MultiLoader
 from marvin.loaders.discourse import DiscourseLoader
-from marvin.loaders.github import GitHubIssueLoader, GitHubRepoLoader
+from marvin.loaders.github import GitHubIssueLoader
 from marvin.loaders.web import SitemapLoader
 from marvin.plugins.chroma import SimpleChromaSearch
 from marvin.plugins.duckduckgo import DuckDuckGo
@@ -18,27 +18,25 @@ async def load_prefect_things():
         n_issues=3,
     )
 
-    prefect_source_code = GitHubRepoLoader(  # gimme da source
-        repo="prefecthq/prefect", glob="**/*.py", exclude_glob="**/tests/**"
-    )
+    # prefect_source_code = GitHubRepoLoader(  # gimme da source
+    #     repo="prefecthq/prefect", glob="**/*.py", exclude_glob="**/tests/**"
+    # )
 
     prefect_discourse = DiscourseLoader(  # gimme da discourse
         url="https://discourse.prefect.io",
     )
 
-    prefect_recipes = GitHubRepoLoader(  # gimme da recipes
-        repo="prefecthq/prefect-recipes",
-        glob="**/*.py",
-        exclude_glob="prefect-v1-legacy/**",
-    )
+    # prefect_recipes = GitHubRepoLoader(  # gimme da recipes
+    #     repo="prefecthq/prefect-recipes",
+    #     glob="**/*.py",
+    #     exclude_glob="prefect-v1-legacy/**",
+    # )
 
     prefect_loader = MultiLoader(
         loaders=[
             prefect_docs,
             prefect_github_issues,
-            prefect_source_code,
             prefect_discourse,
-            prefect_recipes,
         ]
     )
     await prefect_loader.load_and_store()
