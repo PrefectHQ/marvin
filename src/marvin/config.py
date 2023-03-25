@@ -114,7 +114,7 @@ class Settings(BaseSettings):
 
     # API
     api_base_url: str = "http://127.0.0.1"
-    api_port: int = 8000
+    api_port: int = 4200
     api_url = f"{api_base_url}:{api_port}"
     api_reload: bool = Field(
         False,
