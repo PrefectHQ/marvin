@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, validator
 import marvin
 from marvin.loaders.base import Loader
 from marvin.models.documents import Document
+from marvin.models.metadata import Metadata
 
 COMMON_QUESTIONS_CATEGORY_ID = 24
 
@@ -62,12 +63,12 @@ class DiscourseLoader(Loader):
             documents.extend(
                 await Document(
                     text=post.cooked,
-                    metadata={
-                        "source": self.source,
-                        "title": post.topic_title,
-                        "url": post.url,
-                        "created_at": post.created_at.timestamp(),
-                    },
+                    metadata=Metadata(
+                        source=self.source,
+                        title=post.topic_title,
+                        link=post.url,
+                        created_at=post.created_at.timestamp(),
+                    ),
                 ).to_excerpts()
             )
         return documents

@@ -56,6 +56,16 @@ class MessageCreate(MarvinBaseModel):
     data: dict = Field(default_factory=dict)
 
 
+class MessageRead(MarvinBaseModel):
+    id: MessageID
+    role: RoleType
+    content: str
+    name: str = None
+    timestamp: datetime.datetime
+    bot_id: BotID = None
+    data: dict = Field(default_factory=dict)
+
+
 class UserMessageCreate(MessageCreate):
     role: Literal["user"] = "user"
 
@@ -98,9 +108,28 @@ class ThreadCreate(MarvinBaseModel):
 
 
 class ThreadUpdate(MarvinBaseModel):
+    lookup_key: str = None
     name: str = None
     context: dict = None
     is_visible: bool = None
+
+
+class ThreadRead(MarvinBaseModel):
+    id: ThreadID
+    lookup_key: str
+    name: str = None
+    is_visible: bool = False
+    context: dict = Field(default_factory=dict)
+
+    @classmethod
+    def from_model(cls, thread: Thread):
+        return cls(
+            id=thread.id,
+            lookup_key=thread.lookup_key,
+            name=thread.name,
+            is_visible=thread.is_visible,
+            context=thread.context,
+        )
 
 
 class ThreadSummary(MarvinSQLModel, table=True):

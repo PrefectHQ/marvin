@@ -27,7 +27,6 @@ dependencies = [
     "prefect~=2.8.1",
     "pydantic[dotenv]~=1.10.4",
     "rich~=13.3.1",
-    "selectolax~=0.3.12",
     "sqlalchemy[asyncio]~=1.4.41",
     "sqlitedict~=2.1.0",
     "sqlmodel~=0.0.8",

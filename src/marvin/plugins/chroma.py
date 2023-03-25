@@ -1,4 +1,5 @@
 import pendulum
+from pydantic import Field, root_validator
 
 from marvin.infra.chroma import Chroma
 from marvin.plugins import Plugin
@@ -25,8 +26,28 @@ async def query_chroma(query: str, where: dict, n: int = 4):
     return "\n\n".join(excerpt for excerpt in excerpts)
 
 
-class ChromaSearch(Plugin):
-    description: str = "Semantic search for relevant documents."
+class SimpleChromaSearch(Plugin):
+    description: str = (
+        "Semantic search for relevant documents."
+        " To use this plugin, simply provide a natural language `query`"
+        " and relevant document excerpts will be returned to you."
+    )
 
-    async def run(self, query: str, where: dict | None = None) -> str:
-        return await query_chroma(query, where)
+    keywords: list[str] = Field(default_factory=list)
+
+    @root_validator
+    def validate(cls, values):
+        if values["keywords"]:
+            values["description"] += (
+                " Useful for answering questions that refer to the following keywords:"
+                f" {', '.join(values['keywords'])}"
+            )
+        return values
+
+    async def run(self, query: str) -> str:
+        return await query_chroma(query, where=None)
+
+
+class ChromaSearch(SimpleChromaSearch):
+    async def run(self, query: str, where: dict | None) -> str:
+        return await query_chroma(query, where=where)

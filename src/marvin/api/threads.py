@@ -9,6 +9,7 @@ from marvin.models.threads import (
     MessageCreate,
     Thread,
     ThreadCreate,
+    ThreadRead,
     ThreadUpdate,
 )
 from marvin.utilities.types import MarvinRouter
@@ -20,11 +21,11 @@ router = MarvinRouter(prefix="/threads", tags=["Threads"])
 @provide_session()
 async def create_thread(
     thread_create: ThreadCreate, session: AsyncSession = Depends(fastapi_session)
-) -> Thread:
+) -> ThreadRead:
     thread = Thread(**thread_create.dict())
     session.add(thread)
     await session.commit()
-    return thread
+    return ThreadRead(**thread.dict())
 
 
 @router.post("/lookup/{lookup_key}")

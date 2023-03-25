@@ -12,7 +12,7 @@ class Loader(MarvinBaseModel, LoggerMixin, ABC):
 
     @property
     def source(self) -> str:
-        return self.__class__.__name__.replace("Loader", "")
+        return self.__class__.__name__
 
     @abstractmethod
     async def load(self) -> list[Document]:
@@ -24,7 +24,7 @@ class Loader(MarvinBaseModel, LoggerMixin, ABC):
 
     async def load_and_store(
         self,
-        topic_name: str = "marvin",
+        topic_name: str = None,
         batch_size: int = 300,
         skip_existing: bool = True,
     ) -> None:
@@ -32,7 +32,9 @@ class Loader(MarvinBaseModel, LoggerMixin, ABC):
 
         documents = await self.load()
 
-        async with marvin.infra.chroma.Chroma(collection_name=topic_name) as chroma:
+        async with marvin.infra.chroma.Chroma(
+            collection_name=topic_name if topic_name else marvin.settings.default_topic
+        ) as chroma:
             n_documents_loaded = sum(
                 [
                     await chroma.add(documents=batch, skip_existing=skip_existing)

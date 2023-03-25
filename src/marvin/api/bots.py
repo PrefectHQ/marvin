@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import random
 
 import httpx
@@ -11,9 +12,10 @@ from marvin.infra.db import AsyncSession, provide_session
 from marvin.models.bots import (
     BotConfig,
     BotConfigCreate,
+    BotConfigRead,
     BotConfigUpdate,
 )
-from marvin.models.threads import Message
+from marvin.models.threads import MessageRead
 from marvin.utilities.types import MarvinRouter
 
 router = MarvinRouter(prefix="/bots", tags=["Bot Configs"])
@@ -25,10 +27,15 @@ async def create_bot_config(
     bot_config: BotConfigCreate,
     session: AsyncSession = Depends(fastapi_session),
     background_tasks: BackgroundTasks = None,
-) -> BotConfig:
-    session.add(BotConfig(**bot_config.dict()))
-    await session.commit()
-
+) -> BotConfigRead:
+    bot = BotConfig(**bot_config.dict())
+    try:
+        session.add(bot)
+        await session.commit()
+    except sa.exc.IntegrityError:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail=f'Bot "{bot_config.name}" already exists'
+        )
     # generate a profile picture
     if marvin.settings.bot_create_profile_picture:
         if background_tasks:
@@ -39,8 +46,7 @@ async def create_bot_config(
             asyncio.ensure_future(
                 _create_bot_config_profile_picture(bot_name=bot_config.name)
             )
-
-    return bot_config
+    return BotConfigRead(**bot.dict())
 
 
 @router.get("/{name}")
@@ -48,14 +54,14 @@ async def create_bot_config(
 async def get_bot_config(
     name: str,
     session: AsyncSession = Depends(fastapi_session),
-) -> BotConfig | None:
+) -> BotConfigRead | None:
     result = await session.execute(
         sa.select(BotConfig).where(BotConfig.name == name).limit(1)
     )
     bot_config = result.scalar()
     if not bot_config:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f'Bot "{name}" not found')
-    return bot_config
+    return BotConfigRead(**bot_config.dict())
 
 
 @router.patch("/{name}", status_code=status.HTTP_204_NO_CONTENT)
@@ -65,10 +71,11 @@ async def update_bot_config(
     bot_config: BotConfigUpdate,
     session: AsyncSession = Depends(fastapi_session),
 ):
+    exclude = {"profile_picture"} if bot_config.profile_picture is None else {}
     await session.execute(
         sa.update(BotConfig)
         .where(BotConfig.name == name)
-        .values(**bot_config.dict(exclude_unset=True))
+        .values(**bot_config.dict(exclude=exclude))
     )
     await session.commit()
 
@@ -87,8 +94,8 @@ async def delete_bot_config(
 async def talk_to_bot(
     name: str,
     message: str = Body(embed=True),
-    thread_lookup_key: str = None,
-) -> Message:
+    thread_lookup_key: str = "test",
+) -> MessageRead:
     """
     Convenience method to talk to a bot.
 
@@ -98,7 +105,7 @@ async def talk_to_bot(
     bot = await marvin.Bot.load(name=name)
     await bot.set_thread(thread_lookup_key=thread_lookup_key)
     response = await bot.say(message=message)
-    return response
+    return MessageRead(**response.dict())
 
 
 def _generate_profile_picture_prompt(personality=None):
@@ -164,7 +171,9 @@ async def _create_bot_config_profile_picture(bot_name: str):
     async with httpx.AsyncClient() as client:
         image = await client.get(image_url)
 
+    profile_picture_str = base64.b64encode(image.content).decode("utf-8")
+
     await update_bot_config(
         name=bot_name,
-        bot_config=BotConfigUpdate(profile_picture=image.content),
+        bot_config=BotConfigUpdate(name=bot_name, profile_picture=profile_picture_str),
     )

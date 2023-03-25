@@ -2,15 +2,16 @@ import asyncio
 import re
 from typing import Optional
 
-import pendulum
 from fake_useragent import UserAgent
 from httpx import AsyncClient, Response
 from pydantic import Field, HttpUrl
+from trafilatura.sitemaps import sitemap_search
 
 import marvin
 from marvin.loaders.base import Loader, MultiLoader
 from marvin.models.documents import Document
-from marvin.utilities.strings import html_to_content, parse_html
+from marvin.models.metadata import Metadata
+from marvin.utilities.strings import html_to_content
 
 user_agent = UserAgent()
 
@@ -69,12 +70,11 @@ class URLLoader(WebLoader):
     async def response_to_document(self, response: Response) -> Document:
         return Document(
             text=await self.get_document_text(response),
-            metadata={
-                "link": str(response.url),
-                "document_type": self.document_type,
-                "source": self.source,
-                "created_at": pendulum.now().timestamp(),
-            },
+            metadata=Metadata(
+                link=str(response.url),
+                source=self.source,
+                document_type=self.document_type,
+            ),
         )
 
     async def get_document_text(self, response: Response) -> str:
@@ -95,14 +95,6 @@ class SitemapLoader(URLLoader):
     include: list[str | re.Pattern] = Field(default_factory=list)
     exclude: list[str | re.Pattern] = Field(default_factory=list)
     url_loader: URLLoader = Field(default_factory=HTMLLoader)
-
-    _source: str = "HTML"
-
-    # HACK: `source` is a property on `Loader` but we need "HTML" here
-    # so Chroma can find it when it queries with a filter for source
-    @property
-    def source(self) -> str:
-        return self._source
 
     async def _get_loader(self) -> Loader:
         urls = await asyncio.gather(*[self.load_sitemap(url) for url in self.urls])
@@ -126,35 +118,26 @@ class SitemapLoader(URLLoader):
         loader = await self._get_loader()
         return await loader.load_and_store(**kwargs)
 
-    async def load_sitemap(self, url) -> list[str]:
-        headers = await self.get_headers()
-        async with AsyncClient(headers=headers, follow_redirects=True) as client:
-            response = await client.get(url)
-            response.raise_for_status()
+    async def load_sitemap(self, url: str) -> list[str]:
+        def is_included(url: str) -> bool:
+            if not self.include:
+                return True
 
-        html = parse_html(response.text)
-        url_locs = html.css("loc")
-        urls = []
-        for loc in url_locs:
-            valid_url = True
-            url = loc.text()
+            return any(
+                (isinstance(i, str) and i in url)
+                or (isinstance(i, re.Pattern) and re.search(i, url))
+                for i in self.include
+            )
 
-            # If we have an include list, make sure the url is in it
-            if self.include:
-                valid_url = False
-                for i in self.include:
-                    if isinstance(i, str) and i in url:
-                        valid_url = True
-                    elif isinstance(i, re.Pattern) and re.search(i, url):
-                        valid_url = True
+        def is_excluded(url: str) -> bool:
+            return any(
+                (isinstance(e, str) and e in url)
+                or (isinstance(e, re.Pattern) and re.search(e, url))
+                for e in self.exclude
+            )
 
-            # If we have an exclude list, make sure the url is not in it
-            for e in self.exclude:
-                if isinstance(e, str) and e in url:
-                    valid_url = False
-                elif isinstance(e, re.Pattern) and re.search(e, url):
-                    valid_url = False
-
-            if valid_url:
-                urls.append(url)
-        return urls
+        return [
+            url
+            for url in sitemap_search(url)
+            if is_included(url) and not is_excluded(url)
+        ]

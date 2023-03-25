@@ -55,7 +55,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             " Reminders are best used to nudge the bot back toward the system prompt."
         ),
     )
-    plugins: list[Plugin.as_discriminated_union()] = Field(
+    plugins: list[Plugin] = Field(
         None, description="A list of plugins that the bot can use."
     )
     history: History.as_discriminated_union() = None

@@ -8,7 +8,6 @@ import pendulum
 import tiktoken
 import xxhash
 from jinja2 import ChoiceLoader, Environment, StrictUndefined, select_autoescape
-from selectolax.parser import HTMLParser
 
 import marvin
 
@@ -206,10 +205,6 @@ def condense_newlines(text: str) -> str:
     text = text.replace("\r", "\n")
     text = MULTIPLE_NEWLINES.sub("\n", text)
     return MULTIPLE_WHITESPACE.sub(" ", text)
-
-
-def parse_html(html) -> HTMLParser:
-    return HTMLParser(html)
 
 
 def html_to_content(html: str) -> str:
