@@ -113,7 +113,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
     @validator("plugins", always=True)
     def default_plugins(cls, v):
-        if v is None:
+        if v is None and marvin.settings.bot_load_default_plugins:
             return DEFAULT_PLUGINS
         return v
 
