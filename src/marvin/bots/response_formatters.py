@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 import marvin
 from marvin.utilities.types import (
     DiscriminatingTypeModel,
+    format_type_str,
     safe_issubclass,
 )
 
@@ -17,7 +18,7 @@ SENTINEL = "__SENTINEL__"
 
 class ResponseFormatter(DiscriminatingTypeModel):
     format: str = Field(None, description="The format of the response")
-    on_error: Literal["reformat", "raise", "ignore"] = "ignore"
+    on_error: Literal["reformat", "raise", "ignore"] = "reformat"
 
     def validate_response(self, response):
         # by default, try to parse the response to validate it
@@ -66,9 +67,13 @@ class TypeFormatter(ResponseFormatter):
                 raise ValueError(f"Expected a type or GenericAlias, got {type_}")
 
             schema = marvin.utilities.types.type_to_schema(type_)
+
             kwargs.update(
                 type_schema=schema,
-                format=f"You must match the following type signature: `{type_}`",
+                format=(
+                    "You must match the following type signature:"
+                    f" `{format_type_str(type_)}`"
+                ),
             )
         super().__init__(**kwargs)
         if type_ is not SENTINEL:
@@ -84,7 +89,15 @@ class TypeFormatter(ResponseFormatter):
         return type_
 
     def parse_response(self, response):
-        return pydantic.parse_raw_as(self.get_type(), response)
+        type_ = self.get_type()
+
+        # handle GenericAlias and containers
+        if isinstance(type_, GenericAlias):
+            return pydantic.parse_raw_as(self.get_type(), response)
+
+        # handle basic types
+        else:
+            return type_(response)
 
 
 class PydanticFormatter(ResponseFormatter):

@@ -1,0 +1,147 @@
+import asyncio
+import inspect
+from functools import wraps
+from typing import Any, Callable
+
+from marvin.bots import Bot
+from marvin.utilities.strings import jinja_env
+
+TOWEL_INSTRUCTIONS = jinja_env.from_string(
+    inspect.cleandoc(
+        """
+        Your job is to generate outputs for a Python function with the following
+        signature:
+        
+        {{ function_def }}
+        
+        You can not see all of the function's source code. To assist you, the
+        user may have modified the function to return values that will help when
+        generating outputs. You will be provided any values returned from the
+        function but you should NOT assume they are actual outputs of the full
+        function. Treat any source code (and returned values) as preproccesing.        
+        
+        The user will give you inputs to this function and you must respond with
+        its result, in the appropriate form. Do not describe your process or
+        explain your answer, and do not give the user any additional
+        instruction. Respond ONLY with the return value of the function.
+        """
+    )
+)
+
+TOWEL_PERSONALITY = inspect.cleandoc(
+    """
+    You love to generate the correct answer, but you do not want to engage the
+    user in any way, including explaining your work, giving further
+    instructions, or asking for clarification.
+    """
+)
+
+TOWEL_MESSAGE = jinja_env.from_string(
+    inspect.cleandoc(
+        """
+        {% if input_binds %}} The user supplied the following inputs:
+            {%for desc in input_binds%}
+                {{ desc }}
+            {% endfor %}
+        {% endif -%}
+        
+        {% if return_value %} 
+        In addition, the user called the function as-is and got the following
+        return value: 
+        
+        {{ return_value }} 
+        {% endif -%}
+        
+        Respond with a result of the function call. Do not give any additional
+        detail, instructions, or even punctuation; respond ONLY with the output.
+        Do not explain the type signature or give guidance on parsing.
+        """
+    )
+)
+
+
+def towel(
+    *, bot_modifier: Callable = None, call_function: bool = True, **bot_kwargs
+) -> Callable:
+    """
+    Args
+        - bot_modifier (Callable):  the `Bot` is passed to this function before
+          the function is processed. The function can either modify the bot
+          inplace or return a modified bot. Useful for customizing behavior in
+          ways that can't easily be passed directly to the bot via kwargs
+        - call_function (bool):  if True, the function will be called and the
+          return value will be included in the message
+        - bot_kwargs (dict):  kwargs to pass to the `Bot` constructor
+
+    """
+
+    def decorator(fn: Callable) -> Callable:
+        @wraps(fn)
+        def wrapper(*args, **kwargs) -> Any:
+            bot_kwargs = {}
+
+            # Get function signature
+            sig = inspect.signature(fn)
+
+            # Bind the provided arguments to the function signature
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+
+            # Build input binds
+            input_binds = []
+            for k, v in bound_args.arguments.items():
+                input_binds.append(f"{k} = {v}")
+
+            # see if the function preprocesses the inputs
+            if call_function:
+                if inspect.iscoroutinefunction(fn):
+                    return_value = asyncio.run(fn(*args, **kwargs))
+                else:
+                    return_value = fn(*args, **kwargs)
+            else:
+                return_value = None
+
+            # Get the return annotation
+            if sig.return_annotation is inspect._empty:
+                return_annotation = str
+            else:
+                return_annotation = sig.return_annotation
+
+            # Build the instructions
+            instructions = TOWEL_INSTRUCTIONS.render(
+                function_def=inspect.getsource(fn),
+            )
+
+            # capture all arguments
+
+            # create the bot
+            bot = Bot(
+                instructions=instructions,
+                personality=TOWEL_PERSONALITY,
+                response_format=return_annotation,
+                **bot_kwargs,
+            )
+
+            if bot_modifier is not None:
+                modified_bot = bot_modifier(bot)
+                # bot might not be modified inplace
+                if modified_bot is not None:
+                    bot = modified_bot
+
+            # build the message
+            message = TOWEL_MESSAGE.render(
+                input_binds=input_binds, return_value=return_value
+            )
+
+            async def get_response():
+                response = await bot.say(message)
+                return response.parsed_content or response.content
+
+            if inspect.iscoroutinefunction(fn):
+                return get_response()
+            else:
+                return asyncio.run(get_response())
+
+        return wrapper
+
+    return decorator
