@@ -25,3 +25,8 @@ from . import utilities, models, infra, api, bots, plugins, server, cli
 
 from marvin.plugins import Plugin
 from marvin.bots import Bot
+
+_logger = get_logger(__name__)
+if settings.test_mode:
+    _logger.debug_style("Marvin is running in test mode!", style="yellow")
+_logger.debug(f'OpenAI model: "{settings.openai_model_name}"')
