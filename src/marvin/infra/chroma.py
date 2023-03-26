@@ -72,7 +72,7 @@ class Chroma:
             self.collection.add,
             ids=[document.hash for document in documents],
             documents=[document.text for document in documents],
-            metadatas=[document.metadata for document in documents],
+            metadatas=[document.metadata.dict() for document in documents],
         )
 
         if not self._in_context:

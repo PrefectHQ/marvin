@@ -15,7 +15,17 @@ from marvin.utilities.types import MarvinBaseModel
 RoleType = Literal["system", "user", "ai"]
 
 
-class Message(BaseSQLModel, table=True):
+class BaseMessage(MarvinBaseModel):
+    id: MessageID = Field(default_factory=MessageID.new)
+    role: RoleType
+    content: str
+    name: str = None
+    timestamp: datetime.datetime = Field(default_factory=lambda: pendulum.now("utc"))
+    bot_id: BotID = None
+    data: dict = Field(default_factory=dict)
+
+
+class Message(MarvinSQLModel, BaseMessage, table=True):
     __table_args__ = (
         sa.ForeignKeyConstraint(["thread_id"], ["thread.id"], ondelete="CASCADE"),
         sa.Index(
@@ -27,8 +37,6 @@ class Message(BaseSQLModel, table=True):
     id: MessageID = Field(default_factory=MessageID.new, primary_key=True)
     thread_id: ThreadID
     role: str  # should be one of `RoleType` at this time, could change in the future
-    content: str
-    name: str = None
     timestamp: datetime.datetime = Field(
         default_factory=lambda: pendulum.now("utc"),
         sa_column=sa.Column(
@@ -38,20 +46,26 @@ class Message(BaseSQLModel, table=True):
             index=True,
         ),
     )
-    bot_id: BotID = None
     data: dict = Field(
         default_factory=dict,
         sa_column=sa.Column(JSONType, nullable=False, server_default="{}"),
     )
-
-    def to_dict(self) -> dict:
-        return self.dict(include={"role", "name", "content"}, include_none=False)
 
 
 class MessageCreate(MarvinBaseModel):
     role: RoleType
     content: str
     name: str = None
+    bot_id: BotID = None
+    data: dict = Field(default_factory=dict)
+
+
+class MessageRead(MarvinBaseModel):
+    id: MessageID
+    role: RoleType
+    content: str
+    name: str = None
+    timestamp: datetime.datetime
     bot_id: BotID = None
     data: dict = Field(default_factory=dict)
 
@@ -98,9 +112,28 @@ class ThreadCreate(MarvinBaseModel):
 
 
 class ThreadUpdate(MarvinBaseModel):
+    lookup_key: str = None
     name: str = None
     context: dict = None
     is_visible: bool = None
+
+
+class ThreadRead(MarvinBaseModel):
+    id: ThreadID
+    lookup_key: str
+    name: str = None
+    is_visible: bool = False
+    context: dict = Field(default_factory=dict)
+
+    @classmethod
+    def from_model(cls, thread: Thread):
+        return cls(
+            id=thread.id,
+            lookup_key=thread.lookup_key,
+            name=thread.name,
+            is_visible=thread.is_visible,
+            context=thread.context,
+        )
 
 
 class ThreadSummary(MarvinSQLModel, table=True):

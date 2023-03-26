@@ -1,12 +1,18 @@
 import collections
+import importlib.util
 import json
 import logging
 import re
+import typing
 from functools import lru_cache
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from types import GenericAlias
 from typing import Any, Callable, Generic, Literal, TypeVar, Union
 
 import pydantic
 import ulid
+from datamodel_code_generator import InputFileType, generate
 from fastapi import APIRouter, Response, status
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field, PrivateAttr, constr
@@ -115,7 +121,7 @@ class DiscriminatingTypeModel(MarvinBaseModel):
         cls.__fields__["type"] = tag_field
 
     @classmethod
-    def as_discriminated_union(cls):
+    def as_discriminated_union(cls, **field_kwargs):
         subclasses = get_all_subclasses(cls)
         subclass_names = [s.__name__ for s in subclasses]
         if len(subclasses) > len(set(subclass_names)):
@@ -134,7 +140,7 @@ class DiscriminatingTypeModel(MarvinBaseModel):
             )
 
         union = Union[tuple(subclasses)]
-        return Annotated[union, Field(discriminator="type")]
+        return Annotated[union, Field(discriminator="type", **field_kwargs)]
 
 
 class MarvinRouter(APIRouter):
@@ -245,13 +251,47 @@ def get_all_subclasses(cls):
     )
 
 
-class Test(DiscriminatingTypeModel):
-    pass
+def safe_issubclass(type_, classes):
+    if isinstance(type_, type) and not isinstance(type_, GenericAlias):
+        return issubclass(type_, classes)
+    else:
+        return False
 
 
-class Test2(Test):
-    pass
+def type_to_schema(type_) -> dict:
+    if safe_issubclass(type_, pydantic.BaseModel):
+        return type_.schema()
+    else:
+
+        class Model(pydantic.BaseModel):
+            __root__: type_
+
+        return Model.schema()
 
 
-class Test3(Test):
-    _type = "hello"
+def schema_to_type(schema: dict):
+    with TemporaryDirectory() as temporary_directory_name:
+        temporary_directory = Path(temporary_directory_name)
+        output = Path(temporary_directory / "model.py")
+
+        # write schema to a file
+        generate(
+            json.dumps(schema),
+            input_file_type=InputFileType.JsonSchema,
+            input_filename="example.json",
+            output=output,
+            validation=True,
+        )
+
+        # import the file
+        module_name = "marvin_tmp_models"
+        spec = importlib.util.spec_from_file_location(module_name, str(output))
+        module = importlib.util.module_from_spec(spec)
+        # sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+
+        model_name = schema.get("title", "Model")
+        model = getattr(module, model_name)
+        model.update_forward_refs(**typing.__dict__)
+
+        return model

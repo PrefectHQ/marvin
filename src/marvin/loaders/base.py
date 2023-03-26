@@ -1,8 +1,6 @@
 import asyncio
 from abc import ABC, abstractmethod
 
-from rich.progress import track
-
 import marvin
 from marvin.models.documents import Document
 from marvin.utilities.collections import batched
@@ -11,10 +9,6 @@ from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 class Loader(MarvinBaseModel, LoggerMixin, ABC):
     """A base class for loaders."""
-
-    @property
-    def source(self) -> str:
-        return self.__class__.__name__.replace("Loader", "")
 
     @abstractmethod
     async def load(self) -> list[Document]:
@@ -26,7 +20,7 @@ class Loader(MarvinBaseModel, LoggerMixin, ABC):
 
     async def load_and_store(
         self,
-        topic_name: str = "marvin",
+        topic_name: str = None,
         batch_size: int = 300,
         skip_existing: bool = True,
     ) -> None:
@@ -34,7 +28,9 @@ class Loader(MarvinBaseModel, LoggerMixin, ABC):
 
         documents = await self.load()
 
-        async with marvin.infra.chroma.Chroma(collection_name=topic_name) as chroma:
+        async with marvin.infra.chroma.Chroma(
+            collection_name=topic_name if topic_name else marvin.settings.default_topic
+        ) as chroma:
             n_documents_loaded = sum(
                 [
                     await chroma.add(documents=batch, skip_existing=skip_existing)
@@ -57,9 +53,7 @@ class MultiLoader(Loader):
         return all_documents
 
     async def load_and_store(self, topic_name: str = "marvin", batch_size: int = 5):
-        for batch_of_loaders in track(
-            batched(self.loaders, batch_size), description="Multi-Loading..."
-        ):
+        for batch_of_loaders in batched(self.loaders, batch_size):
             await asyncio.gather(
                 *[
                     loader.load_and_store(topic_name=topic_name)
