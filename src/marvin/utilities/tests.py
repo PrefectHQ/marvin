@@ -1,10 +1,11 @@
 import asyncio
 from contextlib import asynccontextmanager
 from functools import wraps
+from typing import Any
 
 import httpx
 
-from marvin import get_logger
+from marvin import get_logger, towel
 from marvin.programs.utilities import ApproximatelyEquivalent
 
 
@@ -22,6 +23,19 @@ def assert_status_code(response: httpx.Response, status_code: int):
 
 def assert_approx_equal(statement_1: str, statement_2: str):
     assert asyncio.run(ApproximatelyEquivalent().run(statement_1, statement_2))
+
+
+@towel()
+def assert_llm(output: Any, expectation: Any) -> bool:
+    """
+    Given the `output` of an LLM and an expectation, determines whether the
+    output satisfies the expectation.
+
+    For example:
+        `assert_llm(5, "output == 5")` will return `True` `assert_llm(["red",
+        "orange"], "a list of colors")` will return `True` `assert_llm(["red",
+        "house"], "a list of colors")` will return `False`
+    """
 
 
 @asynccontextmanager

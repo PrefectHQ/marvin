@@ -297,3 +297,13 @@ def schema_to_type(schema: dict):
         model.update_forward_refs(**typing.__dict__)
 
         return model
+
+
+def format_type_str(type_) -> str:
+    """
+    The str(type: type) is not very readable, so we format it to be more readable.
+    """
+    if isinstance(type_, type):
+        return type_.__name__
+    else:
+        return str(type_)

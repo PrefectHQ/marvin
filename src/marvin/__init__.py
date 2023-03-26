@@ -22,6 +22,7 @@ from . import utilities, models, infra, api, bots, plugins
 
 from marvin.plugins import Plugin
 from marvin.bots import Bot
+from marvin.bots.towel import towel
 
 _logger = get_logger(__name__)
 if settings.test_mode:

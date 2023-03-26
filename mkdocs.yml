@@ -9,12 +9,13 @@ nav:
     - Overview: guide/overview.md
     - Configuration: guide/configuration.md
     - Concepts:
-      - guide/bots.md
+      - 🧙 Towel: guide/towel.md
+      - 🤖 Bots: guide/bots.md
+      - 🏗️ Loaders: guide/loaders_and_documents.md
     - Development:
       - Setting up: development/development.md
       - Plugins: development/plugins.md
   - FAQ: faq.md
-  - ...
   
 theme:
   name: material
@@ -31,6 +32,7 @@ theme:
     - toc.integrate 
     - content.action.edit
     - content.code.copy
+    - content.code.annotate 
   icon:
     repo: fontawesome/brands/github
     edit: material/pencil 
@@ -63,6 +65,9 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
 repo_url: https://github.com/prefecthq/marvin
 edit_uri: edit/main/docs/
 extra:
