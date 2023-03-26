@@ -10,10 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-# load version
-import pkg_resources
-
-__version__ = pkg_resources.require("marvin")[0].version
+__version__ = "0.5.0"
 
 # load marvin root objects
 from marvin.config import settings
