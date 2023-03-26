@@ -141,7 +141,7 @@ def load_formatter_from_shorthand(shorthand_response_format) -> ResponseFormatte
             return BooleanFormatter()
 
         # x is a string that contains the word "json"
-        case x if isinstance(x, str) and re.search("\bjson\b", x.lower()):
+        case x if isinstance(x, str) and re.search(r"\bjson\b", x.lower()):
             return JSONFormatter(format=x)
 
         # x is a string
