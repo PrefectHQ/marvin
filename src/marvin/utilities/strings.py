@@ -11,6 +11,12 @@ from jinja2 import ChoiceLoader, Environment, StrictUndefined, select_autoescape
 
 import marvin
 
+MULTIPLE_NEWLINES = re.compile(r"\n{2,}")
+MULTIPLE_WHITESPACE = re.compile(r"[\t ]+")
+LINKS = re.compile(
+    r"\bhttp[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F])|#)+\b|(?<=\]\()\bhttp[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F])|#)+\b(?=\))"
+)  # noqa: E501
+
 jinja_env = Environment(
     loader=ChoiceLoader(
         [
@@ -145,6 +151,10 @@ async def extract_keywords(text: str, n_keywords: int = None) -> list[str]:
     )
 
 
+def extract_links_from_text(text: str) -> list[str]:
+    return LINKS.findall(text)
+
+
 def create_minimap_fn(content: str) -> Callable[[int], str]:
     """
     Given a document with markdown headers, returns a function that outputs the
@@ -195,10 +205,6 @@ def create_minimap_fn(content: str) -> Callable[[int], str]:
         return "\n".join([s for s in ordered_stack if s is not None])
 
     return get_location_fn
-
-
-MULTIPLE_NEWLINES = re.compile(r"\n{2,}")
-MULTIPLE_WHITESPACE = re.compile(r"[\t ]+")
 
 
 def condense_newlines(text: str) -> str:
