@@ -105,6 +105,12 @@ class Settings(BaseSettings):
         ),
     )
     bot_max_iterations: int = 10
+    bot_load_default_plugins: bool = Field(
+        True,
+        description=(
+            "If True, bots will load a default set of plugins if none are provided."
+        ),
+    )
 
     # API
     api_port: int = 4200
