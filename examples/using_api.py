@@ -19,7 +19,7 @@ def render_image(base64_image_str: str):
 async def create_bot(bot_config: BotConfigCreate) -> Dict[str, Any]:
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            f"{marvin.settings.api_url}/bots/",
+            f"{marvin.settings.api_base_url}:{marvin.settings.api_port}/bots/",
             json=bot_config.dict(),
         )
         response.raise_for_status()
@@ -29,7 +29,7 @@ async def create_bot(bot_config: BotConfigCreate) -> Dict[str, Any]:
 async def delete_bot(name: str):
     async with httpx.AsyncClient() as client:
         response = await client.delete(
-            f"{marvin.settings.api_url}/bots/{name}",
+            f"{marvin.settings.api_base_url}:{marvin.settings.api_port}/bots/{name}",
         )
         response.raise_for_status()
 
@@ -37,7 +37,7 @@ async def delete_bot(name: str):
 async def get_bot(name: str) -> Dict[str, Any]:
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            f"{marvin.settings.api_url}/bots/{name}",
+            f"{marvin.settings.api_base_url}:{marvin.settings.api_port}/bots/{name}",
         )
         response.raise_for_status()
         return response
@@ -46,7 +46,7 @@ async def get_bot(name: str) -> Dict[str, Any]:
 async def update_bot(name: str, bot_config: BotConfigUpdate) -> Dict[str, Any]:
     async with httpx.AsyncClient() as client:
         response = await client.patch(
-            f"{marvin.settings.api_url}/bots/{name}",
+            f"{marvin.settings.api_base_url}:{marvin.settings.api_port}/bots/{name}",
             json=bot_config.dict(),
         )
         response.raise_for_status()
@@ -62,7 +62,8 @@ async def talk_to_bot(
             payload["thread_lookup_key"] = thread_lookup_key
 
         response = await client.post(
-            f"{marvin.settings.api_url}/bots/{name}", json=payload
+            f"{marvin.settings.api_base_url}:{marvin.settings.api_port}/bots/{name}",
+            json=payload,
         )
 
         response.raise_for_status()
@@ -73,7 +74,7 @@ async def talk_to_bot(
 async def update_thread(thread_id: str, thread: ThreadUpdate) -> Dict[str, Any]:
     async with httpx.AsyncClient() as client:
         response = await client.patch(
-            f"{marvin.settings.api_url}/threads/{thread_id}",
+            f"{marvin.settings.api_base_url}:{marvin.settings.api_port}/threads/{thread_id}",
             json=thread.dict(),
         )
         response.raise_for_status()
