@@ -94,7 +94,7 @@ prefect_docs = SitemapLoader(
     exclude=["api-ref"],
 )
 
-await prefect_source_code.load_and_store()
+await prefect_docs.load_and_store()
 ```
 
 See detailed docs on [loaders and documents](docs/guide/loaders_and_documents.md).
