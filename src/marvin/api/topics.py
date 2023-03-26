@@ -93,8 +93,5 @@ async def delete_topic_by_id(
     topic_id: TopicID,
     session: AsyncSession = Depends(fastapi_session),
 ):
-    await marvin.services.chroma.delete_vectors(
-        filter={"topic_id": topic_id}, namespace=marvin.settings.pinecone_namespace
-    )
     await session.execute(sa.delete(Topic).where(Topic.id == topic_id))
     await session.commit()
