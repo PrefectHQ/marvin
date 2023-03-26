@@ -9,13 +9,13 @@ nav:
     - Overview: guide/overview.md
     - Configuration: guide/configuration.md
     - Concepts:
-      - guide/bots.md
-      - guide/towel.md
+      - 🧙 Towel: guide/towel.md
+      - 🤖 Bots: guide/bots.md
+      - 🏗️ Loaders: guide/loaders_and_documents.md
     - Development:
       - Setting up: development/development.md
       - Plugins: development/plugins.md
   - FAQ: faq.md
-  - ...
   
 theme:
   name: material
