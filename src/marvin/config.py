@@ -169,11 +169,12 @@ class Settings(BaseSettings):
     @root_validator
     def test_mode_settings(cls, values):
         if values["test_mode"]:
-            print(Text("Marvin is running in test mode!", style="yellow"))
             values["log_level"] = "DEBUG"
             values["verbose"] = True
             # don't generate profile pictures
             values["bot_create_profile_picture"] = False
+            # don't load default plugins
+            values["bot_load_default_plugins"] = False
             # remove all model variance
             values["openai_model_temperature"] = 0.0
         return values
