@@ -24,7 +24,7 @@ class BotConfig(MarvinSQLModel, table=True):
         default_factory=list,
         sa_column=sa.Column(JSONType, nullable=False, server_default="[]"),
     )
-    profile_picture: bytes = None
+    profile_picture: str = None
 
 
 class BotConfigCreate(MarvinBaseModel):
@@ -38,4 +38,14 @@ class BotConfigCreate(MarvinBaseModel):
 
 
 class BotConfigUpdate(BotConfigCreate):
-    profile_picture: bytes = None
+    profile_picture: str = None
+
+
+class BotConfigRead(MarvinBaseModel):
+    id: BotID
+    name: str
+    personality: str
+    instructions: str
+    plugins: list[dict]
+    input_transformers: list[dict]
+    profile_picture: str = None

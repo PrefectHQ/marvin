@@ -1,9 +1,9 @@
-import pendulum
 from pydantic import Field, confloat, validator
 from typing_extensions import Literal
 
 import marvin
 from marvin.models.ids import DocumentID
+from marvin.models.metadata import Metadata
 from marvin.utilities.strings import (
     count_tokens,
     create_minimap_fn,
@@ -16,9 +16,9 @@ DocumentType = Literal["original", "excerpt", "summary"]
 
 
 EXCERPT_TEMPLATE = """
-The following is a {document.type} document:
+The following is a {document.type} document produced by {document.source}:
 # Document metadata
-{document.metadata}
+{metadata}
 # Document keywords
 {keywords}
 # Excerpt's location in document
@@ -46,7 +46,7 @@ class Document(MarvinBaseModel):
         ..., description="Any text content that you want to keep / embed."
     )
     embedding: list[float] | None = Field(default=None)
-    metadata: dict | None = Field(default=None)
+    metadata: Metadata | None = Field(default=None)
 
     source: str = Field(default="unknown")
     type: DocumentType = Field(default="original")
@@ -60,18 +60,6 @@ class Document(MarvinBaseModel):
     def validate_tokens(cls, v, values):
         if not v:
             return count_tokens(values["text"])
-        return v
-
-    @validator("metadata")
-    def add_timestamp(cls, v):
-        if v and "created_at" not in v:
-            v["created_at"] = pendulum.now().isoformat()
-        return v
-
-    @validator("source")
-    def add_source(cls, v, values):
-        if values["metadata"] and "source" in values["metadata"]:
-            return values["metadata"]["source"]
         return v
 
     @property
@@ -101,12 +89,13 @@ class Document(MarvinBaseModel):
             excerpt_text = EXCERPT_TEMPLATE.format(
                 excerpt=text,
                 document=self,
+                metadata=self.metadata.dict() if self.metadata else {},
                 keywords=", ".join(keywords),
                 minimap=minimap_fn(chr),
             ).strip()
 
             excerpt_metadata = self.metadata.copy()
-            excerpt_metadata.update({"document_type": "excerpt"})
+            excerpt_metadata.document_type = "excerpt"
             excerpts.append(
                 Document(
                     type="excerpt",

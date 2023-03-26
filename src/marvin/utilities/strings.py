@@ -201,20 +201,23 @@ MULTIPLE_NEWLINES = re.compile(r"\n{2,}")
 MULTIPLE_WHITESPACE = re.compile(r"[\t ]+")
 
 
-def html_to_content(html: str) -> str:
-    # defer import for performance
-    import trafilatura
-
-    text = trafilatura.extract(html, include_formatting=True, include_links=True)
-
-    text = condense_newlines(text)
-    return text
-
-
 def condense_newlines(text: str) -> str:
     text = text.replace("\r", "\n")
     text = MULTIPLE_NEWLINES.sub("\n", text)
     return MULTIPLE_WHITESPACE.sub(" ", text)
+
+
+def html_to_content(html: str) -> str:
+    # defer import for performance
+    import trafilatura
+
+    text = trafilatura.extract(
+        html, include_formatting=True, include_links=True, favor_precision=True
+    )
+
+    text = condense_newlines(text)
+
+    return text
 
 
 def rm_html_comments(text: str) -> str:

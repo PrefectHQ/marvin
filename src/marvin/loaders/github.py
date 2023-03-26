@@ -14,6 +14,7 @@ from pydantic import BaseModel, Field, validator
 
 from marvin.loaders.base import Loader
 from marvin.models.documents import Document
+from marvin.models.metadata import Metadata
 from marvin.utilities.strings import rm_html_comments, rm_text_after
 
 
@@ -54,6 +55,8 @@ class GitHubIssueLoader(Loader):
     repo: str = Field(...)
     n_issues: int = Field(default=50)
     request_headers: Dict[str, str] = Field(default_factory=dict)
+
+    include_comments: bool = Field(default=False)
     ignore_body_after: str = Field(default="### Checklist")
     ignore_users: List[str] = Field(default_factory=list)
 
@@ -98,11 +101,14 @@ class GitHubIssueLoader(Loader):
 
     async def _get_issues(self, per_page: int = 100) -> List[GitHubIssue]:
         """
-        Get a list of all issues for the given repository.
+        Get a list of all issues for the given repository. Beware
+        of the [GitHub API rate limit](https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting).
+
+        per_page: The number of issues to request per page.
 
         Returns:
             A list of `GitHubIssue` objects, each representing an issue.
-        """
+        """  # noqa: E501
         url = f"https://api.github.com/repos/{self.repo}/issues"
         issues = []
         page = 1
@@ -140,24 +146,24 @@ class GitHubIssueLoader(Loader):
             clean_issue_body = rm_text_after(
                 rm_html_comments(issue.body), self.ignore_body_after
             )
-            text = f"\n\n**{issue.title}:**\n{clean_issue_body}"
-            for comment in await self._get_issue_comments(
-                self.repo, tuple(self.request_headers.items()), issue.number
-            ):
-                if comment.user.login not in self.ignore_users:
-                    text += f"\n\n*{comment.user.login}:* {comment.body}\n\n"
-            metadata = {
-                "source": self.source,
-                "link": issue.html_url,
-                "title": issue.title,
-                "labels": ", ".join([label.name for label in issue.labels]),
-                "created_at": issue.created_at.timestamp(),
-            }
+            text = f"\n\n##**{issue.title}:**\n{clean_issue_body}\n"
+            if self.include_comments:
+                for comment in await self._get_issue_comments(
+                    self.repo, tuple(self.request_headers.items()), issue.number
+                ):
+                    if comment.user.login not in self.ignore_users:
+                        text += f"**[{comment.user.login}]**: {comment.body}\n\n"
+            metadata = Metadata(
+                source=self.__class__.__name__,
+                link=issue.html_url,
+                title=issue.title,
+                labels=", ".join([label.name for label in issue.labels]),
+                document_type="github issue",
+            )
             documents.extend(
                 await Document(
                     text=text,
                     metadata=metadata,
-                    type="original",
                 ).to_excerpts()
             )
         return documents
@@ -211,17 +217,17 @@ class GitHubRepoLoader(Loader):
                 with open(file, "r") as f:
                     text = f.read()
 
-                metadata = {
-                    "link": "/".join(
+                metadata = Metadata(
+                    source=self.__class__.__name__,
+                    link="/".join(
                         [
                             self.repo.replace(".git", ""),
                             "tree/main",
                             str(file.relative_to(tmp_dir)),
                         ]
                     ),
-                    "source": self.source,
-                    "created_at": pendulum.now().timestamp(),
-                }
+                    title=file.name,
+                )
                 documents.extend(
                     await Document(
                         text=text,
