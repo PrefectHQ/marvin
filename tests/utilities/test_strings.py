@@ -1,6 +1,6 @@
 import pytest
 from marvin.models.documents import Document
-from marvin.utilities.strings import LINKS, hash_text
+from marvin.utilities.strings import LINKS, extract_code_blocks, hash_text
 
 
 class TestHashing:
@@ -38,3 +38,64 @@ class TestEntityExtraction:
             "https://example.com/path#fragment",
             "https://example.com/path?query=value#fragment",
         ]
+
+    @pytest.mark.parametrize(
+        "text, expected",
+        [
+            (
+                """
+                ```python
+                def hello_world():
+                    print("Hello World")
+                ```
+                """,
+                [
+                    {
+                        "language": "python",
+                        "code": 'def hello_world(): print("Hello World")',
+                    }
+                ],
+            ),
+            (
+                """
+                ```python
+                def hello_world():
+                    print("Hello World")
+                """,
+                [],
+            ),
+            (
+                """
+                def hello_world():
+                    print("Hello World")
+                ```
+                """,
+                [],
+            ),
+            (
+                """
+                ```python
+                def hello_world():
+                    print("Hello World")
+                ```
+                some text
+                ```python
+                def hello_world():
+                    print("Hello Marvin")
+                ```
+                """,
+                [
+                    {
+                        "language": "python",
+                        "code": 'def hello_world(): print("Hello World")',
+                    },
+                    {
+                        "language": "python",
+                        "code": 'def hello_world(): print("Hello Marvin")',
+                    },
+                ],
+            ),
+        ],
+    )
+    def test_extract_code_blocks_from_text(self, text, expected):
+        assert extract_code_blocks(text) == expected

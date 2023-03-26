@@ -9,7 +9,7 @@ from prefect.utilities.collections import listrepr
 from pydantic import Field, validator
 
 import marvin
-from marvin.bots.history import History, ThreadHistory
+from marvin.bots.history import History, InMemoryHistory, ThreadHistory
 from marvin.bots.input_transformers import InputTransformer
 from marvin.bots.response_formatters import (
     ResponseFormatter,
@@ -468,7 +468,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         links = extract_links_from_text(plugin_output)
 
         existing_history = summarize_bot.history
-        summarize_bot.history = self.history
+        summarize_bot.history = InMemoryHistory()
         summarized_plugin_output = (await summarize_bot.say(plugin_output)).content
         summarize_bot.history = existing_history
 

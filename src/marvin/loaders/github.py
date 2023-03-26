@@ -48,6 +48,12 @@ class GitHubIssue(BaseModel):
     labels: List[GitHubLabel] = Field(default_factory=GitHubLabel)
     user: GitHubUser = Field(default_factory=GitHubUser)
 
+    @validator("body", always=True)
+    def validate_body(cls, v):
+        if not v:
+            return ""
+        return v
+
 
 class GitHubIssueLoader(Loader):
     """Loader for GitHub issues for a given repository."""

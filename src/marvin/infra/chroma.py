@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 
 def get_client(settings: chromadb.config.Settings = None) -> chromadb.Client:
+    print(settings)
     return chromadb.Client(settings=settings or marvin.settings.chroma)
 
 

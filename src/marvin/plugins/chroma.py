@@ -1,6 +1,7 @@
 import pendulum
 from pydantic import Field
 
+import marvin
 from marvin.config import temporary_settings
 from marvin.infra.chroma import Chroma
 from marvin.plugins import Plugin
@@ -13,7 +14,7 @@ async def query_chroma(query: str, where: dict, n: int = 4) -> str:
             for op, value in where["created_at"].items()
         }
 
-    async with Chroma() as chroma:
+    async with Chroma(settings=marvin.settings.chroma) as chroma:
         query_result = await chroma.query(
             query_texts=[query],
             n_results=n,
