@@ -12,10 +12,76 @@ Instructions define the bot's behavior by specifying how it should respond. For 
 ### Personality
 Personality affects the style of the bot's responses, for example the tone, humor, how often the bot checks for confirmation, etc.
 
-By combining personality and instructions, Bot instances can produce complex behavior that can be very different from what users might expect from a chat interface.
+By combining personality and instructions, bot instances can produce complex behavior that can be very different from what users might expect from a chat interface.
 
 ### Plugins
 Plugins allow bots to access new information and functionality. By default, bots have plugins that let them browse the internet, visit URLs, and run simple calculations.
+
+### Formatting responses
+
+You can optionally enforce certain formats for the bot's responses. In some cases, you can also validate and even parse the resulting output into native objects.
+
+Please note: complex response formatting is significantly better with GPT-4 than GPT-3.5.
+
+To set up formatting, you need to supply a `ResponseFormatter` object that defines formatting, validation, and parsing. As a convenience, Marvin also supports a "shorthand" way of defining formats that will let the library select the most appropriate `ResponseFormatter` automatically. Shorthand formats can include natural language descriptions, Python types, JSON instructions, or Pydantic models. 
+
+Here are examples of various shorthand formats:
+
+#### Python types
+
+Supply Python types to have the bot enforce the appropriate return types. Python types are always validated and parsed.
+
+```python
+bot = Bot(response_format=bool)
+response = await bot.say('Are these statements equivalent? 1: The coffee is hot. 2: The coffee is scalding.')
+
+print(response.parsed_content) # True
+```
+
+```python
+bot = Bot(response_format=list[dict[str, int]])
+response = await bot.say("Format this: (x is 1, y is two), (a is 3, b is 4)")
+
+print(response.parsed_content) # [{'x': 1, 'y': 2}, {'a': 3, 'b': 4}]
+```
+
+#### Natural language
+
+You can describe the format you want the bot to use, and it will do its best to follow your instructions. If your description includes the word "json", then it will also be parsed and validated (you can enable this explicitly by providing a `JSONResponseFormatter`).
+
+```python
+bot = Bot(response_format="a JSON list of strings")
+response = await bot.say("Which of these are capitalized: Apple, banana, cherry, Date, elephant")
+
+print(response.parsed_content) # ["Apple", "Date"]
+```
+
+```python
+bot = Bot(response_format="a hyphenated list")
+response = await bot.say("Which of these are capitalized: Apple, banana, cherry, Date, elephant")
+
+print(response.parsed_content) # '- Apple\n- Date'
+```
+
+```python
+bot = Bot(response_format='<animal> like to eat <food> and live in <biome>')
+response = await bot.say('tell me about foxes')
+
+print(response.parsed_content) # "Foxes like to eat small mammals and live in forests."
+```
+
+#### Pydantic
+
+```python
+class MyFormat(BaseModel):
+    x: int
+    y: str = Field("The written form of x")
+
+bot = Bot(response_format=MyFormat)
+response = await bot.say("Generate output where x is 22")
+
+print(response.parsed_content) # MyFormat(x=22, y='Twenty-two')
+```
 
 ## Creating a bot in Python
 
