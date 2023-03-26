@@ -100,7 +100,10 @@ env = [
     "MARVIN_LOG_LEVEL=DEBUG",
     # disable auto profile picture creation
     'MARVIN_BOT_CREATE_PROFILE_PICTURE=false',
+    # don't load plugins
+    'MARVIN_LOAD_BOT_DEFAULT_PLUGINS=0',
     'MARVIN_OPENAI_MODEL_TEMPERATURE=0',
+    
 ]
 
 # black configuration
