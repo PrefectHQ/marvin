@@ -363,7 +363,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 plugin_output_summary = await self._summarize_plugin_output(
                     plugin_output=plugin_output
                 )
-                
+
                 self.logger.debug_kv(
                     "Plugin output", plugin_output_summary, "bold blue"
                 )
@@ -459,16 +459,19 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
     async def _summarize_plugin_output(self, plugin_output: str) -> str:
         from marvin.bots.utility_bots import summarize_bot
-        
+
         links = extract_links_from_text(plugin_output)
-        
+
+        existing_history = summarize_bot.history
+        summarize_bot.history = self.history
         summarized_plugin_output = (await summarize_bot.say(plugin_output)).content
-        
+        summarize_bot.history = existing_history
+
         summary = f"Summary of plugin output: {summarized_plugin_output}"
-        
+
         if links:
             summary += f"\n\nLinks within plugin output:\n\n{listrepr(links)}"
-        
+
         return summary
 
     async def _get_history(self) -> list[Message]:

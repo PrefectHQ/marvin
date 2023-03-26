@@ -231,4 +231,8 @@ def rm_html_comments(text: str) -> str:
 
 
 def rm_text_after(text: str, substring: str) -> str:
-    return text[: text.find(substring) + len(substring)] if substring in text else text
+    return (
+        text[: start + len(substring)]
+        if (start := text.find(substring)) != -1
+        else text
+    )

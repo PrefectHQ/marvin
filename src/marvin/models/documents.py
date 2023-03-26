@@ -1,3 +1,6 @@
+import inspect
+
+from jinja2 import Template
 from pydantic import Field, confloat, validator
 from typing_extensions import Literal
 
@@ -8,6 +11,7 @@ from marvin.utilities.strings import (
     count_tokens,
     create_minimap_fn,
     extract_keywords,
+    jinja_env,
     split_text,
 )
 from marvin.utilities.types import MarvinBaseModel
@@ -15,17 +19,23 @@ from marvin.utilities.types import MarvinBaseModel
 DocumentType = Literal["original", "excerpt", "summary"]
 
 
-EXCERPT_TEMPLATE = """
-The following is a {document.type} document produced by {document.source}:
-# Document metadata
-{metadata}
-# Document keywords
-{keywords}
-# Excerpt's location in document
-{minimap}
-# Excerpt contents:
-{excerpt}
-"""
+EXCERPT_TEMPLATE = jinja_env.from_string(
+    inspect.cleandoc(
+        """The following is a {{ document.type }} document {% if document.source %}produced by {{ document.source }}
+        {% endif %}
+        {% if document.metadata %}\n\n# Document metadata
+        {{ document.metadata }}
+        {% endif %}
+        {% if document.keywords %}
+        # Document keywords
+        {{ document.keywords }}
+        {% endif %}
+        {% if minimap %}
+        # Excerpt's location in document
+        {{ minimap }}
+        {% endif %}# Excerpt content: {{ excerpt_text }}"""
+    )
+)
 
 
 class Document(MarvinBaseModel):
@@ -48,7 +58,7 @@ class Document(MarvinBaseModel):
     embedding: list[float] | None = Field(default=None)
     metadata: Metadata | None = Field(default=None)
 
-    source: str = Field(default="unknown")
+    source: str | None = Field(default=None)
     type: DocumentType = Field(default="original")
     parent_document_id: DocumentID | None = Field(default=None)
     topic_name: str = Field(default=marvin.settings.default_topic)
@@ -67,14 +77,27 @@ class Document(MarvinBaseModel):
         return marvin.utilities.strings.hash_text(self.text)
 
     async def to_excerpts(
-        self, chunk_tokens: int = 400, overlap: confloat(ge=0, le=1) = 0.1
+        self,
+        excerpt_template: Template = None,
+        chunk_tokens: int = 200,
+        overlap: confloat(ge=0, le=1) = 0.1,
+        **extra_template_kwargs,
     ) -> list["Document"]:
         """
         Create document excerpts by chunking the document text into regularly-sized
         chunks and adding a "minimap" directory to the top.
+
+        Args:
+            excerpt_template: A jinja2 template to use for rendering the excerpt.
+            chunk_tokens: The number of tokens to include in each excerpt.
+            overlap: The fraction of overlap between each excerpt.
+
         """
         minimap_fn = create_minimap_fn(self.text)
         excerpts = []
+
+        if not excerpt_template:
+            excerpt_template = EXCERPT_TEMPLATE
 
         for i, (text, chr) in enumerate(
             split_text(
@@ -86,15 +109,15 @@ class Document(MarvinBaseModel):
         ):
             keywords = await extract_keywords(text)
 
-            excerpt_text = EXCERPT_TEMPLATE.format(
-                excerpt=text,
+            excerpt_text = excerpt_template.render(
                 document=self,
-                metadata=self.metadata.dict() if self.metadata else {},
+                excerpt_text=text,
                 keywords=", ".join(keywords),
                 minimap=minimap_fn(chr),
-            ).strip()
+                **extra_template_kwargs,
+            )
 
-            excerpt_metadata = self.metadata.copy()
+            excerpt_metadata = self.metadata.copy() if self.metadata else Metadata()
             excerpt_metadata.document_type = "excerpt"
             excerpts.append(
                 Document(
@@ -109,3 +132,27 @@ class Document(MarvinBaseModel):
                 )
             )
         return excerpts
+
+
+if __name__ == "__main__":
+    import asyncio
+    import random
+
+    import httpx
+
+    from marvin.models.documents import Document
+    from marvin.models.metadata import Metadata
+
+    document = Document(
+        text=httpx.get(
+            f"http://dalaipsum.com/ipsum.php?number={random.randint(1, int(1e9))}"
+        ).text[: int(1e4)],
+        metadata=Metadata(
+            title="Test document",
+            source="nate",
+            link="http://dalaipsum.com",
+            zen="yes",
+        ),
+    )
+
+    print(asyncio.run(document.to_excerpts()))
