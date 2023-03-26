@@ -1,6 +1,6 @@
 # Loaders and Documents
 
-## **tl;dr** - Quickstart example
+## Quickstart 
 ```python
 import asyncio
 from marvin.infra.chroma import Chroma
@@ -84,7 +84,8 @@ Here, since our `Document` is short, there's only one excerpt. Longer documents 
 
 You'll notice that the `Document`'s `text` attribute has been replaced with a rich excerpt that includes the original `Document`'s `Metadata` and the excerpt's location in the original `Document`. This helps provide more context to the LLM when it's searching for answers.
 
-<!-- ### **Optional**: Bring your own `embedding`
+<!-- 
+### **Optional**: Bring your own `embedding`
 You'll notice above that the `Document`'s `embedding` attribute is `None`. The Chroma vectorstore will automatically create an embedding for each `Document` when it's stored. However, if you already have an embedding for your `Document`, you can pass it in when you create the `Document`:
 
 ```python
@@ -94,7 +95,8 @@ my_document = Document(
     text="This is a document.",
     embedding=[0.1, 0.2, 0.3, 0.4, 0.5] # not a real embedding
 )
-``` -->
+``` 
+-->
 
 ## How can I create my own `Loader`?
 
