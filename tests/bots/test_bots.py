@@ -2,6 +2,7 @@ import marvin
 import pydantic
 import pytest
 from marvin.bots.response_formatters import ResponseFormatter
+from marvin.utilities.types import format_type_str
 
 
 class TestCreateBots:
@@ -60,7 +61,7 @@ class TestResponseFormat:
             bot.response_format, marvin.bots.response_formatters.TypeFormatter
         )
 
-        assert str(type_) in bot.response_format.format
+        assert format_type_str(type_) in bot.response_format.format
 
     async def test_pydantic_response_format(self):
         class OutputFormat(pydantic.BaseModel):
