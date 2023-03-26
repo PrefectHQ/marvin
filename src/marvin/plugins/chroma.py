@@ -1,5 +1,5 @@
 import pendulum
-from pydantic import Field, root_validator
+from pydantic import Field
 
 from marvin.config import temporary_settings
 from marvin.infra.chroma import Chroma
@@ -35,14 +35,16 @@ class SimpleChromaSearch(Plugin):
 
     keywords: list[str] = Field(default_factory=list)
 
-    @root_validator
-    def validate(cls, values):
-        if values["keywords"]:
-            values["description"] += (
-                " Useful for answering questions that refer to the following keywords:"
-                f" {', '.join(values['keywords'])}"
+    def get_full_description(self) -> str:
+        base_description = super().get_full_description()
+        if self.keywords:
+            return (
+                base_description
+                + " Useful for answering questions that refer to the following"
+                " keywords:"
+                f" {', '.join(self.keywords)}"
             )
-        return values
+        return base_description
 
     async def run(self, query: str) -> str:
         with temporary_settings(openai_model_temperature=0.2):
