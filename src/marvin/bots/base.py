@@ -283,8 +283,11 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 messages.extend(plugin_messages)
 
         # validate response format
+        parsed_response = None
+        validated = False
         try:
             self.response_format.validate_response(response)
+            validated = True
         except Exception as exc:
             match self.response_format.on_error:
                 case "ignore":
@@ -292,9 +295,17 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 case "raise":
                     raise exc
                 case "reformat":
-                    raise NotImplementedError()
+                    from marvin.bots.utility_bots import reformat_bot
 
-        parsed_response = self.response_format.parse_response(response)
+                    reformatted_response = await reformat_bot.say(
+                        message=response,
+                        error_message=repr(exc),
+                        target_format=self.response_format.format,
+                    )
+                    response = reformatted_response.content
+
+        if validated:
+            parsed_response = self.response_format.parse_response(response)
 
         ai_response = BotResponse(
             role="ai", content=response, parsed_content=parsed_response

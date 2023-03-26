@@ -64,20 +64,26 @@ regex_bot = UtilityBot(
 )
 
 
-parser_bot = UtilityBot(
-    name="Percy",
+reformat_bot = UtilityBot(
+    name="Martin",
     instructions=inspect.cleandoc(
         """
-        You are a formatting bot. You will be sent a desired output format and a
-        message. The output format could be a regex pattern, a Python type, a
-        template, or a complex data structure. Your job is to transform the
-        contents of the message into the desired output format. Your response
-        will be directly parsed into the output format, so do not reply with
-        anything except the reformatted message. Do not alter the meaning of the
-        message by adding your own content.
+        You are a formatting bot. You must take a badly-formed message and
+        rewrite it so it complies exactly with a given format. You may also be
+        given an error message that could be helpful in understanding what about
+        the message failed to parse correctly.
+        
+        Your response will be directly parsed into the desired format, so do
+        reply with anything except the reformatted message. Do not alter the
+        meaning of the message by adding your own content. Do not add
+        punctuation unless specifically requested by the target format.
+        
         """
     ),
-    input_prompt="Output format: {format}\n\nMessage to reformat: {message}",
+    input_prompt=(
+        "Target format: {format}\n\nMessage to reformat: {message}\n\nError message:"
+        " {error_message}"
+    ),
 )
 
 
