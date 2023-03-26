@@ -17,7 +17,7 @@ from marvin.config import settings
 from marvin.utilities.logging import get_logger
 
 # load marvin
-from . import utilities, models, infra, api, bots, plugins, server, cli
+from . import utilities, models, infra, api, bots, plugins
 
 
 from marvin.plugins import Plugin

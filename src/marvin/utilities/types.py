@@ -12,7 +12,6 @@ from typing import Any, Callable, Generic, Literal, TypeVar, Union
 
 import pydantic
 import ulid
-from datamodel_code_generator import InputFileType, generate
 from fastapi import APIRouter, Response, status
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field, PrivateAttr, constr
@@ -270,14 +269,17 @@ def type_to_schema(type_) -> dict:
 
 
 def schema_to_type(schema: dict):
+    # defer for performance
+    import datamodel_code_generator
+
     with TemporaryDirectory() as temporary_directory_name:
         temporary_directory = Path(temporary_directory_name)
         output = Path(temporary_directory / "model.py")
 
         # write schema to a file
-        generate(
+        datamodel_code_generator.generate(
             json.dumps(schema),
-            input_file_type=InputFileType.JsonSchema,
+            input_file_type=datamodel_code_generator.InputFileType.JsonSchema,
             input_filename="example.json",
             output=output,
             validation=True,
