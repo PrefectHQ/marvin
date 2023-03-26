@@ -285,6 +285,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         # validate response format
         parsed_response = None
         validated = False
+
         try:
             self.response_format.validate_response(response)
             validated = True
@@ -295,14 +296,18 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 case "raise":
                     raise exc
                 case "reformat":
-                    from marvin.bots.utility_bots import reformat_bot
-
-                    reformatted_response = await reformat_bot.say(
-                        message=response,
-                        error_message=repr(exc),
-                        target_format=self.response_format.format,
+                    self.logger.debug(
+                        "Response did not pass validation. Attempted to reformat:"
+                        f" {response}"
                     )
-                    response = reformatted_response.content
+                    reformatted_response = _reformat_response(
+                        user_message=user_message.content,
+                        ai_response=response,
+                        error_message=repr(exc),
+                        target_return_type=self.response_format.format,
+                    )
+                    response = str(reformatted_response)
+                    validated = True
 
         if validated:
             parsed_response = self.response_format.parse_response(response)
@@ -485,3 +490,25 @@ class Bot(MarvinBaseModel, LoggerMixin):
         Launch an interactive chat with the bot. Optionally provide a first message.
         """
         await marvin.bots.interactive_chat.chat(bot=self, first_message=first_message)
+
+
+def _reformat_response(
+    user_message: str,
+    ai_response: str,
+    target_return_type: Any,
+    error_message: str,
+) -> str:
+    @marvin.towel(
+        plugins=[],
+        bot_modifier=lambda bot: setattr(bot.response_format, "on_error", "raise"),
+    )
+    def reformat_response(response: str) -> target_return_type:
+        f"""
+        The `response` contains an answer to the prompt: "{user_message}".
+        However it could not be parsed into the correct return format
+        ({target_return_type}). The associated error message was "{error_message}".
+
+        Extract the answer from the `response` and format it to be parsed correctly.
+        """
+
+    return reformat_response(ai_response)
