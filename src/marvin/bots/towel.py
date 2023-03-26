@@ -1,6 +1,6 @@
 import asyncio
 import inspect
-from functools import wraps
+from functools import partial, wraps
 from typing import Any, Callable
 
 from marvin.bots import Bot
@@ -24,6 +24,8 @@ TOWEL_INSTRUCTIONS = jinja_env.from_string(
         its result, in the appropriate form. Do not describe your process or
         explain your answer, and do not give the user any additional
         instruction. Respond ONLY with the return value of the function.
+        
+        Note: this function is NOT available to you as a plugin.
         """
     )
 )
@@ -61,9 +63,20 @@ TOWEL_MESSAGE = jinja_env.from_string(
 
 
 def towel(
-    *, bot_modifier: Callable = None, call_function: bool = True, **bot_kwargs
+    fn: Callable = None,
+    *,
+    bot_modifier: Callable = None,
+    call_function: bool = True,
+    **bot_kwargs,
 ) -> Callable:
     """
+    @marvin.towel
+    def rhyme(word: str) -> str:
+        "Returns a word that rhymes with the input word."
+
+    rhyme("blue") # "glue"
+
+
     Args
         - bot_modifier (Callable):  the `Bot` is passed to this function before
           the function is processed. The function can either modify the bot
@@ -75,73 +88,79 @@ def towel(
 
     """
 
-    def decorator(fn: Callable) -> Callable:
-        @wraps(fn)
-        def wrapper(*args, **kwargs) -> Any:
-            bot_kwargs = {}
+    # this allows the decorator to be used with or without calling it
+    if fn is None:
+        return partial(
+            towel,
+            bot_modifier=bot_modifier,
+            call_function=call_function,
+            **bot_kwargs,
+        )
 
-            # Get function signature
-            sig = inspect.signature(fn)
+    @wraps(fn)
+    def towel_wrapper(*args, **kwargs) -> Any:
+        bot_kwargs = {}
 
-            # Bind the provided arguments to the function signature
-            bound_args = sig.bind(*args, **kwargs)
-            bound_args.apply_defaults()
+        # Get function signature
+        sig = inspect.signature(fn)
 
-            # Build input binds
-            input_binds = []
-            for k, v in bound_args.arguments.items():
-                input_binds.append(f"{k} = {v}")
+        # Bind the provided arguments to the function signature
+        bound_args = sig.bind(*args, **kwargs)
+        bound_args.apply_defaults()
 
-            # see if the function preprocesses the inputs
-            if call_function:
-                if inspect.iscoroutinefunction(fn):
-                    return_value = asyncio.run(fn(*args, **kwargs))
-                else:
-                    return_value = fn(*args, **kwargs)
-            else:
-                return_value = None
+        # Build input binds
+        input_binds = []
+        for k, v in bound_args.arguments.items():
+            input_binds.append(f"{k} = {v}")
 
-            # Get the return annotation
-            if sig.return_annotation is inspect._empty:
-                return_annotation = str
-            else:
-                return_annotation = sig.return_annotation
-
-            # Build the instructions
-            instructions = TOWEL_INSTRUCTIONS.render(
-                function_def=inspect.getsource(fn),
-            )
-
-            # capture all arguments
-
-            # create the bot
-            bot = Bot(
-                instructions=instructions,
-                personality=TOWEL_PERSONALITY,
-                response_format=return_annotation,
-                **bot_kwargs,
-            )
-
-            if bot_modifier is not None:
-                modified_bot = bot_modifier(bot)
-                # bot might not be modified inplace
-                if modified_bot is not None:
-                    bot = modified_bot
-
-            # build the message
-            message = TOWEL_MESSAGE.render(
-                input_binds=input_binds, return_value=return_value
-            )
-
-            async def get_response():
-                response = await bot.say(message)
-                return response.parsed_content or response.content
-
+        # see if the function preprocesses the inputs
+        if call_function:
             if inspect.iscoroutinefunction(fn):
-                return get_response()
+                return_value = asyncio.run(fn(*args, **kwargs))
             else:
-                return asyncio.run(get_response())
+                return_value = fn(*args, **kwargs)
+        else:
+            return_value = None
 
-        return wrapper
+        # Get the return annotation
+        if sig.return_annotation is inspect._empty:
+            return_annotation = str
+        else:
+            return_annotation = sig.return_annotation
 
-    return decorator
+        # Build the instructions
+        instructions = TOWEL_INSTRUCTIONS.render(
+            function_def=inspect.getsource(fn),
+        )
+
+        # capture all arguments
+
+        # create the bot
+        bot = Bot(
+            instructions=instructions,
+            personality=TOWEL_PERSONALITY,
+            response_format=return_annotation,
+            **bot_kwargs,
+        )
+
+        if bot_modifier is not None:
+            modified_bot = bot_modifier(bot)
+            # bot might not be modified inplace
+            if modified_bot is not None:
+                bot = modified_bot
+
+        # build the message
+        message = TOWEL_MESSAGE.render(
+            input_binds=input_binds, return_value=return_value
+        )
+
+        async def get_response():
+            response = await bot.say(message)
+            return response.parsed_content or response.content
+
+        if inspect.iscoroutinefunction(fn):
+            return get_response()
+        else:
+            return asyncio.run(get_response())
+
+    return towel_wrapper

@@ -8,7 +8,7 @@ Note: `towel` works best with GPT-4.
 ```python hl_lines="3"
 from marvin import towel
 
-@towel()
+@towel
 def list_fruit(n: int) -> list[str]:
     """Generate a list of n fruit"""
 
@@ -29,7 +29,7 @@ Here is an overview of basic decorator use:
 ```python
 from marvin import towel
 
-@towel()
+@towel
 def your_function(input: Type) -> ReturnType:
     """ 
     A docstring that describes the function's purpose and behavior.
@@ -38,7 +38,7 @@ def your_function(input: Type) -> ReturnType:
 
 Note the following:
 
-1. The decorator must be called when it is applied to the function. This is because it takes (optional) arguments.
+1. Apply the decorator to the function. It does not need to be called (though it can take optional arguments)
 2. The function should have a descriptive name
 3. The function's inputs should have type annotations
 4. The function's return type should be annotated
@@ -58,7 +58,7 @@ To disable this behavior entirely, call the decorator as `@towel(call_function=F
 The towel decorator works with async functions.
 
 ```python
-@towel()
+@towel
 async def f(x: int) -> int:
     """Add 100 to x"""
 
@@ -70,7 +70,7 @@ Annotations don't have to be types; they can be complex objects or even string d
 
 Therefore, consider these two approaches to defining an output:
 ```python
-@towel()
+@towel
 def fn_with_docstring(n: int) -> list[dict]:
     """
     Generate a list of n people with names and ages
@@ -78,7 +78,7 @@ def fn_with_docstring(n: int) -> list[dict]:
 
 
 
-@towel()
+@towel
 def fn_with_string_annotation(n: int) -> 'a json list of dicts that have keys for name and age':
     """
     Generate a list of n people
@@ -90,7 +90,7 @@ class Person(pydantic.BaseModel):
     name: str
     age: int
 
-@towel()
+@towel
 def fn_with_structured_annotation(n: int) -> list[Person]:
     """
     Generate a list of n people
@@ -104,7 +104,7 @@ All three of these functions will give similar output (though the last one, `fn_
 
 ### Generate a list of fruit
 ```python
-@towel()
+@towel
 def list_fruit(n: int) -> list[str]:
     """Generate a list of n fruit"""
 
@@ -114,7 +114,7 @@ list_fruit(3) # ["apple", "banana", "orange"]
 
 ### Generate fake data according to a schema
 ```python
-@towel()
+@towel
 def fake_people(n: int) -> list[dict]:
     """
     Generates n examples of fake data representing people, 
@@ -131,7 +131,7 @@ fake_people(3)
 ### Correct spelling and grammar
 
 ```python
-@towel()
+@towel
 def fix_sentence(sentence: str) -> str:
     """
     Fix all grammatical and spelling errors in a sentence
@@ -146,7 +146,7 @@ This function takes any text and summarizes it. See the next example for a
 function that can also access Wikipedia automatically.
 
 ```python
-@towel()
+@towel
 def summarize(text: str) -> str:
     """
     Summarize the provided text
@@ -168,7 +168,7 @@ summarize(text=page.content)
 This example demonstrates how `towel` can call a function to get additional information that can be used in producing a result. Here, the function downloads content from Wikipedia given a title.
 
 ```python
-@towel()
+@towel
 def summarize_from_wikipedia(title: str) -> str:
     """
     Loads the wikipedia page corresponding to the provided 
@@ -194,7 +194,7 @@ summarize_from_wikipedia(title='large language model')
 ### Generate rhymes
 
 ```python
-@towel()
+@towel
 def rhyme(word: str) -> str:
     """
     Generate a word that rhymes with the supplied `word`
@@ -206,7 +206,7 @@ rhyme("blue") # glue
 ### Find words meeting specific criteria
 
 ```python
-@towel()
+@towel
 def find_words(text: str, criteria: str) -> list[str]:
     """
     Given text and some criteria, returns a list of every word meeting that criteria.
