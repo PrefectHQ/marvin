@@ -80,3 +80,22 @@ bot = Bot(plugins=[RandomNumber()])
 
 await bot.say('Use the plugin to pick a random number between 41 and 43')
 ```
+
+## Loaders
+A `Loader` parses a source of information into a `list[Document]`, which can then be stored as context for the LLM.
+
+For example, to load all the Prefect docs into my local ChromaDB, I can use the `SitemapLoader`:
+```python
+import asyncio
+from marvin.infra.chroma import Chroma
+from marvin.loaders.web import SitemapLoader
+
+prefect_docs = SitemapLoader(
+    urls=["https://docs.prefect.io/sitemap.xml"],
+    exclude=["api-ref"],
+)
+
+await prefect_source_code.load_and_store()
+```
+
+See detailed docs on [loaders and documents](docs/guide/loaders_and_documents.md).
