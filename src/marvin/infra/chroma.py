@@ -1,12 +1,15 @@
+from typing import TYPE_CHECKING
+
 import chromadb
 import chromadb.config
-from chromadb.api.models.Collection import Collection
-from chromadb.api.types import Include, QueryResult
-from chromadb.utils import embedding_functions
 
 import marvin
 from marvin.models.documents import Document
 from marvin.utilities.async_utils import run_async
+
+if TYPE_CHECKING:
+    from chromadb.api.models.Collection import Collection
+    from chromadb.api.types import Include, QueryResult
 
 
 def get_client(settings: chromadb.config.Settings = None) -> chromadb.Client:
@@ -32,10 +35,12 @@ class Chroma:
         collection_name: str = None,
         settings: chromadb.config.Settings = None,
     ):
+        import chromadb.utils.embedding_functions
+
         self.client = get_client(settings=settings)
         self.collection: Collection = self.client.get_or_create_collection(
             name=collection_name or marvin.settings.default_topic,
-            embedding_function=embedding_functions.OpenAIEmbeddingFunction(
+            embedding_function=chromadb.utils.embedding_functions.OpenAIEmbeddingFunction(
                 api_key=marvin.settings.openai_api_key.get_secret_value()
             ),
         )
@@ -86,9 +91,9 @@ class Chroma:
         n_results: int = 10,
         where: dict = None,
         where_document: dict = None,
-        include: Include = ["metadatas"],
+        include: "Include" = ["metadatas"],
         **kwargs
-    ) -> QueryResult:
+    ) -> "QueryResult":
         return await run_async(
             self.collection.query,
             query_embeddings=query_embeddings,
