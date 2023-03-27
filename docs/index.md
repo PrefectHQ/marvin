@@ -2,7 +2,7 @@
 
 ![](ai_fn_demo.png)
 
-Marvin is a batteries-included library designed to simplify the process of building AI-powered software. It introduces three core abstractions: AI functions, bots, and Knowledge. AI functions are powerful tools that let users define and execute functions without any source code, while bots serve as AI assistants that can follow instructions and use plugins. Knowledge provides an effective method for enhancing bots' abilities by loading external information. Marvin's innovative approach to "functional prompt engineering" allows developers to work with structured inputs and outputs, seamlessly integrating AI functions into traditional code and enabling the creation of sophisticated AI pipelines.
+Marvin is a batteries-included library designed to simplify the process of building AI-powered software. It introduces three core abstractions: AI functions, bots, and knowledge. AI functions are powerful tools that let users define and execute functions without any source code, while bots serve as AI assistants that can follow instructions and use plugins. Knowledge provides an effective method for enhancing bots' abilities by loading external information. Marvin's innovative approach to "functional prompt engineering" allows developers to work with structured inputs and outputs, seamlessly integrating AI functions into traditional code and enabling the creation of sophisticated AI pipelines.
 
 
 > "Let’s build robots with Genuine People Personalities," they said. So they tried it out with me. I’m a personality prototype. You can tell, can’t you?
@@ -30,7 +30,7 @@ Marvin is a batteries-included library designed to simplify the process of build
 ```shell
 marvin chat -p "knows every Star Wars meme" Hello there
 ```
-![](img/marvin_chat.png)
+![](img/marvin_hello_there_chat.png)
 
 
 See [getting started](getting_started/installation.md) for more!

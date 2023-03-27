@@ -4,7 +4,7 @@ nav:
     - index.md
     - Getting Started:
       - Installation: getting_started/installation.md
-      - Configuring OpenAI: getting_started/openai.md
+      - OpenAI: getting_started/openai.md
       - Chat: getting_started/chat_quickstart.md
       - Call an AI function: getting_started/ai_functions_quickstart.md
       - Launch a bot: getting_started/bots_quickstart.md

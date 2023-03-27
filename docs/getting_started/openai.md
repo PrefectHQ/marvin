@@ -1,6 +1,6 @@
-# Configuring OpenAI
+# OpenAI
 
-Marvin uses the OpenAI API to access state-of-the-art language models, including the GPT-3.5 ("ChatGPT") and GPT-4 models. These models are capable of generating natural language text that is often indistinguishable from human-written text. By integrating with the OpenAI API, Marvin provides a simple interface for accessing these powerful language models and incorporating them into your own applications.
+Marvin uses the OpenAI API to access state-of-the-art language models, including GPT-4 and GPT-3.5. These models are capable of generating natural language text that is often indistinguishable from human-written text. By integrating with the OpenAI API, Marvin provides a simple interface for accessing these powerful language models and incorporating them into your own applications.
 
 To use Marvin, you need to obtain an OpenAI API key and set it as an environment variable. This API key is used to authenticate your requests to the OpenAI API. This is the only *required* configuration for using Marvin.
 
