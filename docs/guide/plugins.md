@@ -23,7 +23,7 @@ await bot.say('Use the plugin to pick a random number between 41 and 43')
 For more complex plugins, you can inherit from the `marvin.Plugin` base class and implement a `run()` method. Class-based plugins must also have a `description` attribute. This is the equivalent of the function-based plugin above:
 
 ```python
-from mavin import Bot, Plugin
+from marvin import Bot, Plugin
 import random
 
 class RandomNumber(Plugin):

@@ -1,10 +1,10 @@
-from marvin import towel
+from marvin import ai_fn
 from marvin.utilities.tests import assert_llm
 
 
-class TestTowel:
+class TestAIFunctions:
     def test_rng(self):
-        @towel
+        @ai_fn
         def rng() -> float:
             """generate a random number between 0 and 1"""
 
@@ -13,7 +13,7 @@ class TestTowel:
         assert 0 <= x <= 1
 
     def test_rng_with_limits(self):
-        @towel
+        @ai_fn
         def rng(min: float, max: float) -> float:
             """generate a random number between min and max"""
 
@@ -21,7 +21,7 @@ class TestTowel:
         assert 20 <= x <= 21
 
     def test_list_of_fruit(self):
-        @towel
+        @ai_fn
         def list_fruit(n: int) -> list[str]:
             """generate a list of n fruits"""
 
@@ -31,8 +31,8 @@ class TestTowel:
         assert all(isinstance(fruit, str) for fruit in x)
         assert_llm(x, "a list of fruit")
 
-    def test_list_of_fruit_calling_towel_with_no_args(self):
-        @towel()
+    def test_list_of_fruit_calling_ai_fn_with_no_args(self):
+        @ai_fn()
         def list_fruit(n: int) -> list[str]:
             """generate a list of n fruits"""
 
@@ -43,7 +43,7 @@ class TestTowel:
         assert_llm(x, "a list of fruit")
 
     def test_generate_fake_people_data(self):
-        @towel
+        @ai_fn
         def fake_people(n: int) -> list[dict]:
             """
             Generates n examples of fake data representing people,
@@ -59,7 +59,7 @@ class TestTowel:
         assert_llm(x, "a list of fake people")
 
     def test_generate_rhyming_words(self):
-        @towel
+        @ai_fn
         def rhymes(word: str) -> str:
             """generate a word that rhymes with the given word"""
 
@@ -69,7 +69,7 @@ class TestTowel:
         assert_llm(x, "a word that rhymes with blue")
 
     def test_generate_rhyming_words_with_n(self):
-        @towel
+        @ai_fn
         def rhymes(word: str, n: int) -> list[str]:
             """generate a word that rhymes with the given word"""
 

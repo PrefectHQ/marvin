@@ -1,43 +1,31 @@
-#  Marvin 🤖💬
+# Welcome to Marvin 🤖🏖️
 
+![](ai_fn_demo.png)
 
-Marvin is an open-source, batteries-included library for building AI-enabled tools. 
+Marvin is a batteries-included library designed to simplify the process of building AI-powered software. It introduces three core abstractions: AI functions, bots, and Knowledge. AI functions are powerful tools that let users define and execute functions without any source code, while bots serve as AI assistants that can follow instructions and use plugins. Knowledge provides an effective method for enhancing bots' abilities by loading external information. Marvin's innovative approach to "functional prompt engineering" allows developers to work with structured inputs and outputs, seamlessly integrating AI functions into traditional code and enabling the creation of sophisticated AI pipelines.
+
 
 > "Let’s build robots with Genuine People Personalities," they said. So they tried it out with me. I’m a personality prototype. You can tell, can’t you?
 >
 > -- [Marvin](https://www.youtube.com/clip/UgkxNj9p6jPFM8eWAmRJiKoPeOmvQxb8viQv)
 
-## Highlights
 
-🤖 Custom bots with names, personalities, and instructions
+## Features
 
-🔋 Batteries included - get up and running instantly
 
-🔌 Plugins let bots run any software 
+🦾 Write [AI functions](guide/ai_functions.md) that process structured data without source code
 
-📡 Powered by GPT-4 or GPT-3.5
+🤖 Create [bots](guide/bots.md) that have personalities and follow instructions
 
-🌈 ChromaDB for vector search and uploading documents
+🔌 Build [plugins](guide/plugins.md) to give bots new abilities
 
-🧑‍💻 Available via async Python API, interactive CLI, or FastAPI server
+📚 Store [knowledge](guide/loaders_and_documents.md) that bots can access and use
 
-Coming soon:
+📡 Available as a Python API, interactive CLI, or FastAPI server
 
-💬 Persistent threads with multiple bots
-
-🚀 Automatic creation of AI-enabled programs
-
-🖼️ UI for both admin and embedding chat
-
-📊 Observability platform for viewing LLM calls and artifacts
-
-## Getting started
-
-Launching a bot is simple!
-
-1. **Install** Marvin by running `pip install marvin`
-
-2. **Chat** by running `marvin chat`. You'll be prompted to provide an [OpenAI API key](https://platform.openai.com/account/api-keys) if it isn't already set. You can optionally provide your bot with a name, personality, or instructions to customize the conversation:
+## Quick start
+1. **Install**: `pip install marvin`
+2. **Chat**: `marvin chat`
 
 ```shell
 marvin chat -p "knows every Star Wars meme" Hello there
@@ -45,57 +33,29 @@ marvin chat -p "knows every Star Wars meme" Hello there
 <img width="1034" alt="image" src="https://user-images.githubusercontent.com/153965/226232390-c98ffee3-c272-42fa-befb-70d94bebfda7.png">
 
 
-## Python API
+See [getting started](getting_started/installation.md) for more!
 
-This example shows how to configure a bot programmatically, using Marvin's async API.
+## Highlights
 
-```python
-from marvin import Bot
+🔋 Batteries included - get up and running instantly
 
-bot = Bot(personality='knows every Star Wars meme')
+🧑‍🎓 Powered by GPT-4 (or GPT-3.5)
 
-await bot.say('Hello there')
-```
+🌈 Supports ChromaDB, SQLite, and Postgres
 
-## Rest API
+Coming soon:
 
-Launch the Marvin REST API by running `marvin server start`. You can visit `http://localhost:4200` to view the API documentation.
+💬 Persistent threads with multiple bots
 
-## UI
+🖼️ Admin and chat UIs
 
-*Coming soon...*
-## Plugins
+🔭 AI observability platform
 
-Plugins add functionality to your bot beyond simple conversation. By default, bots have access to plugins that can search the web, visit URLs, and evaluate mathematical expressions. It's easy to add new plugins or develop your own.
+## When should you use Marvin?
 
-```python
-from marvin import Bot, plugin
-import random
+Marvin is an opinionated, high-level library with the goal of integrating AI tools into software development. There are two major reasons to use Marvin:
+1. You want an [AI function](guide/ai_functions.md) that can process structured data. This is especially useful for string processing when regex just won't cut it ("Give me a list of all the animals in this paragraph"; "Extract the account details from this web page into JSON"; "Categorize the sentiment of these comments") but can work with many other types of data as well.
+2. You want an [AI assistant](guide/bots.md) in your code. Marvin's bots use prompts that have been hardened by months of real-world use and will continue to improve over time. They are designed to be called from code, though of course you may want to expose them directly to your users as well!
 
-@plugin
-def random_number(min:float, max:float) -> float:
-    """Use this plugin to generate a random number between min and max"""
-    return min + (max - min) * random.random()
 
-bot = Bot(plugins=[random_number])
 
-await bot.say('Use the plugin to pick a random number between 41 and 43')
-```
-
-## Loaders
-A `Loader` parses a source of information into a `list[Document]`, which can then be stored as context.
-
-For example, to load all the Prefect docs into my local ChromaDB, I can use the `SitemapLoader`:
-```python
-import asyncio
-from marvin.loaders.web import SitemapLoader
-
-prefect_docs = SitemapLoader(
-    urls=["https://docs.prefect.io/sitemap.xml"],
-    exclude=["api-ref"],
-)
-
-await prefect_docs.load_and_store()
-```
-
-See detailed docs on [loaders and documents](docs/guide/loaders_and_documents.md).

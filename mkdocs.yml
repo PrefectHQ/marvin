@@ -5,15 +5,15 @@ nav:
     - Getting Started:
       - Installation: getting_started/installation.md
       - Configuring OpenAI: getting_started/openai.md
-      - Chat: getting_started/chat-quickstart.md
-      - Get your towel: getting_started/towel-quickstart.md
-      - Launch a bot: getting_started/bots-quickstart.md
+      - Chat: getting_started/chat_quickstart.md
+      - Call an AI function: getting_started/ai_functions_quickstart.md
+      - Launch a bot: getting_started/bots_quickstart.md
   - The Guide:
     - Overview: guide/overview.md
     - Configuration: guide/configuration.md
     - Concepts:
+      - 🦾 AI functions: guide/ai_functions.md
       - 🤖 Bots: guide/bots.md
-      - 🏖️ Towel: guide/towel.md
       - 🏗️ Loaders: guide/loaders_and_documents.md
       - ⚙️ Infrastructure: guide/infra.md
       - 🔌 Plugins: guide/plugins.md

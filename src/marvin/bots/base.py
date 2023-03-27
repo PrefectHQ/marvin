@@ -499,7 +499,7 @@ def _reformat_response(
     target_return_type: Any,
     error_message: str,
 ) -> str:
-    @marvin.towel(
+    @marvin.ai_fn(
         plugins=[],
         bot_modifier=lambda bot: setattr(bot.response_format, "on_error", "raise"),
     )
