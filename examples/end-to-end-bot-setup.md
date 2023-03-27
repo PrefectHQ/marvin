@@ -1,4 +1,4 @@
-# End-to-End Bot Setup
+# End-to-End Bot Example
 Let's start by making sure we have `marvin` installed.
 
 ```shell
@@ -58,3 +58,21 @@ harry_styles_stan = await Bot.load("harry_styles_stan")
 ```shell
 marvin chat -b "Exists for Harry Styles Bot"
 ```
+
+## Add a plugin
+```python
+from marvin.plugins.duckduckgo import DuckDuckGo
+
+# load the bot
+harry_styles_stan = await Bot.load("harry_styles_stan")
+
+# add the plugin
+harry_styles_stan.plugins = [DuckDuckGo()]
+
+# enter interactive chat again
+await harry_styles_stan.interactive_chat()
+```
+
+<p align="center">
+  <img src="https://github.com/PrefectHQ/marvin/blob/e2e-bot-setup-example/docs/img/harry_styles_plugin.png" alt="harry_styles_stan" width="600"/>
+</p>
