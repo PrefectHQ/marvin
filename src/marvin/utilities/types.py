@@ -35,7 +35,7 @@ ANY_PREFIX_ULID_REGEX = r"\b[^\W0-9_][^\W_]+_[0-9A-HJ-NP-TV-Z]{26}\b"
 ANY_ULID_REGEX = r"\b(?:[^\W0-9_][^\W_]+_)?[0-9A-HJ-NP-TV-Z]{26}\b"
 
 
-DISCRIMINATING_TYPE_REGISTRY = {}
+DISCRIMINATED_UNION_REGISTRY = {}
 
 
 @lru_cache()
@@ -60,20 +60,20 @@ class MarvinBaseModel(BaseModel):
         json_encoders = {}
 
     def __init__(self, **data):
-        # check for any fields annotated as DiscriminatingTypeModel classes and
+        # check for any fields annotated as DiscriminatedUnionType classes and
         # properly instantiate their subclasses from the registry
         for field_name, field in self.__fields__.items():
             # first extract the type of the field
             model = extract_class(field.type_)
-            # check if the type is a DiscriminatingTypeModel, and the data
+            # check if the type is a DiscriminatedUnionType, and the data
             # contains a value for this field
             if (
                 isinstance(model, type)
-                and issubclass(model, DiscriminatingTypeModel)
+                and issubclass(model, DiscriminatedUnionType)
                 and data.get(field_name)
             ):
                 # load the registered subclasses for this model, as a union if necessary
-                if subclasses := DISCRIMINATING_TYPE_REGISTRY.get(model, []):
+                if subclasses := DISCRIMINATED_UNION_REGISTRY.get(model, []):
                     if len(subclasses) > 1:
                         new_model = Union[tuple(subclasses)]
                     else:
@@ -81,7 +81,7 @@ class MarvinBaseModel(BaseModel):
 
                 # parse the input objects into the appropriate subclass, first
                 # by creating a structure that replaces the generic
-                # DiscriminatingTypeModel with the new subclass type
+                # DiscriminatedUnionType with the new subclass type
                 structure = replace_class(field.outer_type_, model, new_model)
                 data[field_name] = pydantic.parse_obj_as(structure, data[field_name])
 
@@ -129,7 +129,7 @@ class LoggerMixin(BaseModel):
         return self._logger
 
 
-class DiscriminatingTypeModel(MarvinBaseModel):
+class DiscriminatedUnionType(MarvinBaseModel):
     def __init_subclass__(cls, **kwargs):
         """
         Automatically generate `discriminator` literals for subclasses and
@@ -155,10 +155,10 @@ class DiscriminatingTypeModel(MarvinBaseModel):
         # under all parents.
         for parent_cls in cls.__mro__:
             if (
-                issubclass(parent_cls, DiscriminatingTypeModel)
-                and parent_cls is not DiscriminatingTypeModel
+                issubclass(parent_cls, DiscriminatedUnionType)
+                and parent_cls is not DiscriminatedUnionType
             ):
-                DISCRIMINATING_TYPE_REGISTRY.setdefault(parent_cls, []).append(cls)
+                DISCRIMINATED_UNION_REGISTRY.setdefault(parent_cls, []).append(cls)
 
 
 class MarvinRouter(APIRouter):
