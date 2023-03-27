@@ -6,10 +6,10 @@ import marvin
 from marvin.models.ids import ThreadID
 from marvin.models.threads import Message, MessageCreate
 from marvin.utilities.strings import count_tokens
-from marvin.utilities.types import DiscriminatingTypeModel
+from marvin.utilities.types import DiscriminatedUnionType
 
 
-class History(DiscriminatingTypeModel, abc.ABC):
+class History(DiscriminatedUnionType, abc.ABC):
     @abc.abstractmethod
     async def add_message(self, message: Message):
         raise NotImplementedError()

@@ -2,14 +2,14 @@ import inspect
 
 from pydantic import Field, validator
 
-from marvin.utilities.types import DiscriminatingTypeModel
+from marvin.utilities.types import DiscriminatedUnionType
 
 PLUGIN_INSTRUCTIONS = """
 You can use the following plugins
 """
 
 
-class Plugin(DiscriminatingTypeModel):
+class Plugin(DiscriminatedUnionType):
     name: str = None
     description: str = Field(
         None,

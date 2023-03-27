@@ -2,10 +2,10 @@ import abc
 
 from pydantic import Field
 
-from marvin.utilities.types import DiscriminatingTypeModel
+from marvin.utilities.types import DiscriminatedUnionType
 
 
-class InputTransformer(DiscriminatingTypeModel, abc.ABC):
+class InputTransformer(DiscriminatedUnionType, abc.ABC):
     @abc.abstractmethod
     def run(self, message: str) -> str:
         pass
