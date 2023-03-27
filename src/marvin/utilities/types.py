@@ -83,7 +83,15 @@ class MarvinBaseModel(BaseModel):
                 # by creating a structure that replaces the generic
                 # DiscriminatedUnionType with the new subclass type
                 structure = replace_class(field.outer_type_, model, new_model)
-                data[field_name] = pydantic.parse_obj_as(structure, data[field_name])
+                try:
+                    data[field_name] = pydantic.parse_obj_as(
+                        structure, data[field_name]
+                    )
+                except Exception:
+                    # ignore this field; it likely means that the input data
+                    # needs to be run through a validator in which case the
+                    # validator will raise an error
+                    pass
 
         # instantiate the object
         super().__init__(**data)
