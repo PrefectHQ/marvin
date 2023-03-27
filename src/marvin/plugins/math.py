@@ -41,8 +41,9 @@ class Calculator(Plugin):
 
 class RandomNumber(Plugin):
     name: str = "rng"
+    description: str = (
+        "Use this plugin to generate a random number between `min` and `max`"
+    )
 
-    description: str = "Use this plugin to generate a random number between `a` and `b`"
-
-    def run(self, a: float, b: float) -> float:
-        return a + (b - a) * random.random()
+    def run(self, min: float, max: float) -> float:
+        return min + (max - min) * random.random()
