@@ -1,7 +1,64 @@
 # Bots
 
-The central abstraction in Marvin is the `Bot` class. At its core, a bot is an interface for sending text to a LLM and receiving a response. Marvin allows users to customize this behavior in various ways that can transform bots from "AI assistants" to reusable programs.
+One of Marvin's central abstractions is the `Bot` class. At its core, a bot is an interface for sending text to a LLM and receiving a response. Marvin allows users to customize this behavior in various ways that can transform bots from "AI assistants" to reusable programs.
 
+## Python
+
+### Interactive use
+To create a bot, instantiate the bot class. 
+```python
+from marvin import Bot
+
+ford_bot = Bot(
+    name="Ford", 
+    personality="Can't get the hang of Thursdays", 
+    instructions="Always responds as if researching an article for the Hitchhiker's Guide to the Galaxy"
+)
+```
+
+You can immediately talk to the bot by calling its `say()` method, which is an async coroutine.
+
+```python
+await ford_bot.say("Hello!")
+```
+
+A synchronous convenience method is also available: 
+```python
+ford_bot.say_sync("Hello again!")
+``` 
+
+### Saving bots
+
+Bots can be saved to the database by calling the `Bot.save()` method. Bots are saved under the name they're given and **will overwrite** any existing bot with the same name.
+
+```python
+bot = Bot("Ford")
+await bot.save()
+```
+
+### Loading bots
+
+Bots can be loaded with the `Bot.load()` method.
+
+```python
+bot = await Bot.load("Ford")
+```
+
+## CLI
+
+### Interactive use
+
+To chat with a bot from the CLI, run `marvin chat` with optional name, personality, or instruction flags.
+
+![](../img/marvin_chat.png)
+
+### Loading an existing bot
+
+If you have saved a bot, you can load it in the CLI by using the `-b` flag and providing the bot's name:
+
+```shell
+marvin chat -b Arthur
+```
 ## Customization 
 ### Name
 Names are unique identifiers that make it easy to reference a specific bot.
@@ -82,24 +139,3 @@ response = await bot.say("Generate output where x is 22")
 
 print(response.parsed_content) # MyFormat(x=22, y='Twenty-two')
 ```
-
-## Creating a bot in Python
-
-To create a bot, instantiate the bot class. 
-```python
-from marvin import Bot
-
-ford_bot = Bot(
-    name="Ford", 
-    personality="Can't get the hang of Thursdays", 
-    instructions="Always responds as if researching an article for the Hitchhiker's Guide to the Galaxy"
-)
-```
-
-You can immediately talk to the bot by calling its `say()` method, which is an async coroutine.
-
-```python
-await ford_bot.say("Hello!")
-```
-
-A synchronous convenience method is also available: `Bot.say_sync()`. 

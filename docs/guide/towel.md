@@ -1,7 +1,7 @@
 # Towel
 
 
-Marvin's `towel` decorator is the simplest way to add AI to your code. It can take any function definition and "magically" return the result of calling that function. Under the hood, it uses Marvin `Bots` to analyze, predict, and parse the output.
+Marvin's `towel` decorator is the simplest way to add AI to your code. It can take any function definition and "magically" return the result of calling that function. Under the hood, `towel` uses [bots](bots.md) to analyze, predict, and parse the output.
 
 Note: `towel` works best with GPT-4.
 
@@ -24,16 +24,19 @@ The `towel` decorator can be applied to any function. For best results, the func
 When a `towel`-decorated function is called, all available information is sent to the AI, which generates a predicted output. This output is parsed and returned as the function result.
 
 ### Basic usage
-Here is an overview of basic decorator use:
+Here is an overview of basic decorator use. First, you create a function definition and decorate it with `@towel`. You don't need to add any source code. Then you call the function on some inputs!
 
 ```python
 from marvin import towel
 
 @towel
-def your_function(input: Type) -> ReturnType:
+def my_function(input: Type) -> ReturnType:
     """ 
     A docstring that describes the function's purpose and behavior.
     """
+
+# call the function
+my_function(input="my input")
 ```
 
 Note the following:
@@ -163,7 +166,7 @@ summarize(text=page.content)
 # processing tasks.
 ```
 
-### Summarize text from Wikipedia
+### Summarize text after loading a Wikipedia page
 
 This example demonstrates how `towel` can call a function to get additional information that can be used in producing a result. Here, the function downloads content from Wikipedia given a title.
 
@@ -191,6 +194,30 @@ summarize_from_wikipedia(title='large language model')
 # tasks.
 ```
 
+### Suggest a title after loading a URL
+
+This example demonstrates how `towel` can call a function to get additional information that can be used in producing a result. Here, the function loads an article and then suggests a title for it.
+
+```python
+@towel
+def suggest_title(url: str) -> str:
+    """
+    Suggests a title for the article found at the provided URL
+    """
+
+    import httpx
+
+    # load the url
+    response = httpx.get(url)
+
+    # return the url contents 
+    return marvin.utilities.strings.html_to_content(response.content)
+
+
+suggest_title(url="https://techcrunch.com/2023/03/14/openai-releases-gpt-4-ai-that-it-claims-is-state-of-the-art/")
+# OpenAI Releases GPT-4: State-of-the-Art AI Model with Improved Image and Text Understanding
+```
+
 ### Generate rhymes
 
 ```python
@@ -206,15 +233,19 @@ rhyme("blue") # glue
 ### Find words meeting specific criteria
 
 ```python
-@towel
+import marvin
+
+@marvin.towel
 def find_words(text: str, criteria: str) -> list[str]:
     """
-    Given text and some criteria, returns a list of every word meeting that criteria.
+    Given text and some criteria, returns a list of 
+    every word meeting that criteria.
     """
 
-find_words("The quick brown fox jumps over the lazy dog.", criteria="adjectives") # ["quick", "brown", "lazy"]
-find_words("The quick brown fox jumps over the lazy dog.", criteria="colors") # ["brown"]
-find_words("The quick brown fox jumps over the lazy dog.", criteria="animals that aren't dogs") # ["fox"]
+text = "The quick brown fox jumps over the lazy dog."
+find_words(text, criteria="adjectives") # ["quick", "brown", "lazy"]
+find_words(text, criteria="colors") # ["brown"]
+find_words(text, criteria="animals that aren't dogs") # ["fox"]
 ```
 
 
