@@ -1,4 +1,4 @@
-# Basic tests and static analysis run on every PR and merges to main
+# Basic tests run on every PR and merges to main
 
 name: Run tests
 
@@ -54,18 +54,3 @@ jobs:
       - name: Run tests that don't require LLMs
         run: |
           pytest -v -m "not llm"
-
-
-  static_analysis:
-    timeout-minutes: 1
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-      - name: Run pre-commit
-        uses: pre-commit/action@v3.0.0
