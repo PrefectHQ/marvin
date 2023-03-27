@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 import marvin
 from marvin.utilities.types import (
-    DiscriminatingTypeModel,
+    DiscriminatedUnionType,
     format_type_str,
     safe_issubclass,
 )
@@ -16,7 +16,7 @@ from marvin.utilities.types import (
 SENTINEL = "__SENTINEL__"
 
 
-class ResponseFormatter(DiscriminatingTypeModel):
+class ResponseFormatter(DiscriminatedUnionType):
     format: str = Field(None, description="The format of the response")
     on_error: Literal["reformat", "raise", "ignore"] = "reformat"
 
