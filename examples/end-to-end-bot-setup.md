@@ -74,5 +74,5 @@ await harry_styles_stan.interactive_chat()
 ```
 
 <p align="center">
-  <img src="https://github.com/PrefectHQ/marvin/blob/e2e-bot-setup-example/docs/img/harry_styles_plugin.png" alt="harry_styles_stan" width="600"/>
+  <img src="https://github.com/PrefectHQ/marvin/blob/e2e-bot-setup-example/docs/img/harry_styles_plugin.png" alt="harry_styles_stan" width="800"/>
 </p>
