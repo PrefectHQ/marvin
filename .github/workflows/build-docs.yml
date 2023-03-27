@@ -21,5 +21,6 @@ jobs:
       - run: pip install \
           mkdocs-material \
           mkdocs-autolinks-plugin \
-          mkdocs-awesome-pages-plugin
+          mkdocs-awesome-pages-plugin \
+          mkdocstrings[python]
       - run: mkdocs build
