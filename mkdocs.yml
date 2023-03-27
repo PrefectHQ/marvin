@@ -10,7 +10,6 @@ nav:
     - Configuration: guide/configuration.md
     - Concepts:
       - 🤖 Bots: guide/bots.md
-      - 💻 CLI: guide/cli.md
       - ⚙️ Infrastructure: guide/infra.md
       - 🏗️ Loaders: guide/loaders_and_documents.md
       - 🧙 Towel: guide/towel.md
