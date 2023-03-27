@@ -4,6 +4,8 @@ Plugins extend a bot's functionality by letting it call a function and see the r
 
 ## Writing plugins
 
+Plugins inherit from the `marvin.Plugin` base class and should implement a `run()` method. They must also have a `description` attribute.
+
 
 
 ## Technical note: plugin registration

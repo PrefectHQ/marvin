@@ -13,13 +13,13 @@ Marvin is an open-source, batteries-included library for deploying AI tools.
 
 ## Features
 
-🤖 Create [bots](bots.md) that have personalities and follow instructions
+🤖 Create [bots](guide/bots.md) that have personalities and follow instructions
 
-🏖️ Use [towel](towel.md) to run functions without writing them
+🏖️ Use [towel](guide/towel.md) to run functions without writing them
 
-🔌 Use plugins to give bots new abilities
+🔌 Build [plugins](guide/plugins.md) to give bots new abilities
 
-🌈 Store knowledge that bots can access and use
+🌈 Store [knowledge](guide/loaders_and_documents.md) that bots can access and use
 
 🧑‍💻 Available as a Python API, interactive CLI, or FastAPI server
 
@@ -31,19 +31,11 @@ See [Getting Started](getting_started/installation.md) for more!
 
 ## Highlights
 
-🤖 Custom bots with names, personalities, and instructions
-
-🏖️ Use `towel` to run functions without writing them
-
 🔋 Batteries included - get up and running instantly
-
-🔌 Plugins let bots run any software 
 
 🧑‍🎓 Powered by GPT-4 (or GPT-3.5)
 
-🌈 ChromaDB for vector search and uploading documents
-
-🧑‍💻 Available via async Python API, interactive CLI, or FastAPI server
+🌈 Supports ChromaDB, SQLite, and Postgres
 
 Coming soon:
 
