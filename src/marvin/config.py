@@ -28,6 +28,8 @@ class ChromaSettings(chromadb.config.Settings):
 
 
 class Settings(BaseSettings):
+    """Marvin settings"""
+
     class Config:
         env_file = ".env", str(ENV_FILE)
         env_prefix = "MARVIN_"

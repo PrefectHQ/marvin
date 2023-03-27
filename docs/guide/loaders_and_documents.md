@@ -18,9 +18,8 @@ asyncio.run(prefect_source_code.load_and_store())
 ## 
 A `Loader` parses a source of information into a `list[Document]`, which can then be stored as context for the LLM.
 
-<p align="center">
-  <img src="../imgs/loader_diagram.png" alt="Image description" width="700">
-</p>
+
+![](loader_diagram.png)
 
 
 ## What is a `Document`?
@@ -51,7 +50,7 @@ my_document = Document(
 ```
 
 ### Creating excerpts from a `Document`
-`Document` offers a `to_excerpts` method that splits a `Document` into a `list[Document]` which are rich excerpts of the original `Document`.
+`Document` offers a `to_excerpts` method that splits a `Document` into a `list[Document]` which are rich excerpts of the original.
 
 ```python
 # using the same document as above

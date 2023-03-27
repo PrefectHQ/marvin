@@ -1,4 +1,5 @@
 # Chat
+![](../img/marvin_chat.png)
 
 ## Quick chat
 

@@ -344,7 +344,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         messages = []
 
         # check for plugins json
-        plugin_regex = re.compile('({\s*"action":\s*"run-plugin".*})', re.DOTALL)
+        plugin_regex = re.compile(r'({\s*"action":\s*"run-plugin".*})', re.DOTALL)
 
         if match := plugin_regex.search(response):
             plugin_json = match.group(1)
