@@ -1,14 +1,14 @@
-# Towel
+# AI Functions
 
 
-Marvin's `towel` decorator is the simplest way to add AI to your code. It can take any function definition and "magically" return the result of calling that function. Under the hood, `towel` uses [bots](bots.md) to analyze, predict, and parse the output.
+Marvin's `ai_fn` decorator is the simplest way to add AI to your code. It can take any function definition and "magically" return the result of calling that function. Under the hood, `ai_fn` uses [bots](bots.md) to analyze, predict, and parse the output.
 
-Note: `towel` works best with GPT-4.
+Note: `ai_fn` works best with GPT-4.
 
 ```python hl_lines="3"
-from marvin import towel
+from marvin import ai_fn
 
-@towel
+@ai_fn
 def list_fruit(n: int) -> list[str]:
     """Generate a list of n fruit"""
 
@@ -19,17 +19,17 @@ list_fruit(3) # ["apple", "banana", "orange"]
 
 ## Usage
 
-The `towel` decorator can be applied to any function. For best results, the function should have an informative name, annotated input types, a return type, and a docstring. The function does *not* need to have any source code written, but advanced users can add source code to influence the output in two different ways (see "writing source code")
+The `ai_fn` decorator can be applied to any function. For best results, the function should have an informative name, annotated input types, a return type, and a docstring. The function does *not* need to have any source code written, but advanced users can add source code to influence the output in two different ways (see "writing source code")
 
-When a `towel`-decorated function is called, all available information is sent to the AI, which generates a predicted output. This output is parsed and returned as the function result.
+When a `ai_fn`-decorated function is called, all available information is sent to the AI, which generates a predicted output. This output is parsed and returned as the function result.
 
 ### Basic usage
-Here is an overview of basic decorator use. First, you create a function definition and decorate it with `@towel`. You don't need to add any source code. Then you call the function on some inputs!
+Here is an overview of basic decorator use. First, you create a function definition and decorate it with `@ai_fn`. You don't need to add any source code. Then you call the function on some inputs!
 
 ```python
-from marvin import towel
+from marvin import ai_fn
 
-@towel
+@ai_fn
 def my_function(input: Type) -> ReturnType:
     """ 
     A docstring that describes the function's purpose and behavior.
@@ -51,19 +51,19 @@ Note the following:
 ### Advanced usage
 
 #### Calling the function
-By default, the `towel` decorator will call your function and supply the return value to the AI. For functions without source code, this obviously has no consequence. However, you can take advantage of this fact to influence the AI result by returning helpful or preprocessed outputs. Since the AI sees the source code as well as the return value, you can also influence it through comments. 
+By default, the `ai_fn` decorator will call your function and supply the return value to the AI. For functions without source code, this obviously has no consequence. However, you can take advantage of this fact to influence the AI result by returning helpful or preprocessed outputs. Since the AI sees the source code as well as the return value, you can also influence it through comments. 
 
 You can see this strategy used in the example that [summarizes text from Wikipedia](#summarize-text-from-wikipedia). In the example, the function takes in a page's title and uses it to load the page's content. The content is returned and used by the AI for summarization.
 
-To disable this behavior entirely, call the decorator as `@towel(call_function=False)`.
+To disable this behavior entirely, call the decorator as `@ai_fn(call_function=False)`.
 
 #### Async functions
-The towel decorator works with async functions.
+The `ai_fn` decorator works with async functions.
 
 ```python
-from marvin import towel
+from marvin import ai_fn
 
-@towel
+@ai_fn
 async def f(x: int) -> int:
     """Add 100 to x"""
 
@@ -75,9 +75,9 @@ Annotations don't have to be types; they can be complex objects or even string d
 
 Therefore, consider these two approaches to defining an output:
 ```python
-from marvin import towel
+from marvin import ai_fn
 
-@towel
+@ai_fn
 def fn_with_docstring(n: int) -> list[dict]:
     """
     Generate a list of n people with names and ages
@@ -85,7 +85,7 @@ def fn_with_docstring(n: int) -> list[dict]:
 
 
 
-@towel
+@ai_fn
 def fn_with_string_annotation(n: int) -> 'a json list of dicts that have keys for name and age':
     """
     Generate a list of n people
@@ -97,7 +97,7 @@ class Person(pydantic.BaseModel):
     name: str
     age: int
 
-@towel
+@ai_fn
 def fn_with_structured_annotation(n: int) -> list[Person]:
     """
     Generate a list of n people
@@ -111,9 +111,9 @@ All three of these functions will give similar output (though the last one, `fn_
 
 ### Generate a list of fruit
 ```python
-from marvin import towel
+from marvin import ai_fn
 
-@towel
+@ai_fn
 def list_fruit(n: int) -> list[str]:
     """Generate a list of n fruit"""
 
@@ -123,9 +123,9 @@ list_fruit(3) # ["apple", "banana", "orange"]
 
 ### Generate fake data according to a schema
 ```python
-from marvin import towel
+from marvin import ai_fn
 
-@towel
+@ai_fn
 def fake_people(n: int) -> list[dict]:
     """
     Generates n examples of fake data representing people, 
@@ -142,9 +142,9 @@ fake_people(3)
 ### Correct spelling and grammar
 
 ```python
-from marvin import towel
+from marvin import ai_fn
 
-@towel
+@ai_fn
 def fix_sentence(sentence: str) -> str:
     """
     Fix all grammatical and spelling errors in a sentence
@@ -159,9 +159,9 @@ This function takes any text and summarizes it. See the next example for a
 function that can also access Wikipedia automatically.
 
 ```python
-from marvin import towel
+from marvin import ai_fn
 
-@towel
+@ai_fn
 def summarize(text: str) -> str:
     """
     Summarize the provided text
@@ -180,12 +180,12 @@ summarize(text=page.content)
 
 ### Summarize text after loading a Wikipedia page
 
-This example demonstrates how `towel` can call a function to get additional information that can be used in producing a result. Here, the function downloads content from Wikipedia given a title.
+This example demonstrates how `ai_fn` can call a function to get additional information that can be used in producing a result. Here, the function downloads content from Wikipedia given a title.
 
 ```python
-from marvin import towel
+from marvin import ai_fn
 
-@towel
+@ai_fn
 def summarize_from_wikipedia(title: str) -> str:
     """
     Loads the wikipedia page corresponding to the provided 
@@ -210,12 +210,12 @@ summarize_from_wikipedia(title='large language model')
 
 ### Suggest a title after loading a URL
 
-This example demonstrates how `towel` can call a function to get additional information that can be used in producing a result. Here, the function loads an article and then suggests a title for it.
+This example demonstrates how `ai_fn` can call a function to get additional information that can be used in producing a result. Here, the function loads an article and then suggests a title for it.
 
 ```python
-from mavin import towel
+from marvin import ai_fn
 
-@towel
+@ai_fn
 def suggest_title(url: str) -> str:
     """
     Suggests a title for the article found at the provided URL
@@ -237,9 +237,9 @@ suggest_title(url="https://techcrunch.com/2023/03/14/openai-releases-gpt-4-ai-th
 ### Generate rhymes
 
 ```python
-from mavin import towel
+from marvin import ai_fn
 
-@towel
+@ai_fn
 def rhyme(word: str) -> str:
     """
     Generate a word that rhymes with the supplied `word`
@@ -251,9 +251,9 @@ rhyme("blue") # glue
 ### Find words meeting specific criteria
 
 ```python
-from mavin import towel
+from marvin import ai_fn
 
-@towel
+@ai_fn
 def find_words(text: str, criteria: str) -> list[str]:
     """
     Given text and some criteria, returns a list of 
@@ -267,9 +267,18 @@ find_words(text, criteria="animals that aren't dogs") # ["fox"]
 ```
 
 
-## Why is this called "towel"?
-> A towel is just about the most massively useful thing an interstellar hitchhiker can carry. Partly because it has great practical value. You can wrap it around you for warmth as you bound across the cold moons of Jaglan Beta; you can lie on it on the brilliant marble-sanded beaches of Santraginus V, inhaling the heady sea vapours; you can sleep under it beneath the stars which shine so redly on the desert world of Kakrafoon; use it to sail a miniraft down the slow heavy River Moth; wet it for use in hand-to-hand combat; wrap it around your head to ward off noxious fumes or avoid the gaze of the Ravenous Bugblatter Beast of Traal (a mind-bogglingly stupid animal, it assumes that if you can't see it, it can't see you — daft as a brush, but very very ravenous); you can wave your towel in emergencies as a distress signal, and of course you can dry yourself off with it if it still seems to be clean enough.
->
-> More importantly, a towel has immense psychological value. For some reason, if a strag discovers that a hitchhiker has his towel with him, he will automatically assume that he is also in possession of a toothbrush, washcloth, soap, tin of biscuits, flask, compass, map, ball of string, gnat spray, wet-weather gear, space suit etc., etc. Furthermore, the strag will then happily lend the hitchhiker any of these or a dozen other items that the hitchhiker might accidentally have "lost." What the strag will think is that any man who can hitch the length and breadth of the Galaxy, rough it, slum it, struggle against terrible odds, win through and still knows where his towel is, is clearly a man to be reckoned with.
->
-> -- The Hitchhiker's Guide to the Galaxy
+
+### Suggest emojis
+
+```python
+from marvin import ai_fn
+
+@ai_fn
+def get_emoji(text: str) -> str:
+    """
+    Returns an emoji that describes the provided text.
+    """
+
+get_emoji("incredible snack") # '🍿'
+```
+

@@ -6,7 +6,7 @@ from typing import Any, Callable
 from marvin.bots import Bot
 from marvin.utilities.strings import jinja_env
 
-TOWEL_INSTRUCTIONS = jinja_env.from_string(
+AI_FN_INSTRUCTIONS = jinja_env.from_string(
     inspect.cleandoc(
         """
         Your job is to generate outputs for a Python function with the following
@@ -30,7 +30,7 @@ TOWEL_INSTRUCTIONS = jinja_env.from_string(
     )
 )
 
-TOWEL_PERSONALITY = inspect.cleandoc(
+AI_FN_PERSONALITY = inspect.cleandoc(
     """
     You love to generate the correct answer, but you do not want to engage the
     user in any way, including explaining your work, giving further
@@ -38,7 +38,7 @@ TOWEL_PERSONALITY = inspect.cleandoc(
     """
 )
 
-TOWEL_MESSAGE = jinja_env.from_string(
+AI_FN_MESSAGE = jinja_env.from_string(
     inspect.cleandoc(
         """
         {% if input_binds %}} The user supplied the following inputs:
@@ -63,7 +63,7 @@ TOWEL_MESSAGE = jinja_env.from_string(
 )
 
 
-def towel(
+def ai_fn(
     fn: Callable = None,
     *,
     bot_modifier: Callable = None,
@@ -71,7 +71,7 @@ def towel(
     **bot_kwargs,
 ) -> Callable:
     """
-    @marvin.towel
+    @ai_fn
     def rhyme(word: str) -> str:
         "Returns a word that rhymes with the input word."
 
@@ -92,14 +92,14 @@ def towel(
     # this allows the decorator to be used with or without calling it
     if fn is None:
         return partial(
-            towel,
+            ai_fn,
             bot_modifier=bot_modifier,
             call_function=call_function,
             **bot_kwargs,
         )
 
     @wraps(fn)
-    def towel_wrapper(*args, **kwargs) -> Any:
+    def ai_fn_wrapper(*args, **kwargs) -> Any:
         bot_kwargs = {}
 
         # Get function signature
@@ -130,7 +130,7 @@ def towel(
             return_annotation = sig.return_annotation
 
         # Build the instructions
-        instructions = TOWEL_INSTRUCTIONS.render(
+        instructions = AI_FN_INSTRUCTIONS.render(
             function_def=inspect.getsource(fn),
         )
 
@@ -139,7 +139,7 @@ def towel(
         # create the bot
         bot = Bot(
             instructions=instructions,
-            personality=TOWEL_PERSONALITY,
+            personality=AI_FN_PERSONALITY,
             response_format=return_annotation,
             **bot_kwargs,
         )
@@ -151,7 +151,7 @@ def towel(
                 bot = modified_bot
 
         # build the message
-        message = TOWEL_MESSAGE.render(
+        message = AI_FN_MESSAGE.render(
             input_binds=input_binds, return_value=return_value
         )
 
@@ -164,4 +164,4 @@ def towel(
         else:
             return asyncio.run(get_response())
 
-    return towel_wrapper
+    return ai_fn_wrapper
