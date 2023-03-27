@@ -365,6 +365,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                     plugin_name=plugin_name,
                     plugin_inputs=plugin_inputs,
                 )
+
                 self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
 
                 messages.append(Message(role="ai", content=response))

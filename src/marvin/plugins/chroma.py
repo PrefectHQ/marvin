@@ -4,22 +4,46 @@ from pydantic import Field
 from marvin.config import temporary_settings
 from marvin.infra.chroma import Chroma
 from marvin.plugins import Plugin
+from marvin.utilities.strings import extract_keywords
+
+
+def build_metadata_filter(where: dict, operator: str = "$and") -> dict:
+    filters = []
+    for key, value in where.items():
+        if key == "created_at":
+            filters.append(
+                {
+                    "created_at": {
+                        k: pendulum.parse(v).timestamp() for k, v in value.items()
+                    }
+                }
+            )
+        else:
+            filters.append({key: value})
+
+    if len(filters) == 1:
+        return filters[0]
+    return {operator: filters}
+
+
+def build_document_filter(keywords: list[str]) -> dict:
+    filters = [{"$contains": keyword} for keyword in keywords]
+    return {"$or": filters}
 
 
 async def query_chroma(query: str, where: dict, n: int = 4) -> str:
-    if where and "created_at" in where:
-        where["created_at"] = {
-            op: pendulum.parse(value).timestamp()
-            for op, value in where["created_at"].items()
-        }
+    keywords = await extract_keywords(query)
+
+    query_kwargs = dict(
+        query_texts=[query],
+        n_results=n,
+        include=["documents"],
+        where=build_metadata_filter(where) if where else None,
+        where_document=build_document_filter(keywords) if keywords else None,
+    )
 
     async with Chroma() as chroma:
-        query_result = await chroma.query(
-            query_texts=[query],
-            n_results=n,
-            include=["documents"],
-            where={**(where or {}), "document_type": "excerpt"},
-        )
+        query_result = await chroma.query(**query_kwargs)
 
     return "\n\n".join(
         excerpt for excerpts in query_result["documents"] for excerpt in excerpts

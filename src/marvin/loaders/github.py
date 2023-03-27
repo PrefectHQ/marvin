@@ -1,13 +1,13 @@
 """Loaders for GitHub."""
 import asyncio
-import fnmatch
 import functools
 import os
-import shutil
-import tempfile
+import re
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import aiofiles
+import cchardet as chardet
 import httpx
 import pendulum
 from pydantic import BaseModel, Field, validator
@@ -15,7 +15,18 @@ from pydantic import BaseModel, Field, validator
 from marvin.loaders.base import Loader
 from marvin.models.documents import Document
 from marvin.models.metadata import Metadata
+from marvin.utilities.collections import multi_glob
 from marvin.utilities.strings import rm_html_comments, rm_text_after
+
+
+async def read_file_with_chardet(file_path, errors="replace"):
+    async with aiofiles.open(file_path, "rb") as f:
+        content = await f.read()
+        encoding = chardet.detect(content)["encoding"]
+
+    async with aiofiles.open(file_path, "r", encoding=encoding, errors=errors) as f:
+        text = await f.read()
+    return text
 
 
 class GitHubUser(BaseModel):
@@ -47,6 +58,12 @@ class GitHubIssue(BaseModel):
     body: str | None = Field(default="")
     labels: List[GitHubLabel] = Field(default_factory=GitHubLabel)
     user: GitHubUser = Field(default_factory=GitHubUser)
+
+    @validator("body", always=True)
+    def validate_body(cls, v):
+        if not v:
+            return ""
+        return v
 
 
 class GitHubIssueLoader(Loader):
@@ -159,6 +176,7 @@ class GitHubIssueLoader(Loader):
                 title=issue.title,
                 labels=", ".join([label.name for label in issue.labels]),
                 document_type="github issue",
+                created_at=issue.created_at.timestamp(),
             )
             documents.extend(
                 await Document(
@@ -173,13 +191,13 @@ class GitHubRepoLoader(Loader):
     """Loader for files on GitHub that match a glob pattern."""
 
     repo: str = Field(...)
-    glob: str = Field(default="**/*.md")
-    exclude_glob: str | None = Field(default=None)
+    include_globs: list[str] = Field(default=None)
+    exclude_globs: list[str] = Field(default=None)
 
     @validator("repo")
     def validate_repo(cls, v):
         """Validate the GitHub repository."""
-        if "/" not in v:
+        if not re.match(r"^[^/\s]+/[^/\s]+$", v):
             raise ValueError(
                 "Must provide a GitHub repository in the format 'owner/repo'"
             )
@@ -187,8 +205,7 @@ class GitHubRepoLoader(Loader):
 
     async def load(self) -> list[Document]:
         """Load files from GitHub that match the glob pattern."""
-        tmp_dir = tempfile.mkdtemp()
-        try:
+        async with aiofiles.tempfile.TemporaryDirectory(suffix="marvin") as tmp_dir:
             process = await asyncio.create_subprocess_exec(
                 *["git", "clone", "--depth", "1", self.repo, tmp_dir],
                 stdout=asyncio.subprocess.PIPE,
@@ -204,18 +221,10 @@ class GitHubRepoLoader(Loader):
 
             # Read the contents of each file that matches the glob pattern
             documents = []
-            matched_files = [p for p in Path(tmp_dir).glob(self.glob) if p.is_file()]
-            if self.exclude_glob:
-                matched_files = [
-                    file
-                    for file in matched_files
-                    if not fnmatch.fnmatch(file, self.exclude_glob)
-                ]
 
-            for file in matched_files:
+            for file in multi_glob(tmp_dir, self.include_globs, self.exclude_globs):
                 self.logger.debug(f"Loading file: {file!r}")
-                with open(file, "r") as f:
-                    text = f.read()
+                text = await read_file_with_chardet(Path(tmp_dir) / file)
 
                 metadata = Metadata(
                     source=self.__class__.__name__,
@@ -223,7 +232,7 @@ class GitHubRepoLoader(Loader):
                         [
                             self.repo.replace(".git", ""),
                             "tree/main",
-                            str(file.relative_to(tmp_dir)),
+                            str(file),
                         ]
                     ),
                     title=file.name,
@@ -235,5 +244,3 @@ class GitHubRepoLoader(Loader):
                     ).to_excerpts()
                 )
             return documents
-        finally:
-            shutil.rmtree(tmp_dir)

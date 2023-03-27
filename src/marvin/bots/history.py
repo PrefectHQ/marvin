@@ -60,6 +60,17 @@ class ThreadHistory(History):
     async def clear(self):
         self.thread_id = ThreadID.new()
 
+    async def log(self):
+        return (
+            "\n\n".join(
+                [
+                    f"**{m.role}**: {m.content} [{m.timestamp}]"
+                    for m in await self._load_messages()
+                ]
+            )
+            or "No Recorded History"
+        )
+
 
 class InMemoryHistory(History):
     messages: list[Message] = Field(default_factory=list)

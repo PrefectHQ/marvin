@@ -63,7 +63,7 @@ regex_bot = UtilityBot(
     ).replace("\n", " "),
 )
 
-graphotron = UtilityBot(
+mermaid_bot = UtilityBot(
     name="Graphotron",
     instructions=inspect.cleandoc(
         """
@@ -89,7 +89,7 @@ reformat_bot = UtilityBot(
         given an error message that could be helpful in understanding what about
         the message failed to parse correctly.
         
-        Your response will be directly parsed into the desired format, so do
+        Your response will be directly parsed into the desired format, so do not
         reply with anything except the reformatted message. Do not alter the
         meaning of the message by adding your own content. Do not add
         punctuation unless specifically requested by the target format.

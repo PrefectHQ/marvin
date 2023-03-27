@@ -19,7 +19,7 @@ Marvin is a batteries-included library designed to simplify the process of build
 
 🔌 Build [plugins](https://askmarvin.ai/guide/plugins.md) to give bots new abilities
 
-📚 Store [knowledge](https://askmarvin.ai//guide/loaders_and_documents.md) that bots can access and use
+📚 Store [knowledge](https://askmarvin.ai/guide/loaders_and_documents.md) that bots can access and use
 
 📡 Available as a Python API, interactive CLI, or FastAPI server
 

@@ -12,3 +12,10 @@ class Metadata(MarvinBaseModel, TimestampMixin):
     class Config:
         extra = "allow"
         arbitrary_types_allowed = True
+
+    def __str__(self):
+        lines = []
+        for key, value in self.dict().items():
+            if value is not None and value != "":
+                lines.append(f"{key.capitalize()}: {value}")
+        return "\n".join(lines)
