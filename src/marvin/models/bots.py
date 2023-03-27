@@ -31,10 +31,8 @@ class BotConfigCreate(MarvinBaseModel):
     name: str
     personality: str = "depressed"
     instructions: str = "Act as a helpful bot, according to your personality."
-    plugins: list[Plugin.as_discriminated_union()] = Field(default_factory=list)
-    input_transformers: list[InputTransformer.as_discriminated_union()] = Field(
-        default_factory=list
-    )
+    plugins: list[Plugin] = Field(default_factory=list)
+    input_transformers: list[InputTransformer] = Field(default_factory=list)
 
 
 class BotConfigUpdate(BotConfigCreate):
