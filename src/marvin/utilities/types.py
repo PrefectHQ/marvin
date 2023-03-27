@@ -1,4 +1,3 @@
-import collections
 import importlib.util
 import json
 import logging
@@ -14,10 +13,9 @@ import pydantic
 import ulid
 from fastapi import APIRouter, Response, status
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel, Field, PrivateAttr, constr
+from pydantic import BaseModel, PrivateAttr, constr
 from pydantic.fields import ModelField
 from sqlalchemy import TypeDecorator
-from typing_extensions import Annotated
 
 from marvin.utilities.logging import get_logger
 
@@ -35,6 +33,9 @@ PREFIXED_ULID_REGEX = r"\b{prefix}_[0-9A-HJ-NP-TV-Z]{{26}}\b"
 ANY_PREFIX_ULID_REGEX = r"\b[^\W0-9_][^\W_]+_[0-9A-HJ-NP-TV-Z]{26}\b"
 # optional prefix
 ANY_ULID_REGEX = r"\b(?:[^\W0-9_][^\W_]+_)?[0-9A-HJ-NP-TV-Z]{26}\b"
+
+
+DISCRIMINATING_TYPE_REGISTRY = {}
 
 
 @lru_cache()
@@ -57,6 +58,35 @@ class MarvinBaseModel(BaseModel):
         validate_assignment = True
         extra = "forbid"
         json_encoders = {}
+
+    def __init__(self, **data):
+        # check for any fields annotated as DiscriminatingTypeModel classes and
+        # properly instantiate their subclasses from the registry
+        for field_name, field in self.__fields__.items():
+            # first extract the type of the field
+            model = extract_class(field.type_)
+            # check if the type is a DiscriminatingTypeModel, and the data
+            # contains a value for this field
+            if (
+                isinstance(model, type)
+                and issubclass(model, DiscriminatingTypeModel)
+                and data.get(field_name)
+            ):
+                # load the registered subclasses for this model, as a union if necessary
+                if subclasses := DISCRIMINATING_TYPE_REGISTRY.get(model, []):
+                    if len(subclasses) > 1:
+                        new_model = Union[tuple(subclasses)]
+                    else:
+                        new_model == subclasses[0]
+
+                # parse the input objects into the appropriate subclass, first
+                # by creating a structure that replaces the generic
+                # DiscriminatingTypeModel with the new subclass type
+                structure = replace_class(field.outer_type_, model, new_model)
+                data[field_name] = pydantic.parse_obj_as(structure, data[field_name])
+
+        # instantiate the object
+        super().__init__(**data)
 
     def dict(self, *args, json_compatible=False, **kwargs):
         if json_compatible:
@@ -101,45 +131,34 @@ class LoggerMixin(BaseModel):
 
 class DiscriminatingTypeModel(MarvinBaseModel):
     def __init_subclass__(cls, **kwargs):
-        """Automatically generate `type` literals for subclasses."""
+        """
+        Automatically generate `discriminator` literals for subclasses and
+        register them for deserialization
+        """
 
         if discriminator := getattr(cls, "_discriminator", None) is not None:
             value = discriminator
         else:
             value = f"{cls.__name__}"
 
-        annotation = Literal[value]
-
-        tag_field = ModelField.infer(
-            name="type",
+        discriminator_field = ModelField.infer(
+            name="discriminator",
             value=value,
-            annotation=annotation,
+            annotation=Literal[value],
             class_validators=None,
             config=cls.__config__,
         )
-        cls.__fields__["type"] = tag_field
+        cls.__fields__["discriminator"] = discriminator_field
 
-    @classmethod
-    def as_discriminated_union(cls, **field_kwargs):
-        subclasses = get_all_subclasses(cls)
-        subclass_names = [s.__name__ for s in subclasses]
-        if len(subclasses) > len(set(subclass_names)):
-            repeated_types = [
-                item
-                for item, count in collections.Counter(subclass_names).items()
-                if count > 1
-            ]
-            repeated_subclasses = [
-                s for s in subclasses if s.__name__ in repeated_types
-            ]
-            logger.warn(
-                f"Multiple subclasses of `{cls}` have the same class name (or custom"
-                " `type` literal), which will cause issues with deserialization:"
-                f" {repeated_subclasses}"
-            )
-
-        union = Union[tuple(subclasses)]
-        return Annotated[union, Field(discriminator="type", **field_kwargs)]
+        # when a field is annotated, we will lookup all children classes to
+        # attempt deserialization. Therefore we must register this subclass
+        # under all parents.
+        for parent_cls in cls.__mro__:
+            if (
+                issubclass(parent_cls, DiscriminatingTypeModel)
+                and parent_cls is not DiscriminatingTypeModel
+            ):
+                DISCRIMINATING_TYPE_REGISTRY.setdefault(parent_cls, []).append(cls)
 
 
 class MarvinRouter(APIRouter):
@@ -307,3 +326,53 @@ def format_type_str(type_) -> str:
         return type_.__name__
     else:
         return str(type_)
+
+
+def extract_class(generic_alias):
+    """
+    Given the following, retrieves type `T`:
+        list[T] tuple[T] set[T] dict[Any, T]
+
+    Also works with any combination of these, e.g.:
+        list[set[tuple[T]]] dict[Any, [list[T]]]
+
+    However, it will not work if there are multiple types in the container,
+    because it gets the "last" type e.g.:
+        list[T, U] -> would return U
+
+    """
+    if hasattr(generic_alias, "__origin__") and generic_alias.__origin__ in (
+        list,
+        tuple,
+        dict,
+        set,
+    ):
+        return extract_class(generic_alias.__args__[-1])
+    else:
+        return generic_alias
+
+
+def replace_class(generic_alias, old_class, new_class):
+    """
+    Given the following, replaces type `T` with `new_class` (`U` in this case):
+        T -> U
+        list[T] -> list[U]
+        tuple[Any, T] -> tuple[Any, U]
+        dict[Any, T] -> dict[Any, U]
+        dict[Any, list[T]] -> dict[Any, list[U]]
+        set[T] -> set[U]
+        list[dict[Any, list[T]]] -> list[dict[Any, list[U]]
+    """
+
+    if hasattr(generic_alias, "__origin__") and generic_alias.__origin__ in (
+        list,
+        tuple,
+        dict,
+        set,
+    ):
+        replaced_args = tuple(
+            replace_class(arg, old_class, new_class) for arg in generic_alias.__args__
+        )
+        return generic_alias.__origin__[replaced_args]
+    else:
+        return new_class if generic_alias == old_class else generic_alias

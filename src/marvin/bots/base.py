@@ -99,12 +99,12 @@ class Bot(MarvinBaseModel, LoggerMixin):
             " Reminders are best used to nudge the bot back toward the system prompt."
         ),
     )
-    plugins: list[Plugin.as_discriminated_union()] = Field(
+    plugins: list[Plugin] = Field(
         None, description="A list of plugins that the bot can use."
     )
-    history: History.as_discriminated_union() = None
+    history: History = None
     llm: Callable = Field(default=None, repr=False)
-    input_transformers: list[InputTransformer.as_discriminated_union()] = Field(
+    input_transformers: list[InputTransformer] = Field(
         default_factory=list,
         description=(
             "A list of input transformers to apply to the user input before passing it"
@@ -122,7 +122,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
             " `bot.say(x=3, y=4)`"
         ),
     )
-    response_format: ResponseFormatter.as_discriminated_union(
+    response_format: ResponseFormatter = Field(
+        None,
         description=(
             "A description of how the bot should format its response. This could be a"
             " literal type, a complex data structure or Pydantic model, a string"
@@ -130,7 +131,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             " control of validation, pass an `ResponseFormatter` object; otherwise one"
             " will be inferred based on your input."
         ),
-    ) = None
+    )
     include_date_in_prompt: bool = Field(
         True,
         description="Include the date in the prompt. Disable for testing.",
@@ -207,7 +208,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         )
 
     @classmethod
-    async def from_bot_config(cls, bot_config: "BotConfig") -> "Bot":
+    def from_bot_config(cls, bot_config: "BotConfig") -> "Bot":
         return cls(
             name=bot_config.name,
             personality=bot_config.personality,
@@ -227,7 +228,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
     async def load(cls, name: str) -> "Bot":
         """Load a bot from the database."""
         bot_config = await marvin.api.bots.get_bot_config(name=name)
-        return await cls.from_bot_config(bot_config=bot_config)
+        return cls.from_bot_config(bot_config=bot_config)
 
     def say_sync(self, *args, **kwargs) -> BotResponse:
         """
