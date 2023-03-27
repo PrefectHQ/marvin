@@ -199,3 +199,8 @@ def temporary_settings(**kwargs):
     finally:
         settings.__dict__.clear()
         settings.__dict__.update(old_settings)
+
+
+GITIGNORE_PATTERNS = {
+    i.strip() for i in Path(".gitignore").read_text().splitlines() if i and "#" not in i
+}

@@ -1,5 +1,8 @@
 import itertools
+from pathlib import Path
 from typing import Any, Callable, Iterable, TypeVar
+
+from marvin.config import GITIGNORE_PATTERNS
 
 T = TypeVar("T")
 
@@ -34,3 +37,24 @@ def batched(
                 batch_size = 0
         if batch:
             yield batch
+
+
+def multi_glob(directory, keep_globs=None, drop_globs=None, gitignore=False):
+    keep_globs = keep_globs or ["**/*"]
+    drop_globs = drop_globs or []
+    if gitignore:
+        drop_globs.extend(GITIGNORE_PATTERNS)
+
+    directory_path = Path(directory)
+
+    def files_from_globs(globs):
+        return {
+            file
+            for pattern in globs
+            for file in directory_path.glob(pattern)
+            if file.is_file()
+        }
+
+    matching_files = files_from_globs(keep_globs) - files_from_globs(drop_globs)
+
+    return [file.relative_to(directory_path) for file in matching_files]

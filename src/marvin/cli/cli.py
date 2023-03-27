@@ -97,5 +97,16 @@ def chat(
     asyncio.run(bot.interactive_chat(first_message=" ".join(message)))
 
 
+@app.command(name="log", help="View the logs for a bot")
+def log(
+    bot_to_load: str = typer.Argument(None, help="The name of the bot to use"),
+):
+    if not bot_to_load:
+        raise ValueError("You must specify a bot to load")
+
+    bot = asyncio.run(marvin.Bot.load(bot_to_load))
+    rprint(asyncio.run(bot.history.log()))
+
+
 if __name__ == "__main__":
     app()

@@ -63,7 +63,7 @@ regex_bot = UtilityBot(
     ).replace("\n", " "),
 )
 
-graphotron = UtilityBot(
+mermaid_bot = UtilityBot(
     name="Graphotron",
     instructions=inspect.cleandoc(
         """

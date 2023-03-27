@@ -45,20 +45,14 @@ async def load_prefect_things():
 
 
 async def hello_marvin():
-    await load_prefect_things()
+    # await load_prefect_things()
     bot = Bot(
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
         instructions=(
             "Use the `SimpleChromaSearch` plugin to retrieve context"
             " when a user asks a question, or requests information"
-            " on anything that is not about current events."
-            " If asked a follow-up question after retrieving context,"
-            " use `SimpleChromaSearch` to retrieve the context again"
-            " based on the follow-up question. You do not need to"
-            " ask the user for permission to use the plugin."
-            " If asked anything about cloud computing, also use the"
-            " `SimpleChromaSearch` plugin to retrieve context."
+            " about cloud computing as it relates to Prefect."
             " For current events, use the `DuckDuckGo` plugin."
         ),
         plugins=[
@@ -77,6 +71,8 @@ async def hello_marvin():
         ],
     )
     await bot.interactive_chat()
+
+    print(await bot.history.to_jsonl())
 
 
 if __name__ == "__main__":

@@ -109,11 +109,18 @@ class Document(MarvinBaseModel):
         ):
             keywords = await extract_keywords(text)
 
+            minimap = (
+                minimap_fn(chr)
+                if "link" in self.metadata.__fields__
+                and self.metadata.link.endswith(".md")
+                else None
+            )
+
             excerpt_text = excerpt_template.render(
                 document=self,
                 excerpt_text=text,
                 keywords=", ".join(keywords),
-                minimap=minimap_fn(chr),
+                minimap=minimap,
                 **extra_template_kwargs,
             )
 
