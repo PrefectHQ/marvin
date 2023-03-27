@@ -52,7 +52,8 @@ TOWEL_MESSAGE = jinja_env.from_string(
         return value: 
         
         {{ return_value }} 
-        {% endif -%}
+        {% endif %}
+        
         
         Respond with a result of the function call. Do not give any additional
         detail, instructions, or even punctuation; respond ONLY with the output.

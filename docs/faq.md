@@ -42,7 +42,3 @@ Marvin's code can be found on [GitHub](https://www.github.com/prefecthq/marvin).
 ### Why "Marvin"?
 
 Why not?
-
-### Is there a commercial version of Marvin?
-
-No, Marvin is a fully open-source platform and we have no plans to build a commerical version. All functionality will be made available, though please note that Marvin may reference products or features that themselves are not open-source (such as OpenAI's models themselves). 

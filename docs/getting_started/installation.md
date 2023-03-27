@@ -1,11 +1,13 @@
 # Installation
 
-To install Marvin, run `pip install marvin`.
+## Requirements
 
-Please note that Marvin requires Python 3.10.
+Marvin requires Python 3.10+.
+## For normal use
+To install Marvin, run `pip install marvin`.
 
 Before using Marvin, you'll need to [configure your OpenAI API key](openai.md).
 
-## Development
+## For development
 
 To install Marvin for development, please see the [development guide](../development/development.md).

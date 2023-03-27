@@ -19,15 +19,11 @@ To obtain an OpenAI API key, follow these steps:
 The easiest way to set your API key is by running `marvin setup-openai`, which will let you store your API key in your Marvin configuration file. 
 
 ### Environment variables
-Alternatively, you can provide your API key as an environment variable (as with any Marvin setting). Marvin will check for the key under two different env vars. First, it will check `MARVIN_OPENAI_API_KEY`, and then it will check `OPENAI_API_KEY`. The latter is more standard and may be accessed by multiple libraries, but the former can be used to scope the API key for Marvin's use only. These docs will use `MARVIN_OPENAI_API_KEY` but either will work.
+Alternatively, you can provide your API key as an environment variable (as with any Marvin setting). Marvin will check `MARVIN_OPENAI_API_KEY` followed by `OPENAI_API_KEY`. The latter is more standard and may be accessed by multiple libraries, but the former can be used to scope the API key for Marvin's use only. These docs will use `MARVIN_OPENAI_API_KEY` but either will work.
 
 To set your OpenAI API key as an environment variable, open your terminal and run the following command, replacing <your API key> with the actual key:
 ```shell
 export MARVIN_OPENAI_API_KEY=<your API key>
-```
-or, for more general use:
-```shell
-export OPENAI_API_KEY=<your API key>
 ```
 
 This will set the key for the duration of your terminal session. To set it more permanently, configure your terminal or its respective env files.

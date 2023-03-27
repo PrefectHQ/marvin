@@ -60,7 +60,7 @@ async def chat(bot: Bot, first_message: str = None):
                     message,
                     title="You",
                     title_align="left",
-                    subtitle=f"[gray50]{pendulum.now().format('h:m:s A')}",
+                    subtitle=f"[gray50]{pendulum.now().format('h:mm:ss A')}",
                     subtitle_align="right",
                     border_style="gray50",
                 )
@@ -78,7 +78,7 @@ async def chat(bot: Bot, first_message: str = None):
                         ),
                         title=bot.name,
                         title_align="left",
-                        subtitle=f"[gray50]{pendulum.now().format('h:m:s A')}",
+                        subtitle=f"[gray50]{pendulum.now().format('h:mm:ss A')}",
                         subtitle_align="right",
                         border_style="blue",
                     )
@@ -101,7 +101,7 @@ async def chat(bot: Bot, first_message: str = None):
                     response.content,
                     title=bot.name,
                     title_align="left",
-                    subtitle=f"[gray50]{pendulum.now().format('h:m:s A')}",
+                    subtitle=f"[gray50]{pendulum.now().format('h:mm:ss A')}",
                     subtitle_align="right",
                     border_style="blue",
                 )
