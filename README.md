@@ -1,6 +1,6 @@
 # Welcome to Marvin 🤖🏖️
 
-![](ai_fn_demo.png)
+![](docs/img/ai_fn_demo.png)
 
 Marvin is a batteries-included library designed to simplify the process of building AI-powered software. It introduces three core abstractions: AI functions, bots, and Knowledge. AI functions are powerful tools that let users define and execute functions without any source code, while bots serve as AI assistants that can follow instructions and use plugins. Knowledge provides an effective method for enhancing bots' abilities by loading external information. Marvin's innovative approach to "functional prompt engineering" allows developers to work with structured inputs and outputs, seamlessly integrating AI functions into traditional code and enabling the creation of sophisticated AI pipelines.
 
@@ -13,13 +13,13 @@ Marvin is a batteries-included library designed to simplify the process of build
 ## Features
 
 
-🦾 Write [AI functions](guide/ai_functions.md) that process structured data without source code
+🦾 Write [AI functions](https://askmarvin.ai/guide/ai_functions.md) that process structured data without source code
 
-🤖 Create [bots](guide/bots.md) that have personalities and follow instructions
+🤖 Create [bots](https://askmarvin.ai/guide/bots.md) that have personalities and follow instructions
 
-🔌 Build [plugins](guide/plugins.md) to give bots new abilities
+🔌 Build [plugins](https://askmarvin.ai/guide/plugins.md) to give bots new abilities
 
-📚 Store [knowledge](guide/loaders_and_documents.md) that bots can access and use
+📚 Store [knowledge](askmarvin.ai//guide/loaders_and_documents.md) that bots can access and use
 
 📡 Available as a Python API, interactive CLI, or FastAPI server
 
@@ -30,10 +30,10 @@ Marvin is a batteries-included library designed to simplify the process of build
 ```shell
 marvin chat -p "knows every Star Wars meme" Hello there
 ```
-<img width="1034" alt="image" src="https://user-images.githubusercontent.com/153965/226232390-c98ffee3-c272-42fa-befb-70d94bebfda7.png">
+![](docs/img/marvin_chat.png)
 
 
-See [getting started](getting_started/installation.md) for more!
+See [getting started](askmarvin.ai/getting_started/installation.md) for more!
 
 ## Highlights
 
