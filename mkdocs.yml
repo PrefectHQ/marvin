@@ -15,6 +15,7 @@ nav:
       - 🤖 Bots: guide/bots.md
       - 🏖️ Towel: guide/towel.md
       - 🏗️ Loaders: guide/loaders_and_documents.md
+      - ⚙️ Infrastructure: guide/infra.md
       - 🔌 Plugins: guide/plugins.md
     - Development:
       - Setting up: development/development.md

@@ -50,7 +50,7 @@ my_document = Document(
 ```
 
 ### Creating excerpts from a `Document`
-`Document` offers a `to_excerpts` method that splits a `Document` into a `list[Document]` which are rich excerpts of the original `Document`.
+`Document` offers a `to_excerpts` method that splits a `Document` into a `list[Document]` which are rich excerpts of the original.
 
 ```python
 # using the same document as above
