@@ -2,8 +2,6 @@ import itertools
 from pathlib import Path
 from typing import Any, Callable, Iterable, TypeVar
 
-from marvin.config import GITIGNORE_PATTERNS
-
 T = TypeVar("T")
 
 
@@ -39,11 +37,9 @@ def batched(
             yield batch
 
 
-def multi_glob(directory, keep_globs=None, drop_globs=None, gitignore=False):
+def multi_glob(directory, keep_globs=None, drop_globs=None):
     keep_globs = keep_globs or ["**/*"]
-    drop_globs = drop_globs or []
-    if gitignore:
-        drop_globs.extend(GITIGNORE_PATTERNS)
+    drop_globs = drop_globs or [".git/**/*"]
 
     directory_path = Path(directory)
 

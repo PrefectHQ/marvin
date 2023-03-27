@@ -197,8 +197,7 @@ class GitHubRepoLoader(Loader):
     @validator("repo")
     def validate_repo(cls, v):
         """Validate the GitHub repository."""
-        pattern = r"^[^/\s]+/[^/\s]+$"
-        if not re.match(pattern, v):
+        if not re.match(r"^[^/\s]+/[^/\s]+$", v):
             raise ValueError(
                 "Must provide a GitHub repository in the format 'owner/repo'"
             )

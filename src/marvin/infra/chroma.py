@@ -107,3 +107,6 @@ class Chroma:
             include=include,
             **kwargs,
         )
+
+    async def count(self) -> int:
+        return await run_async(self.collection.count)

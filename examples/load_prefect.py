@@ -13,39 +13,40 @@ async def load_prefect_things():
         exclude=["api-ref"],
     )
 
-    GitHubIssueLoader(  # gimme da issues
+    prefect_github_issues = GitHubIssueLoader(  # gimme da issues
         repo="prefecthq/prefect",
         n_issues=50,
     )
 
-    GitHubRepoLoader(  # gimme da source
-        repo="prefecthq/prefect", glob="**/*.py", exclude_glob="**/tests/**"
+    prefect_source_code = GitHubRepoLoader(  # gimme da source
+        repo="prefecthq/prefect",
+        include_globs=["**/*.py"],
+        exclude_globs=["**/tests/**"],
     )
 
-    DiscourseLoader(  # gimme da discourse
+    prefect_discourse = DiscourseLoader(  # gimme da discourse
         url="https://discourse.prefect.io",
     )
 
-    GitHubRepoLoader(  # gimme da recipes
+    prefect_recipes = GitHubRepoLoader(  # gimme da recipes (or at least some of them)
         repo="prefecthq/prefect-recipes",
-        glob="**/*.py",
-        exclude_glob="prefect-v1-legacy/**",
+        include_globs=["flows-advanced/**/*.py"],
     )
 
     prefect_loader = MultiLoader(
         loaders=[
             prefect_docs,
-            # prefect_discourse,
-            # prefect_github_issues,
-            # prefect_recipes,
-            # prefect_source_code,
+            prefect_discourse,
+            prefect_github_issues,
+            prefect_recipes,
+            prefect_source_code,
         ]
     )
     await prefect_loader.load_and_store()
 
 
 async def hello_marvin():
-    # await load_prefect_things()
+    await load_prefect_things()
     bot = Bot(
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
@@ -72,7 +73,7 @@ async def hello_marvin():
     )
     await bot.interactive_chat()
 
-    print(await bot.history.to_jsonl())
+    print(await bot.history.log())
 
 
 if __name__ == "__main__":
