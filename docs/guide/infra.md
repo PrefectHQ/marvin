@@ -1,8 +1,7 @@
 # Infra
 
 ## Chroma 
-Marvin provides a simple wrapper of the [ChromaDB](https://github.com/PrefectHQ/marvin/blob/main/src/marvin/infra/chroma.py)
-client to make it easier to interact with the database.
+Marvin [provides a simple wrapper](https://github.com/PrefectHQ/marvin/blob/main/src/marvin/infra/chroma.py) of the ChromaDB client to make it easier to interact with the database.
 
 Read the [ChromaDB usage guide](https://docs.trychroma.com/usage-guide) for more information.
 
