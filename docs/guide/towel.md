@@ -61,6 +61,8 @@ To disable this behavior entirely, call the decorator as `@towel(call_function=F
 The towel decorator works with async functions.
 
 ```python
+from marvin import towel
+
 @towel
 async def f(x: int) -> int:
     """Add 100 to x"""
@@ -73,6 +75,8 @@ Annotations don't have to be types; they can be complex objects or even string d
 
 Therefore, consider these two approaches to defining an output:
 ```python
+from marvin import towel
+
 @towel
 def fn_with_docstring(n: int) -> list[dict]:
     """
@@ -107,6 +111,8 @@ All three of these functions will give similar output (though the last one, `fn_
 
 ### Generate a list of fruit
 ```python
+from marvin import towel
+
 @towel
 def list_fruit(n: int) -> list[str]:
     """Generate a list of n fruit"""
@@ -117,6 +123,8 @@ list_fruit(3) # ["apple", "banana", "orange"]
 
 ### Generate fake data according to a schema
 ```python
+from marvin import towel
+
 @towel
 def fake_people(n: int) -> list[dict]:
     """
@@ -134,6 +142,8 @@ fake_people(3)
 ### Correct spelling and grammar
 
 ```python
+from marvin import towel
+
 @towel
 def fix_sentence(sentence: str) -> str:
     """
@@ -149,6 +159,8 @@ This function takes any text and summarizes it. See the next example for a
 function that can also access Wikipedia automatically.
 
 ```python
+from marvin import towel
+
 @towel
 def summarize(text: str) -> str:
     """
@@ -171,6 +183,8 @@ summarize(text=page.content)
 This example demonstrates how `towel` can call a function to get additional information that can be used in producing a result. Here, the function downloads content from Wikipedia given a title.
 
 ```python
+from marvin import towel
+
 @towel
 def summarize_from_wikipedia(title: str) -> str:
     """
@@ -199,6 +213,8 @@ summarize_from_wikipedia(title='large language model')
 This example demonstrates how `towel` can call a function to get additional information that can be used in producing a result. Here, the function loads an article and then suggests a title for it.
 
 ```python
+from mavin import towel
+
 @towel
 def suggest_title(url: str) -> str:
     """
@@ -221,6 +237,8 @@ suggest_title(url="https://techcrunch.com/2023/03/14/openai-releases-gpt-4-ai-th
 ### Generate rhymes
 
 ```python
+from mavin import towel
+
 @towel
 def rhyme(word: str) -> str:
     """
@@ -233,9 +251,9 @@ rhyme("blue") # glue
 ### Find words meeting specific criteria
 
 ```python
-import marvin
+from mavin import towel
 
-@marvin.towel
+@towel
 def find_words(text: str, criteria: str) -> list[str]:
     """
     Given text and some criteria, returns a list of 

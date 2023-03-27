@@ -20,7 +20,7 @@ from marvin.utilities.logging import get_logger
 from . import utilities, models, infra, api, bots, plugins
 
 
-from marvin.plugins import Plugin
+from marvin.plugins import Plugin, plugin
 from marvin.bots import Bot
 from marvin.bots.towel import towel
 

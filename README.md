@@ -69,14 +69,15 @@ Launch the Marvin REST API by running `marvin server start`. You can visit `http
 Plugins add functionality to your bot beyond simple conversation. By default, bots have access to plugins that can search the web, visit URLs, and evaluate mathematical expressions. It's easy to add new plugins or develop your own.
 
 ```python
-from marvin import Bot, Plugin
+from marvin import Bot, plugin
+import random
 
-class RandomNumber(Plugin):
-    description: str = "Use this plugin to generate a random number between a and b"
-    def run(self, a:float, b:float) -> float:
-        return a + (b - a) * random.random()
+@plugin
+def random_number(min:float, max:float) -> float:
+    """Use this plugin to generate a random number between min and max"""
+    return min + (max - min) * random.random()
 
-bot = Bot(plugins=[RandomNumber()])
+bot = Bot(plugins=[random_number])
 
 await bot.say('Use the plugin to pick a random number between 41 and 43')
 ```

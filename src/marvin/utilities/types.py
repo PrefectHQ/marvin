@@ -144,8 +144,8 @@ class DiscriminatedUnionType(MarvinBaseModel):
         register them for deserialization
         """
 
-        if discriminator := getattr(cls, "_discriminator", None) is not None:
-            value = discriminator
+        if getattr(cls, "_discriminator", None) is not None:
+            value = cls._discriminator
         else:
             value = f"{cls.__name__}"
 
