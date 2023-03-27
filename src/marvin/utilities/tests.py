@@ -5,7 +5,7 @@ from typing import Any
 
 import httpx
 
-from marvin import get_logger, towel
+from marvin import ai_fn, get_logger
 from marvin.programs.utilities import ApproximatelyEquivalent
 
 
@@ -25,7 +25,7 @@ def assert_approx_equal(statement_1: str, statement_2: str):
     assert asyncio.run(ApproximatelyEquivalent().run(statement_1, statement_2))
 
 
-@towel()
+@ai_fn()
 def assert_llm(output: Any, expectation: Any) -> bool:
     """
     Given the `output` of an LLM and an expectation, determines whether the

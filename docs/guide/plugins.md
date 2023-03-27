@@ -4,7 +4,38 @@ Plugins extend a bot's functionality by letting it call a function and see the r
 
 ## Writing plugins
 
-Plugins inherit from the `marvin.Plugin` base class and should implement a `run()` method. They must also have a `description` attribute.
+The simplest way to write a plugin is using the `@plugin` decorator. Note that plugin functions must have a docstring, as this is displayed to the bot so it can decide if it should use a plugin or not.
+
+```python
+from marvin import Bot, plugin
+import random
+
+@plugin
+def random_number(min:float, max:float) -> float:
+    """Use this plugin to generate a random number between min and max"""
+    return min + (max - min) * random.random()
+
+bot = Bot(plugins=[random_number])
+
+await bot.say('Use the plugin to pick a random number between 41 and 43')
+```
+
+For more complex plugins, you can inherit from the `marvin.Plugin` base class and implement a `run()` method. Class-based plugins must also have a `description` attribute. This is the equivalent of the function-based plugin above:
+
+```python
+from marvin import Bot, Plugin
+import random
+
+class RandomNumber(Plugin):
+    description: str = "Use this plugin to generate a random number between min and max"
+
+    def run(self, min:float, max:float) -> float:
+        return min + (max - min) * random.random()
+
+bot = Bot(plugins=[RandomNumber()])
+
+await bot.say('Use the plugin to pick a random number between 41 and 43')
+```
 
 
 
