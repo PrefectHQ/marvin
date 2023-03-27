@@ -5,11 +5,10 @@ import re
 from typing import TYPE_CHECKING, Any, Callable
 
 import pendulum
-from prefect.utilities.collections import listrepr
 from pydantic import Field, validator
 
 import marvin
-from marvin.bots.history import History, InMemoryHistory, ThreadHistory
+from marvin.bots.history import History, ThreadHistory
 from marvin.bots.input_transformers import InputTransformer
 from marvin.bots.response_formatters import (
     ResponseFormatter,
@@ -18,7 +17,7 @@ from marvin.bots.response_formatters import (
 from marvin.models.ids import BotID, ThreadID
 from marvin.models.threads import BaseMessage, Message
 from marvin.plugins import Plugin
-from marvin.utilities.strings import extract_links_from_text, jinja_env
+from marvin.utilities.strings import jinja_env
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 
@@ -366,7 +365,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
                     plugin_name=plugin_name,
                     plugin_inputs=plugin_inputs,
                 )
-                await self._summarize_plugin_output(plugin_output=plugin_output)
 
                 self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
 
@@ -458,23 +456,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
             ).format(plugin_names=plugin_names, plugin_descriptions=plugin_descriptions)
 
             return Message(role="system", content=plugin_overview)
-
-    async def _summarize_plugin_output(self, plugin_output: str) -> str:
-        from marvin.bots.utility_bots import summarize_bot
-
-        links = extract_links_from_text(plugin_output)
-
-        existing_history = summarize_bot.history
-        summarize_bot.history = InMemoryHistory()
-        summarized_plugin_output = (await summarize_bot.say(plugin_output)).content
-        summarize_bot.history = existing_history
-
-        summary = f"Summary of plugin output: {summarized_plugin_output}"
-
-        if links:
-            summary += f"\n\nLinks within plugin output:\n\n{listrepr(links)}"
-
-        await self.history.add_message(Message(role="system", content=summary))
 
     async def _get_history(self) -> list[Message]:
         return await self.history.get_messages(max_tokens=2500)
