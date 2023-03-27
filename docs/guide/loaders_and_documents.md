@@ -19,7 +19,7 @@ asyncio.run(prefect_source_code.load_and_store())
 A `Loader` parses a source of information into a `list[Document]`, which can then be stored as context for the LLM.
 
 <p align="center">
-  <img src="../imgs/loader_diagram.png" alt="Image description" width="700">
+  <img src="https://github.com/PrefectHQ/marvin/blob/main/docs/imgs/loader_diagram.png" alt="Image description" width="700">
 </p>
 
 
