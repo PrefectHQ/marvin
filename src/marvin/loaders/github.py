@@ -165,6 +165,7 @@ class GitHubIssueLoader(Loader):
                 title=issue.title,
                 labels=", ".join([label.name for label in issue.labels]),
                 document_type="github issue",
+                created_at=issue.created_at.timestamp(),
             )
             documents.extend(
                 await Document(

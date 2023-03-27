@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 import chromadb
@@ -12,9 +13,10 @@ if TYPE_CHECKING:
     from chromadb.api.types import Include, QueryResult
 
 
-def get_client(settings: chromadb.config.Settings = None) -> chromadb.Client:
-    print(settings)
-    return chromadb.Client(settings=settings or marvin.settings.chroma)
+@lru_cache
+def get_client() -> chromadb.Client:
+    # chroma_settings = settings or marvin.settings.chroma
+    return chromadb.Client(marvin.settings.chroma)
 
 
 class Chroma:
@@ -34,11 +36,11 @@ class Chroma:
     def __init__(
         self,
         collection_name: str = None,
-        settings: chromadb.config.Settings = None,
+        # settings: chromadb.config.Settings = None,
     ):
         import chromadb.utils.embedding_functions
 
-        self.client = get_client(settings=settings)
+        self.client = get_client()
         self.collection: Collection = self.client.get_or_create_collection(
             name=collection_name or marvin.settings.default_topic,
             embedding_function=chromadb.utils.embedding_functions.OpenAIEmbeddingFunction(
@@ -93,7 +95,7 @@ class Chroma:
         where: dict = None,
         where_document: dict = None,
         include: "Include" = ["metadatas"],
-        **kwargs
+        **kwargs,
     ) -> "QueryResult":
         return await run_async(
             self.collection.query,
@@ -103,5 +105,5 @@ class Chroma:
             where=where,
             where_document=where_document,
             include=include,
-            **kwargs
+            **kwargs,
         )

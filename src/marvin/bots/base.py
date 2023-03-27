@@ -365,13 +365,11 @@ class Bot(MarvinBaseModel, LoggerMixin):
                     plugin_name=plugin_name,
                     plugin_inputs=plugin_inputs,
                 )
-                plugin_output_summary = await self._summarize_plugin_output(
-                    plugin_output=plugin_output
-                )
+                # plugin_output_summary = await self._summarize_plugin_output(
+                #     plugin_output=plugin_output
+                # )
 
-                self.logger.debug_kv(
-                    "Plugin output", plugin_output_summary, "bold blue"
-                )
+                self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
 
                 messages.append(Message(role="ai", content=response))
                 messages.append(

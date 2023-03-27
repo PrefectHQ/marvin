@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Callable, Dict
 
 import httpx
 import pendulum
@@ -9,7 +9,10 @@ from marvin.loaders.base import Loader
 from marvin.models.documents import Document
 from marvin.models.metadata import Metadata
 
-COMMON_QUESTIONS_CATEGORY_ID = 24
+
+def should_include_post(post: dict) -> bool:
+    """Return whether the post should be included in the results."""
+    return post["accepted_answer"]
 
 
 class DiscoursePost(BaseModel):
@@ -36,8 +39,7 @@ class DiscourseLoader(Loader):
     url: str = Field(default="https://discourse.prefect.io")
     n_posts: int = Field(default=50)
     request_headers: Dict[str, str] = Field(default_factory=dict)
-
-    _default_category_id: int = COMMON_QUESTIONS_CATEGORY_ID
+    post_filter: Callable[[dict], bool] = Field(default=should_include_post)
 
     @validator("request_headers", always=True)
     def auth_headers(cls, v):
@@ -83,5 +85,5 @@ class DiscourseLoader(Loader):
             return [
                 DiscoursePost(base_url=self.url, **post)
                 for post in response.json()["latest_posts"]
-                if post["category_id"] == self._default_category_id
+                if should_include_post(post)
             ]

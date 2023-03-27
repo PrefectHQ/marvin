@@ -16,7 +16,6 @@ MULTIPLE_WHITESPACE = re.compile(r"[\t ]+")
 LINKS = re.compile(
     r"\bhttp[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F])|#)+\b|(?<=\]\()\bhttp[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F])|#)+\b(?=\))"
 )  # noqa: E501
-CODE_BLOCKS = re.compile(r"(?:(?<=```)\n)?```(\w+)?\s(.*?)```(?!\n```)", re.DOTALL)
 
 
 jinja_env = Environment(
@@ -155,14 +154,6 @@ async def extract_keywords(text: str, n_keywords: int = None) -> list[str]:
 
 def extract_links_from_text(text: str) -> list[str]:
     return LINKS.findall(text)
-
-
-def extract_code_blocks(text):
-    matches = CODE_BLOCKS.findall(text)
-    code_blocks = [
-        {"language": match[0], "code": match[1].strip()} for match in matches
-    ]
-    return code_blocks
 
 
 def create_minimap_fn(content: str) -> Callable[[int], str]:
