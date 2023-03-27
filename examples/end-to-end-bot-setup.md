@@ -30,9 +30,31 @@ harry_styles_stan = Bot(
 ## Chat interactively with the bot
 ```python
 await harry_styles_stan.interactive_chat()
-
 ```
 
 <p align="center">
-  <img src="https://github.com/PrefectHQ/marvin/blob/e2e-bot-setup-example/docs/img/harry_styles.png" alt="harry_styles_stan" width="600"/>
+  <img src="https://github.com/PrefectHQ/marvin/blob/e2e-bot-setup-example/docs/img/harry_styles.png" alt="harry_styles_stan" width="700"/>
 </p>
+
+## Exit the interactive chat
+```ipython
+exit
+```
+
+## Save the bot
+```python
+await harry_styles_stan.save()
+```
+
+## Load the saved bot
+### From a script or REPL
+```python
+from marvin.bots import Bot
+
+harry_styles_stan = await Bot.load("harry_styles_stan")
+```
+
+### From the CLI
+```shell
+marvin chat -b "Exists for Harry Styles Bot"
+```
