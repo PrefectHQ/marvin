@@ -21,5 +21,8 @@ jobs:
           path: .cache
 
       # for now, only install mkdocs. In the future may need to install Marvin itself.
-      - run: pip install "mkdocs-material~=9.1.3" "mkdocs-awesome-pages-plugin~=2.8.0"
+      - run: pip install \
+          mkdocs-material \
+          mkdocs-autolinks-plugin \
+          mkdocs-awesome-pages-plugin
       - run: mkdocs gh-deploy --force

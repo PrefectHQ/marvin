@@ -1,27 +1,30 @@
 site_name: Marvin
 nav:
-  - Welcome: index.md
-  - Getting Started:
-    - Installation: getting_started/installation.md
-    - Configuring OpenAI: getting_started/openai.md
-    - Start chatting: getting_started/chat.md
+  - Welcome: 
+    - index.md
+    - Getting Started:
+      - Installation: getting_started/installation.md
+      - Configuring OpenAI: getting_started/openai.md
+      - Chat: getting_started/chat-quickstart.md
+      - Get your towel: getting_started/towel-quickstart.md
+      - Launch a bot: getting_started/bots-quickstart.md
   - The Guide:
     - Overview: guide/overview.md
     - Configuration: guide/configuration.md
     - Concepts:
-      - 🧙 Towel: guide/towel.md
       - 🤖 Bots: guide/bots.md
+      - 🏖️ Towel: guide/towel.md
       - 🏗️ Loaders: guide/loaders_and_documents.md
+      - 🔌 Plugins: guide/plugins.md
     - Development:
       - Setting up: development/development.md
-      - Plugins: development/plugins.md
   - FAQ: faq.md
   
 theme:
   name: material
   font: 
     text: Inter
-    code: Fira Code
+    code: SFMono-Regular
   features:
     - navigation.instant
     - navigation.tabs
@@ -40,21 +43,37 @@ theme:
   palette:
     # Palette toggle for light mode
     - scheme: default
-      primary: blue
-      accent: light blue
+      # primary: green
+      # accent: light blue
       toggle:
         icon: material/weather-sunny 
         name: Switch to dark mode
     # Palette toggle for dark mode
     - scheme: slate
-      primary: blue
-      accent: light blue
+      # primary: blue
+      # accent: light blue
       toggle:
         icon: material/weather-night
         name: Switch to light mode
 plugins:
   - search
   - awesome-pages
+  - autolinks 
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+              show_source: False
+              show_root_heading: True
+              show_object_full_path: False
+              show_category_heading: False
+              show_bases: False
+              show_submodules: False
+              show_if_no_docstring: False
+              show_signature: False
+              heading_level: 2
+              filters: ["!^_"]
 markdown_extensions:
   - toc:
       permalink: true
@@ -68,6 +87,8 @@ markdown_extensions:
   - pymdownx.emoji:
       emoji_index: !!python/name:materialx.emoji.twemoji
       emoji_generator: !!python/name:materialx.emoji.to_svg
+  - attr_list
+  - md_in_html
 repo_url: https://github.com/prefecthq/marvin
 edit_uri: edit/main/docs/
 extra:
@@ -78,3 +99,5 @@ extra:
       link: https://github.com/prefecthq/marvin
     - icon: fontawesome/brands/slack
       link: https://prefect.io/slack
+extra_css:
+  - stylesheets/extra.css
