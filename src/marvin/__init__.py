@@ -27,4 +27,5 @@ from marvin.bots.towel import towel
 _logger = get_logger(__name__)
 if settings.test_mode:
     _logger.debug_style("Marvin is running in test mode!", style="yellow")
-_logger.debug(f'OpenAI model: "{settings.openai_model_name}"')
+if not settings.openai_model_name.startswith("gpt-4"):
+    _logger.info_style(f'Using OpenAI model "{settings.openai_model_name}"')
