@@ -27,6 +27,8 @@ A synchronous convenience method is also available:
 ford_bot.say_sync("Hello again!")
 ``` 
 
+### History
+When you speak with a bot, every message is automatically stored. The bot uses its `history` module to access these messages, which means you can refer to earlier parts of your conversation without any extra work. In Marvin, each conversation is called a `thread`. Bots generate a new thread any time they are instantiated, but you can resume a specific thread by calling `Bot.set_thread()`. If you want to clear the thread and start a new one, call `Bot.reset_thread()`. 
 ### Saving bots
 
 Bots can be saved to the database by calling the `Bot.save()` method. Bots are saved under the name they're given and **will overwrite** any existing bot with the same name.

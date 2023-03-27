@@ -1,8 +1,7 @@
-# Marvin 🤖🏖️
+# Welcome to Marvin 🤖🏖️
 
-<figure markdown>
+
 ![](towel_demo.png){.shadow}
-</figure>
 
 Marvin is an open-source, batteries-included library for deploying AI tools.
 

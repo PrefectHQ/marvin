@@ -5,7 +5,9 @@ nav:
     - Getting Started:
       - Installation: getting_started/installation.md
       - Configuring OpenAI: getting_started/openai.md
-      - Start chatting: getting_started/chat.md
+      - Chat: getting_started/chat-quickstart.md
+      - Get your towel: getting_started/towel-quickstart.md
+      - Launch a bot: getting_started/bots-quickstart.md
   - The Guide:
     - Overview: guide/overview.md
     - Configuration: guide/configuration.md
