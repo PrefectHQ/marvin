@@ -33,7 +33,7 @@ EXCERPT_TEMPLATE = jinja_env.from_string(
         {% if minimap %}
         # Excerpt's location in document
         {{ minimap }}
-        {% endif %}# Excerpt content: {{ excerpt_text }}"""
+        {% endif %}# Excerpt content: {{ excerpt_text }}"""  # noqa: E501
     )
 )
 
@@ -132,27 +132,3 @@ class Document(MarvinBaseModel):
                 )
             )
         return excerpts
-
-
-if __name__ == "__main__":
-    import asyncio
-    import random
-
-    import httpx
-
-    from marvin.models.documents import Document
-    from marvin.models.metadata import Metadata
-
-    document = Document(
-        text=httpx.get(
-            f"http://dalaipsum.com/ipsum.php?number={random.randint(1, int(1e9))}"
-        ).text[: int(1e4)],
-        metadata=Metadata(
-            title="Test document",
-            source="nate",
-            link="http://dalaipsum.com",
-            zen="yes",
-        ),
-    )
-
-    print(asyncio.run(document.to_excerpts()))
