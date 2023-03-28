@@ -94,3 +94,17 @@ class TestBool:
         y = is_blue("green")
         assert isinstance(y, bool)
         assert y is False
+
+    def test_bool_response_issue_55(self):
+        # hinting `True` or `False` in a nested bool broke JSON parsing that
+        # expected lowercase
+        @ai_fn
+        def classify_sentiment(messages: list[str]) -> list[bool]:
+            """
+            Given a list of messages, classifies each one as
+            positive (True) or negative (False) and returns
+            a corresponding list
+            """
+
+        result = classify_sentiment(["i love pizza", "i hate pizza"])
+        assert result == [True, False]
