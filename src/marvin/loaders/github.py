@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import aiofiles
-import cchardet as chardet
+import chardet
 import httpx
 import pendulum
 from pydantic import BaseModel, Field, validator
