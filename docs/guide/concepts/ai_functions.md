@@ -1,6 +1,6 @@
 # AI Functions
 
-![](ai_fn_hero.png)
+![](ai_fn_fruits_hero.png)
 
 !!! tip "Features"
     🎉 Create AI functions with a single `@ai_fn` decorator
@@ -14,18 +14,18 @@
 AI functions are functions that are defined locally but use AI to generate their outputs. Like normal functions, AI functions take arguments and return structured outputs like `lists`, `dicts` or even Pydantic models. Unlike normal functions, they don't need any source code! 
 
 
-Consider the following example, which contains a function that generates a list of fruit. The function is defined with a descriptive name, annotated input and return types, and a docstring -- but doesn't appear to actually do anything. Nonetheless, because of the `@ai_fn` decorator, it can be called like a normal function and returns a list of fruit.
+Consider the following example, which contains a function that generates a list of fruits. The function is defined with a descriptive name, annotated input and return types, and a docstring -- but doesn't appear to actually do anything. Nonetheless, because of the `@ai_fn` decorator, it can be called like a normal function and returns a list of fruits.
 
 ```python hl_lines="4"
 from marvin import ai_fn
 
 
 @ai_fn
-def list_fruit(n: int) -> list[str]:
-    """Generate a list of n fruit"""
+def list_fruits(n: int) -> list[str]:
+    """Generate a list of n fruits"""
 
 
-list_fruit(n=3) # ["apple", "banana", "orange"]
+list_fruits(n=3) # ["apple", "banana", "orange"]
 ```
 !!! tip
     AI functions work best with GPT-4, but results are still very good with GPT-3.5.
@@ -150,16 +150,16 @@ All three of these functions will give similar output (though the last one, `fn_
 
 ## Examples
 
-### Generate a list of fruit
+### Generate a list of fruits
 ```python
 from marvin import ai_fn
 
 @ai_fn
-def list_fruit(n: int) -> list[str]:
-    """Generate a list of n fruit"""
+def list_fruits(n: int) -> list[str]:
+    """Generate a list of n fruits"""
 
 
-list_fruit(3) # ["apple", "banana", "orange"]
+list_fruits(3) # ["apple", "banana", "orange"]
 ```
 
 ### Generate fake data according to a schema
