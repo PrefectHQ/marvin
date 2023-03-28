@@ -1,6 +1,6 @@
 # Bots
 
-![](bot_star_wars.png)
+![](bot_star_wars_hero.png)
 
 Bots are AI assistants that can take instructions over multiple interactions. 
 
