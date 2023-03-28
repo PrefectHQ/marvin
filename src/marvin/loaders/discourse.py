@@ -36,6 +36,8 @@ class DiscoursePost(BaseModel):
 class DiscourseLoader(Loader):
     """Loader for Discourse posts."""
 
+    source_type: str = Field(default="discourse")
+
     url: str = Field(default="https://discourse.prefect.io")
     n_posts: int = Field(default=50)
     request_headers: Dict[str, str] = Field(default_factory=dict)
@@ -66,7 +68,7 @@ class DiscourseLoader(Loader):
                 await Document(
                     text=post.cooked,
                     metadata=Metadata(
-                        source=self.__class__.__name__,
+                        source=self.source_type,
                         title=post.topic_title,
                         link=post.url,
                         created_at=post.created_at.timestamp(),

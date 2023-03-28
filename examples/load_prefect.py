@@ -1,21 +1,18 @@
 from marvin.bots import Bot
 from marvin.loaders.base import MultiLoader
 from marvin.loaders.discourse import DiscourseLoader
-from marvin.loaders.github import GitHubIssueLoader, GitHubRepoLoader
+from marvin.loaders.github import GitHubRepoLoader
 from marvin.loaders.web import SitemapLoader
-from marvin.plugins.chroma import SimpleChromaSearch
+from marvin.plugins.chroma import chroma_search
 from marvin.plugins.duckduckgo import DuckDuckGo
+from marvin.plugins.github import search_github_issues
+from prefect.utilities.collections import listrepr
 
 
 async def load_prefect_things():
     prefect_docs = SitemapLoader(  # gimme da docs
         urls=["https://docs.prefect.io/sitemap.xml"],
         exclude=["api-ref"],
-    )
-
-    prefect_github_issues = GitHubIssueLoader(  # gimme da issues
-        repo="prefecthq/prefect",
-        n_issues=50,
     )
 
     prefect_source_code = GitHubRepoLoader(  # gimme da source
@@ -37,12 +34,39 @@ async def load_prefect_things():
         loaders=[
             prefect_docs,
             prefect_discourse,
-            prefect_github_issues,
             prefect_recipes,
             prefect_source_code,
         ]
     )
     await prefect_loader.load_and_store()
+
+
+prefect_keywords = [
+    "prefect",
+    "cloud",
+    "server",
+    "ui",
+    "agent",
+    "flow",
+    "task",
+    "schedule",
+    "deployment",
+    "kubernetes",
+    "docker",
+    "aws",
+    "gcp",
+    "azure",
+    "ecs",
+    "fargate",
+    "lambda",
+    "s3",
+    "cloudwatch",
+    "dask",
+    "worker",
+    "work pool",
+    "k8s",
+    "helm",
+]
 
 
 async def hello_marvin():
@@ -51,25 +75,14 @@ async def hello_marvin():
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
         instructions=(
-            "Use the `SimpleChromaSearch` plugin to retrieve context"
-            " when a user asks a question, or requests information"
-            " about cloud computing as it relates to Prefect."
-            " For current events, use the `DuckDuckGo` plugin."
+            "Use the `chroma_search` plugin to retrieve context when asked about any"
+            f" of the following keywords: {listrepr(prefect_keywords)}. If asked about"
+            " a github issue, use the `search_github_issues` plugin, choosing the most"
+            " appropriate repo based on the user's question. Always provide relevant"
+            " links from plugin outputs. As a last resort, use the `DuckDuckGo` plugin"
+            " to search the web for answers to questions."
         ),
-        plugins=[
-            SimpleChromaSearch(
-                keywords=[
-                    "prefect",
-                    "block",
-                    "flow",
-                    "task",
-                    "deployment",
-                    "work pool",
-                    "cloud",
-                ]
-            ),
-            DuckDuckGo(),
-        ],
+        plugins=[chroma_search, search_github_issues, DuckDuckGo()],
     )
     await bot.interactive_chat()
 

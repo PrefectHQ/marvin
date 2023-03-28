@@ -16,7 +16,7 @@ prefect_docs = SitemapLoader(
 )
 
 # load, embed, store in Chroma locally at ~/.marvin/chroma/*.parquet
-asyncio.run(prefect_source_code.load_and_store())
+asyncio.run(prefect_docs.load_and_store())
 ```
 ## 
 A `Loader` parses a source of information into a `list[Document]`, which can then be stored as context for the LLM.

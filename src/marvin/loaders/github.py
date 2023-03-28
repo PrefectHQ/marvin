@@ -1,7 +1,6 @@
 """Loaders for GitHub."""
 import asyncio
 import functools
-import os
 import re
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -12,6 +11,7 @@ import httpx
 import pendulum
 from pydantic import BaseModel, Field, validator
 
+import marvin
 from marvin.loaders.base import Loader
 from marvin.models.documents import Document
 from marvin.models.metadata import Metadata
@@ -67,21 +67,33 @@ class GitHubIssue(BaseModel):
 
 
 class GitHubIssueLoader(Loader):
-    """Loader for GitHub issues for a given repository."""
+    """Loader for GitHub issues in a given repository.
+
+    **Beware** the [GitHub API rate limit](https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting).
+
+    Use `use_GH_token` to authenticate with your `GITHUB_TOKEN` environment variable and increase the rate limit.
+
+    """  # noqa: E501
+
+    source_type: str = "github issue"
 
     repo: str = Field(...)
     n_issues: int = Field(default=50)
-    request_headers: Dict[str, str] = Field(default_factory=dict)
 
     include_comments: bool = Field(default=False)
     ignore_body_after: str = Field(default="### Checklist")
     ignore_users: List[str] = Field(default_factory=list)
+    use_GH_token: bool = Field(default=False)
+
+    request_headers: Dict[str, str] = Field(default_factory=dict)
 
     @validator("request_headers", always=True)
-    def auth_headers(cls, v):
+    def auth_headers(cls, v, values):
         """Add authentication headers if a GitHub token is available."""
         v.update({"Accept": "application/vnd.github.v3+json"})
-        if token := os.environ.get("GITHUB_TOKEN"):
+        if values["use_GH_token"] and (
+            token := marvin.settings.GITHUB_TOKEN.get_secret_value()
+        ):
             v["Authorization"] = f"Bearer {token}"
         return v
 
@@ -118,8 +130,7 @@ class GitHubIssueLoader(Loader):
 
     async def _get_issues(self, per_page: int = 100) -> List[GitHubIssue]:
         """
-        Get a list of all issues for the given repository. Beware
-        of the [GitHub API rate limit](https://docs.github.com/en/rest/overview/resources-in-the-rest-api#rate-limiting).
+        Get a list of all issues for the given repository.
 
         per_page: The number of issues to request per page.
 
@@ -129,26 +140,24 @@ class GitHubIssueLoader(Loader):
         url = f"https://api.github.com/repos/{self.repo}/issues"
         issues = []
         page = 1
-        while True:
-            if len(issues) >= self.n_issues:
-                break
-            remaining = self.n_issues - len(issues)
-            async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient() as client:
+            while len(issues) < self.n_issues:
+                remaining = self.n_issues - len(issues)
                 response = await client.get(
                     url=url,
                     headers=self.request_headers,
                     params={
-                        "per_page": remaining if remaining < per_page else per_page,
+                        "per_page": min(remaining, per_page),
                         "page": page,
                         "include": "comments",
                     },
                 )
-            response.raise_for_status()
-            if not (new_issues := response.json()):
-                break
-            issues.extend([GitHubIssue(**issue) for issue in new_issues])
-            page += 1
-        return issues
+                response.raise_for_status()
+                if not (new_issues := response.json()):
+                    break
+                issues.extend([GitHubIssue(**issue) for issue in new_issues])
+                page += 1
+            return issues
 
     async def load(self) -> list[Document]:
         """
@@ -171,11 +180,10 @@ class GitHubIssueLoader(Loader):
                     if comment.user.login not in self.ignore_users:
                         text += f"**[{comment.user.login}]**: {comment.body}\n\n"
             metadata = Metadata(
-                source=self.__class__.__name__,
+                source=self.source_type,
                 link=issue.html_url,
                 title=issue.title,
                 labels=", ".join([label.name for label in issue.labels]),
-                document_type="github issue",
                 created_at=issue.created_at.timestamp(),
             )
             documents.extend(
@@ -189,6 +197,8 @@ class GitHubIssueLoader(Loader):
 
 class GitHubRepoLoader(Loader):
     """Loader for files on GitHub that match a glob pattern."""
+
+    source_type: str = "github source code"
 
     repo: str = Field(...)
     include_globs: list[str] = Field(default=None)
@@ -224,10 +234,9 @@ class GitHubRepoLoader(Loader):
 
             for file in multi_glob(tmp_dir, self.include_globs, self.exclude_globs):
                 self.logger.debug(f"Loading file: {file!r}")
-                text = await read_file_with_chardet(Path(tmp_dir) / file)
 
                 metadata = Metadata(
-                    source=self.__class__.__name__,
+                    source=self.source_type,
                     link="/".join(
                         [
                             self.repo.replace(".git", ""),
@@ -239,7 +248,7 @@ class GitHubRepoLoader(Loader):
                 )
                 documents.extend(
                     await Document(
-                        text=text,
+                        text=await read_file_with_chardet(Path(tmp_dir) / file),
                         metadata=metadata,
                     ).to_excerpts()
                 )

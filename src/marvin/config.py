@@ -95,6 +95,9 @@ class Settings(BaseSettings):
         "sqlite+aiosqlite:////$MARVIN_HOME/marvin.sqlite"
     )
 
+    # GITHUB
+    GITHUB_TOKEN: SecretStr = Field("", env=["MARVIN_GITHUB_TOKEN", "GITHUB_TOKEN"])
+
     # REDIS
     redis_connection_url: SecretStr = ""
 

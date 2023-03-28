@@ -52,7 +52,7 @@ class MultiLoader(Loader):
             all_documents.extend(d for docs in batch_documents for d in docs)
         return all_documents
 
-    async def load_and_store(self, topic_name: str = "marvin", batch_size: int = 5):
+    async def load_and_store(self, topic_name: str = "marvin", batch_size: int = 2):
         for batch_of_loaders in batched(self.loaders, batch_size):
             await asyncio.gather(
                 *[
