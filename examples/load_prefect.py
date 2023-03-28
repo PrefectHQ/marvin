@@ -3,7 +3,8 @@ from marvin.loaders.base import MultiLoader
 from marvin.loaders.discourse import DiscourseLoader
 from marvin.loaders.github import GitHubRepoLoader
 from marvin.loaders.web import SitemapLoader
-from marvin.plugins.chroma import chroma_search
+
+# from marvin.plugins.chroma import chroma_search
 from marvin.plugins.duckduckgo import DuckDuckGo
 from marvin.plugins.github import search_github_issues
 from prefect.utilities.collections import listrepr
@@ -18,7 +19,7 @@ async def load_prefect_things():
     prefect_source_code = GitHubRepoLoader(  # gimme da source
         repo="prefecthq/prefect",
         include_globs=["**/*.py"],
-        exclude_globs=["**/tests/**"],
+        exclude_globs=["tests/**/*", "docs/**/*", "**/migrations/**/*"],
     )
 
     prefect_discourse = DiscourseLoader(  # gimme da discourse
@@ -68,21 +69,34 @@ prefect_keywords = [
     "helm",
 ]
 
+with_chroma_search_instructions = (
+    "Use the `chroma_search` plugin to retrieve context when asked about any"
+    f" of the following keywords: {listrepr(prefect_keywords)}. If asked about"
+    " a github issue, use the `search_github_issues` plugin, choosing the most"
+    " appropriate repo based on the user's question. Always provide relevant"
+    " links from plugin outputs. As a last resort, use the `DuckDuckGo` plugin"
+    " to search the web for answers to questions."
+)
+
+barebones_instructions = (
+    "If asked about a github issue, use the `search_github_issues` plugin, choosing"
+    " the most appropriate repo based on the user's question. Always provide relevant"
+    " links from plugin outputs. As a last resort, use the `DuckDuckGo` plugin"
+    " to search the web for answers to questions."
+)
+
+plugins = [search_github_issues, DuckDuckGo()]
+# note that `chroma_search` requires the `chromadb` extra
+# plugins.append(chroma_search)
+
 
 async def hello_marvin():
     await load_prefect_things()
     bot = Bot(
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
-        instructions=(
-            "Use the `chroma_search` plugin to retrieve context when asked about any"
-            f" of the following keywords: {listrepr(prefect_keywords)}. If asked about"
-            " a github issue, use the `search_github_issues` plugin, choosing the most"
-            " appropriate repo based on the user's question. Always provide relevant"
-            " links from plugin outputs. As a last resort, use the `DuckDuckGo` plugin"
-            " to search the web for answers to questions."
-        ),
-        plugins=[chroma_search, search_github_issues, DuckDuckGo()],
+        instructions=barebones_instructions,
+        plugins=plugins,
     )
     await bot.interactive_chat()
 

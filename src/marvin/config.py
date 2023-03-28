@@ -3,7 +3,13 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
 
-import chromadb
+try:
+    import chromadb
+
+    CHROMA_INSTALLED = True
+except ModuleNotFoundError:
+    CHROMA_INSTALLED = False
+
 from pydantic import BaseSettings, Field, SecretStr, root_validator, validator
 from rich import print
 from rich.text import Text
@@ -15,16 +21,22 @@ ENV_FILE = Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()
 ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
 ENV_FILE.touch(exist_ok=True)
 
+if CHROMA_INSTALLED:
 
-class ChromaSettings(chromadb.config.Settings):
-    class Config:
-        env_file = ".env", str(ENV_FILE)
-        env_prefix = "MARVIN_CHROMA_"
+    class ChromaSettings(chromadb.config.Settings):
+        class Config:
+            env_file = ".env", str(ENV_FILE)
+            env_prefix = "MARVIN_CHROMA_"
 
-    chroma_db_impl: Literal["duckdb", "duckdb+parquet"] = "duckdb+parquet"
+        chroma_db_impl: Literal["duckdb", "duckdb+parquet"] = "duckdb+parquet"
 
-    # relative paths will be prefixed with the marvin home directory
-    persist_directory: str = "chroma"
+        # relative paths will be prefixed with the marvin home directory
+        persist_directory: str = "chroma"
+
+else:
+
+    class ChromaSettings(BaseSettings):
+        pass
 
 
 class Settings(BaseSettings):
@@ -138,14 +150,15 @@ class Settings(BaseSettings):
             )
         values["embeddings_cache_path"].parent.mkdir(parents=True, exist_ok=True)
 
-        # prefix HOME to chroma path
-        chroma_persist_directory = Path(values["chroma"]["persist_directory"])
-        if not chroma_persist_directory.is_absolute():
-            chroma_persist_directory = values["home"] / chroma_persist_directory
-            values["chroma"] = ChromaSettings(
-                **values["chroma"].dict(exclude={"persist_directory"}),
-                persist_directory=str(chroma_persist_directory),
-            )
+        if CHROMA_INSTALLED:
+            # prefix HOME to chroma path
+            chroma_persist_directory = Path(values["chroma"]["persist_directory"])
+            if not chroma_persist_directory.is_absolute():
+                chroma_persist_directory = values["home"] / chroma_persist_directory
+                values["chroma"] = ChromaSettings(
+                    **values["chroma"].dict(exclude={"persist_directory"}),
+                    persist_directory=str(chroma_persist_directory),
+                )
 
         # interpolate HOME into database connection URL
         values["database_connection_url"] = SecretStr(

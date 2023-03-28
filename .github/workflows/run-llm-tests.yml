@@ -41,7 +41,7 @@ jobs:
           cache-dependency-path: "**/pyproject.toml"
       - name: Install Marvin
         run: |
-          pip install ".[dev]"
+          pip install ".[dev,chromadb]"
       - name: Run tests that require LLMs
         run: |
           pytest -v -m "llm"
