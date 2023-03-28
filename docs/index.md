@@ -36,6 +36,8 @@ marvin chat -p "knows every Star Wars meme" Hello there
 
 See the [getting started](getting_started/installation.md) docs for more!
 
+!!! warning "Construction zone"
+    Marvin is under active development and is likely to change. 
 
 ## When should you use Marvin?
 
