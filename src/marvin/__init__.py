@@ -11,8 +11,6 @@ from dotenv import load_dotenv as _load_dotenv
 _load_dotenv()
 
 
-__version__ = "0.5.0"
-
 # load marvin root objects
 from marvin.config import settings
 from marvin.utilities.logging import get_logger
