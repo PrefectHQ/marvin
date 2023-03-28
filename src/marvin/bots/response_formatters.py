@@ -71,8 +71,8 @@ class TypeFormatter(ResponseFormatter):
             kwargs.update(
                 type_schema=schema,
                 format=(
-                    "You must match the following type signature:"
-                    f" `{format_type_str(type_)}`"
+                    "A JSON object that matches the following Python type"
+                    f" signature: `{format_type_str(type_)}`"
                 ),
             )
         super().__init__(**kwargs)
