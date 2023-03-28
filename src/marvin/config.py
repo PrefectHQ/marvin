@@ -6,9 +6,9 @@ from typing import Literal
 try:
     import chromadb
 
-    chroma_installed = True
+    CHROMA_INSTALLED = True
 except ModuleNotFoundError:
-    chroma_installed = False
+    CHROMA_INSTALLED = False
 
 from pydantic import BaseSettings, Field, SecretStr, root_validator, validator
 from rich import print
@@ -21,7 +21,7 @@ ENV_FILE = Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()
 ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
 ENV_FILE.touch(exist_ok=True)
 
-if chroma_installed:
+if CHROMA_INSTALLED:
 
     class ChromaSettings(chromadb.config.Settings):
         class Config:
@@ -32,6 +32,11 @@ if chroma_installed:
 
         # relative paths will be prefixed with the marvin home directory
         persist_directory: str = "chroma"
+
+else:
+
+    class ChromaSettings(BaseSettings):
+        pass
 
 
 class Settings(BaseSettings):
@@ -80,6 +85,9 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr = Field(
         "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
     )
+
+    # CHROMA
+    chroma: ChromaSettings = Field(default_factory=ChromaSettings)
 
     # DISCOURSE
     DISCOURSE_API_KEY: SecretStr = Field(
@@ -142,7 +150,7 @@ class Settings(BaseSettings):
             )
         values["embeddings_cache_path"].parent.mkdir(parents=True, exist_ok=True)
 
-        if chroma_installed:
+        if CHROMA_INSTALLED:
             # prefix HOME to chroma path
             chroma_persist_directory = Path(values["chroma"]["persist_directory"])
             if not chroma_persist_directory.is_absolute():
@@ -198,10 +206,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-if chroma_installed:
-    # CHROMA
-    settings.chroma = ChromaSettings
 
 
 @contextmanager

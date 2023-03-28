@@ -1,20 +1,19 @@
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
-import chromadb
-import chromadb.config
-
 import marvin
+from marvin.config import CHROMA_INSTALLED
 from marvin.models.documents import Document
 from marvin.utilities.async_utils import run_async
 
-if TYPE_CHECKING:
+if TYPE_CHECKING and CHROMA_INSTALLED:
+    import chromadb
     from chromadb.api.models.Collection import Collection
     from chromadb.api.types import Include, QueryResult
 
 
 @lru_cache
-def get_client() -> chromadb.Client:
+def get_client() -> "chromadb.Client":
     # chroma_settings = settings or marvin.settings.chroma
     return chromadb.Client(marvin.settings.chroma)
 
@@ -38,6 +37,14 @@ class Chroma:
         collection_name: str = None,
         # settings: chromadb.config.Settings = None,
     ):
+        if not CHROMA_INSTALLED:
+            raise ImportError(
+                "Marvin tried to import chromadb, but it is not installed."
+                " Marvin does not install ChromaDB by default due to"
+                " the size of its dependencies, but it is required for"
+                " using Marvin's knowledge features."
+                " Please install it with `pip install marvin[chromadb]`"
+            )
         import chromadb.utils.embedding_functions
 
         self.client = get_client()
