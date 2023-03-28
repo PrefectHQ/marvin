@@ -1,13 +1,13 @@
 site_name: Marvin
 nav:
   - Welcome: 
-    - index.md
-    - Getting Started:
-      - Installation: getting_started/installation.md
-      - OpenAI: getting_started/openai.md
-      - Chat: getting_started/chat_quickstart.md
-      - AI functions: getting_started/ai_functions_quickstart.md
-      - Bots: getting_started/bots_quickstart.md
+    - welcome.md
+  - Getting Started:
+    - Installation: getting_started/installation.md
+    - Configure OpenAI: getting_started/openai.md
+    - Chat: getting_started/chat_quickstart.md
+    - AI functions: getting_started/ai_functions_quickstart.md
+    - Bots: getting_started/bots_quickstart.md
   - The Guide:
     - Introduction:
       - Overview: guide/introduction/overview.md
