@@ -7,6 +7,13 @@ Marvin [provides a simple wrapper](https://github.com/PrefectHQ/marvin/blob/main
 
 Read the [ChromaDB usage guide](https://docs.trychroma.com/usage-guide) for more information.
 
+!!! warning "ChromaDB has a large memory footprint"
+    ChromaDB uses `sentence-transformers` by default for embeddings, which requires `torch`. [`Torch` does
+    not fully support Python 3.11](https://github.com/pytorch/pytorch/issues/86566).
+    
+    Although Marvin uses OpenAI's "text-embedding-ada-002" model offered via `chromadb.utils.embedding_functions`,
+    `chromadb` enforces the `sentence-transformers` dependency at this time.
+
 ### Relevance to Marvin
 ChromaDB is an embeddings database that is used by Marvin to store and query document embeddings.
 
