@@ -20,27 +20,27 @@ class TestAIFunctions:
         x = rng(20, 21)
         assert 20 <= x <= 21
 
-    def test_list_of_fruit(self):
+    def test_list_of_fruits(self):
         @ai_fn
-        def list_fruit(n: int) -> list[str]:
+        def list_fruits(n: int) -> list[str]:
             """generate a list of n fruits"""
 
-        x = list_fruit(3)
+        x = list_fruits(3)
         assert isinstance(x, list)
         assert len(x) == 3
         assert all(isinstance(fruit, str) for fruit in x)
-        assert_llm(x, "a list of fruit")
+        assert_llm(x, "a list of fruits")
 
-    def test_list_of_fruit_calling_ai_fn_with_no_args(self):
+    def test_list_of_fruits_calling_ai_fn_with_no_args(self):
         @ai_fn()
-        def list_fruit(n: int) -> list[str]:
+        def list_fruits(n: int) -> list[str]:
             """generate a list of n fruits"""
 
-        x = list_fruit(3)
+        x = list_fruits(3)
         assert isinstance(x, list)
         assert len(x) == 3
         assert all(isinstance(fruit, str) for fruit in x)
-        assert_llm(x, "a list of fruit")
+        assert_llm(x, "a list of fruits")
 
     def test_generate_fake_people_data(self):
         @ai_fn

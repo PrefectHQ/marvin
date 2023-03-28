@@ -1,5 +1,6 @@
 # Installation
-![](pip_install_marvin_hero.png)
+
+![](dont_panic.png)
 
 
 ## Requirements
