@@ -78,7 +78,7 @@ INSTRUCTIONS_TEMPLATE = jinja_env.from_string(
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),
     marvin.plugins.duckduckgo.DuckDuckGo(),
-    marvin.plugins.math.Calculator(),
+    marvin.plugins.mathematics.Calculator(),
 ]
 
 
@@ -393,6 +393,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
             plugin_output = plugin.run(**plugin_inputs)
             if inspect.iscoroutine(plugin_output):
                 plugin_output = await plugin_output
+
+            # # send plugin output to
+            # self.publish()
             return plugin_output
         except Exception as exc:
             self.logger.error(

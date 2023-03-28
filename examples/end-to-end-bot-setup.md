@@ -60,6 +60,9 @@ marvin chat -b "Exists for Harry Styles Bot"
 ```
 
 ## Add a plugin
+Read more about plugins [here](https://askmarvin.ai/guide/plugins).
+
+### Add internet search via `DuckDuckGo`
 ```python
 from marvin.plugins.duckduckgo import DuckDuckGo
 

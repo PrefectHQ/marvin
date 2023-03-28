@@ -1,2 +1,2 @@
 from .base import Plugin, plugin
-from . import web, google, duckduckgo, math, chroma
+from . import mathematics, web, github, google, duckduckgo, chroma

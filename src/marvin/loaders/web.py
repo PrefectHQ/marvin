@@ -32,6 +32,8 @@ class URLLoader(WebLoader):
     Given a list of URLs, loads whatever it finds there.
     """
 
+    source_type: str = "url"
+
     urls: list[HttpUrl] = Field(default_factory=list)
 
     async def load(self) -> list[Document]:
@@ -72,7 +74,7 @@ class URLLoader(WebLoader):
             text=await self.get_document_text(response),
             metadata=Metadata(
                 link=str(response.url),
-                source=self.__class__.__name__,
+                source=self.source_type,
                 document_type=self.document_type,
             ),
         )
