@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 from contextlib import asynccontextmanager
 from functools import wraps
@@ -132,3 +133,19 @@ async def create_db():
 async def reset_db(confirm: bool = False):
     await destroy_db(confirm=confirm)
     await create_db()
+
+
+def create_sqlite_db_if_doesnt_exist():
+    async def _create_sqlite_db_if_doesnt_exist():
+        def has_table(conn):
+            import sqlalchemy as _sa
+
+            inspector = _sa.inspect(conn)
+            return inspector.has_table("bot_config")
+
+        if get_dialect() == "sqlite":
+            async with engine.connect() as conn:
+                if not await conn.run_sync(has_table):
+                    await create_db()
+
+    asyncio.run(_create_sqlite_db_if_doesnt_exist())
