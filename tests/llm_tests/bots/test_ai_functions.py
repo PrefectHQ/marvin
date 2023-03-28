@@ -79,3 +79,18 @@ class TestAIFunctions:
         assert all(isinstance(word, str) for word in x)
         assert all(word != "blue" for word in x)
         assert_llm(x, "a list of words that rhyme with blue")
+
+
+class TestBool:
+    def test_bool_response(self):
+        @ai_fn
+        def is_blue(word: str) -> bool:
+            """returns True if the word is blue"""
+
+        x = is_blue("blue")
+        assert isinstance(x, bool)
+        assert x is True
+
+        y = is_blue("green")
+        assert isinstance(y, bool)
+        assert y is False

@@ -157,7 +157,7 @@ def ai_fn(
 
         async def get_response():
             response = await bot.say(message)
-            return response.parsed_content or response.content
+            return response.parsed_content
 
         if inspect.iscoroutinefunction(fn):
             return get_response()
