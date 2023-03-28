@@ -1,5 +1,3 @@
-from importlib.metadata import version
-
 import sqlalchemy as sa
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +14,7 @@ routers = (
 )
 
 
-app = FastAPI(title="Marvin", version=version("marvin"))
+app = FastAPI(title="Marvin", version=marvin.__version__)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

@@ -1,3 +1,5 @@
+from importlib.metadata import version as _get_version
+
 # load nest_asyncio
 import nest_asyncio as _nest_asyncio
 import asyncio as _asyncio
@@ -9,6 +11,7 @@ from dotenv import load_dotenv as _load_dotenv
 
 _load_dotenv()
 
+__version__ = _get_version("marvin")
 
 # load marvin root objects
 from marvin.config import settings

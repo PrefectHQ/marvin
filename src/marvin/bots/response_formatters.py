@@ -71,8 +71,9 @@ class TypeFormatter(ResponseFormatter):
             kwargs.update(
                 type_schema=schema,
                 format=(
-                    "A JSON object that matches the following Python type"
-                    f" signature: `{format_type_str(type_)}`"
+                    "Return a JSON object that matches the following Python type"
+                    f" signature: `{format_type_str(type_)}`. Make sure your response"
+                    " is valid JSON, so return lists instead of sets or tuples."
                 ),
             )
         super().__init__(**kwargs)
