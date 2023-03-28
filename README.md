@@ -11,6 +11,7 @@ Marvin's innovative approach to **"functional prompt engineering"** allows devel
 >
 > -- [Marvin](https://www.youtube.com/clip/UgkxNj9p6jPFM8eWAmRJiKoPeOmvQxb8viQv)
 
+Marvin's documentation is available at [askmarvin.ai](https://www.askmarvin.ai).
 
 ## Features
 
@@ -36,6 +37,9 @@ marvin chat -p "knows every Star Wars meme" Hello there
 
 
 See the [getting started](https://www.askmarvin.ai/getting_started/installation/) docs for more!
+
+## 🚧 Construction Zone
+Marvin is under active development and is likely to change
 
 ## When should you use Marvin?
 
