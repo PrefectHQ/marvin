@@ -1,6 +1,8 @@
 import asyncio
 
 import dotenv
+import openai
+import openai.error
 import typer
 from rich import print as rprint
 from rich.prompt import Prompt
@@ -33,21 +35,33 @@ def setup_openai():
             " [gray50]`marvin setup-openai`[/] to view this screen again. \n"
         )
 
-    api_key = Prompt.ask(
-        (
-            f"Enter your OpenAI API key to save it to [italic gray50]{ENV_FILE}[/], or"
-            " hit enter to unset"
-        ),
-        password=True,
-    )
-    if api_key:
-        marvin.settings.openai_api_key = api_key
-        dotenv.set_key(str(ENV_FILE), "MARVIN_OPENAI_API_KEY", api_key)
-        rprint("API key set!")
-    else:
-        marvin.settings.openai_api_key = ""
-        dotenv.set_key(str(ENV_FILE), "MARVIN_OPENAI_API_KEY", "")
-        rprint("API key unset!")
+    while True:
+        api_key = Prompt.ask(
+            (
+                f"Enter your OpenAI API key to save it to [italic gray50]{ENV_FILE}[/],"
+                " or hit enter to unset"
+            ),
+            password=True,
+        )
+        if api_key:
+            # test the API key. If it's invalid, raise an error.
+
+            try:
+                openai.api_key = api_key
+                # see if we can load models from the API
+                openai.Model.list()
+                marvin.settings.openai_api_key = api_key
+                dotenv.set_key(str(ENV_FILE), "MARVIN_OPENAI_API_KEY", api_key)
+                rprint("API key set!")
+                raise typer.Exit(code=1)
+            except openai.error.AuthenticationError:
+                rprint("[red bold]Invalid API key![/] Please try again.")
+
+        else:
+            marvin.settings.openai_api_key = ""
+            dotenv.set_key(str(ENV_FILE), "MARVIN_OPENAI_API_KEY", "")
+            rprint("API key unset!")
+            raise typer.Exit()
 
 
 @app.command(name="chat", help="Quickly chat with a custom bot")
