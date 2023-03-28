@@ -1,4 +1,4 @@
-name: Static Analysis
+name: Run static analysis
 
 env:
   # enable colored output

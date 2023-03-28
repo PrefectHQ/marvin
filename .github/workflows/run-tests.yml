@@ -1,6 +1,6 @@
 # Basic tests run on every PR and merges to main
 
-name: Run tests
+name: Run non-LLM tests
 
 env:
   # enable colored output
