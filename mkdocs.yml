@@ -1,7 +1,7 @@
 site_name: Marvin
 nav:
   - Welcome: 
-    - welcome.md
+    - index.md
   - Getting Started:
     - Installation: getting_started/installation.md
     - Configure OpenAI: getting_started/openai.md
