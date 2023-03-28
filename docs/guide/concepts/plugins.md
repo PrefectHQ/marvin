@@ -1,6 +1,6 @@
 # Plugins
 
-![](plugin_rng.png)
+![](plugin_rng_hero.png)
 
 !!! tip "Features"
     🦸 Give bots the ability to access new information and abilities

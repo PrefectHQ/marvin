@@ -1,6 +1,6 @@
 # AI Functions
 
-![](ai_fn_demo.png)
+![](ai_fn_hero.png)
 
 AI functions are functions that are defined locally but use AI to generate their outputs. Like normal functions, AI functions take arguments and return structured outputs like `lists`, `dicts` or even Pydantic models. Unlike normal functions, they don't need any source code! 
 
