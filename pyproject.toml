@@ -48,7 +48,7 @@ dependencies = [
     "google_api_python_client~=2.72.0",
     "simpleeval~=0.9.13",
     "trafilatura~=1.4.1",
-    "cchardet~=2.1.7",
+    "chardet~=5.1.0",
     "wikipedia~=1.4.0",
 ]
 
