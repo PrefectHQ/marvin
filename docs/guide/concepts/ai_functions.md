@@ -1,5 +1,14 @@
 # AI Functions
 
+!!! tip "Features"
+    🎉 Create AI functions with a single `@ai_fn` decorator
+
+    🧱 Use native data structures (or Pydantic models!) as inputs and outputs
+
+    🔗 Chain or nest calls to create functional AI pipelines
+
+    🧙 Add features to code that would be difficult or impossible to write yourself
+
 AI functions are functions that are defined locally but use AI to generate their outputs. Like normal functions, AI functions take arguments and return structured outputs like `lists`, `dicts` or even Pydantic models. Unlike normal functions, they don't need any source code! 
 
 
@@ -19,7 +28,7 @@ list_fruit(n=3) # ["apple", "banana", "orange"]
 !!! tip
     AI functions work best with GPT-4, but results are still very good with GPT-3.5.
 
-## When should I use AI functions?
+## When to use AI functions
 Because AI functions look and feel just like normal functions, they are the easiest way to add AI capabilities to your code -- just write the definition of the function you want to call, and use it anywhere! However, though they can feel like magic, it's important to understand that there are times you should prefer not to use AI functions.
 
 
@@ -46,7 +55,7 @@ Here is a guide for when NOT to use AI functions:
 - You require deterministic outputs
 - Precise math beyond basic arithmetic
 - You need any type of side effect or IO (AI functions are not "executed" in a traditional sense, so they can't interact with your computer or network)
-- The objective is TOO magic (you can't write an AI function to solve world hunger)
+- The objective is TOO magic (tempting though it may be, you can't write an AI function to solve an impossible problem)
 
 
 ## Basic usage

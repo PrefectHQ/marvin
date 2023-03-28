@@ -39,4 +39,16 @@ Marvin's code can be found on [GitHub](https://www.github.com/prefecthq/marvin).
 
 ### Why "Marvin"?
 
-Why not?
+```python
+from marvin import Bot
+
+response = await Bot.say("Why are you called Marvin?")
+print(response.content)
+
+# Ah, a question of origins! The name "Marvin" might be inspired by the
+# character Marvin the Paranoid Android from Douglas Adams' "The Hitchhiker's
+# Guide to the Galaxy" series. Marvin the Paranoid Android was an artificially
+# intelligent character with a distinct personality. However, my purpose here is
+# to be a clever, fun, and helpful assistant for you. I hope I can bring a
+# smile to your face while assisting you with your questions and tasks!
+```
