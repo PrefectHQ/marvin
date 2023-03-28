@@ -1,6 +1,6 @@
 # AI Functions
 
-![](ai_fn_demo.png)
+![](ai_fn_hero.png)
 
 !!! tip "Features"
     🎉 Create AI functions with a single `@ai_fn` decorator

@@ -1,11 +1,13 @@
 # Welcome to Marvin 🤖🏖️
 
-![](docs/img/hero_code/ai_fn_demo.png)
+![](docs/img/hero_code/ai_fn_hero.png)
 
 
 Marvin is a batteries-included library that simplifies the process of building AI-powered software. 
 
-Marvin's approach to **"functional prompt engineering"** allows developers to use AI with structured inputs and outputs instead of only text. This makes it possible to seamlessly integrate AI with traditional code, enabling the creation of sophisticated AI pipelines. Marvin's **AI functions** let developers take advantage of AI through familiar function calls and data structures, without writing source code. **Bots** are highly capable AI assistants that are designed to be used alongside or within existing code. They can take instructions and leverage plugins or external knowledge to solve complex problems. Developers can use these tools to add AI capabilities wherever they will be most impactful, without needing to start from scratch.
+Marvin's approach to **"functional prompt engineering"** allows developers to use AI with structured inputs and outputs, not only text. This makes it possible to seamlessly integrate AI with traditional code, enabling the creation of sophisticated AI pipelines. 
+
+Marvin's **AI functions** let developers take advantage of AI through familiar function calls and data structures, without writing source code. **Bots** are highly capable AI assistants that are designed to be used alongside or within existing code. They can take instructions and leverage plugins or external knowledge to solve complex problems. Developers can use these tools to add AI capabilities wherever they will be most impactful, without needing to start from scratch.
 
 > "Let’s build robots with Genuine People Personalities," they said. So they tried it out with me. I’m a personality prototype. You can tell, can’t you?
 >
