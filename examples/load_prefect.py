@@ -19,7 +19,7 @@ async def load_prefect_things():
     prefect_source_code = GitHubRepoLoader(  # gimme da source
         repo="prefecthq/prefect",
         include_globs=["**/*.py"],
-        exclude_globs=["**/tests/**"],
+        exclude_globs=["tests/**/*", "docs/**/*", "**/migrations/**/*"],
     )
 
     prefect_discourse = DiscourseLoader(  # gimme da discourse

@@ -14,6 +14,8 @@ if TYPE_CHECKING and CHROMA_INSTALLED:
 
 @lru_cache
 def get_client() -> "chromadb.Client":
+    import chromadb
+
     # chroma_settings = settings or marvin.settings.chroma
     return chromadb.Client(marvin.settings.chroma)
 
