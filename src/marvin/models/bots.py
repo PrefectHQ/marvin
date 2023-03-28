@@ -10,6 +10,7 @@ from marvin.utilities.types import MarvinBaseModel
 
 
 class BotConfig(MarvinSQLModel, table=True):
+    __tablename__ = "bot_config"
     __repr_exclude__ = {"profile_picture"}
     __table_args__ = (sa.Index("uq_topic__name", "name", unique=True),)
     id: BotID = Field(default_factory=BotID.new, primary_key=True)

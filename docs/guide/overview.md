@@ -1,5 +1,7 @@
-# Overview
+# The Guide
 
-Marvin is an open-source Python library for developing AI-enabled applications that use the latest LLM technologies, such as GPT-4. 
+The documentation is split into a few key sections:
 
-This powerful framework comes with a rich set of features, enabling developers to create highly customizable chatbots and AI-enabled tools for various applications. This documentation aims to introduce the core concepts and abstractions of the Marvin framework, empowering users to understand and effectively utilize the library for their projects.
+- **Introduction:** information about configuration and basic use
+- **Concepts:** introductions, explanations, and examples of the most important Marvin concepts
+- **Development:** details on developing Marvin itself
