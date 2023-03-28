@@ -284,7 +284,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 messages.extend(plugin_messages)
 
         # validate response format
-        parsed_response = None
+        parsed_response = response
         validated = False
 
         try:
