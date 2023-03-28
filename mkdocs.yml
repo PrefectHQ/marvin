@@ -9,14 +9,18 @@ nav:
       - AI functions: getting_started/ai_functions_quickstart.md
       - Bots: getting_started/bots_quickstart.md
   - The Guide:
-    - Overview: guide/overview.md
-    - Configuration: guide/configuration.md
+    - Introduction:
+      - Overview: guide/introduction/overview.md
+      - Configuration: guide/introduction/configuration.md
+      - CLI: guide/introduction/cli.md
     - Concepts:
-      - 🦾 AI functions: guide/ai_functions.md
-      - 🤖 Bots: guide/bots.md
-      - 🏗️ Loaders: guide/loaders_and_documents.md
-      - ⚙️ Infrastructure: guide/infra.md
-      - 🔌 Plugins: guide/plugins.md
+      - 🦾 AI functions: guide/concepts/ai_functions.md
+      - 🤖 Bots: guide/concepts/bots.md
+      - 🏗️ Loaders: guide/concepts/loaders_and_documents.md
+      - ⚙️ Infrastructure: guide/concepts/infra.md
+      - 🔌 Plugins: guide/concepts/plugins.md
+    - Examples:
+      - Enforcing AI format: guide/use_cases/enforcing_format.md
     - Development:
       - Setting up: development/development.md
   - FAQ: faq.md
@@ -25,7 +29,9 @@ theme:
   name: material
   font: 
     text: Inter
-    code: SFMono-Regular
+    code: JetBrains Mono
+  logo: img/logos/askmarvin_mascot.jpeg
+  favicon: img/logos/askmarvin_mascot.jpeg
   features:
     - navigation.instant
     - navigation.tabs

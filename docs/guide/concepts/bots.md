@@ -1,6 +1,20 @@
 # Bots
 
-One of Marvin's central abstractions is the `Bot` class. At its core, a bot is an interface for sending text to a LLM and receiving a response. Marvin allows users to customize this behavior in various ways that can transform bots from "AI assistants" to reusable programs.
+!!! tip "Features"
+    
+    🤖 Create bots with distinct personalities and instructions
+
+    🔌 Use plugins to give bots new capabilities
+
+    💬 Persistent memories let you resume threads from different sessions
+
+    📡 Talk to bots from Python, your CLI, or the Marvin REST API
+
+One of Marvin's central abstractions is the `Bot` class. At its core, a bot is an interface for sending text to a AI and receiving a response, modified to align the response with a user objective as much as possible. Marvin allows users to customize this behavior in various ways that can transform bots from "AI assistants" to reusable programs.
+
+## When to use bots
+
+Bots are different than [AI functions](ai_functions.md) and, in some ways, are more powerful. In fact, AI functions are actually powered by bots. AI functions are designed to take well-scoped problems and turn them into familiar, reusable functions. While bots can be used for the same, they are more appropriate for complex, multi-step interactions or problem solving. AI functions are designed to make the "AI" invisible; bots bring it to the forefront.
 
 ## Python
 
@@ -52,7 +66,7 @@ bot = await Bot.load("Ford")
 
 To chat with a bot from the CLI, run `marvin chat` with optional name, personality, or instruction flags.
 
-![](../img/marvin_chat.png)
+![](marvin_chat.png)
 
 ### Loading an existing bot
 

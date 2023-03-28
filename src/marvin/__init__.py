@@ -1,13 +1,14 @@
 # load nest_asyncio
-import nest_asyncio
+import nest_asyncio as _nest_asyncio
+import asyncio as _asyncio
 
-nest_asyncio.apply()
+_nest_asyncio.apply()
 
 
 # load env vars
-from dotenv import load_dotenv
+from dotenv import load_dotenv as _load_dotenv
 
-load_dotenv()
+_load_dotenv()
 
 
 __version__ = "0.5.0"
@@ -29,3 +30,6 @@ if settings.test_mode:
     _logger.debug_style("Marvin is running in test mode!", style="yellow")
 if not settings.openai_model_name.startswith("gpt-4"):
     _logger.info_style(f'Using OpenAI model "{settings.openai_model_name}"')
+
+# set up SQLite if it doesn't exist
+infra.db.create_sqlite_db_if_doesnt_exist()

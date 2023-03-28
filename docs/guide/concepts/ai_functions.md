@@ -1,31 +1,69 @@
 # AI Functions
 
+!!! tip "Features"
+    🎉 Create AI functions with a single `@ai_fn` decorator
 
-Marvin's `ai_fn` decorator is the simplest way to add AI to your code. It can take any function definition and "magically" return the result of calling that function. Under the hood, `ai_fn` uses [bots](bots.md) to analyze, predict, and parse the output.
+    🧱 Use native data structures (or Pydantic models!) as inputs and outputs
+
+    🔗 Chain or nest calls to create functional AI pipelines
+
+    🧙 Add features to code that would be difficult or impossible to write yourself
+
+AI functions are functions that are defined locally but use AI to generate their outputs. Like normal functions, AI functions take arguments and return structured outputs like `lists`, `dicts` or even Pydantic models. Unlike normal functions, they don't need any source code! 
 
 
-```python hl_lines="3"
+Consider the following example, which contains a function that generates a list of fruit. The function is defined with a descriptive name, annotated input and return types, and a docstring -- but doesn't appear to actually do anything. Nonetheless, because of the `@ai_fn` decorator, it can be called like a normal function and returns a list of fruit.
+
+```python hl_lines="4"
 from marvin import ai_fn
+
 
 @ai_fn
 def list_fruit(n: int) -> list[str]:
     """Generate a list of n fruit"""
 
 
-list_fruit(3) # ["apple", "banana", "orange"]
+list_fruit(n=3) # ["apple", "banana", "orange"]
 ```
-
 !!! tip
     AI functions work best with GPT-4, but results are still very good with GPT-3.5.
 
-## Usage
+## When to use AI functions
+Because AI functions look and feel just like normal functions, they are the easiest way to add AI capabilities to your code -- just write the definition of the function you want to call, and use it anywhere! However, though they can feel like magic, it's important to understand that there are times you should prefer not to use AI functions.
+
+
+Modern LLMs are extremely powerful, especially when working with natural language and ideas that are easy to discuss but difficult to describe algorithmically. However, since they don't actually execute code, computing extremely precise results can be surprisingly difficult. Asking an AI to compute an arithmetic expression is a lot like asking a human to do the same -- it's possible they'll get the right answer, but you'll probably want to double check on a calculator. On the other hand, you wouldn't ask the calculator to rewrite a paragraph as a poem, which is a perfectly natural thing to ask an AI. Bear in mind that AI functions are (relatively) slow and expensive compared to running code on your computer. 
+
+Therefore, while there are many appropriate times to use AI functions, it's important to note that they complement normal functions incredibly well and to know when to use one or the other. AIs tend to excel at exactly the things that are very hard to describe algorithmically. If you're doing matrix multiplication, use a normal function. If you're extracting all the animals that are native to Europe from text, use an AI function.
+
+Here is a guide for when to use AI functions:
+
+- Generating data (any kind of text, but also data matching a certain structure or template)
+- Translating or rewriting text
+- Summarization
+- Sentiment analysis
+- Keyword or entity extraction
+- Asking qualitative questions about quantitative data
+- Fixing spelling or other errors
+- Generating outlines or action items
+- Transforming one data structure to another
+
+Here is a guide for when NOT to use AI functions:
+
+- The function is easy to write normally
+- You want to be able to debug the function
+- You require deterministic outputs
+- Precise math beyond basic arithmetic
+- You need any type of side effect or IO (AI functions are not "executed" in a traditional sense, so they can't interact with your computer or network)
+- The objective is TOO magic (tempting though it may be, you can't write an AI function to solve an impossible problem)
+
+
+## Basic usage
 
 The `ai_fn` decorator can be applied to any function. For best results, the function should have an informative name, annotated input types, a return type, and a docstring. The function does *not* need to have any source code written, but advanced users can add source code to influence the output in two different ways (see "writing source code")
 
 When a `ai_fn`-decorated function is called, all available information is sent to the AI, which generates a predicted output. This output is parsed and returned as the function result.
 
-### Basic usage
-Here is an overview of basic decorator use. First, you create a function definition and decorate it with `@ai_fn`. You don't need to add any source code. Then you call the function on some inputs!
 
 ```python
 from marvin import ai_fn
@@ -49,16 +87,16 @@ Note the following:
 5. The function has a descriptive docstring
 6. The function does not need any source code!
 
-### Advanced usage
+## Advanced usage
 
-#### Calling the function
+### Calling the function
 By default, the `ai_fn` decorator will call your function and supply the return value to the AI. For functions without source code, this obviously has no consequence. However, you can take advantage of this fact to influence the AI result by returning helpful or preprocessed outputs. Since the AI sees the source code as well as the return value, you can also influence it through comments. 
 
 You can see this strategy used in the example that [summarizes text from Wikipedia](#summarize-text-from-wikipedia). In the example, the function takes in a page's title and uses it to load the page's content. The content is returned and used by the AI for summarization.
 
 To disable this behavior entirely, call the decorator as `@ai_fn(call_function=False)`.
 
-#### Async functions
+### Async functions
 The `ai_fn` decorator works with async functions.
 
 ```python
@@ -71,7 +109,7 @@ async def f(x: int) -> int:
 await f(5)
 ```
 
-#### Complex annotations
+### Complex annotations
 Annotations don't have to be types; they can be complex objects or even string descriptions. For inputs, the annotation is transmitted to the AI as-is. Return annotations are processed through Marvin's `ResponseFormatter` mechanism, which puts extra emphasis on compliance. This means you can supply complex instructions in your return annotation. However, note that you must include the word `json` in order for Marvin to automatically parse the result into native objects!
 
 Therefore, consider these two approaches to defining an output:
@@ -154,6 +192,27 @@ def fix_sentence(sentence: str) -> str:
 fix_sentence("he go to mcdonald and buy burg") # "He goes to McDonald's and buys a burger."
 ```
 
+### Unit testing LLMs
+One of the difficulties of building an AI library is unit testing it! While it's possible to make LLM outputs deterministic by setting the temperature to zero, a small change to a prompt could result in very different outputs. Therefore, we want a way to assert that an LLM's output is "approximately equal" to an expected value.
+
+This example is actually used by Marvin itself! See `marvin.utilities.tests.assert_llm()`.
+
+```python
+@ai_fn()
+def assert_llm(output: Any, expectation: Any) -> bool:
+    """
+    Given the `output` of an LLM and an expectation, determines whether the
+    output satisfies the expectation.
+
+    For example:
+        `assert_llm(5, "output == 5")` will return `True` 
+        `assert_llm(5, 4)` will return `False` 
+        `assert_llm(["red", "orange"], "a list of colors")` will return `True` 
+        `assert_llm(["red", "house"], "a list of colors")` will return `False`
+    """
+
+assert_llm('Hello, how are you?', expectation='Hi there') # True
+```
 ### Summarize text
 
 This function takes any text and summarizes it. See the next example for a
@@ -282,4 +341,3 @@ def get_emoji(text: str) -> str:
 
 get_emoji("incredible snack") # '🍿'
 ```
-
