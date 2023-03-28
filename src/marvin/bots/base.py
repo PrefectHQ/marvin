@@ -274,10 +274,13 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 messages.append(Message(role="system", content=self.reminder))
             if counter > marvin.settings.bot_max_iterations:
                 response = 'Error: "Max iterations reached. Please try again."'
+                finished = True
             else:
                 counter += 1
                 response = await self._call_llm(messages=messages)
-            plugin_messages = await self._check_for_plugins(response=response)
+            if not finished:
+                plugin_messages = await self._check_for_plugins(response=response)
+
             if not plugin_messages:
                 finished = True
             else:
