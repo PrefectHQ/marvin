@@ -17,7 +17,6 @@ dependencies = [
     "aiofiles~=23.1.0",
     "aiosqlite~=0.18.0",
     "asyncpg~=0.27.0",
-    "chromadb~=0.3.11",
     "cloudpickle~=2.2.1",
     "datamodel-code-generator~=0.17.1",
     "fastapi~=0.89.1",
@@ -69,6 +68,7 @@ dev = [
     "pytest~=7.2.0",
     "ruff",
 ]
+chromadb = ["chromadb~=0.3.14"]
 
 
 [project.urls]

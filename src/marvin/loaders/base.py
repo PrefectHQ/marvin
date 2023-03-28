@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import marvin
 from marvin.models.documents import Document
 from marvin.utilities.collections import batched
+from marvin.utilities.exceptions import check_for_chroma
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 
@@ -25,6 +26,7 @@ class Loader(MarvinBaseModel, LoggerMixin, ABC):
         skip_existing: bool = True,
     ) -> None:
         """Retrieve documents via subclass' load method and write them to a topic."""
+        check_for_chroma()
 
         documents = await self.load()
 

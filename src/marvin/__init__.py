@@ -4,7 +4,6 @@ import asyncio as _asyncio
 
 _nest_asyncio.apply()
 
-
 # load env vars
 from dotenv import load_dotenv as _load_dotenv
 
