@@ -3,7 +3,6 @@
 
 Marvin's `ai_fn` decorator is the simplest way to add AI to your code. It can take any function definition and "magically" return the result of calling that function. Under the hood, `ai_fn` uses [bots](bots.md) to analyze, predict, and parse the output.
 
-Note: `ai_fn` works best with GPT-4.
 
 ```python hl_lines="3"
 from marvin import ai_fn
@@ -16,6 +15,8 @@ def list_fruit(n: int) -> list[str]:
 list_fruit(3) # ["apple", "banana", "orange"]
 ```
 
+!!! tip
+    AI functions work best with GPT-4, but results are still very good with GPT-3.5.
 
 ## Usage
 

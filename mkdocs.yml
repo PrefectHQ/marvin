@@ -6,8 +6,8 @@ nav:
       - Installation: getting_started/installation.md
       - OpenAI: getting_started/openai.md
       - Chat: getting_started/chat_quickstart.md
-      - Call an AI function: getting_started/ai_functions_quickstart.md
-      - Launch a bot: getting_started/bots_quickstart.md
+      - AI functions: getting_started/ai_functions_quickstart.md
+      - Bots: getting_started/bots_quickstart.md
   - The Guide:
     - Overview: guide/overview.md
     - Configuration: guide/configuration.md
@@ -76,8 +76,13 @@ plugins:
               heading_level: 2
               filters: ["!^_"]
 markdown_extensions:
-  - toc:
-      permalink: true
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -85,11 +90,8 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.superfences
-  - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
-  - attr_list
-  - md_in_html
+  - toc:
+      permalink: true
 repo_url: https://github.com/prefecthq/marvin
 edit_uri: edit/main/docs/
 extra:
