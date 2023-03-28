@@ -1,5 +1,5 @@
 # Installation
-
+![](../img/hero_code/pip_install_marvin.png)
 ## Requirements
 
 Marvin requires Python 3.10+.
