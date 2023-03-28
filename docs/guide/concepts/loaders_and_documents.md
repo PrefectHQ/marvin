@@ -62,8 +62,8 @@ my_document.to_excerpts()
 # yields
 [
     Document(
-        id='doc_01GWDG3WHSV6XVF74TPDJ4GNHS',
-        text="The following is a original document produced by unknown:\n# Document metadata\n{'link': 'https://www.example.com', 'title': 'My Document', 'source': 'unknown', 'document_type': 'original', 'random_metadata_field': 'This is very important to me!'}\n# Document keywords\ndocument\n# Excerpt's location in document\n\n# Excerpt contents:\nThis is a document.",
+        id='doc_01GWMH5VA91P0SSYJXE9N7ZK88',
+        text='The following is a original document \n# Document metadata\n        Link: https://www.example.com\nTitle: My Document\nSource: unknown\nDocument_type: original\nRandom_metadata_field: This is very important to me!\n# Excerpt content: This is a document.',
         embedding=None,
         metadata=Metadata(
             link='https://www.example.com',
@@ -71,12 +71,12 @@ my_document.to_excerpts()
             source='unknown',
             document_type='excerpt',
             random_metadata_field='This is very important to me!'
-        ),
-        source='unknown',
+            ),
+        source=None,
         type='excerpt',
-        parent_document_id='doc_01GWDG3BHFFDN596C99W0KKJXK',
+        parent_document_id='doc_01GWMH58XYXFB8JQYC2T6VMFYC',
         topic_name='marvin',
-        tokens=82,
+        tokens=55,
         order=0,
         keywords=['document']
     )
