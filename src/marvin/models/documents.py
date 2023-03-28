@@ -66,7 +66,7 @@ class Document(MarvinBaseModel):
     order: int | None = Field(default=None)
     keywords: list[str] = Field(default_factory=list)
 
-    @validator("tokens")
+    @validator("tokens", pre=True, always=True)
     def validate_tokens(cls, v, values):
         if not v:
             return count_tokens(values["text"])
@@ -109,9 +109,10 @@ class Document(MarvinBaseModel):
         ):
             keywords = await extract_keywords(text)
 
-            minimap = (
+            minimap = (  # only include minimap if document is markdown
                 minimap_fn(chr)
-                if "link" in self.metadata.__fields__
+                if self.metadata
+                and "link" in self.metadata.__fields__
                 and self.metadata.link.endswith(".md")
                 else None
             )
