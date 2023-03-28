@@ -15,7 +15,7 @@ async def load_prefect_things():
         exclude=["api-ref"],
     )
 
-    GitHubRepoLoader(  # gimme da source
+    prefect_source_code = GitHubRepoLoader(  # gimme da source
         repo="prefecthq/prefect",
         include_globs=["**/*.py"],
         exclude_globs=["**/tests/**"],
@@ -35,7 +35,7 @@ async def load_prefect_things():
             prefect_docs,
             prefect_discourse,
             prefect_recipes,
-            # prefect_source_code,
+            prefect_source_code,
         ]
     )
     await prefect_loader.load_and_store()
@@ -70,17 +70,17 @@ prefect_keywords = [
 
 
 async def hello_marvin():
-    # await load_prefect_things()
+    await load_prefect_things()
     bot = Bot(
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
         instructions=(
             "Use the `chroma_search` plugin to retrieve context when asked about any"
-            f" of the following keywords: {listrepr(prefect_keywords)} If asked about a"
-            " github issue, use the `search_github_issues` plugin, choosing the most"
+            f" of the following keywords: {listrepr(prefect_keywords)}. If asked about"
+            " a github issue, use the `search_github_issues` plugin, choosing the most"
             " appropriate repo based on the user's question. Always provide relevant"
             " links from plugin outputs. As a last resort, use the `DuckDuckGo` plugin"
-            " to search the web."
+            " to search the web for answers to questions."
         ),
         plugins=[chroma_search, search_github_issues, DuckDuckGo()],
     )
