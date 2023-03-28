@@ -9,8 +9,10 @@ nav:
       - AI functions: getting_started/ai_functions_quickstart.md
       - Bots: getting_started/bots_quickstart.md
   - The Guide:
-    - Overview: guide/overview.md
-    - Configuration: guide/configuration.md
+    - Introduction:
+      - Overview: guide/overview.md
+      - Configuration: guide/configuration.md
+      - CLI: cli/usage.md
     - Concepts:
       - 🦾 AI functions: guide/ai_functions.md
       - 🤖 Bots: guide/bots.md
@@ -25,7 +27,7 @@ theme:
   name: material
   font: 
     text: Inter
-    code: SFMono-Regular
+    code: JetBrains Mono
   features:
     - navigation.instant
     - navigation.tabs

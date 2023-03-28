@@ -35,7 +35,7 @@ marvin chat -p "knows every Star Wars meme" Hello there
 ![](docs/img/marvin_hello_there_chat.png)
 
 
-See [getting started](https://www.askmarvin.ai/getting_started/installation/) for more!
+See the [getting started](https://www.askmarvin.ai/getting_started/installation/) docs for more!
 
 ## When should you use Marvin?
 
