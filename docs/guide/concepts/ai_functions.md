@@ -1,5 +1,7 @@
 # AI Functions
 
+![](ai_fn_demo.png)
+
 !!! tip "Features"
     🎉 Create AI functions with a single `@ai_fn` decorator
 
