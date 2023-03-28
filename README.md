@@ -11,6 +11,7 @@ Marvin's innovative approach to **"functional prompt engineering"** allows devel
 >
 > -- [Marvin](https://www.youtube.com/clip/UgkxNj9p6jPFM8eWAmRJiKoPeOmvQxb8viQv)
 
+Marvin's documentation is available at [askmarvin.ai](https://www.askmarvin.ai).
 
 ## Features
 
@@ -41,7 +42,11 @@ See the [getting started](https://www.askmarvin.ai/getting_started/installation/
 
 Marvin is open-source with an Apache 2.0 license and built on standards like Pydantic, FastAPI, Langchain, and Prefect.
 
-### Coming soon
+### 🚧 Construction Zone
+
+Marvin is under active development and is likely to change.
+
+Coming soon:
 
 ♻️ Interactive AI functions
 
