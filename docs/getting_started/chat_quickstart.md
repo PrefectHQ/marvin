@@ -24,3 +24,10 @@ Generally, Marvin bots use `personality` to inform the style of their response a
 ```bash
 marvin chat -n "Ford" -p "a roving research for the Hitchhiker's Guide to the Galaxy"
 ```
+
+## Loading bots
+If you previously saved a bot, you can chat with it through the `-b` flag:
+
+```bash
+marvin chat -b Ford
+```

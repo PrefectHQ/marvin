@@ -2,22 +2,23 @@
 
 ![](ai_fn_demo.png)
 
-Marvin is a batteries-included library designed to simplify the process of building AI-powered software. It introduces three core abstractions: AI functions, bots, and knowledge. AI functions are powerful tools that let users define and execute functions without any source code, while bots serve as AI assistants that can follow instructions and use plugins. Knowledge provides an effective method for enhancing bots' abilities by loading external information. Marvin's innovative approach to "functional prompt engineering" allows developers to work with structured inputs and outputs, seamlessly integrating AI functions into traditional code and enabling the creation of sophisticated AI pipelines.
+Marvin is a batteries-included library designed to simplify the process of building AI-powered software. 
 
+Marvin's innovative approach to **"functional prompt engineering"** allows developers to engage AI through structured inputs and outputs, seamlessly integrating it with traditional code and enabling the creation of sophisticated AI pipelines. **AI functions** let developers take advantage of AI through familiar function calls and data structures. **Bots** are highly capable AI assistants that are designed to be used alongside or within existing code. They can take instructions and leverage plugins or external knowledge to solve complex problems. Developers can use these tools to add AI capabilities where they are most impactful, without needing to start from scratch.
 
-> "Let’s build robots with Genuine People Personalities," they said. So they tried it out with me. I’m a personality prototype. You can tell, can’t you?
->
-> -- [Marvin](https://www.youtube.com/clip/UgkxNj9p6jPFM8eWAmRJiKoPeOmvQxb8viQv)
-
-
+!!! quote "GPP"
+    "Let’s build robots with Genuine People Personalities!" they said. So they tried it out with me. I’m a personality prototype. You can tell, can’t you?
+    
+    -- <a href="https://www.youtube.com/clip/UgkxNj9p6jPFM8eWAmRJiKoPeOmvQxb8viQv" target="_blank">Marvin</a>
+    
 ## Features
 
 
-🦾 Write [AI functions](guide/ai_functions.md) that process structured data without source code
+🦾 Write [AI functions](guide/ai_functions.md) to process structured data without source code
 
-🤖 Create [bots](guide/bots.md) that have personalities and follow instructions
+🤖 Chat with [bots](guide/bots.md) that have personalities and follow instructions
 
-🔌 Build [plugins](guide/plugins.md) to give bots new abilities
+🔌 Build [plugins](guide/plugins.md) to give your bots new abilities
 
 📚 Store [knowledge](guide/loaders_and_documents.md) that bots can access and use
 
@@ -35,24 +36,23 @@ marvin chat -p "knows every Star Wars meme" Hello there
 
 See [getting started](getting_started/installation.md) for more!
 
-## Highlights
-
-🔋 Batteries included - get up and running instantly
-
-🧑‍🎓 Powered by GPT-4 (or GPT-3.5)
-
-🌈 Supports ChromaDB, SQLite, and Postgres
-
-Coming soon:
-
-💬 Persistent threads with multiple bots
-
-🖼️ Admin and chat UIs
-
-🔭 AI observability platform
 
 ## When should you use Marvin?
 
-Marvin is an opinionated, high-level library with the goal of integrating AI tools into software development. There are two major reasons to use Marvin:
-1. You want an [AI function](guide/ai_functions.md) that can process structured data. This is especially useful for string processing when regex just won't cut it ("Give me a list of all the animals in this paragraph"; "Extract the account details from this web page into JSON"; "Categorize the sentiment of these comments") but can work with many other types of data as well.
-2. You want an [AI assistant](guide/bots.md) in your code. Marvin's bots use prompts that have been hardened by months of real-world use and will continue to improve over time. They are designed to be called from code, though of course you may want to expose them directly to your users as well!
+Marvin is an opinionated, high-level library with the goal of integrating AI tools into software development. There are a few major reasons to use Marvin:
+
+1. **You want an [AI function](guide/ai_functions.md) that can process structured data.** Marvin brings the power of AI to native data structures, letting you build functions that would otheriwse be difficult or even impossible to write. For example, you can use AI functions to make a list of all the animals in a paragraph, generate JSON documents from HTML content, extract keywords that match some criteria, or categorize sentiment -- without any traditional source code.
+
+2. **You want an [AI assistant](guide/bots.md) in your code.** Marvin's bots can follow instructions and hold conversations to solve complex problems. They can use custom plugins and take advantage of external knowledge. They are designed to be integrated into your codebase, but of course you can expose them directly to your users as well!
+
+3. **You want to deploy cutting-edge AI technology with confidence, but without having to make too many decisions.** Using LLMs successfully requires very careful consideration of prompts, data preprocessing, and infrastructure. Our target user is more interested in *using* AI systems than *building* AI systems. Therefore, Marvin is designed to make adopting this technology as straightforward as possible by optimizing for useful outcomes. Marvin's prompts have been hardened by months of real-world use and will continue to improve over time.
+## When should you NOT use Marvin?
+There are a few reasons NOT to use Marvin:
+
+1. **You want full control of the AI.** Marvin is a high-level library and (with few exceptions) does not generally expose LLM configuration to users. We have chosen settings that give the best results under most circumstances, taking Marvin's built-in prompts into consideration.
+
+2. **You want to use other LLMs.** Marvin is designed to run against OpenAI's GPT-4 and GPT-3.5 models. While we may expand those models in the future, we've discovered that prompts designed for one model rarely translate well to others without modification. In order to maximize the usefulness of the library, we've decided to focus on just these popular models for now.
+
+3. **You want full control of your prompts.** As a "functional prompt engineering" platform, Marvin takes user inputs and generates prompts that are likely to deliver the outcome the user wants, even if they are not verbatim what the user said. Marvin does not expect users to send completely raw prompts to the LLM. 
+
+4. **You're searching for the Ultimate Question.** While Marvin is highly intelligent, even he couldn't come up with the Ultimate Question of Life, the Universe, and Everything. If you're seeking existential enlightenment, you might need to look beyond our beloved paranoid android.
