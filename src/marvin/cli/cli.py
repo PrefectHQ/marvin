@@ -53,7 +53,7 @@ def setup_openai():
                 marvin.settings.openai_api_key = api_key
                 dotenv.set_key(str(ENV_FILE), "MARVIN_OPENAI_API_KEY", api_key)
                 rprint("API key set!")
-                raise typer.Exit(code=1)
+                raise typer.Exit()
             except openai.error.AuthenticationError:
                 rprint("[red bold]Invalid API key![/] Please try again.")
 
