@@ -1,6 +1,7 @@
 # FAQ
 
-![](marvin_faq_hero.png)
+
+![](advice.png)
 ## General
 
 ### How do I report a problem?

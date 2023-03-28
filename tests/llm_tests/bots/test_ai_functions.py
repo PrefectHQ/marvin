@@ -20,27 +20,27 @@ class TestAIFunctions:
         x = rng(20, 21)
         assert 20 <= x <= 21
 
-    def test_list_of_fruit(self):
+    def test_list_of_fruits(self):
         @ai_fn
-        def list_fruit(n: int) -> list[str]:
+        def list_fruits(n: int) -> list[str]:
             """generate a list of n fruits"""
 
-        x = list_fruit(3)
+        x = list_fruits(3)
         assert isinstance(x, list)
         assert len(x) == 3
         assert all(isinstance(fruit, str) for fruit in x)
-        assert_llm(x, "a list of fruit")
+        assert_llm(x, "a list of fruits")
 
-    def test_list_of_fruit_calling_ai_fn_with_no_args(self):
+    def test_list_of_fruits_calling_ai_fn_with_no_args(self):
         @ai_fn()
-        def list_fruit(n: int) -> list[str]:
+        def list_fruits(n: int) -> list[str]:
             """generate a list of n fruits"""
 
-        x = list_fruit(3)
+        x = list_fruits(3)
         assert isinstance(x, list)
         assert len(x) == 3
         assert all(isinstance(fruit, str) for fruit in x)
-        assert_llm(x, "a list of fruit")
+        assert_llm(x, "a list of fruits")
 
     def test_generate_fake_people_data(self):
         @ai_fn
@@ -94,3 +94,17 @@ class TestBool:
         y = is_blue("green")
         assert isinstance(y, bool)
         assert y is False
+
+    def test_bool_response_issue_55(self):
+        # hinting `True` or `False` in a nested bool broke JSON parsing that
+        # expected lowercase
+        @ai_fn
+        def classify_sentiment(messages: list[str]) -> list[bool]:
+            """
+            Given a list of messages, classifies each one as
+            positive (True) or negative (False) and returns
+            a corresponding list
+            """
+
+        result = classify_sentiment(["i love pizza", "i hate pizza"])
+        assert result == [True, False]
