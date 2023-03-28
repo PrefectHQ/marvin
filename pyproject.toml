@@ -78,9 +78,10 @@ Homepage = "https://github.com/prefecthq/marvin"
 marvin = "marvin.cli.cli:app"
 
 [build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
 
+[tool.setuptools_scm]
 
 # pytest configuration
 [tool.pytest.ini_options]
