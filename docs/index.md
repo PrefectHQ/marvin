@@ -1,6 +1,7 @@
 # Welcome to Marvin 🤖🏖️
 
-![](ai_fn_hero.png)
+![](ai_fn_fruits_hero.png)
+
 
 Marvin is a batteries-included library that simplifies the process of building AI-powered software. 
 
@@ -10,12 +11,13 @@ Marvin's **AI functions** let developers take advantage of AI through familiar f
 
 Marvin's code is available on [GitHub](https://github.com/prefecthq/marvin).
 
-!!! quote "GPP"
+<!-- !!! quote "GPP"
     "Let’s build robots with Genuine People Personalities!" they said. So they tried it out with me. I’m a personality prototype. You can tell, can’t you?
     
-    -- <a href="https://www.youtube.com/clip/UgkxNj9p6jPFM8eWAmRJiKoPeOmvQxb8viQv" target="_blank">Marvin</a>
+    -- <a href="https://www.youtube.com/clip/UgkxNj9p6jPFM8eWAmRJiKoPeOmvQxb8viQv" target="_blank">Marvin</a> -->
     
 ## Features
+![](gpp.png)
 
 🦾 Write [AI functions](guide/concepts/ai_functions.md) to process structured data without source code
 
