@@ -30,7 +30,7 @@ def destroy(
     )
 ):
     if confirm:
-        asyncio.run(marvin.infra.db.destroy_db())
+        asyncio.run(marvin.infra.db.destroy_db(confirm=confirm))
     else:
         typer.echo("Database destruction cancelled.")
 
@@ -44,6 +44,6 @@ def reset(
     )
 ):
     if confirm:
-        asyncio.run(marvin.infra.db.reset_db())
+        asyncio.run(marvin.infra.db.reset_db(confirm=confirm))
     else:
         typer.echo("Reset cancelled.")
