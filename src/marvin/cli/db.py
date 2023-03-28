@@ -11,6 +11,7 @@ database_app = typer.Typer(help="Database commands")
 def create(
     confirm: bool = typer.Option(
         False,
+        "-y",
         prompt="Are you sure you want to create the database?",
         help="Confirm before creating the database.",
     )
@@ -25,12 +26,13 @@ def create(
 def destroy(
     confirm: bool = typer.Option(
         False,
+        "-y",
         prompt="Are you sure you want to destroy the database?",
         help="Confirm before destroying the database.",
     )
 ):
     if confirm:
-        asyncio.run(marvin.infra.db.destroy_db())
+        asyncio.run(marvin.infra.db.destroy_db(confirm=confirm))
     else:
         typer.echo("Database destruction cancelled.")
 
@@ -39,11 +41,12 @@ def destroy(
 def reset(
     confirm: bool = typer.Option(
         False,
+        "-y",
         prompt="Are you sure you want to reset the database?",
         help="Confirm before resetting the database.",
     )
 ):
     if confirm:
-        asyncio.run(marvin.infra.db.reset_db())
+        asyncio.run(marvin.infra.db.reset_db(confirm=confirm))
     else:
         typer.echo("Reset cancelled.")
