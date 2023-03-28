@@ -1,4 +1,5 @@
 import asyncio
+from importlib.metadata import version as get_version
 
 import dotenv
 import openai
@@ -62,6 +63,11 @@ def setup_openai():
             dotenv.set_key(str(ENV_FILE), "MARVIN_OPENAI_API_KEY", "")
             rprint("API key unset!")
             raise typer.Exit()
+
+
+@app.command(name="version", help="Print the version of this package")
+def version():
+    print(get_version("marvin"))
 
 
 @app.command(name="chat", help="Quickly chat with a custom bot")
