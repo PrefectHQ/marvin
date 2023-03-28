@@ -11,6 +11,7 @@ database_app = typer.Typer(help="Database commands")
 def create(
     confirm: bool = typer.Option(
         False,
+        "-y",
         prompt="Are you sure you want to create the database?",
         help="Confirm before creating the database.",
     )
@@ -25,6 +26,7 @@ def create(
 def destroy(
     confirm: bool = typer.Option(
         False,
+        "-y",
         prompt="Are you sure you want to destroy the database?",
         help="Confirm before destroying the database.",
     )
@@ -39,6 +41,7 @@ def destroy(
 def reset(
     confirm: bool = typer.Option(
         False,
+        "-y",
         prompt="Are you sure you want to reset the database?",
         help="Confirm before resetting the database.",
     )
