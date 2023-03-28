@@ -1,5 +1,7 @@
 # AI Functions
 
+![](ai_fn_demo.png)
+
 AI functions are functions that are defined locally but use AI to generate their outputs. Like normal functions, AI functions take arguments and return structured outputs like `lists`, `dicts` or even Pydantic models. Unlike normal functions, they don't need any source code! 
 
 Consider the following example, which contains a function that generates a list of fruit. The function is defined with a descriptive name, annotated input and return types, and a docstring -- but doesn't appear to actually do anything. Nonetheless, because of the `@ai_fn` decorator, it can be called like a normal function and returns a list of fruit.

@@ -1,5 +1,7 @@
 # Bots
 
+![](bot_star_wars.png)
+
 !!! tip "Features"
     
     🤖 Create bots with distinct personalities and instructions

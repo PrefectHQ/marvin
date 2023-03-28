@@ -1,6 +1,6 @@
 # Welcome to Marvin 🤖🏖️
 
-![](docs/img/ai_fn_demo.png)
+![](docs/img/hero_code/ai_fn_demo.png)
 
 
 Marvin is a batteries-included library that simplifies the process of building AI-powered software. 
