@@ -1,9 +1,9 @@
-name: Publish to PyPI.org
+name: Publish Marvin to PyPI
 on:
   release:
     types: [published]
 jobs:
-  pypi:
+  publish-pypi-release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -15,3 +15,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+          verbose: true
