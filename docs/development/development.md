@@ -2,13 +2,15 @@
 
 ## Installing for development
 
-For development, you should clone the git repo and create an editable install. Run the following:
+For development, you should clone the [git repo](https://github.com/prefecthq/marvin) and create an editable install including all development dependencies. To do so, run the following:
 
 ```shell
 git clone https://github.com/prefecthq/marvin.git
 cd marvin
 pip install -e ".[dev]"
 ```
+
+Please note that editable installs require `pip >= 21.3`. To check your version of pip, run `pip --version` and, if necessary, `pip install -U pip` to upgrade.
 
 ## Static analysis
 

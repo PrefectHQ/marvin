@@ -2,7 +2,7 @@
 ![](../img/hero_code/pip_install_marvin.png)
 ## Requirements
 
-Marvin requires Python 3.10+.
+Marvin requires Python 3.10. While nothing in Marvin should prevent use with Python 3.11, some dependencies may not be fully compatible yet.
 ## For normal use
 To install Marvin, run `pip install marvin`. As a matter of best practice, we recommend installing Marvin in a [virtual environment](https://realpython.com/python-virtual-environments-a-primer/).
 
