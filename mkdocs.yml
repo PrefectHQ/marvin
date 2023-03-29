@@ -68,7 +68,7 @@ plugins:
   - search
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
-      # cards_font: Inter
+      cards_font: Inter
       cards_color:
         fill: "#2d6df6"
   - awesome-pages

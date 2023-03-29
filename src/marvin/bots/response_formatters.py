@@ -10,6 +10,7 @@ import marvin
 from marvin.utilities.types import (
     DiscriminatedUnionType,
     format_type_str,
+    genericalias_contains,
     safe_issubclass,
 )
 
@@ -71,14 +72,16 @@ class TypeFormatter(ResponseFormatter):
             kwargs.update(
                 type_schema=schema,
                 format=(
-                    "A valid JSON object that can be cast to the following type"
-                    f" signature: `{format_type_str(type_)}`. Make sure your response"
-                    " is valid JSON,  so use lists instead of sets or tuples; literal"
+                    "A valid JSON object that matches this simple type"
+                    f" signature: ```{format_type_str(type_)}``` and equivalent OpenAI"
+                    f" schema: ```{json.dumps(schema)}```. Make sure your response is"
+                    " valid JSON,  so use lists instead of sets or tuples; literal"
                     " `true` and `false` instead of `True` and `False`; literal `null`"
                     " instead of `None`; and double quotes instead of single quotes."
                 ),
             )
         super().__init__(**kwargs)
+
         if type_ is not SENTINEL:
             self._cached_type = type_
 
@@ -111,25 +114,33 @@ class PydanticFormatter(ResponseFormatter):
         ..., description="The OpenAPI schema for the model"
     )
 
-    def __init__(self, model: BaseModel = None, **kwargs):
+    def __init__(self, model: BaseModel | GenericAlias = None, **kwargs):
         if model is not None:
             for key in ["format", "type_schema"]:
                 if key in kwargs:
                     raise ValueError(f"Cannot specify `{key}` for PydanticFormatter")
-            if not safe_issubclass(model, pydantic.BaseModel):
-                raise ValueError(f"Expected a BaseModel, got {model}")
+            if not (
+                safe_issubclass(model, pydantic.BaseModel)
+                or genericalias_contains(model, pydantic.BaseModel)
+            ):
+                raise ValueError(
+                    f"Expected a BaseModel or nested BaseModel, got {model}"
+                )
 
             schema = marvin.utilities.types.type_to_schema(model)
 
             kwargs.update(
                 type_schema=schema,
                 format=(
-                    "A JSON object that matches the following OpenAPI schema:"
+                    "A JSON object that satisfies the following OpenAPI schema:"
                     f" ```{json.dumps(schema)}```"
                 ),
             )
-            self._cached_model = model
+
         super().__init__(**kwargs)
+
+        if model is not None:
+            self._cached_model = model
 
     def get_model(self) -> pydantic.BaseModel:
         if self._cached_model != SENTINEL:
@@ -165,7 +176,7 @@ def load_formatter_from_shorthand(shorthand_response_format) -> ResponseFormatte
             return ResponseFormatter(format=x)
 
         # x is a pydantic model
-        case x if safe_issubclass(x, pydantic.BaseModel):
+        case x if genericalias_contains(x, pydantic.BaseModel):
             return PydanticFormatter(model=x)
 
         # x is a type or GenericAlias
