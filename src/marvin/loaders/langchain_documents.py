@@ -17,8 +17,8 @@ class LangChainLoader(Loader):
         Use any langchain loader to load `Document` objects
         ```
         import asyncio
-
         import marvin
+        from marvin.loaders.langchain_documents import LangChainLoader
 
         marvin.settings.log_level = "DEBUG"
 
