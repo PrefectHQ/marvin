@@ -7,7 +7,7 @@ on:
 
 env:
   MKDOCS_SOCIAL_CARDS: ${{ vars.MKDOCS_SOCIAL_CARDS }}
-  MKDOCS_INSIDERS_PATH: ${{ secrets.MKDOCS_INSIDERS_PATH }}
+  MKDOCS_INSIDERS_PAT: ${{ secrets.MKDOCS_INSIDERS_PAT }}
 
 permissions:
   contents: write
