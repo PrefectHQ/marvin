@@ -65,7 +65,8 @@ theme:
         name: Switch to light mode
 plugins:
   - search
-  - social
+  - social:
+      cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
   - awesome-pages
   - autolinks 
   - mkdocstrings:
