@@ -499,8 +499,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
             if "does not exist" in str(exc):
                 raise ValueError(
                     "Please check your `openai_model_name` and that your OpenAI account"
-                    " has access to this model. You can set your model with:"
-                    " `marvin.settings.openai_model_name = 'gpt-3.5-turbo'`"
+                    " has access to this model. You can select an OpenAI model by"
+                    " setting the `MARVIN_OPENAI_MODEL_NAME` env var."
                 )
             raise exc
 
