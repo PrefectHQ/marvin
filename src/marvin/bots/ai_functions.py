@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+import re
 from functools import partial, wraps
 from typing import Any, Callable
 
@@ -25,7 +26,7 @@ AI_FN_INSTRUCTIONS = jinja_env.from_string(
         explain your answer, and do not give the user any additional
         instruction. Respond ONLY with the return value of the function.
         
-        Note: this function is NOT available to you as a plugin.
+        Note: you can NOT run this function ({{ function_name }}) as a plugin.
         """
     )
 )
@@ -129,12 +130,19 @@ def ai_fn(
         else:
             return_annotation = sig.return_annotation
 
+        # get the function source code - it will include the @ai_fn decorator,
+        # which can confuse the AI, so we use regex to only get the function
+        # that is being decorated
+        function_def = inspect.getsource(fn)
+        function_def = re.search(
+            re.compile(r"(\bdef\b.*)", re.DOTALL), function_def
+        ).group(0)
+
         # Build the instructions
         instructions = AI_FN_INSTRUCTIONS.render(
-            function_def=inspect.getsource(fn),
+            function_def=function_def,
+            function_name=fn.__name__,
         )
-
-        # capture all arguments
 
         # create the bot
         bot = Bot(
@@ -163,5 +171,8 @@ def ai_fn(
             return get_response()
         else:
             return asyncio.run(get_response())
+
+    ai_fn_wrapper.fn = fn
+    ai_fn_wrapper.set_docstring = lambda doc: setattr(fn, "__doc__", doc)
 
     return ai_fn_wrapper

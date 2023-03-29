@@ -442,7 +442,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 explain all the steps you intend to take, breaking the problem
                 down into discrete parts to solve it step-by-step. Next, provide
                 the JSON payload, which must have the following format:
-                `{{"action": "run-plugin", "name": <must be one of
+                `{{"action": "run-plugin", "name": <MUST be one of
                 [{plugin_names}]>, "inputs": {{<any plugin arguments>}}}}`. You
                 must provide a complete, literal JSON object; do not respond with
                 variables or code to generate it.
@@ -511,12 +511,19 @@ def _reformat_response(
         bot_modifier=lambda bot: setattr(bot.response_format, "on_error", "raise"),
     )
     def reformat_response(response: str) -> target_return_type:
+        pass
+
+    # set docstring outside of function definition so it can access local variables
+    reformat_response.set_docstring(
         f"""
         The `response` contains an answer to the prompt: "{user_message}".
         However it could not be parsed into the correct return format
-        ({target_return_type}). The associated error message was "{error_message}".
+        ({target_return_type}). The associated error message was
+        "{error_message}".
 
-        Extract the answer from the `response` and format it to be parsed correctly.
+        Extract the answer from the `response` and format it to be parsed
+        correctly.
         """
+    )
 
     return reformat_response(ai_response)

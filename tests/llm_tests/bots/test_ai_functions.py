@@ -109,6 +109,18 @@ class TestBool:
         result = classify_sentiment(["i love pizza", "i hate pizza"])
         assert result == [True, False]
 
+    def test_extract_sentences_with_question_mark(self):
+        @ai_fn
+        def list_questions(email_body: str) -> list[str]:
+            """
+            return any sentences that end with a question mark found in the
+            email_body
+            """
+
+        email_body = "Hi Taylor, It is nice outside today. What is your favorite color?"
+        x = list_questions(email_body)
+        assert x == ["What is your favorite color?"]
+
 
 class TestSet:
     def test_set_response(self):
@@ -120,3 +132,18 @@ class TestSet:
         x = extract_colors(["red", "blue", "cat", "red", "dog"])
         assert isinstance(x, set)
         assert x == {"red", "blue"}
+
+
+class TestNone:
+    def test_none_response(self):
+        @ai_fn
+        def filter_with_none(words: list[str]) -> list[str | None]:
+            """
+            takes a list of words and returns a list of equal length that
+            replaces any word except "blue" with None
+
+            For example, ["red", "blue", "dog"] -> [None, "blue", None]
+            """
+
+        x = filter_with_none(["green", "cat", "blue"])
+        assert x == [None, None, "blue"]
