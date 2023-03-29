@@ -131,6 +131,6 @@ async def hello_marvin():
 if __name__ == "__main__":
     import asyncio
 
-    # marvin.settings.log_level = "DEBUG"
+    marvin.settings.log_level = "DEBUG"
     # marvin.settings.openai_model_name = "gpt-4"
     asyncio.run(hello_marvin())
