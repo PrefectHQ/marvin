@@ -1,4 +1,4 @@
-# AI Functions
+# ✨ AI Functions
 
 ![](ai_fn_fruits_hero.png)
 

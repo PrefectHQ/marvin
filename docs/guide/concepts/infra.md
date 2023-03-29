@@ -1,4 +1,4 @@
-# Infra
+# ⚙️ Infra
 
 !!! warning "Construction zone"
     This area of the docs is under active development and may change.

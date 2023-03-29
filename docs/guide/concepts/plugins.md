@@ -1,4 +1,4 @@
-# Plugins
+# 🔌 Plugins
 
 ![](plugin_rng_hero.png)
 

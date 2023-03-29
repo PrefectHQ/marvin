@@ -16,11 +16,11 @@ nav:
       - Configuration: guide/introduction/configuration.md
       - CLI: guide/introduction/cli.md
     - Concepts:
-      - ✨ AI functions: guide/concepts/ai_functions.md
-      - 🤖 Bots: guide/concepts/bots.md
-      - 🏗️ Loaders: guide/concepts/loaders_and_documents.md
-      - ⚙️ Infrastructure: guide/concepts/infra.md
-      - 🔌 Plugins: guide/concepts/plugins.md
+      - AI functions: guide/concepts/ai_functions.md
+      - Bots: guide/concepts/bots.md
+      - Loaders: guide/concepts/loaders_and_documents.md
+      - Infrastructure: guide/concepts/infra.md
+      - Plugins: guide/concepts/plugins.md
     - Examples:
       - Enforcing AI format: guide/use_cases/enforcing_format.md
     - Development:

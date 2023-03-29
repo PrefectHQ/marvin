@@ -1,3 +1,7 @@
+---
+title: Welcome to Marvin
+---
+
 # Welcome to Marvin 🤖🏖️
 
 ![](ai_fn_fruits_hero.png)
