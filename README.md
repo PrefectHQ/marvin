@@ -9,7 +9,7 @@ Marvin's approach to **"functional prompt engineering"** allows developers to us
 
 Marvin's **AI functions** let developers take advantage of AI through familiar function calls and data structures, without writing source code. **Bots** are highly capable AI assistants that are designed to be used alongside or within existing code. They can take instructions and leverage plugins or external knowledge to solve complex problems. Developers can use these tools to add AI capabilities wherever they will be most impactful, without needing to start from scratch.
 
-Marvin's documentation is available at [askmarvin.ai](https://www.askmarvin.ai).
+Marvin's documentation is available at [askmarvin.ai](https://www.askmarvin.ai). Say hello on our [Discord server](https://discord.gg/Kgw4HpcuYG)!
 
 ## Features
 ![](docs/img/heroes/gpp.png)
