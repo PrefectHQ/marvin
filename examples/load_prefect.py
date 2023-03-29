@@ -1,10 +1,10 @@
+import marvin
 from marvin.bots import Bot
+from marvin.config import CHROMA_INSTALLED
 from marvin.loaders.base import MultiLoader
 from marvin.loaders.discourse import DiscourseLoader
 from marvin.loaders.github import GitHubRepoLoader
 from marvin.loaders.web import SitemapLoader
-
-# from marvin.plugins.chroma import chroma_search
 from marvin.plugins.duckduckgo import DuckDuckGo
 from marvin.plugins.github import search_github_issues
 from prefect.utilities.collections import listrepr
@@ -39,7 +39,23 @@ async def load_prefect_things():
             prefect_source_code,
         ]
     )
-    await prefect_loader.load_and_store()
+
+    if CHROMA_INSTALLED:
+        await prefect_loader.load_and_store()
+    else:
+        marvin.get_logger().info_style(
+            (
+                "Chroma is not installed, so we don't have a vectorstore to load into."
+                " Install with `pip install marvin[chromadb]` to store knowledge in"
+                " ChromaDB."
+            ),
+            "yellow",
+        )
+
+        marvin.get_logger().info_style(
+            "Now spinning up a bot with only github issue search and duckduckgo search",
+            "blue",
+        )
 
 
 prefect_keywords = [
@@ -69,7 +85,7 @@ prefect_keywords = [
     "helm",
 ]
 
-with_chroma_search_instructions = (
+chroma_search_instructions = (
     "Use the `chroma_search` plugin to retrieve context when asked about any"
     f" of the following keywords: {listrepr(prefect_keywords)}. If asked about"
     " a github issue, use the `search_github_issues` plugin, choosing the most"
@@ -86,8 +102,14 @@ barebones_instructions = (
 )
 
 plugins = [search_github_issues, DuckDuckGo()]
+instructions = barebones_instructions
+
 # note that `chroma_search` requires the `chromadb` extra
-# plugins.append(chroma_search)
+if CHROMA_INSTALLED:
+    from marvin.plugins.chroma import chroma_search
+
+    plugins.append(chroma_search)
+    instructions = chroma_search_instructions
 
 
 async def hello_marvin():
@@ -95,7 +117,7 @@ async def hello_marvin():
     bot = Bot(
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
-        instructions=barebones_instructions,
+        instructions=instructions,
         plugins=plugins,
     )
     await bot.interactive_chat()
@@ -106,8 +128,6 @@ async def hello_marvin():
 if __name__ == "__main__":
     import asyncio
 
-    import marvin
-
-    marvin.settings.log_level = "DEBUG"
+    # marvin.settings.log_level = "DEBUG"
     # marvin.settings.openai_model_name = "gpt-4"
     asyncio.run(hello_marvin())
