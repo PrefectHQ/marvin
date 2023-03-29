@@ -146,7 +146,15 @@ def fn_with_structured_annotation(n: int) -> list[Person]:
 ```
 All three of these functions will give similar output (though the last one, `fn_with_structured_annotation`, will return Pydantic models instead of dicts). However, they are increasingly specific in their instructions to the AI. While you should always try to make your intent as clear as possible to the AI, you should also choose an approach that will make sense to other people reading your code. This would lead us to probably prefer the first or third functions over the second, which doesn't look like a typical Python function.
 
+### Plugins
 
+AI functions are powered by [bots](bots.md), so they can also use [plugins](plugins.md). Unlike bots, AI functions have no plugins available by default in order to minimize the possibility of confusing behavior. You can provide plugins when you create the AI function:
+
+```python
+@ai_fn(plugins=[...])
+def my_function():
+    ...
+```
 
 ## Examples
 

@@ -144,6 +144,10 @@ def ai_fn(
             function_name=fn.__name__,
         )
 
+        # ai_fns have no plugins by default
+        if "plugins" not in bot_kwargs:
+            bot_kwargs["plugins"] = []
+
         # create the bot
         bot = Bot(
             instructions=instructions,
