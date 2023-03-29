@@ -68,8 +68,9 @@ plugins:
   - search
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
-      cards_font: Roboto
-      cards_color: #2d6df6
+      cards_font: Noto Sans
+      cards_color:
+        fill: "#2d6df6"
   - awesome-pages
   - autolinks 
   - mkdocstrings:
