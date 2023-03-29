@@ -164,4 +164,7 @@ def ai_fn(
         else:
             return asyncio.run(get_response())
 
+    ai_fn_wrapper.fn = fn
+    ai_fn_wrapper.set_docstring = lambda doc: setattr(fn, "__doc__", doc)
+
     return ai_fn_wrapper
