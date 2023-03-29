@@ -1,3 +1,6 @@
+---
+title: Bots
+---
 # Bots
 
 ![](bot_star_wars_hero.png)
