@@ -9,6 +9,21 @@ from marvin.plugins.duckduckgo import DuckDuckGo
 from marvin.plugins.github import search_github_issues
 from prefect.utilities.collections import listrepr
 
+if not CHROMA_INSTALLED:
+    marvin.get_logger().info_style(
+        (
+            "Chroma is not installed, so we don't have a vectorstore to load into."
+            " Install with `pip install marvin[chromadb]` to store knowledge in"
+            " ChromaDB."
+        ),
+        "yellow",
+    )
+
+    marvin.get_logger().info_style(
+        "Now spinning up a bot with only github issue search and duckduckgo search",
+        "blue",
+    )
+
 
 async def load_prefect_things():
     prefect_docs = SitemapLoader(  # gimme da docs
@@ -42,20 +57,6 @@ async def load_prefect_things():
 
     if CHROMA_INSTALLED:
         await prefect_loader.load_and_store()
-    else:
-        marvin.get_logger().info_style(
-            (
-                "Chroma is not installed, so we don't have a vectorstore to load into."
-                " Install with `pip install marvin[chromadb]` to store knowledge in"
-                " ChromaDB."
-            ),
-            "yellow",
-        )
-
-        marvin.get_logger().info_style(
-            "Now spinning up a bot with only github issue search and duckduckgo search",
-            "blue",
-        )
 
 
 prefect_keywords = [
