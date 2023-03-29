@@ -5,6 +5,9 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
+env:
+  MKDOCS_SOCIAL_CARDS: ${{ vars.MKDOCS_SOCIAL_CARDS }}
+
 permissions:
   contents: write
 jobs:
