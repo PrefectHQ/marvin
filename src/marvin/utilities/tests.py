@@ -26,16 +26,36 @@ def assert_approx_equal(statement_1: str, statement_2: str):
 
 
 @ai_fn()
-def assert_llm(output: Any, expectation: Any) -> bool:
+def _assert_llm(output: Any, expectation: Any) -> bool:
     """
-    Given the `output` of an LLM and an expectation, determines whether the
-    output satisfies the expectation.
+    This function is used to unit test LLM outputs. The LLM `output` is compared
+    to an `expectation` of what the output is, contains, or represents. The
+    function returns `true` if the output satisfies the expectation and `false`
+    otherwise.
+
+    If the expectation is in quotes, it is a literal expectation of the LLM's
+    output (e.g. "'Hello!'" would mean we expect the LLM to say "Hello!" or
+    something similar). If it is not in quotes, it is a description of the
+    expected output (e.g. "a greeting" would mean we expect the LLM to say
+    "Hello!" or "Howdy!" but not "a greeting").
+
 
     For example:
-        `assert_llm(5, "output == 5")` will return `True`
-        `assert_llm(["red", "orange"], "a list of colors")` will return `True`
-        `assert_llm(["red", "house"], "a list of colors")` will return `False`
+        assert_llm(5, "5") -> True
+        assert_llm(5, "'5'") -> True
+        assert_llm("Greetings, friend!", "'Hello, how are you?'") -> True
+        assert_llm("Greetings, friend!", "a greeting") -> True
+        assert_llm("I'm good, thanks!", "'Hello, how are you?'") -> False
+        assert_llm(["red", "orange"], "a list of colors") -> True
+        assert_llm(["red", "house"], "a list of colors") -> False
     """
+
+
+def assert_llm(output: str, expectation: Any):
+    if not _assert_llm(output, expectation):
+        raise AssertionError(
+            f"Output {output} does not satisfy expectation {expectation}"
+        )
 
 
 @asynccontextmanager

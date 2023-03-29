@@ -59,7 +59,7 @@ class TestAIFunctions:
         assert all(isinstance(person, dict) for person in x)
         assert all("name" in person for person in x)
         assert all("age" in person for person in x)
-        assert_llm(x, "a list of fake people")
+        assert_llm(x, "a list of people data including name and age")
 
     def test_generate_rhyming_words(self):
         @ai_fn
@@ -69,7 +69,7 @@ class TestAIFunctions:
         x = rhymes("blue")
         assert isinstance(x, str)
         assert x != "blue"
-        assert_llm(x, "a word that rhymes with blue")
+        assert_llm(x, "the output is a word that rhymes with 'blue'")
 
     def test_generate_rhyming_words_with_n(self):
         @ai_fn
@@ -81,7 +81,13 @@ class TestAIFunctions:
         assert len(x) == 3
         assert all(isinstance(word, str) for word in x)
         assert all(word != "blue" for word in x)
-        assert_llm(x, "a list of words that rhyme with blue")
+        assert_llm(
+            x,
+            (
+                "the output is a list of words, each one rhyming with 'blue'. For"
+                " example ['clue', 'dew', 'flew']"
+            ),
+        )
 
 
 class TestBool:
