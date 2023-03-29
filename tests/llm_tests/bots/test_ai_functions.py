@@ -69,7 +69,7 @@ class TestAIFunctions:
         x = rhymes("blue")
         assert isinstance(x, str)
         assert x != "blue"
-        assert_llm(x, "the output is a word that rhymes with 'blue'")
+        assert_llm(x, "the output is any word that rhymes with blue")
 
     def test_generate_rhyming_words_with_n(self):
         @ai_fn
