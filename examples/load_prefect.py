@@ -24,6 +24,8 @@ if not CHROMA_INSTALLED:
         "blue",
     )
 
+    input("Press any key to continue...")
+
 
 async def load_prefect_things():
     prefect_docs = SitemapLoader(  # gimme da docs
