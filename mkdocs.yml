@@ -1,6 +1,6 @@
 site_name: Marvin
-site_url: https://www.askmarvin.ai
-site_description: A batteries-included library for building AI-powered software
+site_url: https://askmarvin.ai
+site_description: A batteries-included library for building AI-powered software.
 nav:
   - Welcome: 
     - index.md
@@ -107,6 +107,9 @@ markdown_extensions:
 repo_url: https://github.com/prefecthq/marvin
 edit_uri: edit/main/docs/
 extra:
+  analytics:
+    provider: google
+    property: G-2MWKMDJ9CM
   social:
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/prefectio
