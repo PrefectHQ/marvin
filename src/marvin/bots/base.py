@@ -5,6 +5,7 @@ import re
 from typing import TYPE_CHECKING, Any, Callable
 
 import pendulum
+from openai.error import InvalidRequestError
 from pydantic import Field, validator
 
 import marvin
@@ -490,9 +491,19 @@ class Bot(MarvinBaseModel, LoggerMixin):
         if marvin.settings.verbose:
             messages_repr = "\n".join(repr(m) for m in langchain_messages)
             self.logger.debug(f"Sending messages to LLM: {messages_repr}")
-        result = await self.llm.agenerate(
-            messages=[langchain_messages], stop=["Plugin output:", "Plugin Output:"]
-        )
+        try:
+            result = await self.llm.agenerate(
+                messages=[langchain_messages], stop=["Plugin output:", "Plugin Output:"]
+            )
+        except InvalidRequestError as exc:
+            if "does not exist" in str(exc):
+                raise ValueError(
+                    "Please check your `openai_model_name` and that your OpenAI account"
+                    " has access to this model. You can set your model with:"
+                    " `marvin.settings.openai_model_name = 'gpt-3.5-turbo'`"
+                )
+            raise exc
+
         return result.generations[0][0].text
 
     async def interactive_chat(self, first_message: str = None):
