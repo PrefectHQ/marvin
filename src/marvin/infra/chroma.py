@@ -16,7 +16,6 @@ if TYPE_CHECKING and CHROMA_INSTALLED:
 def get_client() -> "chromadb.Client":
     import chromadb
 
-    # chroma_settings = settings or marvin.settings.chroma
     return chromadb.Client(marvin.settings.chroma)
 
 
@@ -37,7 +36,7 @@ class Chroma:
     def __init__(
         self,
         collection_name: str = None,
-        # settings: chromadb.config.Settings = None,
+        embedding_fn=None,
     ):
         if not CHROMA_INSTALLED:
             raise ImportError(
@@ -47,12 +46,13 @@ class Chroma:
                 " using Marvin's knowledge features."
                 " Please install it with `pip install marvin[chromadb]`"
             )
-        import chromadb.utils.embedding_functions
+        import chromadb.utils.embedding_functions as embedding_functions
 
         self.client = get_client()
         self.collection: Collection = self.client.get_or_create_collection(
             name=collection_name or marvin.settings.default_topic,
-            embedding_function=chromadb.utils.embedding_functions.OpenAIEmbeddingFunction(
+            embedding_function=embedding_fn
+            or embedding_functions.OpenAIEmbeddingFunction(
                 api_key=marvin.settings.openai_api_key.get_secret_value()
             ),
         )

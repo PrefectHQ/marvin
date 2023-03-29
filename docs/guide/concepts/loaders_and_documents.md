@@ -1,4 +1,4 @@
-# 🏗️ Loaders and Documents
+# 🏗️ Loaders & Documents
 
 !!! warning "Construction zone"
     Loaders are under active development and may change.
@@ -6,7 +6,6 @@
 ## Quickstart 
 ```python
 import asyncio
-from marvin.infra.chroma import Chroma
 from marvin.loaders.web import SitemapLoader
 
 # loader that can parse text from all urls in a sitemap
