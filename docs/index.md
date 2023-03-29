@@ -79,9 +79,9 @@ Marvin is an opinionated, high-level library with the goal of integrating AI too
 ## When should you NOT use Marvin?
 There are a few reasons NOT to use Marvin:
 
-1. **You want full control of the AI.** Marvin is a high-level library and (with few exceptions) does not generally expose LLM configuration to users. We have chosen settings that give the best results under most circumstances, taking Marvin's built-in prompts into consideration.
+1. **You want full control of an AI.** Marvin is a high-level library and (with few exceptions) does not generally expose LLM configuration to users. We have chosen settings that give the best results under most circumstances, taking Marvin's built-in prompts into consideration.
    
-2. **You're looking for an AI copilot.** While you absolutely could use Marvin to generate source code—just write an AI function to do it!—we would consider that a fun use case, not a core competency. If anything, Marvin's job is to *remove* the need to write source code and let you create functions that defy algorithmic description. 
+2. **You want an AI copilot for writing code.** Marvin's job isn't to help you write source code; it's to help you do things that are difficult or impossible to express in source code. That could range from mundane activities to writing a function that can extract the names of animals commonly found in North America from an email (yes, it's a ridiculous example - but it's possible). Modern LLMs excel at complex reasoning, and Marvin lets you bring that into your code in a way that feels native and natural.
 
 3. **You want to use other LLM models.** Marvin is designed to run against OpenAI's GPT-4 and GPT-3.5 models. While we may expand those models in the future, we've discovered that prompts designed for one model rarely translate well to others without modification. In order to maximize the usefulness of the library, we've decided to focus on just these popular models for now.
 
