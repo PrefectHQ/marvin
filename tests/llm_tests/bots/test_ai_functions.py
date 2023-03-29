@@ -120,3 +120,18 @@ class TestSet:
         x = extract_colors(["red", "blue", "cat", "red", "dog"])
         assert isinstance(x, set)
         assert x == {"red", "blue"}
+
+
+class TestNone:
+    def test_none_response(self):
+        @ai_fn
+        def filter_with_none(words: list[str]) -> list[str | None]:
+            """
+            takes a list of words and returns a list of equal length that
+            replaces any word except "blue" with None
+
+            For example, ["red", "blue", "dog"] -> [None, "blue", None]
+            """
+
+        x = filter_with_none(["green", "cat", "blue"])
+        assert x == [None, None, "blue"]
