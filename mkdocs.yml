@@ -1,4 +1,5 @@
 site_name: Marvin
+site_url: https://www.askmarvin.ai
 nav:
   - Welcome: 
     - index.md
@@ -64,6 +65,7 @@ theme:
         name: Switch to light mode
 plugins:
   - search
+  - social
   - awesome-pages
   - autolinks 
   - mkdocstrings:

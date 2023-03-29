@@ -19,11 +19,15 @@ jobs:
         with:
           key: ${{ github.ref }}
           path: .cache
-
+      - name: Install dependencies for social cards
+        run: |
+          apt-get install libcairo2-dev libfreetype6-dev libffi-dev libjpeg-dev libpng-dev libz-dev
       # for now, only install mkdocs. In the future may need to install Marvin itself.
-      - run: pip install \
+      - name: Install dependencies for MKDocs Material
+        run: pip install \
           mkdocs-material \
           mkdocs-autolinks-plugin \
           mkdocs-awesome-pages-plugin \
           mkdocstrings[python]
-      - run: mkdocs gh-deploy --force
+      - name: Publish docs
+        run: mkdocs gh-deploy --force
