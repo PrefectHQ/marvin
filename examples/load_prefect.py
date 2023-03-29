@@ -24,7 +24,7 @@ if not CHROMA_INSTALLED:
         "blue",
     )
 
-    input("Press any key to continue...")
+    input("Press Enter to continue...")
 
 
 async def load_prefect_things():
