@@ -108,3 +108,15 @@ class TestBool:
 
         result = classify_sentiment(["i love pizza", "i hate pizza"])
         assert result == [True, False]
+
+
+class TestSet:
+    def test_set_response(self):
+        # https://github.com/PrefectHQ/marvin/issues/54
+        @ai_fn
+        def extract_colors(words: list[str]) -> set[str]:
+            """returns a set of colors"""
+
+        x = extract_colors(["red", "blue", "cat", "red", "dog"])
+        assert isinstance(x, set)
+        assert x == {"red", "blue"}
