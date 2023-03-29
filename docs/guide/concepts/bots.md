@@ -1,5 +1,5 @@
 ---
-title: Bots
+icon: robot
 ---
 # Bots
 

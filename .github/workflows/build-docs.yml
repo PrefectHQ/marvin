@@ -3,6 +3,10 @@ name: Build Docs
 on:
   pull_request:
 
+env:
+  MKDOCS_SOCIAL_CARDS: ${{ vars.MKDOCS_SOCIAL_CARDS }}
+  MKDOCS_INSIDERS_PATH: ${{ secrets.MKDOCS_INSIDERS_PATH }}
+
 permissions:
   contents: write
 jobs:
@@ -20,11 +24,13 @@ jobs:
       # for now, only install mkdocs. In the future may need to install Marvin itself.
       - name: Install dependencies for MKDocs Material
         run: pip install \
-          mkdocs-material \
+          # mkdocs-material \
+          git+https://oauth:${MKDOCS_INSIDERS_PAT}@github.com/PrefectHQ/mkdocs-material-insiders.git \
           mkdocs-autolinks-plugin \
           mkdocs-awesome-pages-plugin \
           mkdocstrings[python] \
           pillow \
           cairosvg
       - name: Build docs
-        run: mkdocs build
+        run: |
+          mkdocs build --config-file mkdocs.insiders.yml
