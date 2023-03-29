@@ -6,7 +6,7 @@ from marvin.utilities.tests import assert_llm
 class TestBotResponse:
     @pytest.mark.parametrize(
         "message,expected_response",
-        [("hello", "Hello. How can I assist you today?")],
+        [("Say only the word 'red'", "Red")],
     )
     async def test_simple_response(self, message, expected_response):
         bot = Bot()
@@ -15,11 +15,14 @@ class TestBotResponse:
 
     async def test_memory(self):
         bot = Bot()
-        response = await bot.say("My favorite color is blue")
+        response = await bot.say("Hello, favorite color is blue")
         response = await bot.say("What is my favorite color?")
         assert_llm(
             response.content,
-            "You told me that your favorite color is blue",
+            (
+                "Based on your previous message, you mentioned that your favorite color"
+                " is blue. Is that still correct?"
+            ),
         )
 
 
