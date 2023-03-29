@@ -1,6 +1,6 @@
 # Installation
 
-![](dont_panic.png)
+![](../img/heroes/dont_panic.png)
 
 
 ## Requirements

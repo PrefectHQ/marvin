@@ -26,11 +26,11 @@ jobs:
       # for now, only install mkdocs. In the future may need to install Marvin itself.
       - name: Install dependencies for MKDocs Material
         run: pip install \
-          git+https://oauth:${MKDOCS_INSIDERS_PAT}@github.com/PrefectHQ/mkdocs-material-insiders.git \
+          mkdocs-material \
           mkdocs-autolinks-plugin \
           mkdocs-awesome-pages-plugin \
           mkdocstrings[python] \
           pillow \
           cairosvg
       - name: Publish docs
-        run: mkdocs gh-deploy --config-file mkdocs.insiders.yml --force 
+        run: mkdocs gh-deploy --force 

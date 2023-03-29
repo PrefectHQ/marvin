@@ -78,6 +78,6 @@ class TestResponseFormat:
             bot.response_format, marvin.bots.response_formatters.PydanticFormatter
         )
         assert bot.response_format.format.startswith(
-            "A JSON object that matches the following OpenAPI schema:"
+            "A JSON object that satisfies the following OpenAPI schema:"
         )
         assert str(OutputFormat.schema_json()) in bot.response_format.format

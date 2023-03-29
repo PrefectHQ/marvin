@@ -1,7 +1,7 @@
 # Development
 
-<!-- ![](incredible_even_worse_hero.png) -->
-![](../img/hero_code/end_in_tears_hero.png)
+<!-- ![](../img/heroes/incredible_even_worse_hero.png) -->
+![](../img/heroes/end_in_tears_hero.png)
 ## Installing for development
 
 For development, you should clone the [git repo](https://github.com/prefecthq/marvin) and create an editable install including all development dependencies. To do so, run the following:

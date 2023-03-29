@@ -1,7 +1,7 @@
 # FAQ
 
 
-![](advice.png)
+![](img/heroes/advice.png)
 ## General
 
 ### How do I report a problem?
@@ -49,7 +49,8 @@ Marvin's code can be found on [GitHub](https://www.github.com/prefecthq/marvin).
 ```python
 from marvin import Bot
 
-response = await Bot.say("Why are you called Marvin?")
+bot = Bot()
+response = await bot.say("Why are you called Marvin?")
 print(response.content)
 
 # Ah, a question of origins! The name "Marvin" might be inspired by the
