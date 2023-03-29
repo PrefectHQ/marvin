@@ -1,5 +1,6 @@
 from typing import Optional
 
+import pydantic
 from marvin import ai_fn
 from marvin.utilities.tests import assert_llm
 
@@ -148,3 +149,47 @@ class TestNone:
 
         x = filter_with_none(["green", "cat", "blue"])
         assert x == [None, None, "blue"]
+
+
+class TestPydantic:
+    def test_pydantic_model(self):
+        class ReturnModel(pydantic.BaseModel):
+            name: str
+            age: int
+
+        @ai_fn
+        def get_person() -> ReturnModel:
+            """returns a person"""
+
+        x = get_person()
+        assert isinstance(x, ReturnModel)
+
+    def test_list_of_pydantic_models(self):
+        class ReturnModel(pydantic.BaseModel):
+            name: str
+            age: int
+
+        @ai_fn
+        def get_people(n: int) -> list[ReturnModel]:
+            """returns a list of n people"""
+
+        x = get_people(3)
+        assert isinstance(x, list)
+        assert len(x) == 3
+        assert all(isinstance(person, ReturnModel) for person in x)
+
+    def test_nested_pydantic_models(self):
+        class Person(pydantic.BaseModel):
+            name: str
+            age: int
+
+        class ReturnModel(pydantic.BaseModel):
+            people: list[Person]
+
+        @ai_fn
+        def fn() -> ReturnModel:
+            """returns 2 people"""
+
+        x = fn()
+        assert isinstance(x, ReturnModel)
+        assert len(x.people) == 2
