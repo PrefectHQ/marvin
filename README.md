@@ -3,14 +3,15 @@
 ![](docs/img/heroes/ai_fn_fruits_hero.png)
 
 
-Marvin is a batteries-included library that simplifies the process of building AI-powered software. 
+Meet Marvin: a batteries-included library for building AI-powered software. Marvin's job is to integrate AI directly into your codebase by making it look and feel like any other function. 
 
-Marvin's approach to **"functional prompt engineering"** allows developers to use AI with structured inputs and outputs, not only text. This makes it possible to seamlessly integrate AI with traditional code, enabling the creation of sophisticated AI pipelines. 
+Marvin introduces a groundbreaking concept called [**AI Functions**](https://www.askmarvin.ai/guide/concepts/ai_functions.md). These functions differ from conventional ones in that they don’t rely on source code, but instead generate their outputs on-demand through AI. With AI functions, you don't have to write complex code for tasks like extracting entities from web pages, scoring sentiment, or categorizing items in your database. Just describe your needs, call the function, and you're done! It’s not no-code, it’s whoa-code.
 
-Marvin's **AI functions** let developers take advantage of AI through familiar function calls and data structures, without writing source code. **Bots** are highly capable AI assistants that are designed to be used alongside or within existing code. They can take instructions and leverage plugins or external knowledge to solve complex problems. Developers can use these tools to add AI capabilities wherever they will be most impactful, without needing to start from scratch.
+AI functions work with native data types, so you can seamlessly integrate them into any codebase and chain them into sophisticated pipelines. Technically speaking, Marvin transforms the signature of using AI from `(str) -> str` to `(**kwargs) -> Any`. We call this **"functional prompt engineering."**
 
-Marvin's documentation is available at [askmarvin.ai](https://www.askmarvin.ai). Say hello on our [Discord server](https://discord.gg/Kgw4HpcuYG)!
+In addition to AI functions, Marvin also introduces more flexible bots. [**Bots**](https://www.askmarvin.ai/guide/concepts/bots.md) are highly capable AI assistants that can be given specific instructions and personalities or roles. They can use custom plugins and leverage external knowledge, and automatically create a history of every thread. Under the hood, AI functions are actually a type of bot. 
 
+Developers can use Marvin to add AI capabilities wherever they will be most impactful, without needing to start from scratch. Marvin's documentation is available at [askmarvin.ai](https://www.askmarvin.ai), and say hello on our [Discord server](https://discord.gg/Kgw4HpcuYG)!
 ## Features
 ![](docs/img/heroes/gpp.png)
 
