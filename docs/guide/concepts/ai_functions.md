@@ -1,6 +1,6 @@
-# ✨ AI Functions
+# 🪄 AI Functions
 
-![](ai_fn_fruits_hero.png)
+![](../../img/heroes/ai_fn_fruits_hero.png)
 
 !!! tip "Features"
     🎉 Create AI functions with a single `@ai_fn` decorator

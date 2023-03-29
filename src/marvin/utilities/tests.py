@@ -32,9 +32,9 @@ def assert_llm(output: Any, expectation: Any) -> bool:
     output satisfies the expectation.
 
     For example:
-        `assert_llm(5, "output == 5")` will return `True` `assert_llm(["red",
-        "orange"], "a list of colors")` will return `True` `assert_llm(["red",
-        "house"], "a list of colors")` will return `False`
+        `assert_llm(5, "output == 5")` will return `True`
+        `assert_llm(["red", "orange"], "a list of colors")` will return `True`
+        `assert_llm(["red", "house"], "a list of colors")` will return `False`
     """
 
 

@@ -1,4 +1,4 @@
-# 🏗️ Loaders and Documents
+# 🏗️ Loaders & Documents
 
 !!! warning "Construction zone"
     Loaders are under active development and may change.
@@ -6,7 +6,6 @@
 ## Quickstart 
 ```python
 import asyncio
-from marvin.infra.chroma import Chroma
 from marvin.loaders.web import SitemapLoader
 
 # loader that can parse text from all urls in a sitemap
@@ -22,7 +21,7 @@ asyncio.run(prefect_docs.load_and_store())
 A `Loader` parses a source of information into a `list[Document]`, which can then be stored as context for the LLM.
 
 
-![](loader_diagram.png)
+![](../../img/loader_diagram.png)
 
 
 ## What is a `Document`?

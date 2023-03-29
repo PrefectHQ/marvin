@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import GenericAlias
-from typing import Any, Callable, Generic, Literal, TypeVar, Union
+from typing import Any, Callable, Generic, Literal, TypeVar, Union, _SpecialForm
 
 import pydantic
 import ulid
@@ -330,10 +330,10 @@ def format_type_str(type_) -> str:
     """
     The str(type: type) is not very readable, so we format it to be more readable.
     """
-    if isinstance(type_, type):
-        return type_.__name__
-    else:
+    if isinstance(type_, GenericAlias):
         return str(type_)
+    elif isinstance(type_, type):
+        return type_.__name__
 
 
 def extract_class(generic_alias):
@@ -384,3 +384,21 @@ def replace_class(generic_alias, old_class, new_class):
         return generic_alias.__origin__[replaced_args]
     else:
         return new_class if generic_alias == old_class else generic_alias
+
+
+def genericalias_contains(genericalias, target_type):
+    """
+    Explore whether a type or generic alias contains a target type.
+
+    Useful for seeing if a type contains a pydantic model, for example.
+    """
+    if isinstance(genericalias, GenericAlias):
+        for arg in genericalias.__args__:
+            if genericalias_contains(arg, target_type):
+                return True
+    elif isinstance(genericalias, _SpecialForm):
+        return False
+    else:
+        return safe_issubclass(genericalias, target_type)
+
+    return False

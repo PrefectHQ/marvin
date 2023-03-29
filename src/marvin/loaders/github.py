@@ -174,7 +174,9 @@ class GitHubIssueLoader(Loader):
             )
             text = f"\n\n##**{issue.title}:**\n{clean_issue_body}\n"
             if self.include_comments:
-                for comment in await self._get_issue_comments(
+                for (
+                    comment
+                ) in await self._get_issue_comments(  # hashable headers for lru_cache
                     self.repo, tuple(self.request_headers.items()), issue.number
                 ):
                     if comment.user.login not in self.ignore_users:
@@ -245,6 +247,7 @@ class GitHubRepoLoader(Loader):
                         ]
                     ),
                     title=file.name,
+                    filename=file.name,
                 )
                 documents.extend(
                     await Document(

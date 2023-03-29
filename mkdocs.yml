@@ -68,7 +68,7 @@ plugins:
   - search
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
-      # cards_font: Inter
+      cards_font: Inter
       cards_color:
         fill: "#2d6df6"
   - awesome-pages
@@ -112,11 +112,11 @@ extra:
     provider: google
     property: G-2MWKMDJ9CM
   social:
-    - icon: fontawesome/brands/twitter
-      link: https://twitter.com/prefectio
     - icon: fontawesome/brands/github
       link: https://github.com/prefecthq/marvin
-    - icon: fontawesome/brands/slack
-      link: https://prefect.io/slack
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/Kgw4HpcuYG
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/askmarvinai
 extra_css:
   - stylesheets/extra.css

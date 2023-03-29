@@ -3,7 +3,7 @@
 [project]
 name = "marvin"
 dynamic = ["version"]
-description = "A batteries-included library for deploying custom AI tools."
+description = "A batteries-included library for building AI-powered software."
 readme = "README.md"
 license = { file = "LICENSE" }
 classifiers = [
