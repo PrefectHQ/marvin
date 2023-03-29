@@ -67,6 +67,7 @@ plugins:
   - search
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
+      cards_font: Roboto
   - awesome-pages
   - autolinks 
   - mkdocstrings:
