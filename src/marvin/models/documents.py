@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 
 from jinja2 import Template
@@ -21,7 +22,7 @@ DocumentType = Literal["original", "excerpt", "summary"]
 
 EXCERPT_TEMPLATE = jinja_env.from_string(
     inspect.cleandoc(
-        """The following is a {{ document.type }} document {% if document.source %}produced by {{ document.source }}
+        """The following is an excerpt {% if document.source %}produced by {{ document.source }}
         {% endif %}
         {% if document.metadata %}\n\n# Document metadata
         {{ document.metadata }}
@@ -38,6 +39,45 @@ EXCERPT_TEMPLATE = jinja_env.from_string(
 )
 
 
+async def _create_excerpt(
+    document: "Document",
+    text: str,
+    index: int,
+    excerpt_template: Template,
+    **extra_template_kwargs,
+) -> "Document":
+    keywords = await extract_keywords(text)
+
+    minimap = (
+        create_minimap_fn(document.text)(index)
+        if document.metadata.link and document.metadata.link.endswith(".md")
+        else None
+    )
+
+    excerpt_text = excerpt_template.render(
+        document=document.copy_with_updates(type="excerpt"),
+        excerpt_text=text,
+        keywords=", ".join(keywords),
+        minimap=minimap,
+        **extra_template_kwargs,
+    )
+    excerpt_metadata = (
+        document.metadata.copy_with_updates(document_type="excerpt")
+        if document.metadata
+        else Metadata(document_type="excerpt")
+    )
+    return Document(
+        type="excerpt",
+        parent_document_id=document.id,
+        text=excerpt_text,
+        order=index,
+        keywords=keywords,
+        topic_name=marvin.settings.default_topic,
+        metadata=excerpt_metadata,
+        tokens=count_tokens(excerpt_text),
+    )
+
+
 class Document(MarvinBaseModel):
     """A source of information that is storable & searchable.
 
@@ -45,7 +85,7 @@ class Document(MarvinBaseModel):
     web pages, git repos / issues, PDFs, and even just plain text files.
 
     A document is a unit of information that can be stored in a topic, and
-    should be produced with a `Loader` of some kind.
+    original documents can be produced with a `Loader` of some kind.
 
     Documents can be originals, excerpts or summaries of other documents, which
     determines their `type`.
@@ -56,7 +96,7 @@ class Document(MarvinBaseModel):
         ..., description="Any text content that you want to keep / embed."
     )
     embedding: list[float] | None = Field(default=None)
-    metadata: Metadata | None = Field(default=None)
+    metadata: Metadata = Field(default_factory=Metadata)
 
     source: str | None = Field(default=None)
     type: DocumentType = Field(default="original")
@@ -93,50 +133,25 @@ class Document(MarvinBaseModel):
             overlap: The fraction of overlap between each excerpt.
 
         """
-        minimap_fn = create_minimap_fn(self.text)
-        excerpts = []
-
         if not excerpt_template:
             excerpt_template = EXCERPT_TEMPLATE
 
-        for i, (text, chr) in enumerate(
-            split_text(
-                text=self.text,
-                chunk_size=chunk_tokens,
-                chunk_overlap=overlap,
-                return_index=True,
-            )
-        ):
-            keywords = await extract_keywords(text)
+        text_chunks = split_text(
+            text=self.text,
+            chunk_size=chunk_tokens,
+            chunk_overlap=overlap,
+            return_index=True,
+        )
 
-            minimap = (  # only include minimap if document is markdown
-                minimap_fn(chr)
-                if self.metadata
-                and "link" in self.metadata.__fields__
-                and self.metadata.link.endswith(".md")
-                else None
-            )
-
-            excerpt_text = excerpt_template.render(
-                document=self,
-                excerpt_text=text,
-                keywords=", ".join(keywords),
-                minimap=minimap,
-                **extra_template_kwargs,
-            )
-
-            excerpt_metadata = self.metadata.copy() if self.metadata else Metadata()
-            excerpt_metadata.document_type = "excerpt"
-            excerpts.append(
-                Document(
-                    type="excerpt",
-                    parent_document_id=self.id,
-                    text=excerpt_text,
-                    order=i,
-                    keywords=keywords,
-                    topic_name=marvin.settings.default_topic,
-                    metadata=excerpt_metadata,
-                    tokens=count_tokens(excerpt_text),
+        return await asyncio.gather(
+            *[
+                _create_excerpt(
+                    document=self,
+                    text=text,
+                    index=i,
+                    excerpt_template=excerpt_template,
+                    **extra_template_kwargs,
                 )
-            )
-        return excerpts
+                for i, (text, chr) in enumerate(text_chunks)
+            ]
+        )
