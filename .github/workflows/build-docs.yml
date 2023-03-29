@@ -18,9 +18,13 @@ jobs:
           key: ${{ github.ref }}
           path: .cache
       # for now, only install mkdocs. In the future may need to install Marvin itself.
-      - run: pip install \
+      - name: Install dependencies for MKDocs Material
+        run: pip install \
           mkdocs-material \
           mkdocs-autolinks-plugin \
           mkdocs-awesome-pages-plugin \
-          mkdocstrings[python]
-      - run: mkdocs build
+          mkdocstrings[python] \
+          pillow \
+          cairosvg
+      - name: Build docs
+        run: mkdocs build
