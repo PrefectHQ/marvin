@@ -15,7 +15,7 @@ Developers can use Marvin to add AI capabilities wherever they will be most imp
 ## Features
 ![](docs/img/heroes/gpp.png)
 
-✨ Write [AI functions](https://askmarvin.ai/guide/concepts/ai_functions) that process structured data without source code
+🪄 Write [AI functions](https://askmarvin.ai/guide/concepts/ai_functions) that process structured data without source code
 
 🤖 Create [bots](https://www.askmarvin.ai/guide/concepts/bots) that have personalities and follow instructions
 
