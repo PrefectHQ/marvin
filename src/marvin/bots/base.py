@@ -501,8 +501,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                     "Please check your `openai_model_name` and that your OpenAI account"
                     " has access to this model. You can select an OpenAI model by"
                     " setting the `MARVIN_OPENAI_MODEL_NAME` env var."
-                    " Read more about settings in the docs:"
-                    " https://www.askmarvin.ai/guide/introduction/configuration/#settings"  # noqa: E501
+                    " Read more about settings in the docs: https://www.askmarvin.ai/guide/introduction/configuration/#settings"  # noqa: E501
                 )
             raise exc
 
