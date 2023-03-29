@@ -1,6 +1,3 @@
----
-icon: robot
----
 # Bots
 
 ![](bot_star_wars_hero.png)
