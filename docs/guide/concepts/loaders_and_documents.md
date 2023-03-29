@@ -22,7 +22,7 @@ asyncio.run(prefect_docs.load_and_store())
 A `Loader` parses a source of information into a `list[Document]`, which can then be stored as context for the LLM.
 
 
-![](loader_diagram.png)
+![](../../img/loader_diagram.png)
 
 
 ## What is a `Document`?

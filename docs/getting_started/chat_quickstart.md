@@ -1,5 +1,5 @@
 # Chat
-![](marvin_chat_hero.png)
+![](../img/heroes/marvin_chat_hero.png)
 
 ## Quick chat
 
@@ -8,7 +8,7 @@ To quickly jump into a chat, run `marvin chat` from your command line. This will
 ```shell
 marvin chat
 ```
-![](marvin_chat.png)
+![](../img/marvin_chat.png)
 
 ## Custom chat
 

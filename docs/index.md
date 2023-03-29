@@ -4,7 +4,7 @@ title: Welcome to Marvin
 
 # Welcome to Marvin 🤖🏖️
 
-![](ai_fn_fruits_hero.png)
+![](img/heroes/ai_fn_fruits_hero.png)
 
 
 Marvin is a batteries-included library that simplifies the process of building AI-powered software. 
@@ -21,7 +21,7 @@ Marvin's code is available on [GitHub](https://github.com/prefecthq/marvin).
     -- <a href="https://www.youtube.com/clip/UgkxNj9p6jPFM8eWAmRJiKoPeOmvQxb8viQv" target="_blank">Marvin</a> -->
     
 ## Features
-![](gpp.png)
+![](img/heroes/gpp.png)
 
 ✨ Write [AI functions](guide/concepts/ai_functions.md) to process structured data without source code
 

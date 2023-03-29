@@ -1,7 +1,7 @@
 # FAQ
 
 
-![](advice.png)
+![](img/heroes/advice.png)
 ## General
 
 ### How do I report a problem?

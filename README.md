@@ -1,6 +1,6 @@
 # Welcome to Marvin 🤖🏖️
 
-![](docs/img/hero_code/ai_fn_fruits_hero.png)
+![](docs/img/heroes/ai_fn_fruits_hero.png)
 
 
 Marvin is a batteries-included library that simplifies the process of building AI-powered software. 
@@ -12,7 +12,7 @@ Marvin's **AI functions** let developers take advantage of AI through familiar f
 Marvin's documentation is available at [askmarvin.ai](https://www.askmarvin.ai).
 
 ## Features
-![](docs/img/hero_code/gpp.png)
+![](docs/img/heroes/gpp.png)
 
 ✨ Write [AI functions](https://askmarvin.ai/guide/concepts/ai_functions) that process structured data without source code
 

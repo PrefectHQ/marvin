@@ -1,6 +1,6 @@
 # 🤖 Bots
 
-![](bot_star_wars_hero.png)
+![](../../img/heroes/bot_star_wars_hero.png)
 
 !!! tip "Features"
     
@@ -68,7 +68,7 @@ bot = await Bot.load("Ford")
 
 To chat with a bot from the CLI, run `marvin chat` with optional name, personality, or instruction flags.
 
-![](marvin_chat.png)
+![](../../img/marvin_chat.png)
 
 ### Loading an existing bot
 
@@ -86,7 +86,7 @@ Instructions define the bot's behavior by specifying how it should respond. For 
 
 ### Personality
 
-![](it_hates_me_hero.png)
+![](../../img/heroes/it_hates_me_hero.png)
 
 Personality affects the style of the bot's responses, for example the tone, humor, how often the bot checks for confirmation, etc. Personality can include a persona or role as well as interests, fears, or broad objectives. 
 
