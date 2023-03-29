@@ -6,7 +6,7 @@ from marvin.utilities.tests import assert_llm
 class TestBotResponse:
     @pytest.mark.parametrize(
         "message,expected_response",
-        [("hello", "Greetings. How may I assist you today?")],
+        [("hello", "Hello. How can I assist you today?")],
     )
     async def test_simple_response(self, message, expected_response):
         bot = Bot()
