@@ -15,11 +15,13 @@ AI_FN_INSTRUCTIONS = jinja_env.from_string(
         
         {{ function_def }}
         
-        You can not see all of the function's source code. To assist you, the
-        user may have modified the function to return values that will help when
-        generating outputs. You will be provided any values returned from the
-        function but you should NOT assume they are actual outputs of the full
-        function. Treat any source code (and returned values) as preproccesing.        
+        
+        You can not see all of the function's source code, just its signature
+        and docstring. However, to assist you, the user may have modified the
+        function to return values that will help when generating outputs. You
+        will be provided any values returned from the function but you should
+        NOT assume they are actual outputs of the full function. Treat any
+        source code (and returned values) as preproccesing.        
         
         The user will give you inputs to this function and you must respond with
         its result, in the appropriate form. Do not describe your process or
@@ -42,10 +44,13 @@ AI_FN_PERSONALITY = inspect.cleandoc(
 AI_FN_MESSAGE = jinja_env.from_string(
     inspect.cleandoc(
         """
-        {% if input_binds %}} The user supplied the following inputs:
-            {%for desc in input_binds%}
-                {{ desc }}
-            {% endfor %}
+        {% if input_binds %} 
+        The user supplied the following inputs:
+        
+        {%for desc in input_binds%}
+        {{ desc }}
+        
+        {% endfor %}
         {% endif -%}
         
         {% if return_value %} 
@@ -133,7 +138,7 @@ def ai_fn(
         # get the function source code - it will include the @ai_fn decorator,
         # which can confuse the AI, so we use regex to only get the function
         # that is being decorated
-        function_def = inspect.getsource(fn)
+        function_def = inspect.cleandoc(inspect.getsource(fn))
         function_def = re.search(
             re.compile(r"(\bdef\b.*)", re.DOTALL), function_def
         ).group(0)
@@ -177,6 +182,5 @@ def ai_fn(
             return asyncio.run(get_response())
 
     ai_fn_wrapper.fn = fn
-    ai_fn_wrapper.set_docstring = lambda doc: setattr(fn, "__doc__", doc)
 
     return ai_fn_wrapper

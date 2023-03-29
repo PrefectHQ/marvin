@@ -71,18 +71,18 @@ class TypeFormatter(ResponseFormatter):
             kwargs.update(
                 type_schema=schema,
                 format=(
-                    "A JSON object that matches the following Python type signature:"
-                    f" `{format_type_str(type_)}`. Make sure your response is valid"
-                    " JSON, so return lists instead of sets or tuples; `true` and"
-                    " `false` instead of `True` and `False`; and `null` instead of"
-                    " `None`."
+                    "A valid JSON object that can be cast to the following type"
+                    f" signature: `{format_type_str(type_)}`. Make sure your response"
+                    " is valid JSON,  so use lists instead of sets or tuples; literal"
+                    " `true` and `false` instead of `True` and `False`; literal `null`"
+                    " instead of `None`; and double quotes instead of single quotes."
                 ),
             )
         super().__init__(**kwargs)
         if type_ is not SENTINEL:
             self._cached_type = type_
 
-    def get_type(self) -> type | GenericAlias | pydantic.BaseModel:
+    def get_type(self) -> type | GenericAlias:
         if self._cached_type is not SENTINEL:
             return self._cached_type
 
@@ -96,7 +96,7 @@ class TypeFormatter(ResponseFormatter):
 
         # handle GenericAlias and containers
         if isinstance(type_, GenericAlias):
-            return pydantic.parse_raw_as(self.get_type(), response)
+            return pydantic.parse_raw_as(type_, response)
 
         # handle basic types
         else:

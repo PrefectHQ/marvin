@@ -107,6 +107,8 @@ env = [
     # don't load plugins
     'MARVIN_LOAD_BOT_DEFAULT_PLUGINS=0',
     'MARVIN_OPENAI_MODEL_TEMPERATURE=0',
+    # use 3.5 for tests by default
+    'MARVIN_OPENAI_MODEL_NAME=gpt-3.5-turbo'
     
 ]
 

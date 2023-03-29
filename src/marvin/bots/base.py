@@ -289,29 +289,31 @@ class Bot(MarvinBaseModel, LoggerMixin):
         # validate response format
         parsed_response = response
         validated = False
+        validation_attempts = 0
 
-        try:
-            self.response_format.validate_response(response)
-            validated = True
-        except Exception as exc:
-            match self.response_format.on_error:
-                case "ignore":
-                    pass
-                case "raise":
-                    raise exc
-                case "reformat":
-                    self.logger.debug(
-                        "Response did not pass validation. Attempted to reformat:"
-                        f" {response}"
-                    )
-                    reformatted_response = _reformat_response(
-                        user_message=user_message.content,
-                        ai_response=response,
-                        error_message=repr(exc),
-                        target_return_type=self.response_format.format,
-                    )
-                    response = str(reformatted_response)
-                    validated = True
+        while not validated and validation_attempts < 3:
+            validation_attempts += 1
+            try:
+                self.response_format.validate_response(response)
+                validated = True
+            except Exception as exc:
+                match self.response_format.on_error:
+                    case "ignore":
+                        validated = True
+                    case "raise":
+                        raise exc
+                    case "reformat":
+                        self.logger.debug(
+                            "Response did not pass validation. Attempted to reformat:"
+                            f" {response}"
+                        )
+                        reformatted_response = _reformat_response(
+                            user_message=user_message.content,
+                            ai_response=response,
+                            error_message=repr(exc),
+                            target_return_type=self.response_format.format,
+                        )
+                        response = str(reformatted_response)
 
         if validated:
             parsed_response = self.response_format.parse_response(response)
@@ -508,22 +510,24 @@ def _reformat_response(
 ) -> str:
     @marvin.ai_fn(
         plugins=[],
-        bot_modifier=lambda bot: setattr(bot.response_format, "on_error", "raise"),
+        bot_modifier=lambda bot: setattr(bot.response_format, "on_error", "ignore"),
     )
-    def reformat_response(response: str) -> target_return_type:
-        pass
-
-    # set docstring outside of function definition so it can access local variables
-    reformat_response.set_docstring(
-        f"""
-        The `response` contains an answer to the prompt: "{user_message}".
+    def reformat_response(
+        response: str, user_message: str, target_return_type: str, error_message: str
+    ) -> target_return_type:
+        """
+        The `response` contains an answer to the `user_prompt`.
         However it could not be parsed into the correct return format
-        ({target_return_type}). The associated error message was
-        "{error_message}".
+        (`target_return_type`). The associated error message was
+        `error_message`.
 
         Extract the answer from the `response` and format it to be parsed
         correctly.
         """
-    )
 
-    return reformat_response(ai_response)
+    return reformat_response(
+        response=ai_response,
+        user_message=user_message,
+        target_return_type=target_return_type,
+        error_message=error_message,
+    )

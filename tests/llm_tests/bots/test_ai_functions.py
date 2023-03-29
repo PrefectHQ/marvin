@@ -1,3 +1,5 @@
+from typing import Optional
+
 from marvin import ai_fn
 from marvin.utilities.tests import assert_llm
 
@@ -113,8 +115,7 @@ class TestBool:
         @ai_fn
         def list_questions(email_body: str) -> list[str]:
             """
-            return any sentences that end with a question mark found in the
-            email_body
+            Returns a list of any questions in the email body.
             """
 
         email_body = "Hi Taylor, It is nice outside today. What is your favorite color?"
@@ -137,7 +138,7 @@ class TestSet:
 class TestNone:
     def test_none_response(self):
         @ai_fn
-        def filter_with_none(words: list[str]) -> list[str | None]:
+        def filter_with_none(words: list[str]) -> list[Optional[str]]:
             """
             takes a list of words and returns a list of equal length that
             replaces any word except "blue" with None
