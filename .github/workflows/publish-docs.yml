@@ -28,6 +28,8 @@ jobs:
           mkdocs-material \
           mkdocs-autolinks-plugin \
           mkdocs-awesome-pages-plugin \
-          mkdocstrings[python]
+          mkdocstrings[python] \
+          pillow \
+          cairosvg
       - name: Publish docs
         run: mkdocs gh-deploy --force
