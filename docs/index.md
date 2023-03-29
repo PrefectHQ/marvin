@@ -19,7 +19,7 @@ Marvin's code is available on [GitHub](https://github.com/prefecthq/marvin).
 ## Features
 ![](gpp.png)
 
-🦾 Write [AI functions](guide/concepts/ai_functions.md) to process structured data without source code
+✨ Write [AI functions](guide/concepts/ai_functions.md) to process structured data without source code
 
 🤖 Chat with [bots](guide/concepts/bots.md) that have personalities and follow instructions
 
