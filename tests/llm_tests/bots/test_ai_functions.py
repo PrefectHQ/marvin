@@ -1,6 +1,8 @@
 from typing import Optional
 
+import marvin
 import pydantic
+import pytest
 from marvin import ai_fn
 from marvin.utilities.tests import assert_llm
 
@@ -128,6 +130,94 @@ class TestBool:
         email_body = "Hi Taylor, It is nice outside today. What is your favorite color?"
         x = list_questions(email_body)
         assert x == ["What is your favorite color?"]
+
+
+class TestContainers:
+    """tests untyped containers"""
+
+    def test_dict(self):
+        @ai_fn
+        def dict_response() -> dict:
+            """
+            Returns a dictionary that contains
+                - name: str
+                - age: int
+            """
+
+        response = dict_response()
+        assert isinstance(response, dict)
+        assert isinstance(response["name"], str)
+        assert isinstance(response["age"], int)
+
+    def test_list(self):
+        @ai_fn
+        def list_response() -> list:
+            """
+            Returns a list that contains two numbers
+            """
+
+        response = list_response()
+        assert isinstance(response, list)
+        assert len(response) == 2
+        assert isinstance(response[0], (int, float))
+        assert isinstance(response[1], (int, float))
+
+    def test_set(self):
+        @ai_fn
+        def set_response() -> set[int]:
+            """
+            Returns a set that contains two numbers, such as {3, 5}
+            """
+
+        if marvin.settings.openai_model_name.startswith("gpt-3.5"):
+            with pytest.warns(UserWarning):
+                response = set_response()
+                assert isinstance(response, set)
+                # its unclear what will be in the set
+
+        else:
+            response = set_response()
+            assert isinstance(response, set)
+            assert len(response) == 2
+            assert isinstance(response.pop(), (int, float))
+            assert isinstance(response.pop(), (int, float))
+
+    def test_tuple(self):
+        @ai_fn
+        def tuple_response() -> tuple:
+            """
+            Returns a tuple that contains two numbers
+            """
+
+        if marvin.settings.openai_model_name.startswith("gpt-3.5"):
+            with pytest.warns(UserWarning):
+                response = tuple_response()
+                assert isinstance(response, tuple)
+                # its unclear what will be in the tuple
+
+        else:
+            response = tuple_response()
+            assert isinstance(response, tuple)
+            assert len(response) == 2
+            assert isinstance(response[0], (int, float))
+            assert isinstance(response[1], (int, float))
+
+    def test_list_of_dicts(self):
+        @ai_fn
+        def list_of_dicts_response() -> list[dict]:
+            """
+            Returns a list of 2 dictionaries that each contain
+                - name: str
+                - age: int
+            """
+
+        response = list_of_dicts_response()
+        assert isinstance(response, list)
+        assert len(response) == 2
+        for i in [0, 1]:
+            assert isinstance(response[i], dict)
+            assert isinstance(response[i]["name"], str)
+            assert isinstance(response[i]["age"], int)
 
 
 class TestSet:

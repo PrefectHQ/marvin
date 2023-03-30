@@ -388,11 +388,17 @@ def replace_class(generic_alias, old_class, new_class):
 
 def genericalias_contains(genericalias, target_type):
     """
-    Explore whether a type or generic alias contains a target type.
+    Explore whether a type or generic alias contains a target type. The target
+    types can be a single type or a tuple of types.
 
     Useful for seeing if a type contains a pydantic model, for example.
     """
+    if isinstance(target_type, tuple):
+        return any(genericalias_contains(genericalias, t) for t in target_type)
+
     if isinstance(genericalias, GenericAlias):
+        if safe_issubclass(genericalias.__origin__, target_type):
+            return True
         for arg in genericalias.__args__:
             if genericalias_contains(arg, target_type):
                 return True
