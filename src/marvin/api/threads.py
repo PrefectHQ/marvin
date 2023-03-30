@@ -68,7 +68,7 @@ async def get_or_create_thread_by_lookup_key(
     except HTTPException as e:
         if e.status_code == status.HTTP_404_NOT_FOUND:
             thread = await create_thread(
-                thread=ThreadCreate(lookup_key=lookup_key), session=session
+                thread_create=ThreadCreate(lookup_key=lookup_key), session=session
             )
         else:
             raise e

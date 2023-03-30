@@ -135,6 +135,9 @@ def ai_fn(
         else:
             return_annotation = sig.return_annotation
 
+        # Check if the function is a generator function
+        is_generator = inspect.isgeneratorfunction(fn)
+
         # get the function source code - it will include the @ai_fn decorator,
         # which can confuse the AI, so we use regex to only get the function
         # that is being decorated
@@ -176,7 +179,21 @@ def ai_fn(
             response = await bot.say(message)
             return response.parsed_content
 
-        if inspect.iscoroutinefunction(fn):
+        if is_generator:
+
+            def generator_wrapper():
+                first_value = None
+                gen = fn(*args, **kwargs)
+                while True:
+                    try:
+                        first_value = gen.send(first_value)
+                        next_value = asyncio.run(get_response())
+                        first_value = gen.send(next_value)
+                    except StopIteration:
+                        break
+
+            return generator_wrapper()
+        elif inspect.iscoroutinefunction(fn):
             return get_response()
         else:
             return asyncio.run(get_response())

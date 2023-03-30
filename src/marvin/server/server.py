@@ -11,6 +11,7 @@ routers = (
     marvin.api.bots.router,
     marvin.api.topics.router,
     marvin.api.threads.router,
+    marvin.api.slackbot.router,
 )
 
 

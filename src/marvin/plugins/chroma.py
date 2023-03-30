@@ -92,6 +92,7 @@ Best with GPT-4.
 
 
 def apply_fn_to_field(data: dict, field: str, visit_fn: Callable) -> dict:
+    """Apply a function to a field in a nested dictionary"""
     for key, value in data.items():
         if key == field:
             data[key] = visit_fn(value)
