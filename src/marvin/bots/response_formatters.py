@@ -1,5 +1,6 @@
 import json
 import re
+import warnings
 from types import GenericAlias
 from typing import Any, Literal
 
@@ -9,6 +10,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 import marvin
 from marvin.utilities.types import (
     DiscriminatedUnionType,
+    LoggerMixin,
     format_type_str,
     genericalias_contains,
     safe_issubclass,
@@ -17,7 +19,7 @@ from marvin.utilities.types import (
 SENTINEL = "__SENTINEL__"
 
 
-class ResponseFormatter(DiscriminatedUnionType):
+class ResponseFormatter(DiscriminatedUnionType, LoggerMixin):
     format: str = Field(None, description="The format of the response")
     on_error: Literal["reformat", "raise", "ignore"] = "reformat"
 
@@ -67,17 +69,31 @@ class TypeFormatter(ResponseFormatter):
             if not isinstance(type_, (type, GenericAlias)):
                 raise ValueError(f"Expected a type or GenericAlias, got {type_}")
 
+            # warn if the type is a set or tuple with GPT 3.5
+            if marvin.settings.openai_model_name.startswith("gpt-3.5"):
+                if safe_issubclass(type_, (set, tuple)) or genericalias_contains(
+                    type_, (set, tuple)
+                ):
+                    warnings.warn(
+                        (
+                            "GPT-3.5 often fails with `set` or `tuple` types. Consider"
+                            " using `list` instead."
+                        ),
+                        UserWarning,
+                    )
+
             schema = marvin.utilities.types.type_to_schema(type_)
 
             kwargs.update(
                 type_schema=schema,
                 format=(
-                    "A valid JSON object that matches this simple type"
-                    f" signature: ```{format_type_str(type_)}``` and equivalent OpenAI"
-                    f" schema: ```{json.dumps(schema)}```. Make sure your response is"
-                    " valid JSON,  so use lists instead of sets or tuples; literal"
-                    " `true` and `false` instead of `True` and `False`; literal `null`"
-                    " instead of `None`; and double quotes instead of single quotes."
+                    "A valid JSON object that satisfies this OpenAPI schema:"
+                    f" ```{json.dumps(schema)}```. The JSON object will be coerced to"
+                    f" the following type signature: ```{format_type_str(type_)}```."
+                    " Make sure your response is valid JSON, which means you must use"
+                    " lists instead of tuples or sets; literal `true` and `false`"
+                    " instead of `True` and `False`; literal `null` instead of `None`;"
+                    " and double quotes instead of single quotes."
                 ),
             )
         super().__init__(**kwargs)
@@ -97,8 +113,10 @@ class TypeFormatter(ResponseFormatter):
     def parse_response(self, response):
         type_ = self.get_type()
 
-        # handle GenericAlias and containers
-        if isinstance(type_, GenericAlias):
+        # handle GenericAlias and containers like dicts
+        if isinstance(type_, GenericAlias) or safe_issubclass(
+            type_, (list, dict, set, tuple)
+        ):
             return pydantic.parse_raw_as(type_, response)
 
         # handle basic types
