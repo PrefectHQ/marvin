@@ -12,6 +12,7 @@ from marvin.utilities.types import MarvinRouter
 
 router = MarvinRouter(
     tags=["Slack"],
+    prefix="/slack",
 )
 
 prefect_keywords = [
@@ -87,7 +88,7 @@ async def post_message_to_slack(channel: str, message: str, thread_ts: str = Non
         response.raise_for_status()
 
 
-@router.post("/slack/events", status_code=status.HTTP_200_OK)
+@router.post("/events", status_code=status.HTTP_200_OK)
 async def handle_slack_events(request: Request):
     payload = await request.json()
 
