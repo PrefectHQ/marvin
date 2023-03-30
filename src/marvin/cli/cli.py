@@ -9,6 +9,7 @@ from rich import print as rprint
 from rich.prompt import Prompt
 
 import marvin
+from marvin.bots.utility_bots import get_utility_bot
 
 from .db import database_app
 from .server import server_app
@@ -88,20 +89,32 @@ def chat(
     bot_to_load: str = typer.Option(
         None, "--bot-to-load", "-b", help="The name of the bot to use"
     ),
+    utility_bot: str = typer.Option(
+        None, "--utility-bot", "-u", help="The name of a utility bot to load"
+    ),
 ):
     if not marvin.settings.openai_api_key.get_secret_value():
         setup_openai()
 
     from langchain.chat_models import ChatOpenAI
 
-    if bot_to_load and any([name, personality, instructions, model]):
+    if utility_bot and any([bot_to_load, name, personality, instructions, model]):
         raise ValueError(
-            "You can't specify both `--bot-to-load` and any of `--name`,"
-            " `--personality`, `--instructions`, or `--model`"
+            "You can't specify both `--utility-bot` and any of "
+            "`--name`,  `--personality`, `--instructions`, or `--model`"
+        )
+
+    if bot_to_load and any([utility_bot, name, personality, instructions, model]):
+        raise ValueError(
+            "You can't specify both `--bot-to-load` and any of "
+            "`--name`,  `--personality`, `--instructions`, or `--model`"
         )
 
     if bot_to_load:
         bot = asyncio.run(marvin.Bot.load(bot_to_load))
+
+    elif utility_bot:
+        bot = get_utility_bot(utility_bot)
 
     else:
         bot = marvin.Bot(
@@ -114,6 +127,7 @@ def chat(
                 openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
             ),
         )
+
     asyncio.run(bot.interactive_chat(first_message=" ".join(message)))
 
 
