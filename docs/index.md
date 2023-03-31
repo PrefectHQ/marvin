@@ -16,6 +16,8 @@ In addition to AI functions, Marvin also introduces more flexible bots. [**Bots*
 
 Developers can use Marvin to add AI capabilities wherever they will be most impactful, without needing to start from scratch. Marvin's code is available on [GitHub](https://github.com/prefecthq/marvin), and say hello on our [Discord server](https://discord.gg/Kgw4HpcuYG)!
 
+Marvin is built with 💙 by [Prefect](https://www.prefect.io).
+
 <!-- !!! quote "GPP"
     "Let’s build robots with Genuine People Personalities!" they said. So they tried it out with me. I’m a personality prototype. You can tell, can’t you?
     
