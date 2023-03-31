@@ -28,12 +28,12 @@ if not CHROMA_INSTALLED:
 
 
 async def load_prefect_things():
-    SitemapLoader(  # gimme da docs
+    prefect_docs = SitemapLoader(  # gimme da docs
         urls=["https://docs.prefect.io/sitemap.xml"],
         exclude=["api-ref"],
     )
 
-    GitHubRepoLoader(  # gimme da source
+    prefect_source_code = GitHubRepoLoader(  # gimme da source
         repo="prefecthq/prefect",
         include_globs=["**/*.py"],
         exclude_globs=["tests/**/*", "docs/**/*", "**/migrations/**/*"],
@@ -45,17 +45,17 @@ async def load_prefect_things():
         include_post_filter=lambda post: post["accepted_answer"],
     )
 
-    GitHubRepoLoader(  # gimme da recipes (or at least some of them)
+    prefect_recipes = GitHubRepoLoader(  # gimme da recipes (or at least some of them)
         repo="prefecthq/prefect-recipes",
         include_globs=["flows-advanced/**/*.py"],
     )
 
     prefect_loader = MultiLoader(
         loaders=[
-            # prefect_docs,
+            prefect_docs,
             prefect_discourse,
-            # prefect_recipes,
-            # prefect_source_code,
+            prefect_recipes,
+            prefect_source_code,
         ]
     )
 

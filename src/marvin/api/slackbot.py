@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 import httpx
@@ -8,6 +9,7 @@ from pydantic import BaseModel
 from marvin.bots import Bot
 from marvin.plugins.chroma import chroma_search
 from marvin.plugins.duckduckgo import DuckDuckGo
+from marvin.plugins.github import search_github_issues
 from marvin.utilities.types import MarvinRouter
 
 router = MarvinRouter(
@@ -54,8 +56,8 @@ chroma_search_instructions = (
 community_bot = Bot(
     name="Marvin",
     personality="like the robot from HHGTTG, mildly depressed but helpful",
-    instructions="chroma_search_instructions",
-    plugins=[chroma_search, DuckDuckGo()],
+    instructions=chroma_search_instructions,
+    plugins=[chroma_search, search_github_issues, DuckDuckGo()],
 )
 
 
@@ -71,7 +73,7 @@ class SlackEvent(BaseModel):
     ts: str
 
 
-async def post_message_to_slack(channel: str, message: str, thread_ts: str = None):
+async def _post_message_to_slack(channel: str, message: str, thread_ts: str = None):
     async with httpx.AsyncClient() as client:
         payload = {
             "channel": channel,
@@ -88,6 +90,14 @@ async def post_message_to_slack(channel: str, message: str, thread_ts: str = Non
         response.raise_for_status()
 
 
+async def _slack_response(event: SlackEvent):
+    await community_bot.set_thread(thread_lookup_key=f"{event.channel}:{event.user}")
+
+    response = await community_bot.say(event.text)
+
+    await _post_message_to_slack(event.channel, response.content, event.ts)
+
+
 @router.post("/events", status_code=status.HTTP_200_OK)
 async def handle_slack_events(request: Request):
     payload = await request.json()
@@ -95,17 +105,9 @@ async def handle_slack_events(request: Request):
     if payload["type"] == "url_verification":
         return payload["challenge"]
 
-    event_wrapper = await request.json()
-    event = SlackEvent(**event_wrapper["event"])
+    event = SlackEvent(**(await request.json())["event"])
 
     if event.type == "app_mention":
-        print(event)
-
-        await community_bot.set_thread(thread_lookup_key=f"{event.channel}:{event.ts}")
-
-        user_question = event.text
-        response = await community_bot.say(user_question)
-
-        await post_message_to_slack(event.channel, response.content, event.ts)
+        asyncio.ensure_future(_slack_response(event))
 
     return {"success": True}
