@@ -3,7 +3,7 @@ import asyncio
 import functools
 import re
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import aiofiles
 import chardet
@@ -55,7 +55,7 @@ class GitHubIssue(BaseModel):
     html_url: str = Field(...)
     number: int = Field(...)
     title: str = Field(default="")
-    body: str | None = Field(default="")
+    body: Optional[str] = Field(default="")
     labels: List[GitHubLabel] = Field(default_factory=GitHubLabel)
     user: GitHubUser = Field(default_factory=GitHubUser)
 

@@ -26,6 +26,8 @@ class BotResponse(BaseMessage):
     parsed_content: Any = None
 
 
+MAX_VALIDATION_ATTEMPTS = 3
+
 if TYPE_CHECKING:
     from marvin.models.bots import BotConfig
 DEFAULT_NAME = "Marvin"
@@ -290,31 +292,33 @@ class Bot(MarvinBaseModel, LoggerMixin):
         # validate response format
         parsed_response = response
         validated = False
-        validation_attempts = 0
 
-        while not validated and validation_attempts < 3:
-            validation_attempts += 1
+        for _ in range(MAX_VALIDATION_ATTEMPTS):
             try:
                 self.response_format.validate_response(response)
-                validated = True
+                break
             except Exception as exc:
-                match self.response_format.on_error:
-                    case "ignore":
-                        validated = True
-                    case "raise":
-                        raise exc
-                    case "reformat":
-                        self.logger.debug(
-                            "Response did not pass validation. Attempted to reformat:"
-                            f" {response}"
-                        )
-                        reformatted_response = _reformat_response(
-                            user_message=user_message.content,
-                            ai_response=response,
-                            error_message=repr(exc),
-                            target_return_type=self.response_format.format,
-                        )
-                        response = str(reformatted_response)
+                on_error = self.response_format.on_error
+                if on_error == "ignore":
+                    break
+                elif on_error == "raise":
+                    raise exc
+                elif on_error == "reformat":
+                    self.logger.debug(
+                        "Response did not pass validation. Attempted to reformat:"
+                        f" {response}"
+                    )
+                    reformatted_response = _reformat_response(
+                        user_message=user_message.content,
+                        ai_response=response,
+                        error_message=repr(exc),
+                        target_return_type=self.response_format.format,
+                    )
+                    response = str(reformatted_response)
+                else:
+                    raise ValueError(f"Unknown on_error value: {on_error}")
+        else:
+            raise RuntimeError("Failed to validate response after 3 attempts")
 
         if validated:
             parsed_response = self.response_format.parse_response(response)
