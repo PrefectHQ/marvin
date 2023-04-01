@@ -7,7 +7,7 @@ description = "A batteries-included library for building AI-powered software."
 readme = "README.md"
 license = { file = "LICENSE" }
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 3 - Beta",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
@@ -16,7 +16,7 @@ requires-python = ">=3.10"
 dependencies = [
     "aiofiles~=23.1.0",
     "aiosqlite~=0.18.0",
-    "asyncpg~=0.27.0",
+    "alembic~=1.10.2",
     "cloudpickle~=2.2.1",
     "datamodel-code-generator~=0.17.1",
     "fastapi~=0.89.1",
@@ -69,6 +69,7 @@ dev = [
     "ruff",
 ]
 chromadb = ["chromadb~=0.3.14"]
+postgres = ["asyncpg~=0.27.0"]
 
 
 [project.urls]
@@ -108,8 +109,8 @@ env = [
     'MARVIN_LOAD_BOT_DEFAULT_PLUGINS=0',
     'MARVIN_OPENAI_MODEL_TEMPERATURE=0',
     # use 3.5 for tests by default
-    'MARVIN_OPENAI_MODEL_NAME=gpt-3.5-turbo'
-    
+    'MARVIN_OPENAI_MODEL_NAME=gpt-3.5-turbo',
+
 ]
 
 # black configuration

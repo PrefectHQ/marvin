@@ -2,6 +2,14 @@
 
 !!! warning "Construction zone"
     This area of the docs is under active development and may change.
+
+## Databases
+### Sqlite
+Marvin uses Sqlite by default, with a default location of `~/.marvin/marvin.sqlite`. You can customize this by setting `MARVIN_DATABASE_CONNECTION_URL` to `sqlite+aiosqlite:////{path/to/database}`.
+
+### Postgres
+Marvin can also use Postgres (though this isn't as actively tested at this time). To do so, install the postgres extra: `pip install marvin[postgres]` and set `MARVIN_DATABASE_CONNECTION_URL` to `postgresql+asyncpg://{username}:{password}@{hots}:{port}/{database}`, filling all variables appropriately.
+
 ## Chroma 
 Marvin [provides a simple wrapper](https://github.com/PrefectHQ/marvin/blob/main/src/marvin/infra/chroma.py) of the ChromaDB client to make it easier to interact with the database.
 
