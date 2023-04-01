@@ -53,7 +53,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "black[jupyter]~=22.12",
+    "black[jupyter]>=22.12,<24.0",
     "ipython~=8.0",
     "mkdocs-autolinks-plugin~=0.7.0",
     "mkdocs-awesome-pages-plugin~=2.8.0",
