@@ -1,5 +1,6 @@
 import asyncio
 import inspect
+from typing import Optional
 
 from jinja2 import Template
 from pydantic import Field, confloat, validator
@@ -95,15 +96,15 @@ class Document(MarvinBaseModel):
     text: str = Field(
         ..., description="Any text content that you want to keep / embed."
     )
-    embedding: list[float] | None = Field(default=None)
+    embedding: Optional[list[float]] = Field(default=None)
     metadata: Metadata = Field(default_factory=Metadata)
 
-    source: str | None = Field(default=None)
+    source: Optional[str] = Field(default=None)
     type: DocumentType = Field(default="original")
-    parent_document_id: DocumentID | None = Field(default=None)
+    parent_document_id: Optional[DocumentID] = Field(default=None)
     topic_name: str = Field(default=marvin.settings.default_topic)
-    tokens: int | None = Field(default=None)
-    order: int | None = Field(default=None)
+    tokens: Optional[int] = Field(default=None)
+    order: Optional[int] = Field(default=None)
     keywords: list[str] = Field(default_factory=list)
 
     @validator("tokens", pre=True, always=True)
