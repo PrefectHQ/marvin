@@ -3,7 +3,7 @@ from marvin import ai_fn
 
 @ai_fn()
 def chemistry(n: int) -> list[str]:
-    """Retuns the electron configuration of the valence electrons
+    """Returns the electron configuration of the valence electrons
     of an element with {n} protons
     """
 
