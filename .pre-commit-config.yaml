@@ -11,4 +11,4 @@ repos:
     hooks:
       - id: black
         args: ["--preview"]
-        language_version: python3.10
+        language_version: python3.9
