@@ -40,7 +40,7 @@ dependencies = [
     "typer~=0.7.0",
 
     # plugins requirements
-    "beautifulsoup4~=4.11.2",
+    "beautifulsoup4>=4.11.2,<4.13.0",
     "bleach~=6.0.0",
     "duckduckgo_search~=2.8.0",
     "fake-useragent~=1.1.1",
