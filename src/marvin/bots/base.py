@@ -5,6 +5,7 @@ import re
 from typing import TYPE_CHECKING, Any, Callable
 
 import pendulum
+from fastapi import HTTPException, status
 from openai.error import InvalidRequestError
 from pydantic import Field, validator
 
@@ -177,8 +178,11 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
     @validator("plugins", always=True)
     def default_plugins(cls, v):
-        if v is None and marvin.settings.bot_load_default_plugins:
-            return DEFAULT_PLUGINS
+        if v is None:
+            if marvin.settings.bot_load_default_plugins:
+                return DEFAULT_PLUGINS
+            else:
+                return []
         return v
 
     @validator("history", always=True)
@@ -211,6 +215,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
     @classmethod
     def from_bot_config(cls, bot_config: "BotConfig") -> "Bot":
         return cls(
+            id=bot_config.id,
             name=bot_config.name,
             personality=bot_config.personality,
             instructions=bot_config.instructions,
@@ -218,11 +223,28 @@ class Bot(MarvinBaseModel, LoggerMixin):
             input_transformers=bot_config.input_transformers,
         )
 
-    async def save(self):
-        """Save this bot in the database. Overwrites any existing bot with the
-        same name."""
+    async def save(self, overwrite: bool = False):
+        """
+        Save this bot in the database. Bots are saved by name. If
+        overwrite=False, an error is raised if a bot with the same name
+        exists.
+        """
         bot_config = self.to_bot_config()
-        await marvin.api.bots.delete_bot_config(name=self.name)
+        try:
+            existing_bot = await marvin.api.bots.get_bot_config(name=self.name)
+            if existing_bot and not overwrite:
+                raise ValueError(
+                    f"Bot with name {self.name} already exists. `overwrite=True` to"
+                    " overwrite."
+                )
+            else:
+                await marvin.api.bots.delete_bot_config(name=self.name)
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_404_NOT_FOUND:
+                pass
+            else:
+                raise
+
         await marvin.api.bots.create_bot_config(bot_config=bot_config)
 
     @classmethod
