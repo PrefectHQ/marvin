@@ -13,6 +13,8 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 import marvin
 
+METADATA = sqlmodel.SQLModel.metadata
+
 engine_kwargs = {}
 # sqlite doesn't support pool configuration
 if marvin.settings.database_connection_url.get_secret_value().startswith("postgresql"):
@@ -113,7 +115,7 @@ async def destroy_db(confirm: bool = False):
         raise ValueError("You must confirm that you want to destroy the database.")
 
     async with session_context(begin_transaction=True) as session:
-        for table in reversed(sqlmodel.SQLModel.metadata.sorted_tables):
+        for table in reversed(METADATA.sorted_tables):
             if get_dialect() == "postgresql":
                 await session.execute(f'DROP TABLE IF EXISTS "{table.name}" CASCADE;')
             else:
@@ -126,7 +128,7 @@ async def destroy_db(confirm: bool = False):
 
 async def create_db():
     async with engine.begin() as conn:
-        await conn.run_sync(sqlmodel.SQLModel.metadata.create_all)
+        await conn.run_sync(METADATA.create_all)
         marvin.get_logger("db").info_style("Database created!", "green")
 
 
