@@ -12,9 +12,9 @@ def session_tmp_path(tmp_path_factory):
 @pytest.fixture(scope="session", autouse=True)
 async def test_database(session_tmp_path):
     """Set up the test database"""
-    await marvin.infra.database.create_db()
+    marvin.infra.database.alembic_upgrade()
     yield
-    await marvin.infra.database.destroy_db(confirm=True)
+    marvin.infra.database.alembic_downgrade()
 
 
 @pytest.fixture(autouse=True)

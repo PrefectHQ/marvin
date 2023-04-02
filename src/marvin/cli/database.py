@@ -1,5 +1,6 @@
 import asyncio
 
+import alembic
 import typer
 from rich import print
 
@@ -18,7 +19,7 @@ def create(
     )
 ):
     if confirm:
-        asyncio.run(marvin.infra.database.create_db())
+        marvin.infra.database.alembic_upgrade()
     else:
         print("[red]Database creation cancelled.[/]")
 
@@ -83,3 +84,20 @@ def reset(
         asyncio.run(marvin.infra.database.reset_db(confirm=confirm))
     else:
         print("[red]Reset cancelled.[/]")
+
+
+@database_app.command()
+def revision(
+    message: str = typer.Argument(..., help="Revision message"),
+    autogenerate: bool = typer.Option(
+        True, "--autogenerate", help="Autogenerate revision"
+    ),
+    rev_id: str = typer.Option(
+        None, "--revision-id", help="Specify a revision id instead of generating one"
+    ),
+):
+    alembic_cfg = marvin.infra.database._alembic_cfg()
+    alembic.command.revision(
+        alembic_cfg, message=message, autogenerate=autogenerate, rev_id=rev_id
+    )
+    print("[green]Revision created.[/]")
