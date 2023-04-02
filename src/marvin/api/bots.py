@@ -54,7 +54,7 @@ async def create_bot_config(
 async def get_bot_config(
     name: str,
     session: AsyncSession = Depends(fastapi_session),
-) -> BotConfigRead | None:
+) -> BotConfigRead:
     result = await session.execute(
         sa.select(BotConfig).where(BotConfig.name == name).limit(1)
     )

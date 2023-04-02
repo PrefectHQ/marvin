@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 import pendulum
 from pydantic import Field
@@ -111,8 +111,8 @@ def iso_to_timestamp(filter: dict) -> float:
 @plugin
 async def chroma_search(
     query: str,
-    where: dict[str, Any] | None = None,
-    where_document: dict[str, Any] | None = None,
+    where: Optional[dict[str, Any]] = None,
+    where_document: Optional[dict[str, Any]] = None,
 ) -> str:
     """
     query (str): A verbose natural language query.

@@ -91,7 +91,7 @@ def split_text(
     chunk_overlap: float = None,
     last_chunk_threshold: float = None,
     return_index: bool = False,
-) -> str | tuple[str, int]:
+) -> Union[str, tuple[str, int]]:
     """
     Split a text into a list of strings. Chunks are split by tokens.
 

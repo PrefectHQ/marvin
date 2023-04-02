@@ -5,6 +5,7 @@ import re
 from typing import TYPE_CHECKING, Any, Callable
 
 import pendulum
+from fastapi import HTTPException, status
 from openai.error import InvalidRequestError
 from pydantic import Field, validator
 
@@ -25,6 +26,8 @@ from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 class BotResponse(BaseMessage):
     parsed_content: Any = None
 
+
+MAX_VALIDATION_ATTEMPTS = 3
 
 if TYPE_CHECKING:
     from marvin.models.bots import BotConfig
@@ -177,8 +180,11 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
     @validator("plugins", always=True)
     def default_plugins(cls, v):
-        if v is None and marvin.settings.bot_load_default_plugins:
-            return DEFAULT_PLUGINS
+        if v is None:
+            if marvin.settings.bot_load_default_plugins:
+                return DEFAULT_PLUGINS
+            else:
+                return []
         return v
 
     @validator("history", always=True)
@@ -211,6 +217,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
     @classmethod
     def from_bot_config(cls, bot_config: "BotConfig") -> "Bot":
         return cls(
+            id=bot_config.id,
             name=bot_config.name,
             personality=bot_config.personality,
             instructions=bot_config.instructions,
@@ -218,11 +225,28 @@ class Bot(MarvinBaseModel, LoggerMixin):
             input_transformers=bot_config.input_transformers,
         )
 
-    async def save(self):
-        """Save this bot in the database. Overwrites any existing bot with the
-        same name."""
+    async def save(self, overwrite: bool = False):
+        """
+        Save this bot in the database. Bots are saved by name. If
+        overwrite=False, an error is raised if a bot with the same name
+        exists.
+        """
         bot_config = self.to_bot_config()
-        await marvin.api.bots.delete_bot_config(name=self.name)
+        try:
+            existing_bot = await marvin.api.bots.get_bot_config(name=self.name)
+            if existing_bot and not overwrite:
+                raise ValueError(
+                    f"Bot with name {self.name} already exists. `overwrite=True` to"
+                    " overwrite."
+                )
+            else:
+                await marvin.api.bots.delete_bot_config(name=self.name)
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_404_NOT_FOUND:
+                pass
+            else:
+                raise
+
         await marvin.api.bots.create_bot_config(bot_config=bot_config)
 
     @classmethod
@@ -290,31 +314,33 @@ class Bot(MarvinBaseModel, LoggerMixin):
         # validate response format
         parsed_response = response
         validated = False
-        validation_attempts = 0
 
-        while not validated and validation_attempts < 3:
-            validation_attempts += 1
+        for _ in range(MAX_VALIDATION_ATTEMPTS):
             try:
                 self.response_format.validate_response(response)
-                validated = True
+                break
             except Exception as exc:
-                match self.response_format.on_error:
-                    case "ignore":
-                        validated = True
-                    case "raise":
-                        raise exc
-                    case "reformat":
-                        self.logger.debug(
-                            "Response did not pass validation. Attempted to reformat:"
-                            f" {response}"
-                        )
-                        reformatted_response = _reformat_response(
-                            user_message=user_message.content,
-                            ai_response=response,
-                            error_message=repr(exc),
-                            target_return_type=self.response_format.format,
-                        )
-                        response = str(reformatted_response)
+                on_error = self.response_format.on_error
+                if on_error == "ignore":
+                    break
+                elif on_error == "raise":
+                    raise exc
+                elif on_error == "reformat":
+                    self.logger.debug(
+                        "Response did not pass validation. Attempted to reformat:"
+                        f" {response}"
+                    )
+                    reformatted_response = _reformat_response(
+                        user_message=user_message.content,
+                        ai_response=response,
+                        error_message=repr(exc),
+                        target_return_type=self.response_format.format,
+                    )
+                    response = str(reformatted_response)
+                else:
+                    raise ValueError(f"Unknown on_error value: {on_error}")
+        else:
+            raise RuntimeError("Failed to validate response after 3 attempts")
 
         if validated:
             parsed_response = self.response_format.parse_response(response)

@@ -2,7 +2,7 @@ import json
 import re
 import warnings
 from types import GenericAlias
-from typing import Any, Literal
+from typing import Any, Literal, Union
 
 import pydantic
 from pydantic import BaseModel, Field, PrivateAttr
@@ -56,7 +56,7 @@ class BooleanFormatter(ResponseFormatter):
 
 
 class TypeFormatter(ResponseFormatter):
-    _cached_type: type | GenericAlias = PrivateAttr(SENTINEL)
+    _cached_type: Union[type, GenericAlias] = PrivateAttr(SENTINEL)
     type_schema: dict[str, Any] = Field(
         ..., description="The OpenAPI schema for the type"
     )
@@ -101,7 +101,7 @@ class TypeFormatter(ResponseFormatter):
         if type_ is not SENTINEL:
             self._cached_type = type_
 
-    def get_type(self) -> type | GenericAlias:
+    def get_type(self) -> Union[type, GenericAlias]:
         if self._cached_type is not SENTINEL:
             return self._cached_type
 
@@ -132,7 +132,7 @@ class PydanticFormatter(ResponseFormatter):
         ..., description="The OpenAPI schema for the model"
     )
 
-    def __init__(self, model: BaseModel | GenericAlias = None, **kwargs):
+    def __init__(self, model: Union[BaseModel, GenericAlias] = None, **kwargs):
         if model is not None:
             for key in ["format", "type_schema"]:
                 if key in kwargs:
@@ -172,35 +172,20 @@ class PydanticFormatter(ResponseFormatter):
 
 
 def load_formatter_from_shorthand(shorthand_response_format) -> ResponseFormatter:
-    match shorthand_response_format:
-        # shorthand for None
-        case None:
-            return ResponseFormatter()
-
-        # x is a ResponseFormatter - no shorthand
-        case x if isinstance(x, ResponseFormatter):
-            return x
-
-        # x is a boolean
-        case x if x is bool:
-            return BooleanFormatter()
-
-        # x is a string that contains the word "json"
-        case x if isinstance(x, str) and re.search(r"\bjson\b", x.lower()):
-            return JSONFormatter(format=x)
-
-        # x is a string
-        case x if isinstance(x, str):
-            return ResponseFormatter(format=x)
-
-        # x is a pydantic model
-        case x if genericalias_contains(x, pydantic.BaseModel):
-            return PydanticFormatter(model=x)
-
-        # x is a type or GenericAlias
-        case x if isinstance(x, (type, GenericAlias)):
-            return TypeFormatter(type_=x)
-
-        # unsupported values
-        case _:
-            raise ValueError("Invalid output format")
+    if shorthand_response_format is None:
+        return ResponseFormatter()
+    elif isinstance(shorthand_response_format, ResponseFormatter):
+        return shorthand_response_format
+    elif shorthand_response_format is bool:
+        return BooleanFormatter()
+    elif isinstance(shorthand_response_format, str):
+        if re.search(r"\bjson\b", shorthand_response_format.lower()):
+            return JSONFormatter(format=shorthand_response_format)
+        else:
+            return ResponseFormatter(format=shorthand_response_format)
+    elif genericalias_contains(shorthand_response_format, pydantic.BaseModel):
+        return PydanticFormatter(model=shorthand_response_format)
+    elif isinstance(shorthand_response_format, (type, GenericAlias)):
+        return TypeFormatter(type_=shorthand_response_format)
+    else:
+        raise ValueError("Invalid output format")
