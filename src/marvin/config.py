@@ -1,7 +1,7 @@
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 
 try:
     import chromadb
@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     # LOGGING
     verbose: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
-    log_console_width: int | None = Field(
+    log_console_width: Optional[int] = Field(
         None,
         description=(
             "Marvin will auto-detect the console width when possible, but in deployed"
