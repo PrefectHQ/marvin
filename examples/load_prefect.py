@@ -116,12 +116,12 @@ if CHROMA_INSTALLED:
 
 
 async def hello_marvin():
-    # await load_prefect_things()
+    await load_prefect_things()
     bot = Bot(
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
-        instructions="Use `chroma_search` to answer all questions",
-        plugins=[chroma_search],
+        instructions=instructions,
+        plugins=plugins,
     )
     await bot.interactive_chat()
 
@@ -132,5 +132,5 @@ if __name__ == "__main__":
     import asyncio
 
     marvin.settings.log_level = "DEBUG"
-    marvin.settings.openai_model_name = "gpt-4"
+    # marvin.settings.openai_model_name = "gpt-4"
     asyncio.run(hello_marvin())
