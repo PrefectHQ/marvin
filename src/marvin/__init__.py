@@ -4,7 +4,6 @@ from importlib.metadata import version as _get_version
 import nest_asyncio as _nest_asyncio
 import asyncio as _asyncio
 
-
 _nest_asyncio.apply()
 
 # load env vars
@@ -32,6 +31,5 @@ if settings.test_mode:
 if not settings.openai_model_name.startswith("gpt-4"):
     _logger.info_style(f'Using OpenAI model "{settings.openai_model_name}"')
 
-# check alembic versions
-if settings.database_check_migration_version_on_startup:
-    _asyncio.run(infra.database.check_alembic_version())
+# set up SQLite if it doesn't exist
+infra.db.create_sqlite_db_if_doesnt_exist()

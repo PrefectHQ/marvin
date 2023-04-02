@@ -1,6 +1,6 @@
 from typing import AsyncGenerator
 
-from marvin.infra.database import AsyncSession, session_context
+from marvin.infra.db import AsyncSession, session_context
 
 
 async def fastapi_session() -> AsyncGenerator[AsyncSession, None]:

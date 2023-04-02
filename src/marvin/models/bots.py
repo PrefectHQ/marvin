@@ -2,7 +2,7 @@ import sqlalchemy as sa
 from sqlmodel import Field
 
 from marvin.bots.input_transformers import InputTransformer
-from marvin.infra.database import JSONType
+from marvin.infra.db import JSONType
 from marvin.models.ids import BotID
 from marvin.plugins.base import Plugin
 from marvin.utilities.models import MarvinSQLModel

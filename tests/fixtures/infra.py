@@ -12,9 +12,9 @@ def session_tmp_path(tmp_path_factory):
 @pytest.fixture(scope="session", autouse=True)
 async def test_database(session_tmp_path):
     """Set up the test database"""
-    marvin.infra.database.alembic_upgrade()
+    await marvin.infra.db.create_db()
     yield
-    marvin.infra.database.alembic_downgrade()
+    await marvin.infra.db.destroy_db(confirm=True)
 
 
 @pytest.fixture(autouse=True)
@@ -39,5 +39,5 @@ async def temporary_chromadb(session_tmp_path):
 
 @pytest.fixture
 async def session():
-    async with marvin.infra.database.session_context() as session:
+    async with marvin.infra.db.session_context() as session:
         yield session
