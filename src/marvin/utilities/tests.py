@@ -5,6 +5,7 @@ from typing import Any
 
 import httpx
 
+import marvin
 from marvin import ai_fn, get_logger
 from marvin.programs.utilities import ApproximatelyEquivalent
 
@@ -25,29 +26,36 @@ def assert_approx_equal(statement_1: str, statement_2: str):
     assert asyncio.run(ApproximatelyEquivalent().run(statement_1, statement_2))
 
 
-@ai_fn()
-def _assert_llm(output: Any, expectation: Any) -> bool:
-    """
-    This function is used to unit test LLM outputs. The LLM `output` is compared
-    to an `expectation` of what the output is, contains, or represents. The
-    function returns `true` if the output satisfies the expectation and `false`
-    otherwise. The expectation does not need to be matched exactly. If the
-    expectation and output are semantically the same, the function should return
-    true.
+def assert_llm(output: str, expectation: Any, model_name: str = None):
+    from langchain.chat_models import ChatOpenAI
+
+    @ai_fn(
+        llm=ChatOpenAI(
+            model_name=model_name or marvin.settings.openai_model_name,
+            temperature=0,
+            openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
+        ),
+    )
+    def _assert_llm(output: Any, expectation: Any) -> bool:
+        """
+        This function is used to unit test LLM outputs. The LLM `output` is compared
+        to an `expectation` of what the output is, contains, or represents. The
+        function returns `true` if the output satisfies the expectation and `false`
+        otherwise. The expectation does not need to be matched exactly. If the
+        expectation and output are semantically the same, the function should return
+        true.
 
 
-    For example:
-        assert_llm(5, "5") -> True
-        assert_llm("Greetings, friend!", "Hello, how are you?") -> True
-        assert_llm("Hello, friend!", "a greeting") -> True
-        assert_llm("I'm good, thanks!", "Hello, how are you?") -> False
-        assert_llm(["red", "orange"], "a list of colors") -> True
-        assert_llm(["red", "house"], "a list of colors") -> False
-        assert_llm("red", "rhymes with bed") -> True
-    """
+        For example:
+            assert_llm(5, "5") -> True
+            assert_llm("Greetings, friend!", "Hello, how are you?") -> True
+            assert_llm("Hello, friend!", "a greeting") -> True
+            assert_llm("I'm good, thanks!", "Hello, how are you?") -> False
+            assert_llm(["red", "orange"], "a list of colors") -> True
+            assert_llm(["red", "house"], "a list of colors") -> False
+            assert_llm("red", "rhymes with bed") -> True
+        """
 
-
-def assert_llm(output: str, expectation: Any):
     if not _assert_llm(output, expectation):
         raise AssertionError(
             f"Output '{output}' does not satisfy expectation '{expectation}'"

@@ -558,7 +558,7 @@ def _reformat_response(
         not be parsed into the correct return format (`target_return_type`). The
         associated error message was `error_message`.
 
-        Extract the answer from the `response` and format it as a string that
+        Extract the answer from the `response` and return it as a string that
         can be parsed correctly.
         """
 

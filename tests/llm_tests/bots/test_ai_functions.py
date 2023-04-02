@@ -25,6 +25,15 @@ class TestAIFunctions:
         x = rng(20, 21)
         assert 20 <= x <= 21
 
+    def test_spellcheck(self):
+        @ai_fn
+        def spellcheck(word: str) -> str:
+            """spellcheck a word and return the correct spelling"""
+
+        assert spellcheck("speling") == "spelling"
+        assert spellcheck("spelling") == "spelling"
+        assert spellcheck("spellling") == "spelling"
+
     def test_list_of_fruits(self):
         @ai_fn
         def list_fruits(n: int) -> list[str]:
@@ -63,7 +72,7 @@ class TestAIFunctions:
         assert all("age" in person for person in x)
         assert_llm(x, "a list of people data including name and age")
 
-    def test_generate_rhyming_words(self):
+    def test_generate_rhyming_words(self, gpt_4):
         @ai_fn
         def rhymes(word: str) -> str:
             """generate a word that rhymes with the given word"""
@@ -71,9 +80,9 @@ class TestAIFunctions:
         x = rhymes("blue")
         assert isinstance(x, str)
         assert x != "blue"
-        assert_llm(x, 'rhymes with "blue" (could be clue, dew, true, etc.)')
+        assert_llm(x, 'rhymes with "blue"')
 
-    def test_generate_rhyming_words_with_n(self):
+    def test_generate_rhyming_words_with_n(self, gpt_4):
         @ai_fn
         def rhymes(word: str, n: int) -> list[str]:
             """generate a word that rhymes with the given word"""
@@ -85,10 +94,7 @@ class TestAIFunctions:
         assert all(word != "blue" for word in x)
         assert_llm(
             x,
-            (
-                "the output is a list of words, each one rhyming with 'blue'. For"
-                " example ['clue', 'dew', 'flew']"
-            ),
+            "the output is a list of words, each one rhyming with 'blue'.",
         )
 
 
@@ -162,28 +168,35 @@ class TestContainers:
         assert isinstance(response[0], (int, float))
         assert isinstance(response[1], (int, float))
 
-    def test_set(self):
+    def test_set(self, gpt_4):
+        @ai_fn
+        def set_response() -> set[int]:
+            """
+            Returns a set that contains two numbers, such as {3, 5}
+            """
+
+        response = set_response()
+        assert isinstance(response, set)
+        assert len(response) == 2
+        assert isinstance(response.pop(), (int, float))
+        assert isinstance(response.pop(), (int, float))
+
+    def test_set_35(self):
+        assert marvin.settings.openai_model_name.startswith("gpt-3.5")
+
         @ai_fn
         def set_response() -> set:
             """
             Returns a set that contains two numbers, such as {3, 5}
             """
 
-        if marvin.settings.openai_model_name.startswith("gpt-3.5"):
-            with pytest.warns(UserWarning):
-                # it may be possible to call the function without error
-                try:
-                    response = set_response()
-                    assert isinstance(response, set)
-                except Exception:
-                    pass
-
-        else:
-            response = set_response()
-            assert isinstance(response, set)
-            assert len(response) == 2
-            assert isinstance(response.pop(), (int, float))
-            assert isinstance(response.pop(), (int, float))
+        with pytest.warns(UserWarning):
+            # it may be possible to call the function without error
+            try:
+                response = set_response()
+                assert isinstance(response, set)
+            except Exception:
+                pass
 
     def test_tuple(self):
         @ai_fn
@@ -238,7 +251,22 @@ class TestSet:
 
 
 class TestNone:
-    def test_none_response(self):
+    def test_none_response_gpt35(self):
+        """gpt-3.5 puts literal 'null' instead of null"""
+
+        @ai_fn
+        def filter_with_none(words: list[str]) -> list[Optional[str]]:
+            """
+            takes a list of words and returns a list of equal length that
+            replaces any word except "blue" with None
+
+            For example, ["red", "blue", "dog"] -> [None, "blue", None]
+            """
+
+        x = filter_with_none(["green", "cat", "blue"])
+        assert x in (["null", "null", "blue"], ["None", "None", "blue"])
+
+    def test_none_response(self, gpt_4):
         @ai_fn
         def filter_with_none(words: list[str]) -> list[Optional[str]]:
             """
