@@ -234,7 +234,19 @@ async def check_alembic_version():
     alembic_logger.disabled = True
 
     # get current database version
-    alembic.command.current(alembic_cfg)
+    try:
+        alembic.command.current(alembic_cfg)
+    except alembic.util.exc.CommandError as exc:
+        warnings.warn(
+            (
+                "Error getting the current database version. This can happen if you"
+                " are developing against the Marvin database and switched branches"
+                " without resetting it. Some features may be broken, but you can"
+                f' continue using Marvin otherwise. Error was: "{str(exc)}"'
+            ),
+            UserWarning,
+        )
+        return
     current = output_buffer.getvalue().strip()
 
     # if there is no database version, automatically attempt to upgrade
@@ -248,28 +260,31 @@ async def check_alembic_version():
             warnings.warn(
                 (
                     "The Marvin database appears to be empty and automatic upgrade"
-                    " failed. Some features may be broken. Please try to run `marvin"
-                    f" database upgrade` manually. Error: {repr(exc)}"
+                    " failed. Some features may be broken, but you can continue using"
+                    " Marvin otherwise. Please try to run `marvin database upgrade`"
+                    f" manually. Error: {repr(exc)}"
                 ),
                 UserWarning,
             )
         return
 
-    # get the head version
-    output_buffer.seek(0)
-    output_buffer.truncate(0)
-    alembic.command.heads(alembic_cfg)
-    head = output_buffer.getvalue().strip()
-    alembic_logger.disabled = False
+    # if the current version is the head, it will end with "(head)"
+    elif not current.endswith("(head)"):
+        # get the head version
+        output_buffer.seek(0)
+        output_buffer.truncate(0)
+        alembic.command.heads(alembic_cfg)
+        head = output_buffer.getvalue().strip()
+        alembic_logger.disabled = False
 
-    if current != head:
-        warnings.warn(
-            (
-                f"Database migrations are not up to date (current version is {current};"
-                f" head is {head}). This is expected after upgrading Marvin to a new"
-                " version, but some features may be broken until the database is"
-                " upgraded. Marvin does not do this automatically; please run `marvin"
-                " database upgrade` yourself."
-            ),
-            UserWarning,
-        )
+        if current != head:
+            warnings.warn(
+                (
+                    "Database migrations are not up to date (current version is"
+                    f" {current}; head is {head}). This is expected after upgrading"
+                    " Marvin to a new version, but some features may be broken until"
+                    " the database is upgraded. Marvin does not do this automatically;"
+                    " please run `marvin database upgrade` yourself."
+                ),
+                UserWarning,
+            )
