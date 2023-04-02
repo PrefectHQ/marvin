@@ -84,16 +84,26 @@ class TypeFormatter(ResponseFormatter):
 
             schema = marvin.utilities.types.type_to_schema(type_)
 
+            # for all but the simplest containers, include an OpenAPI schema
+            # this can confuse the LLM (esp 3.5) if included for very simple signatures
+            schema_placeholder = ""
+            if isinstance(type_, GenericAlias):
+                if any(a not in (str, int, float, bool) for a in type_.__args__):
+                    schema_placeholder = (
+                        "It must also comply with this OpenAPI schema:"
+                        f" ```{json.dumps(schema)}```. "
+                    )
+
             kwargs.update(
                 type_schema=schema,
                 format=(
-                    "A valid JSON object that satisfies this OpenAPI schema:"
-                    f" ```{json.dumps(schema)}```. The JSON object will be coerced to"
-                    f" the following type signature: ```{format_type_str(type_)}```."
-                    " Make sure your response is valid JSON, which means you must use"
-                    " lists instead of tuples or sets; literal `true` and `false`"
-                    " instead of `True` and `False`; literal `null` instead of `None`;"
-                    " and double quotes instead of single quotes."
+                    "A valid JSON object that is compatible with the following type"
+                    " signature:"
+                    f" ```{format_type_str(type_)}```. {schema_placeholder}\n\nYour"
+                    " response MUST be valid JSON. Use lists instead of literal tuples"
+                    " or sets; literal `true` and `false` instead of `True` and"
+                    " `False`; literal `null` instead of `None`; and double quotes"
+                    " instead of single quotes."
                 ),
             )
         super().__init__(**kwargs)
@@ -113,15 +123,22 @@ class TypeFormatter(ResponseFormatter):
     def parse_response(self, response):
         type_ = self.get_type()
 
-        # handle GenericAlias and containers like dicts
-        if isinstance(type_, GenericAlias) or safe_issubclass(
-            type_, (list, dict, set, tuple)
-        ):
-            return pydantic.parse_raw_as(type_, response)
+        try:
+            # handle GenericAlias and containers like dicts
+            if isinstance(type_, GenericAlias) or safe_issubclass(
+                type_, (list, dict, set, tuple)
+            ):
+                return pydantic.parse_raw_as(type_, response)
+            # handle basic types
+            else:
+                return type_(response)
 
-        # handle basic types
-        else:
-            return type_(response)
+        except Exception as exc:
+            raise ValueError(
+                f"Could not parse response as type. Response: '{response}'. Type:"
+                f" '{type_}'. Format: '{self.format}'. Error from parsing:"
+                f" '{exc}'"
+            )
 
 
 class PydanticFormatter(ResponseFormatter):
