@@ -94,7 +94,6 @@ def ai_fn(
         - bot_kwargs (dict):  kwargs to pass to the `Bot` constructor
 
     """
-
     # this allows the decorator to be used with or without calling it
     if fn is None:
         return partial(

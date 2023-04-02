@@ -5,6 +5,8 @@ import re
 from typing import TYPE_CHECKING, Any, Callable
 
 import pendulum
+from fastapi import HTTPException, status
+from openai.error import InvalidRequestError
 from pydantic import Field, validator
 
 import marvin
@@ -24,6 +26,8 @@ from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 class BotResponse(BaseMessage):
     parsed_content: Any = None
 
+
+MAX_VALIDATION_ATTEMPTS = 3
 
 if TYPE_CHECKING:
     from marvin.models.bots import BotConfig
@@ -176,8 +180,11 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
     @validator("plugins", always=True)
     def default_plugins(cls, v):
-        if v is None and marvin.settings.bot_load_default_plugins:
-            return DEFAULT_PLUGINS
+        if v is None:
+            if marvin.settings.bot_load_default_plugins:
+                return DEFAULT_PLUGINS
+            else:
+                return []
         return v
 
     @validator("history", always=True)
@@ -210,6 +217,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
     @classmethod
     def from_bot_config(cls, bot_config: "BotConfig") -> "Bot":
         return cls(
+            id=bot_config.id,
             name=bot_config.name,
             personality=bot_config.personality,
             instructions=bot_config.instructions,
@@ -217,11 +225,28 @@ class Bot(MarvinBaseModel, LoggerMixin):
             input_transformers=bot_config.input_transformers,
         )
 
-    async def save(self):
-        """Save this bot in the database. Overwrites any existing bot with the
-        same name."""
+    async def save(self, overwrite: bool = False):
+        """
+        Save this bot in the database. Bots are saved by name. If
+        overwrite=False, an error is raised if a bot with the same name
+        exists.
+        """
         bot_config = self.to_bot_config()
-        await marvin.api.bots.delete_bot_config(name=self.name)
+        try:
+            existing_bot = await marvin.api.bots.get_bot_config(name=self.name)
+            if existing_bot and not overwrite:
+                raise ValueError(
+                    f"Bot with name {self.name} already exists. `overwrite=True` to"
+                    " overwrite."
+                )
+            else:
+                await marvin.api.bots.delete_bot_config(name=self.name)
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_404_NOT_FOUND:
+                pass
+            else:
+                raise
+
         await marvin.api.bots.create_bot_config(bot_config=bot_config)
 
     @classmethod
@@ -289,31 +314,33 @@ class Bot(MarvinBaseModel, LoggerMixin):
         # validate response format
         parsed_response = response
         validated = False
-        validation_attempts = 0
 
-        while not validated and validation_attempts < 3:
-            validation_attempts += 1
+        for _ in range(MAX_VALIDATION_ATTEMPTS):
             try:
                 self.response_format.validate_response(response)
                 validated = True
+                break
             except Exception as exc:
-                match self.response_format.on_error:
-                    case "ignore":
-                        validated = True
-                    case "raise":
-                        raise exc
-                    case "reformat":
-                        self.logger.debug(
-                            "Response did not pass validation. Attempted to reformat:"
-                            f" {response}"
-                        )
-                        reformatted_response = _reformat_response(
-                            user_message=user_message.content,
-                            ai_response=response,
-                            error_message=repr(exc),
-                            target_return_type=self.response_format.format,
-                        )
-                        response = str(reformatted_response)
+                on_error = self.response_format.on_error
+                if on_error == "ignore":
+                    break
+                elif on_error == "raise":
+                    raise exc
+                elif on_error == "reformat":
+                    self.logger.debug(
+                        "Response did not pass validation. Attempted to reformat:"
+                        f" {response}"
+                    )
+                    response = _reformat_response(
+                        user_message=user_message.content,
+                        ai_response=response,
+                        error_message=repr(exc),
+                        target_return_type=self.response_format.format,
+                    )
+                else:
+                    raise ValueError(f"Unknown on_error value: {on_error}")
+        else:
+            raise RuntimeError("Failed to validate response after 3 attempts")
 
         if validated:
             parsed_response = self.response_format.parse_response(response)
@@ -490,9 +517,20 @@ class Bot(MarvinBaseModel, LoggerMixin):
         if marvin.settings.verbose:
             messages_repr = "\n".join(repr(m) for m in langchain_messages)
             self.logger.debug(f"Sending messages to LLM: {messages_repr}")
-        result = await self.llm.agenerate(
-            messages=[langchain_messages], stop=["Plugin output:", "Plugin Output:"]
-        )
+        try:
+            result = await self.llm.agenerate(
+                messages=[langchain_messages], stop=["Plugin output:", "Plugin Output:"]
+            )
+        except InvalidRequestError as exc:
+            if "does not exist" in str(exc):
+                raise ValueError(
+                    "Please check your `openai_model_name` and that your OpenAI account"
+                    " has access to this model. You can select an OpenAI model by"
+                    " setting the `MARVIN_OPENAI_MODEL_NAME` env var."
+                    " Read more about settings in the docs: https://www.askmarvin.ai/guide/introduction/configuration/#settings"  # noqa: E501
+                )
+            raise exc
+
         return result.generations[0][0].text
 
     async def interactive_chat(self, first_message: str = None):
@@ -514,15 +552,14 @@ def _reformat_response(
     )
     def reformat_response(
         response: str, user_message: str, target_return_type: str, error_message: str
-    ) -> target_return_type:
+    ) -> str:
         """
-        The `response` contains an answer to the `user_prompt`.
-        However it could not be parsed into the correct return format
-        (`target_return_type`). The associated error message was
-        `error_message`.
+        The `response` contains an answer to the `user_prompt`. However it could
+        not be parsed into the correct return format (`target_return_type`). The
+        associated error message was `error_message`.
 
-        Extract the answer from the `response` and format it to be parsed
-        correctly.
+        Extract the answer from the `response` and format it as a string that
+        can be parsed correctly.
         """
 
     return reformat_response(

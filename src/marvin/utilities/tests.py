@@ -43,13 +43,14 @@ def _assert_llm(output: Any, expectation: Any) -> bool:
         assert_llm("I'm good, thanks!", "Hello, how are you?") -> False
         assert_llm(["red", "orange"], "a list of colors") -> True
         assert_llm(["red", "house"], "a list of colors") -> False
+        assert_llm("red", "rhymes with bed") -> True
     """
 
 
 def assert_llm(output: str, expectation: Any):
     if not _assert_llm(output, expectation):
         raise AssertionError(
-            f"Output {output} does not satisfy expectation {expectation}"
+            f"Output '{output}' does not satisfy expectation '{expectation}'"
         )
 
 

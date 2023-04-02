@@ -1,7 +1,8 @@
 import json
 import re
+import warnings
 from types import GenericAlias
-from typing import Any, Literal
+from typing import Any, Literal, Union
 
 import pydantic
 from pydantic import BaseModel, Field, PrivateAttr
@@ -9,6 +10,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 import marvin
 from marvin.utilities.types import (
     DiscriminatedUnionType,
+    LoggerMixin,
     format_type_str,
     genericalias_contains,
     safe_issubclass,
@@ -17,7 +19,7 @@ from marvin.utilities.types import (
 SENTINEL = "__SENTINEL__"
 
 
-class ResponseFormatter(DiscriminatedUnionType):
+class ResponseFormatter(DiscriminatedUnionType, LoggerMixin):
     format: str = Field(None, description="The format of the response")
     on_error: Literal["reformat", "raise", "ignore"] = "reformat"
 
@@ -54,7 +56,7 @@ class BooleanFormatter(ResponseFormatter):
 
 
 class TypeFormatter(ResponseFormatter):
-    _cached_type: type | GenericAlias = PrivateAttr(SENTINEL)
+    _cached_type: Union[type, GenericAlias] = PrivateAttr(SENTINEL)
     type_schema: dict[str, Any] = Field(
         ..., description="The OpenAPI schema for the type"
     )
@@ -67,17 +69,41 @@ class TypeFormatter(ResponseFormatter):
             if not isinstance(type_, (type, GenericAlias)):
                 raise ValueError(f"Expected a type or GenericAlias, got {type_}")
 
+            # warn if the type is a set or tuple with GPT 3.5
+            if marvin.settings.openai_model_name.startswith("gpt-3.5"):
+                if safe_issubclass(type_, (set, tuple)) or genericalias_contains(
+                    type_, (set, tuple)
+                ):
+                    warnings.warn(
+                        (
+                            "GPT-3.5 often fails with `set` or `tuple` types. Consider"
+                            " using `list` instead."
+                        ),
+                        UserWarning,
+                    )
+
             schema = marvin.utilities.types.type_to_schema(type_)
+
+            # for all but the simplest containers, include an OpenAPI schema
+            # this can confuse the LLM (esp 3.5) if included for very simple signatures
+            schema_placeholder = ""
+            if isinstance(type_, GenericAlias):
+                if any(a not in (str, int, float, bool) for a in type_.__args__):
+                    schema_placeholder = (
+                        "It must also comply with this OpenAPI schema:"
+                        f" ```{json.dumps(schema)}```. "
+                    )
 
             kwargs.update(
                 type_schema=schema,
                 format=(
-                    "A valid JSON object that matches this simple type"
-                    f" signature: ```{format_type_str(type_)}``` and equivalent OpenAI"
-                    f" schema: ```{json.dumps(schema)}```. Make sure your response is"
-                    " valid JSON,  so use lists instead of sets or tuples; literal"
-                    " `true` and `false` instead of `True` and `False`; literal `null`"
-                    " instead of `None`; and double quotes instead of single quotes."
+                    "A valid JSON object that is compatible with the following type"
+                    " signature:"
+                    f" ```{format_type_str(type_)}```. {schema_placeholder}\n\nYour"
+                    " response MUST be valid JSON. Use lists instead of literal tuples"
+                    " or sets; literal `true` and `false` instead of `True` and"
+                    " `False`; literal `null` instead of `None`; and double quotes"
+                    " instead of single quotes."
                 ),
             )
         super().__init__(**kwargs)
@@ -85,7 +111,7 @@ class TypeFormatter(ResponseFormatter):
         if type_ is not SENTINEL:
             self._cached_type = type_
 
-    def get_type(self) -> type | GenericAlias:
+    def get_type(self) -> Union[type, GenericAlias]:
         if self._cached_type is not SENTINEL:
             return self._cached_type
 
@@ -97,13 +123,22 @@ class TypeFormatter(ResponseFormatter):
     def parse_response(self, response):
         type_ = self.get_type()
 
-        # handle GenericAlias and containers
-        if isinstance(type_, GenericAlias):
-            return pydantic.parse_raw_as(type_, response)
+        try:
+            # handle GenericAlias and containers like dicts
+            if isinstance(type_, GenericAlias) or safe_issubclass(
+                type_, (list, dict, set, tuple)
+            ):
+                return pydantic.parse_raw_as(type_, response)
+            # handle basic types
+            else:
+                return type_(response)
 
-        # handle basic types
-        else:
-            return type_(response)
+        except Exception as exc:
+            raise ValueError(
+                f"Could not parse response as type. Response: '{response}'. Type:"
+                f" '{type_}'. Format: '{self.format}'. Error from parsing:"
+                f" '{exc}'"
+            )
 
 
 class PydanticFormatter(ResponseFormatter):
@@ -114,7 +149,7 @@ class PydanticFormatter(ResponseFormatter):
         ..., description="The OpenAPI schema for the model"
     )
 
-    def __init__(self, model: BaseModel | GenericAlias = None, **kwargs):
+    def __init__(self, model: Union[BaseModel, GenericAlias] = None, **kwargs):
         if model is not None:
             for key in ["format", "type_schema"]:
                 if key in kwargs:
@@ -154,35 +189,20 @@ class PydanticFormatter(ResponseFormatter):
 
 
 def load_formatter_from_shorthand(shorthand_response_format) -> ResponseFormatter:
-    match shorthand_response_format:
-        # shorthand for None
-        case None:
-            return ResponseFormatter()
-
-        # x is a ResponseFormatter - no shorthand
-        case x if isinstance(x, ResponseFormatter):
-            return x
-
-        # x is a boolean
-        case x if x is bool:
-            return BooleanFormatter()
-
-        # x is a string that contains the word "json"
-        case x if isinstance(x, str) and re.search(r"\bjson\b", x.lower()):
-            return JSONFormatter(format=x)
-
-        # x is a string
-        case x if isinstance(x, str):
-            return ResponseFormatter(format=x)
-
-        # x is a pydantic model
-        case x if genericalias_contains(x, pydantic.BaseModel):
-            return PydanticFormatter(model=x)
-
-        # x is a type or GenericAlias
-        case x if isinstance(x, (type, GenericAlias)):
-            return TypeFormatter(type_=x)
-
-        # unsupported values
-        case _:
-            raise ValueError("Invalid output format")
+    if shorthand_response_format is None:
+        return ResponseFormatter()
+    elif isinstance(shorthand_response_format, ResponseFormatter):
+        return shorthand_response_format
+    elif shorthand_response_format is bool:
+        return BooleanFormatter()
+    elif isinstance(shorthand_response_format, str):
+        if re.search(r"\bjson\b", shorthand_response_format.lower()):
+            return JSONFormatter(format=shorthand_response_format)
+        else:
+            return ResponseFormatter(format=shorthand_response_format)
+    elif genericalias_contains(shorthand_response_format, pydantic.BaseModel):
+        return PydanticFormatter(model=shorthand_response_format)
+    elif isinstance(shorthand_response_format, (type, GenericAlias)):
+        return TypeFormatter(type_=shorthand_response_format)
+    else:
+        raise ValueError("Invalid output format")

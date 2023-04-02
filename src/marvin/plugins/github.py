@@ -12,10 +12,11 @@ async def search_github_issues(
 ) -> str:
     """
     Use the GitHub API to search for issues in a given repository.
+
+    For example, to search for issues with the label "bug" in PrefectHQ/prefect:
+        - repo: prefecthq/prefect
+        - query: label:bug
     """
-
-    url = "https://api.github.com/search/issues"
-
     headers = {"Accept": "application/vnd.github.v3+json"}
 
     if token := marvin.settings.GITHUB_TOKEN.get_secret_value():
@@ -23,7 +24,7 @@ async def search_github_issues(
 
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            url,
+            "https://api.github.com/search/issues",
             headers=headers,
             params={
                 "q": f"repo:{repo} {query}",

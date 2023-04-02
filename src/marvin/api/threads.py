@@ -33,7 +33,7 @@ async def create_thread(
 async def get_thread_by_lookup_key(
     lookup_key: str,
     session: AsyncSession = Depends(fastapi_session),
-) -> Thread | None:
+) -> Thread:
     result = await session.execute(
         sa.select(Thread).where(Thread.lookup_key == lookup_key).limit(1)
     )
@@ -48,7 +48,7 @@ async def get_thread_by_lookup_key(
 async def get_thread(
     thread_id: ThreadID = Path(..., alias="id"),
     session: AsyncSession = Depends(fastapi_session),
-) -> Thread | None:
+) -> Thread:
     result = await session.execute(
         sa.select(Thread).where(Thread.id == thread_id).limit(1)
     )
