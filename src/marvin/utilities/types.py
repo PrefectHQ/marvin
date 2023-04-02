@@ -199,7 +199,7 @@ def pydantic_column_type(pydantic_type):
     SA Column for converting pydantic models to and from JSON
     """
 
-    from marvin.infra.database import JSONType
+    from marvin.infra.db import JSONType
 
     class PydanticJSONType(TypeDecorator, Generic[T]):
         impl = JSONType()
