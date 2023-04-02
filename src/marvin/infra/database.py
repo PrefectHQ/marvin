@@ -1,9 +1,14 @@
 import asyncio
 import inspect
+import io
+import logging
+import warnings
 from contextlib import asynccontextmanager
 from functools import wraps
+from pathlib import Path
 from typing import AsyncGenerator, Callable, Literal
 
+import alembic
 import sqlmodel
 from sqlalchemy.dialects.postgresql import JSONB as postgres_JSONB
 from sqlalchemy.dialects.sqlite import JSON as sqlite_JSON
@@ -12,6 +17,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 import marvin
+from marvin import get_logger
+
+logger = get_logger(__name__)
 
 METADATA = sqlmodel.SQLModel.metadata
 
@@ -151,3 +159,117 @@ def create_sqlite_db_if_doesnt_exist():
                     await create_db()
 
     asyncio.run(_create_sqlite_db_if_doesnt_exist())
+
+
+def _alembic_cfg(stdout=None):
+    from alembic.config import Config
+
+    alembic_dir = Path(__file__).parent
+    if not alembic_dir.joinpath("alembic.ini").exists():
+        raise ValueError(f"Couldn't find alembic.ini at {alembic_dir}/alembic.ini")
+
+    kwargs = {}
+    if stdout is not None:
+        kwargs["stdout"] = stdout
+    alembic_cfg = Config(alembic_dir / "alembic.ini", **kwargs)
+
+    return alembic_cfg
+
+
+def alembic_upgrade(revision: str = "head", dry_run: bool = False):
+    """
+    Run alembic upgrades on Prefect REST API database
+
+    Args:
+        revision: The revision passed to `alembic downgrade`. Defaults to
+        'head', upgrading all revisions.
+        dry_run: Show what migrations would be made without applying them. Will
+        emit sql statements to stdout.
+    """
+    # lazy import for performance
+    import alembic.command
+
+    alembic.command.upgrade(_alembic_cfg(), revision, sql=dry_run)
+
+
+def alembic_downgrade(revision: str = "base", dry_run: bool = False):
+    """
+    Run alembic downgrades on Prefect REST API database
+
+    Args:
+        revision: The revision passed to `alembic downgrade`. Defaults to
+        'base', downgrading all revisions.
+        dry_run: Show what migrations would be made without applying them. Will
+        emit sql statements to stdout.
+    """
+    # lazy import for performance
+    import alembic.command
+
+    alembic.command.downgrade(_alembic_cfg(), revision, sql=dry_run)
+
+
+def alembic_revision(message: str = None, autogenerate: bool = False, **kwargs):
+    """
+    Create a new revision file for the database.
+
+    Args:
+        message: string message to apply to the revision.
+        autogenerate: whether or not to autogenerate the script from the database.
+    """
+    # lazy import for performance
+    import alembic.command
+
+    alembic.command.revision(
+        _alembic_cfg(), message=message, autogenerate=autogenerate, **kwargs
+    )
+
+
+async def check_alembic_version():
+    # get current alembic version as scalar
+    output_buffer = io.StringIO()
+    alembic_cfg = _alembic_cfg(stdout=output_buffer)
+
+    # disable alembic logging
+    alembic_logger = logging.getLogger("alembic.runtime.migration")
+    alembic_logger.disabled = True
+
+    # get current database version
+    alembic.command.current(alembic_cfg)
+    current = output_buffer.getvalue().strip()
+
+    # if there is no database version, automatically attempt to upgrade
+    if not current:
+        try:
+            marvin.get_logger("database").debug(
+                "No database version found; attempting automatic upgrade..."
+            )
+            alembic.command.upgrade(alembic_cfg, "head")
+        except Exception as exc:
+            warnings.warn(
+                (
+                    "The Marvin database appears to be empty and automatic upgrade"
+                    " failed. Some features may be broken. Please try to run `marvin"
+                    f" database upgrade` manually. Error: {repr(exc)}"
+                ),
+                UserWarning,
+            )
+        return
+
+    # get the head version
+    output_buffer.seek(0)
+    output_buffer.truncate(0)
+    alembic.command.heads(alembic_cfg)
+    head = output_buffer.getvalue().strip()
+    alembic_logger.disabled = False
+
+    if current != head:
+        warnings.warn(
+            (
+                f"Database migrations are not up to date (current version is {current};"
+                f" head is {head}). This is expected after upgrading Marvin to a new"
+                " version, but some features may be broken until the database is"
+                " upgraded. Marvin does not do this automatically; please run `marvin"
+                " database upgrade` yourself."
+            ),
+            UserWarning,
+        )

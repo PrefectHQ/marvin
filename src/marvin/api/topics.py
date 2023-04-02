@@ -3,7 +3,7 @@ from fastapi import Body, Depends, HTTPException, Path, Query, status
 
 import marvin
 from marvin.api.dependencies import fastapi_session
-from marvin.infra.db import AsyncSession, provide_session
+from marvin.infra.database import AsyncSession, provide_session
 from marvin.models.topics import Topic, TopicID
 from marvin.utilities.types import MarvinRouter
 
