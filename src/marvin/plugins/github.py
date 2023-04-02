@@ -12,6 +12,10 @@ async def search_github_issues(
 ) -> str:
     """
     Use the GitHub API to search for issues in a given repository.
+
+    For example, to search for issues with the label "bug" in PrefectHQ/prefect:
+        - repo: prefecthq/prefect
+        - query: label:bug
     """
     headers = {"Accept": "application/vnd.github.v3+json"}
 
