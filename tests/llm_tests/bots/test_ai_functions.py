@@ -252,8 +252,6 @@ class TestSet:
 
 class TestNone:
     def test_none_response_gpt35(self):
-        """gpt-3.5 puts literal 'null' instead of null"""
-
         @ai_fn
         def filter_with_none(words: list[str]) -> list[Optional[str]]:
             """
@@ -264,7 +262,13 @@ class TestNone:
             """
 
         x = filter_with_none(["green", "cat", "blue"])
-        assert x in (["null", "null", "blue"], ["None", "None", "blue"])
+
+        # gpt_35 sometimes returns strings instead of actual nulls
+        assert x in (
+            ["null", "null", "blue"],
+            ["None", "None", "blue"],
+            [None, None, "blue"],
+        )
 
     def test_none_response(self, gpt_4):
         @ai_fn

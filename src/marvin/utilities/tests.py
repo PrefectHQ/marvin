@@ -26,7 +26,7 @@ def assert_approx_equal(statement_1: str, statement_2: str):
     assert asyncio.run(ApproximatelyEquivalent().run(statement_1, statement_2))
 
 
-def assert_llm(output: str, expectation: Any, model_name: str = None):
+def assert_llm(response: str, expectation: Any, model_name: str = None):
     from langchain.chat_models import ChatOpenAI
 
     @ai_fn(
@@ -36,13 +36,13 @@ def assert_llm(output: str, expectation: Any, model_name: str = None):
             openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
         ),
     )
-    def _assert_llm(output: Any, expectation: Any) -> bool:
+    def _assert_llm(response: Any, expectation: Any) -> bool:
         """
-        This function is used to unit test LLM outputs. The LLM `output` is compared
-        to an `expectation` of what the output is, contains, or represents. The
-        function returns `true` if the output satisfies the expectation and `false`
+        This function is used to unit test LLM outputs. The LLM `response` is compared
+        to an `expectation` of what the response is, contains, or represents. The
+        function returns `true` if the response satisfies the expectation and `false`
         otherwise. The expectation does not need to be matched exactly. If the
-        expectation and output are semantically the same, the function should return
+        expectation and response are semantically the same, the function should return
         true.
 
 
@@ -56,9 +56,9 @@ def assert_llm(output: str, expectation: Any, model_name: str = None):
             assert_llm("red", "rhymes with bed") -> True
         """
 
-    if not _assert_llm(output, expectation):
+    if not _assert_llm(response, expectation):
         raise AssertionError(
-            f"Output '{output}' does not satisfy expectation '{expectation}'"
+            f"Response '{response}' does not satisfy expectation '{expectation}'"
         )
 
 
