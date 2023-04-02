@@ -19,10 +19,7 @@ class TestBotResponse:
         response = await bot.say("What is my favorite color?")
         assert_llm(
             response.content,
-            (
-                "Based on your previous message, you mentioned that your favorite color"
-                " is blue. Is that still correct?"
-            ),
+            "The response correctly states that the favorite color is blue.",
         )
 
 
