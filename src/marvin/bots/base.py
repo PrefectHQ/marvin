@@ -318,6 +318,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         for _ in range(MAX_VALIDATION_ATTEMPTS):
             try:
                 self.response_format.validate_response(response)
+                validated = True
                 break
             except Exception as exc:
                 on_error = self.response_format.on_error
