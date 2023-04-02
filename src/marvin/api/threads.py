@@ -2,7 +2,7 @@ import sqlalchemy as sa
 from fastapi import Body, Depends, HTTPException, Path, Query, status
 
 from marvin.api.dependencies import fastapi_session
-from marvin.infra.db import AsyncSession, provide_session
+from marvin.infra.database import AsyncSession, provide_session
 from marvin.models.ids import ThreadID
 from marvin.models.threads import (
     Message,
