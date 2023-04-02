@@ -166,6 +166,12 @@ def alembic_upgrade(revision: str = "head", dry_run: bool = False):
     # lazy import for performance
     import alembic.command
 
+    # create sqlite database if it doesn't exist
+    if get_dialect() == "sqlite":
+        if not (db_path := Path(engine.url.database)).exists():
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+            db_path.touch()
+
     alembic.command.upgrade(_alembic_cfg(), revision, sql=dry_run)
 
 
