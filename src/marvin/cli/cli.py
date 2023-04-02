@@ -11,7 +11,7 @@ from rich.prompt import Prompt
 import marvin
 from marvin.bots.utility_bots import get_utility_bot
 
-from .db import database_app
+from .database import database_app
 from .server import server_app
 
 app = typer.Typer()
