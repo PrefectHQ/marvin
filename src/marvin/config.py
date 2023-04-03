@@ -1,7 +1,7 @@
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 try:
     import chromadb
@@ -127,6 +127,12 @@ class Settings(BaseSettings):
         description=(
             "If True, bots will load a default set of plugins if none are provided."
         ),
+    )
+
+    slackbot: Any = Field(default=None)
+
+    slack_bot_token: SecretStr = Field(
+        "", env=["MARVIN_SLACK_BOT_TOKEN", "SLACK_BOT_TOKEN"]
     )
 
     # API
