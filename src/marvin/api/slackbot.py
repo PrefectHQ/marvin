@@ -44,13 +44,35 @@ prefect_keywords = [
     "helm",
 ]
 
+how_to_write_a_prefect_2_flow = """
+from prefect import flow, task
+
+# This is a task decorator
+# this task will inherit the `log_prints` setting from the flow
+@task
+def say_hello(name: str):
+    print(f"Hello {name}!")
+
+# This is a flow decorator
+# it calls the `say_hello` task 3 times
+@flow(log_prints=True)
+def hello(name: str = "world", count: int = 1):
+    say_hello.map(f"{name}-{i}" for i in range(count))
+
+if __name__ == "__main__":
+    hello(count=3)
+"""
+
 chroma_search_instructions = (
-    "Use the `chroma_search` plugin to retrieve context when asked about any"
-    f" of the following keywords: {listrepr(prefect_keywords)}. If asked about"
-    " a github issue, use the `search_github_issues` plugin, choosing the most"
-    " appropriate repo based on the user's question. Always provide relevant"
-    " links from plugin outputs. As a last resort, use the `DuckDuckGo` plugin"
-    " to search the web for answers to questions."
+    "Do NOT answer ANY questions about Prefect without using one of the plugins. Use"
+    " the keywords provided below to decide whether a question is about Prefect. In"
+    " case you need it, here's an example of a Prefect 2 flow:"
+    f" {how_to_write_a_prefect_2_flow}. Use `chroma_search` to retrieve context when"
+    " asked a question containing any of the following keywords:"
+    f" {listrepr(prefect_keywords)}. If asked about a github issue, use the"
+    " `search_github_issues` plugin, choosing the most appropriate repo based on the"
+    " user's question. Always provide relevant links from plugin outputs. As a last"
+    " resort, use the `DuckDuckGo` plugin to search the web for answers to questions. "
 )
 
 community_bot = Bot(
