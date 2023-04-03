@@ -37,7 +37,14 @@ class TestSaveBots:
         bot = Bot()
         await bot.save()
         loaded_bot = await Bot.load(bot.name)
-        for attr in ["id", "name", "personality", "instructions", "plugins"]:
+        for attr in [
+            "id",
+            "name",
+            "personality",
+            "instructions",
+            "plugins",
+            "description",
+        ]:
             assert getattr(loaded_bot, attr) == getattr(bot, attr)
 
     async def test_save_custom_bot(self):
@@ -45,10 +52,37 @@ class TestSaveBots:
             name="Test Bot",
             personality="Test Personality",
             instructions="Test Instructions",
+            description="Test Description",
         )
         await bot.save()
         loaded_bot = await Bot.load(bot.name)
-        for attr in ["id", "name", "personality", "instructions", "plugins"]:
+        for attr in [
+            "id",
+            "name",
+            "personality",
+            "instructions",
+            "plugins",
+            "description",
+        ]:
+            assert getattr(loaded_bot, attr) == getattr(bot, attr)
+
+    def test_save_custom_bot_sync(self):
+        bot = Bot(
+            name="Test Bot",
+            personality="Test Personality",
+            instructions="Test Instructions",
+            description="Test Description",
+        )
+        bot.save_sync()
+        loaded_bot = Bot.load_sync(bot.name)
+        for attr in [
+            "id",
+            "name",
+            "personality",
+            "instructions",
+            "plugins",
+            "description",
+        ]:
             assert getattr(loaded_bot, attr) == getattr(bot, attr)
 
     async def test_save_bot_with_plugins(self):

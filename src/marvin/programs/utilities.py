@@ -1,6 +1,6 @@
 import inspect
 
-from marvin.bots.utility_bots import UtilityBot
+from marvin.bots_lab.utilities import UtilityBot
 from marvin.programs import Program
 
 
