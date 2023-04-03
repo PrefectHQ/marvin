@@ -89,13 +89,14 @@ def reset(
 @database_app.command()
 def revision(
     message: str = typer.Argument(..., help="Revision message"),
-    autogenerate: bool = typer.Option(
-        True, "--autogenerate", help="Autogenerate revision"
+    no_autogenerate: bool = typer.Option(
+        False, "--no-autogenerate", help="Do not autogenerate revision"
     ),
     rev_id: str = typer.Option(
         None, "--revision-id", help="Specify a revision id instead of generating one"
     ),
 ):
+    autogenerate = not no_autogenerate
     alembic_cfg = marvin.infra.database._alembic_cfg()
     alembic.command.revision(
         alembic_cfg, message=message, autogenerate=autogenerate, rev_id=rev_id

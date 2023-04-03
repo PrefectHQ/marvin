@@ -27,3 +27,15 @@ async def run_async_process(func, *args, **kwargs):
     pickled_func = cloudpickle.dumps(functools.partial(func, *args, **kwargs))
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(process_pool, _cloudpickle_wrapper, pickled_func)
+
+
+def as_sync_fn(fn):
+    """
+    Wraps an async function and returns a sync function that runs it in an executor.
+    """
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        return asyncio.run(fn(*args, **kwargs))
+
+    return wrapper

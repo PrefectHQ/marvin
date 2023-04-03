@@ -75,7 +75,8 @@ postgres = ["asyncpg~=0.27.0"]
 chromadb = ["chromadb~=0.3"]
 
 [project.urls]
-Homepage = "https://github.com/prefecthq/marvin"
+Code = "https://github.com/prefecthq/marvin"
+Documentation = "https://www.askmarvin.ai"
 
 [project.scripts]
 marvin = "marvin.cli.cli:app"
