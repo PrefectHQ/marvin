@@ -134,7 +134,7 @@ async def destroy_db(confirm: bool = False):
 
 
 async def reset_db(confirm: bool = False):
-    await destroy_db(confirm=confirm)
+    alembic_downgrade()
     alembic_upgrade()
 
 
