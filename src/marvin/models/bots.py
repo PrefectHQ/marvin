@@ -1,3 +1,4 @@
+import datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -6,7 +7,7 @@ from sqlmodel import Field
 import marvin
 from marvin.infra.database import JSONType
 from marvin.models.ids import BotID
-from marvin.utilities.models import MarvinSQLModel
+from marvin.utilities.models import CreatedUpdatedMixin, MarvinSQLModel
 from marvin.utilities.types import MarvinBaseModel
 
 if TYPE_CHECKING:
@@ -14,10 +15,10 @@ if TYPE_CHECKING:
     from marvin.plugins.base import Plugin
 
 
-class BotConfig(MarvinSQLModel, table=True):
+class BotConfig(MarvinSQLModel, CreatedUpdatedMixin, table=True):
     __tablename__ = "bot_config"
     __repr_exclude__ = {"profile_picture"}
-    __table_args__ = (sa.Index("uq_topic__name", "name", unique=True),)
+    __table_args__ = (sa.Index("uq_bot_config__name", "name", unique=True),)
     id: BotID = Field(default_factory=BotID.new, primary_key=True)
     name: str
     personality: str
@@ -62,3 +63,5 @@ class BotConfigRead(MarvinBaseModel):
     plugins: list[dict]
     input_transformers: list[dict]
     profile_picture: str = None
+    created_at: datetime.datetime = None
+    updated_at: datetime.datetime = None

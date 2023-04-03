@@ -2,6 +2,7 @@ import datetime
 from typing import Optional
 
 import pendulum
+import pydantic
 import sqlalchemy as sa
 from sqlmodel import Field, SQLModel
 
@@ -64,7 +65,7 @@ class MarvinSQLModel(SQLModel, MarvinBaseModel):
     __table_args__ = {"extend_existing": True}
 
 
-class TimestampMixin:
+class CreatedUpdatedMixin(pydantic.BaseModel):
     __repr_exclude__ = ["created_at", "updated_at"]
 
     created_at: Optional[datetime.datetime] = Field(

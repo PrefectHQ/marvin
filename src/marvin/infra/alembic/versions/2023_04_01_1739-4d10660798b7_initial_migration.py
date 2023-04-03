@@ -30,6 +30,18 @@ def upgrade() -> None:
     if "bot_config" not in tables:
         op.create_table(
             "bot_config",
+            sa.Column(
+                "created_at",
+                sa.DateTime(timezone=True),
+                server_default=sa.text("(CURRENT_TIMESTAMP)"),
+                nullable=False,
+            ),
+            sa.Column(
+                "updated_at",
+                sa.DateTime(timezone=True),
+                server_default=sa.text("(CURRENT_TIMESTAMP)"),
+                nullable=False,
+            ),
             sa.Column("plugins", sqlite.JSON(), server_default="[]", nullable=False),
             sa.Column(
                 "input_transformers", sqlite.JSON(), server_default="[]", nullable=False
@@ -47,11 +59,35 @@ def upgrade() -> None:
             ),
             sa.PrimaryKeyConstraint("id", name=op.f("pk_bot_config")),
         )
-        op.create_index("uq_topic__name", "bot_config", ["name"], unique=True)
+        op.create_index(
+            op.f("ix_bot_config__created_at"),
+            "bot_config",
+            ["created_at"],
+            unique=False,
+        )
+        op.create_index(
+            op.f("ix_bot_config__updated_at"),
+            "bot_config",
+            ["updated_at"],
+            unique=False,
+        )
+        op.create_index("uq_bot_config__name", "bot_config", ["name"], unique=True)
 
     if "thread" not in tables:
         op.create_table(
             "thread",
+            sa.Column(
+                "created_at",
+                sa.DateTime(timezone=True),
+                server_default=sa.text("(CURRENT_TIMESTAMP)"),
+                nullable=False,
+            ),
+            sa.Column(
+                "updated_at",
+                sa.DateTime(timezone=True),
+                server_default=sa.text("(CURRENT_TIMESTAMP)"),
+                nullable=False,
+            ),
             sa.Column("context", sqlite.JSON(), server_default="{}", nullable=False),
             sa.Column("id", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
             sa.Column("lookup_key", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
@@ -60,7 +96,13 @@ def upgrade() -> None:
             sa.PrimaryKeyConstraint("id", name=op.f("pk_thread")),
         )
         op.create_index(
+            op.f("ix_thread__created_at"), "thread", ["created_at"], unique=False
+        )
+        op.create_index(
             op.f("ix_thread__is_visible"), "thread", ["is_visible"], unique=False
+        )
+        op.create_index(
+            op.f("ix_thread__updated_at"), "thread", ["updated_at"], unique=False
         )
         op.create_index("uq_thread__lookup_key", "thread", ["lookup_key"], unique=True)
 
@@ -107,8 +149,12 @@ def downgrade() -> None:
     op.drop_index("ix_message__thread_id_timestamp", table_name="message")
     op.drop_table("message")
     op.drop_index("uq_thread__lookup_key", table_name="thread")
+    op.drop_index(op.f("ix_thread__updated_at"), table_name="thread")
     op.drop_index(op.f("ix_thread__is_visible"), table_name="thread")
+    op.drop_index(op.f("ix_thread__created_at"), table_name="thread")
     op.drop_table("thread")
-    op.drop_index("uq_topic__name", table_name="bot_config")
+    op.drop_index("uq_bot_config__name", table_name="bot_config")
+    op.drop_index(op.f("ix_bot_config__updated_at"), table_name="bot_config")
+    op.drop_index(op.f("ix_bot_config__created_at"), table_name="bot_config")
     op.drop_table("bot_config")
     # ### end Alembic commands ###

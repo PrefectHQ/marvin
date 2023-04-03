@@ -1,9 +1,9 @@
 from pydantic import Field
 
-from marvin.utilities.models import MarvinBaseModel, TimestampMixin
+from marvin.utilities.models import CreatedUpdatedMixin, MarvinBaseModel
 
 
-class Metadata(MarvinBaseModel, TimestampMixin):
+class Metadata(MarvinBaseModel, CreatedUpdatedMixin):
     link: str = Field(default=None)
     title: str = Field(default="[untitled]")
     source: str = Field(default="unknown")
