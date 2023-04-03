@@ -17,6 +17,7 @@ from pydantic import BaseModel, PrivateAttr, constr
 from pydantic.fields import ModelField
 from sqlalchemy import TypeDecorator
 
+import marvin
 from marvin.utilities.logging import get_logger
 
 logger = get_logger(__name__)
@@ -56,7 +57,7 @@ class MarvinBaseModel(BaseModel):
     class Config:
         copy_on_model_validation = "shallow"
         validate_assignment = True
-        extra = "forbid"
+        extra = "forbid" if marvin.settings.test_mode else "ignore"
         json_encoders = {}
 
     def __init__(self, **data):

@@ -123,6 +123,8 @@ class ThreadRead(MarvinBaseModel):
     name: str = None
     is_visible: bool = False
     context: dict = Field(default_factory=dict)
+    created_at: datetime.datetime = None
+    updated_at: datetime.datetime = None
 
     @classmethod
     def from_model(cls, thread: Thread):

@@ -1,3 +1,4 @@
+import datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -62,3 +63,5 @@ class BotConfigRead(MarvinBaseModel):
     plugins: list[dict]
     input_transformers: list[dict]
     profile_picture: str = None
+    created_at: datetime.datetime = None
+    updated_at: datetime.datetime = None
