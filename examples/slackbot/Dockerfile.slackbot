@@ -10,4 +10,6 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 COPY community_bot.py ./
 RUN pip install "marvin[chromadb]"
 
-CMD ["python", "-m", "marvin", "server", "start"]
+EXPOSE 8000
+
+CMD ["marvin", "server", "start"]
