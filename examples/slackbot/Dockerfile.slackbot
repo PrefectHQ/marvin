@@ -1,4 +1,4 @@
-FROM prefecthq/prefect:2-latest
+FROM prefecthq/prefect:2-python3.10
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ RUN python -m venv venv
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-COPY ./community_bot.py ./
+COPY community_bot.py ./
 RUN pip install "marvin[chromadb]"
 
 CMD ["python", "-m", "marvin", "server", "start"]
