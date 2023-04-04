@@ -67,3 +67,6 @@ print(response.content)
 The first time we released an early version of Marvin in the [Prefect Slack](https://prefect.io/slack), the quality and tone of the answers was so good that some of our team became convinced that the demo was staged, with our CTO operating the Marvin account like a sock puppet. 
 
 The idea stuck.
+
+### Whoa code
+AI functions use LLMs as a runtime and don't need any source code. We call that whoa-code.
