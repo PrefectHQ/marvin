@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import re
 from functools import lru_cache
 from string import Formatter
@@ -11,6 +12,7 @@ from jinja2 import ChoiceLoader, Environment, StrictUndefined, select_autoescape
 
 import marvin
 
+NEWLINES_REGEX = re.compile(r"(\s*\n\s*)")
 MULTIPLE_NEWLINES = re.compile(r"\n{2,}")
 MULTIPLE_WHITESPACE = re.compile(r"[\t ]+")
 LINKS = re.compile(
@@ -208,10 +210,23 @@ def create_minimap_fn(content: str) -> Callable[[int], str]:
     return get_location_fn
 
 
+# def condense_newlines(text: str) -> str:
+#     text = text.replace("\r", "\n")
+#     text = MULTIPLE_NEWLINES.sub("\n", text)
+# return MULTIPLE_WHITESPACE.sub(" ", text)
+
+
 def condense_newlines(text: str) -> str:
-    text = text.replace("\r", "\n")
-    text = MULTIPLE_NEWLINES.sub("\n", text)
-    return MULTIPLE_WHITESPACE.sub(" ", text)
+    def replace_whitespace(match):
+        newlines_count = match.group().count("\n")
+        if newlines_count <= 1:
+            return " "
+        else:
+            return "\n" * newlines_count
+
+    text = inspect.cleandoc(text)
+    text = NEWLINES_REGEX.sub(replace_whitespace, text)
+    return text.strip()
 
 
 def html_to_content(html: str) -> str:

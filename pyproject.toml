@@ -33,6 +33,7 @@ dependencies = [
     "sqlalchemy[asyncio]~=1.4",
     "sqlitedict~=2.1",
     "sqlmodel~=0.0.8",
+    "textual~=0.17",
     "tiktoken~=0.3",
     "ulid-py~=1.1",
     "uvicorn~=0.20",

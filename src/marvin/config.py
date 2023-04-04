@@ -116,7 +116,7 @@ class Settings(BaseSettings):
 
     # BOTS
     bot_create_profile_picture: bool = Field(
-        True,
+        False,
         description=(
             "if True, a profile picture will be generated for new bots when they are"
             " saved in the database."

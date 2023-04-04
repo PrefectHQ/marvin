@@ -1,0 +1,130 @@
+.hidden {
+  visibility: hidden;
+}
+
+DebugInfo {
+  min-height: 10;
+  
+}
+
+Sidebar {
+  dock: left;
+  background: $panel;
+  width: 30;
+  height: 100%;
+  border-right: vkey $background;
+}
+
+Sidebar Button {
+  width: 1fr;
+}
+
+Sidebar Button#settings {
+  dock: bottom;
+}
+
+Sidebar TabbedContent {
+  height: 100%;
+}
+
+Sidebar TabPane {
+  padding: 0;
+}
+
+Sidebar TabbedContent ContentSwitcher {
+  height: 1fr;
+}
+
+
+Sidebar OptionList {
+  height: 1fr;
+}
+
+OptionItem {
+  height: 23;
+}
+
+Conversation {
+  height: 100%;
+  width: 100%;
+  background: $panel;
+}
+
+Conversation Input {
+  dock: bottom;
+}
+
+Response {
+  height: auto;
+  width: 100%;
+}
+
+ResponseBody {
+  height: auto;
+  border: gray 50%;
+  padding: 1 2;
+
+  margin: 1 1;
+  width: 80%;
+}
+
+UserResponse {
+  align-horizontal: right;
+}
+
+UserResponse ResponseBody {
+  background: lightslategray 10%;
+}
+
+BotResponse ResponseBody {
+  border: skyblue 50%;
+  background: $primary 30%;
+}
+
+SettingsScreen, BotsScreen {
+  align: center middle;
+}
+
+SettingsDialog, BotsDialog {
+  margin: 1 2;
+  width: 40%;
+  min-width: 60;
+  height: auto;
+  border: thick $primary 80%;
+  padding: 2 4;
+}
+
+BotsDialog {
+  width: 80%;
+}
+
+BotsTable {
+  
+  width: auto;
+  height: auto;
+}
+
+SettingsDialog, BotsDialog > * {
+  margin: 1 0;
+}
+
+SettingsDialog TabbedContent {
+  margin: 4;
+  padding: 2;
+}
+SettingsDialog TabPane {
+  height: 10;
+}
+
+LabeledText Label {
+  padding-right: 2;
+  color: gray;
+}
+
+
+#empty-thread {
+  content-align: center middle;
+  width: 100%;
+  height: 100%;
+  
+}

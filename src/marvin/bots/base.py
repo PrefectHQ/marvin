@@ -20,7 +20,7 @@ from marvin.models.ids import BotID, ThreadID
 from marvin.models.threads import BaseMessage, Message
 from marvin.plugins import Plugin
 from marvin.utilities.async_utils import as_sync_fn
-from marvin.utilities.strings import jinja_env
+from marvin.utilities.strings import condense_newlines, jinja_env
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 
@@ -34,22 +34,19 @@ if TYPE_CHECKING:
     from marvin.models.bots import BotConfig
 DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
-DEFAULT_INSTRUCTIONS = inspect.cleandoc(
-    """
+DEFAULT_INSTRUCTIONS = """
     Respond to the user, always in character based on your personality. You
     should gently adjust your personality to match the user in order to form a
     more engaging connection. Use plugins whenever you need additional
     information. The user is human, so do not return code unless asked to do so.
     """
-)
-DEFAULT_REMINDER = inspect.cleandoc(
-    """
+
+DEFAULT_REMINDER = """
     Remember your instructions, personality, and output format when responding.
     """
-)
+
 INSTRUCTIONS_TEMPLATE = jinja_env.from_string(
-    inspect.cleandoc(
-        """
+    """
         Your name is: {{ name }}
         
         Your instructions tell you how to respond to a message, and you must
@@ -77,7 +74,6 @@ INSTRUCTIONS_TEMPLATE = jinja_env.from_string(
         
         {% if date -%} Today's date is {{ date }} {%- endif %}
         """
-    )
 )
 
 DEFAULT_PLUGINS = [
@@ -163,28 +159,28 @@ class Bot(MarvinBaseModel, LoggerMixin):
         return v
 
     @validator("name", always=True)
-    def default_name(cls, v):
+    def handle_name(cls, v):
         if v is None:
-            return DEFAULT_NAME
-        return v
+            v = DEFAULT_NAME
+        return condense_newlines(v)
 
     @validator("personality", always=True)
-    def default_personality(cls, v):
+    def handle_personality(cls, v):
         if v is None:
-            return DEFAULT_PERSONALITY
-        return v
+            v = DEFAULT_PERSONALITY
+        return condense_newlines(v)
 
     @validator("instructions", always=True)
-    def default_instructions(cls, v):
+    def handle_instructions(cls, v):
         if v is None:
-            return DEFAULT_INSTRUCTIONS
-        return v
+            v = DEFAULT_INSTRUCTIONS
+        return condense_newlines(v)
 
     @validator("reminder", always=True)
-    def default_reminder(cls, v):
+    def handle_reminder(cls, v):
         if v is None:
-            return DEFAULT_REMINDER
-        return v
+            v = DEFAULT_REMINDER
+        return condense_newlines(v)
 
     @validator("plugins", always=True)
     def default_plugins(cls, v):
@@ -349,7 +345,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             parsed_response = self.response_format.parse_response(response)
 
         ai_response = BotResponse(
-            role="ai", content=response, parsed_content=parsed_response
+            role="bot", content=response, parsed_content=parsed_response
         )
         await self.history.add_message(ai_response)
         self.logger.debug_kv("AI message", ai_response.content, "bold green")
@@ -403,7 +399,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
                 self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
 
-                messages.append(Message(role="ai", content=response))
+                messages.append(Message(role="bot", content=response))
                 messages.append(
                     Message(role="system", content=f"Plugin output: {plugin_output}")
                 )
@@ -461,7 +457,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             )
 
             plugin_names = ", ".join([p.name for p in self.plugins])
-            plugin_overview = inspect.cleandoc(
+            plugin_overview = condense_newlines(
                 """                
                 You have access to plugins that can enhance your knowledge and
                 capabilities. However, you can't run these plugins yourself; to
@@ -510,7 +506,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         for msg in messages:
             if msg.role == "system":
                 langchain_messages.append(SystemMessage(content=msg.content))
-            elif msg.role == "ai":
+            elif msg.role == "bot":
                 langchain_messages.append(AIMessage(content=msg.content))
             elif msg.role == "user":
                 langchain_messages.append(HumanMessage(content=msg.content))

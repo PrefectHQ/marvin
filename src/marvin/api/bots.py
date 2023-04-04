@@ -2,9 +2,10 @@ import asyncio
 import base64
 import random
 
+import fastapi.params
 import httpx
 import sqlalchemy as sa
-from fastapi import BackgroundTasks, Body, Depends, HTTPException, status
+from fastapi import BackgroundTasks, Body, Depends, HTTPException, Query, status
 
 import marvin
 from marvin.api.dependencies import fastapi_session
@@ -62,6 +63,25 @@ async def get_bot_config(
     if not bot_config:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=f'Bot "{name}" not found')
     return BotConfigRead(**bot_config.dict())
+
+
+@router.get("/")
+@provide_session()
+async def get_bot_configs(
+    limit: int = Query(100, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    session: AsyncSession = Depends(fastapi_session),
+) -> list[BotConfigRead]:
+    if isinstance(limit, fastapi.params.Query):
+        limit = limit.default
+    if isinstance(offset, fastapi.params.Query):
+        offset = offset.default
+
+    result = await session.execute(
+        sa.select(BotConfig).order_by(BotConfig.name).limit(limit).offset(offset)
+    )
+    bot_configs = result.scalars().all()
+    return [BotConfigRead(**bc.dict()) for bc in bot_configs]
 
 
 @router.patch("/{name}", status_code=status.HTTP_204_NO_CONTENT)
