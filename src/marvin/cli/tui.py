@@ -146,18 +146,21 @@ class ResponseBody(Static):
 
 
 class Response(Container):
-    def __init__(self, message: marvin.models.threads.MessageCreate) -> None:
+    def __init__(self, message: marvin.models.threads.Message) -> None:
         self.message = message
         super().__init__()
 
     def compose(self) -> ComposeResult:
-        yield ResponseBody(self.message.content)
+        body = ResponseBody(self.message.content)
+        body.border_title = "You" if self.message.role == "user" else self.message.name
+        body.border_subtitle = self.message.timestamp.in_tz("local").format("h:mm:ss A")
+        yield body
 
 
 class UserResponse(Response):
     def __init__(self, response: str) -> None:
         super().__init__(
-            message=marvin.models.threads.MessageCreate(
+            message=marvin.models.threads.Message(
                 name="User", role="user", content=response
             )
         )
@@ -166,7 +169,7 @@ class UserResponse(Response):
 class BotResponse(Response):
     def __init__(self, response: str) -> None:
         super().__init__(
-            message=marvin.models.threads.MessageCreate(
+            message=marvin.models.threads.Message(
                 name=self.app.bot.name,
                 role="bot",
                 content=response,
@@ -183,7 +186,10 @@ class Conversation(Container):
         input.focus()
         yield input
         with VerticalScroll(id="messages"):
-            yield Static("Send a message to start a thread...", id="empty-thread")
+            yield Container(
+                Label("Send a message to start a thread...", id="empty-thread"),
+                id="empty-thread-container",
+            )
 
     async def watch_response_count(self, count: int) -> None:
         empty = self.query_one("Conversation #empty-thread")
