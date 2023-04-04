@@ -29,7 +29,8 @@ if CHROMA_INSTALLED:
             env_prefix = "MARVIN_CHROMA_"
 
         chroma_db_impl: Literal["duckdb", "duckdb+parquet"] = "duckdb+parquet"
-
+        chroma_server_host: str = "localhost"
+        chroma_server_http_port: int = 8000
         # relative paths will be prefixed with the marvin home directory
         persist_directory: str = "chroma"
 
@@ -47,8 +48,8 @@ class Settings(BaseSettings):
         env_prefix = "MARVIN_"
         validate_assignment = True
 
-    def export_to_env_file(self):
-        with open(self.Config.env_file, "w") as env_file:
+    def export_to_env_file(self, f: str = None):
+        with open(f or self.Config.env_file[0], "w") as env_file:
             for field_name, value in self.dict().items():
                 env_key = f"{self.Config.env_prefix}{field_name.upper()}"
                 env_value = (
