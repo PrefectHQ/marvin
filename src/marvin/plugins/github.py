@@ -11,7 +11,9 @@ async def search_github_issues(
     query: str, repo: str = "prefecthq/prefect", n: int = 3
 ) -> str:
     """
-    Use the GitHub API to search for issues in a given repository.
+    Use the GitHub API to search for issues in a given repository. Do
+    not alter the default value for `n` unless specifically requested by
+    a user.
 
     For example, to search for issues with the label "bug" in PrefectHQ/prefect:
         - repo: prefecthq/prefect

@@ -21,6 +21,8 @@ def say_hello(name: str):
 def hello(name: str = "world", count: int = 1):
     say_hello.map(f"{name}-{i}" for i in range(count))
 
+
+
 if __name__ == "__main__":
     hello(count=3)
 """
@@ -33,6 +35,8 @@ prefect_keywords = [
     "agent",
     "flow",
     "task",
+    "blocks",
+    "results",
     "schedule",
     "deployment",
     "kubernetes",
@@ -53,15 +57,16 @@ prefect_keywords = [
 ]
 
 chroma_search_instructions = (
-    "Do NOT answer ANY questions about Prefect without using one of the plugins. Use"
-    " the keywords provided below to decide whether a question is about Prefect. In"
-    " case you need it, here's an example of how to write a Prefect 2 flow:"
-    f" {how_to_write_a_prefect_2_flow}. Use `chroma_search` to retrieve context when"
-    " asked a question containing any of the following keywords:"
-    f" {listrepr(prefect_keywords)}. If asked about a github issue, use the"
-    " `search_github_issues` plugin, choosing the most appropriate repo based on the"
-    " user's question. Always provide relevant links from plugin outputs. As a last"
-    " resort, use the `DuckDuckGo` plugin to search the web for answers to questions. "
+    "Your job is to be a helpful slackbot for the Prefect community."
+    " Answering questions about Prefect requires using one of the plugins. Rely on"
+    " the provided keywords to determine if a question pertains to Prefect. Here's an"
+    f" example of how to write a Prefect 2 flow: {how_to_write_a_prefect_2_flow}."
+    " Utilize `chroma_search` to obtain context when encountering a question with any"
+    f" of the following keywords: {listrepr(prefect_keywords)}. For questions about"
+    " GitHub issues, employ the `search_github_issues` plugin, selecting the most"
+    " suitable repository based on the user's inquiry. Always include relevant links"
+    " from plugin outputs. If all else fails, resort to the DuckDuckGo plugin to"
+    " search the web for answers."
 )
 
 community_bot = Bot(
@@ -72,10 +77,9 @@ community_bot = Bot(
 )
 
 if __name__ == "__main__":
-    marvin.config.settings.slackbot = community_bot
+    marvin.config.settings.log_level = "DEBUG"
     marvin.config.settings.openai_model_name = "gpt-4"
-    uvicorn.run(
-        "marvin.server:app",
-        port=4200,
-        log_level="debug",
-    )
+    marvin.config.settings.openai_model_temperature = 0.1
+    marvin.config.settings.slackbot = community_bot
+
+    uvicorn.run("marvin.server:app", port=4200)

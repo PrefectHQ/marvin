@@ -12,8 +12,6 @@ router = MarvinRouter(
     prefix="/slack",
 )
 
-SLACK_API_BASE_URL = "https://slack.com/api"
-
 
 class SlackEvent(BaseModel):
     type: str
@@ -33,7 +31,7 @@ async def _post_message_to_slack(channel: str, message: str, thread_ts: str = No
             payload["thread_ts"] = thread_ts
 
         response = await client.post(
-            f"{SLACK_API_BASE_URL}/chat.postMessage",
+            "https://slack.com/api/chat.postMessage",
             headers={
                 "Authorization": (
                     "Bearer"
