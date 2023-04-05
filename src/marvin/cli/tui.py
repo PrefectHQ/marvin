@@ -22,6 +22,7 @@ from textual.widgets import (
 from textual.widgets.option_list import Option
 
 import marvin
+from marvin.config import ENV_FILE
 
 
 async def get_default_bot():
@@ -357,6 +358,17 @@ class TextTable(Static):
 
 class SettingsDialogue(Container):
     def compose(self) -> ComposeResult:
+        if marvin.settings.openai_api_key.get_secret_value():
+            openai.api_key = marvin.settings.openai_api_key.get_secret_value()
+            try:
+                # see if we can load models from the API
+                openai.Model.list()
+                info_message = "Status: ✅\n\nYou have a valid OpenAI API key."
+            except Exception as exc:
+                info_message = f"Status: ❌\n\n{repr(exc)}"
+        else:
+            info_message = "Status: ❔\n\nYou have not set an OpenAI API key."
+
         with Container(
             classes="settings-container", id="openai-settings-container"
         ) as c:
@@ -366,7 +378,7 @@ class SettingsDialogue(Container):
                 id="settings-openai-api-key",
                 password=True,
             )
-            yield Label(classes="error hidden")
+            yield Label(info_message, classes="api-key-info")
         yield Button("OK", variant="success", id="settings-ok")
 
     async def on_button_pressed(self, event: Button.Pressed):
@@ -375,8 +387,6 @@ class SettingsDialogue(Container):
             api_key = api_key_input.value
             if api_key:
                 try:
-                    from marvin.config import ENV_FILE
-
                     openai.api_key = api_key
                     # see if we can load models from the API
                     openai.Model.list()
@@ -385,9 +395,9 @@ class SettingsDialogue(Container):
                     self.app.pop_screen()
                 except Exception as exc:
                     api_key_input.value = ""
-                    error = self.query_one(".error")
-                    error.update(repr(exc))
-                    error.remove_class("hidden")
+                    error = self.query_one(".api-key-info")
+                    error.update(f"Status: ❌\n\n{repr(exc)}")
+                    error.add_class("error")
             else:
                 self.app.pop_screen()
 

@@ -144,8 +144,10 @@ SettingsDialogue TabPane {
   padding: 1 2;
 }
 
-SettingsDialogue .error {
+SettingsDialogue .api-key-info {
   width: 100%;
-  color: red;
   margin: 2 1 0 1;
+}
+SettingsDialogue .error {
+  color: red;
 }
