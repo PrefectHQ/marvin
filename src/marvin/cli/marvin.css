@@ -35,7 +35,6 @@ Sidebar TabbedContent ContentSwitcher {
 }
 
 Sidebar OptionList {
-  padding-top: 1;
   height: 1fr;
 }
 
@@ -129,7 +128,7 @@ SettingsDialog TabPane {
 }
 .sidebar-title {
   height: 3;
-  align: center middle;
+  text-align: center;
   /* text-style: bold; */
   width: 100%;
   padding-top: 1;

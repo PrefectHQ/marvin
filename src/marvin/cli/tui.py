@@ -178,10 +178,11 @@ class Sidebar(VerticalScroll):
             yield Label(
                 self.app.bot.name if self.app.bot else "No bot selected", id="bot-name"
             )
-        yield Label("Threads", classes="sidebar-title")
+        yield Label("All threads", classes="sidebar-title")
         yield Threads(id="threads")
         yield Button("Bots", variant="success", id="show-bots")
         yield Button("New thread", id="create-new-thread")
+        yield Button("Delete thread", id="delete-thread", variant="error")
 
         # yield Button("Settings", variant="primary", id="show-settings")
 
@@ -269,16 +270,18 @@ class Conversation(Container):
                 # set the thread to trigger update
                 self.app.thread = thread
 
-        if count > 0:
+        if count == 1:
             empty.add_class("hidden")
-        else:
+        elif count == 0:
             empty.remove_class("hidden")
 
-    def add_response(self, response: Response):
+    async def add_response(self, response: Response, scroll: bool = True) -> None:
         messages = self.query_one("Conversation #messages", VerticalScroll)
-        self.response_count += 1
         messages.mount(response)
-        messages.scroll_end(duration=0.1)
+        if scroll:
+            await asyncio.sleep(0.05)
+            messages.scroll_end(duration=0.1)
+        self.response_count += 1
 
     def clear_responses(self) -> None:
         responses = self.query("Conversation Response")
@@ -294,9 +297,14 @@ class Conversation(Container):
             )
             for message in messages:
                 if message.role == "user":
-                    self.add_response(UserResponse(message.content))
+                    await self.add_response(UserResponse(message.content), scroll=False)
                 elif message.role == "bot":
-                    self.add_response(BotResponse(message.content))
+                    await self.add_response(BotResponse(message.content), scroll=False)
+
+        messages = self.query_one("Conversation #messages", VerticalScroll)
+        # sleep to ensure it scrolls - otherwise doesn't always work
+        await asyncio.sleep(0.05)
+        messages.scroll_end(animate=False)
 
 
 class LabeledText(Static):
@@ -440,7 +448,7 @@ class MainScreen(Screen):
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         event.input.value = ""
         conversation = self.query_one("Conversation", Conversation)
-        conversation.add_response(UserResponse(event.value))
+        await conversation.add_response(UserResponse(event.value))
         self.get_bot_response(event)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -454,7 +462,7 @@ class MainScreen(Screen):
         bot = self.app.bot
         conversation = self.query_one("Conversation", Conversation)
         response = await bot.say(event.value)
-        conversation.add_response(BotResponse(response.content))
+        await conversation.add_response(BotResponse(response.content))
 
 
 class MarvinApp(App):
@@ -465,7 +473,6 @@ class MarvinApp(App):
 
     async def on_ready(self) -> None:
         self.push_screen(MainScreen())
-
         self.bot = await get_default_bot()
         self.mounted = True
 
@@ -485,20 +492,30 @@ class MarvinApp(App):
             return
         self.log.info(f"Thread changed to {new_thread.id if new_thread else None}")
 
-        if new_thread and self.bot:
-            await self.bot.set_thread(thread_id=new_thread.id)
+        if self.bot:
+            if new_thread:
+                await self.bot.set_thread(thread_id=new_thread.id)
+            else:
+                await self.bot.reset_thread()
 
-        threads = self.query_one("#threads", Threads)
-        await threads.refresh_threads()
+        # refresh threads
+        await self.query_one("#threads", Threads).refresh_threads()
         # refresh conversation
-        if new_thread is None or (old_thread and new_thread.id != old_thread.id):
-            conversation = self.query_one("Conversation", Conversation)
-            await conversation.refresh_messages()
+        await self.query_one("Conversation", Conversation).refresh_messages()
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "create-new-thread":
             self.thread = None
             self.app.query_one("#message-input", Input).focus()
+        elif event.button.id == "delete-thread":
+            if self.thread:
+                await marvin.api.threads.update_thread(
+                    thread_id=self.thread.id,
+                    thread=marvin.models.threads.ThreadUpdate(is_visible=False),
+                )
+                await self.query_one("#threads", Threads).refresh_threads()
+                self.thread = None
+                self.app.query_one("#message-input", Input).focus()
 
 
 # some test bots
