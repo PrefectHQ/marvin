@@ -1,5 +1,6 @@
 .hidden {
-  visibility: hidden;
+  display: none;
+
 }
 
 DebugInfo {
@@ -80,11 +81,11 @@ BotsScreen {
   align: center middle;
 }
 
-SettingsDialog,
+SettingsDialogue,
 BotsDialogue {
   margin: 1 2;
   padding: 2 4;
-  width: 40%;
+  width: 70%;
   min-width: 60;
   height: auto;
   border: thick $primary 80%;
@@ -92,12 +93,12 @@ BotsDialogue {
 
 
 
-SettingsDialog TabbedContent {
+SettingsDialogue TabbedContent {
   margin: 4;
   padding: 2;
 }
 
-SettingsDialog TabPane {
+SettingsDialogue TabPane {
   height: 10;
 }
 
@@ -135,3 +136,16 @@ SettingsDialog TabPane {
 }
 
 
+.settings-container {
+  width: 100%;
+  height: auto;
+  border: round white 40%;
+  margin: 2 1;
+  padding: 1 2;
+}
+
+SettingsDialogue .error {
+  width: 100%;
+  color: red;
+  margin: 2 1 0 1;
+}

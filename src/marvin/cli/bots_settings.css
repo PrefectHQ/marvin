@@ -25,8 +25,6 @@ BotsInfo TextTable {
   height:100%;
   width:100%;
   overflow: auto auto;
-}
-TextTable {
   padding: 1 2 1 2;
 }
 

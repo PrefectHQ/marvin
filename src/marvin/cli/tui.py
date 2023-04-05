@@ -1,6 +1,8 @@
 import asyncio
 from typing import Optional
 
+import dotenv
+import openai
 from fastapi import HTTPException
 from textual import work
 from textual.app import App, ComposeResult
@@ -16,8 +18,6 @@ from textual.widgets import (
     Markdown,
     OptionList,
     Static,
-    TabbedContent,
-    TabPane,
 )
 from textual.widgets.option_list import Option
 
@@ -161,10 +161,9 @@ class Sidebar(VerticalScroll):
         yield Label("All threads", classes="sidebar-title")
         yield Threads(id="threads")
         yield Button("Bots", variant="success", id="show-bots")
-        yield Button("New thread", id="create-new-thread")
+        yield Button("New thread", id="create-new-thread", variant="primary")
         yield Button("Delete thread", id="delete-thread", variant="error")
-
-        # yield Button("Settings", variant="primary", id="show-settings")
+        yield Button("Settings", variant="primary", id="show-settings")
 
 
 class ResponseBody(Markdown):
@@ -343,6 +342,7 @@ class TextTable(Static):
         width = 0
         if data:
             for label, text in data.items():
+                print(label)
                 width = max(width, len(label) + 2)
                 self.mount(
                     Horizontal(
@@ -355,40 +355,51 @@ class TextTable(Static):
                 label.styles.width = width
 
 
-class SettingsDialog(Container):
+class SettingsDialogue(Container):
     def compose(self) -> ComposeResult:
-        with TabbedContent():
-            with TabPane("Thread Settings", id="thread-settings"):
-                if not self.app.thread:
-                    yield Static("No thread selected")
-
-                else:
-                    yield LabeledText("Name", getattr(self.app.thread, "name", ""))
-                    yield LabeledText("ID", getattr(self.app.thread, "id", ""))
-                    with Horizontal():
-                        yield Button("Rename thread", id="rename-thread")
-                        yield Button(
-                            "Delete thread", variant="error", id="delete-thread"
-                        )
-
-            with TabPane("Marvin Settings", id="marvin-settings"):
-                yield Label("Settings")
-                yield Input(placeholder="OpenAI API Key", id="settings-openai-api-key")
+        with Container(
+            classes="settings-container", id="openai-settings-container"
+        ) as c:
+            c.border_title = "OpenAI settings"
+            yield Input(
+                placeholder="OpenAI API Key",
+                id="settings-openai-api-key",
+                password=True,
+            )
+            yield Label(classes="error hidden")
         yield Button("OK", variant="success", id="settings-ok")
+
+    async def on_button_pressed(self, event: Button.Pressed):
+        if event.button.id == "settings-ok":
+            api_key_input = self.query_one("#settings-openai-api-key", Input)
+            api_key = api_key_input.value
+            if api_key:
+                try:
+                    from marvin.config import ENV_FILE
+
+                    openai.api_key = api_key
+                    # see if we can load models from the API
+                    openai.Model.list()
+                    marvin.settings.openai_api_key = api_key
+                    dotenv.set_key(str(ENV_FILE), "MARVIN_OPENAI_API_KEY", api_key)
+                    self.app.pop_screen()
+                except Exception as exc:
+                    api_key_input.value = ""
+                    error = self.query_one(".error")
+                    error.update(repr(exc))
+                    error.remove_class("hidden")
+            else:
+                self.app.pop_screen()
 
 
 class SettingsScreen(ModalScreen):
     BINDINGS = [("escape", "dismiss", "Dismiss")]
 
     def compose(self) -> ComposeResult:
-        yield SettingsDialog()
+        yield SettingsDialogue()
 
     def action_dismiss(self) -> None:
         self.app.pop_screen()
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "settings-ok":
-            self.app.pop_screen()
 
 
 class BotsDialogue(Container):
