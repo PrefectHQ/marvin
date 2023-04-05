@@ -91,6 +91,23 @@ Note the following:
 
 ## Advanced usage
 
+### Customizing the LLM
+By default, AI functions use Marvin's global LLM settings. However, you can change this on a per-function basis by providing a valid model name or temperature to the `@ai_fn` decorator.
+
+For example, this function will always use GPT-3.5 with a temperature of 0.2.
+```python
+from marvin import ai_fn
+
+@ai_fn(llm_model_name='gpt-3.5-turbo', llm_model_temperature=0.2)
+def my_function():
+    ...
+```
+
+#### Deterministic AI functions
+LLM implementations like ChatGPT are non-deterministic; that is, they do not always return the same output for a given input. In some use cases, like natural conversation, this is desireable. In others, especially programmatic ones, it is not. You can control this by setting the model `temperature`. High temperature leads to greater variation in responses; a temperature of 0 will always give the same response for a given input. Marvin's default temperature is 0.8. To create a deterministic AI function, set its temperature to 0.
+
+!!! note "Upgrading Marvin may change AI function outputs"
+    Marvin wraps your AI function with additional prompts in order to get the LLM to generate parseable outputs. We are constantly adjusting those prompts to improve performance and address edge cases. Therefore, even with a temperature of 0, what your AI function sends to the LLM might change if you upgrade from one version of Marvin to another, resulting in different AI function outputs. Therefore, AI functions with `temperature=0` are only guaranteed to be deterministic for a specific Marvin version. 
 ### Calling the function
 By default, the `ai_fn` decorator will call your function and supply the return value to the AI. For functions without source code, this obviously has no consequence. However, you can take advantage of this fact to influence the AI result by returning helpful or preprocessed outputs. Since the AI sees the source code as well as the return value, you can also influence it through comments. 
 

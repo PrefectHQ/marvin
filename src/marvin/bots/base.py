@@ -113,7 +113,13 @@ class Bot(MarvinBaseModel, LoggerMixin):
         None, description="A list of plugins that the bot can use."
     )
     history: History = None
-    llm: Callable = Field(default=None, repr=False)
+    llm_model_name: str = Field(
+        default_factory=lambda: marvin.settings.openai_model_name
+    )
+    llm_model_temperature: float = Field(
+        default_factory=lambda: marvin.settings.openai_model_temperature
+    )
+
     input_transformers: list[InputTransformer] = Field(
         default_factory=list,
         description=(
@@ -275,7 +281,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
         bot_config = await marvin.api.bots.get_bot_config(name=name)
         return cls.from_bot_config(bot_config=bot_config)
 
-    async def say(self, *args, response_format=None, **kwargs) -> BotResponse:
+    async def say(
+        self, *args, response_format=None, on_token_callback: Callable = None, **kwargs
+    ) -> BotResponse:
         # process inputs
         message = self.input_prompt.format(*args, **kwargs)
 
@@ -315,7 +323,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 finished = True
             else:
                 counter += 1
-                response = await self._call_llm(messages=messages)
+                response = await self._call_llm(
+                    messages=messages, on_token_callback=on_token_callback
+                )
             if not finished:
                 plugin_messages = await self._check_for_plugins(response=response)
 
@@ -510,31 +520,31 @@ class Bot(MarvinBaseModel, LoggerMixin):
     async def _get_history(self) -> list[Message]:
         return await self.history.get_messages(max_tokens=2500)
 
-    async def _call_llm(self, messages: list[Message]) -> str:
+    async def _call_llm(
+        self, messages: list[Message], on_token_callback: Callable = None
+    ) -> str:
         """
         Format and send messages via langchain
         """
+
         # deferred import for performance
-        from langchain.schema import AIMessage, HumanMessage, SystemMessage
 
-        langchain_messages = []
+        import marvin.utilities.llms
 
-        for msg in messages:
-            if msg.role == "system":
-                langchain_messages.append(SystemMessage(content=msg.content))
-            elif msg.role == "ai":
-                langchain_messages.append(AIMessage(content=msg.content))
-            elif msg.role == "user":
-                langchain_messages.append(HumanMessage(content=msg.content))
-            else:
-                raise ValueError(f"Unrecognized role: {msg.role}")
+        langchain_messages = marvin.utilities.llms.prepare_messages(messages)
+        llm = marvin.utilities.llms.get_llm(
+            model_name=self.llm_model_name,
+            temperature=self.llm_model_temperature,
+            on_token_callback=on_token_callback,
+        )
 
         if marvin.settings.verbose:
             messages_repr = "\n".join(repr(m) for m in langchain_messages)
             self.logger.debug(f"Sending messages to LLM: {messages_repr}")
         try:
-            result = await self.llm.agenerate(
-                messages=[langchain_messages], stop=["Plugin output:", "Plugin Output:"]
+            result = await llm.agenerate(
+                messages=[langchain_messages],
+                stop=["Plugin output:", "Plugin Output:"],
             )
         except InvalidRequestError as exc:
             if "does not exist" in str(exc):

@@ -92,8 +92,6 @@ def chat(
     if not marvin.settings.openai_api_key.get_secret_value():
         setup_openai()
 
-    from langchain.chat_models import ChatOpenAI
-
     if bot_name and any([name, personality, instructions, model]):
         raise ValueError(
             "You can't specify both `--bot` and any of "
@@ -107,11 +105,8 @@ def chat(
             name=name,
             personality=personality,
             instructions=instructions,
-            llm=ChatOpenAI(
-                model_name=model or marvin.settings.openai_model_name,
-                temperature=marvin.settings.openai_model_temperature,
-                openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
-            ),
+            llm_model_name=model or marvin.settings.openai_model_name,
+            llm_temperature=marvin.settings.openai_model_temperature,
         )
 
     asyncio.run(bot.interactive_chat(first_message=" ".join(message)))
