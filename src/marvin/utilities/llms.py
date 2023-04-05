@@ -1,3 +1,5 @@
+import asyncio
+import inspect
 from typing import Any, Callable, Union
 
 from langchain.callbacks.base import BaseCallbackHandler, CallbackManager
@@ -49,7 +51,10 @@ class StreamingCallbackHandler(BaseCallbackHandler):
         """Run on new LLM token. Only available when streaming is enabled."""
         self.buffer.append(token)
         if self.on_token_callback is not None:
-            self.on_token_callback(self.buffer)
+            if inspect.iscoroutinefunction(self.on_token_callback):
+                asyncio.run(self.on_token_callback(self.buffer))
+            else:
+                self.on_token_callback(self.buffer)
 
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> Any:
         """Run when LLM ends running."""
