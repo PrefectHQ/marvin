@@ -20,7 +20,7 @@ from marvin.models.ids import BotID, ThreadID
 from marvin.models.threads import BaseMessage, Message
 from marvin.plugins import Plugin
 from marvin.utilities.async_utils import as_sync_fn
-from marvin.utilities.strings import jinja_env
+from marvin.utilities.strings import jinja_env, slice_tokens
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 
@@ -429,9 +429,10 @@ class Bot(MarvinBaseModel, LoggerMixin):
             if inspect.iscoroutine(plugin_output):
                 plugin_output = await plugin_output
 
-            # # send plugin output to
-            # self.publish()
-            return plugin_output
+            return slice_tokens(
+                text=plugin_output,
+                n_tokens=marvin.config.settings.openai_max_tokens_per_message,
+            )
         except Exception as exc:
             self.logger.error(
                 f"Error running plugin {plugin_name} with inputs"
