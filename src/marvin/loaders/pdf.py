@@ -47,20 +47,3 @@ class PDFLoader(Loader):
                 )
                 for i, page in enumerate(pdf_reader.pages)
             ]
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    async def main():
-        remote_pdf_document = await PDFLoader(
-            file_path="https://www.cs.cmu.edu/~jgc/publication/The_Use_MMR_Diversity_Based_LTMIR_1998.pdf"
-        ).load()
-
-        local_pdf_document = await PDFLoader(
-            file_path="/Users/nate/Downloads/MMR.pdf"
-        ).load()
-
-        assert remote_pdf_document[0].text == local_pdf_document[0].text
-
-    asyncio.run(main())
