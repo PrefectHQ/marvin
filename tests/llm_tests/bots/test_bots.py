@@ -24,12 +24,20 @@ class TestBotResponse:
 
 
 class TestStreamingBotResponse:
-    async def test_streaming_response(self):
+    @pytest.mark.parametrize("callback_async", [False, True])
+    async def test_streaming_response(self, callback_async):
         buffer = []
         bot = Bot()
 
-        def callback(x):
-            return buffer.append(x)
+        if callback_async:
+
+            async def callback(x):
+                return buffer.append(x)
+
+        else:
+
+            def callback(x):
+                return buffer.append(x)
 
         response = await bot.say("hello!", on_token_callback=callback)
 
@@ -37,25 +45,20 @@ class TestStreamingBotResponse:
         assert isinstance(buffer[-1], list)
         assert "".join(buffer[-1]) == response.content
 
-    async def test_streaming_response_coroutine_callback(self):
+    @pytest.mark.parametrize("callback_async", [False, True])
+    def test_streaming_response_say_sync(self, callback_async):
         buffer = []
         bot = Bot()
 
-        async def callback(x):
-            return buffer.append(x)
+        if callback_async:
 
-        response = await bot.say("hello!", on_token_callback=callback)
+            async def callback(x):
+                return buffer.append(x)
 
-        assert len(buffer) > 1
-        assert isinstance(buffer[-1], list)
-        assert "".join(buffer[-1]) == response.content
+        else:
 
-    def test_streaming_response_sync(self):
-        buffer = []
-        bot = Bot()
-
-        def callback(x):
-            return buffer.append(x)
+            def callback(x):
+                return buffer.append(x)
 
         response = bot.say_sync("hello!", on_token_callback=callback)
 

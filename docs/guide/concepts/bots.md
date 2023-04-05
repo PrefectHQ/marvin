@@ -71,7 +71,7 @@ bot = marvin.Bot()
 await bot.say("Hello!", on_token_callback=lambda buffer: print(buffer[-1]))
 ```
 
-Note that this works for both the async `say()` and synchronous `say_sync()` methods.
+Callbacks can either be synchronous or async, and either can be used with both of the bot's async `say()` and synchronous `say_sync()` methods.
 ## CLI
 
 ### Interactive use
