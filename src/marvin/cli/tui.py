@@ -502,7 +502,8 @@ class MarvinApp(App):
         # refresh threads
         await self.query_one("#threads", Threads).refresh_threads()
         # refresh conversation
-        await self.query_one("Conversation", Conversation).refresh_messages()
+        if getattr(new_thread, "id", None) != getattr(old_thread, "id", None):
+            await self.query_one("Conversation", Conversation).refresh_messages()
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "create-new-thread":
