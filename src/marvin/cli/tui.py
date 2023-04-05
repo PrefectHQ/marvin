@@ -46,17 +46,19 @@ async def get_default_bot():
     return bot
 
 
-@marvin.ai_fn
+@marvin.ai_fn(llm_model_name="gpt-3.5-turbo", llm_model_temperature=1)
 async def name_conversation(history: str, personality: str) -> str:
     """
     Generate a short, relevant name for this conversation. The name should be no
-    more than 3 words and summarize the user's intent in a recognizable way.
-    The name should reflect the provided personality.
+    more than 3 words and summarize the user's intent in a recognizable way. The
+    name should reflect the provided personality. Do not put a period at the
+    end. Occasionally use emojis.
     """
 
 
 class Threads(OptionList):
     lock = asyncio.Lock()
+    threads = []
 
     class ThreadSelected(Message):
         """Thread selected."""
@@ -71,10 +73,10 @@ class Threads(OptionList):
             self.clear_options()
 
             if self.app.bot:
-                threads = await marvin.api.threads.get_threads_by_bot(
+                self.threads = await marvin.api.threads.get_threads_by_bot(
                     bot_name=self.app.bot.name
                 )
-                for i, t in enumerate(threads):
+                for i, t in enumerate(self.threads):
                     self.add_option(Option(t.name, id=t.id))
                     self.add_option(None)
                     if self.app.thread:
@@ -86,7 +88,6 @@ class Threads(OptionList):
 
     async def on_option_list_option_selected(self, event: OptionList.OptionSelected):
         thread = await marvin.api.threads.get_thread(event.option.id)
-        self.app.thread = thread
         self.post_message(self.ThreadSelected(thread))
 
 
@@ -161,10 +162,10 @@ class Sidebar(VerticalScroll):
             )
         yield Label("All threads", classes="sidebar-title")
         yield Threads(id="threads")
-        yield Button("Bots", variant="success", id="show-bots")
-        yield Button("New thread", id="create-new-thread", variant="primary")
-        yield Button("Delete thread", id="delete-thread", variant="error")
-        yield Button("Settings", variant="primary", id="show-settings")
+        yield Button("🤖 Bots \[b]", variant="success", id="show-bots")
+        yield Button("📝 New thread \[n]", id="create-new-thread", variant="primary")
+        yield Button("🗑️ Delete thread \[ctrl+x]", id="delete-thread", variant="error")
+        yield Button("⚙️ Settings \[s]", id="show-settings")
 
 
 class ResponseBody(Markdown):
@@ -172,35 +173,49 @@ class ResponseBody(Markdown):
 
 
 class Response(Container):
-    def __init__(self, message: marvin.models.threads.Message) -> None:
+    body = None
+
+    def __init__(self, message: marvin.models.threads.Message, **kwargs) -> None:
+        classes = kwargs.setdefault("classes", "")
+        kwargs["classes"] = f"{classes} response".strip()
         self.message = message
-        super().__init__()
+        super().__init__(**kwargs)
 
     def compose(self) -> ComposeResult:
-        body = ResponseBody(self.message.content)
-        body.border_title = "You" if self.message.role == "user" else self.message.name
-        body.border_subtitle = self.message.timestamp.in_tz("local").format("h:mm:ss A")
-        yield body
+        self.body = ResponseBody(self.message.content)
+        self.body.border_title = (
+            "You" if self.message.role == "user" else self.message.name
+        )
+        self.body.border_subtitle = self.message.timestamp.in_tz("local").format(
+            "h:mm:ss A"
+        )
+        yield self.body
 
 
 class UserResponse(Response):
-    def __init__(self, response: str) -> None:
+    def __init__(self, response: str, **kwargs) -> None:
+        classes = kwargs.setdefault("classes", "")
+        kwargs["classes"] = f"{classes} user-response".strip()
         super().__init__(
             message=marvin.models.threads.Message(
                 name="User", role="user", content=response
-            )
+            ),
+            **kwargs,
         )
 
 
 class BotResponse(Response):
-    def __init__(self, response: str) -> None:
+    def __init__(self, response: str, **kwargs) -> None:
+        classes = kwargs.setdefault("classes", "")
+        kwargs["classes"] = f"{classes} bot-response".strip()
         super().__init__(
             message=marvin.models.threads.Message(
                 name=self.app.bot.name,
                 role="bot",
                 content=response,
                 bot_id=self.app.bot.id,
-            )
+            ),
+            **kwargs,
         )
 
 
@@ -343,7 +358,6 @@ class TextTable(Static):
         width = 0
         if data:
             for label, text in data.items():
-                print(label)
                 width = max(width, len(label) + 2)
                 self.mount(
                     Horizontal(
@@ -381,25 +395,28 @@ class SettingsDialogue(Container):
             yield Label(info_message, classes="api-key-info")
         yield Button("OK", variant="success", id="settings-ok")
 
+    def action_ok(self):
+        api_key_input = self.query_one("#settings-openai-api-key", Input)
+        api_key = api_key_input.value
+        if api_key:
+            try:
+                openai.api_key = api_key
+                # see if we can load models from the API
+                openai.Model.list()
+                marvin.settings.openai_api_key = api_key
+                dotenv.set_key(str(ENV_FILE), "MARVIN_OPENAI_API_KEY", api_key)
+                self.app.pop_screen()
+            except Exception as exc:
+                api_key_input.value = ""
+                error = self.query_one(".api-key-info")
+                error.update(f"Status: ❌\n\n{repr(exc)}")
+                error.add_class("error")
+        else:
+            self.app.pop_screen()
+
     async def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "settings-ok":
-            api_key_input = self.query_one("#settings-openai-api-key", Input)
-            api_key = api_key_input.value
-            if api_key:
-                try:
-                    openai.api_key = api_key
-                    # see if we can load models from the API
-                    openai.Model.list()
-                    marvin.settings.openai_api_key = api_key
-                    dotenv.set_key(str(ENV_FILE), "MARVIN_OPENAI_API_KEY", api_key)
-                    self.app.pop_screen()
-                except Exception as exc:
-                    api_key_input.value = ""
-                    error = self.query_one(".api-key-info")
-                    error.update(f"Status: ❌\n\n{repr(exc)}")
-                    error.add_class("error")
-            else:
-                self.app.pop_screen()
+            self.action_ok()
 
 
 class SettingsScreen(ModalScreen):
@@ -416,7 +433,9 @@ class BotsDialogue(Container):
     def compose(self) -> ComposeResult:
         yield Label("[b]Choose a bot[/]")
         with Container(id="bots-info-container"):
-            yield BotsOptionList(id="bots-option-list")
+            options = BotsOptionList(id="bots-option-list")
+            options.focus()
+            yield options
             yield BotsInfo(self.app.bot, id="bots-info")
         yield Button("OK", variant="success", id="bots-ok")
 
@@ -428,7 +447,6 @@ class BotsScreen(ModalScreen):
     BINDINGS = [("escape", "dismiss", "Dismiss")]
 
     def compose(self) -> ComposeResult:
-        # yield BotsList()
         yield BotsDialogue()
 
     def action_dismiss(self) -> None:
@@ -442,6 +460,26 @@ class BotsScreen(ModalScreen):
 
 
 class MainScreen(Screen):
+    BINDINGS = [
+        ("escape", "focus_threads", "Focus on Threads"),
+        ("b", "show_bots_screen", "Show Bots"),
+        ("n", "new_thread", "New Thread"),
+        ("s", "show_settings_screen", "Show Settings"),
+        ("ctrl+x", "delete_thread", "Delete Thread"),
+    ]
+
+    def action_focus_threads(self) -> None:
+        self.query_one("#threads", Threads).focus()
+
+    def action_focus_message(self) -> None:
+        self.query_one("#message-input", Input).focus()
+
+    def action_show_bots_screen(self) -> None:
+        self.app.push_screen(BotsScreen())
+
+    def action_show_settings_screen(self) -> None:
+        self.app.push_screen(SettingsScreen())
+
     def compose(self) -> ComposeResult:
         yield Sidebar(id="sidebar")
         yield Conversation(id="conversation")
@@ -452,18 +490,58 @@ class MainScreen(Screen):
         await conversation.add_response(UserResponse(event.value))
         self.get_bot_response(event)
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "show-settings":
-            self.app.push_screen(SettingsScreen())
+            self.action_show_settings_screen()
         elif event.button.id == "show-bots":
-            self.app.push_screen(BotsScreen())
+            self.action_show_bots_screen()
+        elif event.button.id == "create-new-thread":
+            self.action_new_thread()
+        elif event.button.id == "delete-thread":
+            await self.action_delete_thread()
+
+    async def update_last_bot_response(self, token_buffer: list[str]):
+        streaming_response = "".join(token_buffer)
+        responses = self.query("Response")
+        if responses:
+            response = responses.last()
+            if not isinstance(response, BotResponse):
+                conversation = self.query_one("Conversation", Conversation)
+                await conversation.add_response(BotResponse(streaming_response))
+            else:
+                response.message.content = streaming_response
+                response.body.update(streaming_response)
 
     @work
     async def get_bot_response(self, event: Input.Submitted) -> str:
         bot = self.app.bot
-        conversation = self.query_one("Conversation", Conversation)
-        response = await bot.say(event.value)
-        await conversation.add_response(BotResponse(response.content))
+        await bot.say(
+            event.value,
+            on_token_callback=self.update_last_bot_response,
+        )
+
+    def action_new_thread(self) -> None:
+        self.post_message(Threads.ThreadSelected(thread=None))
+
+    async def action_delete_thread(self) -> None:
+        threads = self.query_one("#threads", Threads)
+        current_highlight = threads.highlighted
+
+        if current_highlight is not None:
+            thread = threads.threads[current_highlight]
+            await marvin.api.threads.update_thread(
+                thread_id=thread.id,
+                thread=marvin.models.threads.ThreadUpdate(is_visible=False),
+            )
+            await threads.refresh_threads()
+            if threads.option_count > 0:
+                threads.highlighted = min(
+                    max(0, current_highlight), threads.option_count - 1
+                )
+                threads.action_select()
+
+    def on_threads_thread_selected(self, event: Threads.ThreadSelected) -> None:
+        self.action_focus_message()
 
 
 class MarvinApp(App):
@@ -505,27 +583,8 @@ class MarvinApp(App):
         if getattr(new_thread, "id", None) != getattr(old_thread, "id", None):
             await self.query_one("Conversation", Conversation).refresh_messages()
 
-    async def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "create-new-thread":
-            self.thread = None
-            self.app.query_one("#message-input", Input).focus()
-        elif event.button.id == "delete-thread":
-            if self.thread:
-                threads = self.query_one("#threads", Threads)
-                current_highlight = threads.highlighted
-                await marvin.api.threads.update_thread(
-                    thread_id=self.thread.id,
-                    thread=marvin.models.threads.ThreadUpdate(is_visible=False),
-                )
-                await threads.refresh_threads()
-                if threads.option_count > 0:
-                    threads.highlighted = min(
-                        max(0, current_highlight - 1), threads.option_count - 1
-                    )
-                    threads.action_select()
-                else:
-                    self.thread = None
-                self.app.query_one("#message-input", Input).focus()
+    def on_threads_thread_selected(self, event: Threads.ThreadSelected) -> None:
+        self.thread = event.thread
 
 
 # some test bots

@@ -132,7 +132,7 @@ def prepare_messages(
     for msg in messages:
         if msg.role == "system":
             langchain_messages.append(SystemMessage(content=msg.content))
-        elif msg.role == "ai":
+        elif msg.role == "bot":
             langchain_messages.append(AIMessage(content=msg.content))
         elif msg.role == "user":
             langchain_messages.append(HumanMessage(content=msg.content))
