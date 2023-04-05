@@ -32,9 +32,12 @@ def build_keyword_filter(keywords: list[str]) -> dict:
     return {"$or": filters}
 
 
-async def query_chroma(**query_kwargs) -> str:
+async def query_chroma(use_mmr: bool = False, **query_kwargs) -> str:
     async with Chroma() as chroma:
-        query_result = await chroma.query(**query_kwargs)
+        if use_mmr:
+            query_result = await chroma.mmr_query(**query_kwargs)
+        else:
+            query_result = await chroma.query(**query_kwargs)
 
     return "\n\n".join(
         excerpt for excerpts in query_result["documents"] for excerpt in excerpts
@@ -52,7 +55,7 @@ async def keyword_query_chroma(query: str, where: dict, n: int = 4) -> str:
         where_document=build_keyword_filter(keywords) if keywords else None,
     )
 
-    return await query_chroma(**query_kwargs)
+    return await query_chroma(use_mmr=True, **query_kwargs)
 
 
 class SimpleChromaSearch(Plugin):
@@ -115,16 +118,17 @@ async def chroma_search(
     where_document: Optional[dict[str, Any]] = None,
 ) -> str:
     """
-    query (str): A verbose natural language query.
-    where (dict): A dictionary of filters to refine a search. Valid operators
+    query: A verbose natural language query.
+    where: A dictionary of filters to refine a search. Valid operators
         are `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`. For example, to filter
         for info after Feb 1 2017, include "created_at" --> "$gte": "2017-02-01".
         You may `$and` or `$or` a list of many such filters together, and only
         one metadata field can be present in a single filter.
-    where_document (dict): A dictionary to filter search results by keywords.
+    where_document: A dictionary to filter search results by keywords.
         The only valid operator is `$contains`. For example, to find documents
         containing the word "python", use "$contains" --> "python". You may `$and`
         or `$or` multiple such filters together, the operator being the outer key.
+
     """
 
     where = apply_fn_to_field(where, "created_at", iso_to_timestamp) if where else None
@@ -135,4 +139,5 @@ async def chroma_search(
         include=["documents"],
         where=where,
         where_document=where_document if where_document else None,
+        use_mmr=True,
     )
