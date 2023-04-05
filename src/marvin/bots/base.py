@@ -157,19 +157,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
         None, description="A template for the instructions that the bot will receive."
     )
 
-    @validator("llm", always=True)
-    def default_llm(cls, v):
-        if v is None:
-            # deferred import for performance
-            from langchain.chat_models import ChatOpenAI
-
-            return ChatOpenAI(
-                model_name=marvin.settings.openai_model_name,
-                temperature=marvin.settings.openai_model_temperature,
-                openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
-            )
-        return v
-
     @validator("name", always=True)
     def default_name(cls, v):
         if v is None:
