@@ -342,7 +342,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             parsed_response = self.response_format.parse_response(response)
 
         ai_response = BotResponse(
-            role="bot", content=response, parsed_content=parsed_response
+            role="bot", content=response, parsed_content=parsed_response, bot_id=self.id
         )
         await self.history.add_message(ai_response)
         self.logger.debug_kv("AI message", ai_response.content, "bold green")

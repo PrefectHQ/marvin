@@ -23,6 +23,7 @@ from textual.widgets.option_list import Option
 
 import marvin
 from marvin.config import ENV_FILE
+from marvin.models.ids import ThreadID
 
 
 async def get_default_bot():
@@ -49,10 +50,10 @@ async def get_default_bot():
 @marvin.ai_fn(llm_model_name="gpt-3.5-turbo", llm_model_temperature=1)
 async def name_conversation(history: str, personality: str) -> str:
     """
-    Generate a short, relevant name for this conversation. The name should be no
-    more than 3 words and summarize the user's intent in a recognizable way. The
-    name should reflect the provided personality. Do not put a period at the
-    end. Occasionally use emojis.
+    Generate a short, relevant title for this conversation. The name should be no
+    more than 3 words and summarize the user's intent in a fun but recognizeable
+    way. You can use emojis. The name should reflect the provided personality.
+    Do not put a period at the end. Occasionally use emojis.
     """
 
 
@@ -63,8 +64,8 @@ class Threads(OptionList):
     class ThreadSelected(Message):
         """Thread selected."""
 
-        def __init__(self, thread: marvin.models.threads.Thread) -> None:
-            self.thread = thread
+        def __init__(self, thread_id: ThreadID) -> None:
+            self.thread_id = thread_id
             super().__init__()
 
     async def refresh_threads(self):
@@ -79,16 +80,14 @@ class Threads(OptionList):
                 for i, t in enumerate(self.threads):
                     self.add_option(Option(t.name, id=t.id))
                     self.add_option(None)
-                    if self.app.thread:
-                        if t.id == self.app.thread.id:
-                            self.highlighted = i
+                    if t.id == self.app.thread_id:
+                        self.highlighted = i
 
     async def on_mount(self) -> None:
         await self.refresh_threads()
 
     async def on_option_list_option_selected(self, event: OptionList.OptionSelected):
-        thread = await marvin.api.threads.get_thread(event.option.id)
-        self.post_message(self.ThreadSelected(thread))
+        self.post_message(self.ThreadSelected(thread_id=event.option.id))
 
 
 class BotsOptionList(OptionList):
@@ -220,7 +219,7 @@ class BotResponse(Response):
 
 
 class Conversation(Container):
-    response_count = reactive(0)
+    bot_response_count = reactive(0)
 
     def compose(self) -> ComposeResult:
         input = Input(placeholder="Your message", id="message-input")
@@ -232,73 +231,69 @@ class Conversation(Container):
                 id="empty-thread-container",
             )
 
-    async def watch_response_count(self, count: int) -> None:
-        empty = self.query_one("Conversation #empty-thread")
+    @work
+    async def action_rename_thread(self):
+        messages = self.query("Conversation Response")
+        formatted_messages = "\n\n".join(
+            ["{}: {}".format(m.message.name, m.message.content) for m in messages]
+        )
+        name = await name_conversation(
+            history=formatted_messages,
+            personality=getattr(self.app.bot, "personality", None),
+        )
+        await marvin.api.threads.update_thread(
+            thread_id=self.app.thread_id,
+            thread=marvin.models.threads.ThreadUpdate(name=name),
+        )
+        await self.app.query_one("#threads", Threads).refresh_threads()
 
-        # if there is no global thread but there is at least one response pair
-        # create a new thread and name it
-        if self.app.thread is None:
-            messages = self.query("Conversation Response")
-            user_messages = len([m for m in messages if m.message.role == "user"])
-            bot_messages = len([m for m in messages if m.message.role == "bot"])
-
-            if user_messages > 0 and bot_messages > 0:
-                formatted_messages = "\n\n".join(
-                    [
-                        "{}: {}".format(m.message.name, m.message.content)
-                        for m in messages
-                    ]
-                )
-                name = await name_conversation(
-                    history=formatted_messages,
-                    personality=self.app.bot.personality,
-                )
-                thread = await marvin.api.threads.create_thread(
-                    marvin.models.threads.ThreadCreate(name=name, is_visible=True)
-                )
-
-                for m in messages:
-                    await marvin.api.threads.create_message(
-                        thread_id=thread.id, message=m.message
+    async def watch_bot_response_count(self, count: int) -> None:
+        # if the bot has responded, it's time to rename the thread
+        # we do this through up to 4 responses
+        if count <= 4:
+            try:
+                # see if the thread already exists
+                await marvin.api.threads.get_thread(thread_id=self.app.thread_id)
+            except HTTPException:
+                # if no thread was found, create one and name it
+                await marvin.api.threads.create_thread(
+                    thread=marvin.models.threads.Thread(
+                        id=self.app.thread_id, is_visible=True
                     )
+                )
+            self.action_rename_thread()
 
-                # set the thread to trigger update
-                self.app.thread = thread
-
-        if count == 1:
-            empty.add_class("hidden")
-        elif count == 0:
-            empty.remove_class("hidden")
-
-    async def add_response(self, response: Response, scroll: bool = True) -> None:
+    def add_response(self, response: Response) -> None:
         messages = self.query_one("Conversation #messages", VerticalScroll)
         messages.mount(response)
-        if scroll:
-            await asyncio.sleep(0.05)
-            messages.scroll_end(duration=0.1)
-        self.response_count += 1
+        messages.scroll_end(duration=0.1)
+
+        # show / hide the empty thread message
+        empty = self.query_one("Conversation #empty-thread")
+        empty.add_class("hidden")
 
     def clear_responses(self) -> None:
         responses = self.query("Conversation Response")
         for response in responses:
             response.remove()
-        self.response_count = 0
+        empty = self.query_one("Conversation #empty-thread")
+        empty.remove_class("hidden")
+        self.bot_response_count = 0
 
     async def refresh_messages(self):
-        self.clear_responses()
-        if self.app.thread:
+        with self.app.batch_update():
+            self.clear_responses()
             messages = await marvin.api.threads.get_messages(
-                thread_id=self.app.thread.id
+                thread_id=self.app.thread_id
             )
             for message in messages:
                 if message.role == "user":
-                    await self.add_response(UserResponse(message.content), scroll=False)
+                    self.add_response(UserResponse(message.content))
                 elif message.role == "bot":
-                    await self.add_response(BotResponse(message.content), scroll=False)
+                    self.add_response(BotResponse(message.content))
+            self.bot_response_count = len([m for m in messages if m.role == "bot"])
 
         messages = self.query_one("Conversation #messages", VerticalScroll)
-        # sleep to ensure it scrolls - otherwise doesn't always work
-        await asyncio.sleep(0.05)
         messages.scroll_end(animate=False)
 
 
@@ -484,11 +479,11 @@ class MainScreen(Screen):
         yield Sidebar(id="sidebar")
         yield Conversation(id="conversation")
 
-    async def on_input_submitted(self, event: Input.Submitted) -> None:
-        event.input.value = ""
+    def on_input_submitted(self, event: Input.Submitted) -> None:
         conversation = self.query_one("Conversation", Conversation)
-        await conversation.add_response(UserResponse(event.value))
+        conversation.add_response(UserResponse(event.value))
         self.get_bot_response(event)
+        event.input.value = ""
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "show-settings":
@@ -507,10 +502,14 @@ class MainScreen(Screen):
             response = responses.last()
             if not isinstance(response, BotResponse):
                 conversation = self.query_one("Conversation", Conversation)
-                await conversation.add_response(BotResponse(streaming_response))
+                conversation.add_response(BotResponse(streaming_response))
             else:
                 response.message.content = streaming_response
                 response.body.update(streaming_response)
+
+            # scroll to bottom
+            messages = self.query_one("Conversation #messages", VerticalScroll)
+            messages.scroll_end(duration=0.1)
 
     @work
     async def get_bot_response(self, event: Input.Submitted) -> str:
@@ -519,9 +518,11 @@ class MainScreen(Screen):
             event.value,
             on_token_callback=self.update_last_bot_response,
         )
+        conversation = self.query_one("Conversation", Conversation)
+        conversation.bot_response_count += 1
 
     def action_new_thread(self) -> None:
-        self.post_message(Threads.ThreadSelected(thread=None))
+        self.post_message(Threads.ThreadSelected(thread_id=ThreadID.new()))
 
     async def action_delete_thread(self) -> None:
         threads = self.query_one("#threads", Threads)
@@ -546,45 +547,42 @@ class MainScreen(Screen):
 
 class MarvinApp(App):
     CSS_PATH = ["marvin.css", "bots_settings.css"]
-    bot: Optional[marvin.Bot] = reactive(None, always_update=True)
-    thread: Optional[marvin.models.threads.Thread] = reactive(None, always_update=True)
-    mounted = False
+    bot: Optional[marvin.Bot] = reactive(None, always_update=True, layout=True)
+    thread_id: ThreadID = reactive(ThreadID.new, always_update=True, layout=True)
+    thread: Optional[marvin.models.threads.Thread] = reactive(
+        None, always_update=True, layout=True
+    )
+    thread_exists: bool = False
+    mounted: bool = False
 
     async def on_ready(self) -> None:
         self.push_screen(MainScreen())
         self.bot = await get_default_bot()
+        await self.bot.set_thread(self.thread_id)
         self.mounted = True
 
     async def watch_bot(self, bot: marvin.Bot) -> None:
         if bot:
-            self.thread = None
+            self.thread_id = ThreadID.new()
             self.log.info(f"Bot changed to {bot.name}")
             await self.query_one("#threads", Threads).refresh_threads()
             self.query_one("#bot-name", Label).update(bot.name)
 
-    async def watch_thread(
-        self,
-        old_thread: Optional[marvin.models.threads.Thread],
-        new_thread: Optional[marvin.models.threads.Thread],
-    ) -> None:
+    async def watch_thread_id(self, thread_id: ThreadID) -> None:
         if not self.mounted:
             return
-        self.log.info(f"Thread changed to {new_thread.id if new_thread else None}")
+        self.log.info(f"Thread changed to {thread_id}")
 
         if self.bot:
-            if new_thread:
-                await self.bot.set_thread(thread_id=new_thread.id)
-            else:
-                await self.bot.reset_thread()
+            await self.bot.set_thread(thread_id=thread_id)
 
         # refresh threads
         await self.query_one("#threads", Threads).refresh_threads()
         # refresh conversation
-        if getattr(new_thread, "id", None) != getattr(old_thread, "id", None):
-            await self.query_one("Conversation", Conversation).refresh_messages()
+        await self.query_one("Conversation", Conversation).refresh_messages()
 
     def on_threads_thread_selected(self, event: Threads.ThreadSelected) -> None:
-        self.thread = event.thread
+        self.thread_id = event.thread_id
 
 
 # some test bots

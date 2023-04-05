@@ -23,12 +23,12 @@ router = MarvinRouter(prefix="/threads", tags=["Threads"])
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @provide_session()
 async def create_thread(
-    thread_create: ThreadCreate, session: AsyncSession = Depends(fastapi_session)
+    thread: ThreadCreate, session: AsyncSession = Depends(fastapi_session)
 ) -> ThreadRead:
-    thread = Thread(**thread_create.dict())
-    session.add(thread)
+    db_thread = Thread(**thread.dict())
+    session.add(db_thread)
     await session.commit()
-    return ThreadRead(**thread.dict())
+    return ThreadRead(**db_thread.dict())
 
 
 @router.post("/lookup/{lookup_key}")
