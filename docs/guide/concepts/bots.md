@@ -94,6 +94,11 @@ Names are unique identifiers that make it easy to reference a specific bot.
 ### Instructions
 Instructions define the bot's behavior by specifying how it should respond. For example, the default instructions are to assist the user. However, more utilitarian bots might be instructed to only respond with JSON (or with a specific JSON schema), extract keywords, always rhyme, etc. Bots, especially GPT-4 bots, should not go against their instructions at any time.
 
+!!! "Customizing Instruction Templates"
+    While the default instruction template serves most Bot use-cases well, it can be customized by passing a `instructions_template: str` to a `Bot`. Note that
+    the following variables will still be passed to your instructions template when the bot retrieves it's instructions: `name`, `instructions`, `response_format`, 
+    `personality`, `date`. **Warning:** Custom instruction templates may cause incompatibilities with future Marvin versions.
+
 ### Personality
 
 ![](../../img/heroes/it_hates_me_hero.png)
