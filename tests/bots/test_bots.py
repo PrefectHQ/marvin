@@ -1,9 +1,18 @@
+import inspect
+
 import marvin
 import pydantic
 import pytest
 from marvin import Bot
 from marvin.bots.response_formatters import ResponseFormatter
+from marvin.utilities.strings import jinja_env
 from marvin.utilities.types import format_type_str
+
+custom_instructions_template = inspect.cleandoc(
+    """
+    Your instructions are: {{ instructions }}
+    """
+)
 
 
 class TestCreateBots:
@@ -30,6 +39,21 @@ class TestCreateBots:
         assert bot.name == marvin.bots.base.DEFAULT_NAME
         assert bot.personality == marvin.bots.base.DEFAULT_PERSONALITY
         assert bot.instructions == "Test Instructions"
+
+    async def test_create_bot_with_custom_instruction_template(self):
+        bot = Bot(
+            instructions="Test Instructions",
+            instructions_template=custom_instructions_template,
+        )
+        assert bot.name == marvin.bots.base.DEFAULT_NAME
+        assert bot.personality == marvin.bots.base.DEFAULT_PERSONALITY
+        assert bot.instructions == "Test Instructions"
+        assert (
+            jinja_env.from_string(bot.instructions_template).render(
+                instructions="Test Instructions"
+            )
+            == "Your instructions are: Test Instructions"
+        )
 
 
 class TestSaveBots:
@@ -124,6 +148,20 @@ class TestSaveBots:
         await bot2.save(overwrite=True)
         loaded_bot = await Bot.load(bot1.name)
         assert loaded_bot.instructions == bot2.instructions
+
+    async def test_save_bot_with_custom_instructions_template(self):
+        bot = Bot(
+            instructions="Test Instructions",
+            instructions_template=custom_instructions_template,
+        )
+        await bot.save()
+        loaded_bot = await Bot.load(bot.name)
+        assert (
+            jinja_env.from_string(loaded_bot.instructions_template).render(
+                instructions="Test Instructions"
+            )
+            == "Your instructions are: Test Instructions"
+        )
 
 
 class TestResponseFormat:

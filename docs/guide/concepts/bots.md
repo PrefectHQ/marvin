@@ -62,6 +62,16 @@ Bots can be loaded with the `Bot.load()` method.
 bot = await Bot.load("Ford")
 ```
 
+### Streaming responses
+By default, bots process an entire response and return it as a structured object. However, you can get a streaming response by providing a custom `on_token_callback` function. Every time the bot generates a token, the callback will be called with a buffer of all the tokens generated to that point. You can access the most recent token as `buffer[-1]`. 
+
+For example, to print each token as it's generated:
+```python
+bot = marvin.Bot()
+await bot.say("Hello!", on_token_callback=lambda buffer: print(buffer[-1]))
+```
+
+Callbacks can either be synchronous or async, and either can be used with both of the bot's async `say()` and synchronous `say_sync()` methods.
 ## CLI
 
 ### Interactive use
@@ -83,6 +93,11 @@ Names are unique identifiers that make it easy to reference a specific bot.
 
 ### Instructions
 Instructions define the bot's behavior by specifying how it should respond. For example, the default instructions are to assist the user. However, more utilitarian bots might be instructed to only respond with JSON (or with a specific JSON schema), extract keywords, always rhyme, etc. Bots, especially GPT-4 bots, should not go against their instructions at any time.
+
+!!! "Customizing Instruction Templates"
+    While the default instruction template serves most Bot use-cases well, it can be customized by passing a `instructions_template: str` to a `Bot`. Note that
+    the following variables will still be passed to your instructions template when the bot retrieves it's instructions: `name`, `instructions`, `response_format`, 
+    `personality`, `date`. **Warning:** Custom instruction templates may cause incompatibilities with future Marvin versions.
 
 ### Personality
 
