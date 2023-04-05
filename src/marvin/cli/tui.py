@@ -13,6 +13,7 @@ from textual.widgets import (
     Button,
     Input,
     Label,
+    Markdown,
     OptionList,
     Static,
     TabbedContent,
@@ -21,28 +22,6 @@ from textual.widgets import (
 from textual.widgets.option_list import Option
 
 import marvin
-
-
-def calculate_cell_height(text: str, column_width: int):
-    """
-    For a given datatable column width, compute the rows needed to show all the
-    text
-    """
-    words = text.split()
-    rows = 1
-    line_length = 0
-
-    for word in words:
-        word_length = len(word)
-
-        # If adding the word to the current line would exceed the width
-        if line_length + word_length + (0 if line_length == 0 else 1) > column_width:
-            rows += 1
-            line_length = word_length
-        else:
-            line_length += word_length + (0 if line_length == 0 else 1)
-
-    return rows
 
 
 async def get_default_bot():
@@ -70,9 +49,8 @@ async def get_default_bot():
 async def name_conversation(history: str, personality: str) -> str:
     """
     Generate a short, relevant name for this conversation. The name should be no
-    more than 2 words, and must summarize the content of the message history.
-    The name should reflect the provided personality but not in a way that hides
-    the content of the message history.
+    more than 3 words and summarize the user's intent in a recognizable way.
+    The name should reflect the provided personality.
     """
 
 
@@ -97,6 +75,7 @@ class Threads(OptionList):
                 )
                 for i, t in enumerate(threads):
                     self.add_option(Option(t.name, id=t.id))
+                    self.add_option(None)
                     if self.app.thread:
                         if t.id == self.app.thread.id:
                             self.highlighted = i
@@ -125,6 +104,7 @@ class BotsOptionList(OptionList):
         self.clear_options()
         for i, b in enumerate(bots):
             self.add_option(Option(b.name, id=b.name))
+            self.add_option(None)
             if self.app.bot:
                 if b.name == self.app.bot.name:
                     self.highlighted = i
@@ -187,7 +167,7 @@ class Sidebar(VerticalScroll):
         # yield Button("Settings", variant="primary", id="show-settings")
 
 
-class ResponseBody(Static):
+class ResponseBody(Markdown):
     pass
 
 
@@ -509,12 +489,20 @@ class MarvinApp(App):
             self.app.query_one("#message-input", Input).focus()
         elif event.button.id == "delete-thread":
             if self.thread:
+                threads = self.query_one("#threads", Threads)
+                current_highlight = threads.highlighted
                 await marvin.api.threads.update_thread(
                     thread_id=self.thread.id,
                     thread=marvin.models.threads.ThreadUpdate(is_visible=False),
                 )
-                await self.query_one("#threads", Threads).refresh_threads()
-                self.thread = None
+                await threads.refresh_threads()
+                if threads.option_count > 0:
+                    threads.highlighted = min(
+                        max(0, current_highlight - 1), threads.option_count - 1
+                    )
+                    threads.action_select()
+                else:
+                    self.thread = None
                 self.app.query_one("#message-input", Input).focus()
 
 

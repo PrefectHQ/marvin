@@ -9,7 +9,7 @@ DebugInfo {
 Sidebar {
   dock: left;
   background: $panel;
-  width: 30;
+  width: 35;
   height: 100%;
   border-right: vkey $background;
 }
@@ -57,7 +57,7 @@ Response {
 ResponseBody {
   height: auto;
   border: round gray 90%;
-  padding: 1 2;
+  padding: 1 2 0 2;
   margin: 1 1;
   width: 80%;
 }
@@ -131,6 +131,7 @@ SettingsDialog TabPane {
   text-align: center;
   /* text-style: bold; */
   width: 100%;
-  padding-top: 1;
-  
+  padding-top: 1; 
 }
+
+
