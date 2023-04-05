@@ -23,13 +23,6 @@ class SlackEvent(BaseModel):
 
 async def _post_message_to_slack(channel: str, message: str, thread_ts: str = None):
     async with httpx.AsyncClient() as client:
-        payload = {
-            "channel": channel,
-            "text": message,
-        }
-        if thread_ts:
-            payload["thread_ts"] = thread_ts
-
         response = await client.post(
             "https://slack.com/api/chat.postMessage",
             headers={
@@ -38,13 +31,20 @@ async def _post_message_to_slack(channel: str, message: str, thread_ts: str = No
                     f" {marvin.config.settings.slack_bot_token.get_secret_value()}"
                 )
             },
-            json=payload,
+            json={
+                "channel": channel,
+                "text": message,
+                **{{"thread_ts": thread_ts} if thread_ts else {}},
+            },
         )
         response.raise_for_status()
 
 
-async def _slack_response(event: SlackEvent):
+async def _slackbot_response(event: SlackEvent):
     bot = marvin.config.settings.slackbot
+    if not bot:
+        marvin.get_logger().warning(msg := "Slackbot not configured")
+        raise UserWarning(msg)
 
     await bot.set_thread(thread_lookup_key=f"{event.channel}:{event.user}")
 
@@ -63,6 +63,6 @@ async def handle_slack_events(request: Request):
     event = SlackEvent(**payload["event"])
 
     if event.type == "app_mention":
-        asyncio.ensure_future(_slack_response(event))
+        asyncio.ensure_future(_slackbot_response(event))
 
     return {"success": True}
