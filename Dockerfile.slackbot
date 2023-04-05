@@ -2,14 +2,14 @@ FROM prefecthq/prefect:2-python3.10
 
 WORKDIR /app
 
-# Create a virtual environment and activate it
 RUN python -m venv venv
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-COPY community_bot.py ./
-RUN pip install "marvin[chromadb]"
+COPY . /app
+
+RUN pip install -e ".[chromadb]"
 
 EXPOSE 8000
 
-CMD ["marvin", "server", "start"]
+CMD ["python",  "/app/examples/slackbot/community_bot.py"]
