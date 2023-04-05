@@ -4,7 +4,6 @@
 
 DebugInfo {
   min-height: 10;
-  
 }
 
 Sidebar {
@@ -35,14 +34,11 @@ Sidebar TabbedContent ContentSwitcher {
   height: 1fr;
 }
 
-
 Sidebar OptionList {
+  padding-top: 1;
   height: 1fr;
 }
 
-OptionItem {
-  height: 23;
-}
 
 Conversation {
   height: 100%;
@@ -80,56 +76,37 @@ BotResponse ResponseBody {
   background: $primary 30%;
 }
 
-SettingsScreen, BotsScreen {
+SettingsScreen,
+BotsScreen {
   align: center middle;
 }
 
-SettingsDialog, BotsDialog {
+SettingsDialog,
+BotsDialogue {
   margin: 1 2;
+  padding: 2 4;
   width: 40%;
   min-width: 60;
   height: auto;
   border: thick $primary 80%;
-  padding: 2 4;
 }
 
-BotsDialog {
-  width: 80%;
-}
 
-BotsTable {
-  
-  width: auto;
-  height: auto;
-}
-
-SettingsDialog, BotsDialog > * {
-  margin: 1 0;
-}
 
 SettingsDialog TabbedContent {
   margin: 4;
   padding: 2;
 }
+
 SettingsDialog TabPane {
   height: 10;
 }
 
-LabeledText Label {
-  padding-right: 2;
-  color: gray;
-}
 
-
-/* #empty-thread {
-  border: solid;
-  content-align: center middle;
-  width: 50%;
-  height: 50%;
-} */
 #empty-thread-container {
   align: center middle;
 }
+
 #empty-thread {
   padding: 4 10;
   border: round $secondary;
@@ -137,4 +114,24 @@ LabeledText Label {
   background: $panel;
   color: $text;
   border-title-align: center;
+}
+
+#bot-name-container {
+  align: center middle;
+  height: 4;
+  border-bottom: solid $secondary;
+  
+}
+
+#bot-name {
+  text-style: bold;
+  
+}
+.sidebar-title {
+  height: 3;
+  align: center middle;
+  /* text-style: bold; */
+  width: 100%;
+  padding-top: 1;
+  
 }

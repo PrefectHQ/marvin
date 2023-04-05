@@ -2,14 +2,15 @@ import asyncio
 from typing import Optional
 
 from fastapi import HTTPException
+from textual import work
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, VerticalScroll
+from textual.css.query import NoMatches
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import ModalScreen, Screen
 from textual.widgets import (
     Button,
-    DataTable,
     Input,
     Label,
     OptionList,
@@ -109,8 +110,10 @@ class Threads(OptionList):
         self.post_message(self.ThreadSelected(thread))
 
 
-class Bots(OptionList):
-    class BotSelected(Message):
+class BotsOptionList(OptionList):
+    bot: None
+
+    class BotHighlighted(Message):
         """Bot selected."""
 
         def __init__(self, bot: marvin.Bot) -> None:
@@ -120,24 +123,66 @@ class Bots(OptionList):
     async def refresh_bots(self):
         bots = await marvin.api.bots.get_bot_configs()
         self.clear_options()
-        for b in bots:
+        for i, b in enumerate(bots):
             self.add_option(Option(b.name, id=b.name))
+            if self.app.bot:
+                if b.name == self.app.bot.name:
+                    self.highlighted = i
 
     async def on_mount(self) -> None:
         await self.refresh_bots()
 
-    async def on_option_list_option_selected(self, event: OptionList.OptionSelected):
-        bot = await marvin.Bot.load(event.option.id)
-        self.app.bot = bot
-        self.post_message(self.BotSelected(bot))
+    async def on_option_list_option_highlighted(
+        self, event: OptionList.OptionHighlighted
+    ):
+        self.bot = await marvin.Bot.load(event.option.id)
+        self.post_message(self.BotHighlighted(self.bot))
+
+
+class BotsInfo(Static):
+    bot = reactive(None)
+
+    def __init__(self, bot: marvin.models.bots.BotConfig = None, **kwargs):
+        super().__init__(**kwargs)
+        self.bot = bot
+
+    def compose(self):
+        yield TextTable()
+
+    def watch_bot(self, bot: marvin.models.bots.BotConfig):
+        if bot:
+            data = {
+                "Name": bot.name,
+                "Description": bot.description or "",
+                "Personality": bot.personality or "",
+                "Instructions": bot.instructions or "",
+            }
+        else:
+            data = {
+                "Name": "",
+                "Description": "",
+                "Personality": "",
+                "Instructions": "",
+            }
+        try:
+            text_table = self.query_one("TextTable", TextTable)
+            text_table.data = data
+        except NoMatches:
+            pass
 
 
 class Sidebar(VerticalScroll):
     def compose(self) -> ComposeResult:
+        with Horizontal(id="bot-name-container"):
+            yield Label("Bot: ", id="bot-name-label")
+            yield Label(
+                self.app.bot.name if self.app.bot else "No bot selected", id="bot-name"
+            )
+        yield Label("Threads", classes="sidebar-title")
         yield Threads(id="threads")
+        yield Button("Bots", variant="success", id="show-bots")
         yield Button("New thread", id="create-new-thread")
 
-        yield Button("Bots", variant="success", id="show-bots")
         # yield Button("Settings", variant="primary", id="show-settings")
 
 
@@ -182,7 +227,7 @@ class Conversation(Container):
     response_count = reactive(0)
 
     def compose(self) -> ComposeResult:
-        input = Input(placeholder="Your message")
+        input = Input(placeholder="Your message", id="message-input")
         input.focus()
         yield input
         with VerticalScroll(id="messages"):
@@ -254,27 +299,6 @@ class Conversation(Container):
                     self.add_response(BotResponse(message.content))
 
 
-class BotsTable(DataTable):
-    cursor_type = "row"
-    header_height = 2
-
-    async def on_mount(self):
-        self.add_column("Name")
-        self.add_column("Description", width=40)
-        self.add_column("Personality", width=40)
-        await self.refresh_bots()
-
-    async def refresh_bots(self):
-        bots = await marvin.api.bots.get_bot_configs()
-        self.clear()
-        for b in bots:
-            height = max(
-                calculate_cell_height(b.personality or "", 40),
-                calculate_cell_height(b.description or "", 40),
-            )
-            self.add_row(b.name, b.description, b.personality, height=height)
-
-
 class LabeledText(Static):
     def __init__(self, label, text):
         super().__init__()
@@ -283,8 +307,64 @@ class LabeledText(Static):
 
     def compose(self) -> ComposeResult:
         with Horizontal():
-            yield Label(f"{self.label}:")
-            yield Static(self.text)
+            yield Label(f"{self.label}:", classes="label")
+            yield Static(self.text, classes="text")
+
+
+class TextTable(Static):
+    data = reactive(dict, layout=True)
+    DEFAULT_CSS = """
+        TextTable {
+            padding: 1 2 1 2;
+        }
+        
+        TextTable .row {
+            margin-bottom: 1;
+            height: auto;
+            width: 100%;
+        }
+
+        TextTable .label {
+            width: auto;
+            height: auto;
+            text-align: right;            
+            color: gray;
+            margin-right: 2;
+        }
+
+        TextTable .text {
+            width: 1fr;
+            height: auto;
+        }
+       """
+
+    def __init__(self, data: dict = None):
+        super().__init__()
+        if data is not None:
+            self.data = data
+
+    def compose(self):
+        for label, text in self.data.items():
+            with Horizontal(classes="row"):
+                yield Label(f"{label}:", classes="label")
+                yield Static(text, classes="text")
+
+    def watch_data(self, data: dict):
+        self.query().remove()
+
+        width = 0
+        if data:
+            for label, text in data.items():
+                width = max(width, len(label) + 2)
+                self.mount(
+                    Horizontal(
+                        Label(f"{label}:", classes="label"),
+                        Static(text, classes="text"),
+                        classes="row",
+                    )
+                )
+            for label in self.query("Label"):
+                label.styles.width = width
 
 
 class SettingsDialog(Container):
@@ -323,37 +403,45 @@ class SettingsScreen(ModalScreen):
             self.app.pop_screen()
 
 
-class BotsDialog(Container):
+class BotsDialogue(Container):
     def compose(self) -> ComposeResult:
-        yield Label("Choose a bot")
-        yield BotsTable(id="bots-table")
+        yield Label("[b]Choose a bot[/]")
+        with Container(id="bots-info-container"):
+            yield BotsOptionList(id="bots-option-list")
+            yield BotsInfo(self.app.bot, id="bots-info")
         yield Button("OK", variant="success", id="bots-ok")
+
+    def on_bots_option_list_bot_highlighted(self, event: BotsOptionList.BotHighlighted):
+        self.query_one("#bots-info", BotsInfo).bot = event.bot
 
 
 class BotsScreen(ModalScreen):
     BINDINGS = [("escape", "dismiss", "Dismiss")]
 
     def compose(self) -> ComposeResult:
-        yield BotsDialog()
+        # yield BotsList()
+        yield BotsDialogue()
 
     def action_dismiss(self) -> None:
         self.app.pop_screen()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "bots-ok":
+            self.app.bot = self.query_one("#bots-option-list", BotsOptionList).bot
             self.app.pop_screen()
+            self.app.query_one("#message-input", Input).focus()
 
 
 class MainScreen(Screen):
     def compose(self) -> ComposeResult:
-        yield Sidebar()
-        yield Conversation()
+        yield Sidebar(id="sidebar")
+        yield Conversation(id="conversation")
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         event.input.value = ""
         conversation = self.query_one("Conversation", Conversation)
         conversation.add_response(UserResponse(event.value))
-        marvin.utilities.async_utils.create_task(self.get_bot_response(event))
+        self.get_bot_response(event)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "show-settings":
@@ -361,6 +449,7 @@ class MainScreen(Screen):
         elif event.button.id == "show-bots":
             self.app.push_screen(BotsScreen())
 
+    @work
     async def get_bot_response(self, event: Input.Submitted) -> str:
         bot = self.app.bot
         conversation = self.query_one("Conversation", Conversation)
@@ -369,21 +458,23 @@ class MainScreen(Screen):
 
 
 class MarvinApp(App):
-    CSS_PATH = "marvin.css"
+    CSS_PATH = ["marvin.css", "bots_settings.css"]
     bot: Optional[marvin.Bot] = reactive(None, always_update=True)
     thread: Optional[marvin.models.threads.Thread] = reactive(None, always_update=True)
     mounted = False
 
     async def on_ready(self) -> None:
-        self.bot = await get_default_bot()
         self.push_screen(MainScreen())
+
+        self.bot = await get_default_bot()
         self.mounted = True
 
     async def watch_bot(self, bot: marvin.Bot) -> None:
         if bot:
             self.thread = None
             self.log.info(f"Bot changed to {bot.name}")
-            await self.query_one("Sidebar #threads", Threads).refresh_threads()
+            await self.query_one("#threads", Threads).refresh_threads()
+            self.query_one("#bot-name", Label).update(bot.name)
 
     async def watch_thread(
         self,
@@ -397,7 +488,7 @@ class MarvinApp(App):
         if new_thread and self.bot:
             await self.bot.set_thread(thread_id=new_thread.id)
 
-        threads = self.query_one("Sidebar #threads", Threads)
+        threads = self.query_one("#threads", Threads)
         await threads.refresh_threads()
         # refresh conversation
         if new_thread is None or (old_thread and new_thread.id != old_thread.id):
@@ -407,6 +498,7 @@ class MarvinApp(App):
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "create-new-thread":
             self.thread = None
+            self.app.query_one("#message-input", Input).focus()
 
 
 # some test bots
