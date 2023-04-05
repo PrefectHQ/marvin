@@ -46,7 +46,7 @@ class Plugin(DiscriminatedUnionType):
         return v
 
     def get_full_description(self) -> str:
-        description = safe_format(self.description, **self.dict())
+        description = safe_format(self.description, **self.dict()).strip()
         docstring = self.run.__doc__
 
         result = inspect.cleandoc(
