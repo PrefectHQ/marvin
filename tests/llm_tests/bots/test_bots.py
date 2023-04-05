@@ -23,6 +23,34 @@ class TestBotResponse:
         )
 
 
+class TestStreamingBotResponse:
+    async def test_streaming_response(self):
+        buffer = []
+        bot = Bot()
+
+        def callback(x):
+            return buffer.append(x)
+
+        response = await bot.say("hello!", on_token_callback=callback)
+
+        assert len(buffer) > 1
+        assert isinstance(buffer[-1], list)
+        assert "".join(buffer[-1]) == response.content
+
+    def test_streaming_response_sync(self):
+        buffer = []
+        bot = Bot()
+
+        def callback(x):
+            return buffer.append(x)
+
+        response = bot.say_sync("hello!", on_token_callback=callback)
+
+        assert len(buffer) > 1
+        assert isinstance(buffer[-1], list)
+        assert "".join(buffer[-1]) == response.content
+
+
 class TestResponseFormatShorthand:
     async def test_int(self):
         bot = Bot(response_format=int)
