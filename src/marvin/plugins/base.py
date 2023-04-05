@@ -4,6 +4,7 @@ from typing import Callable
 
 from pydantic import Field, PrivateAttr, validator
 
+from marvin.utilities.strings import safe_format
 from marvin.utilities.types import DiscriminatedUnionType
 
 PLUGIN_INSTRUCTIONS = """
@@ -45,7 +46,7 @@ class Plugin(DiscriminatedUnionType):
         return v
 
     def get_full_description(self) -> str:
-        description = self.description.format(**self.dict())
+        description = safe_format(self.description, **self.dict())
         docstring = self.run.__doc__
 
         result = inspect.cleandoc(

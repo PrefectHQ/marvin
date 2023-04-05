@@ -1,6 +1,6 @@
 import pytest
 from marvin.models.documents import Document
-from marvin.utilities.strings import LINKS, hash_text
+from marvin.utilities.strings import LINKS, hash_text, safe_format
 
 
 class TestHashing:
@@ -38,3 +38,25 @@ class TestEntityExtraction:
             "https://example.com/path#fragment",
             "https://example.com/path?query=value#fragment",
         ]
+
+
+class TestSafeFormat:
+    def test_basic_sub(self):
+        text = "Hello, {name}!"
+        result = safe_format(text, name="John")
+        assert result == "Hello, John!"
+
+    def test_no_sub(self):
+        text = "Hello, {name}!"
+        result = safe_format(text)
+        assert result == "Hello, {name}!"
+
+    def test_no_sub_with_curly_braces(self):
+        text = '{"key": "value"}'
+        result = safe_format(text)
+        assert result == '{"key": "value"}'
+
+    def test_mixed_substitution_and_curly_braces(self):
+        text = 'Hello, {name}! Here is some JSON: {"key": "value"}'
+        result = safe_format(text, name="John")
+        assert result == 'Hello, John! Here is some JSON: {"key": "value"}'
