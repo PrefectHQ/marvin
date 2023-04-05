@@ -6,10 +6,9 @@ import sqlalchemy as sa
 from sqlmodel import Field
 
 import marvin
-from marvin.infra.db import AsyncSession, JSONType, provide_session
-from marvin.models.base import BaseSQLModel
-from marvin.models.ids import BotID, GenericID, MessageID, ThreadID
-from marvin.utilities.models import MarvinSQLModel
+from marvin.infra.database import AsyncSession, JSONType, provide_session
+from marvin.models.ids import BotID, MessageID, ThreadID
+from marvin.utilities.models import CreatedUpdatedMixin, MarvinSQLModel
 from marvin.utilities.types import MarvinBaseModel
 
 RoleType = Literal["system", "user", "ai"]
@@ -31,7 +30,7 @@ class Message(MarvinSQLModel, BaseMessage, table=True):
         sa.Index(
             "ix_message__thread_id_timestamp",
             "thread_id",
-            sa.text("timestamp DESC"),
+            "timestamp",
         ),
     )
     id: MessageID = Field(default_factory=MessageID.new, primary_key=True)
@@ -74,7 +73,7 @@ class UserMessageCreate(MessageCreate):
     role: Literal["user"] = "user"
 
 
-class Thread(BaseSQLModel, table=True):
+class Thread(MarvinSQLModel, CreatedUpdatedMixin, table=True):
     __table_args__ = (sa.Index("uq_thread__lookup_key", "lookup_key", unique=True),)
     id: ThreadID = Field(default_factory=ThreadID.new, primary_key=True)
     lookup_key: str = Field(
@@ -124,6 +123,8 @@ class ThreadRead(MarvinBaseModel):
     name: str = None
     is_visible: bool = False
     context: dict = Field(default_factory=dict)
+    created_at: datetime.datetime = None
+    updated_at: datetime.datetime = None
 
     @classmethod
     def from_model(cls, thread: Thread):
@@ -136,22 +137,18 @@ class ThreadRead(MarvinBaseModel):
         )
 
 
-class ThreadSummary(MarvinSQLModel, table=True):
-    """
-    Table for storing summaries of threads at a certain point, to assist with
-    long-term memory
-    """
+# class ThreadSummary(DBModel, table=True):
+#     """
+#     Table for storing summaries of threads at a certain point, to assist with
+#     long-term memory
+#     """
 
-    __table_args__ = (
-        sa.ForeignKeyConstraint(["thread_id"], ["thread.id"], ondelete="CASCADE"),
-        sa.Index(
-            "ix_thread_summary__thread_id_timestamp",
-            "thread_id",
-            sa.text("timestamp DESC"),
-        ),
-    )
+#     __table_args__ = (
+#         sa.ForeignKeyConstraint(["thread_id"], ["thread.id"], ondelete="CASCADE"),
+#         sa.Index("ix_thread_summary__thread_id_timestamp", "thread_id", "timestamp"),
+#     )
 
-    id: GenericID = Field(default_factory=GenericID.new, primary_key=True)
-    thread_id: ThreadID
-    summary: str
-    timestamp: datetime.datetime
+#     id: GenericID = Field(default_factory=GenericID.new, primary_key=True)
+#     thread_id: ThreadID
+#     summary: str
+#     timestamp: datetime.datetime

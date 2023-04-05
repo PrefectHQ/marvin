@@ -107,6 +107,7 @@ class Settings(BaseSettings):
     database_connection_url: SecretStr = (
         "sqlite+aiosqlite:////$MARVIN_HOME/marvin.sqlite"
     )
+    database_check_migration_version_on_startup: bool = True
 
     # GITHUB
     GITHUB_TOKEN: SecretStr = Field("", env=["MARVIN_GITHUB_TOKEN", "GITHUB_TOKEN"])

@@ -98,12 +98,12 @@ class TypeFormatter(ResponseFormatter):
                 type_schema=schema,
                 format=(
                     "A valid JSON object that is compatible with the following type"
-                    " signature:"
-                    f" ```{format_type_str(type_)}```. {schema_placeholder}\n\nYour"
-                    " response MUST be valid JSON. Use lists instead of literal tuples"
-                    " or sets; literal `true` and `false` instead of `True` and"
-                    " `False`; literal `null` instead of `None`; and double quotes"
-                    " instead of single quotes."
+                    f" signature: ```{format_type_str(type_)}```."
+                    f" {schema_placeholder}\n\nYour response MUST be valid JSON or a"
+                    " JSON-compatible scalar (such as int, float, bool, or null)."
+                    " Use lists instead of literal tuples or sets; literal `true` and"
+                    " `false` instead of `True` and `False`; literal `null` instead of"
+                    " `None`; and double quotes instead of single quotes."
                 ),
             )
         super().__init__(**kwargs)
@@ -122,17 +122,8 @@ class TypeFormatter(ResponseFormatter):
 
     def parse_response(self, response):
         type_ = self.get_type()
-
         try:
-            # handle GenericAlias and containers like dicts
-            if isinstance(type_, GenericAlias) or safe_issubclass(
-                type_, (list, dict, set, tuple)
-            ):
-                return pydantic.parse_raw_as(type_, response)
-            # handle basic types
-            else:
-                return type_(response)
-
+            return pydantic.parse_raw_as(type_, response)
         except Exception as exc:
             raise ValueError(
                 f"Could not parse response as type. Response: '{response}'. Type:"

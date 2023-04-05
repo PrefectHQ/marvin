@@ -1,4 +1,4 @@
-import asyncio
+import functools
 import inspect
 import json
 import re
@@ -19,6 +19,7 @@ from marvin.bots.response_formatters import (
 from marvin.models.ids import BotID, ThreadID
 from marvin.models.threads import BaseMessage, Message
 from marvin.plugins import Plugin
+from marvin.utilities.async_utils import as_sync_fn
 from marvin.utilities.strings import jinja_env
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
@@ -95,6 +96,13 @@ class Bot(MarvinBaseModel, LoggerMixin):
     personality: str = Field(None, description="The bot's personality.")
     instructions: str = Field(
         None, description="Instructions for the bot to follow when responding."
+    )
+    description: str = Field(
+        None,
+        description=(
+            "A optional description of the bot. This is for documentation only and will"
+            " NOT be shown to the bot."
+        ),
     )
     reminder: str = Field(
         None,
@@ -212,6 +220,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             instructions=self.instructions,
             plugins=[p.dict() for p in self.plugins],
             input_transformers=[t.dict() for t in self.input_transformers],
+            description=self.description,
         )
 
     @classmethod
@@ -223,6 +232,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             instructions=bot_config.instructions,
             plugins=bot_config.plugins,
             input_transformers=bot_config.input_transformers,
+            description=bot_config.description,
         )
 
     async def save(self, overwrite: bool = False):
@@ -254,13 +264,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
         """Load a bot from the database."""
         bot_config = await marvin.api.bots.get_bot_config(name=name)
         return cls.from_bot_config(bot_config=bot_config)
-
-    def say_sync(self, *args, **kwargs) -> BotResponse:
-        """
-        A synchronous version of `say`. This is useful for testing or including
-        a bot in a synchronous framework.
-        """
-        return asyncio.run(self.say(*args, **kwargs))
 
     async def say(self, *args, response_format=None, **kwargs) -> BotResponse:
         # process inputs
@@ -539,6 +542,34 @@ class Bot(MarvinBaseModel, LoggerMixin):
         """
         await marvin.bots.interactive_chat.chat(bot=self, first_message=first_message)
 
+    # -------------------------------------
+    # Synchronous convenience methods
+    # -------------------------------------
+    @functools.wraps(say)
+    def say_sync(self, *args, **kwargs) -> BotResponse:
+        """
+        A synchronous version of `say`. This is useful for testing or including
+        a bot in a synchronous framework.
+        """
+        return as_sync_fn(self.say)(*args, **kwargs)
+
+    @functools.wraps(save)
+    def save_sync(self, *args, **kwargs):
+        """
+        A synchronous version of `save`. This is useful for testing or including
+        a bot in a synchronous framework.
+        """
+        return as_sync_fn(self.save)(*args, **kwargs)
+
+    @classmethod
+    @functools.wraps(load)
+    def load_sync(cls, *args, **kwargs):
+        """
+        A synchronous version of `load`. This is useful for testing or including
+        a bot in a synchronous framework.
+        """
+        return as_sync_fn(cls.load)(*args, **kwargs)
+
 
 def _reformat_response(
     user_message: str,
@@ -558,7 +589,7 @@ def _reformat_response(
         not be parsed into the correct return format (`target_return_type`). The
         associated error message was `error_message`.
 
-        Extract the answer from the `response` and format it as a string that
+        Extract the answer from the `response` and return it as a string that
         can be parsed correctly.
         """
 

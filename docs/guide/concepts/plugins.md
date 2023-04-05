@@ -47,7 +47,7 @@ await bot.say('Use the plugin to pick a random number between 41 and 43')
 ## Example: GitHub Issue Search
 To illustrate a real-world use case for plugins, we'll write one that searches for GitHub issues related to a specific topic.
 
-!!! Psst!
+!!! tip "Psst!"
     This plugin already exists at `marvin.plugins.github.search_github_issues`.
 
 All we really need to do is write a python function that accepts a `query` and `repo` argument, and returns a string summary of the most relevant issues. Remember that whatever arguments the function accepts, the bot will need to be able to provide. 
@@ -62,7 +62,7 @@ async def search_github_issues(
 ) -> str:
 ```
 
-Luckily, the GitHub API makes the actual implementation easy. We'll use the `httpx` library to make an API call.
+Luckily, the GitHub API makes the actual implementation easy. We'll use the `httpx` library to make an API call:
 
 ```python
 headers = {"Accept": "application/vnd.github.v3+json"}
@@ -84,8 +84,7 @@ async with httpx.AsyncClient() as client:
     response.raise_for_status()
 ```
 
-The last thing we need to think about is how we want to present the results. We'll use a Pydantic model to parse our issues and then format them as a string.
-
+The last thing we need to think about is how we want to present the results. We'll use a Pydantic model to parse our issues and then format them as a string:
 
 ```python
 issues_data = response.json()["items"]

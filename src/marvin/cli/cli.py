@@ -9,9 +9,8 @@ from rich import print as rprint
 from rich.prompt import Prompt
 
 import marvin
-from marvin.bots.utility_bots import get_utility_bot
 
-from .db import database_app
+from .database import database_app
 from .server import server_app
 
 app = typer.Typer()
@@ -86,11 +85,8 @@ def chat(
     model: str = typer.Option(
         None, "--model", "-m", help="The model to use for the chatbot"
     ),
-    bot_to_load: str = typer.Option(
-        None, "--bot-to-load", "-b", help="The name of the bot to use"
-    ),
-    utility_bot: str = typer.Option(
-        None, "--utility-bot", "-u", help="The name of a utility bot to load"
+    bot_name: str = typer.Option(
+        None, "--bot", "-b", help="The name of the bot to use"
     ),
 ):
     if not marvin.settings.openai_api_key.get_secret_value():
@@ -98,24 +94,14 @@ def chat(
 
     from langchain.chat_models import ChatOpenAI
 
-    if utility_bot and any([bot_to_load, name, personality, instructions, model]):
+    if bot_name and any([name, personality, instructions, model]):
         raise ValueError(
-            "You can't specify both `--utility-bot` and any of "
+            "You can't specify both `--bot` and any of "
             "`--name`,  `--personality`, `--instructions`, or `--model`"
         )
 
-    if bot_to_load and any([utility_bot, name, personality, instructions, model]):
-        raise ValueError(
-            "You can't specify both `--bot-to-load` and any of "
-            "`--name`,  `--personality`, `--instructions`, or `--model`"
-        )
-
-    if bot_to_load:
-        bot = asyncio.run(marvin.Bot.load(bot_to_load))
-
-    elif utility_bot:
-        bot = get_utility_bot(utility_bot)
-
+    if bot_name:
+        bot = asyncio.run(marvin.Bot.load(bot_name))
     else:
         bot = marvin.Bot(
             name=name,
@@ -133,12 +119,12 @@ def chat(
 
 @app.command(name="log", help="View the logs for a bot")
 def log(
-    bot_to_load: str = typer.Argument(None, help="The name of the bot to use"),
+    bot_name: str = typer.Argument(None, help="The name of the bot to use"),
 ):
-    if not bot_to_load:
+    if not bot_name:
         raise ValueError("You must specify a bot to load")
 
-    bot = asyncio.run(marvin.Bot.load(bot_to_load))
+    bot = asyncio.run(marvin.Bot.load(bot_name))
     rprint(asyncio.run(bot.history.log()))
 
 

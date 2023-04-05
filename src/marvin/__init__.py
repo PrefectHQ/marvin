@@ -4,6 +4,7 @@ from importlib.metadata import version as _get_version
 import nest_asyncio as _nest_asyncio
 import asyncio as _asyncio
 
+
 _nest_asyncio.apply()
 
 # load env vars
@@ -18,12 +19,13 @@ from marvin.config import settings
 from marvin.utilities.logging import get_logger
 
 # load marvin
-from . import utilities, models, infra, api, bots, plugins
+from . import utilities, models, infra, api, bots, plugins, ai_functions, bots_lab
 
 
 from marvin.plugins import Plugin, plugin
 from marvin.bots import Bot
-from marvin.bots.ai_functions import ai_fn
+from marvin.ai_functions import ai_fn
+
 
 _logger = get_logger(__name__)
 if settings.test_mode:
@@ -31,5 +33,7 @@ if settings.test_mode:
 if not settings.openai_model_name.startswith("gpt-4"):
     _logger.info_style(f'Using OpenAI model "{settings.openai_model_name}"')
 
-# set up SQLite if it doesn't exist
-infra.db.create_sqlite_db_if_doesnt_exist()
+
+# check alembic versions
+if settings.database_check_migration_version_on_startup:
+    _asyncio.run(infra.database.check_alembic_version())

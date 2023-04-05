@@ -8,7 +8,7 @@ from fastapi import BackgroundTasks, Body, Depends, HTTPException, status
 
 import marvin
 from marvin.api.dependencies import fastapi_session
-from marvin.infra.db import AsyncSession, provide_session
+from marvin.infra.database import AsyncSession, provide_session
 from marvin.models.bots import (
     BotConfig,
     BotConfigCreate,

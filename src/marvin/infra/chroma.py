@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import marvin
 from marvin.config import CHROMA_INSTALLED
 from marvin.models.documents import Document
+from marvin.utilities.algorithms import max_marginal_relevance as mmr
 from marvin.utilities.async_utils import run_async
 
 if TYPE_CHECKING and CHROMA_INSTALLED:
@@ -49,12 +50,12 @@ class Chroma:
         import chromadb.utils.embedding_functions as embedding_functions
 
         self.client = get_client()
+        self.embedding_fn = embedding_fn or embedding_functions.OpenAIEmbeddingFunction(
+            api_key=marvin.settings.openai_api_key.get_secret_value()
+        )
         self.collection: Collection = self.client.get_or_create_collection(
             name=collection_name or marvin.settings.default_topic,
-            embedding_function=embedding_fn
-            or embedding_functions.OpenAIEmbeddingFunction(
-                api_key=marvin.settings.openai_api_key.get_secret_value()
-            ),
+            embedding_function=self.embedding_fn,
         )
         self._in_context = False
 
@@ -119,3 +120,25 @@ class Chroma:
 
     async def count(self) -> int:
         return await run_async(self.collection.count)
+
+    async def mmr_query(
+        self,
+        query: str,
+        include: "Include" = ["documents", "metadatas", "embeddings"],
+        **kwargs,
+    ) -> "QueryResult":
+        query_embedding = (await run_async(self.embedding_fn, texts=[query]))[0]
+
+        results = await self.query(
+            query_embeddings=query_embedding,
+            include=include,
+            **kwargs,
+        )
+
+        selected_indices = mmr(
+            query_embedding=query_embedding, embedding_list=results["embeddings"][0]
+        )
+        return {
+            field: [results[field][0][index] for index in selected_indices]
+            for field in include + ["ids"]
+        }
