@@ -22,6 +22,8 @@ def is_valid_url(url):
 
 
 class PDFLoader(Loader):
+    file_path: str
+
     @asynccontextmanager
     async def open_pdf_file(self, file_path: str):
         if is_valid_url(file_path):
@@ -34,14 +36,31 @@ class PDFLoader(Loader):
             with open(file_path, "rb") as pdf_file_obj:
                 yield pdf_file_obj
 
-    async def load(self, file_path: str) -> List[Document]:
-        async with self.open_pdf_file(file_path) as pdf_file_obj:
+    async def load(self) -> List[Document]:
+        async with self.open_pdf_file(self.file_path) as pdf_file_obj:
             pdf_reader = pypdf.PdfReader(pdf_file_obj)
             return [
                 Document(
                     text=page.extract_text(),
-                    metadata={"source": file_path, "page": i},
+                    metadata={"source": self.file_path, "page": i},
                     order=i,
                 )
                 for i, page in enumerate(pdf_reader.pages)
             ]
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    async def main():
+        remote_pdf_document = await PDFLoader(
+            file_path="https://www.cs.cmu.edu/~jgc/publication/The_Use_MMR_Diversity_Based_LTMIR_1998.pdf"
+        ).load()
+
+        local_pdf_document = await PDFLoader(
+            file_path="/Users/nate/Downloads/MMR.pdf"
+        ).load()
+
+        assert remote_pdf_document[0].text == local_pdf_document[0].text
+
+    asyncio.run(main())
