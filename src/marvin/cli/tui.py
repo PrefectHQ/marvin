@@ -22,8 +22,10 @@ from textual.widgets import (
 from textual.widgets.option_list import Option
 
 import marvin
+from marvin.bots.base import DEFAULT_INSTRUCTIONS, DEFAULT_PERSONALITY
 from marvin.config import ENV_FILE
 from marvin.models.ids import ThreadID
+from marvin.utilities.strings import condense_newlines
 
 
 async def get_default_bot():
@@ -132,11 +134,22 @@ class BotsInfo(Static):
 
     def watch_bot(self, bot: marvin.models.bots.BotConfig):
         if bot:
+            # check default instructions/personality
+            if bot.instructions == condense_newlines(DEFAULT_INSTRUCTIONS):
+                instructions = "[italic](default)[/]"
+            else:
+                instructions = bot.instructions
+
+            if bot.personality == condense_newlines(DEFAULT_PERSONALITY):
+                personality = "[italic](default)[/]"
+            else:
+                personality = bot.personality
+
             data = {
                 "Name": bot.name,
-                "Description": bot.description or "",
-                "Personality": bot.personality or "",
-                "Instructions": bot.instructions or "",
+                "Description": bot.description,
+                "Personality": personality,
+                "Instructions": instructions,
             }
         else:
             data = {
@@ -249,8 +262,8 @@ class Conversation(Container):
 
     async def watch_bot_response_count(self, count: int) -> None:
         # if the bot has responded, it's time to rename the thread
-        # we do this through up to 4 responses
-        if count <= 4:
+        # we do this through up to 3 bot responses
+        if count <= 3:
             try:
                 # see if the thread already exists
                 await marvin.api.threads.get_thread(thread_id=self.app.thread_id)
@@ -345,7 +358,7 @@ class TextTable(Static):
         for label, text in self.data.items():
             with Horizontal(classes="row"):
                 yield Label(f"{label}:", classes="label")
-                yield Static(text, classes="text")
+                yield Static(text or "", classes="text")
 
     def watch_data(self, data: dict):
         self.query().remove()
@@ -357,7 +370,7 @@ class TextTable(Static):
                 self.mount(
                     Horizontal(
                         Label(f"{label}:", classes="label"),
-                        Static(text, classes="text"),
+                        Static(text or "", classes="text"),
                         classes="row",
                     )
                 )
@@ -546,7 +559,7 @@ class MainScreen(Screen):
 
 
 class MarvinApp(App):
-    CSS_PATH = ["marvin.css", "bots_settings.css"]
+    CSS_PATH = ["marvin.css"]
     bot: Optional[marvin.Bot] = reactive(None, always_update=True, layout=True)
     thread_id: ThreadID = reactive(ThreadID.new, always_update=True, layout=True)
     thread: Optional[marvin.models.threads.Thread] = reactive(

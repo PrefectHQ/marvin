@@ -48,9 +48,11 @@ class BotConfigCreate(MarvinBaseModel):
     input_transformers: list["InputTransformer"] = Field(default_factory=list)
 
 
-class BotConfigUpdate(BotConfigCreate):
+class BotConfigUpdate(MarvinBaseModel):
     personality: str = None
     description: str = None
+    instructions: str = None
+    plugins: list["Plugin"] = None
     profile_picture: str = None
 
 

@@ -95,7 +95,7 @@ async def update_bot_config(
     await session.execute(
         sa.update(BotConfig)
         .where(BotConfig.name == name)
-        .values(**bot_config.dict(exclude=exclude))
+        .values(**bot_config.dict(exclude=exclude, exclude_unset=True))
     )
     await session.commit()
 
