@@ -14,12 +14,12 @@ from prefect.utilities.collections import listrepr
 
 
 async def load_prefect_things():
-    SitemapLoader(  # gimme da docs
+    prefect_docs = SitemapLoader(  # gimme da docs
         urls=["https://docs.prefect.io/sitemap.xml"],
         exclude=["api-ref"],
     )
 
-    GitHubRepoLoader(  # gimme da source
+    prefect_recipes = GitHubRepoLoader(  # gimme da source
         repo="prefecthq/prefect",
         include_globs=["**/*.py"],
         exclude_globs=[
@@ -30,22 +30,25 @@ async def load_prefect_things():
         ],
     )
 
-    DiscourseLoader(  # gimme da discourse
+    prefect_discourse = DiscourseLoader(  # gimme da discourse
         url="https://discourse.prefect.io",
         include_topic_filter=lambda topic: "marvin" in topic["tags"],
         include_post_filter=lambda post: post["accepted_answer"],
     )
 
-    GitHubRepoLoader(  # gimme da recipes (or at least some of them)
-        repo="prefecthq/prefect-recipes",
-        include_globs=["flows-advanced/**/*.py"],
+    prefect_source_code = (
+        GitHubRepoLoader(  # gimme da recipes (or at least some of them)
+            repo="prefecthq/prefect-recipes",
+            include_globs=["flows-advanced/**/*.py"],
+        )
     )
 
     prefect_loader = MultiLoader(
         loaders=[
-            # prefect_docs,
-            # prefect_discourse,
-            # prefect_recipes,
+            prefect_docs,
+            prefect_discourse,
+            prefect_recipes,
+            prefect_source_code,
         ]
     )
 
