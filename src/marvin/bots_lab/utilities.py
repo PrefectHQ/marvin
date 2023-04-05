@@ -1,22 +1,10 @@
 import inspect
-from typing import Callable
 
 from pydantic import Field
 
-import marvin
 from marvin.bots import Bot
 from marvin.bots.history import History, InMemoryHistory
 from marvin.plugins.base import Plugin
-
-
-def utility_llm():
-    from langchain.chat_models import ChatOpenAI
-
-    return ChatOpenAI(
-        model_name="gpt-3.5-turbo",
-        temperature=0,
-        openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
-    )
 
 
 class UtilityBot(Bot):
@@ -27,7 +15,8 @@ class UtilityBot(Bot):
     plugins: list[Plugin] = []
     include_date_in_prompt: bool = False
     history: History = Field(default_factory=lambda: InMemoryHistory(max_messages=1))
-    llm: Callable = Field(default_factory=utility_llm)
+    llm_model_name: str = "gpt-3.5-turbo"
+    llm_model_temperature: float = 0
 
 
 summarize_bot = UtilityBot(

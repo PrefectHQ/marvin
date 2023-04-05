@@ -62,6 +62,16 @@ Bots can be loaded with the `Bot.load()` method.
 bot = await Bot.load("Ford")
 ```
 
+### Streaming responses
+By default, bots process an entire response and return it as a structured object. However, you can get a streaming response by providing a custom `on_token_callback` function. Every time the bot generates a token, the callback will be called with a buffer of all the tokens generated to that point. You can access the most recent token as `buffer[-1]`. 
+
+For example, to print each token as it's generated:
+```python
+bot = marvin.Bot()
+await bot.say("Hello!", on_token_callback=lambda buffer: print(buffer[-1]))
+```
+
+Note that this works for both the async `say()` and synchronous `say_sync()` methods.
 ## CLI
 
 ### Interactive use
