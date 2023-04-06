@@ -598,7 +598,7 @@ class MainScreen(Screen):
 
 
 class MarvinApp(App):
-    CSS_PATH = ["marvin.css"]
+    CSS_PATH = ["tui.css"]
     bot: Optional[marvin.Bot] = reactive(None, always_update=True, layout=True)
     thread_id: ThreadID = reactive(ThreadID.new, always_update=True, layout=True)
     thread: Optional[marvin.models.threads.Thread] = reactive(
