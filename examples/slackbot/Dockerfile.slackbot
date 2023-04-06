@@ -6,10 +6,6 @@ RUN python -m venv venv
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-COPY . /app
+RUN pip install git+https://github.com/PrefectHQ/marvin.git@slackbot#egg=marvin[chromadb]
 
-RUN pip install -e ".[chromadb]"
-
-EXPOSE 8000
-
-CMD ["python",  "/app/examples/slackbot/community_bot.py"]
+CMD ["marvin", "server", "start"]

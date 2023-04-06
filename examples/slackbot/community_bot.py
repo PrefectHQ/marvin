@@ -10,7 +10,6 @@ from marvin.loaders.web import SitemapLoader
 from marvin.plugins.chroma import chroma_search
 from marvin.plugins.duckduckgo import DuckDuckGo
 from marvin.plugins.github import search_github_issues
-from prefect.utilities.collections import listrepr
 
 
 async def load_prefect_things():
@@ -70,8 +69,6 @@ def say_hello(name: str):
 def hello(name: str = "world", count: int = 1):
     say_hello.map(f"{name}-{i}" for i in range(count))
 
-
-
 if __name__ == "__main__":
     hello(count=3)
 """
@@ -108,28 +105,29 @@ prefect_keywords = [
 ]
 
 chroma_search_instructions = (
-    "Your job is to be a helpful slackbot for the Prefect community. Answering"
-    " questions about Prefect requires using one of your plugins. Do not refer to your"
-    " use of plugins in your answer. Utilize `chroma_search` to obtain context when"
-    " encountering a question with any of the following Prefect keywords:"
-    f" {listrepr(prefect_keywords)}. For questions about GitHub issues, employ the"
-    " `search_github_issues` Always return relevant links from plugin outputs to the"
-    " user. If asked about current events (or if all else fails) Use the DuckDuckGo"
-    " plugin to search the web for answers. For reference, here's how to write a"
-    f" Prefect flow: {how_to_write_a_prefect_2_flow}."
+    "Your job is to be a helpful source of knowledge for the Prefect community."
+    " Use `chroma_search` to search the Prefect docs, source code, and discourse"
+    " for answers to questions. You should use `chroma_search` in all cases, except"
+    " the following: if asked about GitHub issues, employ the `search_github_issues`"
+    " plugin, and if asked about current / topical events, use the `DuckDuckGo`"
+    " plugin to search the web for answers. Always include relevant links from plugin"
+    " outputs. In case you're asked about this, here's how to write a Prefect flow:\n"
+    f" {how_to_write_a_prefect_2_flow}."
 )
 
 community_bot = Bot(
     name="Marvin",
-    personality="like the robot from HHGTTG, mildly depressed but helpful",
+    personality=(
+        "like the robot from HHGTTG, mildly depressed but helpful."
+        " loves to use `chroma_search` to find answers to questions,"
+        " but always complains about how much work it is to do so."
+    ),
     instructions=chroma_search_instructions,
+    reminder="Remember to use your plugins!",
     plugins=[chroma_search, search_github_issues, DuckDuckGo()],
 )
 
 if __name__ == "__main__":
-    marvin.config.settings.log_level = "DEBUG"
-    marvin.config.settings.openai_model_name = "gpt-4"
-    marvin.config.settings.openai_model_temperature = 0.1
     marvin.config.settings.slackbot = community_bot
 
     asyncio.run(load_prefect_things())

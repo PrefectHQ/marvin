@@ -11,8 +11,17 @@ process_pool = concurrent.futures.ProcessPoolExecutor(mp_context=mp.get_context(
 
 
 async def run_async(func, *args, **kwargs):
+    async def wrapper():
+        try:
+            return await loop.run_in_executor(
+                None, functools.partial(func, *args, **kwargs)
+            )
+        except Exception as e:
+            # propagate the exception to the caller
+            raise e
+
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, lambda: func(*args, **kwargs))
+    return await wrapper()
 
 
 def _cloudpickle_wrapper(pickle):

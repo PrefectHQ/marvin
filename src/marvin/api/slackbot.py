@@ -34,7 +34,7 @@ async def _post_message_to_slack(channel: str, message: str, thread_ts: str = No
             json={
                 "channel": channel,
                 "text": message,
-                **{{"thread_ts": thread_ts} if thread_ts else {}},
+                **({"thread_ts": thread_ts} if thread_ts else {}),
             },
         )
         response.raise_for_status()

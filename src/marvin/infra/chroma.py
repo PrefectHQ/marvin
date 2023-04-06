@@ -1,3 +1,4 @@
+import asyncio
 from functools import lru_cache
 from typing import TYPE_CHECKING
 
@@ -77,6 +78,8 @@ class Chroma:
         self,
         documents: list[Document],
         skip_existing: bool = False,
+        max_retries: int = 2,
+        sleep_between_retries: int = 1,
     ) -> int:
         if skip_existing:
             existing_ids = set(self.collection.get(include=[])["ids"])
@@ -86,12 +89,21 @@ class Chroma:
             if not documents:
                 return 0
 
-        await run_async(
-            self.collection.add,
-            ids=[document.hash for document in documents],
-            documents=[document.text for document in documents],
-            metadatas=[document.metadata.dict() for document in documents],
-        )
+        for retry_count in range(max_retries):
+            try:
+                # can be transient errors first time loading into chroma
+                await run_async(
+                    self.collection.add,
+                    ids=[document.hash for document in documents],
+                    documents=[document.text for document in documents],
+                    metadatas=[document.metadata.dict() for document in documents],
+                )
+                break
+            except Exception as e:
+                if retry_count < max_retries - 1:
+                    await asyncio.sleep(sleep_between_retries)
+                else:
+                    raise e
 
         if not self._in_context:
             await run_async(self.client.persist)
