@@ -11,7 +11,7 @@ import marvin
 if platform.system() == "Windows":
     mp_context = "spawn"
 else:
-    process_pool = "fork"
+    mp_context = "fork"
 
 process_pool = concurrent.futures.ProcessPoolExecutor(
     mp_context=mp.get_context(mp_context)
