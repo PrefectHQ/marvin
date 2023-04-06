@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
 import marvin
+from marvin.api.slackbot import slackbot_setup
 
 logger = marvin.get_logger("app")
 
@@ -43,3 +44,9 @@ def hello():
 @app.get("/health", tags=["Admin"])
 def health():
     return True
+
+
+@app.on_event("startup")
+async def startup():
+    if marvin.config.settings.run_slackbot:
+        await slackbot_setup()

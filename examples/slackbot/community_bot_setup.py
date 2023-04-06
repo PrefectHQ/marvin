@@ -1,7 +1,6 @@
 import asyncio
 
 import marvin
-import uvicorn
 from marvin.bots import Bot
 from marvin.loaders.base import MultiLoader
 from marvin.loaders.discourse import DiscourseLoader
@@ -127,9 +126,8 @@ community_bot = Bot(
     plugins=[chroma_search, search_github_issues, DuckDuckGo()],
 )
 
-if __name__ == "__main__":
+
+async def main():
     marvin.config.settings.slackbot = community_bot
 
     asyncio.run(load_prefect_things())
-
-    uvicorn.run("marvin.server:app", host="0.0.0.0", port=4200)

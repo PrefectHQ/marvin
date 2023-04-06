@@ -64,7 +64,7 @@ class Settings(BaseSettings):
 
     # LOGGING
     verbose: bool = False
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "DEBUG"
     log_console_width: Optional[int] = Field(
         None,
         description=(
@@ -131,11 +131,13 @@ class Settings(BaseSettings):
         ),
     )
 
+    # SLACKBOT
+    run_slackbot: bool = False
     slackbot: Any = Field(default=None)
-
     slack_bot_token: SecretStr = Field(
         "", env=["MARVIN_SLACK_BOT_TOKEN", "SLACK_BOT_TOKEN"]
     )
+    slackbot_setup_script: str = Field("examples/slackbot/community_bot_setup.py")
 
     # API
     api_base_url: str = "http://127.0.0.1"

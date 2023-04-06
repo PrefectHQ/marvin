@@ -48,3 +48,24 @@ def as_sync_fn(fn):
         return asyncio.run(fn(*args, **kwargs))
 
     return wrapper
+
+
+def retry_async(max_retries=3, sleep_between_retries=1, exceptions=None):
+    if exceptions is None:
+        exceptions = (Exception,)
+
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            for retry_count in range(max_retries):
+                try:
+                    return await func(*args, **kwargs)
+                except exceptions as e:
+                    if retry_count < max_retries - 1:
+                        await asyncio.sleep(sleep_between_retries)
+                    else:
+                        raise e
+
+        return wrapper
+
+    return decorator
