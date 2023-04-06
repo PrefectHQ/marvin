@@ -127,6 +127,7 @@ SettingsDialogue TabPane {
   text-style: bold;
   
 }
+
 .sidebar-title {
   height: 3;
   text-align: center;
@@ -148,6 +149,7 @@ SettingsDialogue .api-key-info {
   width: 100%;
   margin: 2 1 0 1;
 }
+
 SettingsDialogue .error {
   color: red;
 }

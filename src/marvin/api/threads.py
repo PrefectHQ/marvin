@@ -27,7 +27,12 @@ async def create_thread(
 ) -> ThreadRead:
     db_thread = Thread(**thread.dict())
     session.add(db_thread)
-    await session.commit()
+    try:
+        await session.commit()
+    # this shouldn't happen unless an internal function is creating a thread
+    # with a known ID
+    except sa.exc.IntegrityError:
+        raise HTTPException(status.HTTP_409_CONFLICT)
     return ThreadRead(**db_thread.dict())
 
 
