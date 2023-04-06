@@ -5,7 +5,7 @@
 
 Meet Marvin: a batteries-included library for building AI-powered software. Marvin's job is to integrate AI directly into your codebase by making it look and feel like any other function. 
 
-Marvin introduces a new concept called [**AI Functions**](https://askmarvin.ai/guide/concepts/ai_functions). These functions differ from conventional ones in that they don’t rely on source code, but instead generate their outputs on-demand through AI. With AI functions, you don't have to write complex code for tasks like extracting entities from web pages, scoring sentiment, or categorizing items in your database. Just describe your needs, call the function, and you're done!
+Marvin introduces a new concept called [**AI Functions**](https://askmarvin.ai/guide/concepts/ai_functions). These functions differ from conventional ones in that they don’t rely on source code, but instead generate their outputs on-demand with AI by using an LLM as a runtime. With AI functions, you don't have to write complex code for tasks like extracting entities from web pages, scoring sentiment, or categorizing items in your database. Just describe your needs, call the function, and you're done!
 
 AI functions work with native data types, so you can seamlessly integrate them into any codebase and chain them into sophisticated pipelines. Technically speaking, Marvin transforms the signature of using AI from `(str) -> str` to `(**kwargs) -> Any`. We call this **"functional prompt engineering."**
 
@@ -65,7 +65,7 @@ Coming soon:
 
 Marvin is an opinionated, high-level library with the goal of integrating AI tools into software development. There are a few major reasons to use Marvin:
 
-1. **You want an [AI function](https://askmarvin.ai/guide/concepts/ai_functions) that can process structured data.** Marvin brings the power of AI to native data structures, letting you build functions that would otheriwse be difficult or even impossible to write. For example, you can use AI functions to make a list of all the animals in a paragraph, generate JSON documents from HTML content, extract keywords that match some criteria, or categorize sentiment -- without any traditional source code.
+1. **You want an [AI function](https://askmarvin.ai/guide/concepts/ai_functions) that can process structured data.** Marvin brings the power of AI to native data structures, letting you build functions that would otherwise be difficult or even impossible to write. For example, you can use AI functions to make a list of all the animals in a paragraph, generate JSON documents from HTML content, extract keywords that match some criteria, or categorize sentiment -- without any traditional source code.
 
 2. **You want an [AI assistant](https://askmarvin.ai/guide/concepts/bots) in your code.** Marvin's bots can follow instructions and hold conversations to solve complex problems. They can use custom plugins and take advantage of external knowledge. They are designed to be integrated into your codebase, but of course you can expose them directly to your users as well!
 

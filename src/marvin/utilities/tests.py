@@ -27,14 +27,9 @@ def assert_approx_equal(statement_1: str, statement_2: str):
 
 
 def assert_llm(response: str, expectation: Any, model_name: str = None):
-    from langchain.chat_models import ChatOpenAI
-
     @ai_fn(
-        llm=ChatOpenAI(
-            model_name=model_name or marvin.settings.openai_model_name,
-            temperature=0,
-            openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
-        ),
+        llm_model_name=model_name or marvin.settings.openai_model_name,
+        llm_model_temperature=0,
     )
     def _assert_llm(response: Any, expectation: Any) -> bool:
         """
