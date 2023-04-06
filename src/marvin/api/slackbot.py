@@ -23,8 +23,6 @@ class SlackEvent(BaseModel):
 
 
 async def slackbot_setup():
-    import marvin  # apply nest_asyncio patch
-
     setup_script = load_script_as_module(marvin.config.settings.slackbot_setup_script)
     await setup_script.main()
 

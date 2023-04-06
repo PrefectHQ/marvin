@@ -4,7 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
 import marvin
-from marvin.api.slackbot import slackbot_setup
+
+if marvin.config.settings.run_slackbot:
+    import nest_asyncio
+
+    from marvin.api.slackbot import slackbot_setup
+
+    nest_asyncio.apply()
 
 logger = marvin.get_logger("app")
 
