@@ -22,8 +22,5 @@ def start(
     ),
 ):
     uvicorn.run(
-        "marvin.server:app",
-        port=port,
-        log_level=marvin.settings.log_level.lower(),
-        reload=reload,
+        "marvin.server:app", port=port, log_level=log_level.lower(), reload=reload
     )

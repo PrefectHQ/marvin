@@ -128,6 +128,6 @@ community_bot = Bot(
 
 
 async def main():
+    marvin.config.settings.run_slackbot = True
     marvin.config.settings.slackbot = community_bot
-
     asyncio.run(load_prefect_things())
