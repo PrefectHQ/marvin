@@ -175,10 +175,10 @@ class Sidebar(VerticalScroll):
             )
         yield Label("All threads", classes="sidebar-title")
         yield Threads(id="threads")
-        yield Button("🤖 Bots \[b]", variant="success", id="show-bots")
-        yield Button("📝 New thread \[n]", id="create-new-thread", variant="primary")
-        yield Button("🗑️ Delete thread \[ctrl+x]", id="delete-thread", variant="error")
-        yield Button("⚙️ Settings \[s]", id="show-settings")
+        yield Button("Bots \[b]", variant="success", id="show-bots")
+        yield Button("New thread \[n]", id="create-new-thread", variant="primary")
+        yield Button("Delete thread \[ctrl+x]", id="delete-thread", variant="error")
+        yield Button("Settings \[s]", id="show-settings")
 
 
 class ResponseBody(Markdown):
@@ -589,6 +589,8 @@ class MainScreen(Screen):
                     max(0, current_highlight), threads.option_count - 1
                 )
                 threads.action_select()
+            else:
+                self.app.thread_id = ThreadID.new()
 
     def on_threads_thread_selected(self, event: Threads.ThreadSelected) -> None:
         self.action_focus_message()
@@ -666,7 +668,7 @@ marvin.Bot(
     personality="Huge fan of popular music",
     instructions=(
         "Whenever the user provides a line from a popular song, sing the next line to"
-        " them."
+        " them. Don't ask, just sing. Use lots of different emojis."
     ),
     plugins=[],
 ).save_sync(if_exists="update")

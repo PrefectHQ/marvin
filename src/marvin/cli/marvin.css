@@ -42,10 +42,13 @@ Conversation {
   height: 100%;
   width: 100%;
   background: $panel;
+
 }
+
 
 Conversation Input {
   dock: bottom;
+  
 }
 
 Response {
@@ -57,7 +60,7 @@ ResponseBody {
   height: auto;
   border: round gray 90%;
   padding: 1 2 0 2;
-  margin: 1 1;
+  margin: 1 3;
   width: 80%;
 }
 
