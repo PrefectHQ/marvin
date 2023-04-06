@@ -1,4 +1,5 @@
 import os
+import platform
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal, Optional
@@ -9,6 +10,12 @@ try:
     CHROMA_INSTALLED = True
 except ModuleNotFoundError:
     CHROMA_INSTALLED = False
+
+
+if platform.system() == "Windows":
+    DEFAULT_DB_CONNECTION_URL = "sqlite+aiosqlite:///$MARVIN_HOME/marvin.sqlite"
+else:
+    DEFAULT_DB_CONNECTION_URL = "sqlite+aiosqlite:////$MARVIN_HOME/marvin.sqlite"
 
 from pydantic import BaseSettings, Field, SecretStr, root_validator, validator
 from rich import print
@@ -103,9 +110,7 @@ class Settings(BaseSettings):
 
     # DATABASE
     database_echo: bool = False
-    database_connection_url: SecretStr = (
-        "sqlite+aiosqlite:////$MARVIN_HOME/marvin.sqlite"
-    )
+    database_connection_url: SecretStr = DEFAULT_DB_CONNECTION_URL
     database_check_migration_version_on_startup: bool = True
 
     # GITHUB
