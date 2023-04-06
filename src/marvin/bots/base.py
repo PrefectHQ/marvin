@@ -16,6 +16,7 @@ from marvin.bots.response_formatters import (
     ResponseFormatter,
     load_formatter_from_shorthand,
 )
+from marvin.models.bots import BotConfigUpdate
 from marvin.models.ids import BotID, ThreadID
 from marvin.models.threads import BaseMessage, Message
 from marvin.plugins import Plugin
@@ -227,28 +228,49 @@ class Bot(MarvinBaseModel, LoggerMixin):
             description=bot_config.description,
         )
 
-    async def save(self, overwrite: bool = False):
+    async def save(self, if_exists: str = None):
         """
-        Save this bot in the database. Bots are saved by name. If
-        overwrite=False, an error is raised if a bot with the same name
-        exists.
+        Save this bot in the database. Bots are saved by name. By default,
+        errors if a bot with the same name exists. Customize this behavior with
+        the `if_exists` parameter, which can be `delete`, `update`, or `cancel`:
+            - `delete`: Delete the existing bot and save this one. The bots will
+              not have the same ID.
+            - `update`: Update the existing bot with the values from this one.
+              The bots will have the same ID and message history.
+            - `cancel`: Do nothing (and do not raise an error).
         """
+        if if_exists not in [None, "delete", "update", "cancel"]:
+            raise ValueError(
+                "if_exists must be one of 'delete', 'update', or 'cancel'. Got"
+                f" {if_exists}"
+            )
+
         bot_config = self.to_bot_config()
         try:
-            existing_bot = await marvin.api.bots.get_bot_config(name=self.name)
-            if existing_bot and not overwrite:
-                raise ValueError(
-                    f"Bot with name {self.name} already exists. `overwrite=True` to"
-                    " overwrite."
-                )
-            else:
+            # this will error if there's no bot
+            await marvin.api.bots.get_bot_config(name=self.name)
+
+            # if no error, then the bot exists
+            if not if_exists:
+                raise ValueError(f"Bot with name {self.name} already exists.")
+            elif if_exists == "delete":
                 await marvin.api.bots.delete_bot_config(name=self.name)
+                await marvin.api.bots.create_bot_config(bot_config=bot_config)
+                return
+            elif if_exists == "update":
+                await marvin.api.bots.update_bot_config(
+                    name=self.name, bot_config=BotConfigUpdate(**bot_config.dict())
+                )
+                return
+            elif if_exists == "cancel":
+                return
         except HTTPException as exc:
             if exc.status_code == status.HTTP_404_NOT_FOUND:
                 pass
             else:
                 raise
 
+        # create the bot
         await marvin.api.bots.create_bot_config(bot_config=bot_config)
 
     @classmethod

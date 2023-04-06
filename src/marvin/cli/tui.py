@@ -46,7 +46,7 @@ async def get_default_bot():
                 misunderstood
                 """
         )
-        await bot.save(overwrite=True)
+        await bot.save(if_exists="update")
     return bot
 
 
@@ -654,12 +654,22 @@ class MarvinApp(App):
 # some test bots
 marvin.Bot(
     name="Test1", description="test bot", personality="FILLED WITH RAGE"
-).save_sync(overwrite=True)
+).save_sync(if_exists="update")
 marvin.Bot(
     name="Test2",
     description="another test bot",
     personality="Incredibly helpful and nice",
-).save_sync(overwrite=True)
+).save_sync(if_exists="update")
+marvin.Bot(
+    name="DuetBot",
+    description="Let's sing!",
+    personality="Huge fan of popular music",
+    instructions=(
+        "Whenever the user provides a line from a popular song, sing the next line to"
+        " them."
+    ),
+    plugins=[],
+).save_sync(if_exists="update")
 
 if __name__ == "__main__":
     app = MarvinApp()

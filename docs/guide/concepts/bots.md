@@ -47,19 +47,41 @@ ford_bot.say_sync("Hello again!")
 When you speak with a bot, every message is automatically stored. The bot uses its `history` module to access these messages, which means you can refer to earlier parts of your conversation without any extra work. In Marvin, each conversation is called a `thread`. Bots generate a new thread any time they are instantiated, but you can resume a specific thread by calling `Bot.set_thread()`. If you want to clear the thread and start a new one, call `Bot.reset_thread()`. 
 ### Saving bots
 
-Bots can be saved to the database by calling the `Bot.save()` method. Bots are saved under the name they're given and **will overwrite** any existing bot with the same name.
+Bots can be saved to the database by calling the `Bot.save()` method. Bots are saved by name. You can use the `if_exists` argument to customize what happens if a bot with the same name already exists:
+
+- `None` (the default): an error will be raised.
+- `"delete"`: the old bot will be deleted and a new bot will be saved. The new bot will not share anything with the old bot, including its message history.
+- `"update"`: the old bot will be updated with the new bot's details. The ID and message history will be preserved.
+- `"ignore"`: the old bot is left untouched and no error is raised.
+
 
 ```python
 bot = Bot("Ford")
 await bot.save()
 ```
 
+```python
+bot = Bot("Ford")
+await bot.save(if_exists="update")
+```
+
+Or, equivalently:
+
+```python
+bot = Bot("Ford")
+bot.save_sync()
+```
 ### Loading bots
 
 Bots can be loaded with the `Bot.load()` method.
 
 ```python
 bot = await Bot.load("Ford")
+```
+
+Or, equivalently:
+```python
+bot = Bot.load_sync("Ford")
 ```
 
 ### Streaming responses

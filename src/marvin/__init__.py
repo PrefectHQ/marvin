@@ -33,6 +33,11 @@ if settings.test_mode:
 if not settings.openai_model_name.startswith("gpt-4"):
     _logger.info_style(f'Using OpenAI model "{settings.openai_model_name}"')
 
+# update forward references
+for model in [models.bots.BotConfigCreate, models.bots.BotConfigUpdate]:
+    model.update_forward_refs(
+        Plugin=Plugin, InputTransformer=bots.input_transformers.InputTransformer
+    )
 
 # check alembic versions
 if settings.database_check_migration_version_on_startup:

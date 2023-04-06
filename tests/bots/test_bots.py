@@ -117,13 +117,32 @@ class TestSaveBots:
         with pytest.raises(ValueError, match="(already exists)"):
             await Bot(name="abc").save()
 
-    async def test_overwrite_bot(self):
+    async def test_if_exists_delete(self):
         bot1 = Bot(instructions="1")
         bot2 = Bot(instructions="2")
         await bot1.save()
-        await bot2.save(overwrite=True)
+        await bot2.save(if_exists="delete")
         loaded_bot = await Bot.load(bot1.name)
         assert loaded_bot.instructions == bot2.instructions
+        assert loaded_bot.id == bot2.id
+
+    async def test_if_exists_update(self):
+        bot1 = Bot(instructions="1")
+        bot2 = Bot(instructions="2")
+        await bot1.save()
+        await bot2.save(if_exists="update")
+        loaded_bot = await Bot.load(bot1.name)
+        assert loaded_bot.instructions == bot2.instructions
+        assert loaded_bot.id == bot1.id
+
+    async def test_if_exists_ignore(self):
+        bot1 = Bot(instructions="1")
+        bot2 = Bot(instructions="2")
+        await bot1.save()
+        await bot2.save(if_exists="ignore")
+        loaded_bot = await Bot.load(bot1.name)
+        assert loaded_bot.instructions == bot1.instructions
+        assert loaded_bot.id == bot1.id
 
 
 class TestResponseFormat:
