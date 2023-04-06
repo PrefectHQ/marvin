@@ -18,6 +18,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 import marvin
 from marvin import get_logger
 
+
+class DatabaseWarning(UserWarning):
+    pass
+
+
 logger = get_logger(__name__)
 
 METADATA = sqlmodel.SQLModel.metadata
@@ -227,7 +232,7 @@ async def check_alembic_version():
                 " without resetting it. Some features may be broken, but you can"
                 f' continue using Marvin otherwise. Error was: "{str(exc)}"'
             ),
-            UserWarning,
+            DatabaseWarning,
         )
         return
     current = output_buffer.getvalue().strip()
@@ -247,7 +252,7 @@ async def check_alembic_version():
                     " Marvin otherwise. Please try to run `marvin database upgrade`"
                     f" manually. Error: {repr(exc)}"
                 ),
-                UserWarning,
+                DatabaseWarning,
             )
         return
 
@@ -269,5 +274,5 @@ async def check_alembic_version():
                     " the database is upgraded. Marvin does not do this automatically;"
                     " please run `marvin database upgrade` yourself."
                 ),
-                UserWarning,
+                DatabaseWarning,
             )

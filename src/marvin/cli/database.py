@@ -42,16 +42,19 @@ def upgrade(
 
 @database_app.command()
 def downgrade(
+    revision: str = typer.Option(
+        "base", "--revision", "-r", help="Revision to downgrade to"
+    ),
     confirm: bool = typer.Option(
         False,
         "-y",
         prompt="Are you sure you want to downgrade the database?",
         help="Confirm before creating the database.",
-    )
+    ),
 ):
-    """Upgrade the database."""
+    """Downgrade the database."""
     if confirm:
-        marvin.infra.database.alembic_downgrade()
+        marvin.infra.database.alembic_downgrade(revision=revision)
     else:
         print("[red]Database upgrade cancelled.[/]")
 

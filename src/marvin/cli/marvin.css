@@ -1,6 +1,5 @@
 .hidden {
   display: none;
-
 }
 
 DebugInfo {
@@ -39,7 +38,6 @@ Sidebar OptionList {
   height: 1fr;
 }
 
-
 Conversation {
   height: 100%;
   width: 100%;
@@ -77,12 +75,14 @@ BotResponse ResponseBody {
 }
 
 SettingsScreen,
-BotsScreen {
+BotsScreen,
+DatabaseUpgradeScreen {
   align: center middle;
 }
 
 SettingsDialogue,
-BotsDialogue {
+BotsDialogue,
+DatabaseUpgradeDialogue {
   margin: 1 2;
   padding: 2 4;
   width: 70%;
@@ -90,8 +90,6 @@ BotsDialogue {
   height: auto;
   border: thick $primary 80%;
 }
-
-
 
 SettingsDialogue TabbedContent {
   margin: 4;
@@ -102,6 +100,16 @@ SettingsDialogue TabPane {
   height: 10;
 }
 
+DatabaseUpgradeDialogue {
+  border: thick red 50%;
+  padding: 2 4;
+}
+
+DatabaseUpgradeDialogue Label {
+  /* color: darkorange; */
+  width: 100%;
+  margin: 2 0;
+}
 
 #empty-thread-container {
   align: center middle;
@@ -120,12 +128,10 @@ SettingsDialogue TabPane {
   align: center middle;
   height: 4;
   border-bottom: solid $secondary;
-  
 }
 
 #bot-name {
   text-style: bold;
-  
 }
 
 .sidebar-title {
@@ -133,9 +139,8 @@ SettingsDialogue TabPane {
   text-align: center;
   /* text-style: bold; */
   width: 100%;
-  padding-top: 1; 
+  padding-top: 1;
 }
-
 
 .settings-container {
   width: 100%;
@@ -154,7 +159,6 @@ SettingsDialogue .error {
   color: red;
 }
 
-
 BotsDialogue {
   width: 80%;
   height: 70%;
@@ -162,24 +166,22 @@ BotsDialogue {
 
 BotsOptionList {
   border: solid white 50%;
-  background:$background;
-  
+  background: $background;
 }
 
 BotsOptionList .option-list--option {
   background: red;
-  
 }
 BotsInfo {
   border: solid white 50%;
   column-span: 2;
-  height:100%;
+  height: 100%;
   width: 100%;
 }
 
 BotsInfo TextTable {
-  height:100%;
-  width:100%;
+  height: 100%;
+  width: 100%;
   overflow: auto auto;
   padding: 1 2 1 2;
 }
@@ -192,5 +194,5 @@ BotsInfo TextTable .label {
 #bots-info-container {
   layout: grid;
   grid-size: 3;
-  height:90%;
+  height: 90%;
 }

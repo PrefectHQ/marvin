@@ -1,4 +1,5 @@
 import asyncio
+import warnings
 from typing import Optional
 
 import dotenv
@@ -408,6 +409,31 @@ class SettingsScreen(ModalScreen):
         self.app.pop_screen()
 
 
+class DatabaseUpgradeDialogue(Container):
+    def compose(self) -> ComposeResult:
+        yield Label(
+            "Your database needs to be upgraded to the latest version. Please click"
+            ' "Upgrade DB" to automatically upgrade it.'
+        )
+        yield Button("Upgrade DB", variant="warning", id="upgrade-db")
+
+    def on_button_pressed(self, event: Button.Pressed):
+        if event.button.id == "upgrade-db":
+            event.button.label = "Upgrading..."
+            marvin.infra.database.alembic_upgrade()
+            self.app.pop_screen()
+
+
+class DatabaseUpgradeScreen(ModalScreen):
+    BINDINGS = [("escape", "dismiss", "Dismiss")]
+
+    def compose(self) -> ComposeResult:
+        yield DatabaseUpgradeDialogue()
+
+    def action_dismiss(self) -> None:
+        self.app.pop_screen()
+
+
 class BotsDialogue(Container):
     def compose(self) -> ComposeResult:
         yield Label("[b]Choose a bot[/]")
@@ -462,6 +488,10 @@ class MainScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Sidebar(id="sidebar")
         yield Conversation(id="conversation")
+
+    def on_mount(self):
+        if not marvin.settings.openai_api_key.get_secret_value():
+            self.set_timer(0.5, self.action_show_settings_screen)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         conversation = self.query_one("Conversation", Conversation)
@@ -574,11 +604,27 @@ class MarvinApp(App):
     thread_exists: bool = False
     mounted: bool = False
 
+    async def check_database_upgrade(self):
+        # trap warnings as errors
+        warnings.filterwarnings("error")
+
+        try:
+            await marvin.infra.database.check_alembic_version()
+        except marvin.infra.database.DatabaseWarning as w:
+            if "Database migrations are not up to date" in str(w):
+                self.push_screen(DatabaseUpgradeScreen())
+            else:
+                raise ValueError("Unknown database warning: {}".format(w))
+
+        # reset warning behavior
+        warnings.resetwarnings()
+
     async def on_ready(self) -> None:
         self.push_screen(MainScreen())
         self.bot = await get_default_bot()
         await self.bot.set_thread(self.thread_id)
         self.mounted = True
+        self.set_timer(0.5, self.check_database_upgrade)
 
     async def watch_bot(self, bot: marvin.Bot) -> None:
         if bot:
