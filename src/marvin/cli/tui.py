@@ -51,12 +51,14 @@ async def get_default_bot():
 
 
 @marvin.ai_fn(llm_model_name="gpt-3.5-turbo", llm_model_temperature=1)
-async def name_conversation(history: str, personality: str) -> str:
+async def name_thread(history: str, personality: str) -> str:
     """
-    Generate a short, relevant title for this conversation. The name should be no
-    more than 3 words and summarize the user's intent in a fun but recognizeable
-    way. You can use emojis. The name should reflect the provided personality.
-    Do not put a period at the end. Occasionally use emojis.
+    This function generates a name for a thread `history` that will be displayed
+    to the user in a list of threads. The name should be three words or fewer
+    and reflect the user's intent or objective in a clear, fun way. It can
+    include emojis and use sentence capitalization, but should not end with a
+    period. It should also reflect the provided `personality`. This function is
+    not considered part of the thread.
     """
 
 
@@ -233,8 +235,6 @@ class BotResponse(Response):
 
 
 class Conversation(Container):
-    bot_response_count = reactive(0)
-
     def compose(self) -> ComposeResult:
         input = Input(placeholder="Your message", id="message-input")
         input.focus()
@@ -245,11 +245,13 @@ class Conversation(Container):
                 id="empty-thread-container",
             )
 
-    def add_response(self, response: Response, scroll: bool = True) -> None:
+    async def add_response(self, response: Response, scroll: bool = True) -> None:
         messages = self.query_one("Conversation #messages", VerticalScroll)
-        messages.mount(response)
+        # wait for the responses to be fully mounted before scrolling
+        # to avoid issues with rendering Markdown
+        await messages.mount(response)
         if scroll:
-            messages.scroll_end(duration=0.1)
+            messages.scroll_end(duration=0.2)
 
         # show / hide the empty thread message
         empty = self.query_one("Conversation #empty-thread")
@@ -261,25 +263,22 @@ class Conversation(Container):
             response.remove()
         empty = self.query_one("Conversation #empty-thread")
         empty.remove_class("hidden")
-        self.bot_response_count = 0
 
     async def refresh_messages(self):
-        self.clear_responses()
         with self.app.batch_update():
+            self.clear_responses()
             messages = await marvin.api.threads.get_messages(
                 thread_id=self.app.thread_id, limit=100
             )
             for message in messages:
                 if message.role == "user":
-                    self.add_response(UserResponse(message.content), scroll=False)
+                    await self.add_response(UserResponse(message.content), scroll=False)
                 elif message.role == "bot":
-                    self.add_response(BotResponse(message.content), scroll=False)
-            self.bot_response_count = len([m for m in messages if m.role == "bot"])
+                    await self.add_response(BotResponse(message.content), scroll=False)
 
-        await asyncio.sleep(0.15)
-        # scroll to bottom
-        messages = self.query_one("Conversation #messages", VerticalScroll)
-        messages.scroll_end(duration=0.1)
+            # scroll to bottom
+            messages = self.query_one("Conversation #messages", VerticalScroll)
+            messages.scroll_end(animate=False)
 
 
 class LabeledText(Static):
@@ -493,9 +492,9 @@ class MainScreen(Screen):
         if not marvin.settings.openai_api_key.get_secret_value():
             self.set_timer(0.5, self.action_show_settings_screen)
 
-    def on_input_submitted(self, event: Input.Submitted) -> None:
+    async def on_input_submitted(self, event: Input.Submitted) -> None:
         conversation = self.query_one("Conversation", Conversation)
-        conversation.add_response(UserResponse(event.value))
+        await conversation.add_response(UserResponse(event.value))
         self.get_bot_response(event)
         event.input.value = ""
 
@@ -516,7 +515,7 @@ class MainScreen(Screen):
             response = responses.last()
             if not isinstance(response, BotResponse):
                 conversation = self.query_one("Conversation", Conversation)
-                conversation.add_response(BotResponse(streaming_response))
+                await conversation.add_response(BotResponse(streaming_response))
             else:
                 response.message.content = streaming_response
                 response.body.update(streaming_response)
@@ -532,12 +531,12 @@ class MainScreen(Screen):
             event.value,
             on_token_callback=self.update_last_bot_response,
         )
-        conversation = self.query_one("Conversation", Conversation)
-        conversation.bot_response_count += 1
+        self.query_one("Conversation", Conversation)
 
         # if this is one of the first few responses, rename the thread
         # appropriately
-        if conversation.bot_response_count <= 3:
+        bot_responses = self.query("BotResponse")
+        if 1 <= len(bot_responses) <= 5:
             self.action_rename_thread()
 
     @work
@@ -554,10 +553,12 @@ class MainScreen(Screen):
 
         # generate a new thread from the thread history
         messages = await marvin.api.threads.get_messages(
-            thread_id=self.app.thread_id, limit=6
+            thread_id=self.app.thread_id, limit=10
         )
-        name = await name_conversation(
-            history="\n\n".join(["{}: {}".format(m.name, m.content) for m in messages]),
+        name = await name_thread(
+            history="\n\n".join(
+                ["{}: {}".format(m.role.capitalize(), m.content) for m in messages]
+            ),
             personality=getattr(self.app.bot, "personality", None),
         )
 

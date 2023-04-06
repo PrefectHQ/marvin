@@ -17,7 +17,7 @@ def create_task(coro):
     Creates background tasks in a way that is safe.
 
     See https://textual.textualize.io/blog/2023/02/11/the-heisenbug-lurking-in-your-async-code/
-    """
+    """  # noqa: E501
     task = asyncio.create_task(coro)
     BACKGROUND_TASKS.add(task)
     task.add_done_callback(BACKGROUND_TASKS.discard)
