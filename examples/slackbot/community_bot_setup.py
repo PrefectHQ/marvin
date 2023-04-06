@@ -1,5 +1,3 @@
-import asyncio
-
 import marvin
 from marvin.bots import Bot
 from marvin.loaders.base import MultiLoader
@@ -130,4 +128,4 @@ community_bot = Bot(
 async def main():
     marvin.config.settings.run_slackbot = True
     marvin.config.settings.slackbot = community_bot
-    asyncio.run(load_prefect_things())
+    await load_prefect_things()
