@@ -205,6 +205,7 @@ class Response(Container):
         self.body.border_subtitle = (
             pendulum.instance(self.message.timestamp).in_tz("local").format("h:mm:ss A")
         )
+        self.border_title = "Edit message"
 
         yield self.body
         with Horizontal(classes="edit-buttons-container hidden"):
@@ -422,7 +423,10 @@ class ConfirmMessageDeleteDialogue(Container):
         super().__init__(**kwargs)
 
     def compose(self) -> ComposeResult:
-        yield Label("Are you sure you want to delete messages from this point on?")
+        yield Label(
+            "Are you sure you want to delete messages from this point on?",
+            classes="confirm-delete-message",
+        )
         with Horizontal():
             yield Button("Cancel", variant="default", id="cancel")
             yield Button("Delete", variant="error", id="delete")
