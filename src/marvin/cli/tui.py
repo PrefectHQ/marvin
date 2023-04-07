@@ -25,7 +25,7 @@ from textual.widgets import (
 from textual.widgets.option_list import Option
 
 import marvin
-from marvin.bots.base import DEFAULT_INSTRUCTIONS, DEFAULT_PERSONALITY
+from marvin.bot.base import DEFAULT_INSTRUCTIONS, DEFAULT_NAME, DEFAULT_PERSONALITY
 from marvin.config import ENV_FILE
 from marvin.models.ids import MessageID, ThreadID
 from marvin.utilities.strings import condense_newlines
@@ -33,7 +33,7 @@ from marvin.utilities.strings import condense_newlines
 
 async def get_default_bot():
     try:
-        bot = await marvin.Bot.load(marvin.bots.base.DEFAULT_NAME)
+        bot = await marvin.Bot.load(DEFAULT_NAME)
     except HTTPException:
         bot = marvin.Bot(
             personality="""

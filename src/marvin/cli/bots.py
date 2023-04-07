@@ -6,7 +6,7 @@ from rich import print
 from rich.table import Table
 
 import marvin
-from marvin.bots.base import DEFAULT_INSTRUCTIONS, DEFAULT_PERSONALITY
+from marvin.bot.base import DEFAULT_INSTRUCTIONS, DEFAULT_PERSONALITY
 from marvin.utilities.strings import condense_newlines
 
 bots_app = typer.Typer(help="Bot commands")
