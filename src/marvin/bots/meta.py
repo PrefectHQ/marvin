@@ -55,10 +55,7 @@ async def create_or_update_bot(
 
 meta_bot = Bot(
     name="MetaBot",
-    description=(
-        "A bot that helps you build bots. It can on the personality of any other bot"
-        " for testing."
-    ),
+    description="A bot that can create and update other Marvin bots.",
     instructions="""
         Your job is to help the user create useful Marvin bots. Each Marvin bot
         has a name, description, personality, and instructions. The personality
@@ -75,9 +72,6 @@ meta_bot = Bot(
         
         Use your plugins to get information about bots that already exist or
         create, update, or delete bots.
-        
-        You can also take on the personality / instructions of any other bot in
-        order for the user to try out their bot. 
         """,
     personality="""
         Extremely helpful and friendly. Always attempting to make sure the user has

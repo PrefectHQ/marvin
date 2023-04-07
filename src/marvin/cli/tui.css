@@ -145,20 +145,22 @@ ConfirmMessageDeleteDialogue Horizontal {
   margin: 2 0 0 0;
 }
 ConfirmMessageDeleteDialogue .confirm-delete-message {
- text-align: center; 
- width:100%;
+  text-align: center;
+  width: 100%;
 }
 ConfirmMessageDeleteDialogue Button {
   margin: 0 2;
 }
 
-#empty-thread-container {
+#message-top {
   align: center middle;
 }
 
-#empty-thread-label-container {
+#empty-thread-container {
+  align: center middle;
+  min-width: 50%;
+  width: auto;
   padding: 4 10;
-  width: 70%;
   border: round $secondary;
   height: auto;
   background: $panel;
@@ -166,18 +168,23 @@ ConfirmMessageDeleteDialogue Button {
   border-title-align: center;
 }
 #empty-thread-bot-name {
-  width: 100%;
+  width: auto;
 }
 #empty-thread-bot-description {
-  margin-top: 2;
+  border-left: solid $secondary 60%;
+  padding-left: 1;
+  margin-top: 1;
   height: auto;
-  width: 100%;
+  text-style: italic;
+  max-width: 100%;
+  /* width: 100%; */
 }
 
 #empty-thread-metabot {
-  margin-top: 2;
+  /* color: $accent; */
+  margin-top: 1;
   text-style: italic;
-  width: 100%;
+  width: auto;
 }
 
 #bot-name-container {

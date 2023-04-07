@@ -277,21 +277,45 @@ class Conversation(Container):
     bot_name = reactive(None, layout=True)
 
     def watch_bot_name(self, bot_name: str):
-        if bot_name:
-            message = f"Send a message to [bold green]{self.bot_name}[/]..."
-        else:
-            message = "Send a message to start a thread..."
-        self.query_one("#empty-thread").update(message)
+        with self.app.batch_update():
+            bot_name_label = self.query_one("#empty-thread-bot-name", Label)
+            bot_description_label = self.query_one(
+                "#empty-thread-bot-description", Label
+            )
+            metabot_label = self.query_one("#empty-thread-metabot", Label)
+
+            if bot_name:
+                bot_name_label.update(
+                    f"Send a message to [bold green]{self.bot_name}[/]!"
+                )
+                if self.app.bot.description:
+                    bot_description_label.update(f"{self.app.bot.description}")
+                    bot_description_label.remove_class("hidden")
+                else:
+                    bot_description_label.add_class("hidden")
+
+                if bot_name == "MetaBot":
+                    metabot_label.add_class("hidden")
+                else:
+                    metabot_label.remove_class("hidden")
+
+            else:
+                bot_description_label.add_class("hidden")
+                bot_name_label.update("Send a message to start a thread...")
 
     def compose(self) -> ComposeResult:
         input = Input(placeholder="Your message", id="message-input")
         input.focus()
         yield input
         with VerticalScroll(id="messages"):
-            yield Container(
-                Label("Send a message to start a thread...", id="empty-thread"),
-                id="empty-thread-container",
-            )
+            with Container(id="message-top"):
+                with Container(id="empty-thread-container"):
+                    yield Label("", id="empty-thread-bot-name")
+                    yield Label("", id="empty-thread-bot-description")
+                    yield Label(
+                        "(switch to MetaBot: ctrl+b)",
+                        id="empty-thread-metabot",
+                    )
 
     async def add_response(self, response: Response, scroll: bool = True) -> None:
         messages = self.query_one("Conversation #messages", VerticalScroll)
@@ -302,7 +326,7 @@ class Conversation(Container):
             messages.scroll_end(duration=0.2)
 
         # show / hide the empty thread message
-        empty = self.query_one("Conversation #empty-thread")
+        empty = self.query_one("Conversation #empty-thread-container")
         empty.add_class("hidden")
 
     def clear_responses(self) -> None:
@@ -311,7 +335,7 @@ class Conversation(Container):
             response.remove()
         self.bot_name = getattr(self.app.bot, "name")
         print(self.bot_name)
-        empty = self.query_one("Conversation #empty-thread")
+        empty = self.query_one("Conversation #empty-thread-container")
         empty.remove_class("hidden")
 
     async def refresh_messages(self):
@@ -568,7 +592,7 @@ class MainScreen(Screen):
         ("n", "new_thread", "New Thread"),
         ("s", "show_settings_screen", "Show Settings"),
         ("ctrl+x", "delete_thread", "Delete Thread"),
-        ("ctrl+m", "select_metabot", "Switch to MetaBot"),
+        ("ctrl+b", "select_metabot", "Switch to MetaBot"),
     ]
 
     def action_focus_threads(self) -> None:
@@ -584,7 +608,7 @@ class MainScreen(Screen):
         self.app.push_screen(SettingsScreen())
 
     def action_select_metabot(self) -> None:
-        pass
+        self.app.bot = marvin.bots.meta.meta_bot
 
     def compose(self) -> ComposeResult:
         yield Sidebar(id="sidebar")
