@@ -71,8 +71,18 @@ class Chroma:
         self._in_context = False
         await run_async(self.client.persist)
 
-    async def delete(self, ids: list[str] = None, where: dict = None):
-        await run_async(self.collection.delete, ids=ids, where=where)
+    async def delete(
+        self,
+        ids: list[str] = None,
+        where: dict = None,
+        where_document: Document = None,
+    ):
+        await run_async(
+            self.collection.delete,
+            ids=ids,
+            where=where,
+            where_document=where_document,
+        )
 
     async def delete_collection(self, collection_name: str):
         await run_async(self.client.delete_collection, collection_name=collection_name)
