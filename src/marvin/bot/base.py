@@ -10,9 +10,9 @@ from openai.error import InvalidRequestError
 from pydantic import Field, validator
 
 import marvin
-from marvin.bots.history import History, ThreadHistory
-from marvin.bots.input_transformers import InputTransformer
-from marvin.bots.response_formatters import (
+from marvin.bot.history import History, ThreadHistory
+from marvin.bot.input_transformers import InputTransformer
+from marvin.bot.response_formatters import (
     ResponseFormatter,
     load_formatter_from_shorthand,
 )
@@ -209,7 +209,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         elif isinstance(v, ResponseFormatter):
             return v
         else:
-            return marvin.bots.response_formatters.load_formatter_from_shorthand(v)
+            return marvin.bot.response_formatters.load_formatter_from_shorthand(v)
 
     def to_bot_config(self) -> "BotConfig":
         from marvin.models.bots import BotConfig
@@ -549,7 +549,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         """
         Launch an interactive chat with the bot. Optionally provide a first message.
         """
-        await marvin.bots.interactive_chat.chat(bot=self, first_message=first_message)
+        await marvin.bot.interactive_chat.chat(bot=self, first_message=first_message)
 
     # -------------------------------------
     # Synchronous convenience methods

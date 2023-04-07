@@ -6,7 +6,7 @@ from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Prompt
 
-from marvin.bots.base import Bot
+from marvin.bot.base import Bot
 
 spinner_messages = [
     "Thinking...",

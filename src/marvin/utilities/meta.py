@@ -3,7 +3,7 @@ import inspect
 from prefect.utilities.asyncutils import sync_compatible
 
 import marvin
-from marvin.bots_lab.utilities import mermaid_bot
+from marvin.bots.utilities import mermaid_bot
 
 
 def enable_mermaid(func):

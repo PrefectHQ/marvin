@@ -11,7 +11,7 @@ from marvin.utilities.models import CreatedUpdatedMixin, MarvinSQLModel
 from marvin.utilities.types import MarvinBaseModel
 
 if TYPE_CHECKING:
-    from marvin.bots.input_transformers import InputTransformer
+    from marvin.bot.input_transformers import InputTransformer
     from marvin.plugins.base import Plugin
 
 
@@ -40,13 +40,13 @@ class BotConfigCreate(MarvinBaseModel):
     name: str
     description: str = None
     personality: str = Field(
-        default_factory=lambda: marvin.bots.base.DEFAULT_PERSONALITY
+        default_factory=lambda: marvin.bot.base.DEFAULT_PERSONALITY
     )
     instructions: str = Field(
-        default_factory=lambda: marvin.bots.base.DEFAULT_INSTRUCTIONS
+        default_factory=lambda: marvin.bot.base.DEFAULT_INSTRUCTIONS
     )
     instructions_template: str = Field(
-        default_factory=lambda: marvin.bots.base.DEFAULT_INSTRUCTIONS_TEMPLATE
+        default_factory=lambda: marvin.bot.base.DEFAULT_INSTRUCTIONS_TEMPLATE
     )
     plugins: list["Plugin"] = Field(default_factory=list)
     input_transformers: list["InputTransformer"] = Field(default_factory=list)
