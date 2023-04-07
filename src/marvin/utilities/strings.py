@@ -237,3 +237,15 @@ def rm_text_after(text: str, substring: str) -> str:
         if (start := text.find(substring)) != -1
         else text
     )
+
+
+def safe_format(text, **kwargs):
+    def repl(match):
+        key = match.group(1)
+        if key in kwargs:
+            return str(kwargs[key])
+        else:
+            return match.group(0)
+
+    pattern = re.compile(r"{([^{}]*)}")
+    return pattern.sub(repl, text)

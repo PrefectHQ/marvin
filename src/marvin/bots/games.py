@@ -1,4 +1,4 @@
-from marvin.bots import Bot
+from marvin.bot import Bot
 
 mattgpt = Bot(
     name="MattGPT",
