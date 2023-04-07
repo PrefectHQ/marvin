@@ -4,7 +4,14 @@ from typing import List
 from urllib.parse import urlparse
 
 import httpx
-import pypdf
+
+try:
+    import pypdf
+except ModuleNotFoundError:
+    raise ImportError(
+        "The PDF loader requires the pypdf package. "
+        "Install it with `pip install marvin[pdf]`."
+    )
 
 from marvin.loaders.base import Loader
 from marvin.models.documents import Document
