@@ -1,3 +1,287 @@
-#chat_history {
-    height: 50%;
+.hidden {
+  display: none;
+}
+
+DebugInfo {
+  min-height: 10;
+}
+
+Sidebar {
+  dock: left;
+  background: $panel;
+  width: 35;
+  height: 100%;
+  border-right: vkey $background;
+}
+
+Sidebar Button {
+  width: 1fr;
+}
+
+Sidebar Button#settings {
+  dock: bottom;
+}
+
+Sidebar TabbedContent {
+  height: 100%;
+}
+
+Sidebar TabPane {
+  padding: 0;
+}
+
+Sidebar TabbedContent ContentSwitcher {
+  height: 1fr;
+}
+
+Sidebar OptionList {
+  height: 1fr;
+}
+
+Conversation {
+  height: 100%;
+  width: 100%;
+  background: $panel;
+}
+
+Conversation Input {
+  dock: bottom;
+}
+
+Response {
+  height: auto;
+  width: 100%;
+}
+
+Response.response-hover {
+  background: $boost;
+}
+
+Response.show-edit-buttons {
+  border: round $warning 50%;
+  border-title-align: center;
+  background: $boost;
+  padding: 2 4;
+  margin: 1 3;
+}
+
+ResponseBody {
+  height: auto;
+  border: round gray 90%;
+  padding: 1 2 0 2;
+  margin: 1 3;
+  width: 80%;
+}
+
+Response Horizontal {
+  height: auto;
+  width: 100%;
+  align: center middle;
+}
+
+Response Button {
+  margin: 0 2;
+}
+
+ResponseBody.show-edit-buttons {
+  width: 100%;
+}
+
+UserResponse {
+  align-horizontal: right;
+}
+
+UserResponse ResponseBody {
+  background: lightslategray 10%;
+}
+
+BotResponse ResponseBody {
+  border: skyblue 50%;
+  background: $primary 30%;
+}
+
+ModalScreen {
+  align: center middle;
+}
+
+SettingsDialogue,
+BotsDialogue,
+DatabaseUpgradeDialogue,
+ConfirmMessageDeleteDialogue {
+  background: $panel;
+  margin: 1 2;
+  padding: 2 4;
+  width: 70%;
+  min-width: 60;
+  height: auto;
+  border: thick $primary 80%;
+}
+
+SettingsDialogue TabbedContent {
+  margin: 4;
+  padding: 2;
+}
+
+SettingsDialogue TabPane {
+  height: 10;
+}
+
+DatabaseUpgradeDialogue {
+  border: thick red 50%;
+  padding: 2 4;
+}
+
+DatabaseUpgradeDialogue Label {
+  /* color: darkorange; */
+  width: 100%;
+  margin: 2 0;
+}
+ConfirmMessageDeleteDialogue {
+  width: auto;
+}
+ConfirmMessageDeleteDialogue Horizontal {
+  height: auto;
+  width: 100%;
+  align: center middle;
+  margin: 2 0 0 0;
+}
+ConfirmMessageDeleteDialogue .confirm-delete-message {
+  text-align: center;
+  width: 100%;
+}
+ConfirmMessageDeleteDialogue Button {
+  margin: 0 2;
+}
+
+#message-top {
+  align: center middle;
+}
+
+#empty-thread-container {
+  align: center middle;
+  min-width: 50%;
+  width: auto;
+  padding: 4 10;
+  border: round $secondary;
+  height: auto;
+  /* background: $boost; */
+  color: $text;
+  border-title-align: center;
+}
+#empty-thread-bot-name {
+  width: auto;
+}
+#empty-thread-bot-description {
+  border-left: solid $secondary 60%;
+  padding-left: 1;
+  margin-top: 1;
+  height: auto;
+  text-style: italic;
+  max-width: 100%;
+  /* width: 100%; */
+}
+
+#bot-name-container {
+  align: center middle;
+  height: 4;
+  border-bottom: solid $secondary;
+}
+
+#bot-name {
+  color: $success;
+
+  text-style: bold;
+}
+
+.sidebar-title {
+  height: 3;
+  text-align: center;
+  /* text-style: bold; */
+  width: 100%;
+  padding-top: 1;
+}
+
+.settings-container {
+  width: 100%;
+  height: auto;
+  border: round white 40%;
+  margin: 2 1;
+  padding: 1 2;
+}
+
+SettingsDialogue .api-key-info {
+  width: 100%;
+  margin: 2 1 0 1;
+}
+
+SettingsDialogue .error {
+  color: red;
+}
+
+BotsDialogue {
+  width: 80%;
+  height: 70%;
+}
+
+BotsOptionList {
+  border: solid white 50%;
+  background: $boost;
+  margin: 1 2;
+}
+
+BotInfo {
+  border: solid white 50%;
+  column-span: 2;
+  height: 100%;
+  width: 100%;
+}
+
+BotInfo TextTable {
+  height: 100%;
+  width: 100%;
+  overflow: auto auto;
+  padding: 1 2 1 2;
+}
+
+BotInfo TextTable .label {
+  padding-right: 1;
+  color: gray;
+}
+
+#bots-info-container {
+  layout: grid;
+  grid-size: 3;
+  height: 90%;
+}
+
+BotsList {
+  margin: 1 2;
+}
+BotInfo {
+  margin: 1 2;
+  background: $boost;
+  border: solid $secondary;
+}
+
+#bot-info-outer-container {
+  margin: 2 3 2 3;
+ 
+}
+BotInfo .bot-info-container {
+  margin-bottom: 2;
+  height: auto;
+}
+
+BotInfo .label {
+  text-style: bold;
+}
+
+BotInfo .text {
+  border-left: solid $secondary 60%;
+  padding-left: 1;
+  margin-top: 1;
+  /* height: auto; */
+  text-style: italic;
+  max-width: 100%;
+  width: auto;
 }

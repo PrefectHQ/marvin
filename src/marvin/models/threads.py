@@ -11,7 +11,7 @@ from marvin.models.ids import BotID, MessageID, ThreadID
 from marvin.utilities.models import CreatedUpdatedMixin, MarvinSQLModel
 from marvin.utilities.types import MarvinBaseModel
 
-RoleType = Literal["system", "user", "ai"]
+RoleType = Literal["system", "user", "bot"]
 
 
 class BaseMessage(MarvinBaseModel):
@@ -27,6 +27,7 @@ class BaseMessage(MarvinBaseModel):
 class Message(MarvinSQLModel, BaseMessage, table=True):
     __table_args__ = (
         sa.ForeignKeyConstraint(["thread_id"], ["thread.id"], ondelete="CASCADE"),
+        sa.Index("ix_message__bot_id", "bot_id"),
         sa.Index(
             "ix_message__thread_id_timestamp",
             "thread_id",
@@ -98,13 +99,13 @@ class Thread(MarvinSQLModel, CreatedUpdatedMixin, table=True):
 
     @provide_session()
     async def get_messages(self, n: int = None, session: AsyncSession = None):
-        return await marvin.api.threads._get_messages_by_thread_id(
-            thread_id=self.id, n=n, session=session
+        return await marvin.api.threads.get_messages(
+            thread_id=self.id, limit=n, session=session
         )
 
 
 class ThreadCreate(MarvinBaseModel):
-    lookup_key: str
+    lookup_key: str = None
     name: str = None
     context: dict = Field(default_factory=dict)
     is_visible: bool = False
@@ -119,7 +120,7 @@ class ThreadUpdate(MarvinBaseModel):
 
 class ThreadRead(MarvinBaseModel):
     id: ThreadID
-    lookup_key: str
+    lookup_key: str = None
     name: str = None
     is_visible: bool = False
     context: dict = Field(default_factory=dict)

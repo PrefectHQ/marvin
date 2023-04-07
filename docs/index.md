@@ -14,6 +14,8 @@ AI functions work with native data types, so you can seamlessly integrate them i
 
 In addition to AI functions, Marvin also introduces more flexible bots. [**Bots**](guide/concepts/bots.md) are highly capable AI assistants that can be given specific instructions and personalities or roles. They can use custom plugins and leverage external knowledge, and automatically create a history of every thread. Under the hood, AI functions are actually a type of bot. 
 
+To make it easy to work with bots, Marvin includes a fully-functional [**TUI**](guide/concepts/tui.md). The TUI tracks threads across multiple bots and even lets you manage your bots through a conversational interface.
+
 Developers can use Marvin to add AI capabilities wherever they will be most impactful, without needing to start from scratch. Marvin's code is available on [GitHub](https://github.com/prefecthq/marvin), and say hello on our [Discord server](https://discord.gg/Kgw4HpcuYG)!
 
 Marvin is built with 💙 by [Prefect](https://www.prefect.io).
@@ -24,13 +26,16 @@ Marvin is built with 💙 by [Prefect](https://www.prefect.io).
     -- <a href="https://www.youtube.com/clip/UgkxNj9p6jPFM8eWAmRJiKoPeOmvQxb8viQv" target="_blank">Marvin</a> -->
     
 ## Features
-![](img/heroes/gpp.png)
+<!-- ![](img/heroes/gpp.png) -->
+![](img/tui/colorful_fruit.png)
 
 🪄 Write [AI functions](guide/concepts/ai_functions.md) to process structured data without source code
 
-🤖 Chat with [bots](guide/concepts/bots.md) that have personalities and follow instructions
+🤖 Build [bots](guide/concepts/bots.md) that have personalities and follow instructions
 
-🔌 Build [plugins](guide/concepts/plugins.md) to give your bots new abilities
+🖥️ Chat with bots in a fully-featured [TUI](guide/concepts/tui.md)
+
+🔌 Give your bots new abilities with [plugins](guide/concepts/plugins.md) 
 
 📚 Store [knowledge](guide/concepts/loaders_and_documents.md) that bots can access and use
 
@@ -40,13 +45,19 @@ Marvin is built with 💙 by [Prefect](https://www.prefect.io).
 1. **Install**: `pip install marvin`
 2. **Chat**: `marvin chat`
 
+### Slightly less quick start
+Create a bot:
 ```shell
-marvin chat -p "knows every Star Wars meme" Hello there
+marvin bots create ObiWanKenoBot -p "knows every Star Wars meme"
 ```
-![](img/marvin_hello_there_chat.png)
+Chat with it:
+```
+marvin chat -b ObiWanKenoBot
+```
+![](img/tui/star_wars.png)
 
 
-See the [getting started](getting_started/installation.md) docs for more!
+See the [getting started](getting_started/installation.md) docs for more.
 
 ## Open source
 

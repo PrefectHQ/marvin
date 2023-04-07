@@ -1,3 +1,4 @@
+import fastapi.params
 import sqlalchemy as sa
 from fastapi import Body, Depends, HTTPException, Path, Query, status
 
@@ -60,13 +61,20 @@ async def get_topic_by_id(
 async def get_topics(
     session: AsyncSession = Depends(fastapi_session),
     limit: int = Query(25, gte=0, lte=100),
+    offset: int = Query(0, gte=0),
     after: str = Query(None),
 ) -> list[Topic]:
+    if isinstance(limit, fastapi.params.Query):
+        limit = limit.default
+    if isinstance(offset, fastapi.params.Query):
+        offset = offset.default
+
     query = (
         sa.select(Topic)
         .where(Topic.name > after if after else True)
         .order_by(Topic.name)
         .limit(limit)
+        .offset(offset)
     )
     result = await session.execute(query)
     topics = result.scalars().all()

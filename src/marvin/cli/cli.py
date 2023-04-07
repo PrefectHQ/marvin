@@ -10,12 +10,14 @@ from rich.prompt import Prompt
 
 import marvin
 
+from .bots import bots_app
 from .database import database_app
 from .server import server_app
 
 app = typer.Typer()
 app.add_typer(database_app, name="database")
 app.add_typer(server_app, name="server")
+app.add_typer(bots_app, name="bots")
 
 
 @app.command(name="setup-openai", help="Set up OpenAI")
@@ -70,46 +72,16 @@ def version():
     print(get_version("marvin"))
 
 
-@app.command(name="chat", help="Quickly chat with a custom bot")
+@app.command(name="chat", help="Launch a TUI for chatting with all your bots.")
 def chat(
-    name: str = typer.Option(None, "--name", "-n", help="Your bot's name"),
-    personality: str = typer.Option(
-        None, "--personality", "-p", help="Your bot's personality"
-    ),
-    instructions: str = typer.Option(
-        None, "--instructions", "-i", help="Your bot's instructions"
-    ),
-    message: list[str] = typer.Argument(
-        default=None, help="An optional initial message to send to the bot"
-    ),
-    model: str = typer.Option(
-        None, "--model", "-m", help="The model to use for the chatbot"
-    ),
-    bot_name: str = typer.Option(
-        None, "--bot", "-b", help="The name of the bot to use"
-    ),
+    bot: str = typer.Option(
+        None, "--bot", "-b", help="The name of a bot to begin chatting with"
+    )
 ):
-    if not marvin.settings.openai_api_key.get_secret_value():
-        setup_openai()
+    from marvin.cli.tui import MarvinApp
 
-    if bot_name and any([name, personality, instructions, model]):
-        raise ValueError(
-            "You can't specify both `--bot` and any of "
-            "`--name`,  `--personality`, `--instructions`, or `--model`"
-        )
-
-    if bot_name:
-        bot = asyncio.run(marvin.Bot.load(bot_name))
-    else:
-        bot = marvin.Bot(
-            name=name,
-            personality=personality,
-            instructions=instructions,
-            llm_model_name=model or marvin.settings.openai_model_name,
-            llm_temperature=marvin.settings.openai_model_temperature,
-        )
-
-    asyncio.run(bot.interactive_chat(first_message=" ".join(message)))
+    app = MarvinApp(default_bot_name=bot)
+    app.run()
 
 
 @app.command(name="log", help="View the logs for a bot")
