@@ -43,9 +43,10 @@ async def name_thread(history: str, personality: str, current_name: str = None) 
     This function generates a short, relevant name for the provided thread
     `history`. The name should be fewer than five words and must reflect the
     user's intent or objective in a clear, fun way. It can include emojis and
-    use sentence capitalization, but should not end with a period. It should
-    also reflect the provided `personality`. If the thread has a `current_name`
-    already, it is provided and you can choose to keep it unchanged.
+    use sentence capitalization, but should not end with a period. The name itself
+    should be entirely based on the provided `history`, but the tone should reflect the
+    provided `personality`. If the thread has a `current_name` already, it is
+    provided and you can choose to keep it unchanged.
     """
 
 
