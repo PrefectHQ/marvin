@@ -5,7 +5,7 @@ from fastapi import Body, Depends, HTTPException, Path, Query, status
 from marvin.api.dependencies import fastapi_session
 from marvin.infra.database import AsyncSession, provide_session
 from marvin.models.bots import BotConfig
-from marvin.models.ids import ThreadID
+from marvin.models.ids import MessageID, ThreadID
 from marvin.models.threads import (
     Message,
     MessageCreate,
@@ -159,6 +159,29 @@ async def get_messages(
     )
     result = await session.execute(query)
     return list(reversed(result.scalars().all()))
+
+
+@provide_session()
+async def delete_message(
+    message_id: MessageID,
+    delete_following_messages: bool = False,
+    session: AsyncSession = Depends(fastapi_session),
+) -> None:
+    if delete_following_messages:
+        query = sa.select(Message).where(Message.id == message_id).limit(1)
+        result = await session.execute(query)
+        message = result.scalar()
+        if not message:
+            raise HTTPException(status.HTTP_404_NOT_FOUND)
+        await session.execute(
+            sa.delete(Message).where(
+                Message.thread_id == message.thread_id,
+                Message.timestamp >= message.timestamp,
+            )
+        )
+    else:
+        await session.execute(sa.delete(Message).where(Message.id == message_id))
+    await session.commit()
 
 
 @router.patch("/{id}", status_code=status.HTTP_204_NO_CONTENT)

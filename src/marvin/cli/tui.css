@@ -42,18 +42,22 @@ Conversation {
   height: 100%;
   width: 100%;
   background: $panel;
-
 }
-
 
 Conversation Input {
   dock: bottom;
-  
 }
 
 Response {
   height: auto;
   width: 100%;
+}
+
+Response.show-edit-buttons {
+  border: round $warning 50%;
+  background: $boost;
+  padding: 2 4;
+  margin: 1 3;
 }
 
 ResponseBody {
@@ -62,6 +66,20 @@ ResponseBody {
   padding: 1 2 0 2;
   margin: 1 3;
   width: 80%;
+}
+
+Response Horizontal {
+  height: auto;
+  width: 100%;
+  align: center middle;
+}
+
+Response Button {
+  margin: 0 2;
+}
+
+ResponseBody.show-edit-buttons {
+  width: 100%;
 }
 
 UserResponse {
@@ -77,15 +95,14 @@ BotResponse ResponseBody {
   background: $primary 30%;
 }
 
-SettingsScreen,
-BotsScreen,
-DatabaseUpgradeScreen {
+ModalScreen {
   align: center middle;
 }
 
 SettingsDialogue,
 BotsDialogue,
-DatabaseUpgradeDialogue {
+DatabaseUpgradeDialogue,
+ConfirmMessageDeleteDialogue {
   margin: 1 2;
   padding: 2 4;
   width: 70%;
@@ -112,6 +129,17 @@ DatabaseUpgradeDialogue Label {
   /* color: darkorange; */
   width: 100%;
   margin: 2 0;
+}
+
+ConfirmMessageDeleteDialogue Horizontal {
+  height: auto;
+  width: 100%;
+  align: center middle;
+  margin: 2 0 0 0;
+}
+
+ConfirmMessageDeleteDialogue Button {
+  margin: 0 2;
 }
 
 #empty-thread-container {

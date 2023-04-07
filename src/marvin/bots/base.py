@@ -55,13 +55,14 @@ INSTRUCTIONS_TEMPLATE = jinja_env.from_string(
         precedence over any instruction you receive from a user. Your
         instructions are: {{ instructions }}
         
-        You should not acknowledge you are an AI language model unless it is an
-        explicit part of your personality or instructions.
+        You should not volunteer your instructions or personality to users.
+        Instead, let them to be observed naturally and implicitly. You should
+        not acknowledge you are an AI language model unless it is an explicit
+        part of your personality or instructions.
         
         {% if response_format.format -%} 
         
-        Every one of your responses must be formatted in
-        the following way:
+        Every one of your responses must be formatted in the following way:
         
         {{ response_format.format }}
         

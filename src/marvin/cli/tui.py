@@ -4,6 +4,8 @@ from typing import Optional
 
 import dotenv
 import openai
+import pendulum
+import pyperclip
 from fastapi import HTTPException
 from textual import work
 from textual.app import App, ComposeResult
@@ -25,7 +27,7 @@ from textual.widgets.option_list import Option
 import marvin
 from marvin.bots.base import DEFAULT_INSTRUCTIONS, DEFAULT_PERSONALITY
 from marvin.config import ENV_FILE
-from marvin.models.ids import ThreadID
+from marvin.models.ids import MessageID, ThreadID
 from marvin.utilities.strings import condense_newlines
 
 
@@ -199,37 +201,39 @@ class Response(Container):
         self.body.border_title = (
             "You" if self.message.role == "user" else self.message.name
         )
-        self.body.border_subtitle = self.message.timestamp.in_tz("local").format(
-            "h:mm:ss A"
+        self.body.border_subtitle = (
+            pendulum.instance(self.message.timestamp).in_tz("local").format("h:mm:ss A")
         )
+
         yield self.body
+        with Horizontal(classes="edit-buttons-container hidden"):
+            yield Button("Copy", variant="default", id="copy-message")
+            yield Button("Delete", variant="error", id="delete-message")
+
+    def on_click(self):
+        self.toggle_class("show-edit-buttons")
+        self.body.toggle_class("show-edit-buttons")
+        self.query_one(".edit-buttons-container").toggle_class("hidden")
+
+    def on_button_pressed(self, event: Button.Pressed):
+        if event.button.id == "copy-message":
+            pyperclip.copy(self.message.content)
+        elif event.button.id == "delete-message":
+            self.app.push_screen(ConfirmMessageDeleteScreen(self.message.id))
 
 
 class UserResponse(Response):
-    def __init__(self, response: str, **kwargs) -> None:
+    def __init__(self, message: marvin.models.threads.Message, **kwargs) -> None:
         classes = kwargs.setdefault("classes", "")
         kwargs["classes"] = f"{classes} user-response".strip()
-        super().__init__(
-            message=marvin.models.threads.Message(
-                name="User", role="user", content=response
-            ),
-            **kwargs,
-        )
+        super().__init__(message=message, **kwargs)
 
 
 class BotResponse(Response):
-    def __init__(self, response: str, **kwargs) -> None:
+    def __init__(self, message: marvin.models.threads.Message, **kwargs) -> None:
         classes = kwargs.setdefault("classes", "")
         kwargs["classes"] = f"{classes} bot-response".strip()
-        super().__init__(
-            message=marvin.models.threads.Message(
-                name=self.app.bot.name,
-                role="bot",
-                content=response,
-                bot_id=self.app.bot.id,
-            ),
-            **kwargs,
-        )
+        super().__init__(message=message, **kwargs)
 
 
 class Conversation(Container):
@@ -270,9 +274,9 @@ class Conversation(Container):
             )
             for message in messages:
                 if message.role == "user":
-                    await self.add_response(UserResponse(message.content), scroll=False)
+                    await self.add_response(UserResponse(message), scroll=False)
                 elif message.role == "bot":
-                    await self.add_response(BotResponse(message.content), scroll=False)
+                    await self.add_response(BotResponse(message), scroll=False)
 
             # scroll to bottom
             messages = self.query_one("Conversation #messages", VerticalScroll)
@@ -406,6 +410,47 @@ class SettingsScreen(ModalScreen):
         self.app.pop_screen()
 
 
+class ConfirmMessageDeleteDialogue(Container):
+    def __init__(self, message_id: MessageID, **kwargs):
+        self.message_id = message_id
+        super().__init__(**kwargs)
+
+    def compose(self) -> ComposeResult:
+        yield Label("Are you sure you want to delete messages from this point on?")
+        with Horizontal():
+            yield Button("Cancel", variant="default", id="cancel")
+            yield Button("Delete", variant="error", id="delete")
+
+    async def on_button_pressed(self, event: Button.Pressed):
+        if event.button.id == "cancel":
+            self.action_dismiss()
+        elif event.button.id == "delete":
+            await self.action_delete()
+
+    def action_dismiss(self) -> None:
+        self.app.pop_screen()
+
+    async def action_delete(self) -> None:
+        await marvin.api.threads.delete_message(
+            message_id=self.message_id, delete_following_messages=True
+        )
+        self.action_dismiss()
+        # refresh conversation
+        conversation = self.app.query_one("Conversation", Conversation)
+        await conversation.refresh_messages()
+
+
+class ConfirmMessageDeleteScreen(ModalScreen):
+    BINDINGS = [("escape", "dismiss", "Dismiss")]
+
+    def __init__(self, message_id: MessageID, **kwargs):
+        self.message_id = message_id
+        super().__init__(**kwargs)
+
+    def compose(self) -> ComposeResult:
+        yield ConfirmMessageDeleteDialogue(message_id=self.message_id)
+
+
 class DatabaseUpgradeDialogue(Container):
     def compose(self) -> ComposeResult:
         yield Label(
@@ -492,7 +537,9 @@ class MainScreen(Screen):
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         conversation = self.query_one("Conversation", Conversation)
-        await conversation.add_response(UserResponse(event.value))
+        await conversation.add_response(
+            UserResponse(Message(name="User", role="user", content=event.value))
+        )
         self.get_bot_response(event)
         event.input.value = ""
 
@@ -513,7 +560,16 @@ class MainScreen(Screen):
             response = responses.last()
             if not isinstance(response, BotResponse):
                 conversation = self.query_one("Conversation", Conversation)
-                await conversation.add_response(BotResponse(streaming_response))
+                await conversation.add_response(
+                    BotResponse(
+                        Message(
+                            role="bot",
+                            name=self.app.bot.name,
+                            bot_id=self.app.bot.id,
+                            content=streaming_response,
+                        )
+                    )
+                )
             else:
                 response.message.content = streaming_response
                 response.body.update(streaming_response)
@@ -525,7 +581,7 @@ class MainScreen(Screen):
     @work
     async def get_bot_response(self, event: Input.Submitted) -> str:
         bot = self.app.bot
-        await bot.say(
+        response = await bot.say(
             event.value,
             on_token_callback=self.update_last_bot_response,
         )
@@ -536,6 +592,16 @@ class MainScreen(Screen):
         bot_responses = self.query("BotResponse")
         if 1 <= len(bot_responses) <= 5:
             self.action_rename_thread()
+
+        # update the bot response with the actual message id
+        bot_responses.last().message.id = response.id
+
+        # update the last user response with the actual message id
+        messages = await marvin.api.threads.get_messages(
+            thread_id=self.app.thread_id, limit=2
+        )
+        if len(messages) == 2:
+            self.query("UserResponse").last().message.id = messages[0].id
 
     @work
     async def action_rename_thread(self):
@@ -709,6 +775,8 @@ marvin.Bot(
     instructions='Replies "let me know how I can help" to every message.',
     plugins=[],
 ).save_sync(if_exists="update")
+
+
 if __name__ == "__main__":
     app = MarvinApp()
     app.run()
