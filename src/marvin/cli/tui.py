@@ -38,13 +38,14 @@ logging.basicConfig(
 
 
 @marvin.ai_fn(llm_model_name="gpt-3.5-turbo", llm_model_temperature=1)
-async def name_thread(history: str, personality: str) -> str:
+async def name_thread(history: str, personality: str, current_name: str = None) -> str:
     """
     This function generates a short, relevant name for the provided thread
     `history`. The name should be fewer than five words and must reflect the
     user's intent or objective in a clear, fun way. It can include emojis and
     use sentence capitalization, but should not end with a period. It should
-    also reflect the provided `personality`.
+    also reflect the provided `personality`. If the thread has a `current_name`
+    already, it is provided and you can choose to keep it unchanged.
     """
 
 
@@ -662,13 +663,13 @@ class MainScreen(Screen):
     async def action_rename_thread(self):
         # first, make sure the thread exists
         try:
-            await marvin.api.threads.create_thread(
+            thread = await marvin.api.threads.get_thread(thread_id=self.app.thread_id)
+        except HTTPException:
+            thread = await marvin.api.threads.create_thread(
                 thread=marvin.models.threads.Thread(
                     id=self.app.thread_id, is_visible=True
                 )
             )
-        except HTTPException:
-            pass
 
         # generate a new thread from the thread history
         messages = await marvin.api.threads.get_messages(
@@ -679,9 +680,8 @@ class MainScreen(Screen):
                 ["{}: {}".format(m.role.capitalize(), m.content) for m in messages]
             ),
             personality=getattr(self.app.bot, "personality", None),
+            current_name=thread.name,
         )
-        # just in case JSON was returned and parsed
-        name = str(name)
 
         # update thead name
         await marvin.api.threads.update_thread(
