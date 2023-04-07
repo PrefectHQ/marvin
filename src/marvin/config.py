@@ -87,7 +87,6 @@ class Settings(BaseSettings):
     embeddings_cache_warn_size: int = 4000000000  # 4GB
 
     # OPENAI
-    openai_max_tokens_per_message: int = 4096
     openai_model_name: str = "gpt-3.5-turbo"
     openai_model_temperature: float = 0.8
     openai_model_max_tokens: int = 1250

@@ -140,3 +140,15 @@ def prepare_messages(
         else:
             raise ValueError(f"Unrecognized role: {msg.role}")
     return langchain_messages
+
+
+model_name_to_context_size = {
+    "gpt-3.5-turbo": 4096,
+    "gpt-4": 8192,
+    "gpt-4-32k": 32_768,
+}
+
+
+def get_context_size(model_name: str) -> int:
+    """Get the context size for a given model."""
+    return model_name_to_context_size.get(model_name, 4096)
