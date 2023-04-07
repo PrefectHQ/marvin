@@ -4,7 +4,7 @@ import marvin
 import pydantic
 import pytest
 from marvin import Bot
-from marvin.bots.response_formatters import ResponseFormatter
+from marvin.bot.response_formatters import ResponseFormatter
 from marvin.utilities.strings import jinja_env
 from marvin.utilities.types import format_type_str
 
@@ -18,26 +18,26 @@ custom_instructions_template = inspect.cleandoc(
 class TestCreateBots:
     async def test_create_bot_with_default_settings(self):
         bot = Bot()
-        assert bot.name == marvin.bots.base.DEFAULT_NAME
-        assert bot.personality == marvin.bots.base.DEFAULT_PERSONALITY
-        assert bot.instructions == marvin.bots.base.DEFAULT_INSTRUCTIONS
+        assert bot.name == marvin.bot.base.DEFAULT_NAME
+        assert bot.personality == marvin.bot.base.DEFAULT_PERSONALITY
+        assert bot.instructions == marvin.bot.base.DEFAULT_INSTRUCTIONS
 
     async def test_create_bot_with_custom_name(self):
         bot = Bot(name="Test Bot")
         assert bot.name == "Test Bot"
-        assert bot.personality == marvin.bots.base.DEFAULT_PERSONALITY
-        assert bot.instructions == marvin.bots.base.DEFAULT_INSTRUCTIONS
+        assert bot.personality == marvin.bot.base.DEFAULT_PERSONALITY
+        assert bot.instructions == marvin.bot.base.DEFAULT_INSTRUCTIONS
 
     async def test_create_bot_with_custom_personality(self):
         bot = Bot(personality="Test Personality")
-        assert bot.name == marvin.bots.base.DEFAULT_NAME
+        assert bot.name == marvin.bot.base.DEFAULT_NAME
         assert bot.personality == "Test Personality"
-        assert bot.instructions == marvin.bots.base.DEFAULT_INSTRUCTIONS
+        assert bot.instructions == marvin.bot.base.DEFAULT_INSTRUCTIONS
 
     async def test_create_bot_with_custom_instructions(self):
         bot = Bot(instructions="Test Instructions")
-        assert bot.name == marvin.bots.base.DEFAULT_NAME
-        assert bot.personality == marvin.bots.base.DEFAULT_PERSONALITY
+        assert bot.name == marvin.bot.base.DEFAULT_NAME
+        assert bot.personality == marvin.bot.base.DEFAULT_PERSONALITY
         assert bot.instructions == "Test Instructions"
 
     async def test_create_bot_with_custom_instruction_template(self):
@@ -45,8 +45,8 @@ class TestCreateBots:
             instructions="Test Instructions",
             instructions_template=custom_instructions_template,
         )
-        assert bot.name == marvin.bots.base.DEFAULT_NAME
-        assert bot.personality == marvin.bots.base.DEFAULT_PERSONALITY
+        assert bot.name == marvin.bot.base.DEFAULT_NAME
+        assert bot.personality == marvin.bot.base.DEFAULT_PERSONALITY
         assert bot.instructions == "Test Instructions"
         assert (
             jinja_env.from_string(bot.instructions_template).render(
@@ -174,7 +174,7 @@ class TestResponseFormat:
     async def test_response_formatter_from_string(self):
         bot = Bot(response_format="list of strings")
         assert isinstance(
-            bot.response_format, marvin.bots.response_formatters.ResponseFormatter
+            bot.response_format, marvin.bot.response_formatters.ResponseFormatter
         )
 
         assert bot.response_format.format == "list of strings"
@@ -182,7 +182,7 @@ class TestResponseFormat:
     async def test_response_formatter_from_json_string(self):
         bot = Bot(response_format="JSON list of strings")
         assert isinstance(
-            bot.response_format, marvin.bots.response_formatters.JSONFormatter
+            bot.response_format, marvin.bot.response_formatters.JSONFormatter
         )
 
         assert bot.response_format.format == "JSON list of strings"
@@ -191,7 +191,7 @@ class TestResponseFormat:
     async def test_response_formatter_from_python_types(self, type_):
         bot = Bot(response_format=type_)
         assert isinstance(
-            bot.response_format, marvin.bots.response_formatters.TypeFormatter
+            bot.response_format, marvin.bot.response_formatters.TypeFormatter
         )
 
         assert format_type_str(type_) in bot.response_format.format
@@ -208,7 +208,7 @@ class TestResponseFormat:
 
         bot = Bot(response_format=OutputFormat)
         assert isinstance(
-            bot.response_format, marvin.bots.response_formatters.PydanticFormatter
+            bot.response_format, marvin.bot.response_formatters.PydanticFormatter
         )
         assert bot.response_format.format.startswith(
             "A JSON object that satisfies the following OpenAPI schema:"

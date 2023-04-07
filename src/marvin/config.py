@@ -1,4 +1,5 @@
 import os
+import platform
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal, Optional
@@ -9,6 +10,12 @@ try:
     CHROMA_INSTALLED = True
 except ModuleNotFoundError:
     CHROMA_INSTALLED = False
+
+
+if platform.system() == "Windows":
+    DEFAULT_DB_CONNECTION_URL = "sqlite+aiosqlite:///$MARVIN_HOME/marvin.sqlite"
+else:
+    DEFAULT_DB_CONNECTION_URL = "sqlite+aiosqlite:////$MARVIN_HOME/marvin.sqlite"
 
 from pydantic import BaseSettings, Field, SecretStr, root_validator, validator
 from rich import print
@@ -83,6 +90,7 @@ class Settings(BaseSettings):
     openai_max_tokens_per_message: int = 4096
     openai_model_name: str = "gpt-3.5-turbo"
     openai_model_temperature: float = 0.8
+    openai_model_max_tokens: int = 1250
     openai_api_key: SecretStr = Field(
         "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
     )
@@ -104,9 +112,7 @@ class Settings(BaseSettings):
 
     # DATABASE
     database_echo: bool = False
-    database_connection_url: SecretStr = (
-        "sqlite+aiosqlite:////$MARVIN_HOME/marvin.sqlite"
-    )
+    database_connection_url: SecretStr = DEFAULT_DB_CONNECTION_URL
     database_check_migration_version_on_startup: bool = True
 
     # GITHUB

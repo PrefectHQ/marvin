@@ -4,6 +4,7 @@ from typing import Callable
 
 from pydantic import Field, PrivateAttr, validator
 
+from marvin.utilities.strings import safe_format
 from marvin.utilities.types import DiscriminatedUnionType
 
 PLUGIN_INSTRUCTIONS = """
@@ -19,8 +20,12 @@ class Plugin(DiscriminatedUnionType):
             "A description of the plugin that will be provided to the bot, in addition"
             " to the docstring for the run() method."
         ),
+        repr=False,
     )
     _signature: str = PrivateAttr()
+
+    def __repr__(self):
+        return 'Plugin("{}")'.format(self.name)
 
     def __init__(self, **kwargs):
         if "signature" in kwargs:
@@ -45,7 +50,7 @@ class Plugin(DiscriminatedUnionType):
         return v
 
     def get_full_description(self) -> str:
-        description = self.description.format(**self.dict())
+        description = safe_format(self.description, **self.dict()).strip()
         docstring = self.run.__doc__
 
         result = inspect.cleandoc(
