@@ -2,35 +2,57 @@
 
 See all available commands:
 
-```bash
+```shell
 marvin --help
 ```
 
-## Chat
-    
-```bash
-marvin chat --name Squilliam --personality "Has seen better comebacks from a turkey sandwich"
+## TUI
+
+To launch the [TUI](tui.md):
+```shell
+marvin chat
 ```
 
+## Bot management
+
+To create a new bot:
+```shell
+marvin bots create -n MyBot -d "a description of the bot" -p "a personality"
+```
+
+To list all bots:
+```shell
+marvin bots ls
+```
+
+To update a bot:
+```shell
+marvin bots update MyBot -p "a new personality"
+```
+
+To delete a bot:
+```shell
+marvin bots delete MyBot
+```
 ## Database management
 
-```bash
+```shell
 marvin database --help
 ```
 
 **WARNING**: This will drop all tables and data in the database.
-```bash
+```shell
 marvin database reset
 ```
 
 ## Run the server
 
-```bash
+```shell
 marvin server start
 ```
 
 ## Setup OpenAI
     
-```bash
+```shell
 marvin setup-openai
 ```

@@ -14,7 +14,7 @@ ipython
 
 ## Create a Bot
 ```python
-from marvin.bots import Bot
+from marvin import Bot
 
 harry_styles_stan = Bot(
     name="Exists for Harry Styles Bot",
@@ -49,7 +49,7 @@ await harry_styles_stan.save()
 ## Load the saved bot
 ### From a script or REPL
 ```python
-from marvin.bots import Bot
+from marvin import Bot
 
 harry_styles_stan = await Bot.load("harry_styles_stan")
 ```

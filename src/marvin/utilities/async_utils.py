@@ -17,6 +17,20 @@ process_pool = concurrent.futures.ProcessPoolExecutor(
     mp_context=mp.get_context(mp_context)
 )
 
+BACKGROUND_TASKS = set()
+
+
+def create_task(coro):
+    """
+    Creates background tasks in a way that is safe.
+
+    See https://textual.textualize.io/blog/2023/02/11/the-heisenbug-lurking-in-your-async-code/
+    """  # noqa: E501
+    task = asyncio.create_task(coro)
+    BACKGROUND_TASKS.add(task)
+    task.add_done_callback(BACKGROUND_TASKS.discard)
+    return task
+
 
 async def run_async(func, *args, **kwargs):
     loop = asyncio.get_event_loop()

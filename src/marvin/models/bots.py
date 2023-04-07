@@ -1,18 +1,15 @@
 import datetime
-from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlmodel import Field
 
 import marvin
+from marvin.bot.input_transformers import InputTransformer
 from marvin.infra.database import JSONType
 from marvin.models.ids import BotID
+from marvin.plugins.base import Plugin
 from marvin.utilities.models import CreatedUpdatedMixin, MarvinSQLModel
 from marvin.utilities.types import MarvinBaseModel
-
-if TYPE_CHECKING:
-    from marvin.bot.input_transformers import InputTransformer
-    from marvin.plugins.base import Plugin
 
 
 class BotConfig(MarvinSQLModel, CreatedUpdatedMixin, table=True):
@@ -48,13 +45,15 @@ class BotConfigCreate(MarvinBaseModel):
     instructions_template: str = Field(
         default_factory=lambda: marvin.bot.base.DEFAULT_INSTRUCTIONS_TEMPLATE
     )
-    plugins: list["Plugin"] = Field(default_factory=list)
-    input_transformers: list["InputTransformer"] = Field(default_factory=list)
+    plugins: list[Plugin] = Field(default_factory=list)
+    input_transformers: list[InputTransformer] = Field(default_factory=list)
 
 
-class BotConfigUpdate(BotConfigCreate):
+class BotConfigUpdate(MarvinBaseModel):
     personality: str = None
     description: str = None
+    instructions: str = None
+    plugins: list[Plugin] = None
     profile_picture: str = None
 
 
