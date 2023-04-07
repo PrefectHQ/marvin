@@ -102,7 +102,6 @@ BotResponse ResponseBody {
 
 ModalScreen {
   align: center middle;
-
 }
 
 SettingsDialogue,
@@ -230,7 +229,6 @@ BotsOptionList {
   margin: 1 2;
 }
 
-
 BotInfo {
   border: solid white 50%;
   column-span: 2;
@@ -263,16 +261,17 @@ BotInfo {
   margin: 1 2;
   background: $boost;
   border: solid $secondary;
-  /* height:50; */
 }
 
 #bot-info-outer-container {
-  margin:2 3 2 3;
-  /* height: 100%; */
+  margin: 2 3 2 3;
+ 
 }
 BotInfo .bot-info-container {
-  
+  margin-bottom: 2;
+  height: auto;
 }
+
 BotInfo .label {
   text-style: bold;
 }
@@ -286,4 +285,3 @@ BotInfo .text {
   max-width: 100%;
   width: auto;
 }
-
