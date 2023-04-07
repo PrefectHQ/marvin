@@ -124,7 +124,7 @@ class TypeFormatter(ResponseFormatter):
         type_ = self.get_type()
         try:
             if type_ is str:
-                return json.dumps(json.loads(response))
+                return str(json.loads(response))
             return pydantic.parse_raw_as(type_, response)
         except Exception as exc:
             raise ValueError(

@@ -145,7 +145,7 @@ class TestBool:
             """
 
         x = build_json()
-        assert x == '{"a": 1}'
+        assert x == "{'a': 1}"
 
 
 class TestContainers:
