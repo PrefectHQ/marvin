@@ -40,3 +40,16 @@ class TestPluginDecorator:
             @plugin
             def no_docstring(x):
                 pass
+
+    def test_use_json_example_in_docstring(self):
+        @plugin
+        def plugin_accepting_specific_json(x: dict):
+            """x should be a dict like: {"name": "John Doe", "age": 30, "city": "New York"}
+            """  # noqa
+            pass
+
+        assert (
+            plugin_accepting_specific_json.get_full_description()
+            == "Name: plugin_accepting_specific_json\nSignature: (x: dict)\nx should be"
+            ' a dict like: {"name": "John Doe", "age": 30, "city": "New York"}'
+        )
