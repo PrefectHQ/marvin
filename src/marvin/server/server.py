@@ -5,13 +5,6 @@ from fastapi.responses import JSONResponse, RedirectResponse
 
 import marvin
 
-if marvin.config.settings.run_slackbot:
-    import nest_asyncio
-
-    from marvin.api.slackbot import slackbot_setup
-
-    nest_asyncio.apply()
-
 logger = marvin.get_logger("app")
 
 routers = (
@@ -21,6 +14,12 @@ routers = (
     marvin.api.slackbot.router,
 )
 
+if marvin.config.settings.run_slackbot:
+    import nest_asyncio
+
+    nest_asyncio.apply()  # multiloader uses nested event loops
+
+    from marvin.api.slackbot import slackbot_setup
 
 app = FastAPI(title="Marvin", version=marvin.__version__)
 app.add_middleware(

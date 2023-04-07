@@ -11,6 +11,8 @@ ARG CACHE_BUST=1
 RUN echo "Cache bust: ${CACHE_BUST}" && \
     pip install git+https://github.com/PrefectHQ/marvin.git@slackbot#egg=marvin[chromadb]
 
-COPY examples/slackbot/community_bot_setup.py /app/community_bot_setup.py
+RUN pip uninstall uvloop -y
 
-CMD ["marvin", "server", "start"]
+COPY examples/slackbot/community_bot_setup.py /app/examples/slackbot/community_bot_setup.py
+
+CMD ["uvicorn", "marvin.server:app", "--host", "0.0.0.0", "--port", "4200"]
