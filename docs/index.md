@@ -70,7 +70,7 @@ Marvin is open-source with an Apache 2.0 license and built on standards like Pyd
 
 ♻️ Interactive AI functions
 
-🖼️ Admin UIs
+🖼️ Admin and chat UIs
 
 🏗️ Advanced data loading and preprocessing
 
