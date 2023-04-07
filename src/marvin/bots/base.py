@@ -304,7 +304,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             message = t.run(message)
             if inspect.iscoroutine(message):
                 message = await message
-        user_message = Message(role="user", content=message)
+        user_message = Message(role="user", name="User", content=message)
 
         messages = bot_instructions + history + [user_message]
 
@@ -368,7 +368,11 @@ class Bot(MarvinBaseModel, LoggerMixin):
             parsed_response = self.response_format.parse_response(response)
 
         ai_response = BotResponse(
-            role="bot", content=response, parsed_content=parsed_response, bot_id=self.id
+            name=self.name,
+            role="bot",
+            content=response,
+            parsed_content=parsed_response,
+            bot_id=self.id,
         )
         await self.history.add_message(ai_response)
         self.logger.debug_kv("AI message", ai_response.content, "bold green")
@@ -422,7 +426,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
                 self.logger.debug_kv("Plugin output", plugin_output, "bold blue")
 
-                messages.append(Message(role="bot", content=response))
+                messages.append(Message(name=self.name, role="bot", content=response))
                 messages.append(
                     Message(role="system", content=f"Plugin output: {plugin_output}")
                 )
