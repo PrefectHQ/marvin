@@ -12,7 +12,6 @@ from fastapi import HTTPException
 from textual import work
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, VerticalScroll
-from textual.css.query import NoMatches
 from textual.events import Enter, Leave
 from textual.logging import TextualHandler
 from textual.message import Message
@@ -29,10 +28,8 @@ from textual.widgets import (
 from textual.widgets.option_list import Option
 
 import marvin
-from marvin.bot.base import DEFAULT_INSTRUCTIONS, DEFAULT_PERSONALITY
 from marvin.config import ENV_FILE
 from marvin.models.ids import MessageID, ThreadID
-from marvin.utilities.strings import condense_newlines
 
 logging.basicConfig(
     level="NOTSET",
@@ -114,7 +111,7 @@ class BotsOptionList(OptionList):
         self.post_message(self.BotHighlighted(self.bot))
 
 
-class BotsInfo(Static):
+class BotInfo(Container):
     bot = reactive(None)
 
     def __init__(self, bot: marvin.models.bots.BotConfig = None, **kwargs):
@@ -122,39 +119,25 @@ class BotsInfo(Static):
         self.bot = bot
 
     def compose(self):
-        yield TextTable()
+        with Container(id="bot-info-outer-container"):
+            with Container(
+                id="bot-info-description-container", classes="bot-info-container"
+            ):
+                yield Label("Description", classes="bot-info label")
+                yield Label("", classes="bot-info text", id="bot-info-description")
+
+            with Container(
+                id="bot-info-personality-container", classes="bot-info-container"
+            ):
+                yield Label("Personality", classes="bot-info label")
+                yield Label("", classes="bot-info text", id="bot-info-personality")
 
     def watch_bot(self, bot: marvin.models.bots.BotConfig):
-        if bot:
-            # check default instructions/personality
-            if bot.instructions == condense_newlines(DEFAULT_INSTRUCTIONS):
-                instructions = "[italic](default)[/]"
-            else:
-                instructions = bot.instructions
-
-            if bot.personality == condense_newlines(DEFAULT_PERSONALITY):
-                personality = "[italic](default)[/]"
-            else:
-                personality = bot.personality
-
-            data = {
-                "Name": bot.name,
-                "Description": bot.description,
-                "Personality": personality,
-                "Instructions": instructions,
-            }
-        else:
-            data = {
-                "Name": "",
-                "Description": "",
-                "Personality": "",
-                "Instructions": "",
-            }
-        try:
-            text_table = self.query_one("TextTable", TextTable)
-            text_table.data = data
-        except NoMatches:
-            pass
+        if self.app.is_mounted(self):
+            description = self.query_one("#bot-info-description", Label)
+            personality = self.query_one("#bot-info-personality", Label)
+            description.update(bot.description)
+            personality.update(bot.personality)
 
 
 class Sidebar(VerticalScroll):
@@ -533,11 +516,11 @@ class BotsDialogue(Container):
             options = BotsOptionList(id="bots-option-list")
             options.focus()
             yield options
-            yield BotsInfo(self.app.bot, id="bots-info")
+            yield BotInfo(self.app.bot, id="bots-info")
         yield Button("OK", variant="success", id="bots-ok")
 
     def on_bots_option_list_bot_highlighted(self, event: BotsOptionList.BotHighlighted):
-        self.query_one("#bots-info", BotsInfo).bot = event.bot
+        self.query_one("#bots-info", BotInfo).bot = event.bot
 
 
 class BotsScreen(ModalScreen):
@@ -549,11 +532,14 @@ class BotsScreen(ModalScreen):
     def action_dismiss(self) -> None:
         self.app.pop_screen()
 
+    def action_ok(self) -> None:
+        self.app.bot = self.query_one("#bots-option-list", BotsOptionList).bot
+        self.app.pop_screen()
+        self.app.query_one("#message-input", Input).focus()
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "bots-ok":
-            self.app.bot = self.query_one("#bots-option-list", BotsOptionList).bot
-            self.app.pop_screen()
-            self.app.query_one("#message-input", Input).focus()
+            self.action_ok()
 
 
 class MainScreen(Screen):

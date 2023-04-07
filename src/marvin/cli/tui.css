@@ -102,12 +102,14 @@ BotResponse ResponseBody {
 
 ModalScreen {
   align: center middle;
+
 }
 
 SettingsDialogue,
 BotsDialogue,
 DatabaseUpgradeDialogue,
 ConfirmMessageDeleteDialogue {
+  background: $panel;
   margin: 1 2;
   padding: 2 4;
   width: 70%;
@@ -163,7 +165,7 @@ ConfirmMessageDeleteDialogue Button {
   padding: 4 10;
   border: round $secondary;
   height: auto;
-  background: $panel;
+  /* background: $boost; */
   color: $text;
   border-title-align: center;
 }
@@ -179,7 +181,6 @@ ConfirmMessageDeleteDialogue Button {
   max-width: 100%;
   /* width: 100%; */
 }
-
 
 #bot-name-container {
   align: center middle;
@@ -225,27 +226,26 @@ BotsDialogue {
 
 BotsOptionList {
   border: solid white 50%;
-  background: $background;
+  background: $boost;
+  margin: 1 2;
 }
 
-BotsOptionList .option-list--option {
-  background: red;
-}
-BotsInfo {
+
+BotInfo {
   border: solid white 50%;
   column-span: 2;
   height: 100%;
   width: 100%;
 }
 
-BotsInfo TextTable {
+BotInfo TextTable {
   height: 100%;
   width: 100%;
   overflow: auto auto;
   padding: 1 2 1 2;
 }
 
-BotsInfo TextTable .label {
+BotInfo TextTable .label {
   padding-right: 1;
   color: gray;
 }
@@ -255,3 +255,35 @@ BotsInfo TextTable .label {
   grid-size: 3;
   height: 90%;
 }
+
+BotsList {
+  margin: 1 2;
+}
+BotInfo {
+  margin: 1 2;
+  background: $boost;
+  border: solid $secondary;
+  /* height:50; */
+}
+
+#bot-info-outer-container {
+  margin:2 3 2 3;
+  /* height: 100%; */
+}
+BotInfo .bot-info-container {
+  
+}
+BotInfo .label {
+  text-style: bold;
+}
+
+BotInfo .text {
+  border-left: solid $secondary 60%;
+  padding-left: 1;
+  margin-top: 1;
+  /* height: auto; */
+  text-style: italic;
+  max-width: 100%;
+  width: auto;
+}
+

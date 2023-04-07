@@ -33,7 +33,7 @@ async def get_bot_details(name: str) -> dict:
 
 
 @plugin
-async def create_or_update_bot(
+async def create_bot(
     name: str,
     description: str = None,
     personality: str = None,
@@ -41,8 +41,9 @@ async def create_or_update_bot(
 ):
     """
     Creates a bot with the given name, description, personality, and
-    instructions. If a bot with the same name already exists, it is updated with
-    the new values. All values must be strings.
+    instructions. If a bot with the same name already exists, it will be
+    overwritten (though history will remain intact). All values must be strings.
+    You can pass `None` for the instructions to use the default instructions.
     """
     bot = Bot(
         name=name,
@@ -51,6 +52,30 @@ async def create_or_update_bot(
         instructions=instructions,
     )
     await bot.save(if_exists="update")
+
+
+@plugin
+async def update_bot(
+    name: str,
+    description: str = None,
+    personality: str = None,
+    instructions: str = None,
+):
+    """
+    This plugin can be used to update a bot's description, personality, or
+    instructions without updating the other fields. Any field that is `None`
+    will not be modified.
+    """
+    kwargs = {}
+    if description is not None:
+        kwargs["description"] = description
+    if personality is not None:
+        kwargs["personality"] = personality
+    if instructions is not None:
+        kwargs["instructions"] = instructions
+    await marvin.api.bots.update_bot_config(
+        name=name, bot_config=marvin.models.bots.BotConfigUpdate(**kwargs)
+    )
 
 
 marvin_bot = Bot(
@@ -91,5 +116,5 @@ marvin_bot = Bot(
         instructions. You can also use plugins to create, update, or delete
         bots. Note that if you don't use a plugin, no modifications will be saved.
         """,
-    plugins=[list_all_bots, get_bot_details, create_or_update_bot, delete_bot],
+    plugins=[list_all_bots, get_bot_details, create_bot, update_bot, delete_bot],
 )
