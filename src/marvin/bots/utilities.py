@@ -2,8 +2,8 @@ import inspect
 
 from pydantic import Field
 
-from marvin.bots import Bot
-from marvin.bots.history import History, InMemoryHistory
+from marvin.bot import Bot
+from marvin.bot.history import History, InMemoryHistory
 from marvin.plugins.base import Plugin
 
 
