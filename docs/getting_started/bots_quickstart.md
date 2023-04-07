@@ -18,7 +18,6 @@ await bot.say('Hello there')
 await bot.say('How do you feel about sand?')
 ```
 
-
 By combining personalities, instructions, and plugins, you can get bots to solve complex problems that would be difficult to address in traditional code. Bots can also be exposed directly to users to act as assistants or interactive guides.
 
 For more information about bots, see the [bot docs](bots.md).

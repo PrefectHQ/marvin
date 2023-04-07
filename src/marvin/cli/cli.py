@@ -73,10 +73,14 @@ def version():
 
 
 @app.command(name="chat", help="Launch a TUI for chatting with all your bots.")
-def chat():
+def chat(
+    bot: str = typer.Option(
+        None, "--bot", "-b", help="The name of a bot to begin chatting with"
+    )
+):
     from marvin.cli.tui import MarvinApp
 
-    app = MarvinApp()
+    app = MarvinApp(default_bot_name=bot)
     app.run()
 
 

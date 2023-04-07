@@ -13,6 +13,13 @@ duet_bot = Bot(
     plugins=[],
 )
 
+
+obi_wan_kenobot = Bot(
+    name="ObiWanKenoBot",
+    description="This isn't the droid you're looking for.",
+    personality="Knows every Star Wars meme",
+)
+
 rpg_bot = Bot(
     name="RPGBot",
     description="An expert 5e game master",

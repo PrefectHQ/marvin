@@ -94,13 +94,13 @@ await bot.say("Hello!", on_token_callback=lambda buffer: print(buffer[-1]))
 ```
 
 Callbacks can either be synchronous or async, and either can be used with both of the bot's async `say()` and synchronous `say_sync()` methods.
-## CLI
+## TUI
 
 ### Interactive use
 
-To chat with a bot from the CLI, run `marvin chat` with optional name, personality, or instruction flags.
+To chat with a bot from your terminal, run `marvin chat`
 
-![](../../img/marvin_chat.png)
+![](../../img/tui/colorful_fruit.png)
 
 ### Loading an existing bot
 

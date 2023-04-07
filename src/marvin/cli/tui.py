@@ -575,6 +575,8 @@ class MainScreen(Screen):
     async def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.disabled:
             return
+        elif not event.input.value:
+            return
         conversation = self.query_one("Conversation", Conversation)
         await conversation.add_response(
             UserResponse(
@@ -726,7 +728,14 @@ class MarvinApp(App):
         None, always_update=True, layout=True
     )
     bot_responding: bool = reactive(False)
-    mounted: bool = False
+    is_ready: bool = False
+
+    def __init__(self, default_bot_name: str = None, **kwargs):
+        super().__init__(**kwargs)
+
+        if default_bot_name is None:
+            default_bot_name = "Marvin"
+        self._default_bot_name = default_bot_name
 
     async def check_database_upgrade(self):
         # trap warnings as errors
@@ -745,13 +754,20 @@ class MarvinApp(App):
 
     async def on_ready(self) -> None:
         self.push_screen(MainScreen())
-        self.bot = await marvin.Bot.load("Marvin")
+        try:
+            bot = await marvin.Bot.load(self._default_bot_name)
+        except HTTPException:
+            bot = marvin.bots.meta.marvin_bot
+        self.bot = bot
 
         await self.bot.set_thread(self.thread_id)
-        self.mounted = True
+        self.is_ready = True
         self.set_timer(0.5, self.check_database_upgrade)
 
     async def watch_bot(self, bot: marvin.Bot) -> None:
+        if not self.is_ready:
+            return
+
         if bot:
             self.thread_id = ThreadID.new()
             self.log.info(f"Bot changed to {bot.name}")
@@ -759,7 +775,7 @@ class MarvinApp(App):
             self.query_one("#bot-name", Label).update(bot.name)
 
     async def watch_thread_id(self, thread_id: ThreadID) -> None:
-        if not self.mounted:
+        if not self.is_ready:
             return
         self.log.info(f"Thread changed to {thread_id}")
 
@@ -776,7 +792,7 @@ class MarvinApp(App):
         self.thread_id = event.thread_id
 
     def watch_bot_responding(self, is_responding: bool) -> None:
-        if not self.mounted:
+        if not self.is_ready:
             return
         input_widget = self.query_one("#message-input", Input)
         if is_responding:
