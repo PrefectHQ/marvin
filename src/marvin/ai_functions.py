@@ -4,7 +4,7 @@ import re
 from functools import partial, wraps
 from typing import Any, Callable
 
-from marvin.bots import Bot
+from marvin.bot import Bot
 from marvin.utilities.strings import jinja_env
 
 AI_FN_INSTRUCTIONS = jinja_env.from_string(

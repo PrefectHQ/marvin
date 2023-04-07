@@ -8,6 +8,10 @@ from marvin.infra.database import JSONType
 from marvin.models.ids import BotID
 from marvin.utilities.models import CreatedUpdatedMixin, MarvinSQLModel
 from marvin.utilities.types import MarvinBaseModel
+from typing import TYPE_CHECKING
+
+from marvin.bot.input_transformers import InputTransformer
+from marvin.plugins.base import Plugin
 
 
 class BotConfig(MarvinSQLModel, CreatedUpdatedMixin, table=True):
@@ -18,6 +22,7 @@ class BotConfig(MarvinSQLModel, CreatedUpdatedMixin, table=True):
     name: str
     personality: str
     instructions: str
+    instructions_template: str = None
     description: str = None
     plugins: list[dict] = Field(
         default_factory=list,
@@ -34,20 +39,23 @@ class BotConfigCreate(MarvinBaseModel):
     name: str
     description: str = None
     personality: str = Field(
-        default_factory=lambda: marvin.bots.base.DEFAULT_PERSONALITY
+        default_factory=lambda: marvin.bot.base.DEFAULT_PERSONALITY
     )
     instructions: str = Field(
-        default_factory=lambda: marvin.bots.base.DEFAULT_INSTRUCTIONS
+        default_factory=lambda: marvin.bot.base.DEFAULT_INSTRUCTIONS
     )
-    plugins: list[dict] = Field(default_factory=list)
-    input_transformers: list[dict] = Field(default_factory=list)
+    instructions_template: str = Field(
+        default_factory=lambda: marvin.bot.base.DEFAULT_INSTRUCTIONS_TEMPLATE
+    )
+    plugins: list[Plugin] = Field(default_factory=list)
+    input_transformers: list[InputTransformer] = Field(default_factory=list)
 
 
 class BotConfigUpdate(MarvinBaseModel):
     personality: str = None
     description: str = None
     instructions: str = None
-    plugins: list[dict] = None
+    plugins: list[Plugin] = None
     profile_picture: str = None
 
 
@@ -57,6 +65,7 @@ class BotConfigRead(MarvinBaseModel):
     description: str = None
     personality: str
     instructions: str
+    instructions_template: str = None
     plugins: list[dict]
     input_transformers: list[dict]
     profile_picture: str = None

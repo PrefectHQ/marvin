@@ -19,11 +19,11 @@ from marvin.config import settings
 from marvin.utilities.logging import get_logger
 
 # load marvin
-from . import utilities, models, infra, api, bots, plugins, ai_functions, bots_lab
+from . import utilities, models, infra, api, bot, plugins, ai_functions, bots
 
 
 from marvin.plugins import Plugin, plugin
-from marvin.bots import Bot
+from marvin.bot import Bot
 from marvin.ai_functions import ai_fn
 
 
