@@ -20,8 +20,12 @@ class Plugin(DiscriminatedUnionType):
             "A description of the plugin that will be provided to the bot, in addition"
             " to the docstring for the run() method."
         ),
+        repr=False,
     )
     _signature: str = PrivateAttr()
+
+    def __repr__(self):
+        return 'Plugin("{}")'.format(self.name)
 
     def __init__(self, **kwargs):
         if "signature" in kwargs:

@@ -89,6 +89,7 @@ class Settings(BaseSettings):
     # OPENAI
     openai_model_name: str = "gpt-3.5-turbo"
     openai_model_temperature: float = 0.8
+    openai_model_max_tokens: int = 1250
     openai_api_key: SecretStr = Field(
         "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
     )
