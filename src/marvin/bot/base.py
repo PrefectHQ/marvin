@@ -447,7 +447,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
             return slice_tokens(
                 text=plugin_output,
-                n_tokens=marvin.config.settings.openai_max_tokens_per_message,
+                n_tokens=get_context_size(marvin.config.settings.openai_model_name)
             )
         except Exception as exc:
             self.logger.error(
