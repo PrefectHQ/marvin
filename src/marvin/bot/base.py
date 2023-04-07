@@ -91,10 +91,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
     id: BotID = Field(default_factory=BotID.new)
     name: str = Field(None, description='The name of the bot. Defaults to "Marvin".')
-    personality: str = Field(None, description="The bot's personality.")
-    instructions: str = Field(
-        None, description="Instructions for the bot to follow when responding."
-    )
     description: str = Field(
         None,
         description=(
@@ -102,22 +98,29 @@ class Bot(MarvinBaseModel, LoggerMixin):
             " NOT be shown to the bot."
         ),
     )
+    personality: str = Field(None, description="The bot's personality.", repr=False)
+    instructions: str = Field(
+        None,
+        description="Instructions for the bot to follow when responding.",
+        repr=False,
+    )
     reminder: str = Field(
         None,
         description=(
             "Reminder for the bot that is provided after any plugin output is returned."
             " Reminders are best used to nudge the bot back toward the system prompt."
         ),
+        repr=False,
     )
     plugins: list[Plugin] = Field(
         None, description="A list of plugins that the bot can use."
     )
-    history: History = None
+    history: History = Field(None, repr=False)
     llm_model_name: str = Field(
-        default_factory=lambda: marvin.settings.openai_model_name
+        default_factory=lambda: marvin.settings.openai_model_name, repr=False
     )
     llm_model_temperature: float = Field(
-        default_factory=lambda: marvin.settings.openai_model_temperature
+        default_factory=lambda: marvin.settings.openai_model_temperature, repr=False
     )
 
     input_transformers: list[InputTransformer] = Field(
@@ -127,6 +130,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             ' to the LLM. For example, you can use the "PrependText" input transformer'
             " to prepend the user input with a string."
         ),
+        repr=False,
     )
     input_prompt: str = Field(
         "{0}",
@@ -137,6 +141,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             " number: {{x}}, Second number: {{y}}`. The user could invoke the bot as"
             " `bot.say(x=3, y=4)`"
         ),
+        repr=False,
     )
     response_format: ResponseFormatter = Field(
         None,
@@ -147,14 +152,18 @@ class Bot(MarvinBaseModel, LoggerMixin):
             " control of validation, pass an `ResponseFormatter` object; otherwise one"
             " will be inferred based on your input."
         ),
+        repr=False,
     )
     include_date_in_prompt: bool = Field(
         True,
         description="Include the date in the prompt. Disable for testing.",
+        repr=False,
     )
 
     instructions_template: str = Field(
-        None, description="A template for the instructions that the bot will receive."
+        None,
+        description="A template for the instructions that the bot will receive.",
+        repr=False,
     )
 
     @validator("name", always=True)
