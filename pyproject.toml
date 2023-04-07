@@ -114,16 +114,8 @@ env = [
     "MARVIN_TEST_MODE=1",
     "D:MARVIN_DATABASE_CONNECTION_URL=sqlite+aiosqlite:////tmp/marvin/marvin-tests.sqlite",
     "MARVIN_LOG_CONSOLE_WIDTH=120",
-    "MARVIN_LOG_LEVEL=DEBUG",
-    # disable auto profile picture creation
-    'MARVIN_BOT_CREATE_PROFILE_PICTURE=false',
-    # don't load plugins
-    'MARVIN_LOAD_BOT_DEFAULT_PLUGINS=0',
-    'MARVIN_OPENAI_MODEL_TEMPERATURE=0',
     # use 3.5 for tests by default
     'MARVIN_OPENAI_MODEL_NAME=gpt-3.5-turbo',
-    # don't create database on startup
-    'MARVIN_DATABASE_CHECK_MIGRATION_VERSION_ON_STARTUP=0'
 
 ]
 

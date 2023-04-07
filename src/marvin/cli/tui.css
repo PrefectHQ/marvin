@@ -180,12 +180,6 @@ ConfirmMessageDeleteDialogue Button {
   /* width: 100%; */
 }
 
-#empty-thread-metabot {
-  /* color: $accent; */
-  margin-top: 1;
-  text-style: italic;
-  width: auto;
-}
 
 #bot-name-container {
   align: center middle;
@@ -194,6 +188,8 @@ ConfirmMessageDeleteDialogue Button {
 }
 
 #bot-name {
+  color: $success;
+
   text-style: bold;
 }
 

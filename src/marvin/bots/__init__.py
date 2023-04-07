@@ -6,7 +6,7 @@ from . import games, utilities, meta
 async def install_bots():
     from marvin import Bot
 
-    for module in [games, utilities, meta]:
+    for module in [games, meta]:
         for bot in module.__dict__.values():
             if isinstance(bot, Bot):
                 await bot.save(if_exists="update")

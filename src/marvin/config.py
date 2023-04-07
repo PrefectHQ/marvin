@@ -206,8 +206,15 @@ class Settings(BaseSettings):
             values["bot_create_profile_picture"] = False
             # don't load default plugins
             values["bot_load_default_plugins"] = False
+            # don't create bots
+            values["bot_create_default_bots_on_startup"] = False
             # remove all model variance
             values["openai_model_temperature"] = 0.0
+            # use 3.5 by default
+            values["openai_model_name"] = "gpt-3.5-turbo"
+            # don't check migration version
+            values["database_check_migration_version_on_startup"] = False
+
         return values
 
     def __setattr__(self, name, value):

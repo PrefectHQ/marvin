@@ -175,6 +175,12 @@ class Bot(MarvinBaseModel, LoggerMixin):
             v = DEFAULT_NAME
         return condense_newlines(v)
 
+    @validator("description", always=True)
+    def handle_description(cls, v):
+        if v is None:
+            return v
+        return condense_newlines(v)
+
     @validator("personality", always=True)
     def handle_personality(cls, v):
         if v is None:
@@ -188,7 +194,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         return condense_newlines(v)
 
     @validator("instructions_template", always=True)
-    def default_instructions_template(cls, v):
+    def handle_instructions_template(cls, v):
         if v is None:
             v = DEFAULT_INSTRUCTIONS_TEMPLATE
         return condense_newlines(v)

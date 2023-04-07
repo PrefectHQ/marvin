@@ -137,6 +137,16 @@ class TestBool:
         x = list_questions(email_body)
         assert x == ["What is your favorite color?"]
 
+    def test_json_return_with_str_annotation_is_str(self):
+        @ai_fn
+        def build_json() -> str:
+            """
+            Always returns JSON: `{"a": 1}`
+            """
+
+        x = build_json()
+        assert x == '{"a": 1}'
+
 
 class TestContainers:
     """tests untyped containers"""

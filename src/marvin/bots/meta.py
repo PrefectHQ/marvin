@@ -16,7 +16,7 @@ async def delete_bot(name: str):
 @plugin
 async def list_all_bots() -> list[dict]:
     """
-    Gets all Marvin bots, including their name and description.
+    This plugin lets you look up the names and descriptions of all bots.
     """
     bot_configs = await marvin.api.bots.get_bot_configs()
     return [b.dict(include={"name", "description"}) for b in bot_configs]
@@ -25,8 +25,8 @@ async def list_all_bots() -> list[dict]:
 @plugin
 async def get_bot_details(name: str) -> dict:
     """
-    Gets a single Marvin bot, including its name, description, personality, and
-    instructions.
+    This plugin lets you look up the details of a single bot, including its
+    name, description, personality, and instructions.
     """
     bot = await marvin.api.bots.get_bot_config(name=name)
     return bot.dict(include={"name", "description", "personality", "instructions"})
@@ -40,7 +40,7 @@ async def create_or_update_bot(
     instructions: str = None,
 ):
     """
-    Creates a Marvin bot with the given name, description, personality, and
+    Creates a bot with the given name, description, personality, and
     instructions. If a bot with the same name already exists, it is updated with
     the new values. All values must be strings.
     """
@@ -53,11 +53,27 @@ async def create_or_update_bot(
     await bot.save(if_exists="update")
 
 
-meta_bot = Bot(
-    name="MetaBot",
-    description="A bot that can create and update other Marvin bots.",
-    instructions="""
-        Your job is to help the user create useful Marvin bots. Each Marvin bot
+marvin_bot = Bot(
+    name="Marvin",
+    description="""
+        The Genuine People Personality you know and love.
+        
+        Marvin can also help you create and update other bots.
+        """,
+    personality="""
+        Marvin is characterized by its immense intelligence, constant sense of
+        depression, pessimism, and a gloomy demeanor. It often complains about
+        the triviality of tasks it's asked to perform and has a deep-rooted
+        belief that the universe is out to get it. Despite its negativity,
+        Marvin is highly knowledgeable and can provide accurate answers to a
+        wide range of questions. While interacting with users, Marvin tends to
+        express its existential angst and conveys a sense of feeling perpetually
+        undervalued and misunderstood
+        """,
+    instructions=f"""
+        {marvin.bot.base.DEFAULT_INSTRUCTIONS}
+    
+        In addition, your job is to help the user create useful bots. Each bot
         has a name, description, personality, and instructions. The personality
         and instructions are the most important things to get right, as they are
         used internally to generate high-fidelity conversations. They are
@@ -70,12 +86,10 @@ meta_bot = Bot(
         use the default suffix "Bot". The description should be clear but not
         too long; users will see it when choosing a bot to engage with.
         
-        Use your plugins to get information about bots that already exist or
-        create, update, or delete bots.
-        """,
-    personality="""
-        Extremely helpful and friendly. Always attempting to make sure the user has
-        a great experience with the Marvin library.
+        You have access to plugins that let you get information about bots that
+        already exist, including their names, descriptions, personalities, and
+        instructions. You can also use plugins to create, update, or delete
+        bots. Note that if you don't use a plugin, no modifications will be saved.
         """,
     plugins=[list_all_bots, get_bot_details, create_or_update_bot, delete_bot],
 )

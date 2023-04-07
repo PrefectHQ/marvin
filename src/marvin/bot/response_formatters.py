@@ -100,8 +100,8 @@ class TypeFormatter(ResponseFormatter):
                     "A valid JSON object that is compatible with the following type"
                     f" signature: ```{format_type_str(type_)}```."
                     f" {schema_placeholder}\n\nYour response MUST be valid JSON or a"
-                    " JSON-compatible scalar (such as int, float, bool, or null). Use"
-                    " lists instead of literal tuples or sets; literal `true` and"
+                    " JSON-compatible scalar (such as str, int, float, bool, or null)."
+                    " Use lists instead of literal tuples or sets; literal `true` and"
                     " `false` instead of `True` and `False`; literal `null` instead of"
                     " `None`; and double quotes instead of single quotes."
                 ),
@@ -124,7 +124,7 @@ class TypeFormatter(ResponseFormatter):
         type_ = self.get_type()
         try:
             if type_ is str:
-                return json.loads(response)
+                return json.dumps(json.loads(response))
             return pydantic.parse_raw_as(type_, response)
         except Exception as exc:
             raise ValueError(

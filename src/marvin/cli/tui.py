@@ -29,7 +29,7 @@ from textual.widgets import (
 from textual.widgets.option_list import Option
 
 import marvin
-from marvin.bot.base import DEFAULT_INSTRUCTIONS, DEFAULT_NAME, DEFAULT_PERSONALITY
+from marvin.bot.base import DEFAULT_INSTRUCTIONS, DEFAULT_PERSONALITY
 from marvin.config import ENV_FILE
 from marvin.models.ids import MessageID, ThreadID
 from marvin.utilities.strings import condense_newlines
@@ -38,27 +38,6 @@ logging.basicConfig(
     level="NOTSET",
     handlers=[TextualHandler()],
 )
-
-
-async def get_default_bot():
-    try:
-        bot = await marvin.Bot.load(DEFAULT_NAME)
-    except HTTPException:
-        bot = marvin.Bot(
-            personality="""
-                Marvin is characterized by its immense intelligence,
-                constant sense of depression, pessimism, and a gloomy demeanor. It
-                often complains about the triviality of tasks it's asked to perform
-                and has a deep-rooted belief that the universe is out to get it.
-                Despite its negativity, Marvin is highly knowledgeable and can
-                provide accurate answers to a wide range of questions. While
-                interacting with users, Marvin tends to express its existential
-                angst and conveys a sense of feeling perpetually undervalued and
-                misunderstood
-                """
-        )
-        await bot.save(if_exists="update")
-    return bot
 
 
 @marvin.ai_fn(llm_model_name="gpt-3.5-turbo", llm_model_temperature=1)
@@ -189,7 +168,7 @@ class Sidebar(VerticalScroll):
         yield Threads(id="threads")
         yield Button("Bots \[b]", variant="success", id="show-bots")
         yield Button("New thread \[n]", id="create-new-thread", variant="primary")
-        yield Button("Delete thread \[ctrl+x]", id="delete-thread", variant="error")
+        yield Button("Delete thread \[x]", id="delete-thread", variant="error")
         yield Button("Settings \[s]", id="show-settings")
 
 
@@ -282,7 +261,6 @@ class Conversation(Container):
             bot_description_label = self.query_one(
                 "#empty-thread-bot-description", Label
             )
-            metabot_label = self.query_one("#empty-thread-metabot", Label)
 
             if bot_name:
                 bot_name_label.update(
@@ -293,11 +271,6 @@ class Conversation(Container):
                     bot_description_label.remove_class("hidden")
                 else:
                     bot_description_label.add_class("hidden")
-
-                if bot_name == "MetaBot":
-                    metabot_label.add_class("hidden")
-                else:
-                    metabot_label.remove_class("hidden")
 
             else:
                 bot_description_label.add_class("hidden")
@@ -312,10 +285,6 @@ class Conversation(Container):
                 with Container(id="empty-thread-container"):
                     yield Label("", id="empty-thread-bot-name")
                     yield Label("", id="empty-thread-bot-description")
-                    yield Label(
-                        "(switch to MetaBot: ctrl+b)",
-                        id="empty-thread-metabot",
-                    )
 
     async def add_response(self, response: Response, scroll: bool = True) -> None:
         messages = self.query_one("Conversation #messages", VerticalScroll)
@@ -339,6 +308,8 @@ class Conversation(Container):
         empty.remove_class("hidden")
 
     async def refresh_messages(self):
+        if self.app.bot_responding:
+            return
         with self.app.batch_update():
             self.clear_responses()
             messages = await marvin.api.threads.get_messages(
@@ -591,8 +562,7 @@ class MainScreen(Screen):
         ("b", "show_bots_screen", "Show Bots"),
         ("n", "new_thread", "New Thread"),
         ("s", "show_settings_screen", "Show Settings"),
-        ("ctrl+x", "delete_thread", "Delete Thread"),
-        ("ctrl+b", "select_metabot", "Switch to MetaBot"),
+        ("x", "delete_thread", "Delete Thread"),
     ]
 
     def action_focus_threads(self) -> None:
@@ -606,9 +576,6 @@ class MainScreen(Screen):
 
     def action_show_settings_screen(self) -> None:
         self.app.push_screen(SettingsScreen())
-
-    def action_select_metabot(self) -> None:
-        self.app.bot = marvin.bots.meta.meta_bot
 
     def compose(self) -> ComposeResult:
         yield Sidebar(id="sidebar")
@@ -678,31 +645,32 @@ class MainScreen(Screen):
     @work
     async def get_bot_response(self, event: Input.Submitted) -> str:
         bot = self.app.bot
-        input_widget = self.app.query_one("#message-input", Input)
-        input_widget.disabled = True
-        response = await bot.say(
-            event.value,
-            on_token_callback=self.update_last_bot_response,
-        )
-        input_widget.disabled = False
+        self.app.bot_responding = True
+        try:
+            response = await bot.say(
+                event.value,
+                on_token_callback=self.update_last_bot_response,
+            )
 
-        self.query_one("Conversation", Conversation)
+            self.query_one("Conversation", Conversation)
 
-        # if this is one of the first few responses, rename the thread
-        # appropriately
-        bot_responses = self.query("BotResponse")
-        if 1 <= len(bot_responses) <= 5:
-            self.action_rename_thread()
+            # if this is one of the first few responses, rename the thread
+            # appropriately
+            bot_responses = self.query("BotResponse")
+            if 1 <= len(bot_responses) <= 5:
+                self.action_rename_thread()
 
-        # update the bot response with the actual message id
-        bot_responses.last().message.id = response.id
+            # update the bot response with the actual message id
+            bot_responses.last().message.id = response.id
 
-        # update the last user response with the actual message id
-        messages = await marvin.api.threads.get_messages(
-            thread_id=self.app.thread_id, limit=2
-        )
-        if len(messages) == 2:
-            self.query("UserResponse").last().message.id = messages[0].id
+            # update the last user response with the actual message id
+            messages = await marvin.api.threads.get_messages(
+                thread_id=self.app.thread_id, limit=2
+            )
+            if len(messages) == 2:
+                self.query("UserResponse").last().message.id = messages[0].id
+        finally:
+            self.app.bot_responding = False
 
     @work
     async def action_rename_thread(self):
@@ -726,11 +694,13 @@ class MainScreen(Screen):
             ),
             personality=getattr(self.app.bot, "personality", None),
         )
+        # just in case JSON was returned and parsed
+        name = str(name)
 
         # update thead name
         await marvin.api.threads.update_thread(
             thread_id=self.app.thread_id,
-            thread=marvin.models.threads.ThreadUpdate(name=name),
+            thread=marvin.models.threads.ThreadUpdate(name=name or "New convesation"),
         )
 
         # refresh the thread list
@@ -769,7 +739,7 @@ class MarvinApp(App):
     thread: Optional[marvin.models.threads.Thread] = reactive(
         None, always_update=True, layout=True
     )
-    thread_exists: bool = False
+    bot_responding: bool = reactive(False)
     mounted: bool = False
 
     async def check_database_upgrade(self):
@@ -789,7 +759,8 @@ class MarvinApp(App):
 
     async def on_ready(self) -> None:
         self.push_screen(MainScreen())
-        self.bot = await get_default_bot()
+        self.bot = await marvin.Bot.load("Marvin")
+
         await self.bot.set_thread(self.thread_id)
         self.mounted = True
         self.set_timer(0.5, self.check_database_upgrade)
@@ -818,14 +789,14 @@ class MarvinApp(App):
     def on_threads_thread_selected(self, event: Threads.ThreadSelected) -> None:
         self.thread_id = event.thread_id
 
-
-marvin.Bot(
-    name="VCBot",
-    description="Practice your pitches.",
-    personality="A caricature of a top-tier venture capitalist.",
-    instructions='Replies "let me know how I can help" to every message.',
-    plugins=[],
-).save_sync(if_exists="update")
+    def watch_bot_responding(self, is_responding: bool) -> None:
+        if not self.mounted:
+            return
+        input_widget = self.query_one("#message-input", Input)
+        if is_responding:
+            input_widget.disabled = True
+        else:
+            input_widget.disabled = False
 
 
 if __name__ == "__main__":
