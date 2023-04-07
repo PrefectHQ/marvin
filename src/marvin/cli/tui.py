@@ -11,6 +11,7 @@ from textual import work
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, VerticalScroll
 from textual.css.query import NoMatches
+from textual.events import Enter, Leave
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import ModalScreen, Screen
@@ -176,7 +177,7 @@ class Sidebar(VerticalScroll):
             yield Label(
                 self.app.bot.name if self.app.bot else "No bot selected", id="bot-name"
             )
-        yield Label("All threads", classes="sidebar-title")
+        yield Label("[bold]Threads[/]", classes="sidebar-title")
         yield Threads(id="threads")
         yield Button("Bots \[b]", variant="success", id="show-bots")
         yield Button("New thread \[n]", id="create-new-thread", variant="primary")
@@ -184,8 +185,15 @@ class Sidebar(VerticalScroll):
         yield Button("Settings \[s]", id="show-settings")
 
 
+class ResponseHover(Message):
+    pass
+
+
 class ResponseBody(Markdown):
     pass
+
+    def on_enter(self):
+        self.post_message(ResponseHover())
 
 
 class Response(Container):
@@ -214,6 +222,20 @@ class Response(Container):
 
     def on_click(self):
         self.action_toggle_buttons()
+
+    def on_response_hover(self, event: ResponseHover):
+        """
+        This is an "enter" event bubbled up from the ResponseBody, since the
+        default "Leave" is triggered when hovering on child widgets. This keeps
+        the hover class even when hovering on the child widget.
+        """
+        self.add_class("response-hover")
+
+    def on_enter(self, event: Enter):
+        self.add_class("response-hover")
+
+    def on_leave(self, event: Leave):
+        self.remove_class("response-hover")
 
     def action_toggle_buttons(self):
         self.toggle_class("show-edit-buttons")
@@ -244,6 +266,15 @@ class BotResponse(Response):
 
 
 class Conversation(Container):
+    bot_name = reactive(None, layout=True)
+
+    def watch_bot_name(self, bot_name: str):
+        if bot_name:
+            message = f"Send a message to [bold green]{self.bot_name}[/]..."
+        else:
+            message = "Send a message to start a thread..."
+        self.query_one("#empty-thread").update(message)
+
     def compose(self) -> ComposeResult:
         input = Input(placeholder="Your message", id="message-input")
         input.focus()
@@ -270,6 +301,8 @@ class Conversation(Container):
         responses = self.query("Response")
         for response in responses:
             response.remove()
+        self.bot_name = getattr(self.app.bot, "name")
+        print(self.bot_name)
         empty = self.query_one("Conversation #empty-thread")
         empty.remove_class("hidden")
 
@@ -424,7 +457,11 @@ class ConfirmMessageDeleteDialogue(Container):
 
     def compose(self) -> ComposeResult:
         yield Label(
-            "Are you sure you want to delete messages from this point on?",
+            (
+                "This will delete all the messages from here on, allowing you to"
+                " restart the conversation from this point. Are you sure you want to"
+                " continue?"
+            ),
             classes="confirm-delete-message",
         )
         with Horizontal():

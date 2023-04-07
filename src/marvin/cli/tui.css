@@ -53,6 +53,10 @@ Response {
   width: 100%;
 }
 
+Response.response-hover {
+  background: $boost;
+}
+
 Response.show-edit-buttons {
   border: round $warning 50%;
   border-title-align: center;
