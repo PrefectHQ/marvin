@@ -2,12 +2,20 @@ import asyncio
 import concurrent.futures
 import functools
 import multiprocessing as mp
+import platform
 
 import cloudpickle
 
 import marvin
 
-process_pool = concurrent.futures.ProcessPoolExecutor(mp_context=mp.get_context("fork"))
+if platform.system() == "Windows":
+    mp_context = "spawn"
+else:
+    mp_context = "fork"
+
+process_pool = concurrent.futures.ProcessPoolExecutor(
+    mp_context=mp.get_context(mp_context)
+)
 
 
 async def run_async(func, *args, **kwargs):
