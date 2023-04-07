@@ -1,5 +1,5 @@
 import marvin
-from marvin.bots import Bot
+from marvin.bot import Bot
 from marvin.config import CHROMA_INSTALLED
 from marvin.loaders.base import MultiLoader
 from marvin.loaders.discourse import DiscourseLoader

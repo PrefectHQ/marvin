@@ -120,6 +120,7 @@ def get_llm(
         openai_api_key=(
             openai_api_key or marvin.settings.openai_api_key.get_secret_value()
         ),
+        max_tokens=marvin.settings.openai_model_max_tokens,
         **kwargs,
     )
 
