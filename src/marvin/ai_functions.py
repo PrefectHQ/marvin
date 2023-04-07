@@ -105,7 +105,7 @@ def ai_fn(
 
     @wraps(fn)
     def ai_fn_wrapper(*args, **kwargs) -> Any:
-        bot_kwargs = {}
+        wrapper_bot_kwargs = bot_kwargs.copy()
 
         # Get function signature
         sig = inspect.signature(fn)
@@ -149,15 +149,15 @@ def ai_fn(
         )
 
         # ai_fns have no plugins by default
-        if "plugins" not in bot_kwargs:
-            bot_kwargs["plugins"] = []
+        if "plugins" not in wrapper_bot_kwargs:
+            wrapper_bot_kwargs["plugins"] = []
 
         # create the bot
         bot = Bot(
             instructions=instructions,
             personality=AI_FN_PERSONALITY,
             response_format=return_annotation,
-            **bot_kwargs,
+            **wrapper_bot_kwargs,
         )
 
         if bot_modifier is not None:
