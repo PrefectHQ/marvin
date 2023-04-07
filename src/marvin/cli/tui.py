@@ -56,9 +56,10 @@ async def get_default_bot():
 async def name_thread(history: str, personality: str) -> str:
     """
     This function generates a short, relevant name for the provided thread
-    `history`. The name must reflect the user's intent or objective in a clear,
-    fun way. It can include emojis and use sentence capitalization, but should
-    not end with a period. It should also reflect the provided `personality`.
+    `history`. The name should be fewer than five words and must reflect the
+    user's intent or objective in a clear, fun way. It can include emojis and
+    use sentence capitalization, but should not end with a period. It should
+    also reflect the provided `personality`.
     """
 
 
@@ -211,6 +212,9 @@ class Response(Container):
             yield Button("Delete", variant="error", id="delete-message")
 
     def on_click(self):
+        self.action_toggle_buttons()
+
+    def action_toggle_buttons(self):
         self.toggle_class("show-edit-buttons")
         self.body.toggle_class("show-edit-buttons")
         self.query_one(".edit-buttons-container").toggle_class("hidden")
@@ -218,6 +222,8 @@ class Response(Container):
     def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "copy-message":
             pyperclip.copy(self.message.content)
+            self.action_toggle_buttons()
+
         elif event.button.id == "delete-message":
             self.app.push_screen(ConfirmMessageDeleteScreen(self.message.id))
 
@@ -536,9 +542,15 @@ class MainScreen(Screen):
             self.set_timer(0.5, self.action_show_settings_screen)
 
     async def on_input_submitted(self, event: Input.Submitted) -> None:
+        if event.input.disabled:
+            return
         conversation = self.query_one("Conversation", Conversation)
         await conversation.add_response(
-            UserResponse(Message(name="User", role="user", content=event.value))
+            UserResponse(
+                marvin.models.threads.Message(
+                    name="User", role="user", content=event.value
+                )
+            )
         )
         self.get_bot_response(event)
         event.input.value = ""
@@ -562,7 +574,7 @@ class MainScreen(Screen):
                 conversation = self.query_one("Conversation", Conversation)
                 await conversation.add_response(
                     BotResponse(
-                        Message(
+                        marvin.models.threads.Message(
                             role="bot",
                             name=self.app.bot.name,
                             bot_id=self.app.bot.id,
@@ -581,10 +593,14 @@ class MainScreen(Screen):
     @work
     async def get_bot_response(self, event: Input.Submitted) -> str:
         bot = self.app.bot
+        input_widget = self.app.query_one("#message-input", Input)
+        input_widget.disabled = True
         response = await bot.say(
             event.value,
             on_token_callback=self.update_last_bot_response,
         )
+        input_widget.disabled = False
+
         self.query_one("Conversation", Conversation)
 
         # if this is one of the first few responses, rename the thread
