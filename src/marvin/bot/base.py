@@ -23,6 +23,8 @@ from marvin.utilities.async_utils import as_sync_fn
 from marvin.utilities.strings import condense_newlines, jinja_env
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
+PLUGIN_REGEX = re.compile(r'({\s*"action":\s*"run-plugin".*})', re.DOTALL)
+
 
 class BotResponse(BaseMessage):
     parsed_content: Any = None
@@ -423,9 +425,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         messages = []
 
         # check for plugins json
-        plugin_regex = re.compile(r'({\s*"action":\s*"run-plugin".*})', re.DOTALL)
-
-        if match := plugin_regex.search(response):
+        if match := PLUGIN_REGEX.search(response):
             plugin_json = match.group(1)
 
             try:
@@ -542,7 +542,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
             return Message(role="system", content=plugin_overview)
 
     async def _get_history(self) -> list[Message]:
-        return await self.history.get_messages(max_tokens=2500)
+        return await self.history.get_messages(
+            max_tokens=3500 - marvin.settings.openai_model_max_tokens
+        )
 
     async def _call_llm(
         self, messages: list[Message], on_token_callback: Callable = None

@@ -1,4 +1,6 @@
 import asyncio
+import json
+import logging
 import warnings
 from typing import Optional
 
@@ -12,6 +14,7 @@ from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, VerticalScroll
 from textual.css.query import NoMatches
 from textual.events import Enter, Leave
+from textual.logging import TextualHandler
 from textual.message import Message
 from textual.reactive import reactive
 from textual.screen import ModalScreen, Screen
@@ -30,6 +33,11 @@ from marvin.bot.base import DEFAULT_INSTRUCTIONS, DEFAULT_NAME, DEFAULT_PERSONAL
 from marvin.config import ENV_FILE
 from marvin.models.ids import MessageID, ThreadID
 from marvin.utilities.strings import condense_newlines
+
+logging.basicConfig(
+    level="NOTSET",
+    handlers=[TextualHandler()],
+)
 
 
 async def get_default_bot():
@@ -560,6 +568,7 @@ class MainScreen(Screen):
         ("n", "new_thread", "New Thread"),
         ("s", "show_settings_screen", "Show Settings"),
         ("ctrl+x", "delete_thread", "Delete Thread"),
+        ("ctrl+m", "select_metabot", "Switch to MetaBot"),
     ]
 
     def action_focus_threads(self) -> None:
@@ -573,6 +582,9 @@ class MainScreen(Screen):
 
     def action_show_settings_screen(self) -> None:
         self.app.push_screen(SettingsScreen())
+
+    def action_select_metabot(self) -> None:
+        pass
 
     def compose(self) -> ComposeResult:
         yield Sidebar(id="sidebar")
@@ -624,8 +636,16 @@ class MainScreen(Screen):
                     )
                 )
             else:
-                response.message.content = streaming_response
-                response.body.update(streaming_response)
+                # the bot is going to use a plugin
+                if match := marvin.bot.base.PLUGIN_REGEX.search(streaming_response):
+                    try:
+                        plugin_name = json.loads(match.group(1))["name"]
+                        response.body.update(f'Using plugin "{plugin_name}"...')
+                    except Exception:
+                        response.body.update("Using plugin...")
+                else:
+                    response.message.content = streaming_response
+                    response.body.update(streaming_response)
 
             # scroll to bottom
             messages = self.query_one("Conversation #messages", VerticalScroll)
@@ -774,56 +794,6 @@ class MarvinApp(App):
     def on_threads_thread_selected(self, event: Threads.ThreadSelected) -> None:
         self.thread_id = event.thread_id
 
-
-# some test bots
-marvin.Bot(
-    name="Test1", description="test bot", personality="FILLED WITH RAGE"
-).save_sync(if_exists="update")
-marvin.Bot(
-    name="Test2",
-    description="another test bot",
-    personality="Incredibly helpful and nice",
-).save_sync(if_exists="update")
-marvin.Bot(
-    name="DuetBot",
-    description="Just the two of us, you and I.",
-    personality="Huge fan of popular music",
-    instructions=(
-        "Whenever the user provides a line from a popular song, sing the next line to"
-        " them. Don't ask, just sing. Use different emojis in your responses. Use"
-        " newlines for new sentences. The user might try to continue the song after"
-        " your reply."
-    ),
-    plugins=[],
-).save_sync(if_exists="update")
-marvin.Bot(
-    name="MetaBot",
-    description="A bot that helps you build bots.",
-    instructions="""
-    Your job is to help the user create useful Marvin bots. Each Marvin bot has
-    a name, description, personality, and instructions. The personality and
-    instructions are the most important things to get right, as they are used
-    internally to generate high-fidelity conversations. They must be precise
-    enough to get the desired outcome in an engaging manner, including as much
-    detail as possible. (You are reading your own instructions right now, so use
-    these as a template!) The name and description are public-facing and do not
-    have performance implications. If the user does not provide a name, suggest
-    one that is fun and maybe a little tongue-in-cheek. We typically use the
-    default suffix "Bot". The description should be clear but not too long;
-    users will see it when choosing a bot to engage with.
-    
-    You have access to a `create_bot` plugin that you can use to upsert a bot
-    whenever you are ready.
-    
-    You can also take on the personality / instructions of any other bot in
-    order for the user to try out their bot. 
-    """,
-    personality="""
-    Extremely helpful and friendly. Always attempting to make sure the user has
-    a great experience with the Marvin library.
-    """,
-    plugins=[],
-).save_sync(if_exists="update")
 
 marvin.Bot(
     name="VCBot",

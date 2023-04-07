@@ -156,13 +156,28 @@ ConfirmMessageDeleteDialogue Button {
   align: center middle;
 }
 
-#empty-thread {
+#empty-thread-label-container {
   padding: 4 10;
+  width: 70%;
   border: round $secondary;
   height: auto;
   background: $panel;
   color: $text;
   border-title-align: center;
+}
+#empty-thread-bot-name {
+  width: 100%;
+}
+#empty-thread-bot-description {
+  margin-top: 2;
+  height: auto;
+  width: 100%;
+}
+
+#empty-thread-metabot {
+  margin-top: 2;
+  text-style: italic;
+  width: 100%;
 }
 
 #bot-name-container {

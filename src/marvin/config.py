@@ -121,6 +121,12 @@ class Settings(BaseSettings):
     redis_connection_url: SecretStr = ""
 
     # BOTS
+    bot_create_default_bots_on_startup: bool = Field(
+        True,
+        description=(
+            "If True, default bots will be auto-created in the database on startup."
+        ),
+    )
     bot_create_profile_picture: bool = Field(
         False,
         description=(

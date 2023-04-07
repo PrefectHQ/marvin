@@ -19,7 +19,7 @@ from marvin.config import settings
 from marvin.utilities.logging import get_logger
 
 # load marvin
-from . import utilities, models, infra, api, bot, plugins, ai_functions, bots
+from . import utilities, models, infra, api, bot, plugins, ai_functions
 
 
 from marvin.plugins import Plugin, plugin
@@ -37,3 +37,6 @@ if not settings.openai_model_name.startswith("gpt-4"):
 # check alembic versions
 if settings.database_check_migration_version_on_startup:
     _asyncio.run(infra.database.check_alembic_version())
+
+# load bots
+from . import bots
