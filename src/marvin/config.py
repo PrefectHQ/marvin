@@ -88,6 +88,9 @@ class Settings(BaseSettings):
     embeddings_cache_warn_size: int = 4000000000  # 4GB
 
     # OPENAI
+    openai_default_organization: SecretStr = Field(
+        "", env=["MARVIN_OPENAI_DEFAULT_ORGANIZATION", "OPENAI_DEFAULT_ORGANIZATION"]
+    )
     openai_model_name: str = "gpt-3.5-turbo"
     openai_model_temperature: float = 0.8
     openai_api_key: SecretStr = Field(
@@ -221,6 +224,11 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+if settings.openai_default_organization:
+    import openai
+
+    openai.organization = settings.openai_default_organization.get_secret_value()
 
 
 @contextmanager
