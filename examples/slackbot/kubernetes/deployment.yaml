@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: marvin
+  labels:
+    app: marvin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: marvin
+  template:
+    metadata:
+      labels:
+        app: marvin
+    spec:
+      containers:
+      - name: marvin
+        image: zzstoatzz/marvin:latest
+        imagePullPolicy: Always
+        ports:
+          - containerPort: 4200
+        command: ["uvicorn"]
+        args: ["marvin.server:app", "--port", "4200", "--host", "0.0.0.0"]
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 4200
+          initialDelaySeconds: 3
+          periodSeconds: 3
