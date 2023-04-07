@@ -11,7 +11,6 @@ routers = (
     marvin.api.bots.router,
     marvin.api.topics.router,
     marvin.api.threads.router,
-    marvin.api.slackbot.router,
 )
 
 if marvin.config.settings.run_slackbot:
@@ -20,6 +19,8 @@ if marvin.config.settings.run_slackbot:
     nest_asyncio.apply()  # multiloader uses nested event loops
 
     from marvin.api.slackbot import slackbot_setup
+
+    routers.append(marvin.api.slackbot.router)
 
 app = FastAPI(title="Marvin", version=marvin.__version__)
 app.add_middleware(

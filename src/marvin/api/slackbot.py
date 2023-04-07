@@ -24,7 +24,9 @@ class SlackEvent(BaseModel):
 
 async def slackbot_setup():
     setup_script = load_script_as_module(marvin.config.settings.slackbot_setup_script)
-    await setup_script.main()
+    setup = setup_script.main()
+    if asyncio.iscoroutine(setup):
+        setup = await setup
 
     if not marvin.config.settings.slackbot:
         marvin.get_logger().warning(msg := "Slackbot did not configure properly")

@@ -71,7 +71,7 @@ class Settings(BaseSettings):
 
     # LOGGING
     verbose: bool = False
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "DEBUG"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     log_console_width: Optional[int] = Field(
         None,
         description=(

@@ -1,5 +1,5 @@
 import marvin
-from marvin.bots import Bot
+from marvin import Bot
 from marvin.loaders.base import MultiLoader
 from marvin.loaders.discourse import DiscourseLoader
 from marvin.loaders.github import GitHubRepoLoader
