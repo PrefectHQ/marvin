@@ -52,7 +52,7 @@ Bots can be saved to the database by calling the `Bot.save()` method. Bots are s
 - `None` (the default): an error will be raised.
 - `"delete"`: the old bot will be deleted and a new bot will be saved. The new bot will not share anything with the old bot, including its message history.
 - `"update"`: the old bot will be updated with the new bot's details. The ID and message history will be preserved.
-- `"ignore"`: the old bot is left untouched and no error is raised.
+- `"cancel"`: no changes are made and the old bot is left untouched, but no error is raised.
 
 
 ```python
