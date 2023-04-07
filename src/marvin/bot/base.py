@@ -20,6 +20,7 @@ from marvin.models.ids import BotID, ThreadID
 from marvin.models.threads import BaseMessage, Message
 from marvin.plugins import Plugin
 from marvin.utilities.async_utils import as_sync_fn
+from marvin.utilities.llms import get_context_size
 from marvin.utilities.strings import jinja_env, slice_tokens
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
