@@ -22,6 +22,18 @@ Sidebar Button#settings {
   dock: bottom;
 }
 
+Sidebar #meta-buttons-container {
+  height: auto;
+}
+
+Sidebar #quit {
+  background: $error 25%;
+}
+
+Sidebar #quit:hover {
+  background: $error 50%;
+}
+
 Sidebar TabbedContent {
   height: 100%;
 }

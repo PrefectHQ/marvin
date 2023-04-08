@@ -154,7 +154,9 @@ class Sidebar(VerticalScroll):
         yield Button("Bots \[b]", variant="success", id="show-bots")
         yield Button("New thread \[n]", id="create-new-thread", variant="primary")
         yield Button("Delete thread \[x]", id="delete-thread", variant="error")
-        yield Button("Settings \[s]", id="show-settings")
+        with Horizontal(id="meta-buttons-container"):
+            yield Button("Settings \[s]", id="show-settings")
+            yield Button("Quit \[ctrl-c]", id="quit")
 
 
 class ResponseHover(Message):
@@ -598,6 +600,8 @@ class MainScreen(Screen):
             self.action_new_thread()
         elif event.button.id == "delete-thread":
             await self.action_delete_thread()
+        elif event.button.id == "quit":
+            self.app.exit()
 
     async def update_last_bot_response(self, token_buffer: list[str]):
         streaming_response = "".join(token_buffer)
