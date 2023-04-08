@@ -15,7 +15,7 @@ To make it easy to work with bots, Marvin includes a fully-functional [**TUI**](
 
 Developers can use Marvin to add AI capabilities wherever they will be most impactful, without needing to start from scratch. Marvin's documentation is available at [askmarvin.ai](https://www.askmarvin.ai), and say hello on our [Discord server](https://discord.gg/Kgw4HpcuYG)!
 ## Features
-![](docs/img/heroes/gpp.png)
+![](docs/img/tui/colorful_fruit.png)
 
 🪄 Write [AI functions](https://askmarvin.ai/guide/concepts/ai_functions) that process structured data without source code
 
