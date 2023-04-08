@@ -390,7 +390,11 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 else:
                     raise ValueError(f"Unknown on_error value: {on_error}")
         else:
-            raise RuntimeError("Failed to validate response after 3 attempts")
+            response = (
+                "Error: could not validate response after"
+                f" {MAX_VALIDATION_ATTEMPTS} attempts."
+            )
+            parsed_response = response
 
         if validated:
             parsed_response = self.response_format.parse_response(response)

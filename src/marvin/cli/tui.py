@@ -1,7 +1,8 @@
 import asyncio
-import json
 import logging
+import re
 import warnings
+from functools import partial
 from typing import Optional
 
 import dotenv
@@ -35,6 +36,8 @@ logging.basicConfig(
     level="NOTSET",
     handlers=[TextualHandler()],
 )
+
+USING_PLUGIN_REGEX = re.compile(r'{\s*"action":\s*"run-plugin",\s*"name":\s*"(.*?)"')
 
 
 @marvin.ai_fn(llm_model_name="gpt-3.5-turbo", llm_model_temperature=1)
@@ -102,6 +105,8 @@ class BotsOptionList(OptionList):
             if self.app.bot:
                 if b.name == self.app.bot.name:
                     self.highlighted = i
+        self.show_vertical_scrollbar = True
+        self.scroll_to_highlight()
 
     async def on_mount(self) -> None:
         await self.refresh_bots()
@@ -164,7 +169,11 @@ class ResponseHover(Message):
 
 
 class ResponseBody(Markdown):
-    pass
+    text: str = ""
+
+    def update(self, markdown: str):
+        self.text = markdown
+        super().update(markdown)
 
     def on_enter(self):
         self.post_message(ResponseHover())
@@ -172,6 +181,7 @@ class ResponseBody(Markdown):
 
 class Response(Container):
     body = None
+    stream_finished: bool = False
 
     def __init__(self, message: marvin.models.threads.Message, **kwargs) -> None:
         classes = kwargs.setdefault("classes", "")
@@ -290,7 +300,6 @@ class Conversation(Container):
         for response in responses:
             response.remove()
         self.bot_name = getattr(self.app.bot, "name")
-        print(self.bot_name)
         empty = self.query_one("Conversation #empty-thread-container")
         empty.remove_class("hidden")
 
@@ -606,34 +615,21 @@ class MainScreen(Screen):
         elif event.button.id == "quit":
             self.app.exit()
 
-    async def update_last_bot_response(self, token_buffer: list[str]):
+    async def stream_bot_response(self, token_buffer: list[str], response: BotResponse):
         streaming_response = "".join(token_buffer)
-        responses = self.query("Response")
-        if responses:
-            response = responses.last()
-            if not isinstance(response, BotResponse):
-                conversation = self.query_one("Conversation", Conversation)
-                await conversation.add_response(
-                    BotResponse(
-                        marvin.models.threads.Message(
-                            role="bot",
-                            name=self.app.bot.name,
-                            bot_id=self.app.bot.id,
-                            content=streaming_response,
-                        )
-                    )
-                )
-            else:
-                # the bot is going to use a plugin
-                if match := marvin.bot.base.PLUGIN_REGEX.search(streaming_response):
-                    try:
-                        plugin_name = json.loads(match.group(1))["name"]
-                        response.body.update(f'Using plugin "{plugin_name}"...')
-                    except Exception:
-                        response.body.update("Using plugin...")
-                else:
-                    response.message.content = streaming_response
-                    response.body.update(streaming_response)
+
+        if not self.app.is_mounted(response):
+            conversation = self.query_one("Conversation", Conversation)
+            await conversation.add_response(response)
+
+        # the bot is going to use a plugin
+        if match := USING_PLUGIN_REGEX.search(streaming_response):
+            plugin_name = match.group(1)
+            if not response.body.text == f'Using plugin "{plugin_name}"...':
+                response.body.update(f'Using plugin "{plugin_name}"...')
+        else:
+            response.message.content = streaming_response
+            response.body.update(streaming_response)
 
             # scroll to bottom
             messages = self.query_one("Conversation #messages", VerticalScroll)
@@ -644,9 +640,19 @@ class MainScreen(Screen):
         bot = self.app.bot
         self.app.bot_responding = True
         try:
+            bot_response = BotResponse(
+                marvin.models.threads.Message(
+                    role="bot",
+                    name=self.app.bot.name,
+                    bot_id=self.app.bot.id,
+                    content="",
+                )
+            )
             response = await bot.say(
                 event.value,
-                on_token_callback=self.update_last_bot_response,
+                on_token_callback=partial(
+                    self.stream_bot_response, response=bot_response
+                ),
             )
 
             self.query_one("Conversation", Conversation)
