@@ -263,7 +263,7 @@ BotInfo TextTable .label {
 #bots-info-container {
   layout: grid;
   grid-size: 3;
-  height: 90%;
+  overflow-y: scroll;
 }
 
 BotsList {

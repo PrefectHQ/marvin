@@ -102,6 +102,8 @@ class BotsOptionList(OptionList):
             if self.app.bot:
                 if b.name == self.app.bot.name:
                     self.highlighted = i
+        self.show_vertical_scrollbar = True
+        self.scroll_to_highlight()
 
     async def on_mount(self) -> None:
         await self.refresh_bots()
