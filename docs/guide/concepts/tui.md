@@ -1,4 +1,4 @@
-# 🖥️ ChatTUI
+# 🖥️ TUI
 ![](../../img/tui/colorful_fruit.png)
 
 !!! tip "Features"
@@ -97,6 +97,14 @@ You can set your OpenAI API key from the TUI by pressing the Settings button. It
 
 ![](../../img/tui/settings.png)
 
+## Upgrading the database
+
+When new versions of Marvin are released, they may require your database to be upgraded in order to handle the new features or enhancements they contain. Therefore, whenever Marvin starts, it checks to see if your database is up-to-date and prints a helpful warning if it isn't. The TUI can go a step farther and upgrade your database automatically. If it is possible to do so, you will see a screen like the one below.
+
+![](../../img/tui/database_upgrade.png)
+
+!!! tip "Manually upgrading the database"
+    We have tried to prevent the TUI from accessing the database until after it runs the upgrade check and shows the warning screen. However, if for some reason it is unable to run the check properly, it may crash. In this case you can manually upgrade the database by running `marvin database upgrade` in your terminal.
 ## Technology
 
 The Marvin TUI is built with [Textual](https://github.com/Textualize/textual), a Python library for building TUIs.
