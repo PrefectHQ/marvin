@@ -7,7 +7,6 @@ description = "A batteries-included library for building AI-powered software."
 readme = "README.md"
 license = { file = "LICENSE" }
 classifiers = [
-    "Development Status :: 3 - Beta",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
