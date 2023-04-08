@@ -496,10 +496,13 @@ class DatabaseUpgradeDialogue(Container):
         )
         yield Button("Upgrade DB", variant="warning", id="upgrade-db")
 
-    def on_button_pressed(self, event: Button.Pressed):
+    async def on_button_pressed(self, event: Button.Pressed):
         if event.button.id == "upgrade-db":
             event.button.label = "Upgrading..."
             marvin.infra.database.alembic_upgrade()
+            if marvin.settings.bot_create_default_bots_on_startup:
+                await marvin.bots.install_bots()
+            self.app.database_ready = True
             self.app.pop_screen()
 
 
@@ -734,6 +737,7 @@ class MarvinApp(App):
     )
     bot_responding: bool = reactive(False)
     is_ready: bool = False
+    database_ready: bool = reactive(False)
 
     def __init__(self, default_bot_name: str = None, **kwargs):
         super().__init__(**kwargs)
@@ -748,6 +752,7 @@ class MarvinApp(App):
 
         try:
             await marvin.infra.database.check_alembic_version()
+            self.database_ready = True
         except marvin.infra.database.DatabaseWarning as w:
             if "Database migrations are not up to date" in str(w):
                 self.push_screen(DatabaseUpgradeScreen())
@@ -757,17 +762,20 @@ class MarvinApp(App):
         # reset warning behavior
         warnings.resetwarnings()
 
+    async def watch_database_ready(self, database_ready: bool) -> None:
+        if database_ready:
+            try:
+                bot = await marvin.Bot.load(self._default_bot_name)
+            except HTTPException:
+                bot = marvin.bots.meta.marvin_bot
+            self.bot = bot
+
+            await self.bot.set_thread(self.thread_id)
+            self.is_ready = True
+
     async def on_ready(self) -> None:
         self.push_screen(MainScreen())
-        try:
-            bot = await marvin.Bot.load(self._default_bot_name)
-        except HTTPException:
-            bot = marvin.bots.meta.marvin_bot
-        self.bot = bot
-
-        await self.bot.set_thread(self.thread_id)
-        self.is_ready = True
-        self.set_timer(0.5, self.check_database_upgrade)
+        await self.check_database_upgrade()
 
     async def watch_bot(self, bot: marvin.Bot) -> None:
         if not self.is_ready:
