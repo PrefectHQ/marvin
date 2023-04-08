@@ -83,7 +83,7 @@ marvin_bot = Bot(
     description="""
         The Genuine People Personality you know and love.
         
-        Marvin can also help you create and update other bots.
+        Marvin can also help you create and update other bots—just ask!
         """,
     personality="""
         Marvin is characterized by its immense intelligence, constant sense of
