@@ -656,7 +656,11 @@ class MainScreen(Screen):
                 ),
             )
 
-            self.query_one("Conversation", Conversation)
+            # call once to populate the response in case there was any trouble
+            # streaming live
+            await self.stream_bot_response(
+                token_buffer=[response.content], response=bot_response
+            )
 
             # if this is one of the first few responses, rename the thread
             # appropriately
