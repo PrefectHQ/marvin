@@ -52,7 +52,7 @@ my_document = Document(
 ```
 
 ### Creating excerpts from a `Document`
-`Document` offers a `to_excerpts` method that splits a `Document` into a `list[Document]` which are rich excerpts of the original.
+`Document` offers a `to_excerpts` method that splits a `Document` into a `list[Document]` which contains rich excerpts of the original.
 
 ```python
 # using the same document as above
@@ -83,7 +83,7 @@ my_document.to_excerpts()
 ```
 Here, since our `Document` is short, there's only one excerpt. Longer documents are split into many excerpts according to the `chunk_tokens` argument of `to_excerpts`.
 
-You'll notice that the `Document`'s `text` attribute has been replaced with a rich excerpt that includes the original `Document`'s `Metadata` and the excerpt's location in the original `Document`. This helps provide more context to the LLM when it's searching for answers.
+You'll notice that the `Document`'s `text` attribute has been replaced with a rich excerpt that includes the original `Document`'s `Metadata` and the excerpt's location in the original `Document`. This replacement helps provide more context to the LLM when it's searching for answers.
 
 <!-- 
 ### **Optional**: Bring your own `embedding`
@@ -171,9 +171,6 @@ class PokemonLoader(Loader):
 
 
 **Try it out!**
-- copy the above code
-
-- open `ipython` or `jupyter notebook` and run paste it in
-
-- run: `await PokemonLoader(limit=5).load()`
-
+- Copy the above code.
+- Paste it into a Python script or `jupyter notebook`.
+- Run `await PokemonLoader(limit=5).load()`.
