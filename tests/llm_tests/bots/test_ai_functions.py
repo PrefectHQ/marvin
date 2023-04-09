@@ -25,6 +25,7 @@ class TestAIFunctions:
         x = rng(20, 21)
         assert 20 <= x <= 21
 
+    @pytest.mark.xfail(reason="GPT-3.5 fails on this sometimes")
     def test_spellcheck(self):
         @ai_fn
         def spellcheck(word: str) -> str:
@@ -249,6 +250,7 @@ class TestContainers:
 
 
 class TestSet:
+    @pytest.mark.xfail(reason="GPT-3.5 fails to parse sometimes")
     def test_set_response(self):
         # https://github.com/PrefectHQ/marvin/issues/54
         @ai_fn
