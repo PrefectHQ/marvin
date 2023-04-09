@@ -55,7 +55,7 @@ class ThreadHistory(History):
         )
 
     async def _load_messages(self, n: int = None):
-        return await marvin.api.threads.get_messages(thread_id=self.thread_id, n=n)
+        return await marvin.api.threads.get_messages(thread_id=self.thread_id, limit=n)
 
     async def clear(self):
         self.thread_id = ThreadID.new()

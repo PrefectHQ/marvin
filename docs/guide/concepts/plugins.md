@@ -159,7 +159,7 @@ async def search_github_issues(
 Now that we have it, we can use our plugin anywhere we have a bot. Let's try it out and search for issues in the `marvin` repository related to `nest_asyncio`.
 
 ```python
-from marvin.bots import Bot
+from marvin.bot import Bot
 from marvin.plugins.github import search_github_issues
 
 bot = Bot(plugins=[search_github_issues])

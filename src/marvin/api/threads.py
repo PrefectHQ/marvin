@@ -1,12 +1,15 @@
+import fastapi.params
 import sqlalchemy as sa
 from fastapi import Body, Depends, HTTPException, Path, Query, status
 
 from marvin.api.dependencies import fastapi_session
 from marvin.infra.database import AsyncSession, provide_session
-from marvin.models.ids import ThreadID
+from marvin.models.bots import BotConfig
+from marvin.models.ids import MessageID, ThreadID
 from marvin.models.threads import (
     Message,
     MessageCreate,
+    MessageRead,
     Thread,
     ThreadCreate,
     ThreadRead,
@@ -20,12 +23,17 @@ router = MarvinRouter(prefix="/threads", tags=["Threads"])
 @router.post("/", status_code=status.HTTP_201_CREATED)
 @provide_session()
 async def create_thread(
-    thread_create: ThreadCreate, session: AsyncSession = Depends(fastapi_session)
+    thread: ThreadCreate, session: AsyncSession = Depends(fastapi_session)
 ) -> ThreadRead:
-    thread = Thread(**thread_create.dict())
-    session.add(thread)
-    await session.commit()
-    return ThreadRead(**thread.dict())
+    db_thread = Thread(**thread.dict())
+    session.add(db_thread)
+    try:
+        await session.commit()
+    # this shouldn't happen unless an internal function is creating a thread
+    # with a known ID
+    except sa.exc.IntegrityError:
+        raise HTTPException(status.HTTP_409_CONFLICT)
+    return ThreadRead(**db_thread.dict())
 
 
 @router.post("/lookup/{lookup_key}")
@@ -33,7 +41,7 @@ async def create_thread(
 async def get_thread_by_lookup_key(
     lookup_key: str,
     session: AsyncSession = Depends(fastapi_session),
-) -> Thread:
+) -> ThreadRead:
     result = await session.execute(
         sa.select(Thread).where(Thread.lookup_key == lookup_key).limit(1)
     )
@@ -48,7 +56,7 @@ async def get_thread_by_lookup_key(
 async def get_thread(
     thread_id: ThreadID = Path(..., alias="id"),
     session: AsyncSession = Depends(fastapi_session),
-) -> Thread:
+) -> ThreadRead:
     result = await session.execute(
         sa.select(Thread).where(Thread.id == thread_id).limit(1)
     )
@@ -56,6 +64,40 @@ async def get_thread(
     if not thread:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return thread
+
+
+@router.get("/")
+@provide_session()
+async def get_threads_by_bot(
+    bot_name: str,
+    session: AsyncSession = Depends(fastapi_session),
+    limit: int = Query(100, ge=0, le=100),
+    offset: int = Query(0, ge=0),
+    only_visible: bool = Query(True),
+) -> list[ThreadRead]:
+    if isinstance(limit, fastapi.params.Query):
+        limit = limit.default
+    if isinstance(offset, fastapi.params.Query):
+        offset = offset.default
+    if isinstance(only_visible, fastapi.params.Query):
+        only_visible = only_visible.default
+
+    exists_clause = (
+        sa.select(Message)
+        .join(BotConfig, BotConfig.id == Message.bot_id)
+        .where(BotConfig.name == bot_name, Message.thread_id == Thread.id)
+    )
+    query = (
+        sa.select(Thread)
+        .where(exists_clause.exists())
+        .order_by(Thread.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    if only_visible:
+        query = query.where(Thread.is_visible.is_(True))
+    result = await session.execute(query)
+    return result.scalars().all()
 
 
 @provide_session()
@@ -99,17 +141,47 @@ async def create_message(
 @provide_session()
 async def get_messages(
     thread_id: ThreadID = Path(..., alias="id"),
-    n: int = Query(100, ge=0, le=100),
+    limit: int = Query(100, ge=0, le=100),
+    offset: int = Query(0, ge=0),
     session: AsyncSession = Depends(fastapi_session),
-) -> list[Message]:
+) -> list[MessageRead]:
+    if isinstance(limit, fastapi.params.Query):
+        limit = limit.default
+    if isinstance(offset, fastapi.params.Query):
+        offset = offset.default
+
     query = (
         sa.select(Message)
         .where(Message.thread_id == thread_id)
         .order_by(Message.timestamp.desc())
-        .limit(n)
+        .limit(limit)
+        .offset(offset)
     )
     result = await session.execute(query)
     return list(reversed(result.scalars().all()))
+
+
+@provide_session()
+async def delete_message(
+    message_id: MessageID,
+    delete_following_messages: bool = False,
+    session: AsyncSession = Depends(fastapi_session),
+) -> None:
+    if delete_following_messages:
+        query = sa.select(Message).where(Message.id == message_id).limit(1)
+        result = await session.execute(query)
+        message = result.scalar()
+        if not message:
+            raise HTTPException(status.HTTP_404_NOT_FOUND)
+        await session.execute(
+            sa.delete(Message).where(
+                Message.thread_id == message.thread_id,
+                Message.timestamp >= message.timestamp,
+            )
+        )
+    else:
+        await session.execute(sa.delete(Message).where(Message.id == message_id))
+    await session.commit()
 
 
 @router.patch("/{id}", status_code=status.HTTP_204_NO_CONTENT)

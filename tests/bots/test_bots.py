@@ -5,7 +5,7 @@ import pydantic
 import pytest
 from marvin import Bot
 from marvin.bot.response_formatters import ResponseFormatter
-from marvin.utilities.strings import jinja_env
+from marvin.utilities.strings import condense_newlines, jinja_env
 from marvin.utilities.types import format_type_str
 
 custom_instructions_template = inspect.cleandoc(
@@ -18,26 +18,32 @@ custom_instructions_template = inspect.cleandoc(
 class TestCreateBots:
     async def test_create_bot_with_default_settings(self):
         bot = Bot()
-        assert bot.name == marvin.bot.base.DEFAULT_NAME
-        assert bot.personality == marvin.bot.base.DEFAULT_PERSONALITY
-        assert bot.instructions == marvin.bot.base.DEFAULT_INSTRUCTIONS
+        assert bot.name == condense_newlines(marvin.bot.base.DEFAULT_NAME)
+        assert bot.personality == condense_newlines(marvin.bot.base.DEFAULT_PERSONALITY)
+        assert bot.instructions == condense_newlines(
+            marvin.bot.base.DEFAULT_INSTRUCTIONS
+        )
 
     async def test_create_bot_with_custom_name(self):
         bot = Bot(name="Test Bot")
         assert bot.name == "Test Bot"
-        assert bot.personality == marvin.bot.base.DEFAULT_PERSONALITY
-        assert bot.instructions == marvin.bot.base.DEFAULT_INSTRUCTIONS
+        assert bot.personality == condense_newlines(marvin.bot.base.DEFAULT_PERSONALITY)
+        assert bot.instructions == condense_newlines(
+            marvin.bot.base.DEFAULT_INSTRUCTIONS
+        )
 
     async def test_create_bot_with_custom_personality(self):
         bot = Bot(personality="Test Personality")
         assert bot.name == marvin.bot.base.DEFAULT_NAME
         assert bot.personality == "Test Personality"
-        assert bot.instructions == marvin.bot.base.DEFAULT_INSTRUCTIONS
+        assert bot.instructions == condense_newlines(
+            marvin.bot.base.DEFAULT_INSTRUCTIONS
+        )
 
     async def test_create_bot_with_custom_instructions(self):
         bot = Bot(instructions="Test Instructions")
         assert bot.name == marvin.bot.base.DEFAULT_NAME
-        assert bot.personality == marvin.bot.base.DEFAULT_PERSONALITY
+        assert bot.personality == condense_newlines(marvin.bot.base.DEFAULT_PERSONALITY)
         assert bot.instructions == "Test Instructions"
 
     async def test_create_bot_with_custom_instruction_template(self):
@@ -46,7 +52,7 @@ class TestCreateBots:
             instructions_template=custom_instructions_template,
         )
         assert bot.name == marvin.bot.base.DEFAULT_NAME
-        assert bot.personality == marvin.bot.base.DEFAULT_PERSONALITY
+        assert bot.personality == condense_newlines(marvin.bot.base.DEFAULT_PERSONALITY)
         assert bot.instructions == "Test Instructions"
         assert (
             jinja_env.from_string(bot.instructions_template).render(
@@ -141,13 +147,32 @@ class TestSaveBots:
         with pytest.raises(ValueError, match="(already exists)"):
             await Bot(name="abc").save()
 
-    async def test_overwrite_bot(self):
+    async def test_if_exists_delete(self):
         bot1 = Bot(instructions="1")
         bot2 = Bot(instructions="2")
         await bot1.save()
-        await bot2.save(overwrite=True)
+        await bot2.save(if_exists="delete")
         loaded_bot = await Bot.load(bot1.name)
         assert loaded_bot.instructions == bot2.instructions
+        assert loaded_bot.id == bot2.id
+
+    async def test_if_exists_update(self):
+        bot1 = Bot(instructions="1")
+        bot2 = Bot(instructions="2")
+        await bot1.save()
+        await bot2.save(if_exists="update")
+        loaded_bot = await Bot.load(bot1.name)
+        assert loaded_bot.instructions == bot2.instructions
+        assert loaded_bot.id == bot1.id
+
+    async def test_if_exists_cancel(self):
+        bot1 = Bot(instructions="1")
+        bot2 = Bot(instructions="2")
+        await bot1.save()
+        await bot2.save(if_exists="cancel")
+        loaded_bot = await Bot.load(bot1.name)
+        assert loaded_bot.instructions == bot1.instructions
+        assert loaded_bot.id == bot1.id
 
     async def test_save_bot_with_custom_instructions_template(self):
         bot = Bot(

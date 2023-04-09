@@ -51,10 +51,9 @@ class StreamingCallbackHandler(BaseCallbackHandler):
         """Run on new LLM token. Only available when streaming is enabled."""
         self.buffer.append(token)
         if self.on_token_callback is not None:
-            if inspect.iscoroutinefunction(self.on_token_callback):
+            output = self.on_token_callback(self.buffer)
+            if inspect.iscoroutine(output):
                 asyncio.run(self.on_token_callback(self.buffer))
-            else:
-                self.on_token_callback(self.buffer)
 
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> Any:
         """Run when LLM ends running."""
@@ -133,7 +132,7 @@ def prepare_messages(
     for msg in messages:
         if msg.role == "system":
             langchain_messages.append(SystemMessage(content=msg.content))
-        elif msg.role == "ai":
+        elif msg.role == "bot":
             langchain_messages.append(AIMessage(content=msg.content))
         elif msg.role == "user":
             langchain_messages.append(HumanMessage(content=msg.content))
