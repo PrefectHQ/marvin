@@ -7,11 +7,11 @@ import marvin
 
 logger = marvin.get_logger("app")
 
-routers = (
+routers = [
     marvin.api.bots.router,
     marvin.api.topics.router,
     marvin.api.threads.router,
-)
+]
 
 if marvin.config.settings.run_slackbot:
     import nest_asyncio
