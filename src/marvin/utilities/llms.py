@@ -159,7 +159,7 @@ def message_sort_key(
         index > 0 and messages[index - 1].role == "user" and msg.role == "ai"
     )
     # then, sort by timestamp
-    return (not is_system, not is_ai_after_user, msg.timestamp)
+    return (not is_system, not is_ai_after_user, msg.timestamp.timestamp())
 
 
 def trim_to_context_window(
