@@ -149,17 +149,17 @@ def prepare_messages(
 
 
 def message_sort_key(
-    x: Message, messages: list[Message]
+    msg: Message, messages: list[Message]
 ) -> Tuple[bool, bool, datetime]:
-    index = messages.index(x)
+    index = messages.index(msg)
     # prioritize system messages
-    is_system = x.role == "system"
+    is_system = msg.role == "system"
     # then, prefer ai messages preceeded by user messages
     is_ai_after_user = (
-        index > 0 and messages[index - 1].role == "user" and x.role == "ai"
+        index > 0 and messages[index - 1].role == "user" and msg.role == "ai"
     )
     # then, sort by timestamp
-    return (not is_system, not is_ai_after_user, x.timestamp)
+    return (not is_system, not is_ai_after_user, msg.timestamp)
 
 
 def trim_context_window(
