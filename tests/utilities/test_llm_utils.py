@@ -30,7 +30,7 @@ from marvin.utilities.llms import trim_context_window
                 Message(role="system", content="You are an AI helper."),
             ],
         ),
-        (  # only 2 fit - should prioritize first message, ai message after user message
+        (  # only 2 fit - should prioritize first then last message
             [
                 Message(role="system", content="You are an AI helper."),
                 Message(role="user", content="What's the weather like?"),
