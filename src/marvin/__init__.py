@@ -4,8 +4,8 @@ from importlib.metadata import version as _get_version
 import nest_asyncio as _nest_asyncio
 import asyncio as _asyncio
 
-
-_nest_asyncio.apply()
+loop = _asyncio.get_event_loop_policy().new_event_loop()
+_nest_asyncio.apply(loop)
 
 # load env vars
 from dotenv import load_dotenv as _load_dotenv
