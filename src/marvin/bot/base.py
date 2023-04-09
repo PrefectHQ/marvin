@@ -169,6 +169,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
         repr=False,
     )
 
+    tokens_used: int = Field(0, description="The number of tokens used by the bot.")
+
     @validator("name", always=True)
     def handle_name(cls, v):
         if v is None:

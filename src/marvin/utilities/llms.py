@@ -1,6 +1,7 @@
 import asyncio
 import inspect
-from typing import Any, Callable, Union
+from datetime import datetime
+from typing import Any, Callable, Tuple, Union
 
 from langchain.callbacks.base import BaseCallbackHandler, CallbackManager
 from langchain.chat_models import ChatOpenAI
@@ -15,6 +16,7 @@ from langchain.schema import (
 
 import marvin
 from marvin.models.threads import Message
+from marvin.utilities.strings import count_tokens
 
 
 class StreamingCallbackHandler(BaseCallbackHandler):
@@ -126,8 +128,13 @@ def get_llm(
 
 def prepare_messages(
     messages: list[Message],
+    context_window_tokens: int = 4096,
 ) -> Union[AIMessage, HumanMessage, SystemMessage]:
     """Prepare messages for LLM."""
+
+    if sum(count_tokens(msg.content) for msg in messages) >= context_window_tokens:
+        messages = trim_context_window(messages)
+
     langchain_messages = []
     for msg in messages:
         if msg.role == "system":
@@ -139,3 +146,54 @@ def prepare_messages(
         else:
             raise ValueError(f"Unrecognized role: {msg.role}")
     return langchain_messages
+
+
+def message_sort_key(
+    x: Message, messages: list[Message]
+) -> Tuple[bool, bool, datetime]:
+    index = messages.index(x)
+    # prioritize system messages
+    is_system = x.role == "system"
+    # then, prefer ai messages preceeded by user messages
+    is_ai_after_user = (
+        index > 0 and messages[index - 1].role == "user" and x.role == "ai"
+    )
+    # then, sort by timestamp
+    return (not is_system, not is_ai_after_user, x.timestamp)
+
+
+def trim_context_window(
+    messages: list[Message], max_tokens: int = 4096, first_n: int = 1, last_n: int = 1
+):
+    processed_messages = []
+    token_count = 0
+
+    # Include first and last N messages (if they fit)
+    for index, msg in enumerate(messages):
+        tokens_needed = count_tokens(msg.content)
+
+        # Check if the message is among the first N messages or the last N messages
+        if index < first_n or index >= len(messages) - last_n:
+            if token_count + tokens_needed <= max_tokens:
+                token_count += tokens_needed
+                processed_messages.append(msg)
+
+    # Prepare messages to rank and exclude ones already in processed_messages
+    remaining_messages = [
+        msg for msg in messages[first_n:-last_n] if msg not in processed_messages
+    ]
+
+    # Sort the remaining_messages by heuristics baked into message_sort_key
+    remaining_messages.sort(key=lambda x: message_sort_key(x, messages), reverse=True)
+
+    # Include top ranked messages until they can no longer fit
+    for msg in remaining_messages:
+        tokens_needed = count_tokens(msg.content)
+        if token_count + tokens_needed <= max_tokens:
+            token_count += tokens_needed
+            processed_messages.append(msg)
+
+    # Sort the processed_messages by timestamp to maintain chronological order
+    processed_messages.sort(key=lambda x: x.timestamp)
+
+    return processed_messages
