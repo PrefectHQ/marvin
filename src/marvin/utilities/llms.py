@@ -194,6 +194,6 @@ def trim_to_context_window(
             processed_messages.append(msg)
 
     # Sort the processed_messages by timestamp to maintain chronological order
-    processed_messages.sort(key=lambda x: (x.timestamp, x.id))
+    processed_messages.sort(key=lambda x: x.timestamp.timestamp())
 
     return processed_messages
