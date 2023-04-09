@@ -1,6 +1,6 @@
 import pytest
 from marvin.models.threads import Message
-from marvin.utilities.llms import trim_context_window
+from marvin.utilities.llms import trim_to_context_window
 
 
 @pytest.mark.parametrize(
@@ -102,7 +102,7 @@ from marvin.utilities.llms import trim_context_window
     ],
 )
 def test_trim_context_window(messages, max_tokens, expected_result):
-    result = trim_context_window(messages, max_tokens)
+    result = trim_to_context_window(messages, max_tokens)
 
     excluded_attrs = {"id", "timestamp", "bot_id", "data", "thread_id"}
     assert [msg.dict(exclude=excluded_attrs) for msg in result] == [

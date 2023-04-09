@@ -133,7 +133,7 @@ def prepare_messages(
     """Prepare messages for LLM."""
 
     if sum(count_tokens(msg.content) for msg in messages) >= context_window_tokens:
-        messages = trim_context_window(messages)
+        messages = trim_to_context_window(messages)
 
     langchain_messages = []
     for msg in messages:
@@ -162,15 +162,16 @@ def message_sort_key(
     return (not is_system, not is_ai_after_user, msg.timestamp)
 
 
-def trim_context_window(
+def trim_to_context_window(
     messages: list[Message], max_tokens: int = 4096, first_n: int = 1, last_n: int = 1
 ):
     processed_messages = []
     token_count = 0
+    token_counts = [count_tokens(msg.content) for msg in messages]
 
-    # Include first and last N messages (if they fit)
+    # Include first N and last N messages (if they fit)
     for index, msg in enumerate(messages):
-        tokens_needed = count_tokens(msg.content)
+        tokens_needed = token_counts[index]
 
         # Check if the message is among the first N messages or the last N messages
         if index < first_n or index >= len(messages) - last_n:
@@ -180,20 +181,27 @@ def trim_context_window(
 
     # Prepare messages to rank and exclude ones already in processed_messages
     remaining_messages = [
-        msg for msg in messages[first_n:-last_n] if msg not in processed_messages
+        msg
+        for index, msg in enumerate(messages[first_n:-last_n])
+        if msg not in processed_messages
     ]
 
     # Sort the remaining_messages by heuristics baked into message_sort_key
     remaining_messages.sort(key=lambda x: message_sort_key(x, messages), reverse=True)
 
     # Include top ranked messages until they can no longer fit
-    for msg in remaining_messages:
-        tokens_needed = count_tokens(msg.content)
+    for index, msg in enumerate(remaining_messages):
+        tokens_needed = token_counts[messages.index(msg)]
         if token_count + tokens_needed <= max_tokens:
             token_count += tokens_needed
-            processed_messages.append(msg)
-
-    # Sort the processed_messages by timestamp to maintain chronological order
-    processed_messages.sort(key=lambda x: x.timestamp)
+            insert_index = next(
+                (
+                    i
+                    for i, m in enumerate(processed_messages)
+                    if m.timestamp > msg.timestamp
+                ),
+                len(processed_messages),
+            )
+            processed_messages.insert(insert_index, msg)
 
     return processed_messages
