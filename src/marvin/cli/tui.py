@@ -45,11 +45,12 @@ async def name_thread(history: str, personality: str, current_name: str = None) 
     """
     This function generates a short, relevant name for the provided thread
     `history`. The name should be fewer than five words and must reflect the
-    user's intent or objective in a clear, fun way. It can include emojis and
-    use sentence capitalization, but should not end with a period. The name itself
-    should be entirely based on the provided `history`, but the tone should reflect the
-    provided `personality`. If the thread has a `current_name` already, it is
-    provided and you can choose to keep it unchanged.
+    user's intent or objective in a clear, fun way. Return only the name, no
+    other commentary. It can include emojis and use sentence capitalization, but
+    should not end with a period. The name itself should be entirely based on
+    the provided `history`, but the tone should reflect the provided
+    `personality`. If the thread has a `current_name` already, it is provided
+    and you can choose to keep it unchanged.
     """
 
 
@@ -664,14 +665,17 @@ class MainScreen(Screen):
                 self.action_rename_thread()
 
             # update the bot response with the actual message id
-            bot_responses.last().message.id = response.id
+            bot_response.message.id = response.id
 
             # update the last user response with the actual message id
             messages = await marvin.api.threads.get_messages(
-                thread_id=self.app.thread_id, limit=2
+                thread_id=self.app.thread_id, limit=5
             )
-            if len(messages) == 2:
-                self.query("UserResponse").last().message.id = messages[0].id
+            last_user_message = next(
+                (m for m in reversed(messages) if m.role == "user"), None
+            )
+            if last_user_message:
+                self.query("UserResponse").last().message.id = last_user_message.id
         finally:
             self.app.bot_responding = False
 
