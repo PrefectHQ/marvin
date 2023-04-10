@@ -109,13 +109,15 @@ def test_trim_context_window(messages, max_tokens, expected_result):
     if platform.system() == "Windows":
         messages = [
             Message(
-                **msg.dict(), timestamp=msg.timestamp + datetime.timedelta(seconds=i)
+                **msg.dict(exclude={"timestamp"}),
+                timestamp=msg.timestamp + datetime.timedelta(seconds=i)
             )
             for i, msg in enumerate(messages)
         ]
         expected_result = [
             Message(
-                **msg.dict(), timestamp=msg.timestamp + datetime.timedelta(seconds=i)
+                **msg.dict(exclude={"timestamp"}),
+                timestamp=msg.timestamp + datetime.timedelta(seconds=i)
             )
             for i, msg in enumerate(expected_result)
         ]
