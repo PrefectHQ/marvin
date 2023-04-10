@@ -235,6 +235,18 @@ BotsDialogue {
   height: 70%;
 }
 
+BotsDialogue Horizontal {
+  height: auto;
+}
+
+BotsDialogue Button {
+  margin-right: 2;
+}
+
+BotsDialogue #install-default-bots {
+  padding: 0 2;
+}
+
 BotsOptionList {
   border: solid white 50%;
   background: $boost;

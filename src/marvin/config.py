@@ -125,12 +125,6 @@ class Settings(BaseSettings):
     redis_connection_url: SecretStr = ""
 
     # BOTS
-    bot_create_default_bots_on_startup: bool = Field(
-        True,
-        description=(
-            "If True, default bots will be auto-created in the database on startup."
-        ),
-    )
     bot_create_profile_picture: bool = Field(
         False,
         description=(
@@ -218,8 +212,6 @@ class Settings(BaseSettings):
             values["bot_create_profile_picture"] = False
             # don't load default plugins
             values["bot_load_default_plugins"] = False
-            # don't create bots
-            values["bot_create_default_bots_on_startup"] = False
             # remove all model variance
             values["openai_model_temperature"] = 0.0
             # use 3.5 by default
