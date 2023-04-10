@@ -152,7 +152,7 @@ class Settings(BaseSettings):
     slack_bot_token: SecretStr = Field(
         "", env=["MARVIN_SLACK_BOT_TOKEN", "SLACK_BOT_TOKEN"]
     )
-    slackbot_setup_script: str = Field("examples/slackbot/community_bot_setup.py")
+    slackbot_setup_script: str = Field("examples/slackbot/community_bot/setup.py")
 
     # API
     api_base_url: str = "http://127.0.0.1"

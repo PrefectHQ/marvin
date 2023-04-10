@@ -53,7 +53,7 @@ async def _post_message_to_slack(channel: str, message: str, thread_ts: str = No
 
 
 async def _slackbot_response(event: SlackEvent):
-    bot = marvin.config.settings.slackbot
+    bot: marvin.Bot = marvin.config.settings.slackbot
 
     if not bot:
         marvin.get_logger().warning(msg := "Slackbot not configured")
