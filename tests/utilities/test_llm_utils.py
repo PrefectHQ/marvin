@@ -57,12 +57,12 @@ from marvin.utilities.llms import trim_to_context_window
                     content="According to my search, the weather is sunny today.",
                 ),
             ],
-            25,
+            26,
             [
                 Message(role="system", content="You are an AI helper."),  # 6 tokens
                 Message(
-                    role="ai", content="run-plugin weather --city=New York"
-                ),  # 8 tokens
+                    role="system", content="Plugin output: The weather is sunny today."
+                ),  # 9 tokens
                 Message(
                     role="ai",
                     content="According to my search, the weather is sunny today.",
@@ -82,13 +82,15 @@ from marvin.utilities.llms import trim_to_context_window
                     content="According to my search, the weather is sunny today.",
                 ),
             ],
-            31,
+            34,
             [
                 Message(role="system", content="You are an AI helper."),  # 6 tokens
-                Message(role="user", content="What's the weather like?"),  # 6 tokens
                 Message(
                     role="ai", content="run-plugin weather --city=New York"
                 ),  # 8 tokens
+                Message(
+                    role="system", content="Plugin output: The weather is sunny today."
+                ),  # 9 tokens
                 Message(
                     role="ai",
                     content="According to my search, the weather is sunny today.",

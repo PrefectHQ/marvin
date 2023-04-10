@@ -150,10 +150,8 @@ def prepare_messages(
 
 def default_message_priority(msg: Message) -> Tuple[int, datetime]:
     if msg.role == "system" and not msg.content.startswith("Plugin output: "):
-        return 2, msg.timestamp
-    elif msg.role != "system":
         return 1, msg.timestamp
-    else:  # is a system message containing plugin output
+    else:
         return 0, msg.timestamp
 
 
