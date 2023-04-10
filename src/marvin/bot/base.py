@@ -35,7 +35,7 @@ MAX_VALIDATION_ATTEMPTS = 3
 if TYPE_CHECKING:
     from marvin.models.bots import BotConfig
 DEFAULT_NAME = "Marvin"
-DEFAULT_DESCRIPTION = ""
+DEFAULT_DESCRIPTION = "A Marvin bot"
 DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
 DEFAULT_INSTRUCTIONS = """
     Respond to the user, always in character based on your personality. You
