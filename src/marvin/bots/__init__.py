@@ -16,7 +16,3 @@ async def install_bots():
                     await bot.save(if_exists="update")
     except Exception:
         logger.error("Failed to install bots", exc_info=True)
-
-
-if marvin.settings.bot_create_default_bots_on_startup:
-    asyncio.run(install_bots())
