@@ -510,8 +510,6 @@ class DatabaseUpgradeDialogue(Container):
         if event.button.id == "upgrade-db":
             event.button.label = "Upgrading..."
             marvin.infra.database.alembic_upgrade()
-            if marvin.settings.bot_create_default_bots_on_startup:
-                await marvin.bots.install_bots()
             self.app.database_ready = True
             self.app.pop_screen()
 
@@ -534,7 +532,13 @@ class BotsDialogue(Container):
             options.focus()
             yield options
             yield BotInfo(self.app.bot, id="bots-info")
-        yield Button("OK", variant="success", id="bots-ok")
+        with Horizontal():
+            yield Button("OK", variant="success", id="bots-ok")
+            yield Button(
+                "Install default bots",
+                variant="default",
+                id="install-default-bots",
+            )
 
     def on_bots_option_list_bot_highlighted(self, event: BotsOptionList.BotHighlighted):
         self.query_one("#bots-info", BotInfo).bot = event.bot
@@ -550,13 +554,21 @@ class BotsScreen(ModalScreen):
         self.app.pop_screen()
 
     def action_ok(self) -> None:
-        self.app.bot = self.query_one("#bots-option-list", BotsOptionList).bot
+        bot_list = self.query_one("#bots-option-list", BotsOptionList)
+        if bot_list.bot:
+            self.app.bot = bot_list.bot
         self.app.pop_screen()
         self.app.query_one("#message-input", Input).focus()
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    async def action_install_default_bots(self) -> None:
+        await marvin.bots.install_bots()
+        await self.query_one("#bots-option-list", BotsOptionList).refresh_bots()
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "bots-ok":
             self.action_ok()
+        elif event.button.id == "install-default-bots":
+            await self.action_install_default_bots()
 
 
 class MainScreen(Screen):
@@ -760,7 +772,7 @@ class MarvinApp(App):
             default_bot_name = "Marvin"
         self._default_bot_name = default_bot_name
 
-    async def check_database_upgrade(self):
+    async def check_database(self):
         # trap warnings as errors
         warnings.filterwarnings("error")
 
@@ -782,6 +794,7 @@ class MarvinApp(App):
                 bot = await marvin.Bot.load(self._default_bot_name)
             except HTTPException:
                 bot = marvin.bots.meta.marvin_bot
+                await bot.save(if_exists="update")
             self.bot = bot
 
             await self.bot.set_thread(self.thread_id)
@@ -789,7 +802,7 @@ class MarvinApp(App):
 
     async def on_ready(self) -> None:
         self.push_screen(MainScreen())
-        await self.check_database_upgrade()
+        await self.check_database()
 
     async def watch_bot(self, bot: marvin.Bot) -> None:
         if not self.is_ready:
