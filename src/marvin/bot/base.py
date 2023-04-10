@@ -35,6 +35,7 @@ MAX_VALIDATION_ATTEMPTS = 3
 if TYPE_CHECKING:
     from marvin.models.bots import BotConfig
 DEFAULT_NAME = "Marvin"
+DEFAULT_DESCRIPTION = "A Marvin bot"
 DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
 DEFAULT_INSTRUCTIONS = """
     Respond to the user, always in character based on your personality. You
@@ -178,7 +179,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
     @validator("description", always=True)
     def handle_description(cls, v):
         if v is None:
-            return v
+            return DEFAULT_DESCRIPTION
         return condense_newlines(v)
 
     @validator("personality", always=True)
