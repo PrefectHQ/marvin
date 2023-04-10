@@ -9,7 +9,7 @@ from marvin.utilities.llms import trim_to_context_window
 @pytest.mark.parametrize(
     "messages, max_tokens, expected_result",
     [
-        (  # no token context window - should be empty
+        (
             [
                 Message(role="system", content="You are an AI helper."),
                 Message(role="user", content="What's the weather like?"),
@@ -17,90 +17,83 @@ from marvin.utilities.llms import trim_to_context_window
                 Message(role="user", content="What's the temperature?"),
                 Message(role="ai", content="The temperature is 75°F."),
             ],
-            0,
-            [],
-        ),
-        (  # only one message can fit - should prioritize first message
+            6,
             [
-                Message(role="system", content="You are an AI helper."),
-                Message(role="user", content="What's the weather like?"),
-                Message(role="ai", content="The weather is sunny today."),
-                Message(role="user", content="What's the temperature?"),
-                Message(role="ai", content="The temperature is 75°F."),
-            ],
-            10,
-            [
-                Message(role="system", content="You are an AI helper."),
+                Message(role="system", content="You are an AI helper."),  # 6 tokens
             ],
         ),
-        (  # only 2 fit - should prioritize first then last message
+        (
             [
                 Message(role="system", content="You are an AI helper."),
                 Message(role="user", content="What's the weather like?"),
-                Message(role="ai", content="The weather is sunny today."),
-                Message(role="user", content="What's the temperature?"),
-                Message(role="ai", content="The temperature is 75°F."),
+                Message(role="ai", content="run-plugin weather --city=New York"),
+                Message(
+                    role="system", content="Plugin output: The weather is sunny today."
+                ),
+                Message(
+                    role="ai",
+                    content="According to my search, the weather is sunny today.",
+                ),
             ],
             17,
             [
-                Message(role="system", content="You are an AI helper."),
-                Message(role="ai", content="The temperature is 75°F."),
-            ],
-        ),
-        (  # only 3 fit - same as above, but then most recent after that
-            [
-                Message(role="system", content="You are an AI helper."),
-                Message(role="user", content="What's the weather like?"),
-                Message(role="ai", content="The weather is sunny today."),
-                Message(role="user", content="What's the temperature?"),
-                Message(role="ai", content="The temperature is 75°F."),
-            ],
-            23,
-            [
-                Message(role="system", content="You are an AI helper."),
-                Message(role="user", content="What's the temperature?"),
-                Message(role="ai", content="The temperature is 75°F."),
+                Message(role="system", content="You are an AI helper."),  # 6 tokens
+                Message(
+                    role="ai",
+                    content="According to my search, the weather is sunny today.",
+                ),  # 11 tokens
             ],
         ),
         (
             [
                 Message(role="system", content="You are an AI helper."),
                 Message(role="user", content="What's the weather like?"),
-                Message(role="ai", content="The weather is sunny today."),
-                Message(role="user", content="What's the temperature?"),
-                Message(role="ai", content="The temperature is 75°F."),
+                Message(role="ai", content="run-plugin weather --city=New York"),
+                Message(
+                    role="system", content="Plugin output: The weather is sunny today."
+                ),
+                Message(
+                    role="ai",
+                    content="According to my search, the weather is sunny today.",
+                ),
             ],
-            24,
+            25,
             [
-                Message(role="system", content="You are an AI helper."),
-                Message(role="user", content="What's the weather like?"),
-                Message(role="user", content="What's the temperature?"),
-                Message(role="ai", content="The temperature is 75°F."),
+                Message(role="system", content="You are an AI helper."),  # 6 tokens
+                Message(
+                    role="ai", content="run-plugin weather --city=New York"
+                ),  # 8 tokens
+                Message(
+                    role="ai",
+                    content="According to my search, the weather is sunny today.",
+                ),  # 11 tokens
             ],
         ),
         (
             [
                 Message(role="system", content="You are an AI helper."),
                 Message(role="user", content="What's the weather like?"),
-                Message(role="ai", content="The weather is sunny today."),
-                Message(role="user", content="What's the temperature?"),
-                Message(role="ai", content="The temperature is 75°F."),
+                Message(role="ai", content="run-plugin weather --city=New York"),
+                Message(
+                    role="system", content="Plugin output: The weather is sunny today."
+                ),
+                Message(
+                    role="ai",
+                    content="According to my search, the weather is sunny today.",
+                ),
             ],
-            30,
+            31,
             [
-                Message(role="system", content="You are an AI helper."),
-                Message(role="user", content="What's the weather like?"),
-                Message(role="ai", content="The weather is sunny today."),
-                Message(role="user", content="What's the temperature?"),
-                Message(role="ai", content="The temperature is 75°F."),
+                Message(role="system", content="You are an AI helper."),  # 6 tokens
+                Message(role="user", content="What's the weather like?"),  # 6 tokens
+                Message(
+                    role="ai", content="run-plugin weather --city=New York"
+                ),  # 8 tokens
+                Message(
+                    role="ai",
+                    content="According to my search, the weather is sunny today.",
+                ),  # 11 tokens
             ],
-        ),
-        (  # long single message, would exceed max_tokens, cannot send
-            [
-                Message(role="system", content="You are an AI helper." * 10),
-            ],
-            30,
-            [],
         ),
     ],
 )

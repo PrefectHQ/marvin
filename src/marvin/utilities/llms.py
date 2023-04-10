@@ -148,52 +148,30 @@ def prepare_messages(
     return langchain_messages
 
 
-def message_sort_key(
-    msg: Message, messages: list[Message]
-) -> Tuple[bool, bool, datetime]:
-    index = messages.index(msg)
-    # prioritize system messages
-    is_system = msg.role == "system"
-    # then, prefer ai messages preceeded by user messages
-    is_ai_after_user = (
-        index > 0 and messages[index - 1].role == "user" and msg.role == "ai"
-    )
-    # then, sort by timestamp
-    return (not is_system, not is_ai_after_user, msg.timestamp)
+def default_message_priority(msg: Message) -> Tuple[int, datetime]:
+    if msg.role == "system" and not msg.content.startswith("Plugin output: "):
+        return 2, msg.timestamp
+    elif msg.role != "system":
+        return 1, msg.timestamp
+    else:  # is a system message containing plugin output
+        return 0, msg.timestamp
 
 
 def trim_to_context_window(
-    messages: list[Message], max_tokens: int = 4096, first_n: int = 1, last_n: int = 1
+    messages: list[Message],
+    max_tokens: int = 4096,
+    message_priority_fn: Callable = default_message_priority,
 ):
-    processed_messages = []
+    """Trim messages to a context window of a given size.
+
+    Returns priority messages and as many recent messages can fit.
+    """
+
+    included_messages = []
     token_count = 0
-
-    # Include first and last N messages (if they fit)
-    for index, msg in enumerate(messages):
+    for msg in sorted(messages, key=lambda msg: message_priority_fn(msg), reverse=True):
         tokens_needed = count_tokens(msg.content)
+        if (token_count := token_count + tokens_needed) <= max_tokens:
+            included_messages.append(msg)
 
-        # Check if the message is among the first N messages or the last N messages
-        if index < first_n or index >= len(messages) - last_n:
-            if token_count + tokens_needed <= max_tokens:
-                token_count += tokens_needed
-                processed_messages.append(msg)
-
-    # Prepare messages to rank and exclude ones already in processed_messages
-    remaining_messages = [
-        msg for msg in messages[first_n:-last_n] if msg not in processed_messages
-    ]
-
-    # Sort the remaining_messages by heuristics baked into message_sort_key
-    remaining_messages.sort(key=lambda x: message_sort_key(x, messages), reverse=True)
-
-    # Include top ranked messages until they can no longer fit
-    for msg in remaining_messages:
-        tokens_needed = count_tokens(msg.content)
-        if token_count + tokens_needed <= max_tokens:
-            token_count += tokens_needed
-            processed_messages.append(msg)
-
-    # Sort the processed_messages by timestamp to maintain chronological order
-    processed_messages.sort(key=lambda x: x.timestamp)
-
-    return processed_messages
+    return sorted(included_messages, key=lambda msg: msg.timestamp)
