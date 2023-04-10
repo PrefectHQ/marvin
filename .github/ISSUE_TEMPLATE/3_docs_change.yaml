@@ -1,0 +1,41 @@
+name: 📝 Suggest a change to documentation
+description: Propose edits, enhancements, or fixes to Marvin documentation
+labels: ["docs", "status:triage"]
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: First check
+      description: Please confirm and check all the following options.
+      options:
+        - label: I added a descriptive title to this issue.
+          required: true
+        - label: I used GitHub search to try to find a similar issue and didn't find one. 
+          required: true
+
+  - type: textarea
+    attributes:
+      label: Describe the issue
+      description: A clear, concise description of the current state of the documentation. 
+      Please include a URL for the relevant section. 
+      Please include a screenshot and note which browser you are using if there is a docs rendering problem.
+    validations:
+      required: true
+      
+  - type: textarea
+    attributes:
+      label: Describe the proposed change
+      description: A clear, concise description of the proposed change to the documentation.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Provide additional context or relevant examples for this issue.
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: "**Happy engineering!**"
