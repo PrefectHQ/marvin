@@ -1,3 +1,5 @@
+import json
+
 import httpx
 from fastapi import status
 
@@ -21,6 +23,14 @@ class VisitURL(Plugin):
             except httpx.ConnectTimeout:
                 return "Failed to load URL: Connection timed out"
         if response.status_code == status.HTTP_200_OK:
-            return slice_tokens(html_to_content(response.text), 1000)
+            text = response.text
+
+            # try to parse as JSON in case the URL is an API
+            try:
+                content = str(json.loads(text))
+            # otherwise parse as HTML
+            except json.JSONDecodeError:
+                content = html_to_content(text)
+            return slice_tokens(content, 1000)
         else:
             return f"Failed to load URL: {response.status_code}"
