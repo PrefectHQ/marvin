@@ -435,7 +435,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         messages = []
 
         # check for plugins json
-        if match := PLUGIN_REGEX.search(response):
+        for match in PLUGIN_REGEX.finditer(response):
             plugin_json = match.group(1)
 
             try:

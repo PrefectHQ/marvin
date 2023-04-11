@@ -59,7 +59,7 @@ async def load_prefect_things():
         )
     )
 
-    MultiLoader(
+    prefect_loader = MultiLoader(
         loaders=[
             prefect_docs,
             prefect_discourse,
@@ -69,7 +69,7 @@ async def load_prefect_things():
         ]
     )
 
-    # await prefect_loader.load_and_store()
+    await prefect_loader.load_and_store()
 
 
 how_to_write_a_prefect_2_flow = """
