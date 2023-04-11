@@ -6,6 +6,7 @@ from prefect.utilities.importtools import load_script_as_module
 from pydantic import BaseModel
 
 import marvin
+from marvin.utilities.strings import convert_md_links_to_slack
 from marvin.utilities.types import MarvinRouter
 
 router = MarvinRouter(
@@ -20,6 +21,7 @@ class SlackEvent(BaseModel):
     text: str
     channel: str
     ts: str
+    thread_ts: str = None
 
 
 async def slackbot_setup():
@@ -46,7 +48,7 @@ async def _post_message_to_slack(channel: str, message: str, thread_ts: str = No
             },
             json={
                 "channel": channel,
-                "text": message,
+                "text": convert_md_links_to_slack(message),
                 **({"thread_ts": thread_ts} if thread_ts else {}),
             },
         )
@@ -69,7 +71,9 @@ async def _slackbot_response(event: SlackEvent):
         )
         raise UserWarning(msg)
 
-    await bot.set_thread(thread_lookup_key=f"{event.channel}:{event.user}")
+    thread = event.thread_ts or event.ts
+
+    await bot.set_thread(thread_lookup_key=f"{event.channel}:{thread}")
 
     response = await bot.say(event.text)
 
