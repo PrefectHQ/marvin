@@ -149,4 +149,4 @@ community_bot = Bot(
 async def main():
     marvin.config.settings.run_slackbot = True
     marvin.config.settings.slackbot = community_bot
-    # await load_prefect_things()
+    await load_prefect_things()
