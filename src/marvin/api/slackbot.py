@@ -41,13 +41,18 @@ async def _post_message_to_slack(channel: str, message: str, thread_ts: str = No
                 "Authorization": (
                     "Bearer"
                     f" {marvin.config.settings.slack_bot_token.get_secret_value()}"
-                )
+                ),
+                "Content-Type": "application/json; charset=utf-8",
             },
             json={
                 "channel": channel,
                 "text": message,
                 **({"thread_ts": thread_ts} if thread_ts else {}),
             },
+        )
+        marvin.get_logger().debug(
+            f"sent slack message: {response.json()} to {channel} responding in"
+            f" {thread_ts}"
         )
         response.raise_for_status()
 

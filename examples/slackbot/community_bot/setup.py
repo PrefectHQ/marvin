@@ -26,10 +26,30 @@ async def load_prefect_things():
         ],
     )
 
+    prefect_release_notes = GitHubRepoLoader(  # gimme da release notes
+        repo="prefecthq/prefect",
+        include_globs=["release-notes.md"],
+    )
+
+    # Discourse categories
+    SHOW_AND_TELL_CATEGORY_ID = 26
+    HELP_CATEGORY_ID = 27
+
+    PREFECT_COMMUNITY_CATEGORIES = {
+        SHOW_AND_TELL_CATEGORY_ID,
+        HELP_CATEGORY_ID,
+    }
+
+    def include_topic_filter(topic):
+        return (
+            "marvin" in topic["tags"]
+            and topic["category_id"] in PREFECT_COMMUNITY_CATEGORIES
+        )
+
     prefect_discourse = DiscourseLoader(  # gimme da discourse
         url="https://discourse.prefect.io",
-        include_topic_filter=lambda topic: "marvin" in topic["tags"],
-        include_post_filter=lambda post: post["accepted_answer"],
+        n_topic=240,
+        include_topic_filter=include_topic_filter,
     )
 
     prefect_source_code = (
@@ -44,6 +64,7 @@ async def load_prefect_things():
             prefect_docs,
             prefect_discourse,
             prefect_recipes,
+            prefect_release_notes,
             prefect_source_code,
         ]
     )
@@ -128,4 +149,4 @@ community_bot = Bot(
 async def main():
     marvin.config.settings.run_slackbot = True
     marvin.config.settings.slackbot = community_bot
-    await load_prefect_things()
+    # await load_prefect_things()
