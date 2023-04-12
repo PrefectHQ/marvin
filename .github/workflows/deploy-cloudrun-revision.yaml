@@ -1,5 +1,5 @@
 ---
-name: Deploy new revision of marvin communit bot cloudrun service
+name: Deploy new revision of marvin community bot cloudrun service
 
 on:
   workflow_dispatch: {}
