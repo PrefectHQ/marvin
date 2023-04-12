@@ -54,11 +54,11 @@ jobs:
         run: |
           docker build "./examples/slackbot/community_bot" \
             --no-cache \
-            --tag us-docker.pkg.dev/prefect-dev-external-tools/marvin/marvin-community-slackbot:latest \
-            --tag us-docker.pkg.dev/prefect-dev-external-toolsmarvin/marvin-community-slackbot:${SHORT_SHA} \
+            --tag us-docker.pkg.dev/prefect-dev-external-tools/marvin/marvin-community-bot:latest \
+            --tag us-docker.pkg.dev/prefect-dev-external-toolsmarvin/marvin-community-bot:${SHORT_SHA} \
 
       - name: Push image to prefect-dev-external-tools
-        run: docker push --all-tags us-docker.pkg.dev/prefect-dev-external-tools/marvin/marvin-community-slackbot
+        run: docker push --all-tags us-docker.pkg.dev/prefect-dev-external-tools/marvin/marvin-community-bot
 
       # - name: Trigger cloudrun revision deploy workflow
       #   run: |

@@ -30,7 +30,7 @@ jobs:
       - name: Deploy revision
         uses: google-github-actions/deploy-cloudrun@v1
         with:
-          image: us-docker.pkg.dev/prefect-dev-external-tools/marvin/marvin-community-slackbot:latest
+          image: us-docker.pkg.dev/prefect-dev-external-tools/marvin/marvin-community-bot:latest
           project_id: prefect-dev-external-tools
           region: us-east1
-          service: marvin-community-slackbot
+          service: marvin-community-bot
