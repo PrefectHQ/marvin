@@ -143,9 +143,13 @@ class BotInfo(Container):
     def watch_bot(self, bot: marvin.models.bots.BotConfig):
         if self.app.is_mounted(self):
             description = self.query_one("#bot-info-description", Label)
+
+            if bot.description:
+                description.update(bot.description)
+
             personality = self.query_one("#bot-info-personality", Label)
-            description.update(bot.description)
             personality.update(bot.personality)
+
 
 
 class Sidebar(VerticalScroll):
