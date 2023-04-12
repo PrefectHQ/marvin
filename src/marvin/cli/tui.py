@@ -578,6 +578,10 @@ class MainScreen(Screen):
         ("n", "new_thread", "New Thread"),
         ("s", "show_settings_screen", "Show Settings"),
         ("x", "delete_thread", "Delete Thread"),
+        ("k", "scroll_up_messages", "Scroll Up"),
+        ("j", "scroll_down_messages", "Scroll Down"),
+        ("u", "page_up_messages", "Page Up"),
+        ("d", "page_down_messages", "Page Down"),
     ]
 
     def action_focus_threads(self) -> None:
@@ -591,6 +595,22 @@ class MainScreen(Screen):
 
     def action_show_settings_screen(self) -> None:
         self.app.push_screen(SettingsScreen())
+
+    def action_scroll_up_messages(self) -> None:
+        messages = self.query_one("Conversation #messages", VerticalScroll)
+        messages.scroll_up(duration=0.1)
+
+    def action_scroll_down_messages(self) -> None:
+        messages = self.query_one("Conversation #messages", VerticalScroll)
+        messages.scroll_down(duration=0.1)
+
+    def action_page_up_messages(self) -> None:
+        messages = self.query_one("Conversation #messages", VerticalScroll)
+        messages.scroll_page_up(duration=0.1)
+
+    def action_page_down_messages(self) -> None:
+        messages = self.query_one("Conversation #messages", VerticalScroll)
+        messages.scroll_page_down(duration=0.1)
 
     def compose(self) -> ComposeResult:
         yield Sidebar(id="sidebar")
