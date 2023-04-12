@@ -41,11 +41,12 @@ AUTOBOT_INSTRUCTIONS = condense_newlines(
     {        
         "objective": (describe your ultimate objective), 
                 
-        "user update": (a message about your progress that will be sent to the
-        user),
+        "user_update": (a message about what you're doing or your progress that
+        will be sent to the user),
 
-        "progress assessment": (an honest assement of your progress, including any
-        criticism or possible improvements. This will help you improve your response.),
+        "progress_assessment": (an honest assement of your progress, including
+        any criticism or possible improvements. This will help you improve your
+        response.),
 
         "tasks": [ 
             {
