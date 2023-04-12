@@ -7,9 +7,8 @@ on:
       - main
     paths:
       - .github/workflows/image-build-and-push.yaml
-      - Dockerfile
-      - requirements.txt
-      - src/**
+      - examples/slackbot/community_bot/**
+      - src/marvin/api/slackbot/**
   schedule:
     #  Schedule to run at 7:30PM every Sunday
     #        ┌───────────── minute (0 - 59)
