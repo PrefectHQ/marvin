@@ -25,7 +25,7 @@ jobs:
         uses: google-github-actions/auth@v1
         with:
           workload_identity_provider: ${{ vars.GHA_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: marvin-general-main@prefect-org-github-actions.iam.gserviceaccount.com # update later
+          service_account: marvin-workflow-main@prefect-org-github-actions.iam.gserviceaccount.com
 
       - name: Deploy revision
         uses: google-github-actions/deploy-cloudrun@v1
