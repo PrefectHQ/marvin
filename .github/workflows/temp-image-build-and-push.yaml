@@ -60,9 +60,9 @@ jobs:
       - name: Push image to prefect-dev-external-tools
         run: docker push --all-tags us-docker.pkg.dev/prefect-dev-external-tools/marvin/marvin-community-bot
 
-      # - name: Trigger cloudrun revision deploy workflow
-      #   run: |
-      #     gh workflow run temp-deploy-cloudrun-revision.yaml \
-      #       --ref main
-      #   env:
-      #     GITHUB_TOKEN: ${{ github.token }}
+      - name: Trigger cloudrun revision deploy workflow
+        run: |
+          gh workflow run temp-deploy-cloudrun-revision.yaml \
+            --ref main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
