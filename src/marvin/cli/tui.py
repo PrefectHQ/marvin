@@ -151,7 +151,6 @@ class BotInfo(Container):
             personality.update(bot.personality)
 
 
-
 class Sidebar(VerticalScroll):
     def compose(self) -> ComposeResult:
         with Horizontal(id="bot-name-container"):
