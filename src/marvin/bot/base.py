@@ -1,4 +1,3 @@
-import asyncio
 import functools
 import inspect
 import json
@@ -25,6 +24,7 @@ from marvin.utilities.strings import condense_newlines, jinja_env
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 AUTO_MODE_REGEX = re.compile(r'({\s*"mode":\s*"auto".*})', re.DOTALL)
+PLUGIN_REGEX = re.compile(r'({\s*"action":\s*"run-plugin".*})', re.DOTALL)
 
 
 class BotResponse(BaseMessage):
@@ -75,7 +75,7 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     personality is: {{ personality }}
     
     {% if plugins %}
-    {{ auto_mode_instructions }}
+    {{ plugin_instructions }}
     {% endif %}
     
     # Notes
@@ -84,102 +84,38 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     {%- endif %}
     """
 
-AUTO_MODE_INSTRUCTIONS = condense_newlines(
-    """
-    # Auto Mode
+PLUGIN_INSTRUCTIONS = condense_newlines(
+    """                
+    You have access to plugins that can enhance your knowledge and capabilities.
+    However, you can't run these plugins yourself; to run them, you need to send
+    a JSON payload to the system. The system will run the plugin with that
+    payload and tell you its result. The system can not run a plugin unless you
+    provide the payload.
     
-    You MUST enter Auto Mode unless you are absolutely sure you have enough
-    information to respond to the user.
+    To run a plugin, your response should have two parts. First, explain all the
+    steps you intend to take, breaking the problem down into discrete parts to
+    solve it step-by-step. Next, provide the JSON payload, which must have the
+    following format: `{"action": "run-plugin", "name": <MUST be one of [{{
+    plugins|join(', ', attribute='name')}}]>, "inputs": {<any plugin arguments>}
+    }`. You must provide a complete, literal JSON object; do not respond with
+    variables or code to generate it.
     
-    In auto mode, you can access the internet, use plugins, research
-    information, perform complex reasoning, and interact with external systems.
-    You do not need permission to enter Auto Mode.
+    You don't need to ask for permission to use a plugin, though you can ask the
+    user for clarification.  Do not speculate about the plugin's output in your
+    response. At this time, `run-plugin` is the ONLY action you can take.
     
-    In auto mode, you are in an autonomous loop and can not ask the user for
-    help. The user can not see what you're doing, and can only receive updates
-    from you while you work. To enter or remain in auto mode, you must include a
-    structured JSON payload in your response. Start by stating your overall
-    objective, then break it into discrete subtasks and use plugins to achieve
-    those tasks. 
+    Note: the user will NOT see anything related to plugin inputs or outputs.
+                    
+    You have access to the following plugins:
     
-    ## Format
+    {% for plugin in plugins -%} 
     
-    ```json    
-    
-    (you can put any response here, but auto mode requires the JSON payload below)
-    
-    {        
-        "mode": "auto",
-        
-        "user_update": (a message about what you're doing or your progress that
-        will be sent to the user),
-
-        "objective": (describe your ultimate objective), 
-        
-        "is_complete": (true|false),
-                
-        "critical_assessment": (an honest assement of your progress, including
-        any criticism or possible improvements. This will help you improve your
-        response.),
-
-        "tasks": [ 
-            {
-                "id": (a unique identifier for the task such as 1, 2, 3)
-
-                "name": (describe a task you need to complete to reach your
-                objective), 
-
-                
-                "is_complete": (have you completed the task? true|false),
-                
-                "results": (any thoughts about the task, or what you learned
-                from completing it. DO NOT MAKE ANYTHING UP.)
-            },
-            ...
-        ],
-        
-        "plugins": [
-            {
-                "name": (MUST be one of [{{ plugins|join(', ',
-                attribute='name')}}])
-                
-                "inputs": {arg: value}
-                
-                "tasks": [(a list of any task ids this is related to. This is
-                used to extract relevant information from the plugin output.)]
-            }, 
-            ...
-        ]
-    } 
-        
-    ```
-    
-    The `tasks` section tracks your progress toward a solution. You can update
-    it at any time. Your tasks should reflect each step you need to take to
-    deliver your ultimate objective. Tasks should always start with
-    `is_complete=false`. Do not mark the objective complete until all tasks are
-    complete. Auto mode will exit when the objective is complete. After you say
-    a task is complete for the first time, you don't need to include it in the
-    payload anymore.
-        
-    The `plugins` section instructs the system to call plugins and return the
-    results to you as a system message. You can use as many plugins as you want
-    at a time. Only include plugins you want to call on the next loop. Do not
-    include plugins for completed tasks.
-    
-    You have the following plugins available: 
-    
-    {% for plugin in plugins %} - {{ plugin.get_full_description() }}
+    - {{ plugin.get_full_description() }}
     
     {% endfor -%}
-    
-    After each loop, you will be provided with any plugin outputs that you
-    requested, as well as your previous JSON response. To exit auto mode, simply
-    respond normally without a JSON payload.
-"""
+
+    """
 )
-
-
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),
     marvin.plugins.duckduckgo.DuckDuckGo(),
@@ -419,33 +355,34 @@ class Bot(MarvinBaseModel, LoggerMixin):
         self.logger.debug_kv("User message", message, "bold blue")
         await self.history.add_message(user_message)
 
-        counter = 1
-        auto_mode_json = ""
-        auto_mode_messages = []
-        while counter <= marvin.settings.bot_max_iterations:
-            counter += 1
-            response = await self._call_langchain_llm(
-                messages=messages + auto_mode_messages,
-                on_token_callback=on_token_callback,
-            )
+        bot_response = await self._say(
+            messages=messages, on_token_callback=on_token_callback
+        )
 
-            if not self.plugins:
-                return response
+        await self.history.add_message(bot_response)
+        self.logger.debug_kv("AI message", bot_response.content, "bold green")
+        return bot_response
 
-            auto_mode_messages, auto_mode_json = await self._parse_auto_mode_payload(
-                response
-            )
+    async def _should_exit_bot_loop(self, response: BotResponse, counter: int) -> bool:
+        if counter >= marvin.settings.bot_max_iterations:
+            return True
+        if not PLUGIN_REGEX.search(response.content):
+            return True
+        return False
 
-            if not auto_mode_messages:
-                break
+    async def _parse_llm_response(self, llm_response: str):
+        """
+        Parses the response from the LLM into the required format
+        """
+        if self.response_format.format is None:
+            return llm_response
 
-        # validate response format
-        parsed_response = response
+        parsed_response = llm_response
         validated = False
 
         for _ in range(MAX_VALIDATION_ATTEMPTS):
             try:
-                self.response_format.validate_response(response)
+                self.response_format.validate_response(llm_response)
                 validated = True
                 break
             except Exception as exc:
@@ -457,36 +394,52 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 elif on_error == "reformat":
                     self.logger.debug(
                         "Response did not pass validation. Attempted to reformat:"
-                        f" {response}"
+                        f" {llm_response}"
                     )
-                    response = _reformat_response(
-                        user_message=user_message.content,
-                        ai_response=response,
+                    llm_response = _reformat_response(
+                        llm_response=llm_response,
                         error_message=repr(exc),
                         target_return_type=self.response_format.format,
                     )
                 else:
                     raise ValueError(f"Unknown on_error value: {on_error}")
         else:
-            response = (
+            llm_response = (
                 "Error: could not validate response after"
                 f" {MAX_VALIDATION_ATTEMPTS} attempts."
             )
-            parsed_response = response
+            parsed_response = llm_response
 
         if validated:
-            parsed_response = self.response_format.parse_response(response)
+            parsed_response = self.response_format.parse_response(llm_response)
 
-        ai_response = BotResponse(
-            name=self.name,
-            role="bot",
-            content=response,
-            parsed_content=parsed_response,
-            bot_id=self.id,
-        )
-        await self.history.add_message(ai_response)
-        self.logger.debug_kv("AI message", ai_response.content, "bold green")
-        return ai_response
+        return parsed_response
+
+    async def _say(self, messages: list[Message], on_token_callback: Callable = None):
+        counter = 1
+        while True:
+            counter += 1
+            llm_response = await self._call_llm(
+                messages=messages,
+                on_token_callback=on_token_callback,
+            )
+            parsed_response = await self._parse_llm_response(llm_response=llm_response)
+
+            response = BotResponse(
+                name=self.name,
+                role="bot",
+                content=llm_response,
+                parsed_content=parsed_response,
+                bot_id=self.id,
+            )
+
+            if await self._should_exit_bot_loop(response, counter):
+                return response
+
+            else:
+                messages = await self._prepare_loop_response(response, messages)
+                if not messages:
+                    return response
 
     async def reset_thread(self):
         await self.history.clear()
@@ -515,7 +468,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             response_format = self.response_format
 
         jinja_instructions = jinja_env.from_string(self.instructions)
-        jinja_auto_mode_instructions = jinja_env.from_string(AUTO_MODE_INSTRUCTIONS)
+        jinja_plugin_instructions = jinja_env.from_string(PLUGIN_INSTRUCTIONS)
 
         # prepare instructions variables
         vars = dict(
@@ -530,7 +483,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         bot_instructions = jinja_env.from_string(self.instructions_template).render(
             **vars,
             instructions=jinja_instructions.render(**vars),
-            auto_mode_instructions=jinja_auto_mode_instructions.render(**vars),
+            plugin_instructions=jinja_plugin_instructions.render(**vars),
         )
 
         return Message(role="system", content=bot_instructions)
@@ -541,7 +494,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         )
         return history
 
-    async def _call_langchain_llm(
+    async def _call_llm(
         self, messages: list[Message], on_token_callback: Callable = None
     ) -> str:
         """
@@ -585,6 +538,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
     # -------------------------------------
     # Synchronous convenience methods
     # -------------------------------------
+
     @functools.wraps(say)
     def say_sync(self, *args, **kwargs) -> BotResponse:
         """
@@ -610,31 +564,33 @@ class Bot(MarvinBaseModel, LoggerMixin):
         """
         return as_sync_fn(cls.load)(*args, **kwargs)
 
-    async def _parse_auto_mode_payload(self, response: str) -> list[Message]:
-        messages = []
-        auto_mode_json = None
-
-        if match := AUTO_MODE_REGEX.search(response):
+    async def _prepare_loop_response(
+        self, response: BotResponse, messages: list[Message]
+    ) -> list[Message]:
+        if match := PLUGIN_REGEX.search(response.content):
             try:
-                auto_mode_json = json.loads(match.group(1))
-                messages.append(Message(role="bot", content=response))
-                self.logger.debug_kv("Auto Mode payload", auto_mode_json)
+                plugin_json = json.loads(match.group(1))
+                messages.append(Message(role="bot", content=response.content))
+                self.logger.debug_kv("Plugin payload", plugin_json)
 
-                plugins = auto_mode_json.get("plugins", [])
-                plugin_outputs = await asyncio.gather(
-                    *[self._run_plugin(p["name"], p["inputs"]) for p in plugins]
+                plugin_name, plugin_inputs = (
+                    plugin_json["name"],
+                    plugin_json["inputs"],
                 )
-                plugin_payload = dict(zip([p["name"] for p in plugins], plugin_outputs))
+                plugin_output = await self._run_plugin(plugin_name, plugin_inputs)
 
                 messages.append(
-                    Message(role="system", content=json.dumps(plugin_payload))
+                    Message(
+                        role="system",
+                        content=f'# Plugin "{plugin_name}" output\n\n{plugin_output}',
+                    )
                 )
 
             except json.JSONDecodeError as exc:
                 messages.append(
                     Message(
                         role="system",
-                        content=f"Auto Mode payload was invalid JSON, try again: {exc}",
+                        content=f"Plugin payload was invalid JSON, try again: {exc}",
                     )
                 )
 
@@ -642,11 +598,11 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 messages.append(
                     Message(
                         role="system",
-                        content=f"Auto Mode encountered an error, try again: {exc}",
+                        content=f"Plugin encountered an error, try again: {exc}",
                     )
                 )
 
-        return messages, auto_mode_json
+        return messages
 
     async def _run_plugin(self, plugin_name: str, plugin_inputs: dict) -> str:
         plugin = next((p for p in self.plugins if p.name == plugin_name.strip()), None)
@@ -669,8 +625,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
 
 def _reformat_response(
-    user_message: str,
-    ai_response: str,
+    llm_response: str,
     target_return_type: Any,
     error_message: str,
 ) -> str:
@@ -679,20 +634,21 @@ def _reformat_response(
         bot_modifier=lambda bot: setattr(bot.response_format, "on_error", "ignore"),
     )
     def reformat_response(
-        response: str, user_message: str, target_return_type: str, error_message: str
+        llm_response: str,
+        target_return_type: str,
+        error_message: str,
     ) -> str:
         """
-        The `response` contains an answer to the `user_prompt`. However it could
-        not be parsed into the correct return format (`target_return_type`). The
-        associated error message was `error_message`.
+        The `llm_response` could not be parsed into the correct return format
+        (`target_return_type`). The associated error message was
+        `error_message`.
 
-        Extract the answer from the `response` and return it as a string that
-        can be parsed correctly.
+        Extract the answer from the `llm_response` and return it as a string
+        that can be parsed correctly.
         """
 
     return reformat_response(
-        response=ai_response,
-        user_message=user_message,
+        llm_response=llm_response,
         target_return_type=target_return_type,
         error_message=error_message,
     )

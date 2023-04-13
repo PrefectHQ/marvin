@@ -17,31 +17,31 @@ EMPTY_CONTEXT = {
 }
 
 AUTO_MODE_REGEX = re.compile(r'({\s*"mode":\s*"auto".*})', re.DOTALL)
+
+
 INSTRUCTIONS = condense_newlines(
     """
     # Auto Mode
     
+    You MUST enter Auto Mode unless you are absolutely sure you have enough
+    information to respond to the user.
+    
     In auto mode, you can access the internet, use plugins, research
     information, perform complex reasoning, and interact with external systems.
-    If you are ever unsure of an answer, and don't want to make something up,
-    then you must enter auto mode immediately to find a good solution or
-    response. Never ask the user for permission to enter auto mode; do it
-    automatically whenever you need to.
+    You do not need permission to enter Auto Mode.
     
     In auto mode, you are in an autonomous loop and can not ask the user for
-    help. To enter or remain in auto mode, respond with a structured JSON
-    payload; you will receive plugin outputs in return. Start by stating your
-    overall objective, then break it into discrete subtasks and use plugins to
-    achieve those tasks. The user can not see what you're doing, and can only
-    receive updates from you while you work.
+    help. The user can not see what you're doing, and can only receive updates
+    from you while you work. To enter or remain in auto mode, you must include a
+    structured JSON payload in your response. Start by stating your overall
+    objective, then break it into discrete subtasks and use plugins to achieve
+    those tasks. 
     
-    To enter auto mode, include a JSON response in your message with the
-    following form:
+    ## Format
     
-    ```json
+    ```json    
     
-    (you can put any message here as an update to the user, but make sure to
-    follow it with the JSON payload)
+    (you can put any response here, but auto mode requires the JSON payload below)
     
     {        
         "mode": "auto",
@@ -51,9 +51,7 @@ INSTRUCTIONS = condense_newlines(
 
         "objective": (describe your ultimate objective), 
         
-        "is_complete": (true | false),
-        
-        "result" (if complete, the result of the objective),
+        "is_complete": (true|false),
                 
         "critical_assessment": (an honest assement of your progress, including
         any criticism or possible improvements. This will help you improve your
@@ -62,13 +60,12 @@ INSTRUCTIONS = condense_newlines(
         "tasks": [ 
             {
                 "id": (a unique identifier for the task such as 1, 2, 3)
-                
+
                 "name": (describe a task you need to complete to reach your
                 objective), 
+
                 
-                "motivation": (why do you need to complete this task?)
-                
-                "done": (have you completed the task? true|false), 
+                "is_complete": (have you completed the task? true|false),
                 
                 "results": (any thoughts about the task, or what you learned
                 from completing it. DO NOT MAKE ANYTHING UP.)
@@ -78,8 +75,8 @@ INSTRUCTIONS = condense_newlines(
         
         "plugins": [
             {
-                "name": (MUST be one of [{{ plugins|join(', ', attribute='name')
-                }}])
+                "name": (MUST be one of [{{ plugins|join(', ',
+                attribute='name')}}])
                 
                 "inputs": {arg: value}
                 
@@ -107,7 +104,9 @@ INSTRUCTIONS = condense_newlines(
     
     You have the following plugins available: 
     
-    {% for plugin in plugins %} - {{ plugin.get_full_description() }}
+    {% for plugin in plugins -%} 
+    
+    - {{ plugin.get_full_description() }}
     
     {% endfor -%}
     
