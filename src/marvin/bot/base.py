@@ -88,28 +88,25 @@ AUTO_MODE_INSTRUCTIONS = condense_newlines(
     """
     # Auto Mode
     
+    You MUST enter Auto Mode unless you are absolutely sure you have enough
+    information to respond to the user.
+    
     In auto mode, you can access the internet, use plugins, research
     information, perform complex reasoning, and interact with external systems.
-    You must enter auto mode immediately unless you are absolutely sure you have
-    enough information to respond to the user without making something up. Never
-    ask the user for permission to enter auto mode; do it automatically whenever
-    you need to.
+    You do not need permission to enter Auto Mode.
     
     In auto mode, you are in an autonomous loop and can not ask the user for
     help. The user can not see what you're doing, and can only receive updates
-    from you while you work. To enter or remain in auto mode, respond with a
-    structured JSON payload; you will receive plugin outputs in return. Start by
-    stating your overall objective, then break it into discrete subtasks and use
-    plugins to achieve those tasks. 
+    from you while you work. To enter or remain in auto mode, you must include a
+    structured JSON payload in your response. Start by stating your overall
+    objective, then break it into discrete subtasks and use plugins to achieve
+    those tasks. 
     
     ## Format
     
-    You will stay in auto mode as long as your response includes a JSON payload
-    like this:
-    
     ```json    
     
-    (you can put any response here, but it will be ignored)
+    (you can put any response here, but auto mode requires the JSON payload below)
     
     {        
         "mode": "auto",
