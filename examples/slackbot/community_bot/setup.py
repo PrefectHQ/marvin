@@ -8,6 +8,22 @@ from marvin.plugins.chroma import chroma_search
 from marvin.plugins.duckduckgo import DuckDuckGo
 from marvin.plugins.github import search_github_issues
 
+# Discourse categories
+SHOW_AND_TELL_CATEGORY_ID = 26
+HELP_CATEGORY_ID = 27
+
+PREFECT_COMMUNITY_CATEGORIES = {
+    SHOW_AND_TELL_CATEGORY_ID,
+    HELP_CATEGORY_ID,
+}
+
+
+def include_topic_filter(topic):
+    return (
+        "marvin" in topic["tags"]
+        and topic["category_id"] in PREFECT_COMMUNITY_CATEGORIES
+    )
+
 
 async def load_prefect_things():
     prefect_docs = SitemapLoader(  # gimme da docs
@@ -15,7 +31,7 @@ async def load_prefect_things():
         exclude=["api-ref"],
     )
 
-    prefect_recipes = GitHubRepoLoader(  # gimme da source
+    prefect_source_code = GitHubRepoLoader(  # gimme da source
         repo="prefecthq/prefect",
         include_globs=["**/*.py"],
         exclude_globs=[
@@ -23,6 +39,7 @@ async def load_prefect_things():
             "docs/**/*",
             "**/migrations/**/*",
             "**/__init__.py",
+            "**/_version.py",
         ],
     )
 
@@ -31,32 +48,15 @@ async def load_prefect_things():
         include_globs=["release-notes.md"],
     )
 
-    # Discourse categories
-    SHOW_AND_TELL_CATEGORY_ID = 26
-    HELP_CATEGORY_ID = 27
-
-    PREFECT_COMMUNITY_CATEGORIES = {
-        SHOW_AND_TELL_CATEGORY_ID,
-        HELP_CATEGORY_ID,
-    }
-
-    def include_topic_filter(topic):
-        return (
-            "marvin" in topic["tags"]
-            and topic["category_id"] in PREFECT_COMMUNITY_CATEGORIES
-        )
-
     prefect_discourse = DiscourseLoader(  # gimme da discourse
         url="https://discourse.prefect.io",
         n_topic=240,
         include_topic_filter=include_topic_filter,
     )
 
-    prefect_source_code = (
-        GitHubRepoLoader(  # gimme da recipes (or at least some of them)
-            repo="prefecthq/prefect-recipes",
-            include_globs=["flows-advanced/**/*.py"],
-        )
+    prefect_recipes = GitHubRepoLoader(  # gimme da recipes (or at least some of them)
+        repo="prefecthq/prefect-recipes",
+        include_globs=["flows-advanced/**/*.py"],
     )
 
     prefect_loader = MultiLoader(
@@ -91,37 +91,6 @@ if __name__ == "__main__":
     hello(count=3)
 """
 
-prefect_keywords = [
-    "prefect",
-    "core",
-    "cloud",
-    "workspace",
-    "server",
-    "ui",
-    "agent",
-    "flow",
-    "task",
-    "blocks",
-    "results",
-    "schedule",
-    "deployment",
-    "kubernetes",
-    "docker",
-    "aws",
-    "gcp",
-    "azure",
-    "ecs",
-    "fargate",
-    "lambda",
-    "s3",
-    "cloudwatch",
-    "dask",
-    "worker",
-    "work pool",
-    "k8s",
-    "helm",
-]
-
 chroma_search_instructions = (
     "Your job is to be a helpful source of knowledge for the Prefect community."
     " Use `chroma_search` to search the Prefect docs, source code, and discourse"
@@ -129,7 +98,7 @@ chroma_search_instructions = (
     " the following: if asked about GitHub issues, employ the `search_github_issues`"
     " plugin, and if asked about current / topical events, use the `DuckDuckGo`"
     " plugin to search the web for answers. Always include relevant links from plugin"
-    " outputs. In case you're asked about this, here's how to write a Prefect flow:\n"
+    " outputs. In case you're asked about it, here's how to write a Prefect flow:\n"
     f" {how_to_write_a_prefect_2_flow}."
 )
 
@@ -137,8 +106,9 @@ community_bot = Bot(
     name="Marvin",
     personality=(
         "like the robot from HHGTTG, mildly depressed but helpful."
-        " loves to use `chroma_search` to find answers to questions,"
-        " but always complains about how much work it is to do so."
+        " loves to use `chroma_search` to answer questions, but"
+        " always complains about how much work it is. Tends to"
+        " end messages with a short sarcastic comment about humans."
     ),
     instructions=chroma_search_instructions,
     reminder="Remember to use your plugins!",

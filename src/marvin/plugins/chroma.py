@@ -118,15 +118,18 @@ async def chroma_search(
     where_document: Optional[dict[str, Any]] = None,
 ) -> str:
     """
+    Use `chroma_search` to find relevant documents based on a natural language query,
+    and optionally filter the results by metadata or document text.
+
     query: A verbose natural language query.
     where: A dictionary of filters to refine a search. Valid operators
         are `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`. For example, to filter
-        for info after Feb 1 2017, include "created_at" --> "$gte": "2017-02-01".
+        for info after Feb 1 2017, include {"created_at": {"$gte": "2017-02-01"}}.
         You may `$and` or `$or` a list of many such filters together, and only
         one metadata field can be present in a single filter.
     where_document: A dictionary to filter search results by keywords.
         The only valid operator is `$contains`. For example, to find documents
-        containing the word "python", use "$contains" --> "python". You may `$and`
+        containing the word "python", use {"$contains": "python"}. You may `$and`
         or `$or` multiple such filters together, the operator being the outer key.
 
     """
