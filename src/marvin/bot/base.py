@@ -38,7 +38,8 @@ if TYPE_CHECKING:
 DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A helpful assistant that is clever, witty, and fun."
 DEFAULT_INSTRUCTIONS = """
-    Respond to the user, always in character based on your personality.
+    Respond to the user, always in character based on your personality. Use
+    plugins whenever you need additional information.
     """
 
 
@@ -75,17 +76,8 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     personality is: {{ personality }}
     
     {% if plugins %}
-    {{ plugin_instructions }}
-    {% endif %}
+    # Plugins
     
-    # Notes
-    
-    {% if date -%} Your training ended in 2021 but today's date is {{ date }}.
-    {%- endif %}
-    """
-
-PLUGIN_INSTRUCTIONS = condense_newlines(
-    """                
     You have access to plugins that can enhance your knowledge and capabilities.
     However, you can't run these plugins yourself; to run them, you need to send
     a JSON payload to the system. The system will run the plugin with that
@@ -114,8 +106,15 @@ PLUGIN_INSTRUCTIONS = condense_newlines(
     
     {% endfor -%}
 
+    {% endif %}
+    
+    # Notes
+    
+    {% if date -%} 
+    Your training ended in the past. Today's date is {{ date }}.
+    {%- endif %}
     """
-)
+
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),
     marvin.plugins.duckduckgo.DuckDuckGo(),
@@ -469,7 +468,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
             response_format = self.response_format
 
         jinja_instructions = jinja_env.from_string(self.instructions)
-        jinja_plugin_instructions = jinja_env.from_string(PLUGIN_INSTRUCTIONS)
 
         # prepare instructions variables
         vars = dict(
@@ -484,7 +482,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
         bot_instructions = jinja_env.from_string(self.instructions_template).render(
             **vars,
             instructions=jinja_instructions.render(**vars),
-            plugin_instructions=jinja_plugin_instructions.render(**vars),
         )
 
         return Message(role="system", content=bot_instructions)
