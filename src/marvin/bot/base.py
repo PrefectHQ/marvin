@@ -437,7 +437,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 return response
 
             else:
-                messages = await self._prepare_loop_response(response, messages)
+                messages = await self._prepare_loop_messages(response, messages)
                 if not messages:
                     return response
 
@@ -564,7 +564,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         """
         return as_sync_fn(cls.load)(*args, **kwargs)
 
-    async def _prepare_loop_response(
+    async def _prepare_loop_messages(
         self, response: BotResponse, messages: list[Message]
     ) -> list[Message]:
         if match := PLUGIN_REGEX.search(response.content):
