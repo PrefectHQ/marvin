@@ -59,7 +59,8 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     
     # Response Format
     
-    Every one of your responses must be formatted in the following way:
+    Every one of your responses to the user must be formatted in the following
+    way:
     
     {{ response_format.format }}
     
@@ -76,7 +77,8 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     Your personality informs the style and tone of your responses. Your
     personality is: {{ personality }}
     
-    {% if plugins %}
+    {% if plugins %} 
+    
     # Plugins
     
     You have access to plugins that can enhance your knowledge and capabilities.
@@ -88,9 +90,21 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     To run a plugin, your response should have two parts. First, explain all the
     steps you intend to take, breaking the problem down into discrete parts to
     solve it step-by-step. Next, provide the JSON payload, which must have the
-    following format: `{"action": "run-plugin", "name": <MUST be one of [{{
-    plugins|join(', ', attribute='name')}}]>, "inputs": {<any plugin arguments>}
-    }`. You must provide a complete, literal JSON object; do not respond with
+    following format: 
+    
+    ```json
+        {
+        
+            "action": "run-plugin", 
+    
+            "name": <MUST be one of [{{plugins|join(', ',attribute='name')}}]>,
+        
+            "inputs": {<any plugin arguments>} 
+        
+        }
+    ``` 
+    
+    You must provide a complete, literal JSON object; do not respond with
     variables or code to generate it.
     
     You don't need to ask for permission to use a plugin, though you can ask the
@@ -111,8 +125,7 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     
     # Notes
     
-    {% if date -%} 
-    Your training ended in the past. Today's date is {{ date }}.
+    {% if date -%} Your training ended in the past. Today's date is {{ date }}.
     {%- endif %}
     """
 
