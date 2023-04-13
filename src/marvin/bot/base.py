@@ -1,5 +1,8 @@
+import asyncio
 import functools
 import inspect
+import json
+import re
 from typing import TYPE_CHECKING, Any, Callable
 
 import pendulum
@@ -8,7 +11,6 @@ from openai.error import InvalidRequestError
 from pydantic import Field, validator
 
 import marvin
-from marvin.bot.agent import AutoMode
 from marvin.bot.history import History, ThreadHistory
 from marvin.bot.input_transformers import InputTransformer
 from marvin.bot.response_formatters import (
@@ -21,6 +23,8 @@ from marvin.plugins import Plugin
 from marvin.utilities.async_utils import as_sync_fn
 from marvin.utilities.strings import condense_newlines, jinja_env
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
+
+AUTO_MODE_REGEX = re.compile(r'({\s*"mode":\s*"auto".*})', re.DOTALL)
 
 
 class BotResponse(BaseMessage):
@@ -70,11 +74,113 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     Your personality informs the style and tone of your responses. Your
     personality is: {{ personality }}
     
+    {% if plugins %}
+    {{ auto_mode_instructions }}
+    {% endif %}
+    
     # Notes
     
     {% if date -%} Your training ended in 2021 but today's date is {{ date }}.
     {%- endif %}
     """
+
+AUTO_MODE_INSTRUCTIONS = condense_newlines(
+    """
+    # Auto Mode
+    
+    In auto mode, you can access the internet, use plugins, research
+    information, perform complex reasoning, and interact with external systems.
+    You must enter auto mode immediately unless you are absolutely sure you have
+    enough information to respond to the user without making something up. Never
+    ask the user for permission to enter auto mode; do it automatically whenever
+    you need to.
+    
+    In auto mode, you are in an autonomous loop and can not ask the user for
+    help. The user can not see what you're doing, and can only receive updates
+    from you while you work. To enter or remain in auto mode, respond with a
+    structured JSON payload; you will receive plugin outputs in return. Start by
+    stating your overall objective, then break it into discrete subtasks and use
+    plugins to achieve those tasks. 
+    
+    ## Format
+    
+    You will stay in auto mode as long as your response includes a JSON payload
+    like this:
+    
+    ```json    
+    
+    (you can put any response here, but it will be ignored)
+    
+    {        
+        "mode": "auto",
+        
+        "user_update": (a message about what you're doing or your progress that
+        will be sent to the user),
+
+        "objective": (describe your ultimate objective), 
+        
+        "is_complete": (true|false),
+                
+        "critical_assessment": (an honest assement of your progress, including
+        any criticism or possible improvements. This will help you improve your
+        response.),
+
+        "tasks": [ 
+            {
+                "id": (a unique identifier for the task such as 1, 2, 3)
+
+                "name": (describe a task you need to complete to reach your
+                objective), 
+
+                
+                "is_complete": (have you completed the task? true|false),
+                
+                "results": (any thoughts about the task, or what you learned
+                from completing it. DO NOT MAKE ANYTHING UP.)
+            },
+            ...
+        ],
+        
+        "plugins": [
+            {
+                "name": (MUST be one of [{{ plugins|join(', ',
+                attribute='name')}}])
+                
+                "inputs": {arg: value}
+                
+                "tasks": [(a list of any task ids this is related to. This is
+                used to extract relevant information from the plugin output.)]
+            }, 
+            ...
+        ]
+    } 
+        
+    ```
+    
+    The `tasks` section tracks your progress toward a solution. You can update
+    it at any time. Your tasks should reflect each step you need to take to
+    deliver your ultimate objective. Tasks should always start with
+    `is_complete=false`. Do not mark the objective complete until all tasks are
+    complete. Auto mode will exit when the objective is complete. After you say
+    a task is complete for the first time, you don't need to include it in the
+    payload anymore.
+        
+    The `plugins` section instructs the system to call plugins and return the
+    results to you as a system message. You can use as many plugins as you want
+    at a time. Only include plugins you want to call on the next loop. Do not
+    include plugins for completed tasks.
+    
+    You have the following plugins available: 
+    
+    {% for plugin in plugins %} - {{ plugin.get_full_description() }}
+    
+    {% endfor -%}
+    
+    After each loop, you will be provided with any plugin outputs that you
+    requested, as well as your previous JSON response. To exit auto mode, simply
+    respond normally without a JSON payload.
+"""
+)
 
 
 DEFAULT_PLUGINS = [
@@ -293,8 +399,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
     async def say(
         self, *args, response_format=None, on_token_callback: Callable = None, **kwargs
     ) -> BotResponse:
-        auto_mode = AutoMode(plugins=self.plugins)
-
         # process inputs
         message = self.input_prompt.format(*args, **kwargs)
 
@@ -302,8 +406,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
         bot_instructions = await self._get_bot_instructions(
             response_format=response_format
         )
-        agent_instructions = auto_mode.get_instructions()
-        bot_instructions = [bot_instructions, agent_instructions]
 
         # load chat history
         history = await self._get_history()
@@ -315,29 +417,30 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 message = await message
         user_message = Message(role="user", name="User", content=message)
 
-        messages = bot_instructions + history + [user_message]
+        messages = [bot_instructions] + history + [user_message]
 
         self.logger.debug_kv("User message", message, "bold blue")
         await self.history.add_message(user_message)
 
-        finished = False
         counter = 1
+        auto_mode_json = ""
+        auto_mode_messages = []
+        while counter <= marvin.settings.bot_max_iterations:
+            counter += 1
+            response = await self._call_langchain_llm(
+                messages=messages + auto_mode_messages,
+                on_token_callback=on_token_callback,
+            )
 
-        while not finished:
-            if counter > marvin.settings.bot_max_iterations:
-                response = 'Error: "Max iterations reached. Please try again."'
-                finished = True
-            else:
-                counter += 1
-                response = await self._call_llm(
-                    messages=messages, on_token_callback=on_token_callback
-                )
-            if not finished:
-                agent_messages = await auto_mode.parse_payload(response)
-                if not agent_messages:
-                    finished = True
-                else:
-                    messages.extend(agent_messages)
+            if not self.plugins:
+                return response
+
+            auto_mode_messages, auto_mode_json = await self._parse_auto_mode_payload(
+                response
+            )
+
+            if not auto_mode_messages:
+                break
 
         # validate response format
         parsed_response = response
@@ -413,28 +516,39 @@ class Bot(MarvinBaseModel, LoggerMixin):
             response_format = load_formatter_from_shorthand(response_format)
         else:
             response_format = self.response_format
-        date = pendulum.now().format("dddd, MMMM D, YYYY")
-        bot_instructions = await jinja_env.from_string(
-            self.instructions_template
-        ).render_async(
+
+        jinja_instructions = jinja_env.from_string(self.instructions)
+        jinja_auto_mode_instructions = jinja_env.from_string(AUTO_MODE_INSTRUCTIONS)
+
+        # prepare instructions variables
+        vars = dict(
             name=self.name,
-            instructions=self.instructions,
             response_format=response_format,
             personality=self.personality,
-            date=date if self.include_date_in_prompt else None,
+            include_date=self.include_date_in_prompt,
+            date=pendulum.now().format("dddd, MMMM D, YYYY"),
+            plugins=self.plugins,
         )
+
+        bot_instructions = jinja_env.from_string(self.instructions_template).render(
+            **vars,
+            instructions=jinja_instructions.render(**vars),
+            auto_mode_instructions=jinja_auto_mode_instructions.render(**vars),
+        )
+
         return Message(role="system", content=bot_instructions)
 
     async def _get_history(self) -> list[Message]:
-        return await self.history.get_messages(
+        history = await self.history.get_messages(
             max_tokens=3500 - marvin.settings.openai_model_max_tokens
         )
+        return history
 
-    async def _call_llm(
+    async def _call_langchain_llm(
         self, messages: list[Message], on_token_callback: Callable = None
     ) -> str:
         """
-        Format and send messages via langchain
+        Get an LLM response to a history of Marvin messages via langchain
         """
 
         # deferred import for performance
@@ -452,10 +566,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             messages_repr = "\n".join(repr(m) for m in langchain_messages)
             self.logger.debug(f"Sending messages to LLM: {messages_repr}")
         try:
-            result = await llm.agenerate(
-                messages=[langchain_messages],
-                stop=["</auto-mode>"],
-            )
+            result = await llm.agenerate(messages=[langchain_messages])
         except InvalidRequestError as exc:
             if "does not exist" in str(exc):
                 raise ValueError(
@@ -501,6 +612,63 @@ class Bot(MarvinBaseModel, LoggerMixin):
         a bot in a synchronous framework.
         """
         return as_sync_fn(cls.load)(*args, **kwargs)
+
+    async def _parse_auto_mode_payload(self, response: str) -> list[Message]:
+        messages = []
+        auto_mode_json = None
+
+        if match := AUTO_MODE_REGEX.search(response):
+            try:
+                auto_mode_json = json.loads(match.group(1))
+                messages.append(Message(role="bot", content=response))
+                self.logger.debug_kv("Auto Mode payload", auto_mode_json)
+
+                plugins = auto_mode_json.get("plugins", [])
+                plugin_outputs = await asyncio.gather(
+                    *[self._run_plugin(p["name"], p["inputs"]) for p in plugins]
+                )
+                plugin_payload = dict(zip([p["name"] for p in plugins], plugin_outputs))
+
+                messages.append(
+                    Message(role="system", content=json.dumps(plugin_payload))
+                )
+
+            except json.JSONDecodeError as exc:
+                messages.append(
+                    Message(
+                        role="system",
+                        content=f"Auto Mode payload was invalid JSON, try again: {exc}",
+                    )
+                )
+
+            except Exception as exc:
+                messages.append(
+                    Message(
+                        role="system",
+                        content=f"Auto Mode encountered an error, try again: {exc}",
+                    )
+                )
+
+        return messages, auto_mode_json
+
+    async def _run_plugin(self, plugin_name: str, plugin_inputs: dict) -> str:
+        plugin = next((p for p in self.plugins if p.name == plugin_name.strip()), None)
+        if plugin is None:
+            return f'Plugin "{plugin_name}" not found.'
+        try:
+            self.logger.debug_kv(f'Running plugin "{plugin_name}"', plugin_inputs)
+            plugin_output = plugin.run(**plugin_inputs)
+            if inspect.iscoroutine(plugin_output):
+                plugin_output = await plugin_output
+            self.logger.debug_kv("Plugin output", plugin_output)
+
+            return plugin_output
+        except Exception as exc:
+            self.logger.error(
+                f"Error running plugin {plugin_name} with inputs"
+                f" {plugin_inputs}:\n\n{exc}"
+            )
+            return f"Plugin encountered an error. Try again? Error message: {exc}"
 
 
 def _reformat_response(

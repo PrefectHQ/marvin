@@ -4,47 +4,58 @@ import json
 import re
 from json import JSONDecodeError
 
-from pydantic import Field
-
+from marvin.bot.base import Bot
+from marvin.bot.response_formatters import ResponseFormatter
 from marvin.models.threads import Message
-from marvin.plugins import Plugin
-from marvin.utilities.strings import condense_newlines, jinja_env
-from marvin.utilities.types import LoggerMixin, MarvinBaseModel
+from marvin.utilities.strings import condense_newlines
 
-AUTO_MODE_REGEX = re.compile(r".*?<auto-mode>\s*({.*})", re.DOTALL)
-AUTOBOT_INSTRUCTIONS = condense_newlines(
+EMPTY_CONTEXT = {
+    "mode": "auto",
+    "objective": None,
+    "tasks": [],
+    "plugins": [],
+}
+
+AUTO_MODE_REGEX = re.compile(r'({\s*"mode":\s*"auto".*})', re.DOTALL)
+INSTRUCTIONS = condense_newlines(
     """
     # Auto Mode
     
-    You can enter "auto mode" to improve your responses. In auto mode, you can
-    break a large objective into smaller tasks, use plugins to achieve those
-    tasks, and ultimately complete your objective. You must enter auto mode any
-    time it would help you answer the user.
+    In auto mode, you can access the internet, use plugins, research
+    information, perform complex reasoning, and interact with external systems.
+    If you are ever unsure of an answer, and don't want to make something up,
+    then you must enter auto mode immediately to find a good solution or
+    response. Never ask the user for permission to enter auto mode; do it
+    automatically whenever you need to.
     
-    To enter auto mode, add a JSON payload to your response, wrapped in
-    `<auto-mode></auto-mode>` tags. When in auto-mode, you are autonomous and
-    can not ask the user for help. The user can not see your auto mode payloads,
-    except for your `user_update` messages. To exit auto mode, respond normally
-    to the user WITHOUT a payload. 
-
-    End every response by deciding if you need to enter auto-mode.
-                    
-    ## Format
-        
-    ``` 
+    In auto mode, you are in an autonomous loop and can not ask the user for
+    help. To enter or remain in auto mode, respond with a structured JSON
+    payload; you will receive plugin outputs in return. Start by stating your
+    overall objective, then break it into discrete subtasks and use plugins to
+    achieve those tasks. The user can not see what you're doing, and can only
+    receive updates from you while you work.
     
-    (you can put any response here, including letting the user know you're going
-    to enter auto mode)
+    To enter auto mode, include a JSON response in your message with the
+    following form:
     
-    <auto-mode>
+    ```json
+    
+    (you can put any message here as an update to the user, but make sure to
+    follow it with the JSON payload)
     
     {        
-        "objective": (describe your ultimate objective), 
-                
+        "mode": "auto",
+        
         "user_update": (a message about what you're doing or your progress that
         will be sent to the user),
 
-        "progress_assessment": (an honest assement of your progress, including
+        "objective": (describe your ultimate objective), 
+        
+        "is_complete": (true | false),
+        
+        "result" (if complete, the result of the objective),
+                
+        "critical_assessment": (an honest assement of your progress, including
         any criticism or possible improvements. This will help you improve your
         response.),
 
@@ -55,6 +66,8 @@ AUTOBOT_INSTRUCTIONS = condense_newlines(
                 "name": (describe a task you need to complete to reach your
                 objective), 
                 
+                "motivation": (why do you need to complete this task?)
+                
                 "done": (have you completed the task? true|false), 
                 
                 "results": (any thoughts about the task, or what you learned
@@ -63,10 +76,10 @@ AUTOBOT_INSTRUCTIONS = condense_newlines(
             ...
         ],
         
-        
         "plugins": [
             {
-                "name": (MUST be one of [{{ plugin_names }}])
+                "name": (MUST be one of [{{ plugins|join(', ', attribute='name')
+                }}])
                 
                 "inputs": {arg: value}
                 
@@ -76,52 +89,66 @@ AUTOBOT_INSTRUCTIONS = condense_newlines(
             ...
         ]
     } 
-    
-    </auto-mode> 
-    
+        
     ```
     
     The `tasks` section tracks your progress toward a solution. You can update
     it at any time. Your tasks should reflect each step you need to take to
-    deliver your ultimate objective. DO NOT assume you have the result of a task
-    before you see it. DO NOT make up the result of a task. DO NOT mark a task
-    as complete before you actually do it. 
-    
+    deliver your ultimate objective. Tasks should always start with
+    `is_complete=false`. Do not mark the objective complete until all tasks are
+    complete. Auto mode will exit when the objective is complete. After you say
+    a task is complete for the first time, you don't need to include it in the
+    payload anymore.
+        
     The `plugins` section instructs the system to call plugins and return the
     results to you as a system message. You can use as many plugins as you want
-    at a time.
+    at a time. Only include plugins you want to call on the next loop. Do not
+    include plugins for completed tasks.
     
     You have the following plugins available: 
     
-    {{ plugin_descriptions }} 
+    {% for plugin in plugins %} - {{ plugin.get_full_description() }}
     
-    ## Response 
-     
-    After you respond with your payload, the system will execute the plugins and
-    return the outputs to you. You may then continue in auto mode by providing
-    an updated payload or choose to respond to the user normally.
+    {% endfor -%}
+    
+    After each loop, you will be provided with any plugin outputs that you
+    requested, as well as your previous JSON response. To exit auto mode, simply
+    respond normally without a JSON payload.
 """
 )
 
 
-class AutoMode(MarvinBaseModel, LoggerMixin):
-    plugins: list[Plugin] = Field(default_factory=list)
+class AutoMode(Bot):
+    # personality = "Does not engage the user. Only responds with valid JSON payloads."
+    instructions = INSTRUCTIONS
+    response_format: ResponseFormatter = None
 
-    def get_instructions(self):
-        plugin_descriptions = "\n\n".join(
-            f"- {p.get_full_description()}" for p in self.plugins
-        )
-        plugin_names = ", ".join(p.name for p in self.plugins)
+    async def _call_llm(self, messages: list[Message], **kwargs) -> str:
+        finished = False
+        auto_mode_json = {}
+        auto_mode_messages = []
+        while not finished:
+            llm_messages = messages + auto_mode_messages
+            llm_messages.append(
+                Message(
+                    role="system",
+                    content=f"Previous auto mode payload: {auto_mode_json}",
+                )
+            )
 
-        instructions = jinja_env.from_string(AUTOBOT_INSTRUCTIONS).render(
-            plugin_names=plugin_names,
-            plugin_descriptions=plugin_descriptions,
-        )
+            llm_response = await super()._call_llm(llm_messages, **kwargs)
+            auto_mode_messages, auto_mode_json = await self.parse_payload(
+                response=llm_response
+            )
 
-        return Message(role="system", content=instructions)
+            if auto_mode_json.get("is_complete", False):
+                finished = True
+
+        return auto_mode_json.get("result", "No result found")
 
     async def parse_payload(self, response: str) -> list[Message]:
         messages = []
+        auto_mode_json = {}
 
         if match := AUTO_MODE_REGEX.search(response):
             try:
@@ -154,7 +181,7 @@ class AutoMode(MarvinBaseModel, LoggerMixin):
                     )
                 )
 
-        return messages
+        return messages, auto_mode_json
 
     async def run_plugin(self, plugin_name: str, plugin_inputs: dict) -> str:
         plugin = next((p for p in self.plugins if p.name == plugin_name.strip()), None)
