@@ -392,9 +392,10 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 elif on_error == "raise":
                     raise exc
                 elif on_error == "reformat":
-                    self.logger.debug(
-                        "Response did not pass validation. Attempted to reformat:"
-                        f" {llm_response}"
+                    self.logger.debug_kv(
+                        "Response did not pass validation. Attempted to reformat",
+                        f" {llm_response}",
+                        style="red",
                     )
                     llm_response = _reformat_response(
                         llm_response=llm_response,
@@ -514,7 +515,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
         if marvin.settings.verbose:
             messages_repr = "\n".join(repr(m) for m in langchain_messages)
-            self.logger.debug(f"Sending messages to LLM: {messages_repr}")
+            self.logger.debug_kv(
+                "Sending messages to LLM", messages_repr, style="green"
+            )
         try:
             result = await llm.agenerate(messages=[langchain_messages])
         except InvalidRequestError as exc:
