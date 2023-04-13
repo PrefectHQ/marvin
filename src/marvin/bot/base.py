@@ -395,7 +395,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                     self.logger.debug_kv(
                         "Response did not pass validation. Attempted to reformat",
                         f" {llm_response}",
-                        style="red",
+                        key_style="red",
                     )
                     llm_response = _reformat_response(
                         llm_response=llm_response,
@@ -516,7 +516,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         if marvin.settings.verbose:
             messages_repr = "\n".join(repr(m) for m in langchain_messages)
             self.logger.debug_kv(
-                "Sending messages to LLM", messages_repr, style="green"
+                "Sending messages to LLM", messages_repr, key_style="green"
             )
         try:
             result = await llm.agenerate(messages=[langchain_messages])
