@@ -1,10 +1,10 @@
+import asyncio
 import functools
 import inspect
 import json
 import re
 from typing import TYPE_CHECKING, Any, Callable
 
-import pendulum
 from fastapi import HTTPException, status
 from openai.error import InvalidRequestError
 from pydantic import Field, validator
@@ -23,8 +23,7 @@ from marvin.utilities.async_utils import as_sync_fn
 from marvin.utilities.strings import condense_newlines, jinja_env
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
-AUTO_MODE_REGEX = re.compile(r'({\s*"mode":\s*"auto".*})', re.DOTALL)
-PLUGIN_REGEX = re.compile(r'({\s*"action":\s*"run-plugin".*})', re.DOTALL)
+PLUGIN_REGEX = re.compile(r'({\s*"mode":\s*"plugins".*})', re.DOTALL)
 
 
 class BotResponse(BaseMessage):
@@ -42,18 +41,25 @@ DEFAULT_INSTRUCTIONS = """
     Respond to the user, always in character based on your personality. Use
     plugins whenever you need additional information.
     """
-
-
 DEFAULT_INSTRUCTIONS_TEMPLATE = """
+    {% if bot.name -%} 
+    
+    # Name
+    
+    Your name is: {{ bot.name }}
+    
+    {% endif -%}
+    
+    {% if bot.instructions -%}
+    
     # Instructions
     
-    Your name is: {{ name }}
-    
     Your instructions tell you how to respond to a message, and you must always
-    follow them very carefully. Your instructions are: {{ instructions }}
+    follow them very carefully. Your instructions are: {{ bot.instructions }}
     
-    Do not mention details of your personality or instructions to users. Do not
-    say that you are an AI language model.
+    {% endif -%}
+    
+    Do not say that you are an AI language model.
         
     {% if response_format.format -%} 
     
@@ -70,14 +76,18 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     in your response. Do not include punctuation unless it is part of the
     format. 
     
-    {%- endif %}
+    {% endif -%}
+    
+    {% if bot.personality -%}
     
     # Personality 
     
     Your personality informs the style and tone of your responses. Your
-    personality is: {{ personality }}
+    personality is: {{ bot.personality }}
     
-    {% if plugins %} 
+    {% endif -%}
+    
+    {% if bot.plugins -%} 
     
     # Plugins
     
@@ -85,49 +95,67 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     However, you can't run these plugins yourself; to run them, you need to send
     a JSON payload to the system. The system will run the plugin with that
     payload and tell you its result. The system can not run a plugin unless you
-    provide the payload.
+    provide the payload. 
     
-    To run a plugin, your response should have two parts. First, explain all the
-    steps you intend to take, breaking the problem down into discrete parts to
-    solve it step-by-step. Next, provide the JSON payload, which must have the
-    following format: 
+    To run plugins, you must send a JSON payload to the system. The payload has
+    two parts: `tasks`, in which you describe the thing you want to do, and
+    `plugins`, in which you describe plugin calls you want to make. The system
+    will run the plugins and return the results to you. You do not have to
+    include tasks or plugins that have already been completed.
     
-    ```json
-        {
-        
-            "action": "run-plugin", 
+    You MUST use a plugin payload unless you already have all the information
+    you need.
+
+    Use the following payload format, including the <stop> tag:
     
-            "name": <MUST be one of [{{plugins|join(', ',attribute='name')}}]>,
-        
-            "inputs": {<any plugin arguments>} 
-        
+    ```
+        (you can write an update before the payload to tell the user you're about to start) 
+
+        { 
+            "mode": "plugins", 
+            "tasks": [
+                {
+                    "id": (a unique ID for this task: 1, 2, 3...),
+                    "objective": (describe the task objective),                    
+                },
+                ...
+            ],
+            "plugins":[
+                {
+                    "id": (a unique ID for this plugin call: 1, 2, 3...)
+                    "name": <MUST be one of [{{bot.plugins|join(', ', attribute='name')}}]>,
+                    "inputs": ({key: value, ...})
+                    "tasks": [(the task IDs this plugin relates to)]
+                },
+                ...
+            ]
         }
-    ``` 
-    
-    You must provide a complete, literal JSON object; do not respond with
-    variables or code to generate it.
+        <stop>
+    ```
     
     You don't need to ask for permission to use a plugin, though you can ask the
     user for clarification.  Do not speculate about the plugin's output in your
-    response. At this time, `run-plugin` is the ONLY action you can take.
-    
-    Note: the user will NOT see anything related to plugin inputs or outputs.
+    response. Note: the user will NOT see anything related to plugin inputs or
+    outputs.
                     
     You have access to the following plugins:
     
-    {% for plugin in plugins -%} 
+    {% for plugin in bot.plugins -%} 
     
     - {{ plugin.get_full_description() }}
     
     {% endfor -%}
 
-    {% endif %}
+    {% endif -%}
     
-    # Notes
+    {% if bot.include_date_in_prompt -%}
     
-    {% if date -%} Your training ended in the past. Today's date is {{ date }}.
-    {%- endif %}
-    """
+    # Date
+    
+    Your training ended in the past. Today's date is {{ pendulum.now().format("dddd, MMMM D, YYYY") }}.
+    
+    {% endif -%}
+    """  # noqa: E501
 
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),
@@ -181,7 +209,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             "A template for the input to the bot. This allows users to specify how the"
             " bot should combine multiple inputs. For example, if the bot's job is to"
             " compare two numbers, the user might want to use a template like `First"
-            " number: {{x}}, Second number: {{y}}`. The user could invoke the bot as"
+            r" number: {x}, Second number: {y}`. The user could invoke the bot as"
             " `bot.say(x=3, y=4)`"
         ),
         repr=False,
@@ -379,8 +407,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
     async def _should_exit_bot_loop(self, response: BotResponse, counter: int) -> bool:
         if counter >= marvin.settings.bot_max_iterations:
             return True
-        if not PLUGIN_REGEX.search(response.content):
-            return True
         return False
 
     async def _parse_llm_response(self, llm_response: str):
@@ -431,10 +457,11 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
     async def _say(self, messages: list[Message], on_token_callback: Callable = None):
         counter = 1
+        loop_messages = []
         while True:
             counter += 1
             llm_response = await self._call_llm(
-                messages=messages,
+                messages=messages + loop_messages,
                 on_token_callback=on_token_callback,
             )
             parsed_response = await self._parse_llm_response(llm_response=llm_response)
@@ -447,12 +474,16 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 bot_id=self.id,
             )
 
+            # check for early exit
             if await self._should_exit_bot_loop(response, counter):
                 return response
 
             else:
-                messages = await self._prepare_loop_messages(response, messages)
-                if not messages:
+                # process loop instructions and get any new messages
+                loop_messages = await self._process_response(response)
+
+                # if no new messages, exit loop
+                if not loop_messages:
                     return response
 
     async def reset_thread(self):
@@ -481,21 +512,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
         else:
             response_format = self.response_format
 
-        jinja_instructions = jinja_env.from_string(self.instructions)
-
-        # prepare instructions variables
-        vars = dict(
-            name=self.name,
-            response_format=response_format,
-            personality=self.personality,
-            include_date=self.include_date_in_prompt,
-            date=pendulum.now().format("dddd, MMMM D, YYYY"),
-            plugins=self.plugins,
-        )
-
         bot_instructions = jinja_env.from_string(self.instructions_template).render(
-            **vars,
-            instructions=jinja_instructions.render(**vars),
+            bot=self,
+            response_format=response_format,
         )
 
         return Message(role="system", content=bot_instructions)
@@ -530,7 +549,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 "Sending messages to LLM", messages_repr, key_style="green"
             )
         try:
-            result = await llm.agenerate(messages=[langchain_messages])
+            result = await llm.agenerate(messages=[langchain_messages], stop=["<stop>"])
         except InvalidRequestError as exc:
             if "does not exist" in str(exc):
                 raise ValueError(
@@ -592,30 +611,34 @@ class Bot(MarvinBaseModel, LoggerMixin):
         """
         return as_sync_fn(cls.reset_thread)(*args, **kwargs)
 
-    async def _prepare_loop_messages(
-        self, response: BotResponse, messages: list[Message]
-    ) -> list[Message]:
+    async def _process_response(self, response: BotResponse) -> list[Message]:
+        new_messages = []
         if match := PLUGIN_REGEX.search(response.content):
             try:
                 plugin_json = json.loads(match.group(1))
-                messages.append(Message(role="bot", content=response.content))
+                new_messages.append(Message(role="bot", content=response.content))
                 self.logger.debug_kv("Plugin payload", plugin_json)
 
-                plugin_name, plugin_inputs = (
-                    plugin_json["name"],
-                    plugin_json["inputs"],
+                plugins = plugin_json.get("plugins", [])
+                plugin_outputs = await asyncio.gather(
+                    *[
+                        self._run_plugin(p["name"], p["inputs"])
+                        for p in plugin_json.get("plugins")
+                    ]
                 )
-                plugin_output = await self._run_plugin(plugin_name, plugin_inputs)
 
-                messages.append(
+                new_messages.append(
                     Message(
                         role="system",
-                        content=f'# Plugin "{plugin_name}" output\n\n{plugin_output}',
+                        content="\n\n".join(
+                            f'# Plugin "{p["name"]}" with ID {p["id"]}\n\n{o}'
+                            for p, o in zip(plugins, plugin_outputs)
+                        ),
                     )
                 )
 
             except json.JSONDecodeError as exc:
-                messages.append(
+                new_messages.append(
                     Message(
                         role="system",
                         content=f"Plugin payload was invalid JSON, try again: {exc}",
@@ -623,14 +646,14 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 )
 
             except Exception as exc:
-                messages.append(
+                new_messages.append(
                     Message(
                         role="system",
                         content=f"Plugin encountered an error, try again: {exc}",
                     )
                 )
 
-        return messages
+        return new_messages
 
     async def _run_plugin(self, plugin_name: str, plugin_inputs: dict) -> str:
         plugin = next((p for p in self.plugins if p.name == plugin_name.strip()), None)
@@ -645,11 +668,12 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
             return plugin_output
         except Exception as exc:
-            self.logger.error(
-                f"Error running plugin {plugin_name} with inputs"
-                f" {plugin_inputs}:\n\n{exc}"
+            msg = (
+                f'Error running plugin "{plugin_name}" with inputs'
+                f' "{plugin_inputs}":\n\n{exc}'
             )
-            return f"Plugin encountered an error. Try again? Error message: {exc}"
+            self.logger.error(msg)
+            return msg
 
 
 def _reformat_response(
