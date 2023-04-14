@@ -5,6 +5,7 @@ import dotenv
 import openai
 import openai.error
 import typer
+from fastapi import HTTPException
 from rich import print as rprint
 from rich.prompt import Prompt
 
@@ -80,7 +81,11 @@ def chat(
 ):
     from marvin.cli.tui import MarvinApp
 
-    app = MarvinApp(default_bot_name=bot)
+    try:
+        bot = marvin.Bot.load_sync(name=bot)
+    except HTTPException:
+        bot = None
+    app = MarvinApp(default_bot=bot)
     app.run()
 
 
