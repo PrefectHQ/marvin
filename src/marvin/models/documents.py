@@ -56,7 +56,7 @@ async def _create_excerpt(
     )
 
     excerpt_text = excerpt_template.render(
-        document=document.copy_with_updates(type="excerpt"),
+        document=document,
         excerpt_text=text,
         keywords=", ".join(keywords),
         minimap=minimap,
