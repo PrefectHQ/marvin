@@ -1,4 +1,6 @@
 import asyncio
+import inspect
+import json
 import logging
 import re
 import warnings
@@ -29,15 +31,17 @@ from textual.widgets import (
 from textual.widgets.option_list import Option
 
 import marvin
+from marvin.bot.base import AUTOPILOT_REGEX
 from marvin.config import ENV_FILE
 from marvin.models.ids import MessageID, ThreadID
+from marvin.utilities.strings import jinja_env
 
 logging.basicConfig(
     level="NOTSET",
     handlers=[TextualHandler()],
 )
 
-USING_PLUGIN_REGEX = re.compile(r'{\s*"action":\s*"run-plugin",\s*"name":\s*"(.*?)"')
+ENTERING_AUTOPILOT_REGEX = re.compile(r'(.*){\s*"mode":\s*"autopilot"', re.DOTALL)
 
 
 @marvin.ai_fn(llm_model_name="gpt-3.5-turbo", llm_model_temperature=1)
@@ -648,18 +652,43 @@ class MainScreen(Screen):
         elif event.button.id == "quit":
             self.app.exit()
 
-    async def stream_bot_response(self, token_buffer: list[str], response: BotResponse):
+    def stream_bot_response(self, token_buffer: list[str], response: BotResponse):
         streaming_response = "".join(token_buffer)
 
         if not self.app.is_mounted(response):
             conversation = self.query_one("Conversation", Conversation)
-            await conversation.add_response(response)
+            asyncio.run(conversation.add_response(response))
 
         # the bot is going to use a plugin
-        if match := USING_PLUGIN_REGEX.search(streaming_response):
-            plugin_name = match.group(1)
-            if not response.body.text == f'Using plugin "{plugin_name}"...':
-                response.body.update(f'Using plugin "{plugin_name}"...')
+        if in_autopilot := ENTERING_AUTOPILOT_REGEX.search(streaming_response):
+            user_update = in_autopilot.group(1).strip()
+            if user_update:
+                user_update += "\n\nEngaging autopilot..."
+            else:
+                user_update = "Engaging autopilot..."
+            try:
+                if plugins_match := AUTOPILOT_REGEX.search(streaming_response):
+                    payload = json.loads(plugins_match.group(1))
+                    user_update = payload.get("user_update", user_update)
+                    template = inspect.cleandoc(
+                        """
+                        {{ user_update }}
+                        
+                        {% for task in payload.get('tasks', []) %}
+                        - {{ '[x]' if task['is_complete'] else '[ ]' }} {{ task['name'] }}
+                        {% endfor %}
+                        """  # noqa: E501
+                    )
+                    response.body.update(
+                        jinja_env.from_string(template).render(
+                            user_update=user_update, payload=payload
+                        )
+                    )
+                else:
+                    response.body.update(user_update)
+            except json.JSONDecodeError:
+                response.body.update(user_update)
+
         else:
             response.message.content = streaming_response
             response.body.update(streaming_response)
@@ -681,6 +710,7 @@ class MainScreen(Screen):
                     content="",
                 )
             )
+
             response = await bot.say(
                 event.value,
                 on_token_callback=partial(
@@ -690,7 +720,7 @@ class MainScreen(Screen):
 
             # call once to populate the response in case there was any trouble
             # streaming live
-            await self.stream_bot_response(
+            self.stream_bot_response(
                 token_buffer=[response.content], response=bot_response
             )
 
@@ -785,12 +815,12 @@ class MarvinApp(App):
     is_ready: bool = False
     database_ready: bool = reactive(False)
 
-    def __init__(self, default_bot_name: str = None, **kwargs):
+    def __init__(self, default_bot: marvin.Bot = None, **kwargs):
         super().__init__(**kwargs)
 
-        if default_bot_name is None:
-            default_bot_name = "Marvin"
-        self._default_bot_name = default_bot_name
+        if default_bot:
+            default_bot.save_sync(if_exists="update")
+        self._default_bot = default_bot
 
     async def check_database(self):
         # trap warnings as errors
@@ -810,13 +840,14 @@ class MarvinApp(App):
 
     async def watch_database_ready(self, database_ready: bool) -> None:
         if database_ready:
-            try:
-                bot = await marvin.Bot.load(self._default_bot_name)
-            except HTTPException:
-                bot = marvin.bots.meta.marvin_bot
-                await bot.save(if_exists="update")
-            self.bot = bot
-
+            if self._default_bot:
+                self.bot = self._default_bot
+            else:
+                try:
+                    self.bot = await marvin.Bot.load("Marvin")
+                except HTTPException:
+                    self.bot = marvin.bots.meta.marvin_bot
+                    await self.bot.save()
             await self.bot.set_thread(self.thread_id)
             self.is_ready = True
 

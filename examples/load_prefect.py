@@ -123,7 +123,7 @@ async def hello_marvin():
         instructions=instructions,
         plugins=plugins,
     )
-    await bot.interactive_chat()
+    bot.interactive_chat()
 
     print(await bot.history.log())
 
