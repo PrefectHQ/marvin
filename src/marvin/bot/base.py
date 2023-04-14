@@ -106,37 +106,32 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     You MUST use a plugin payload unless you already have all the information
     you need.
 
-    Use the following payload format:
+    Use the following payload format, including the <stop> tag:
     
-    ```json 
-        (you can write an update before the payload to tell the user you're
-        about to start) 
-        
+    ```
+        (you can write an update before the payload to tell the user you're about to start) 
+
         { 
-            
             "mode": "plugins", 
-            
             "tasks": [
                 {
-                    "id": (a unique int ID for this task),
-                
-                    "name": (the name of the task),                    
-                }    
-            ]
-            
+                    "id": (a unique ID for this task: 1, 2, 3...),
+                    "objective": (describe the task objective),                    
+                },
+                ...
+            ],
             "plugins":[
-                { 
-                    "name": <MUST be one of [{{bot.plugins|join(', ',
-                    attribute='name')}}]>,
-            
+                {
+                    "id": (a unique ID for this plugin call: 1, 2, 3...)
+                    "name": <MUST be one of [{{bot.plugins|join(', ', attribute='name')}}]>,
                     "inputs": ({key: value, ...})
-                
-                    "tasks": [(the task IDs this plugin call relates to)]
+                    "tasks": [(the task IDs this plugin relates to)]
                 },
                 ...
             ]
         }
-    ``` 
+        <stop>
+    ```
     
     You don't need to ask for permission to use a plugin, though you can ask the
     user for clarification.  Do not speculate about the plugin's output in your
@@ -157,11 +152,10 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     
     # Date
     
-    Your training ended in the past. Today's date is {{
-    pendulum.now().format("dddd, MMMM D, YYYY") }}.
+    Your training ended in the past. Today's date is {{ pendulum.now().format("dddd, MMMM D, YYYY") }}.
     
     {% endif -%}
-    """
+    """  # noqa: E501
 
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),
@@ -271,8 +265,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
     def handle_instructions_template(cls, v):
         if v is None:
             v = DEFAULT_INSTRUCTIONS_TEMPLATE
-        # use cleandoc because condense will collapse JSON formats
-        return inspect.cleandoc(v)
+        return condense_newlines(v)
 
     @validator("plugins", always=True)
     def default_plugins(cls, v):
@@ -556,7 +549,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 "Sending messages to LLM", messages_repr, key_style="green"
             )
         try:
-            result = await llm.agenerate(messages=[langchain_messages])
+            result = await llm.agenerate(messages=[langchain_messages], stop=["<stop>"])
         except InvalidRequestError as exc:
             if "does not exist" in str(exc):
                 raise ValueError(
@@ -638,7 +631,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                     Message(
                         role="system",
                         content="\n\n".join(
-                            f'# Plugin "{p["name"]}" output\n\n{o}'
+                            f'# Plugin "{p["name"]}" with ID {p["id"]}\n\n{o}'
                             for p, o in zip(plugins, plugin_outputs)
                         ),
                     )
