@@ -3,8 +3,6 @@ from tempfile import NamedTemporaryFile
 from typing import List
 from urllib.parse import urlparse
 
-import httpx
-
 try:
     import pypdf
 except ModuleNotFoundError:
@@ -15,12 +13,7 @@ except ModuleNotFoundError:
 
 from marvin.loaders.base import Loader
 from marvin.models.documents import Document
-
-
-async def download_pdf(url: str) -> bytes:
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        return response.content
+from marvin.utilities.web import download_url_content
 
 
 def is_valid_url(url):
@@ -34,7 +27,7 @@ class PDFLoader(Loader):
     @asynccontextmanager
     async def open_pdf_file(self, file_path: str):
         if is_valid_url(file_path):
-            raw_pdf_content = await download_pdf(file_path)
+            raw_pdf_content = await download_url_content(file_path)
             with NamedTemporaryFile() as temp_file:
                 temp_file.write(raw_pdf_content)
                 temp_file.flush()

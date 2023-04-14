@@ -4,7 +4,7 @@ from marvin.utilities.models import MarvinBaseModel
 
 
 class Metadata(MarvinBaseModel):
-    link: str = Field(default=None)
+    link: str = Field(default="None")
     title: str = Field(default="[untitled]")
     source: str = Field(default="unknown")
     document_type: str = Field(default="original")
