@@ -3,7 +3,7 @@ import json
 import httpx
 from fastapi import status
 
-from marvin.loaders.web import URLLoader
+from marvin.loaders.web import SitemapLoader, URLLoader
 from marvin.plugins import Plugin
 from marvin.utilities.strings import html_to_content, slice_tokens
 from marvin.utilities.web import url_is_ok
@@ -56,6 +56,11 @@ class LoadAndStoreURL(Plugin):
 
         if url.endswith(".pdf"):
             return f"URL {url} is a PDF. Use the `load-and-store-pdf` plugin instead."
+        if url.endswith(".xml"):
+            return (
+                f"URL {url} is a sitemap. Use the `load-and-store-sitemap` plugin"
+                " instead."
+            )
 
         if not await url_is_ok(url):
             return (
@@ -80,3 +85,16 @@ class LoadAndStorePDF(Plugin):
         loader = PDFLoader(file_path=pdf_url)
         await loader.load_and_store(topic_name=topic_name)
         return f"Loaded {pdf_url} into topic {topic_name!r}"
+
+
+class LoadAndStoreSitemap(Plugin):
+    name: str = "load-and-store-sitemap"
+    description: str = (
+        "Load and store the contents of a sitemap URL into a topic. if no topic name is"
+        " provided, the Marvin default topic will be used."
+    )
+
+    async def run(self, sitemap_url: str, topic_name: str = None) -> str:
+        loader = SitemapLoader(urls=[sitemap_url])
+        await loader.load_and_store(topic_name=topic_name)
+        return f"Loaded {sitemap_url} into topic {topic_name!r}"
