@@ -1,6 +1,6 @@
 import asyncio
 import re
-from typing import Optional
+from typing import Optional, Union
 
 from fake_useragent import UserAgent
 from httpx import AsyncClient, Response
@@ -94,8 +94,8 @@ class HTMLLoader(URLLoader):
 
 
 class SitemapLoader(URLLoader):
-    include: list[str | re.Pattern] = Field(default_factory=list)
-    exclude: list[str | re.Pattern] = Field(default_factory=list)
+    include: list[Union[str, re.Pattern]] = Field(default_factory=list)
+    exclude: list[Union[str, re.Pattern]] = Field(default_factory=list)
     url_loader: URLLoader = Field(default_factory=HTMLLoader)
 
     async def _get_loader(self) -> Loader:
