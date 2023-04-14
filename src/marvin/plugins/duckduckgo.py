@@ -42,6 +42,7 @@ async def search_ddg(query: str, n: int = 5) -> str:
 
 
 class DuckDuckGo(Plugin):
+    name: str = "duckduckgo"
     description: str = (
         "Search the web with DuckDuckGo. Useful for current events. If you already know"
         " the answer, you don't need to use this unless asked to. Works best with"

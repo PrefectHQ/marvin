@@ -56,6 +56,7 @@ async def keyword_query_chroma(query: str, where: dict, n: int = 4) -> str:
 
 
 class SimpleChromaSearch(Plugin):
+    name: str = "simple-chroma-search"
     description: str = (
         "Semantic search for relevant documents."
         " To use this plugin, simply provide a natural language `query`"
