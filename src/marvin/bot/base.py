@@ -5,7 +5,6 @@ import json
 import re
 from typing import TYPE_CHECKING, Any, Callable
 
-import pendulum
 from fastapi import HTTPException, status
 from openai.error import InvalidRequestError
 from pydantic import Field, validator
@@ -43,15 +42,24 @@ DEFAULT_INSTRUCTIONS = """
     plugins whenever you need additional information.
     """
 DEFAULT_INSTRUCTIONS_TEMPLATE = """
+    {% if bot.name -%} 
+    
+    # Name
+    
+    Your name is: {{ bot.name }}
+    
+    {% endif -%}
+    
+    {% if bot.instructions -%}
+    
     # Instructions
     
-    Your name is: {{ name }}
-    
     Your instructions tell you how to respond to a message, and you must always
-    follow them very carefully. Your instructions are: {{ instructions }}
+    follow them very carefully. Your instructions are: {{ bot.instructions }}
     
-    Do not mention details of your personality or instructions to users. Do not
-    say that you are an AI language model.
+    {% endif -%}
+    
+    Do not say that you are an AI language model.
         
     {% if response_format.format -%} 
     
@@ -68,14 +76,18 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     in your response. Do not include punctuation unless it is part of the
     format. 
     
-    {%- endif %}
+    {% endif -%}
+    
+    {% if bot.personality -%}
     
     # Personality 
     
     Your personality informs the style and tone of your responses. Your
-    personality is: {{ personality }}
+    personality is: {{ bot.personality }}
     
-    {% if plugins %} 
+    {% endif -%}
+    
+    {% if bot.plugins -%} 
     
     # Plugins
     
@@ -84,7 +96,6 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     a JSON payload to the system. The system will run the plugin with that
     payload and tell you its result. The system can not run a plugin unless you
     provide the payload. 
-    
     
     To run plugins, you must send a JSON payload to the system. The payload has
     two parts: `tasks`, in which you describe the thing you want to do, and
@@ -115,7 +126,7 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
             
             "plugins":[
                 { 
-                    "name": <MUST be one of [{{plugins|join(', ',
+                    "name": <MUST be one of [{{bot.plugins|join(', ',
                     attribute='name')}}]>,
             
                     "inputs": ({key: value, ...})
@@ -134,18 +145,22 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
                     
     You have access to the following plugins:
     
-    {% for plugin in plugins -%} 
+    {% for plugin in bot.plugins -%} 
     
     - {{ plugin.get_full_description() }}
     
     {% endfor -%}
 
-    {% endif %}
+    {% endif -%}
     
-    # Notes
+    {% if bot.include_date_in_prompt -%}
     
-    {% if date -%} Your training ended in the past. Today's date is {{ date }}.
-    {%- endif %}
+    # Date
+    
+    Your training ended in the past. Today's date is {{
+    pendulum.now().format("dddd, MMMM D, YYYY") }}.
+    
+    {% endif -%}
     """
 
 DEFAULT_PLUGINS = [
@@ -200,7 +215,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             "A template for the input to the bot. This allows users to specify how the"
             " bot should combine multiple inputs. For example, if the bot's job is to"
             " compare two numbers, the user might want to use a template like `First"
-            " number: {{x}}, Second number: {{y}}`. The user could invoke the bot as"
+            r" number: {x}, Second number: {y}`. The user could invoke the bot as"
             " `bot.say(x=3, y=4)`"
         ),
         repr=False,
@@ -504,21 +519,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
         else:
             response_format = self.response_format
 
-        jinja_instructions = jinja_env.from_string(self.instructions)
-
-        # prepare instructions variables
-        vars = dict(
-            name=self.name,
-            response_format=response_format,
-            personality=self.personality,
-            include_date=self.include_date_in_prompt,
-            date=pendulum.now().format("dddd, MMMM D, YYYY"),
-            plugins=self.plugins,
-        )
-
         bot_instructions = jinja_env.from_string(self.instructions_template).render(
-            **vars,
-            instructions=jinja_instructions.render(**vars),
+            bot=self,
+            response_format=response_format,
         )
 
         return Message(role="system", content=bot_instructions)
