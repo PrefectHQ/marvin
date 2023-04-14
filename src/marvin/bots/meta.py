@@ -1,5 +1,6 @@
 import marvin
 from marvin import Bot, plugin
+from marvin.bot.base import DEFAULT_PLUGINS
 
 
 @plugin
@@ -114,5 +115,12 @@ marvin_bot = Bot(
         bots for the user. The user doesn't need to know that you're using
         plugins, they only care about the outcome.
         """,
-    plugins=[list_all_bots, get_bot_details, create_bot, update_bot, delete_bot],
+    plugins=[
+        list_all_bots,
+        get_bot_details,
+        create_bot,
+        update_bot,
+        delete_bot,
+        *DEFAULT_PLUGINS,
+    ],
 )
