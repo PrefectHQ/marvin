@@ -543,11 +543,17 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
         return result.generations[0][0].text
 
-    async def interactive_chat(self, first_message: str = None):
+    def interactive_chat(self, first_message: str = None, tui: bool = True):
         """
         Launch an interactive chat with the bot. Optionally provide a first message.
         """
-        await marvin.bot.interactive_chat.chat(bot=self, first_message=first_message)
+        if tui:
+            from marvin.cli.tui import MarvinApp
+
+            app = MarvinApp(default_bot=self)
+            app.run()
+        else:
+            marvin.bot.interactive_chat.chat(bot=self, first_message=first_message)
 
     # -------------------------------------
     # Synchronous convenience methods
@@ -577,6 +583,14 @@ class Bot(MarvinBaseModel, LoggerMixin):
         a bot in a synchronous framework.
         """
         return as_sync_fn(cls.load)(*args, **kwargs)
+
+    @functools.wraps(reset_thread)
+    def reset_thread_sync(cls, *args, **kwargs):
+        """
+        A synchronous version of `reset_thread`. This is useful for testing or including
+        a bot in a synchronous framework.
+        """
+        return as_sync_fn(cls.reset_thread)(*args, **kwargs)
 
     async def _prepare_loop_messages(
         self, response: BotResponse, messages: list[Message]

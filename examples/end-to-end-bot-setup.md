@@ -29,7 +29,7 @@ harry_styles_stan = Bot(
 
 ## Chat interactively with the bot
 ```python
-await harry_styles_stan.interactive_chat()
+harry_styles_stan.interactive_chat()
 ```
 
 <p align="center">
@@ -73,7 +73,7 @@ harry_styles_stan = await Bot.load("harry_styles_stan")
 harry_styles_stan.plugins = [DuckDuckGo()]
 
 # enter interactive chat again
-await harry_styles_stan.interactive_chat()
+harry_styles_stan.interactive_chat()
 ```
 
 <p align="center">
