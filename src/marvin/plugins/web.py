@@ -1,8 +1,12 @@
 import httpx
 from fastapi import status
 
+try:
+    from marvin.loaders.pdf import PDFLoader
+except ImportError:
+    # Can happen if pypdf isn't installed
+    PDFLoader = None
 from marvin.loaders.web import URLLoader
-from marvin.loaders.pdf import PDFLoader
 from marvin.plugins import Plugin
 from marvin.utilities.strings import html_to_content, slice_tokens
 
@@ -28,42 +32,43 @@ class VisitURL(Plugin):
             return f"Failed to load URL: {response.status_code}"
 
 
-class URLLoader(Plugin):
+class LoadURL(Plugin):
     name: str = "load-url"
     description: str = (
-        "Visit a URL and use a loader to load its contents. Don't provide a URL unless you're"
-        " absolutely sure it exists. A topic name can be provided to store the documents in a"
-        " particular topic."
+        "Visit a URL and use a loader to load its contents. Don't provide a URL unless"
+        " you're absolutely sure it exists. A topic name can be provided to store the"
+        " documents in a particular topic."
     )
 
     async def run(self, url: str, topic_name: str = None) -> str:
         """
-        Load the contents of a URL into a topic. If no topic name is provided, the Marvin default
-        topic will be used.
+        Load the contents of a URL into a topic. If no topic name is provided,
+        the Marvin default topic will be used.
         """
         if not url.startswith("http"):
             url = f"http://{url}"
-        loader = URLLoader(
-            urls=[url]
-        )
+        loader = URLLoader(urls=[url])
         await loader.load_and_store(topic_name=topic_name)
         return f"Loaded {url} into topic {topic_name}"
 
 
-class PDFURLLoader(Plugin):
+class LoadPDF(Plugin):
     name: str = "load-pdf"
     description: str = (
-        "Load the contents of a PDF into a topic. If no topic name is provided, the Marvin default"
-        " topic will be used."
+        "Load the contents of a PDF URL into a topic. If no topic name is provided, the"
+        " Marvin default topic will be used."
     )
 
     async def run(self, pdf_url: str, topic_name: str = None) -> str:
         """
-        Load the contents of a PDF into a topic. If no topic name is provided, the Marvin default
-        topic will be used.
+        Load the contents of a PDF URL into a topic. If no topic name is provided,
+        the Marvin default topic will be used.
         """
-        loader = PDFLoader(
-            pdf_paths=[pdf_url]
-        )
+        if PDFLoader is None:
+            return (
+                "PDFLoader is not available. Install it with `pip install marvin[pdf]`"
+                " to use this plugin."
+            )
+        loader = PDFLoader(pdf_paths=[pdf_url])
         await loader.load_and_store(topic_name=topic_name)
         return f"Loaded {pdf_url} into topic {topic_name}"
