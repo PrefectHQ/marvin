@@ -806,12 +806,13 @@ class MarvinApp(App):
     is_ready: bool = False
     database_ready: bool = reactive(False)
 
-    def __init__(self, default_bot_name: str = None, **kwargs):
+    def __init__(self, default_bot: marvin.Bot = None, **kwargs):
         super().__init__(**kwargs)
 
-        if default_bot_name is None:
-            default_bot_name = "Marvin"
-        self._default_bot_name = default_bot_name
+        if default_bot is None:
+            default_bot = marvin.bots.meta.marvin_bot
+        default_bot.save_sync(if_exists="update")
+        self._default_bot = default_bot
 
     async def check_database(self):
         # trap warnings as errors
@@ -831,13 +832,7 @@ class MarvinApp(App):
 
     async def watch_database_ready(self, database_ready: bool) -> None:
         if database_ready:
-            try:
-                bot = await marvin.Bot.load(self._default_bot_name)
-            except HTTPException:
-                bot = marvin.bots.meta.marvin_bot
-                await bot.save(if_exists="update")
-            self.bot = bot
-
+            self.bot = self._default_bot
             await self.bot.set_thread(self.thread_id)
             self.is_ready = True
 
