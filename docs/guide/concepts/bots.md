@@ -78,7 +78,16 @@ Bots can be loaded with the `Bot.load()` method.
 ```python
 bot = await Bot.load("Ford")
 ```
+### Interactive Chats
+To quickly jump into an interactive chat with a bot:
 
+```python
+bot.interactive_chat()
+```
+
+This will launch the Marvin TUI with the current bot already selected. Note this will also save the bot to the database, overwriting any existing bot with the same name. 
+
+To launch a simpler experience, pass `tui=False` when you call the function.
 ### Streaming responses
 By default, bots process an entire response and return it as a structured object. However, you can get a streaming response by providing a custom `on_token_callback` function. Every time the bot generates a token, the callback will be called with a buffer of all the tokens generated to that point. You can access the most recent token as `buffer[-1]`. 
 
