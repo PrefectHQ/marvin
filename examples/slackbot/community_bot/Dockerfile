@@ -13,6 +13,6 @@ RUN echo "Cache bust: ${CACHE_BUST}" && \
 
 RUN pip uninstall uvloop -y
 
-COPY examples/slackbot/community_bot/setup.py /app/examples/slackbot/community_bot/setup.py
+COPY setup.py /app/examples/slackbot/community_bot/setup.py
 
 CMD ["uvicorn", "marvin.server:app", "--host", "0.0.0.0", "--port", "4200"]
