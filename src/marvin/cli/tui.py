@@ -863,7 +863,7 @@ class MarvinApp(App):
             self.thread_id = ThreadID.new()
             self.log.info(f"Bot changed to {bot.name}")
             await self.query_one("#threads", Threads).refresh_threads()
-            self.query_one("#bot-name", Label).update(bot.id)
+            self.query_one("#bot-name", Label).update(bot.name)
 
     async def watch_thread_id(self, thread_id: ThreadID) -> None:
         if not self.is_ready:
