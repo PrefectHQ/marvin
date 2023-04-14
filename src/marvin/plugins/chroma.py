@@ -3,6 +3,7 @@ from typing import Any, Callable, Optional
 import pendulum
 from pydantic import Field
 
+import marvin
 from marvin.infra.chroma import Chroma
 from marvin.plugins import Plugin, plugin
 from marvin.utilities.strings import extract_keywords
@@ -32,8 +33,8 @@ def build_keyword_filter(keywords: list[str]) -> dict:
     return {"$or": filters}
 
 
-async def query_chroma(**query_kwargs) -> str:
-    async with Chroma() as chroma:
+async def query_chroma(topic: str = None, **query_kwargs) -> str:
+    async with Chroma(topic or marvin.settings.default_topic) as chroma:
         query_result = await chroma.query(**query_kwargs)
 
     return "\n\n".join(
@@ -113,6 +114,7 @@ async def chroma_search(
     query: str,
     where: Optional[dict[str, Any]] = None,
     where_document: Optional[dict[str, Any]] = None,
+    topic: Optional[str] = None,
 ) -> str:
     """
     query (str): A verbose natural language query.
@@ -125,6 +127,8 @@ async def chroma_search(
         The only valid operator is `$contains`. For example, to find documents
         containing the word "python", use "$contains" --> "python". You may `$and`
         or `$or` multiple such filters together, the operator being the outer key.
+    topic (str): The topic to search for documents in. Do not specify this argument
+        if the user does not explicitly specify a topic.
     """
 
     where = apply_fn_to_field(where, "created_at", iso_to_timestamp) if where else None
@@ -135,4 +139,5 @@ async def chroma_search(
         include=["documents"],
         where=where,
         where_document=where_document if where_document else None,
+        topic=topic,
     )
