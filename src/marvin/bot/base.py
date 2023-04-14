@@ -109,7 +109,7 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
                 {
                     "id": (a unique int ID for this task),
                 
-                    "name": (the name of the task),
+                    "name": (the name of the task),                    
                 }    
             ]
             
@@ -121,7 +121,6 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
                     "inputs": ({key: value, ...})
                 
                     "tasks": [(the task IDs this plugin call relates to)]
-                
                 },
                 ...
             ]
@@ -400,8 +399,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
     async def _should_exit_bot_loop(self, response: BotResponse, counter: int) -> bool:
         if counter >= marvin.settings.bot_max_iterations:
             return True
-        if not PLUGIN_REGEX.search(response.content):
-            return True
         return False
 
     async def _parse_llm_response(self, llm_response: str):
@@ -452,10 +449,11 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
     async def _say(self, messages: list[Message], on_token_callback: Callable = None):
         counter = 1
+        loop_messages = []
         while True:
             counter += 1
             llm_response = await self._call_llm(
-                messages=messages,
+                messages=messages + loop_messages,
                 on_token_callback=on_token_callback,
             )
             parsed_response = await self._parse_llm_response(llm_response=llm_response)
@@ -468,12 +466,16 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 bot_id=self.id,
             )
 
+            # check for early exit
             if await self._should_exit_bot_loop(response, counter):
                 return response
 
             else:
-                messages = await self._prepare_loop_messages(response, messages)
-                if not messages:
+                # process loop instructions and get any new messages
+                loop_messages = await self._process_response(response)
+
+                # if no new messages, exit loop
+                if not loop_messages:
                     return response
 
     async def reset_thread(self):
@@ -599,13 +601,13 @@ class Bot(MarvinBaseModel, LoggerMixin):
         """
         return as_sync_fn(cls.load)(*args, **kwargs)
 
-    async def _prepare_loop_messages(
-        self, response: BotResponse, messages: list[Message]
-    ) -> list[Message]:
+    async def _process_response(self, response: BotResponse) -> list[Message]:
+        new_messages = []
+
         if match := PLUGIN_REGEX.search(response.content):
             try:
                 plugin_json = json.loads(match.group(1))
-                messages.append(Message(role="bot", content=response.content))
+                new_messages.append(Message(role="bot", content=response.content))
                 self.logger.debug_kv("Plugin payload", plugin_json)
 
                 plugins = plugin_json.get("plugins", [])
@@ -616,7 +618,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                     ]
                 )
 
-                messages.append(
+                new_messages.append(
                     Message(
                         role="system",
                         content="\n\n".join(
@@ -627,7 +629,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 )
 
             except json.JSONDecodeError as exc:
-                messages.append(
+                new_messages.append(
                     Message(
                         role="system",
                         content=f"Plugin payload was invalid JSON, try again: {exc}",
@@ -635,14 +637,14 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 )
 
             except Exception as exc:
-                messages.append(
+                new_messages.append(
                     Message(
                         role="system",
                         content=f"Plugin encountered an error, try again: {exc}",
                     )
                 )
 
-        return messages
+        return new_messages
 
     async def _run_plugin(self, plugin_name: str, plugin_inputs: dict) -> str:
         plugin = next((p for p in self.plugins if p.name == plugin_name.strip()), None)
