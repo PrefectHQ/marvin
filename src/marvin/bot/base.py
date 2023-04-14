@@ -1,3 +1,4 @@
+import asyncio
 import functools
 import inspect
 import json
@@ -23,8 +24,7 @@ from marvin.utilities.async_utils import as_sync_fn
 from marvin.utilities.strings import condense_newlines, jinja_env
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
-AUTO_MODE_REGEX = re.compile(r'({\s*"mode":\s*"auto".*})', re.DOTALL)
-PLUGIN_REGEX = re.compile(r'({\s*"action":\s*"run-plugin".*})', re.DOTALL)
+PLUGIN_REGEX = re.compile(r'({\s*"mode":\s*"plugins".*})', re.DOTALL)
 
 
 class BotResponse(BaseMessage):
@@ -42,8 +42,6 @@ DEFAULT_INSTRUCTIONS = """
     Respond to the user, always in character based on your personality. Use
     plugins whenever you need additional information.
     """
-
-
 DEFAULT_INSTRUCTIONS_TEMPLATE = """
     # Instructions
     
@@ -85,33 +83,55 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     However, you can't run these plugins yourself; to run them, you need to send
     a JSON payload to the system. The system will run the plugin with that
     payload and tell you its result. The system can not run a plugin unless you
-    provide the payload.
+    provide the payload. 
     
-    To run a plugin, your response should have two parts. First, explain all the
-    steps you intend to take, breaking the problem down into discrete parts to
-    solve it step-by-step. Next, provide the JSON payload, which must have the
-    following format: 
     
-    ```json
-        {
-        
-            "action": "run-plugin", 
+    To run plugins, you must send a JSON payload to the system. The payload has
+    two parts: `tasks`, in which you describe the thing you want to do, and
+    `plugins`, in which you describe plugin calls you want to make. The system
+    will run the plugins and return the results to you. You do not have to
+    include tasks or plugins that have already been completed.
     
-            "name": <MUST be one of [{{plugins|join(', ',attribute='name')}}]>,
+    You MUST use a plugin payload unless you already have all the information
+    you need.
+
+    Use the following payload format:
+    
+    ```json 
+        (you can write an update before the payload to tell the user you're
+        about to start) 
         
-            "inputs": {<any plugin arguments>} 
-        
+        { 
+            
+            "mode": "plugins", 
+            
+            "tasks": [
+                {
+                    "id": (a unique int ID for this task),
+                
+                    "name": (the name of the task),
+                }    
+            ]
+            
+            "plugins":[
+                { 
+                    "name": <MUST be one of [{{plugins|join(', ',
+                    attribute='name')}}]>,
+            
+                    "inputs": ({key: value, ...})
+                
+                    "tasks": [(the task IDs this plugin call relates to)]
+                
+                },
+                ...
+            ]
         }
     ``` 
     
-    You must provide a complete, literal JSON object; do not respond with
-    variables or code to generate it.
-    
     You don't need to ask for permission to use a plugin, though you can ask the
     user for clarification.  Do not speculate about the plugin's output in your
-    response. At this time, `run-plugin` is the ONLY action you can take.
-    
-    Note: the user will NOT see anything related to plugin inputs or outputs.
+    response. Note: the user will NOT see anything related to plugin inputs or
+    outputs.
                     
     You have access to the following plugins:
     
@@ -237,7 +257,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
     def handle_instructions_template(cls, v):
         if v is None:
             v = DEFAULT_INSTRUCTIONS_TEMPLATE
-        return condense_newlines(v)
+        # use cleandoc because condense will collapse JSON formats
+        return inspect.cleandoc(v)
 
     @validator("plugins", always=True)
     def default_plugins(cls, v):
@@ -587,16 +608,21 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 messages.append(Message(role="bot", content=response.content))
                 self.logger.debug_kv("Plugin payload", plugin_json)
 
-                plugin_name, plugin_inputs = (
-                    plugin_json["name"],
-                    plugin_json["inputs"],
+                plugins = plugin_json.get("plugins", [])
+                plugin_outputs = await asyncio.gather(
+                    *[
+                        self._run_plugin(p["name"], p["inputs"])
+                        for p in plugin_json.get("plugins")
+                    ]
                 )
-                plugin_output = await self._run_plugin(plugin_name, plugin_inputs)
 
                 messages.append(
                     Message(
                         role="system",
-                        content=f'# Plugin "{plugin_name}" output\n\n{plugin_output}',
+                        content="\n\n".join(
+                            f'# Plugin "{p["name"]}" output\n\n{o}'
+                            for p, o in zip(plugins, plugin_outputs)
+                        ),
                     )
                 )
 
@@ -631,11 +657,12 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
             return plugin_output
         except Exception as exc:
-            self.logger.error(
-                f"Error running plugin {plugin_name} with inputs"
-                f" {plugin_inputs}:\n\n{exc}"
+            msg = (
+                f'Error running plugin "{plugin_name}" with inputs'
+                f' "{plugin_inputs}":\n\n{exc}'
             )
-            return f"Plugin encountered an error. Try again? Error message: {exc}"
+            self.logger.error(msg)
+            return msg
 
 
 def _reformat_response(
