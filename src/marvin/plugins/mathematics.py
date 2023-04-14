@@ -32,7 +32,7 @@ class Calculator(Plugin):
     description: str = (
         "Compute an arithmetic expression. The Expression can ONLY include operators,"
         f" numbers, and the functions {', '.join(math_functions)}; not strings or"
-        " units. One expression at a time."
+        " units."
     )
 
     async def run(self, expression: str) -> str:
