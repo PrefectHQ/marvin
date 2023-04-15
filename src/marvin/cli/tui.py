@@ -31,7 +31,7 @@ from textual.widgets import (
 from textual.widgets.option_list import Option
 
 import marvin
-from marvin.bot.base import AUTOPILOT_REGEX
+from marvin.bot.base import PLUGINS_REGEX
 from marvin.config import ENV_FILE
 from marvin.models.ids import MessageID, ThreadID
 from marvin.utilities.strings import jinja_env
@@ -41,7 +41,7 @@ logging.basicConfig(
     handlers=[TextualHandler()],
 )
 
-ENTERING_AUTOPILOT_REGEX = re.compile(r'(.*){\s*"mode":\s*"autopilot"', re.DOTALL)
+ENTERING_PLUGINS_REGEX = re.compile(r'(.*){\s*"mode":\s*"plugins"', re.DOTALL)
 
 
 @marvin.ai_fn(llm_model_name="gpt-3.5-turbo", llm_model_temperature=1)
@@ -660,14 +660,14 @@ class MainScreen(Screen):
             asyncio.run(conversation.add_response(response))
 
         # the bot is going to use a plugin
-        if in_autopilot := ENTERING_AUTOPILOT_REGEX.search(streaming_response):
+        if in_autopilot := ENTERING_PLUGINS_REGEX.search(streaming_response):
             user_update = in_autopilot.group(1).strip()
             if user_update:
                 user_update += "\n\nEngaging autopilot..."
             else:
                 user_update = "Engaging autopilot..."
             try:
-                if plugins_match := AUTOPILOT_REGEX.search(streaming_response):
+                if plugins_match := PLUGINS_REGEX.search(streaming_response):
                     payload = json.loads(plugins_match.group(1))
                     user_update = payload.get("user_update", user_update)
                     template = inspect.cleandoc(
