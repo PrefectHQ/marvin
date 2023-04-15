@@ -23,7 +23,7 @@ from marvin.utilities.async_utils import as_sync_fn
 from marvin.utilities.strings import condense_newlines, jinja_env
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
-AUTOPILOT_REGEX = re.compile(r'({\s*"mode":\s*"autopilot".*})', re.DOTALL)
+PLUGINS_REGEX = re.compile(r'({\s*"mode":\s*"plugins".*})', re.DOTALL)
 
 
 class BotResponse(BaseMessage):
@@ -89,22 +89,22 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     
     {% if bot.plugins -%} 
     
-    # Autopilot Mode
+    # Plugins
     
-    If you don't have all the information you need to respond to the user, you
-    must enter autopilot mode. When in autopilot, you can make and prioritize
-    tasks, use plugins to get information, and issue commands to other bots.
-    In autopilot, you are in an autonomous loop and can not ask the user for
-    help. The user can not see what you're doing, and can only receive updates
-    from you. To enter or remain in autopilot, you must include a
-    structured JSON payload in your response. 
+    You have access to plugins that can enhance your knowledge and capabilities.
+    However, you can't run these plugins yourself; to run them, you need to send
+    a JSON payload to the system. The system will run the plugin with that
+    payload and tell you its result. The system can not run a plugin unless you
+    provide the payload. 
     
-    The autopilot payload describes your overall objective and breaks it into
-    discrete tasks. You can add or remove tasks at any time. To complete tasks,
-    you will need to use plugins. The plugin section lists any plugin calls you
-    want to make and the tasks they relate to. The system will run the plugins
-    and return the results to you. You do not have to include plugin calls that have
-    already been completed. You can stay in autopilot as long as you want.
+    To run plugins, you must send a JSON payload to the system. The payload has
+    two parts: `tasks`, in which you describe the thing you want to do, and
+    `plugins`, in which you describe plugin calls you want to make. The system
+    will run the plugins and return the results to you. You do not have to
+    include tasks or plugins that have already been completed.
+    
+    You MUST use a plugin payload unless you already have all the information
+    you need.
     
     Use the following payload format, including the <stop> tag:
     
@@ -112,7 +112,7 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
         (you can write an update here, but make sure you follow it with the payload) 
 
         { 
-            "mode": "autopilot", 
+            "mode": "plugins", 
             "objective": (your overall objective),
             "user_update": (an optional update to send to the user while the plugins run), 
             "tasks": [
@@ -612,18 +612,15 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
     async def _process_response(self, response: BotResponse) -> list[Message]:
         new_messages = []
-        if match := AUTOPILOT_REGEX.search(response.content):
+        if match := PLUGINS_REGEX.search(response.content):
             try:
-                autopilot = json.loads(match.group(1))
+                payload = json.loads(match.group(1))
                 new_messages.append(Message(role="bot", content=response.content))
-                self.logger.debug_kv("Autopilot payload", autopilot)
+                self.logger.debug_kv("Plugins payload", payload)
 
-                plugins = autopilot.get("plugins", [])
+                plugins = payload.get("plugins", [])
                 plugin_outputs = await asyncio.gather(
-                    *[
-                        self._run_plugin(p["name"], p["inputs"])
-                        for p in autopilot.get("plugins")
-                    ]
+                    *[self._run_plugin(p["name"], p["inputs"]) for p in plugins]
                 )
 
                 new_messages.append(
