@@ -93,7 +93,10 @@ class TestResponseFormatShorthand:
         assert_llm(response.parsed_content, '["2", "4"]')
 
     async def test_natural_language_list_2(self):
-        bot = Bot(instructions="list the keywords", response_format="a list of strings")
+        bot = Bot(
+            instructions="list any keywords",
+            response_format="a list of strings",
+        )
         response = await bot.say("The keywords are apple, banana, and cherry")
         assert response.parsed_content == '["apple", "banana", "cherry"]'
 

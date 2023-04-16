@@ -43,11 +43,11 @@ from marvin.models.metadata import Metadata
 
 my_document = Document(
     text="This is a document.",
-    metadata=Metadata(
-        title="My Document",
-        link="https://www.example.com",
-        random_metadata_field="This is very important to me!"
-    )
+    metadata={
+        "title": "My Document",
+        "link": "https://www.example.com",
+        "random_metadata_field": "This is very important to me!"
+    }
 )
 ```
 

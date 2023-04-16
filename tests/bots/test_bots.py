@@ -202,7 +202,7 @@ class TestResponseFormat:
             bot.response_format, marvin.bot.response_formatters.ResponseFormatter
         )
 
-        assert bot.response_format.format == "list of strings"
+        assert "list of strings" in bot.response_format.format
 
     async def test_response_formatter_from_json_string(self):
         bot = Bot(response_format="JSON list of strings")

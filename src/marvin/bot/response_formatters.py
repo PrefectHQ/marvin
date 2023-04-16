@@ -192,7 +192,12 @@ def load_formatter_from_shorthand(shorthand_response_format) -> ResponseFormatte
         if re.search(r"\bjson\b", shorthand_response_format.lower()):
             return JSONFormatter(format=shorthand_response_format)
         else:
-            return ResponseFormatter(format=shorthand_response_format)
+            return ResponseFormatter(
+                format=(
+                    "A response that complies with the instruction"
+                    f" '{shorthand_response_format}', and nothing else."
+                )
+            )
     elif genericalias_contains(shorthand_response_format, pydantic.BaseModel):
         return PydanticFormatter(model=shorthand_response_format)
     elif isinstance(shorthand_response_format, (type, GenericAlias)):

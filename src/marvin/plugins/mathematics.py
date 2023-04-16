@@ -30,7 +30,7 @@ _calculator.operators[ast.BitXor] = safe_power
 class Calculator(Plugin):
     name: str = "calculator"
     description: str = (
-        "Compute arithmetic expressions. Expressions can ONLY include operators,"
+        "Compute an arithmetic expression. The Expression can ONLY include operators,"
         f" numbers, and the functions {', '.join(math_functions)}; not strings or"
         " units."
     )
