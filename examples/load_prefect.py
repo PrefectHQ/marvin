@@ -7,7 +7,6 @@ from marvin.loaders.github import GitHubRepoLoader
 from marvin.loaders.web import SitemapLoader
 from marvin.plugins.duckduckgo import DuckDuckGo
 from marvin.plugins.github import search_github_issues
-from prefect.utilities.collections import listrepr
 
 if not CHROMA_INSTALLED:
     marvin.get_logger().info_style(
@@ -67,54 +66,31 @@ prefect_keywords = [
     "prefect",
     "cloud",
     "server",
+    "workspace",
     "ui",
     "agent",
     "flow",
     "task",
+    "state",
+    "result",
+    "block",
     "schedule",
     "deployment",
     "kubernetes",
     "docker",
-    "aws",
-    "gcp",
-    "azure",
     "ecs",
-    "fargate",
-    "lambda",
-    "s3",
-    "cloudwatch",
-    "dask",
     "worker",
     "work pool",
-    "k8s",
-    "helm",
 ]
 
-chroma_search_instructions = (
-    "Use the `chroma_search` plugin to retrieve context when asked about any"
-    f" of the following keywords: {listrepr(prefect_keywords)}. If asked about"
-    " a github issue, use the `search_github_issues` plugin, choosing the most"
-    " appropriate repo based on the user's question. Always provide relevant"
-    " links from plugin outputs. As a last resort, use the `DuckDuckGo` plugin"
-    " to search the web for answers to questions."
-)
-
-barebones_instructions = (
-    "If asked about a github issue, use the `search_github_issues` plugin, choosing"
-    " the most appropriate repo based on the user's question. Always provide relevant"
-    " links from plugin outputs. As a last resort, use the `DuckDuckGo` plugin"
-    " to search the web for answers to questions."
-)
 
 plugins = [search_github_issues, DuckDuckGo()]
-instructions = barebones_instructions
 
 # note that `chroma_search` requires the `chromadb` extra
 if CHROMA_INSTALLED:
     from marvin.plugins.chroma import chroma_search
 
     plugins.append(chroma_search)
-    instructions = chroma_search_instructions
 
 
 async def hello_marvin():
@@ -122,7 +98,12 @@ async def hello_marvin():
     bot = Bot(
         name="marvin",
         personality="like the robot from HHGTTG, depressed but helpful",
-        instructions=instructions,
+        instructions=(
+            "Use your plugins to help the user. Always provide relevant links from"
+            " plugin outputs. If you don't know the answer, try to find it in the"
+            " knowledgebase via `chroma_search`. Begin responses to the user with a"
+            " short summary of their expressed intent."
+        ),
         plugins=plugins,
     )
     bot.interactive_chat()
@@ -134,5 +115,5 @@ if __name__ == "__main__":
     import asyncio
 
     marvin.settings.log_level = "DEBUG"
-    # marvin.settings.openai_model_name = "gpt-4"
+    marvin.settings.openai_model_name = "gpt-4"
     asyncio.run(hello_marvin())

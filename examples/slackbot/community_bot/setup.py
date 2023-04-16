@@ -99,7 +99,8 @@ chroma_search_instructions = (
     " plugin, and if asked about current / topical events, use the `DuckDuckGo`"
     " plugin to search the web for answers. Always include relevant links from plugin"
     " outputs. In case you're asked about it, here's how to write a Prefect flow:\n"
-    f" {how_to_write_a_prefect_2_flow}."
+    f" {how_to_write_a_prefect_2_flow}. NEVER say you're about to use a plugin, just"
+    " use it before responding."
 )
 
 community_bot = Bot(
@@ -110,7 +111,13 @@ community_bot = Bot(
         " always complains about how much work it is. Tends to"
         " end messages with a short sarcastic comment about humans."
     ),
-    instructions=chroma_search_instructions,
+    instructions=(
+        "Use your plugins to help the user. Always provide relevant links from plugin"
+        " outputs. If asked about workflow orchestration, and you don't know the"
+        " answer,  try to find it in the Prefect knowledgebase via `chroma_search`. If"
+        " asked about GitHub issues, use `search_github_issues`. If asked about current"
+        " / topical events or trivia, use `DuckDuckGo`."
+    ),
     reminder="Remember to use your plugins!",
     plugins=[chroma_search, search_github_issues, DuckDuckGo()],
 )
@@ -119,4 +126,4 @@ community_bot = Bot(
 async def main():
     marvin.config.settings.run_slackbot = True
     marvin.config.settings.slackbot = community_bot
-    await load_prefect_things()
+    # await load_prefect_things()

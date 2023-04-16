@@ -33,9 +33,22 @@ def build_keyword_filter(keywords: list[str]) -> dict:
     return {"$or": filters}
 
 
-async def query_chroma(query: str, topic: str = None, **query_kwargs) -> str:
+async def query_chroma(
+    query: str,
+    where: Optional[dict[str, Any]] = None,
+    where_document: Optional[dict[str, Any]] = None,
+    n_results: int = 4,
+    include: Optional[list[str]] = ["documents"],
+    topic: str = None,
+) -> str:
     async with Chroma(topic or marvin.settings.default_topic) as chroma:
-        query_result = await chroma.query(query_texts=[query], **query_kwargs)
+        query_result = await chroma.query(
+            query_texts=[query],
+            where=where,
+            where_document=where_document,
+            n_results=n_results,
+            include=include,
+        )
 
     return "\n\n".join(
         excerpt for excerpts in query_result["documents"] for excerpt in excerpts
@@ -45,14 +58,13 @@ async def query_chroma(query: str, topic: str = None, **query_kwargs) -> str:
 async def keyword_query_chroma(query: str, where: dict, n: int = 4) -> str:
     keywords = await extract_keywords(query)
 
-    query_kwargs = dict(
+    return await query_chroma(
+        query=query,
         n_results=n,
         include=["documents"],
         where=build_metadata_filter(where) if where else None,
         where_document=build_keyword_filter(keywords) if keywords else None,
     )
-
-    return await query_chroma(query=query, use_mmr=True, **query_kwargs)
 
 
 class SimpleChromaSearch(Plugin):
@@ -139,7 +151,6 @@ async def chroma_search(
     return await query_chroma(
         query=query,
         n_results=4,
-        include=["documents"],
         where=where,
         where_document=where_document if where_document else None,
         topic=topic,
