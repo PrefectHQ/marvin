@@ -293,12 +293,19 @@ class Bot(MarvinBaseModel, LoggerMixin):
     def to_bot_config(self) -> "BotConfig":
         from marvin.models.bots import BotConfig
 
+        # don't write instructions template unless it was customized
+        template = condense_newlines(self.instuctions_template)
+        if template == DEFAULT_INSTRUCTIONS_TEMPLATE:
+            instructions_template = None
+        else:
+            instructions_template = self.instructions_template
+
         return BotConfig(
             id=self.id,
             name=self.name,
             personality=self.personality,
             instructions=self.instructions,
-            instructions_template=self.instructions_template,
+            instructions_template=instructions_template,
             plugins=[p.dict() for p in self.plugins],
             input_transformers=[t.dict() for t in self.input_transformers],
             description=self.description,
