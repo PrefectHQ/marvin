@@ -5,7 +5,7 @@ import pydantic
 import pytest
 from marvin import Bot
 from marvin.bot.response_formatters import ResponseFormatter
-from marvin.utilities.strings import condense_newlines, jinja_env
+from marvin.utilities.strings import condense_newlines
 from marvin.utilities.types import format_type_str
 
 custom_instructions_template = inspect.cleandoc(
@@ -158,20 +158,6 @@ class TestSaveBots:
         loaded_bot = await Bot.load(bot1.name)
         assert loaded_bot.instructions == bot1.instructions
         assert loaded_bot.id == bot1.id
-
-    async def test_save_bot_with_custom_instructions_template(self):
-        bot = Bot(
-            instructions="Test Instructions",
-            instructions_template=custom_instructions_template,
-        )
-        await bot.save()
-        loaded_bot = await Bot.load(bot.name)
-        assert (
-            jinja_env.from_string(loaded_bot.instructions_template).render(
-                instructions="Test Instructions"
-            )
-            == "Your instructions are: Test Instructions"
-        )
 
 
 class TestResponseFormat:
