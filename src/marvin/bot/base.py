@@ -3,7 +3,7 @@ import functools
 import inspect
 import json
 import re
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import pendulum
 from fastapi import HTTPException, status
@@ -513,7 +513,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         )
         return Message(role="system", content=bot_instructions)
 
-    async def _get_plugin_instructions(self) -> Message:
+    async def _get_plugin_instructions(self) -> Optional[Message]:
         if self.plugins:
             plugin_descriptions = "\n\n".join(
                 [p.get_full_description() for p in self.plugins]
