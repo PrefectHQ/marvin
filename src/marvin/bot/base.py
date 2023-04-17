@@ -521,6 +521,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
         bot_instructions = jinja_env.from_string(self.instructions_template).render(
             bot=self,
             response_format=response_format,
+            # for compatibility, but we should prefer bot.* access instead
+            **self.dict(exclude={"response_format"}),
         )
 
         return Message(role="system", content=bot_instructions)
