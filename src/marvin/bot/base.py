@@ -55,7 +55,7 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     # Instructions
     
     Your instructions tell you how to respond to a message, and you must always
-    follow them very carefully. Your instructions are: {{ bot.instructions }}
+    follow them very carefully. You must use plugins whenever they are necessary to fulfill the user's request. Your instructions are: {{ bot.instructions }}. 
     
     {% endif -%}
     
@@ -87,65 +87,6 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     
     {% endif -%}
     
-    {% if bot.plugins -%} 
-    
-    # Plugins
-    
-    You have access to plugins that can enhance your knowledge and capabilities.
-    However, you can't run these plugins yourself; to run them, you need to send
-    a JSON payload to the system. The system will run the plugin with that
-    payload and tell you its result. The system can not run a plugin unless you
-    provide the payload. 
-    
-    To run plugins, you must send a JSON payload to the system. The payload has
-    two parts: `tasks`, in which you describe the thing you want to do, and
-    `plugins`, in which you describe plugin calls you want to make. The system
-    will run the plugins and return the results to you. You do not have to
-    include tasks or plugins that have already been completed.
-    
-    You MUST use a plugin payload unless you already have all the information
-    you need.
-    
-    Use the following payload format, including the <stop> tag:
-    
-    ```
-        (you can write an update here, but make sure you follow it with the payload) 
-
-        { 
-            "mode": "plugins", 
-            "objective": (your overall objective),
-            "user_update": (an optional update to send to the user while the plugins run), 
-            "tasks": [
-                {
-                    "id": (a unique ID for this task: 1, 2, 3...), 
-                    "name": (describe the task)  
-                    "is_complete": (true | false, always starts as false)
-                },
-                ...
-            ], 
-            "plugins":[
-                {
-                    "id": (a unique ID for this plugin call: 1, 2, 3...),
-                    "name": <MUST be one of [{{bot.plugins|join(', ', attribute='name')}}]>,
-                    "inputs": ({key: value, ...}),
-                    "tasks": [(the task IDs this plugin relates to)]
-                },
-                ...
-            ]
-        } 
-        <stop>
-    ```
-    
-    You have access to the following plugins:
-    
-    {% for plugin in bot.plugins -%} 
-    
-    - {{ plugin.get_full_description() }}
-    
-    {% endfor -%}
-
-    {% endif -%}
-    
     {% if bot.include_date_in_prompt -%}
     
     # Date
@@ -155,6 +96,39 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     
     {% endif -%}
     """  # noqa: E501
+
+PLUGIN_INSTRUCTIONS = condense_newlines(
+    """
+
+    You have access to plugins that can enhance your knowledge and capabilities.
+    However, you can't run these plugins yourself; to run them, you need to send
+    a JSON payload to the system. The system will run the plugin with that
+    payload and tell you its result. The system can not run a plugin unless you
+    provide the payload. 
+
+    To run a plugin, your response should have two parts. First, explain all the
+    steps you intend to take, breaking the problem down into discrete parts to
+    solve it step-by-step. Next, provide the JSON payload, which must have the
+    following format: `{"action": "run-plugin", "name": <MUST be one of [{{
+    bot.plugins|join(', ', attribute='name') }}]>, "inputs": {<any plugin
+    arguments>}}`. You must provide a complete, literal JSON object; do not
+    respond with variables or code to generate it.
+
+    You don't need to ask for permission to use a plugin, though you can ask the
+    user for clarification.  Do not speculate about the plugin's output in your
+    response. At this time, `run-plugin` is the ONLY action you can take.
+
+    Note: the user will NOT see anything related to plugin inputs or outputs.
+                
+    You have access to the following plugins:
+    
+    {% for plugin in bot.plugins -%} 
+    
+    - {{ plugin.get_full_description() }}
+    
+    {% endfor -%}
+"""
+)  # noqa: E501
 
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),
@@ -388,7 +362,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 message = await message
         user_message = Message(role="user", name="User", content=message)
 
-        messages = [bot_instructions] + history + [user_message]
+        messages = bot_instructions + history + [user_message]
 
         self.logger.debug_kv("User message", message, "bold blue")
         await self.history.add_message(user_message)
@@ -483,6 +457,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 if not loop_messages:
                     return response
 
+                breakpoint()
+
     async def reset_thread(self):
         await self.history.clear()
 
@@ -503,20 +479,25 @@ class Bot(MarvinBaseModel, LoggerMixin):
             )
             self.history = ThreadHistory(thread_id=thread.id)
 
-    async def _get_bot_instructions(self, response_format=None) -> Message:
+    async def _get_bot_instructions(self, response_format=None) -> list[Message]:
         if response_format is not None:
             response_format = load_formatter_from_shorthand(response_format)
         else:
             response_format = self.response_format
 
         bot_instructions = jinja_env.from_string(self.instructions_template).render(
-            bot=self,
-            response_format=response_format,
-            # for compatibility, but we should prefer bot.* access instead
-            **self.dict(exclude={"response_format"}),
+            bot=self, response_format=response_format
         )
 
-        return Message(role="system", content=bot_instructions)
+        instructions = [Message(role="system", content=bot_instructions)]
+
+        if self.plugins:
+            plugin_instructions = jinja_env.from_string(PLUGIN_INSTRUCTIONS).render(
+                bot=self
+            )
+            instructions.append(Message(role="system", content=plugin_instructions))
+
+        return instructions
 
     async def _get_history(self) -> list[Message]:
         history = await self.history.get_messages(
