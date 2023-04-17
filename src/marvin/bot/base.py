@@ -294,8 +294,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
         from marvin.models.bots import BotConfig
 
         # don't write instructions template unless it was customized
-        template = condense_newlines(self.instuctions_template)
-        if template == DEFAULT_INSTRUCTIONS_TEMPLATE:
+        if self.instructions_template == condense_newlines(
+            DEFAULT_INSTRUCTIONS_TEMPLATE
+        ):
             instructions_template = None
         else:
             instructions_template = self.instructions_template
