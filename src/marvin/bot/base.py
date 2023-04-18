@@ -298,7 +298,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
             name=self.name,
             personality=self.personality,
             instructions=self.instructions,
-            instructions_template=self.instructions_template,
             plugins=[p.dict() for p in self.plugins],
             input_transformers=[t.dict() for t in self.input_transformers],
             description=self.description,
@@ -311,7 +310,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
             name=bot_config.name,
             personality=bot_config.personality,
             instructions=bot_config.instructions,
-            instructions_template=bot_config.instructions_template,
             plugins=bot_config.plugins,
             input_transformers=bot_config.input_transformers,
             description=bot_config.description,
@@ -514,6 +512,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
         bot_instructions = jinja_env.from_string(self.instructions_template).render(
             bot=self,
             response_format=response_format,
+            # for compatibility, but we should prefer bot.* access instead
+            **self.dict(exclude={"response_format"}),
         )
 
         return Message(role="system", content=bot_instructions)
