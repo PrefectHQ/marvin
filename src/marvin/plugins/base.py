@@ -7,10 +7,6 @@ from pydantic import Field, PrivateAttr, validator
 from marvin.utilities.strings import safe_format
 from marvin.utilities.types import DiscriminatedUnionType
 
-PLUGIN_INSTRUCTIONS = """
-You can use the following plugins
-"""
-
 
 class Plugin(DiscriminatedUnionType):
     name: str = None

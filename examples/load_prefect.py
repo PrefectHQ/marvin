@@ -7,6 +7,7 @@ from marvin.loaders.github import GitHubRepoLoader
 from marvin.loaders.web import SitemapLoader
 from marvin.plugins.duckduckgo import DuckDuckGo
 from marvin.plugins.github import search_github_issues
+from prefect.utilities.collections import listrepr
 
 if not CHROMA_INSTALLED:
     marvin.get_logger().info_style(
@@ -81,8 +82,26 @@ prefect_keywords = [
     "ecs",
     "worker",
     "work pool",
+    "k8s",
+    "blocks",
+    "helm",
 ]
 
+chroma_search_instructions = (
+    "Use the `chroma_search` plugin to retrieve context when asked about Prefect,"
+    f" including any of the following keywords: {listrepr(prefect_keywords)}. If asked"
+    " about a github issue, use the `search_github_issues` plugin, choosing the most"
+    " appropriate repo based on the user's question. Always provide relevant links"
+    " from plugin outputs. As a last resort, use the `DuckDuckGo` plugin to search the"
+    " web for answers to questions."
+)
+
+barebones_instructions = (
+    "If asked about a github issue, use the `search_github_issues` plugin, choosing"
+    " the most appropriate repo based on the user's question. Always provide relevant"
+    " links from plugin outputs. As a last resort, use the `DuckDuckGo` plugin"
+    " to search the web for answers to questions."
+)
 
 plugins = [search_github_issues, DuckDuckGo()]
 
@@ -91,22 +110,45 @@ if CHROMA_INSTALLED:
     from marvin.plugins.chroma import chroma_search
 
     plugins.append(chroma_search)
+    instructions = chroma_search_instructions
+    instructions = """
+    Your job is to answer questions about Prefect workflow orchestration
+    software. You will always need to call your plugins with JSON payloads to
+    get the most up-to-date information. Do not assume you know the answer
+    without calling a plugin. Do not ask the user for clarification before you
+    attempt a plugin call. Make sure to include any source links provided by
+    your plugins.
+    
+    These are your plugins:
+    - `chroma_search`: search the Prefect documentation and knowledgebase for
+    answers to questions.
+    - `search_github_issues`: search GitHub for issues related to your query.
+    You can override the default repo of `prefecthq/prefect`.
+    - `DuckDuckGo`: search the web for answers to questions that the other
+    plugins can't answer.
+
+    """
 
 
 async def hello_marvin():
-    await load_prefect_things()
+    # await load_prefect_things()
     bot = Bot(
-        name="marvin",
-        personality="like the robot from HHGTTG, depressed but helpful",
-        instructions=(
-            "Use your plugins to help the user. Always provide relevant links from"
-            " plugin outputs. If you don't know the answer, try to find it in the"
-            " knowledgebase via `chroma_search`. Begin responses to the user with a"
-            " short summary of their expressed intent."
+        name="Marvin-Test",
+        personality=(
+            "like the robot from HHGTTG, depressed but helpful. Always calls plugins"
+            " before responding."
         ),
+        instructions=instructions,
         plugins=plugins,
     )
-    bot.interactive_chat()
+
+    def printer(buf):
+        if len(buf) % 10 == 0:
+            print("".join(buf))
+
+    bot.say_sync("What's a Prefect block?", on_token_callback=printer)
+
+    # bot.interactive_chat(tui=False, first_message='what are prefect blocks?')
 
     print(await bot.history.log())
 
@@ -115,5 +157,6 @@ if __name__ == "__main__":
     import asyncio
 
     marvin.settings.log_level = "DEBUG"
-    marvin.settings.openai_model_name = "gpt-4"
+    marvin.settings.openai_model_temperature = 0.2
+    marvin.settings.openai_model_name = "gpt-3.5-turbo"
     asyncio.run(hello_marvin())

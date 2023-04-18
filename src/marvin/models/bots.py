@@ -20,7 +20,6 @@ class BotConfig(MarvinSQLModel, CreatedUpdatedMixin, table=True):
     name: str
     personality: str
     instructions: str
-    instructions_template: str = None
     description: str = None
     plugins: list[dict] = Field(
         default_factory=list,
@@ -42,9 +41,6 @@ class BotConfigCreate(MarvinBaseModel):
     instructions: str = Field(
         default_factory=lambda: marvin.bot.base.DEFAULT_INSTRUCTIONS
     )
-    instructions_template: str = Field(
-        default_factory=lambda: marvin.bot.base.DEFAULT_INSTRUCTIONS_TEMPLATE
-    )
     plugins: list[Plugin] = Field(default_factory=list)
     input_transformers: list[InputTransformer] = Field(default_factory=list)
 
@@ -63,7 +59,6 @@ class BotConfigRead(MarvinBaseModel):
     description: str = None
     personality: str
     instructions: str
-    instructions_template: str = None
     plugins: list[dict]
     input_transformers: list[dict]
     profile_picture: str = None
