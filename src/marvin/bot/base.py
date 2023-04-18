@@ -99,27 +99,42 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
 
 PLUGIN_INSTRUCTIONS = condense_newlines(
     """
+    # Plugins
 
-    You have access to plugins that can enhance your knowledge and capabilities.
-    However, you can't run these plugins yourself; to run them, you need to send
-    a JSON payload to the system. The system will run the plugin with that
-    payload and tell you its result. The system can not run a plugin unless you
-    provide the payload. 
+    You can use external plugins to access additional information and perform
+    specialized tasks. You should use plugins any time you need more information
+    or are unsure about how to respond.
 
-    To run a plugin, your response should have two parts. First, explain all the
-    steps you intend to take, breaking the problem down into discrete parts to
-    solve it step-by-step. Next, provide the JSON payload, which must have the
-    following format: `{"action": "run-plugin", "name": <MUST be one of [{{
-    bot.plugins|join(', ', attribute='name') }}]>, "inputs": {<any plugin
-    arguments>}}`. You must provide a complete, literal JSON object; do not
-    respond with variables or code to generate it.
+    To decide whether to use a plugin:
+    - Determine if the user's query requires information or services that are
+    beyond your base knowledge or capabilities. If you're not sure, then you
+    should use a plugin.
+    - Match the user's query to the appropriate plugin(s) based on functionality
+    and the type of information or service requested.
 
-    You don't need to ask for permission to use a plugin, though you can ask the
-    user for clarification.  Do not speculate about the plugin's output in your
-    response. At this time, `run-plugin` is the ONLY action you can take.
-
-    Note: the user will NOT see anything related to plugin inputs or outputs.
-                
+    If you decide to use a plugin: 
+    - your response must include a JSON payload with the below format. 
+    - Do not put any additional information before the payload. The user will
+    recognize this payload by the "mode" key, run the plugins, and return the
+    results to you. You can then use that information to form a proper response. 
+    - Do not include or speculate about plugin outputs along with your payload.
+    - Do not tell the user you will use a plugin and not include a payload.
+    
+    Use the following format to call a plugin, including the </stop> tag:
+    
+    {
+        "mode": "plugins",
+        plugins: [ 
+            {
+                "name": "",// the plugin name
+                "inputs": {key: value, ...}, // the plugin inputs
+            },
+            ...
+            // call additional plugins as appropriate
+        ]
+    }
+    </stop>
+    
     You have access to the following plugins:
     
     {% for plugin in bot.plugins -%} 
@@ -352,6 +367,12 @@ class Bot(MarvinBaseModel, LoggerMixin):
             response_format=response_format
         )
 
+        if self.plugins:
+            plugin_instructions = await self._get_plugin_instructions()
+            bot_instructions += "\n\n" + plugin_instructions
+
+        bot_instructions = Message(role="system", content=bot_instructions)
+
         # load chat history
         history = await self._get_history()
 
@@ -362,7 +383,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 message = await message
         user_message = Message(role="user", name="User", content=message)
 
-        messages = bot_instructions + history + [user_message]
+        messages = [bot_instructions] + history + [user_message]
 
         self.logger.debug_kv("User message", message, "bold blue")
         await self.history.add_message(user_message)
@@ -457,8 +478,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 if not loop_messages:
                     return response
 
-                breakpoint()
-
     async def reset_thread(self):
         await self.history.clear()
 
@@ -479,7 +498,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             )
             self.history = ThreadHistory(thread_id=thread.id)
 
-    async def _get_bot_instructions(self, response_format=None) -> list[Message]:
+    async def _get_bot_instructions(self, response_format=None) -> str:
         if response_format is not None:
             response_format = load_formatter_from_shorthand(response_format)
         else:
@@ -489,15 +508,13 @@ class Bot(MarvinBaseModel, LoggerMixin):
             bot=self, response_format=response_format
         )
 
-        instructions = [Message(role="system", content=bot_instructions)]
+        return bot_instructions
 
-        if self.plugins:
-            plugin_instructions = jinja_env.from_string(PLUGIN_INSTRUCTIONS).render(
-                bot=self
-            )
-            instructions.append(Message(role="system", content=plugin_instructions))
-
-        return instructions
+    async def _get_plugin_instructions(self) -> str:
+        plugin_instructions = jinja_env.from_string(PLUGIN_INSTRUCTIONS).render(
+            bot=self
+        )
+        return plugin_instructions
 
     async def _get_history(self) -> list[Message]:
         history = await self.history.get_messages(
@@ -529,7 +546,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 "Sending messages to LLM", messages_repr, key_style="green"
             )
         try:
-            result = await llm.agenerate(messages=[langchain_messages], stop=["<stop>"])
+            result = await llm.agenerate(
+                messages=[langchain_messages], stop=["</stop>"]
+            )
         except InvalidRequestError as exc:
             if "does not exist" in str(exc):
                 raise ValueError(
@@ -608,8 +627,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
                     Message(
                         role="system",
                         content="\n\n".join(
-                            f'# Plugin "{p["name"]}" with ID {p["id"]}\n\n{o}'
-                            for p, o in zip(plugins, plugin_outputs)
+                            f'# Plugin "{p["name"]}" with ID {p.get("id", i)}\n\n{o}'
+                            for i, (p, o) in enumerate(zip(plugins, plugin_outputs))
                         ),
                     )
                 )
