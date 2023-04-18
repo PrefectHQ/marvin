@@ -154,7 +154,7 @@ Personality affects the style of a bot's responses. For example different bots c
 By combining personality and instructions, bot instances can produce complex behavior that can be very different from what users might expect from a chat interface. For example, you could instruct a bot to always respond in a certain way, but use personality to have it act a role (such as a coach, engineer, or therapist).
 
 ### Plugins
-[Plugins](./plugins/) allow bots to access new information and functionality. By default, bots have plugins that let them browse the internet, visit URLs, and run simple calculations.
+[Plugins](/guide/concepts/plugins) allow bots to access new information and functionality. By default, bots have plugins that let them browse the internet, visit URLs, and run simple calculations.
 
 ### Formatting responses
 
