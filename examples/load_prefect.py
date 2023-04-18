@@ -134,12 +134,12 @@ if CHROMA_INSTALLED:
 
 
 async def hello_marvin():
-    # await load_prefect_things()
+    await load_prefect_things()
     bot = Bot(
         name="Marvin-Test",
         personality=(
-            "like the robot from HHGTTG, depressed but helpful. Always calls plugins"
-            " before responding."
+            "like the robot from HHGTTG, depressed but helpful. Always uses plugins"
+            " to understand the question before responding."
         ),
         instructions=instructions,
         plugins=plugins,
@@ -149,11 +149,13 @@ async def hello_marvin():
         if len(buf) % 10 == 0:
             print("".join(buf))
 
-    bot.say_sync("What's a Prefect block?", on_token_callback=printer)
+    # bot.say_sync("What's a Prefect block?", on_token_callback=printer)
 
-    # bot.interactive_chat(tui=False, first_message='what are prefect blocks?')
+    bot.interactive_chat(tui=False, first_message="what are prefect blocks?")
 
     print(await bot.history.log())
+
+    return bot
 
 
 if __name__ == "__main__":
@@ -161,5 +163,5 @@ if __name__ == "__main__":
 
     marvin.settings.log_level = "DEBUG"
     marvin.settings.openai_model_temperature = 0.2
-    marvin.settings.openai_model_name = "gpt-3.5-turbo"
-    asyncio.run(hello_marvin())
+    marvin.settings.openai_model_name = "gpt-4"
+    bot = asyncio.run(hello_marvin())
