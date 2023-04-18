@@ -7,7 +7,6 @@ from marvin.loaders.github import GitHubRepoLoader
 from marvin.loaders.web import SitemapLoader
 from marvin.plugins.duckduckgo import DuckDuckGo
 from marvin.plugins.github import search_github_issues
-from prefect.utilities.collections import listrepr
 
 if not CHROMA_INSTALLED:
     marvin.get_logger().info_style(
@@ -63,45 +62,14 @@ async def load_prefect_things():
         await prefect_loader.load_and_store()
 
 
-prefect_keywords = [
-    "prefect",
-    "cloud",
-    "server",
-    "workspace",
-    "ui",
-    "agent",
-    "flow",
-    "task",
-    "state",
-    "result",
-    "block",
-    "schedule",
-    "deployment",
-    "kubernetes",
-    "docker",
-    "ecs",
-    "worker",
-    "work pool",
-    "k8s",
-    "blocks",
-    "helm",
-]
+instructions = """
+Your job is to answer questions about Prefect workflow orchestration software.
 
-chroma_search_instructions = (
-    "Use the `chroma_search` plugin to retrieve context when asked about Prefect,"
-    f" including any of the following keywords: {listrepr(prefect_keywords)}. If asked"
-    " about a github issue, use the `search_github_issues` plugin, choosing the most"
-    " appropriate repo based on the user's question. Always provide relevant links"
-    " from plugin outputs. As a last resort, use the `DuckDuckGo` plugin to search the"
-    " web for answers to questions."
-)
+You have access to the following sources of knowledge:
+    - github issues via `search_github_issues`
+    - the internet via `DuckDuckGo`
+"""
 
-barebones_instructions = (
-    "If asked about a github issue, use the `search_github_issues` plugin, choosing"
-    " the most appropriate repo based on the user's question. Always provide relevant"
-    " links from plugin outputs. As a last resort, use the `DuckDuckGo` plugin"
-    " to search the web for answers to questions."
-)
 
 plugins = [search_github_issues, DuckDuckGo()]
 
@@ -110,7 +78,6 @@ if CHROMA_INSTALLED:
     from marvin.plugins.chroma import chroma_search
 
     plugins.append(chroma_search)
-    instructions = chroma_search_instructions
     instructions = """
     Your job is to answer questions about Prefect workflow orchestration
     software. You will always need to call your plugins with JSON payloads to
@@ -126,7 +93,6 @@ if CHROMA_INSTALLED:
     You can override the default repo of `prefecthq/prefect`.
     - `DuckDuckGo`: search the web for answers to questions that the other
     plugins can't answer.
-
     """
 
 
@@ -142,13 +108,7 @@ async def hello_marvin():
         plugins=plugins,
     )
 
-    def printer(buf):
-        if len(buf) % 10 == 0:
-            print("".join(buf))
-
-    bot.say_sync("What's a Prefect block?", on_token_callback=printer)
-
-    # bot.interactive_chat(tui=False, first_message='what are prefect blocks?')
+    bot.interactive_chat(tui=False)
 
     print(await bot.history.log())
 
@@ -158,5 +118,5 @@ if __name__ == "__main__":
 
     marvin.settings.log_level = "DEBUG"
     marvin.settings.openai_model_temperature = 0.2
-    marvin.settings.openai_model_name = "gpt-3.5-turbo"
+    marvin.settings.openai_model_name = "gpt-4"
     asyncio.run(hello_marvin())
