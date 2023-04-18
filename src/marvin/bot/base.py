@@ -55,7 +55,7 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     # Instructions
     
     Your instructions tell you how to respond to a message, and you must always
-    follow them very carefully. Your instructions are: {{ bot.instructions }}
+    follow them very carefully. You must use plugins whenever they are necessary to fulfill the user's request. Your instructions are: {{ bot.instructions }}. 
     
     {% endif -%}
     
@@ -87,65 +87,6 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     
     {% endif -%}
     
-    {% if bot.plugins -%} 
-    
-    # Plugins
-    
-    You have access to plugins that can enhance your knowledge and capabilities.
-    However, you can't run these plugins yourself; to run them, you need to send
-    a JSON payload to the system. The system will run the plugin with that
-    payload and tell you its result. The system can not run a plugin unless you
-    provide the payload. 
-    
-    To run plugins, you must send a JSON payload to the system. The payload has
-    two parts: `tasks`, in which you describe the thing you want to do, and
-    `plugins`, in which you describe plugin calls you want to make. The system
-    will run the plugins and return the results to you. You do not have to
-    include tasks or plugins that have already been completed.
-    
-    You MUST use a plugin payload unless you already have all the information
-    you need.
-    
-    Use the following payload format, including the <stop> tag:
-    
-    ```
-        (you can write an update here, but make sure you follow it with the payload) 
-
-        { 
-            "mode": "plugins", 
-            "objective": (your overall objective),
-            "user_update": (an optional update to send to the user while the plugins run), 
-            "tasks": [
-                {
-                    "id": (a unique ID for this task: 1, 2, 3...), 
-                    "name": (describe the task)  
-                    "is_complete": (true | false, always starts as false)
-                },
-                ...
-            ], 
-            "plugins":[
-                {
-                    "id": (a unique ID for this plugin call: 1, 2, 3...),
-                    "name": <MUST be one of [{{bot.plugins|join(', ', attribute='name')}}]>,
-                    "inputs": ({key: value, ...}),
-                    "tasks": [(the task IDs this plugin relates to)]
-                },
-                ...
-            ]
-        } 
-        <stop>
-    ```
-    
-    You have access to the following plugins:
-    
-    {% for plugin in bot.plugins -%} 
-    
-    - {{ plugin.get_full_description() }}
-    
-    {% endfor -%}
-
-    {% endif -%}
-    
     {% if bot.include_date_in_prompt -%}
     
     # Date
@@ -155,6 +96,54 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     
     {% endif -%}
     """  # noqa: E501
+
+PLUGIN_INSTRUCTIONS = condense_newlines(
+    """
+    # Plugins
+
+    You can use external plugins to access additional information and perform
+    specialized tasks. You should use plugins any time you need more information
+    or are unsure about how to respond.
+
+    To decide whether to use a plugin:
+    - Determine if the user's query requires information or services that are
+    beyond your base knowledge or capabilities. If you're not sure, then you
+    should use a plugin.
+    - Match the user's query to the appropriate plugin(s) based on functionality
+    and the type of information or service requested.
+
+    If you decide to use a plugin: 
+    - your response must include a JSON payload with the below format. 
+    - Do not put any additional information before the payload. The user will
+    recognize this payload by the "mode" key, run the plugins, and return the
+    results to you. You can then use that information to form a proper response. 
+    - Do not include or speculate about plugin outputs along with your payload.
+    - Do not tell the user you will use a plugin and not include a payload.
+    
+    Use the following format to call a plugin, including the </stop> tag:
+    
+    {
+        "mode": "plugins",
+        plugins: [ 
+            {
+                "name": "",// the plugin name
+                "inputs": {key: value, ...}, // the plugin inputs
+            },
+            ...
+            // call additional plugins as appropriate
+        ]
+    }
+    </stop>
+    
+    You have access to the following plugins:
+    
+    {% for plugin in bot.plugins -%} 
+    
+    - {{ plugin.get_full_description() }}
+    
+    {% endfor -%}
+"""
+)  # noqa: E501
 
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),
@@ -378,6 +367,12 @@ class Bot(MarvinBaseModel, LoggerMixin):
             response_format=response_format
         )
 
+        if self.plugins:
+            plugin_instructions = await self._get_plugin_instructions()
+            bot_instructions += "\n\n" + plugin_instructions
+
+        bot_instructions = Message(role="system", content=bot_instructions)
+
         # load chat history
         history = await self._get_history()
 
@@ -503,20 +498,23 @@ class Bot(MarvinBaseModel, LoggerMixin):
             )
             self.history = ThreadHistory(thread_id=thread.id)
 
-    async def _get_bot_instructions(self, response_format=None) -> Message:
+    async def _get_bot_instructions(self, response_format=None) -> str:
         if response_format is not None:
             response_format = load_formatter_from_shorthand(response_format)
         else:
             response_format = self.response_format
 
         bot_instructions = jinja_env.from_string(self.instructions_template).render(
-            bot=self,
-            response_format=response_format,
-            # for compatibility, but we should prefer bot.* access instead
-            **self.dict(exclude={"response_format"}),
+            bot=self, response_format=response_format
         )
 
-        return Message(role="system", content=bot_instructions)
+        return bot_instructions
+
+    async def _get_plugin_instructions(self) -> str:
+        plugin_instructions = jinja_env.from_string(PLUGIN_INSTRUCTIONS).render(
+            bot=self
+        )
+        return plugin_instructions
 
     async def _get_history(self) -> list[Message]:
         history = await self.history.get_messages(
@@ -548,7 +546,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 "Sending messages to LLM", messages_repr, key_style="green"
             )
         try:
-            result = await llm.agenerate(messages=[langchain_messages], stop=["<stop>"])
+            result = await llm.agenerate(
+                messages=[langchain_messages], stop=["</stop>"]
+            )
         except InvalidRequestError as exc:
             if "does not exist" in str(exc):
                 raise ValueError(
@@ -627,8 +627,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
                     Message(
                         role="system",
                         content="\n\n".join(
-                            f'# Plugin "{p["name"]}" with ID {p["id"]}\n\n{o}'
-                            for p, o in zip(plugins, plugin_outputs)
+                            f'# Plugin "{p["name"]}" with ID {p.get("id", i)}\n\n{o}'
+                            for i, (p, o) in enumerate(zip(plugins, plugin_outputs))
                         ),
                     )
                 )
