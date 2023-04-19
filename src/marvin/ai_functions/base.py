@@ -122,7 +122,7 @@ def ai_fn(
         if call_function:
             output = fn(*args, **kwargs)
 
-            if inspect.iscoroutinefunction(fn):
+            if inspect.coroutine(output):
                 return_value = asyncio.run(output)
             else:
                 return_value = output
