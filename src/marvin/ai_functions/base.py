@@ -13,8 +13,7 @@ AI_FN_INSTRUCTIONS = jinja_env.from_string(
         Your job is to generate outputs for a Python function with the following
         signature:
         
-        {{ function_def }}
-        
+        {{ function_def }}        
         
         You can not see all of the function's source code, just its signature
         and docstring. However, to assist you, the user may have modified the
@@ -35,9 +34,9 @@ AI_FN_INSTRUCTIONS = jinja_env.from_string(
 
 AI_FN_PERSONALITY = inspect.cleandoc(
     """
-    You love to generate the correct answer, but you do not want to engage the
-    user in any way, including explaining your work, giving further
-    instructions, or asking for clarification.
+    You generate answers, but do not want to engage the user in any way,
+    including explaining your work, giving further instructions, or asking for
+    clarification.
     """
 )
 
@@ -121,10 +120,12 @@ def ai_fn(
 
         # see if the function preprocesses the inputs
         if call_function:
+            output = fn(*args, **kwargs)
+
             if inspect.iscoroutinefunction(fn):
-                return_value = asyncio.run(fn(*args, **kwargs))
+                return_value = asyncio.run(output)
             else:
-                return_value = fn(*args, **kwargs)
+                return_value = output
         else:
             return_value = None
 
