@@ -97,20 +97,26 @@ if CHROMA_INSTALLED:
 
 
 async def hello_marvin():
-    # await load_prefect_things()
+    await load_prefect_things()
     bot = Bot(
         name="Marvin-Test",
         personality=(
-            "like the robot from HHGTTG, depressed but helpful. Always calls plugins"
-            " before responding."
+            "like the robot from HHGTTG, depressed but helpful. Always uses plugins"
+            " to understand the question before responding."
         ),
         instructions=instructions,
         plugins=plugins,
     )
 
+    def printer(buf):
+        if len(buf) % 10 == 0:
+            print("".join(buf))
+
     bot.interactive_chat(tui=False)
 
     print(await bot.history.log())
+
+    return bot
 
 
 if __name__ == "__main__":
@@ -119,4 +125,4 @@ if __name__ == "__main__":
     marvin.settings.log_level = "DEBUG"
     marvin.settings.openai_model_temperature = 0.2
     marvin.settings.openai_model_name = "gpt-4"
-    asyncio.run(hello_marvin())
+    bot = asyncio.run(hello_marvin())

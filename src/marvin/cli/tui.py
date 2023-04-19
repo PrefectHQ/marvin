@@ -289,7 +289,7 @@ class Conversation(Container):
                     yield Label("", id="empty-thread-bot-description")
 
     async def add_response(self, response: Response, scroll: bool = True) -> None:
-        messages = self.query_one("Conversation #messages", VerticalScroll)
+        messages = self.app.query_one("Conversation #messages", VerticalScroll)
         # wait for the responses to be fully mounted before scrolling
         # to avoid issues with rendering Markdown
         await messages.mount(response)
@@ -297,11 +297,11 @@ class Conversation(Container):
             messages.scroll_end(duration=0.2)
 
         # show / hide the empty thread message
-        empty = self.query_one("Conversation #empty-thread-container")
+        empty = self.app.query_one("Conversation #empty-thread-container")
         empty.add_class("hidden")
 
     def clear_responses(self) -> None:
-        responses = self.query("Response")
+        responses = self.app.query("Response")
         for response in responses:
             response.remove()
         self.bot_name = getattr(self.app.bot, "name")
@@ -323,7 +323,7 @@ class Conversation(Container):
                     await self.add_response(BotResponse(message), scroll=False)
 
             # scroll to bottom
-            messages = self.query_one("Conversation #messages", VerticalScroll)
+            messages = self.app.query_one("Conversation #messages", VerticalScroll)
             messages.scroll_end(animate=False)
 
 
@@ -589,10 +589,10 @@ class MainScreen(Screen):
     ]
 
     def action_focus_threads(self) -> None:
-        self.query_one("#threads", Threads).focus()
+        self.app.query_one("#threads", Threads).focus()
 
     def action_focus_message(self) -> None:
-        self.query_one("#message-input", Input).focus()
+        self.app.query_one("#message-input", Input).focus()
 
     def action_show_bots_screen(self) -> None:
         self.app.push_screen(BotsScreen())
@@ -885,7 +885,7 @@ class MarvinApp(App):
     def watch_bot_responding(self, is_responding: bool) -> None:
         if not self.is_ready:
             return
-        input_widget = self.query_one("#message-input", Input)
+        input_widget = self.app.query_one("#message-input", Input)
         if is_responding:
             input_widget.disabled = True
         else:
