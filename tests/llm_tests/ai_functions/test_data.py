@@ -103,9 +103,16 @@ class TestStandardize:
         )
         assert result == ["true", "true", "true", "false", "true", "false"]
 
-    def test_standardize_zip_code(self):
+    def test_standardize_date(self):
         result = data_fns.standardize(
             data=["1994-04-14", "3/30/1985", "4/24/19", "15 apr 2010"],
             format="M/D/YYYY",
         )
         assert result == ["4/14/1994", "3/30/1985", "4/24/2019", "4/15/2010"]
+
+    def test_standardize_case(self):
+        result = data_fns.standardize(
+            data=["brown cow", "Small dog", "BIG CAT", "medium-sized bird"],
+            format="Proper case",
+        )
+        assert result == ["Brown Cow", "Small Dog", "Big Cat", "Medium-Sized Bird"]
