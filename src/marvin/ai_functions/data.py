@@ -30,3 +30,11 @@ def context_aware_fillna(data: list[list], columns: list[str] = None) -> list[li
     other data to understand the likely data model. Returns the original data
     with the missing values filled in.
     """
+
+
+@ai_fn
+def standardize(data: list[str], format: str) -> list[str]:
+    """
+    Given a list of data, standardize the data to the given format. For example,
+    the format could be "phone number", "sentence case", "ISO date", etc.
+    """
