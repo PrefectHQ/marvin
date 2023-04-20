@@ -1,9 +1,9 @@
 from marvin.ai_functions import data as data_fns
 
 
-class TestCategorizeData:
+class TestCategorize:
     def test_categorize_airports_to_cities(self):
-        result = data_fns.categorize_data(
+        result = data_fns.categorize(
             ["LGA", "DCA", "JFK", "BOS"],
             category_description="cities (New York, etc.)",
         )
@@ -11,38 +11,38 @@ class TestCategorizeData:
         assert result == ["New York", "Washington D.C.", "New York", "Boston"]
 
     def test_categorize_colors(self):
-        result = data_fns.categorize_data(
+        result = data_fns.categorize(
             ["red", "teal", "sunflower", "cyan"],
             category_description="colors of the rainbow",
         )
         assert result == ["red", "blue", "yellow", "blue"]
 
     def test_categorize_bool(self):
-        result = data_fns.categorize_data(
+        result = data_fns.categorize(
             data=["y", "true", "yes", "n", "T"], category_description="true or false"
         )
 
         assert result == ["true", "true", "true", "false", "true"]
 
 
-class TestCategorizeDataExact:
+class TestMapCategories:
     def test_categorize_plant_to_fruit_or_vegetable(self):
-        result = data_fns.categorize_data_exact(
+        result = data_fns.map_categories(
             data=["apple", "carrot", "banana", "broccoli"],
             categories=["fruit", "vegetable"],
         )
 
         assert result == ["fruit", "vegetable", "fruit", "vegetable"]
 
-    def test_categorize_colors(self):
-        result = data_fns.categorize_data_exact(
+    def test_categorize_colors_to_red_or_blue(self):
+        result = data_fns.map_categories(
             data=["red", "yellow", "orange", "cyan"], categories=["red", "blue"]
         )
 
         assert result == ["red", "red", "red", "blue"]
 
     def test_categorize_bool(self):
-        result = data_fns.categorize_data_exact(
+        result = data_fns.map_categories(
             data=["y", "true", "yes", "n", "T"], categories=["true", "false"]
         )
 
