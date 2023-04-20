@@ -48,7 +48,6 @@ def get_id_type(prefix: str = None) -> type:
             raise ValueError("Prefix must not contain underscores.")
         type_ = constr(regex=PREFIXED_ULID_REGEX.format(prefix=prefix))
         type_.new = lambda: f"{prefix}_{ulid.new()}"
-        type_.regex = PREFIXED_ULID_REGEX.format(prefix=prefix)
     return type_
 
 
