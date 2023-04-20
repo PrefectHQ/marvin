@@ -11,11 +11,13 @@ async def search_github_issues(
     query: str, repo: str = "prefecthq/prefect", n: int = 3
 ) -> str:
     """
-    Use the GitHub API to search for issues in a given repository.
+    Use the GitHub API to search for issues in a given repository. Do
+    not alter the default value for `n` unless specifically requested by
+    a user.
 
     For example, to search for issues with the label "bug" in PrefectHQ/prefect:
         - repo: prefecthq/prefect
-        - query: label:bug
+        - query: label:bug is:issue is:open blocks
     """
     headers = {"Accept": "application/vnd.github.v3+json"}
 
@@ -27,7 +29,7 @@ async def search_github_issues(
             "https://api.github.com/search/issues",
             headers=headers,
             params={
-                "q": f"repo:{repo} {query}",
+                "q": query if "repo:" in query else f"repo:{repo} {query}",
                 "order": "desc",
                 "per_page": n,
             },
@@ -42,6 +44,9 @@ async def search_github_issues(
 
     issues = [GitHubIssue(**issue) for issue in issues_data]
 
-    return "\n\n".join(
+    summary = "\n\n".join(
         f"{issue.title} ({issue.html_url}):\n{issue.body}" for issue in issues
     )
+    if not summary.strip():
+        raise ValueError("No issues found.")
+    return summary

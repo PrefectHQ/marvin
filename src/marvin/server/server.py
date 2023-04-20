@@ -7,12 +7,20 @@ import marvin
 
 logger = marvin.get_logger("app")
 
-routers = (
+routers = [
     marvin.api.bots.router,
     marvin.api.topics.router,
     marvin.api.threads.router,
-)
+]
 
+if marvin.config.settings.run_slackbot:
+    import nest_asyncio
+
+    nest_asyncio.apply()  # multiloader uses nested event loops
+
+    from marvin.api.slackbot import slackbot_setup
+
+    routers.append(marvin.api.slackbot.router)
 
 app = FastAPI(title="Marvin", version=marvin.__version__)
 app.add_middleware(
@@ -42,3 +50,9 @@ def hello():
 @app.get("/health", tags=["Admin"])
 def health():
     return True
+
+
+@app.on_event("startup")
+async def startup():
+    if marvin.config.settings.run_slackbot:
+        await slackbot_setup()

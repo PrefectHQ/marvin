@@ -56,7 +56,7 @@ my_document = Document(
 
 ```python
 # using the same document as above
-my_document.to_excerpts()
+await my_document.to_excerpts()
 
 # yields
 [

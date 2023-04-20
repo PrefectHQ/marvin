@@ -24,6 +24,7 @@ nav:
       - Plugins: guide/concepts/plugins.md
     - Examples:
       - Enforcing AI format: guide/use_cases/enforcing_format.md
+      - Slackbot: guide/use_cases/slackbot.md
     - Development:
       - Setting up: development/development.md
   - FAQ: faq.md

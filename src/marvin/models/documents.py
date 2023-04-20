@@ -126,7 +126,7 @@ class Document(MarvinBaseModel):
     ) -> list["Document"]:
         """
         Create document excerpts by chunking the document text into regularly-sized
-        chunks and adding a "minimap" directory to the top.
+        chunks and adding a "minimap" directory to the top (if document is markdown).
 
         Args:
             excerpt_template: A jinja2 template to use for rendering the excerpt.

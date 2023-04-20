@@ -2,7 +2,7 @@ import os
 import platform
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 try:
     import chromadb
@@ -36,7 +36,8 @@ if CHROMA_INSTALLED:
             env_prefix = "MARVIN_CHROMA_"
 
         chroma_db_impl: Literal["duckdb", "duckdb+parquet"] = "duckdb+parquet"
-
+        chroma_server_host: str = "localhost"
+        chroma_server_http_port: int = 8000
         # relative paths will be prefixed with the marvin home directory
         persist_directory: str = "chroma"
 
@@ -54,8 +55,8 @@ class Settings(BaseSettings):
         env_prefix = "MARVIN_"
         validate_assignment = True
 
-    def export_to_env_file(self):
-        with open(self.Config.env_file, "w") as env_file:
+    def export_to_env_file(self, f: str = None):
+        with open(f or self.Config.env_file[0], "w") as env_file:
             for field_name, value in self.dict().items():
                 env_key = f"{self.Config.env_prefix}{field_name.upper()}"
                 env_value = (
@@ -87,6 +88,9 @@ class Settings(BaseSettings):
     embeddings_cache_warn_size: int = 4000000000  # 4GB
 
     # OPENAI
+    openai_default_organization: SecretStr = Field(
+        "", env=["MARVIN_OPENAI_DEFAULT_ORGANIZATION", "OPENAI_DEFAULT_ORGANIZATION"]
+    )
     openai_model_name: str = "gpt-3.5-turbo"
     openai_model_temperature: float = 0.8
     openai_model_max_tokens: int = 1250
@@ -135,6 +139,14 @@ class Settings(BaseSettings):
             "If True, bots will load a default set of plugins if none are provided."
         ),
     )
+
+    # SLACKBOT
+    run_slackbot: bool = False
+    slackbot: Any = Field(default=None)
+    slack_bot_token: SecretStr = Field(
+        "", env=["MARVIN_SLACK_BOT_TOKEN", "SLACK_BOT_TOKEN"]
+    )
+    slackbot_setup_script: str = Field("examples/slackbot/community_bot/setup.py")
 
     # API
     api_base_url: str = "http://127.0.0.1"
@@ -218,6 +230,11 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+if settings.openai_default_organization:
+    import openai
+
+    openai.organization = settings.openai_default_organization.get_secret_value()
 
 
 @contextmanager
