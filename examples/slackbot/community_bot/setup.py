@@ -139,9 +139,3 @@ async def main():
     marvin.settings.openai_model_name = "gpt-4"
     marvin.settings.openai_model_temperature = 0.2
     await load_prefect_things()
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
