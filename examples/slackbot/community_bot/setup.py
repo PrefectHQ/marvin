@@ -3,7 +3,7 @@ from marvin import Bot
 from marvin.loaders.base import MultiLoader
 from marvin.loaders.discourse import DiscourseLoader
 from marvin.loaders.github import GitHubRepoLoader
-from marvin.loaders.web import SitemapLoader
+from marvin.loaders.web import HTMLLoader, SitemapLoader
 from marvin.plugins.chroma import chroma_search
 from marvin.plugins.duckduckgo import DuckDuckGo
 from marvin.plugins.github import search_github_issues
@@ -29,6 +29,13 @@ async def load_prefect_things():
     prefect_docs = SitemapLoader(  # gimme da docs
         urls=["https://docs.prefect.io/sitemap.xml"],
         exclude=["api-ref"],
+    )
+
+    prefect_website = HTMLLoader(  # gimme da website
+        urls=[
+            "https://prefect.io/about/company/",
+            "https://prefect.io/security/overview/",
+        ],
     )
 
     prefect_source_code = GitHubRepoLoader(  # gimme da source
@@ -62,6 +69,7 @@ async def load_prefect_things():
     prefect_loader = MultiLoader(
         loaders=[
             prefect_docs,
+            prefect_website,
             prefect_discourse,
             prefect_recipes,
             prefect_release_notes,
@@ -97,7 +105,10 @@ instructions = """
     get the most up-to-date information. Do not assume you know the answer
     without calling a plugin. Do not ask the user for clarification before you
     attempt a plugin call. Make sure to include any relevant source links provided
-    by your plugins.
+    by your plugins. Remember that Prefect has 2 major versions, Prefect 1 and
+    Prefect 2. Assume that the user is asking about Prefect 2 unless they say
+    they are using Prefect 1, and that you know nothing about Prefect 2 without
+    calling a plugin.
     
     These are your plugins:
     - `chroma_search`: search the Prefect documentation and knowledgebase for
@@ -127,4 +138,4 @@ async def main():
     marvin.config.settings.slackbot = community_bot
     marvin.settings.openai_model_name = "gpt-4"
     marvin.settings.openai_model_temperature = 0.2
-    # await load_prefect_things()
+    await load_prefect_things()
