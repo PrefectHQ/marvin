@@ -39,7 +39,7 @@ class TestContextAwareFillna:
     def test_fill_states(self):
         result = data_fns.context_aware_fillna(
             data=[
-                ["New York", "NY"],
+                ["New York", None],
                 ["Boston", "MA"],
                 ["Los Angeles", None],
             ],
@@ -53,10 +53,10 @@ class TestContextAwareFillna:
 
     def test_fill_movies(self):
         data = [
-            ["The Terminator", 1984, "James Cameron"],
+            ["The Terminator", 1984, None],
             ["Minority Report", None, "Steven Spielberg"],
             ["WALL-E", None, "Andrew Stanton"],
-            ["Blade Runner", 1982, "Ridley Scott"],
+            ["Blade Runner", 1982, None],
         ]
         result = data_fns.context_aware_fillna(
             data, columns=["title", "release_year", "director"]

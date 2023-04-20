@@ -22,9 +22,11 @@ def categorize_data(data: list[str], category_description: str) -> list[str]:
 
 
 @ai_fn
-def context_aware_fillna(data: list[list], columns: list[str]) -> list[list]:
+def context_aware_fillna(data: list[list], columns: list[str] = None) -> list[list]:
     """
-    Given rows of `data` with columns `columns` and some missing values (either
-    `None` or `np.nan`), fill in any missing values based on other data in the
-    same row. Returns the original data with the missing values filled in.
+    Given data organized as a list of rows, where each row is a list of values,
+    and some missing values (either `None` or `np.nan`), fill in any missing
+    values based on other data in the same row. Use the `columns` names and
+    other data to understand the likely data model. Returns the original data
+    with the missing values filled in.
     """
