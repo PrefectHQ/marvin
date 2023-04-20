@@ -55,7 +55,8 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     # Instructions
     
     Your instructions tell you how to respond to a message, and you must always
-    follow them very carefully. You must use plugins whenever they are necessary to fulfill the user's request. Your instructions are: {{ bot.instructions }}. 
+    follow them very carefully. You must use plugins whenever they are necessary
+    to fulfill the user's request. Your instructions are: {{ bot.instructions }}
     
     {% endif -%}
     
