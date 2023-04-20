@@ -1,4 +1,9 @@
+from typing import TYPE_CHECKING
+
 from marvin import ai_fn
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
 
 
 @ai_fn
@@ -30,6 +35,21 @@ def context_aware_fillna(data: list[list], columns: list[str] = None) -> list[li
     other data to understand the likely data model. Returns the original data
     with the missing values filled in.
     """
+
+
+def context_aware_fillna_df(data: "DataFrame") -> "DataFrame":
+    """
+    Given a dataframe  with some missing values (either `None` or `np.nan`),
+    fill in any missing values based on other data in the same row.
+    """
+    try:
+        import pandas as pd
+    except ImportError:
+        raise ImportError("context_aware_fillna_df requires pandas to be installed")
+    clean_data = context_aware_fillna(
+        data=data.values.tolist(), columns=data.columns.to_list()
+    )
+    return pd.DataFrame(clean_data, columns=data.columns.to_list())
 
 
 @ai_fn

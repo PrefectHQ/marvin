@@ -1,3 +1,4 @@
+import pandas as pd
 from marvin.ai_functions import data as data_fns
 
 
@@ -76,6 +77,24 @@ class TestContextAwareFillna:
             data, columns=["title", "release_year", "director"]
         )
         assert result == [
+            ["The Terminator", 1984, "James Cameron"],
+            ["Minority Report", 2002, "Steven Spielberg"],
+            ["WALL-E", 2008, "Andrew Stanton"],
+            ["Blade Runner", 1982, "Ridley Scott"],
+        ]
+
+    def test_fill_movies_df(self):
+        data = pd.DataFrame(
+            [
+                ["The Terminator", 1984, None],
+                ["Minority Report", None, "Steven Spielberg"],
+                ["WALL-E", None, "Andrew Stanton"],
+                ["Blade Runner", 1982, None],
+            ],
+            columns=["title", "release_year", "director"],
+        )
+        result = data_fns.context_aware_fillna_df(data)
+        assert result.values.tolist() == [
             ["The Terminator", 1984, "James Cameron"],
             ["Minority Report", 2002, "Steven Spielberg"],
             ["WALL-E", 2008, "Andrew Stanton"],
