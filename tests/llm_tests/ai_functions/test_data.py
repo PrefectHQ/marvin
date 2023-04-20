@@ -31,4 +31,39 @@ class TestCategorizeDataExact:
         result = data_fns.categorize_data_exact(
             data=["red", "yellow", "orange", "cyan"], categories=["red", "blue"]
         )
+
         assert result == ["red", "red", "red", "blue"]
+
+
+class TestContextAwareFillna:
+    def test_fill_states(self):
+        result = data_fns.context_aware_fillna(
+            data=[
+                ["New York", None],
+                ["Boston", "MA"],
+                ["Los Angeles", None],
+            ],
+            columns=["city", "state"],
+        )
+        assert result == [
+            ["New York", "NY"],
+            ["Boston", "MA"],
+            ["Los Angeles", "CA"],
+        ]
+
+    def test_fill_movies(self):
+        data = [
+            ["The Terminator", 1984, None],
+            ["Minority Report", None, "Steven Spielberg"],
+            ["WALL-E", None, "Andrew Stanton"],
+            ["Blade Runner", 1982, None],
+        ]
+        result = data_fns.context_aware_fillna(
+            data, columns=["title", "release_year", "director"]
+        )
+        assert result == [
+            ["The Terminator", 1984, "James Cameron"],
+            ["Minority Report", 2002, "Steven Spielberg"],
+            ["WALL-E", 2008, "Andrew Stanton"],
+            ["Blade Runner", 1982, "Ridley Scott"],
+        ]

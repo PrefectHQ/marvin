@@ -19,3 +19,14 @@ def categorize_data(data: list[str], category_description: str) -> list[str]:
     description may include examples. Return a list of assigned categories the
     same length and order as `data`.
     """
+
+
+@ai_fn
+def context_aware_fillna(data: list[list], columns: list[str] = None) -> list[list]:
+    """
+    Given data organized as a list of rows, where each row is a list of values,
+    and some missing values (either `None` or `np.nan`), fill in any missing
+    values based on other data in the same row. Use the `columns` names and
+    other data to understand the likely data model. Returns the original data
+    with the missing values filled in.
+    """
