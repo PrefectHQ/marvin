@@ -2,7 +2,6 @@ import marvin
 from marvin.bot import Bot
 from marvin.config import CHROMA_INSTALLED
 from marvin.loaders.base import MultiLoader
-from marvin.loaders.discourse import DiscourseLoader
 from marvin.loaders.github import GitHubRepoLoader
 from marvin.loaders.web import SitemapLoader
 from marvin.plugins.duckduckgo import DuckDuckGo
@@ -38,12 +37,6 @@ async def load_prefect_things():
         exclude_globs=["tests/**/*", "docs/**/*", "**/migrations/**/*"],
     )
 
-    prefect_discourse = DiscourseLoader(  # gimme da discourse
-        url="https://discourse.prefect.io",
-        include_topic_filter=lambda topic: "marvin" in topic["tags"],
-        include_post_filter=lambda post: post["accepted_answer"],
-    )
-
     prefect_recipes = GitHubRepoLoader(  # gimme da recipes (or at least some of them)
         repo="prefecthq/prefect-recipes",
         include_globs=["flows-advanced/**/*.py"],
@@ -52,7 +45,6 @@ async def load_prefect_things():
     prefect_loader = MultiLoader(
         loaders=[
             prefect_docs,
-            prefect_discourse,
             prefect_recipes,
             prefect_source_code,
         ]
