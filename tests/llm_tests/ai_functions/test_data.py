@@ -5,7 +5,7 @@ class TestCategorize:
     def test_categorize_airports_to_cities(self):
         result = data_fns.categorize(
             ["LGA", "DCA", "JFK", "BOS"],
-            category_description="cities (New York, etc.)",
+            description="cities (New York, etc.)",
         )
 
         assert result == ["New York", "Washington D.C.", "New York", "Boston"]
@@ -13,13 +13,13 @@ class TestCategorize:
     def test_categorize_colors(self):
         result = data_fns.categorize(
             ["red", "teal", "sunflower", "cyan"],
-            category_description="colors of the rainbow",
+            description="colors of the rainbow",
         )
         assert result == ["red", "blue", "yellow", "blue"]
 
     def test_categorize_bool(self):
         result = data_fns.categorize(
-            data=["y", "true", "yes", "n", "T"], category_description="true or false"
+            data=["y", "true", "yes", "n", "T"], description="true or false"
         )
 
         assert result == ["true", "true", "true", "false", "true"]
