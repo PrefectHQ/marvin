@@ -39,14 +39,12 @@ async def search_google(query, n: int = 10, return_as_text=False, **kwargs):
     if not return_as_text:
         return results
 
-    template = inspect.cleandoc(
-        """
+    template = inspect.cleandoc("""
         
         Result {i}: {title}
         URL: {url}
         Summary: {summary}
-        """
-    )
+        """)
 
     return "\n\n".join(
         template.format(i=i + 1, title=r["title"], url=r["link"], summary=r["snippet"])

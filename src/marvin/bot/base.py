@@ -98,8 +98,7 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     {% endif -%}
     """  # noqa: E501
 
-PLUGIN_INSTRUCTIONS = condense_newlines(
-    """
+PLUGIN_INSTRUCTIONS = condense_newlines("""
     # Plugins
 
     You can use external plugins to access additional information and perform
@@ -143,8 +142,7 @@ PLUGIN_INSTRUCTIONS = condense_newlines(
     - {{ plugin.get_full_description() }}
     
     {% endfor -%}
-"""
-)  # noqa: E501
+""")  # noqa: E501
 
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),

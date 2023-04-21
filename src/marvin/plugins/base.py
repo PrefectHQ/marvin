@@ -49,12 +49,10 @@ class Plugin(DiscriminatedUnionType):
         description = safe_format(self.description, **self.dict()).strip()
         docstring = self.run.__doc__
 
-        result = inspect.cleandoc(
-            f"""
+        result = inspect.cleandoc(f"""
             Name: {self.name}
             Signature: {self._signature}
-            """
-        )
+            """)
         if description:
             result += f"\n{description}"
         if docstring:

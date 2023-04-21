@@ -44,8 +44,7 @@ class TestPluginDecorator:
     def test_use_json_example_in_docstring(self):
         @plugin
         def plugin_accepting_specific_json(x: dict):
-            """x should be a dict like: {"name": "John Doe", "age": 30, "city": "New York"}
-            """  # noqa
+            """x should be a dict like: {"name": "John Doe", "age": 30, "city": "New York"}"""  # noqa
             pass
 
         assert (
