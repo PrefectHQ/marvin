@@ -670,15 +670,13 @@ class MainScreen(Screen):
                 if plugins_match := PLUGINS_REGEX.search(streaming_response):
                     payload = json.loads(plugins_match.group(1))
                     user_update = payload.get("user_update", user_update)
-                    template = inspect.cleandoc(
-                        """
+                    template = inspect.cleandoc("""
                         {{ user_update }}
                         
                         {% for task in payload.get('tasks', []) %}
                         - {{ '[x]' if task['is_complete'] else '[ ]' }} {{ task['name'] }}
                         {% endfor %}
-                        """  # noqa: E501
-                    )
+                        """)  # noqa: E501
                     response.body.update(
                         jinja_env.from_string(template).render(
                             user_update=user_update, payload=payload

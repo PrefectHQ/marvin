@@ -39,9 +39,11 @@ class LangChainLoader(Loader):
         documents = [
             Document(
                 text=doc.page_content,
-                metadata=self.metadatas[i]
-                if self.metadatas
-                else Metadata.parse_obj(doc.metadata),
+                metadata=(
+                    self.metadatas[i]
+                    if self.metadatas
+                    else Metadata.parse_obj(doc.metadata)
+                ),
             )
             for i, doc in enumerate(self.documents)
         ]

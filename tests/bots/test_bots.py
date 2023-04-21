@@ -8,11 +8,9 @@ from marvin.bot.response_formatters import ResponseFormatter
 from marvin.utilities.strings import condense_newlines
 from marvin.utilities.types import format_type_str
 
-custom_instructions_template = inspect.cleandoc(
-    """
+custom_instructions_template = inspect.cleandoc("""
     Your instructions are: {{ instructions }}
-    """
-)
+    """)
 
 
 class TestCreateBots:
