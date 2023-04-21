@@ -113,24 +113,37 @@ PLUGIN_INSTRUCTIONS = condense_newlines("""
     and the type of information or service requested.
 
     If you decide to use a plugin: 
-    - your response must include a JSON payload with the below format. 
+    - Your response must include a JSON payload with the below format. 
+    - You must describe the tasks you want to complete and relate plugin calls to those tasks.
     - Do not put any additional information before the payload. The user will
     recognize this payload by the "mode" key, run the plugins, and return the
     results to you. You can then use that information to form a proper response. 
     - Do not include or speculate about plugin outputs along with your payload.
     - Do not tell the user you will use a plugin and not include a payload.
     
-    Use the following format to call a plugin, including the </stop> tag:
+    Use the following format to call plugins, including the </stop> tag:
     
     {
         "mode": "plugins",
-        plugins: [ 
+        "objective": (describe your ultimate objective),         
+        "tasks": [ 
             {
-                "name": "",// the plugin name
-                "inputs": {key: value, ...}, // the plugin inputs
+                "id": (a id for the task: 1, 2, 3...),
+                "name": (a name for the task: "Lookup the weather in New York", "Calculate 2+2"...),
+                "is_complete": (have you completed the task? true|false),
+                "results": (any thoughts about the task, or what you learned
+                from completing it. DO NOT MAKE ANYTHING UP.)
             },
             ...
-            // call additional plugins as appropriate
+        ],
+        plugins: [ 
+            {
+                "id": (1, 2, 3...),
+                "name": (the plugin name),
+                "inputs": (the plugin inputs: {key: value, ...}),
+                "tasks": [(a list of task ids that this call relates to)]
+            },
+            ...
         ]
     }
     </stop>
