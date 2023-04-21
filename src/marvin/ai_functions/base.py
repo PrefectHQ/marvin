@@ -59,7 +59,6 @@ AI_FN_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
 
 T = TypeVar("T")
 A = TypeVar("A")
-B = TypeVar("B")
 
 
 def ai_fn(
