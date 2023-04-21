@@ -151,7 +151,10 @@ class Settings(BaseSettings):
     slack_api_token: SecretStr = Field(
         "", description="The Slack API token to use to respond to Slack messages."
     )
-
+    slack_bot_admin_user: str = Field(
+        "!here",
+        description="The Slack user to notify when slack bot is improperly configured.",
+    )
     # API
     api_base_url: str = "http://127.0.0.1"
     api_port: int = 4200

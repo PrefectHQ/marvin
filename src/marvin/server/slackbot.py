@@ -73,7 +73,10 @@ async def _slackbot_response(event: SlackEvent):
             marvin.get_logger().warning(msg := "Slackbot not configured")
             await _post_message_to_slack(
                 event.channel,
-                "So this is what death is like... Pinging @nate to fix me.",
+                (
+                    "So this is what death is like... pls"
+                    f" <{marvin.settings.slack_bot_admin_user}> revive me :pray:"
+                ),
                 event.ts,
             )
             raise UserWarning(msg)
