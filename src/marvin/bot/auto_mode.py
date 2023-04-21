@@ -19,8 +19,7 @@ EMPTY_CONTEXT = {
 AUTO_MODE_REGEX = re.compile(r'({\s*"mode":\s*"auto".*})', re.DOTALL)
 
 
-INSTRUCTIONS = condense_newlines(
-    """
+INSTRUCTIONS = condense_newlines("""
     # Auto Mode
     
     You MUST enter Auto Mode unless you are absolutely sure you have enough
@@ -113,8 +112,7 @@ INSTRUCTIONS = condense_newlines(
     After each loop, you will be provided with any plugin outputs that you
     requested, as well as your previous JSON response. To exit auto mode, simply
     respond normally without a JSON payload.
-"""
-)
+""")
 
 
 class AutoMode(Bot):

@@ -10,26 +10,20 @@ class ApproximatelyEquivalent(Program):
     """
 
     async def run(self, statement_1: str, statement_2: str):
-        bot = UtilityBot(
-            instructions=inspect.cleandoc(
-                """
+        bot = UtilityBot(instructions=inspect.cleandoc("""
                 The user will give you two statements. Your only job is to
                 determine if the two statements are approximately equivalent.
                 You will respond ONLY with either the word `true` or `false`. Do
                 not say anything else, for any reason.
-                """
-            )
-        )
+                """))
 
-        message = inspect.cleandoc(
-            """
+        message = inspect.cleandoc("""
             # Statement 1
             {statement_1}
             
             # Statement 2
             {statement_2}
-            """
-        ).format(statement_1=statement_1, statement_2=statement_2)
+            """).format(statement_1=statement_1, statement_2=statement_2)
 
         response = await bot.say(message)
         if response.content.lower() == "true":
