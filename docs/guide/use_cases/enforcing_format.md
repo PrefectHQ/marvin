@@ -1,4 +1,4 @@
-# Enforcing AI formatting
+# Enforcing LLM output formats
 
 One of the most important "unlocks" for using AIs alongside and within your code is working with native data structures. This can be challenging for two reasons: first, because LLMs naturally exchange information through unstructured text; and second, because modern LLMs are trained with conversational objectives, so they have a tendency to interject extra words like "Sure, here's the data you requested:". This makes extracting structured outputs difficult.
 

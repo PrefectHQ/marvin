@@ -2,14 +2,12 @@ import asyncio
 import inspect
 import re
 from functools import partial, wraps
-from typing import Any, Callable
+from typing import Any, Callable, ParamSpec, TypeVar
 
 from marvin.bot import Bot
 from marvin.utilities.strings import jinja_env
 
-AI_FN_INSTRUCTIONS = jinja_env.from_string(
-    inspect.cleandoc(
-        """
+AI_FN_INSTRUCTIONS = jinja_env.from_string(inspect.cleandoc("""
         Your job is to generate outputs for a Python function with the following
         signature:
         
@@ -28,21 +26,15 @@ AI_FN_INSTRUCTIONS = jinja_env.from_string(
         instruction. Respond ONLY with the return value of the function.
         
         Note: you can NOT run this function ({{ function_name }}) as a plugin.
-        """
-    )
-)
+        """))
 
-AI_FN_PERSONALITY = inspect.cleandoc(
-    """
+AI_FN_PERSONALITY = inspect.cleandoc("""
     You generate answers, but do not want to engage the user in any way,
     including explaining your work, giving further instructions, or asking for
     clarification.
-    """
-)
+    """)
 
-AI_FN_MESSAGE = jinja_env.from_string(
-    inspect.cleandoc(
-        """
+AI_FN_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
         {% if input_binds %} 
         The user supplied the following inputs:
         
@@ -63,18 +55,19 @@ AI_FN_MESSAGE = jinja_env.from_string(
         Respond with a result of the function call. Do not give any additional
         detail, instructions, or even punctuation; respond ONLY with the output.
         Do not explain the type signature or give guidance on parsing.
-        """
-    )
-)
+        """))
+
+T = TypeVar("T")
+P = ParamSpec("P")
 
 
 def ai_fn(
-    fn: Callable = None,
+    fn: Callable[P, T] = None,
     *,
     bot_modifier: Callable = None,
     call_function: bool = True,
     **bot_kwargs,
-) -> Callable:
+) -> Callable[P, T]:
     """
     @ai_fn
     def rhyme(word: str) -> str:

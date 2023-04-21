@@ -98,8 +98,7 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     {% endif -%}
     """  # noqa: E501
 
-PLUGIN_INSTRUCTIONS = condense_newlines(
-    """
+PLUGIN_INSTRUCTIONS = condense_newlines("""
     # Plugins
 
     You can use external plugins to access additional information and perform
@@ -143,8 +142,7 @@ PLUGIN_INSTRUCTIONS = condense_newlines(
     - {{ plugin.get_full_description() }}
     
     {% endfor -%}
-"""
-)  # noqa: E501
+""")  # noqa: E501
 
 DEFAULT_PLUGINS = [
     marvin.plugins.web.VisitURL(),
@@ -176,12 +174,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
         None, description="A list of plugins that the bot can use."
     )
     history: History = Field(None, repr=False)
-    llm_model_name: str = Field(
-        default_factory=lambda: marvin.settings.openai_model_name, repr=False
-    )
-    llm_model_temperature: float = Field(
-        default_factory=lambda: marvin.settings.openai_model_temperature, repr=False
-    )
+    llm_model_name: str = Field(None, repr=False)
+    llm_model_temperature: float = Field(None, repr=False)
 
     input_transformers: list[InputTransformer] = Field(
         default_factory=list,
@@ -283,6 +277,12 @@ class Bot(MarvinBaseModel, LoggerMixin):
     def to_bot_config(self) -> "BotConfig":
         from marvin.models.bots import BotConfig
 
+        llm_settings = {}
+        if self.llm_model_name is not None:
+            llm_settings.update(llm_model_name=self.llm_model_name)
+        if self.llm_model_temperature is not None:
+            llm_settings.update(llm_model_temperature=self.llm_model_temperature)
+
         return BotConfig(
             id=self.id,
             name=self.name,
@@ -291,6 +291,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             plugins=[p.dict() for p in self.plugins],
             input_transformers=[t.dict() for t in self.input_transformers],
             description=self.description,
+            llm_settings=llm_settings,
         )
 
     @classmethod
@@ -303,6 +304,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             plugins=bot_config.plugins,
             input_transformers=bot_config.input_transformers,
             description=bot_config.description,
+            **bot_config.llm_settings,
         )
 
     async def save(self, if_exists: str = None):

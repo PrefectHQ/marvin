@@ -219,6 +219,8 @@ def fix_sentence(sentence: str) -> str:
 fix_sentence("he go to mcdonald and buy burg") # "He goes to McDonald's and buys a burger."
 ```
 
+### Cleaning data
+Cleaning data is such an important use case that Marvin has an entire module dedicated to it, including AI functions for categorization, standardization, entity extraction, and context-aware fills for missing values. See [the data cleaning documentation](/guide/use_cases/data_cleaning) for more information.
 ### Unit testing LLMs
 One of the difficulties of building an AI library is unit testing it! While it's possible to make LLM outputs deterministic by setting the temperature to zero, a small change to a prompt could result in very different outputs. Therefore, we want a way to assert that an LLM's output is "approximately equal" to an expected value.
 
@@ -368,3 +370,4 @@ def get_emoji(text: str) -> str:
 
 get_emoji("incredible snack") # '🍿'
 ```
+
