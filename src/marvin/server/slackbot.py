@@ -66,6 +66,7 @@ async def _post_message_to_slack(channel: str, message: str, thread_ts: str = No
 
 async def _slackbot_response(event: SlackEvent):
     try:
+        marvin.get_logger().info(marvin.settings.slack_bot_name)
         bot = await marvin.Bot.load(marvin.settings.slack_bot_name)
     except HTTPException as e:
         if e.status_code == 404:

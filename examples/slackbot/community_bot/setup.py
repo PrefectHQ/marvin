@@ -137,3 +137,9 @@ community_bot = Bot(
 async def main():
     await load_prefect_things()
     await community_bot.save()
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
