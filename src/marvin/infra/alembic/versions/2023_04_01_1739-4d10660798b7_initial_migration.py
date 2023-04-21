@@ -8,7 +8,7 @@ Create Date: 2023-04-01 17:39:22.762982
 import sqlalchemy as sa
 import sqlmodel
 from alembic import op
-from sqlalchemy.dialects import sqlite
+from marvin.infra.database import JSONType
 
 # revision identifiers, used by Alembic.
 revision = "4d10660798b7"
@@ -42,9 +42,9 @@ def upgrade() -> None:
                 server_default=sa.text("(CURRENT_TIMESTAMP)"),
                 nullable=False,
             ),
-            sa.Column("plugins", sqlite.JSON(), server_default="[]", nullable=False),
+            sa.Column("plugins", JSONType(), server_default="[]", nullable=False),
             sa.Column(
-                "input_transformers", sqlite.JSON(), server_default="[]", nullable=False
+                "input_transformers", JSONType(), server_default="[]", nullable=False
             ),
             sa.Column("id", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
             sa.Column("name", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
@@ -88,7 +88,7 @@ def upgrade() -> None:
                 server_default=sa.text("(CURRENT_TIMESTAMP)"),
                 nullable=False,
             ),
-            sa.Column("context", sqlite.JSON(), server_default="{}", nullable=False),
+            sa.Column("context", JSONType(), server_default="{}", nullable=False),
             sa.Column("id", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
             sa.Column("lookup_key", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
             sa.Column("name", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
@@ -115,7 +115,7 @@ def upgrade() -> None:
                 server_default=sa.text("(CURRENT_TIMESTAMP)"),
                 nullable=False,
             ),
-            sa.Column("data", sqlite.JSON(), server_default="{}", nullable=False),
+            sa.Column("data", JSONType(), server_default="{}", nullable=False),
             sa.Column("id", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
             sa.Column("role", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
             sa.Column("content", sqlmodel.sql.sqltypes.AutoString(), nullable=False),
