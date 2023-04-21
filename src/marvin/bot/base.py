@@ -418,12 +418,11 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 validated = True
                 break
             except Exception as exc:
-                on_error = self.response_format.on_error
-                if on_error == "ignore":
+                if self.response_format.on_error == "ignore":
                     break
-                elif on_error == "raise":
+                elif self.response_format.on_error == "raise":
                     raise exc
-                elif on_error == "reformat":
+                elif self.response_format.on_error == "reformat":
                     self.logger.debug_kv(
                         "Response did not pass validation. Attempted to reformat",
                         f" {llm_response}",
@@ -435,7 +434,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
                         target_return_type=self.response_format.format,
                     )
                 else:
-                    raise ValueError(f"Unknown on_error value: {on_error}")
+                    raise ValueError(
+                        f"Unknown on_error value: {self.response_format.on_error}"
+                    )
         else:
             llm_response = (
                 "Error: could not validate response after"
@@ -681,23 +682,26 @@ def _reformat_response(
     @marvin.ai_fn(
         plugins=[],
         bot_modifier=lambda bot: setattr(bot.response_format, "on_error", "ignore"),
+        llm_model_name="gpt-3.5-turbo",
     )
     def reformat_response(
         llm_response: str,
         target_return_type: str,
         error_message: str,
-    ) -> str:
+    ) -> "JSON str":  # noqa: F722
         """
-        The `llm_response` could not be parsed into the correct return format
-        (`target_return_type`). The associated error message was
-        `error_message`.
+        An error (`error_message`) was raised when attempting to parse
+        `llm_response` into `target_return_type`.
 
-        Extract the answer from the `llm_response` and return it as a string
-        that can be parsed correctly.
+        Convert `llm_response` into a valid JSON string compatible with
+        `target_return_type`.
         """
 
-    return reformat_response(
+    reformatted_response = reformat_response(
         llm_response=llm_response,
         target_return_type=target_return_type,
         error_message=error_message,
     )
+    if not isinstance(reformatted_response, str):
+        reformatted_response = json.dumps(reformatted_response)
+    return reformatted_response

@@ -63,6 +63,7 @@ dev = [
     "mkdocs-awesome-pages-plugin~=2.8",
     "mkdocs-material~=9.1",
     "mkdocstrings[python]~=0.20",
+    "pandas>=2.0",
     "pdbpp~=0.10",
     "pre-commit>=2.21,<4.0",
     "pytest-asyncio~=0.20",

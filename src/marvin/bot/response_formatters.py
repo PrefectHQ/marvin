@@ -127,11 +127,15 @@ class TypeFormatter(ResponseFormatter):
                 return str(json.loads(response))
             return pydantic.parse_raw_as(type_, response)
         except Exception as exc:
-            raise ValueError(
-                f"Could not parse response as type. Response: '{response}'. Type:"
-                f" '{type_}'. Format: '{self.format}'. Error from parsing:"
-                f" '{exc}'"
-            )
+            # if an error should be raised, make it highly informative
+            if self.on_error == "raise":
+                raise ValueError(
+                    f"Could not parse response as type. Response: '{response}'. Type:"
+                    f" '{type_}'. Format: '{self.format}'. Error from parsing:"
+                    f" '{repr(exc)}'"
+                )
+            else:
+                raise
 
 
 class PydanticFormatter(ResponseFormatter):
