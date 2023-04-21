@@ -2,7 +2,7 @@ import os
 import platform
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Literal, Optional
 
 try:
     import chromadb
@@ -140,13 +140,17 @@ class Settings(BaseSettings):
         ),
     )
 
-    # SLACKBOT
-    run_slackbot: bool = False
-    slackbot: Any = Field(default=None)
-    slack_bot_token: SecretStr = Field(
-        "", env=["MARVIN_SLACK_BOT_TOKEN", "SLACK_BOT_TOKEN"]
+    # SLACK
+    slack_bot_name: str = Field(
+        "Marvin",
+        description=(
+            "The bot name to use to respond to Slack messages. The bot must be created"
+            " and saved first."
+        ),
     )
-    slackbot_setup_script: str = Field("examples/slackbot/community_bot/setup.py")
+    slack_api_token: SecretStr = Field(
+        "", description="The Slack API token to use to respond to Slack messages."
+    )
 
     # API
     api_base_url: str = "http://127.0.0.1"
