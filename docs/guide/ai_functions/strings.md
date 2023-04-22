@@ -1,6 +1,16 @@
 # AI Functions for strings
 
-## Actual title case
+## Fix capitalization
+Given a string that may not have correct capitalization, fix its capitalization but make no other changes.
+
+```python
+from marvin.ai_functions.strings import fix_capitalization
+
+fix_capitalization("the european went over to canada, eh?")
+# The European went over to Canada, eh?
+```
+
+## APA title case
 
 Return a title case string that you would want to use in a title.
 

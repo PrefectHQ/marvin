@@ -5,6 +5,7 @@ from functools import partial, wraps
 from typing import Any, Callable, TypeVar
 
 from marvin.bot import Bot
+from marvin.bot.history import InMemoryHistory
 from marvin.utilities.strings import jinja_env
 
 AI_FN_INSTRUCTIONS = jinja_env.from_string(inspect.cleandoc("""
@@ -145,6 +146,10 @@ def ai_fn(
         # ai_fns have no plugins by default
         if "plugins" not in wrapper_bot_kwargs:
             wrapper_bot_kwargs["plugins"] = []
+
+        # ai functions do not persist by default
+        if "history" not in wrapper_bot_kwargs:
+            wrapper_bot_kwargs["history"] = InMemoryHistory()
 
         # create the bot
         bot = Bot(
