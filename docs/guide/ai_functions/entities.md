@@ -14,7 +14,7 @@ text = (
     " by John Smith. It goes into effect in 2025."
 )
 
-entities_fns.extract_keywords(text)
+extract_keywords(text)
 # ["United States", "law", "cars", "black box", "records", "data", "driver", "John Smith", "2025"]
 ```
 
@@ -32,7 +32,7 @@ text = (
     " by John Smith. It goes into effect in 2025."
 )
 
-entities_fns.extract_named_entities(text)
+extract_named_entities(text)
 # [
 #     NamedEntity(entity="United States", type="GPE"),
 #     NamedEntity(entity="John Smith", type="PERSON"),
@@ -55,7 +55,7 @@ class Money(BaseModel):
     currency: str
 
 text = "The United States EV tax credit is $7,500 for cars worth up to $50k."
-entities_fns.extract_types(text, types=[Country, Money])
+extract_types(text, types=[Country, Money])
 
 # [
 #     Country(name="United States"),
