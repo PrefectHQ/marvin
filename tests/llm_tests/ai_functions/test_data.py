@@ -135,3 +135,12 @@ class TestStandardize:
             format="Proper case",
         )
         assert result == ["Brown Cow", "Small Dog", "Big Cat", "Medium-Sized Bird"]
+
+
+class TestTitleCase:
+    def test_short_prepositions_not_capitalized(self):
+        result = data_fns.title_case(
+            input="let me go to the store",
+        )
+
+        assert result == "Let Me Go to the store"
