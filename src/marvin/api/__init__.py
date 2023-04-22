@@ -1,1 +1,1 @@
-from . import dependencies, topics, threads, bots, slackbot
+from . import dependencies, topics, threads, bots
