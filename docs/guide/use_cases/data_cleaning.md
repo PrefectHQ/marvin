@@ -94,3 +94,20 @@ context_aware_fillna_df(movies_data)
 #    2           WALL-E          2008    Andrew Stanton
 #    3     Blade Runner          1982      Ridley Scott
 ```
+
+### Actual title case
+
+Return a title case string that you would want to use in a title.
+
+The Python string method `.title()` makes the first letter of every word uppercase and the remaing letters lowercase. This result isn't what you want to use as the title of a piece of writing, generally. `title_case` takes a string and returns a string you can use in a title.
+
+```python
+
+from marvin.ai_functions.data import title_case
+
+title_case(input="the european went over to canada, eh?")
+
+
+# The European Went Over to Canada, Eh?
+```
+

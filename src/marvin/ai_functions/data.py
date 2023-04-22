@@ -58,3 +58,10 @@ def standardize(data: list[str], format: str) -> list[str]:
     Given a list of data, standardize the data to the given format. For example,
     the format could be "phone number", "sentence case", "ISO date", etc.
     """
+
+
+@ai_fn
+def title_case(input: str) -> str:
+    """
+    Given a string {input} change the case to make it APA style guide title case.
+    """
