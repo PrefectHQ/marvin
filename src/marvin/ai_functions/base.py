@@ -50,8 +50,9 @@ AI_FN_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
     {{ yield_value }}
     {% endif %}
     
-    Generate the output. Do not explain the type signature or give guidance on
-    parsing.
+    # Instructions 
+    Generate the function's output. Do not explain the type signature or give
+    guidance on parsing.
     """))
 
 T = TypeVar("T")
