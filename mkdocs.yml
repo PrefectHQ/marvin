@@ -11,11 +11,11 @@ nav:
     - AI functions: getting_started/ai_functions_quickstart.md
     - Bots: getting_started/bots_quickstart.md
   - The Guide:
-    - Introduction 👋:
+    - Introduction:
       - Overview: guide/introduction/overview.md
       - Configuration: guide/introduction/configuration.md
       - CLI: guide/introduction/cli.md
-    - Concepts 💡:
+    - Concepts:
       - AI functions: guide/concepts/ai_functions.md
       - Bots: guide/concepts/bots.md
       - TUI: guide/concepts/tui.md
@@ -26,10 +26,10 @@ nav:
       - Entity extraction: guide/ai_functions/entities.md
       - Data: guide/ai_functions/data.md
       - Strings: guide/ai_functions/strings.md
-    - Use Cases 🏗️:
+    - Use Cases:
       - Enforcing LLM output formats: guide/use_cases/enforcing_format.md
       - Slackbot: guide/use_cases/slackbot.md
-    - Development 🧑‍💻:
+    - Development:
       - Setting up: development/development.md
   - FAQ: faq.md
   
