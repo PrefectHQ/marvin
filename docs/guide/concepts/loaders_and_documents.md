@@ -168,9 +168,10 @@ class PokemonLoader(Loader):
 if __name__ == "__main__":
     print(asyncio.run(PokemonLoader().load()))
 ```
-> !!! **Note:**
->
-> Like most of the code in Marvin, the `load` method must be `async`.
+
+!!! note
+
+    Like most of the code in Marvin, the `load` method must be `async`.
 
 
 **Try it out!**
