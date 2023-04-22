@@ -1,4 +1,4 @@
-# Data cleaning
+# AI Functions for data
 
 > "Data cleaning is 80% of data science."
 >
@@ -172,7 +172,7 @@ The Python string method [`.title()`](https://docs.python.org/3/library/stdtypes
 
 ```python
 
-from marvin.ai_functions.data import title_case
+from marvin.ai_functions.strings import title_case
 
 title_case("the european went over to canada, eh?")
 # The European Went Over to Canada, Eh?
