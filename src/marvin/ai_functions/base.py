@@ -9,25 +9,16 @@ from marvin.bot.history import InMemoryHistory
 from marvin.utilities.strings import jinja_env
 
 AI_FN_INSTRUCTIONS = jinja_env.from_string(inspect.cleandoc("""
-        Your job is to generate outputs for a Python function with the following
-        signature:
-        
-        {{ function_def }}        
-        
-        You can not see all of the function's source code, just its signature
-        and docstring. However, to assist you, the user may have modified the
-        function to return values that will help when generating outputs. You
-        will be provided any values returned from the function but you should
-        NOT assume they are actual outputs of the full function. Treat any
-        source code (and returned values) as preproccesing.        
-        
-        The user will give you inputs to this function and you must respond with
-        its result, in the appropriate form. Do not describe your process or
-        explain your answer, and do not give the user any additional
-        instruction. Respond ONLY with the return value of the function.
-        
-        Note: you can NOT run this function ({{ function_name }}) as a plugin.
-        """))
+    Your job is to generate outputs for a Python function with the following
+    signature and docstring:
+    
+    {{ function_def }}        
+    
+    When the function is called, you will be provided with its inputs (if any)
+    and must respond with the most likely result. Do not give any additional
+    detail, instructions, or even punctuation; respond ONLY with a return value
+    that can be parsed into the expected form.
+    """))
 
 AI_FN_PERSONALITY = inspect.cleandoc("""
     You generate answers, but do not want to engage the user in any way,
@@ -36,27 +27,22 @@ AI_FN_PERSONALITY = inspect.cleandoc("""
     """)
 
 AI_FN_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
-        {% if input_binds %} 
-        The user supplied the following inputs:
-        
-        {%for desc in input_binds%}
-        {{ desc }}
-        
-        {% endfor %}
-        {% endif -%}
-        
-        {% if return_value %} 
-        In addition, the user called the function as-is and got the following
-        return value: 
-        
-        {{ return_value }} 
-        {% endif %}
-        
-        
-        Respond with a result of the function call. Do not give any additional
-        detail, instructions, or even punctuation; respond ONLY with the output.
-        Do not explain the type signature or give guidance on parsing.
-        """))
+    # Inputs
+    
+    {% if input_binds %} 
+    The function was called with these inputs:
+    
+    {%for (arg, value) in input_binds.items()%}
+    - {{ arg }}: {{ value }}
+    
+    {% endfor %}
+    {% else %}
+    The function was called without inputs.
+    {% endif -%}
+    
+    Generate the output. Do not explain the type signature or give guidance on
+    parsing.
+    """))
 
 T = TypeVar("T")
 A = TypeVar("A")
@@ -106,11 +92,6 @@ def ai_fn(
         # Bind the provided arguments to the function signature
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
-
-        # Build input binds
-        input_binds = []
-        for k, v in bound_args.arguments.items():
-            input_binds.append(f"{k} = {v}")
 
         # see if the function preprocesses the inputs
         if call_function:
@@ -167,7 +148,8 @@ def ai_fn(
 
         # build the message
         message = AI_FN_MESSAGE.render(
-            input_binds=input_binds, return_value=return_value
+            input_binds=bound_args.arguments,
+            return_value=return_value,
         )
 
         async def get_response():

@@ -18,6 +18,10 @@ def extract_keywords(text: str) -> list[str]:
 
 
 class NamedEntity(MarvinBaseModel):
+    """
+    A named entity extracted from a text string.
+    """
+
     entity: str = Field(description="The entity name")
     type: str = Field(description="The entity type (based on spaCy NER types)")
 
@@ -25,8 +29,8 @@ class NamedEntity(MarvinBaseModel):
 @ai_fn
 def extract_named_entities(text: str) -> list[NamedEntity]:
     """
-    Extract named entities from the given `text` and return a list of
-    NamedEntity objects. Correct capitalization if needed.
+    Extract named entities from the given `text`. Correct capitalization if
+    necessary.
     """
 
 

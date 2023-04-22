@@ -92,8 +92,7 @@ DEFAULT_INSTRUCTIONS_TEMPLATE = """
     
     # Date
     
-    Your training ended in the past. Today's date is {{
-    pendulum.now().format("dddd, MMMM D, YYYY") }}.
+    Your training ended in the past. Today's date is {{pendulum.now().format("dddd, MMMM D, YYYY") }}.
     
     {% endif -%}
     """  # noqa: E501

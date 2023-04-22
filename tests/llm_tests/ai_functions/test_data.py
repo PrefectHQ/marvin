@@ -14,7 +14,7 @@ class TestCategorize:
     def test_categorize_colors(self):
         result = data_fns.categorize(
             ["red", "teal", "sunflower", "cyan"],
-            description="colors of the rainbow",
+            description="nearest color of the rainbow",
         )
         assert result == ["red", "blue", "yellow", "blue"]
 

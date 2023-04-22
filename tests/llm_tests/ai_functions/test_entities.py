@@ -32,7 +32,7 @@ class TestNamedEntityExtraction:
         )
         result = entities_fns.extract_named_entities(text)
         assert result == [
-            entities_fns.NamedEntity(entity="United States", type="GPE"),
+            entities_fns.NamedEntity(entity="The United States", type="GPE"),
             entities_fns.NamedEntity(entity="John Smith", type="PERSON"),
             entities_fns.NamedEntity(entity="2025", type="DATE"),
         ]

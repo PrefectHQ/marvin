@@ -1,3 +1,3 @@
 from .base import ai_fn
 
-from . import data, strings
+from . import data, strings, entities
