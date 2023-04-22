@@ -132,16 +132,17 @@ def ai_fn(
         # ai_fns have no plugins by default
         if "plugins" not in wrapper_bot_kwargs:
             wrapper_bot_kwargs["plugins"] = []
-
         # ai functions do not persist by default
         if "history" not in wrapper_bot_kwargs:
             wrapper_bot_kwargs["history"] = InMemoryHistory()
+        if "response_format" not in wrapper_bot_kwargs:
+            wrapper_bot_kwargs["response_format"] = return_annotation
+        if "personality" not in wrapper_bot_kwargs:
+            wrapper_bot_kwargs["personality"] = AI_FN_PERSONALITY
 
         # create the bot
         bot = Bot(
             instructions=instructions,
-            personality=AI_FN_PERSONALITY,
-            response_format=return_annotation,
             **wrapper_bot_kwargs,
         )
 
