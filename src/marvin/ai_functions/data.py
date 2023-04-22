@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from marvin import ai_fn
+from marvin.ai_functions import ai_fn
 
 if TYPE_CHECKING:
     from pandas import DataFrame
@@ -57,11 +57,4 @@ def standardize(data: list[str], format: str) -> list[str]:
     """
     Given a list of data, standardize the data to the given format. For example,
     the format could be "phone number", "sentence case", "ISO date", etc.
-    """
-
-
-@ai_fn
-def title_case(input: str) -> str:
-    """
-    Given a string {input} change the case to make it APA style guide title case.
     """
