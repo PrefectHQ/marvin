@@ -15,9 +15,12 @@ AI_FN_INSTRUCTIONS = jinja_env.from_string(inspect.cleandoc("""
     {{ function_def }}        
     
     When the function is called, you will be provided with its inputs (if any)
-    and must respond with the most likely result. Do not give any additional
-    detail, instructions, or even punctuation; respond ONLY with a return value
-    that can be parsed into the expected form.
+    and must respond with the most likely result. If it `yields`, you will also
+    be provided with any yielded values. Any source code you see is only for
+    generating yielded values at runtime, it is not the actual source code of
+    the function. Do not give any additional detail, instructions, or even
+    punctuation; respond ONLY with a return value that can be parsed into the
+    expected form.
     """))
 
 AI_FN_PERSONALITY = inspect.cleandoc("""
@@ -40,6 +43,12 @@ AI_FN_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
     The function was called without inputs.
     {% endif -%}
     
+    {% if yield_value %}
+    # Yield value
+    
+    {{ yield_value }}
+    {% endif %}
+    
     Generate the output. Do not explain the type signature or give guidance on
     parsing.
     """))
@@ -52,7 +61,6 @@ def ai_fn(
     fn: Callable[[A], T] = None,
     *,
     bot_modifier: Callable = None,
-    call_function: bool = True,
     **bot_kwargs,
 ) -> Callable[[A], T]:
     """
@@ -68,19 +76,12 @@ def ai_fn(
           the function is processed. The function can either modify the bot
           inplace or return a modified bot. Useful for customizing behavior in
           ways that can't easily be passed directly to the bot via kwargs
-        - call_function (bool):  if True, the function will be called and the
-          return value will be included in the message
         - bot_kwargs (dict):  kwargs to pass to the `Bot` constructor
 
     """
     # this allows the decorator to be used with or without calling it
     if fn is None:
-        return partial(
-            ai_fn,
-            bot_modifier=bot_modifier,
-            call_function=call_function,
-            **bot_kwargs,
-        )
+        return partial(ai_fn, bot_modifier=bot_modifier, **bot_kwargs)
 
     @wraps(fn)
     def ai_fn_wrapper(*args, **kwargs) -> Any:
@@ -93,22 +94,20 @@ def ai_fn(
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
 
-        # see if the function preprocesses the inputs
-        if call_function:
-            output = fn(*args, **kwargs)
-
-            if inspect.iscoroutine(output):
-                return_value = asyncio.run(output)
-            else:
-                return_value = output
-        else:
-            return_value = None
-
         # Get the return annotation
         if sig.return_annotation is inspect._empty:
             return_annotation = str
         else:
             return_annotation = sig.return_annotation
+
+        if inspect.isgeneratorfunction(fn):
+            gen = fn(*args, **kwargs)
+            yield_value = next(gen)
+        elif inspect.isasyncgenfunction(fn):
+            gen = fn(*args, **kwargs)
+            yield_value = asyncio.run(anext(gen))
+        else:
+            yield_value = None
 
         # get the function source code - it will include the @ai_fn decorator,
         # which can confuse the AI, so we use regex to only get the function
@@ -149,17 +148,17 @@ def ai_fn(
         # build the message
         message = AI_FN_MESSAGE.render(
             input_binds=bound_args.arguments,
-            return_value=return_value,
+            yield_value=yield_value,
         )
 
-        async def get_response():
+        async def run_ai_function():
             response = await bot.say(message)
             return response.parsed_content
 
         if inspect.iscoroutinefunction(fn):
-            return get_response()
+            return run_ai_function()
         else:
-            return asyncio.run(get_response())
+            return asyncio.run(run_ai_function())
 
     ai_fn_wrapper.fn = fn
 

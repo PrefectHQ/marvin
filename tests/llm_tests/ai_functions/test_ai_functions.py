@@ -148,6 +148,55 @@ class TestBool:
         x = build_json()
         assert x == "{'a': 1}"
 
+    def test_functions_are_not_run(self):
+        @ai_fn
+        def number_one() -> int:
+            """
+            Always returns 1
+            """
+            raise ValueError("This will not be raised")
+
+        result = number_one()
+        assert result == 1
+
+    def test_generators_are_run(self):
+        @ai_fn
+        def number_one() -> int:
+            """
+            Always returns 1
+            """
+            raise ValueError("This will be raised")
+            yield
+
+        with pytest.raises(ValueError, match="(This will be raised)"):
+            number_one()
+
+    async def test_async_generators_are_run(self):
+        @ai_fn
+        async def number_one() -> int:
+            """
+            Always returns 1
+            """
+            raise ValueError("This will be raised")
+            yield
+
+        with pytest.raises(ValueError, match="(This will be raised)"):
+            number_one()
+
+    def test_yield_from_function(self):
+        # assign p outside the function source code
+        p = 99
+
+        @ai_fn
+        def yielding_fn() -> int:
+            """
+            Returns -1 * a number generated at runtime.
+            """
+            yield p
+
+        result = yielding_fn()
+        assert result == -1 * p
+
 
 class TestContainers:
     """tests untyped containers"""

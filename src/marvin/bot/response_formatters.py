@@ -186,7 +186,7 @@ class PydanticFormatter(ResponseFormatter):
 
 
 def load_formatter_from_shorthand(shorthand_response_format) -> ResponseFormatter:
-    if shorthand_response_format is None:
+    if shorthand_response_format in (None, str):
         return ResponseFormatter()
     elif isinstance(shorthand_response_format, ResponseFormatter):
         return shorthand_response_format
