@@ -68,12 +68,77 @@ standardize(survey_data, format="US phone number with area code")
 
 ### Context-aware fill for missing values
 
-Dealing with missing values is always difficult. There are many techniques for dealing with missing values, including removing them, filling them with a known value, or using analytical methods that properly account for them. AI functions introduce a new option: filling them based on context. Note that this approach can only be used when there are strong correlations in the dataset; otherwise, the context is not useful for predicting missing values. This is also a form of data augmentation and will not be appropriate for all user cases.
+Dealing with missing values is always difficult. There are many techniques for dealing with missing values, including removing them, filling them with a known value, or using analytical methods that properly account for them. AI functions introduce a new option: filling them based on context. Note that this approach can only be used when there are strong correlations in the dataset; otherwise, the context is not useful for predicting missing values. This is also a form of data augmentation and will not be appropriate for all use cases.
 
 Marvin has two functions for context-aware fill that differ only in input and return types. `context_aware_fillna` takes a matrix of data (organized as list[list] such that each inner list is a row of data) and column names; `context_aware_fillna_df` takes and returns Pandas dataframes.
 
+A major use case for context-aware fill is not arbitrarily inventing missing data (which has issues of its own) but transforming freeform responses into structured data. Survey responses are a good example of this. Consider a question that asks where the user lives. Responses could range from "NYC" to "New York City, New York" to "BOS". Extracting a city and state from these answers is a considerable NLP challenge. We can use a context aware fill to generate two empty ("missing") columns for city and state, then fill them:
+
 ```python
+import pandas as pd
 from marvin.ai_functions.data import context_aware_fillna_df
+
+
+survey_responses = pd.DataFrame(
+    [
+        ["NY, NY", None, None],
+        ["Boston, Massachusetts", None, None],
+        ["Boston MA", None, None],
+        ["NYC",  None, None],
+    ],
+    columns=["response", "city", "state"],
+)
+
+
+context_aware_fillna_df(survey_responses)
+
+
+# Result:
+#                 response      city          state
+# 0                 NY, NY  New York       New York
+# 1  Boston, Massachusetts    Boston  Massachusetts
+# 2              Boston MA    Boston  Massachusetts
+# 3                    NYC  New York       New York
+```
+
+We can use a similar technique to augment existing data with AI-generated attributes:
+
+```python
+import pandas as pd
+from marvin.ai_functions.data import context_aware_fillna_df
+
+
+cities_data = pd.DataFrame(
+    [
+        ["New York", None],
+        ["Massachusetts", None],
+        ["California", None],
+        ["Florida",  None],
+    ],
+    columns=["state", "capital"],
+)
+
+
+context_aware_fillna_df(cities_data)
+
+
+# Result:
+#            state      capital
+# 0       New York       Albany
+# 1  Massachusetts       Boston
+# 2     California   Sacramento
+# 3        Florida  Tallahassee
+```
+
+
+Finally, this highly-stylized example shows the LLM's ability to fill in appropriate structure and datatypes all at once:
+
+
+
+```python
+import pandas as pd
+from marvin.ai_functions.data import context_aware_fillna_df
+
 
 movies_data = pd.DataFrame(
     [
@@ -84,7 +149,10 @@ movies_data = pd.DataFrame(
     ],
     columns=["title", "release_year", "director"],
 )
+
+
 context_aware_fillna_df(movies_data)
+
 
 # Result:
 #
@@ -94,3 +162,19 @@ context_aware_fillna_df(movies_data)
 #    2           WALL-E          2008    Andrew Stanton
 #    3     Blade Runner          1982      Ridley Scott
 ```
+
+
+### Actual title case
+
+Return a title case string that you would want to use in a title.
+
+The Python string method [`.title()`](https://docs.python.org/3/library/stdtypes.html#str.title) makes the first letter of every word uppercase and the remaing letters lowercase. This result isn't what you want to use for the title of a piece of writing, generally. `title_case` takes a string and returns a string you can use in a title.
+
+```python
+
+from marvin.ai_functions.data import title_case
+
+title_case("the european went over to canada, eh?")
+# The European Went Over to Canada, Eh?
+```
+
