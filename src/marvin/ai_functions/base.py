@@ -1,6 +1,7 @@
 import asyncio
 import inspect
 import re
+import sys
 from functools import partial, wraps
 from typing import Any, Callable, TypeVar
 
@@ -105,7 +106,11 @@ def ai_fn(
             yield_value = next(gen)
         elif inspect.isasyncgenfunction(fn):
             gen = fn(*args, **kwargs)
-            yield_value = asyncio.run(anext(gen))
+            # 3.10 introduces "anext", otherwise use __anext__
+            if sys.version_info >= (3, 10):
+                yield_value = asyncio.run(anext(gen))
+            else:
+                yield_value = asyncio.run(gen.__anext__())
         else:
             yield_value = None
 

@@ -146,7 +146,7 @@ class TestBool:
             """
 
         x = build_json()
-        assert x == "{'a': 1}"
+        assert x == '{"a": 1}'
 
     def test_functions_are_not_run(self):
         @ai_fn
