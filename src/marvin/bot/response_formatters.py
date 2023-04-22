@@ -23,12 +23,18 @@ class ResponseFormatter(DiscriminatedUnionType, LoggerMixin):
     format: str = Field(None, description="The format of the response")
     on_error: Literal["reformat", "raise", "ignore"] = "reformat"
 
-    def validate_response(self, response):
+    def validate_response(self, response: str):
         # by default, try to parse the response to validate it
         self.parse_response(response)
 
-    def parse_response(self, response):
+    def parse_response(self, response: str) -> str:
         return response
+
+
+class StringFormatter(ResponseFormatter):
+    format: str = (
+        "The response will be parsed as a string. Do not add unecessary quotes."
+    )
 
 
 class JSONFormatter(ResponseFormatter):
@@ -190,6 +196,8 @@ def load_formatter_from_shorthand(shorthand_response_format) -> ResponseFormatte
         return ResponseFormatter()
     elif isinstance(shorthand_response_format, ResponseFormatter):
         return shorthand_response_format
+    elif shorthand_response_format is str:
+        return StringFormatter()
     elif shorthand_response_format is bool:
         return BooleanFormatter()
     elif isinstance(shorthand_response_format, str):

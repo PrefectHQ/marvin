@@ -108,12 +108,40 @@ LLM implementations like ChatGPT are non-deterministic; that is, they do not alw
 
 !!! note "Upgrading Marvin may change AI function outputs"
     Marvin wraps your AI function with additional prompts in order to get the LLM to generate parseable outputs. We are constantly adjusting those prompts to improve performance and address edge cases. Therefore, even with a temperature of 0, what your AI function sends to the LLM might change if you upgrade from one version of Marvin to another, resulting in different AI function outputs. Therefore, AI functions with `temperature=0` are only guaranteed to be deterministic for a specific Marvin version. 
-### Calling the function
-By default, the `ai_fn` decorator will call your function and supply the return value to the AI. For functions without source code, this obviously has no consequence. However, you can take advantage of this fact to influence the AI result by returning helpful or preprocessed outputs. Since the AI sees the source code as well as the return value, you can also influence it through comments. 
 
-You can see this strategy used in the example that [summarizes text from Wikipedia](#summarize-text-from-wikipedia). In the example, the function takes in a page's title and uses it to load the page's content. The content is returned and used by the AI for summarization.
+### Getting values at runtime
+By default, the `ai_fn` decorator will *not* attempt to run your function, even if it has source code. The LLM will attempt to predict everything itself. However, sometimes it is useful to manipulate the function at runtime. There are two ways to do this.
 
-To disable this behavior entirely, call the decorator as `@ai_fn(call_function=False)`.
+The first is to wrap your function in another function or decorator. For example, here we write a private AI function to extract keywords from text and call it from a user-facing function that accepts a URL and loads the actual content.
+
+```python
+import httpx
+from marvin import ai_fn
+
+@ai_fn
+def _get_keywords(text:str) -> list[str]:
+    """extract keywords from string"""
+
+def get_keywords_from_url(url: str) -> list[str]:
+    response = httpx.get(url)
+    return _get_keywords(response.content)
+```
+
+An advanced alternative is to yield from the ai function itself. This is supported for a single yield statement:
+
+```python
+import httpx
+from marvin import ai_fn
+
+@ai_fn
+def get_keywords_from_url(url: str) -> list[str]:
+    """Extract keywords from the text of a URL"""
+    response = httpx.get(url)
+    yield response.content
+```
+
+In this case, the function *will* be run up to the yield statement, and the yielded value will be considered by the LLM when generating a result. Therefore, these two examples are equivalent. It may be that the first example is more legible than the second, which is extremely magical.
+
 
 ### Async functions
 The `ai_fn` decorator works with async functions.
@@ -284,7 +312,7 @@ def summarize_from_wikipedia(title: str) -> str:
     page = wikipedia.page(title)
 
     # the content to summarize
-    return page.content
+    yield page.content
 
 
 summarize_from_wikipedia(title='large language model')
@@ -316,7 +344,7 @@ def suggest_title(url: str) -> str:
     response = httpx.get(url)
 
     # return the url contents 
-    return marvin.utilities.strings.html_to_content(response.content)
+    yield marvin.utilities.strings.html_to_content(response.content)
 
 
 suggest_title(url="https://techcrunch.com/2023/03/14/openai-releases-gpt-4-ai-that-it-claims-is-state-of-the-art/")

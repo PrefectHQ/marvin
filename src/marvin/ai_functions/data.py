@@ -18,11 +18,12 @@ def map_categories(data: list[str], categories: list[str]) -> list[str]:
 @ai_fn
 def categorize(data: list[str], description: str) -> list[str]:
     """
-    Map each item in `data` to a value that matches the `description`
-    as close as possible. For example, if the description is "pets",
-    valid categories would be "cat", "dog", "fish", etc. The category
-    description may include examples. Return a list of assigned categories the
-    same length and order as `data`.
+    Given a `description` of some possible categories, map each item in `data`
+    to the most relevant category. For example, if the description is "pets",
+    valid categories would be "cat", "dog", "fish", etc. If the description is
+    "airports (JFK, etc.)" then valid categories would be "LGA", "LAX", "IAD",
+    etc. Return a list of assigned categories the same length and order as
+    `data`.
     """
 
 
