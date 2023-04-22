@@ -21,6 +21,10 @@ class BotConfig(MarvinSQLModel, CreatedUpdatedMixin, table=True):
     personality: str
     instructions: str
     description: str = None
+    llm_settings: dict = Field(
+        default_factory=dict,
+        sa_column=sa.Column(JSONType, nullable=False, server_default="{}"),
+    )
     plugins: list[dict] = Field(
         default_factory=list,
         sa_column=sa.Column(JSONType, nullable=False, server_default="[]"),
@@ -43,6 +47,7 @@ class BotConfigCreate(MarvinBaseModel):
     )
     plugins: list[Plugin] = Field(default_factory=list)
     input_transformers: list[InputTransformer] = Field(default_factory=list)
+    llm_settings: dict = Field(default_factory=dict)
 
 
 class BotConfigUpdate(MarvinBaseModel):
@@ -51,6 +56,7 @@ class BotConfigUpdate(MarvinBaseModel):
     instructions: str = None
     plugins: list[Plugin] = None
     profile_picture: str = None
+    llm_settings: dict = None
 
 
 class BotConfigRead(MarvinBaseModel):
@@ -64,3 +70,4 @@ class BotConfigRead(MarvinBaseModel):
     profile_picture: str = None
     created_at: datetime.datetime = None
     updated_at: datetime.datetime = None
+    llm_settings: dict = None

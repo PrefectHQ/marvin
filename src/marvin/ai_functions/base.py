@@ -2,7 +2,7 @@ import asyncio
 import inspect
 import re
 from functools import partial, wraps
-from typing import Any, Callable
+from typing import Any, Callable, TypeVar
 
 from marvin.bot import Bot
 from marvin.utilities.strings import jinja_env
@@ -57,14 +57,17 @@ AI_FN_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
         Do not explain the type signature or give guidance on parsing.
         """))
 
+T = TypeVar("T")
+A = TypeVar("A")
+
 
 def ai_fn(
-    fn: Callable = None,
+    fn: Callable[[A], T] = None,
     *,
     bot_modifier: Callable = None,
     call_function: bool = True,
     **bot_kwargs,
-) -> Callable:
+) -> Callable[[A], T]:
     """
     @ai_fn
     def rhyme(word: str) -> str:

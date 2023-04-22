@@ -6,32 +6,29 @@
 Marvin now ships with endpoints supporting a customizable Slackbot that runs directly within the `marvin` FastAPI application.
 
 ## Configuring a simple, local Slackbot
-### Customize your bot
-In the simplest case, all we have to do is write a setup script that will define our `Bot` and then set our environment variables.
 
-#### Setup script
-For example, in a new file called `hello_slackbot.py`:
+### Create a bot
+
+Create any Marvin bot and save it:
 
 ```python
 import marvin
 
-def main():
-    marvin.settings.slackbot = marvin.Bot(
-        name="Suspiciously Nice Bot",
-        personality="friendly... too friendly"
-    )
+bot = marvin.Bot(
+    name="Suspiciously Nice Bot",
+    personality="friendly... too friendly"
+)
+
+bot.save_sync()
 ```
 
-!!! note
-    The setup script entrypoint must be called `main` and must be a function with no arguments. It must set `marvin.config.settings.slackbot` to a `marvin.Bot` instance.
 
 #### Environment variables
 Marvin will discover these settings whether you set them in a project `.env` file or in your shell config, let's set:
 ```environment
-MARVIN_OPENAI_API_KEY=<your-openai-api-key>
-MARVIN_SLACK_BOT_TOKEN=<your-slack-bot-token>
-MARVIN_RUN_SLACKBOT=true
-MARVIN_SLACKBOT_SETUP_SCRIPT=examples/slackbot/hello_slackbot.py
+MARVIN_OPENAI_API_KEY=<your openai api key>
+MARVIN_SLACK_BOT_TOKEN=<your slack api token>
+MARVIN_SLACK_BOT_NAME=<your bot name ("Suspiciously Nice Bot" in this example)>
 MARVIN_LOG_LEVEL=DEBUG
 ```
 and that's it! We can now use something like `ngrok` to get ourselves a public IP to hit from Slack:
@@ -49,7 +46,7 @@ and use it to set up our Slack app's "Event Subscriptions" to point to our bot's
 
 ![Slack Event Subscriptions](../../img/slackbot/eventsub.png)
 
-... and then run our bot (running on port 4200 by default)):
+... and then run our bot (running on port 4200 by default):
 
 ```bash
 marvin server start

@@ -55,7 +55,7 @@ async def query_chroma(
     )
 
 
-async def keyword_query_chroma(query: str, where: dict, n: int = 4) -> str:
+async def keyword_query_chroma(query: str, where: dict, n: int = 4, topic=None) -> str:
     keywords = await extract_keywords(query)
 
     return await query_chroma(
@@ -64,17 +64,19 @@ async def keyword_query_chroma(query: str, where: dict, n: int = 4) -> str:
         include=["documents"],
         where=build_metadata_filter(where) if where else None,
         where_document=build_keyword_filter(keywords) if keywords else None,
+        topic=topic,
     )
 
 
 class SimpleChromaSearch(Plugin):
     description: str = (
-        "Semantic search for relevant documents."
+        "Use this plugin to search for relevant documents."
         " To use this plugin, simply provide a natural language `query`"
         " and relevant document excerpts will be returned to you."
     )
 
     keywords: list[str] = Field(default_factory=list)
+    topic: Optional[str] = None
 
     def get_full_description(self) -> str:
         base_description = super().get_full_description()
@@ -88,7 +90,7 @@ class SimpleChromaSearch(Plugin):
         return base_description
 
     async def run(self, query: str) -> str:
-        return await keyword_query_chroma(query, where=None)
+        return await keyword_query_chroma(query, where=None, topic=self.topic)
 
 
 """ --- decorator plugin definition ---

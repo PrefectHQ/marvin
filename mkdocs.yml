@@ -22,8 +22,9 @@ nav:
       - Loaders: guide/concepts/loaders_and_documents.md
       - Infrastructure: guide/concepts/infra.md
       - Plugins: guide/concepts/plugins.md
-    - Examples:
-      - Enforcing AI format: guide/use_cases/enforcing_format.md
+    - Use Cases:
+      - Data cleaning: guide/use_cases/data_cleaning.md
+      - Enforcing LLM output formats: guide/use_cases/enforcing_format.md
       - Slackbot: guide/use_cases/slackbot.md
     - Development:
       - Setting up: development/development.md
