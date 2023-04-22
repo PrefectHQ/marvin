@@ -164,13 +164,15 @@ class PokemonLoader(Loader):
             excerpts.extend(await document.to_excerpts())
         
         return excerpts
+        
+if __name__ == "__main__":
+    print(asyncio.run(PokemonLoader().load()))
 ```
-> ‼️ **Note:**
+> !‼️ **Note:**
 >
 > Like most of the code in Marvin, the `load` method must be `async`.
 
 
 **Try it out!**
-- Copy the above code.
-- Paste it into a Python script or `jupyter notebook`.
-- Run `await PokemonLoader(limit=5).load()`.
+- Copy the above code into a Python script or `jupyter notebook`.
+- Run the script or cell.
