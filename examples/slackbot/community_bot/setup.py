@@ -1,4 +1,3 @@
-import marvin
 from marvin import Bot
 from marvin.loaders.base import MultiLoader
 from marvin.loaders.discourse import DiscourseLoader
@@ -130,12 +129,17 @@ community_bot = Bot(
     instructions=instructions,
     reminder="Remember to use your plugins!",
     plugins=[chroma_search, search_github_issues, DuckDuckGo()],
+    llm_model_name="gpt-4",
+    llm_model_temperature=0.2,
 )
 
 
 async def main():
-    marvin.config.settings.run_slackbot = True
-    marvin.config.settings.slackbot = community_bot
-    marvin.settings.openai_model_name = "gpt-4"
-    marvin.settings.openai_model_temperature = 0.2
     await load_prefect_things()
+    await community_bot.save()
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())
