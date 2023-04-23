@@ -245,21 +245,15 @@ class TestContainers:
     def test_set_gpt35(self):
         assert marvin.settings.openai_model_name.startswith("gpt-3.5")
 
-        # warn on creating an ai function with a set under 3.5
-        with pytest.warns(UserWarning):
-
-            @ai_fn
-            def set_response() -> set:
-                """
-                Returns a set that contains two numbers, such as {3, 5}
-                """
-
-        # no warning for gpt-4
-        @ai_fn(llm_model_name="gpt-4")
-        def set_response_2() -> set:
+        @ai_fn
+        def set_response() -> set:
             """
             Returns a set that contains two numbers, such as {3, 5}
             """
+
+        # warn when running an ai function with a set under 3.5
+        with pytest.warns(UserWarning):
+            set_response()
 
     def test_tuple_gpt4(self, gpt_4):
         @ai_fn
@@ -277,21 +271,15 @@ class TestContainers:
     def test_tuple_gpt35(self):
         assert marvin.settings.openai_model_name.startswith("gpt-3.5")
 
-        # warn when creating an ai function with a tuple under 3.5
-        with pytest.warns(UserWarning):
-
-            @ai_fn
-            def tuple_response() -> tuple:
-                """
-                Returns a tuple that contains two numbers
-                """
-
-        # no warning for gpt-4
-        @ai_fn(llm_model_name="gpt-4")
-        def tuple_response_2() -> tuple:
+        @ai_fn
+        def tuple_response() -> tuple:
             """
             Returns a tuple that contains two numbers
             """
+
+        # warn when running an ai function with a tuple under 3.5
+        with pytest.warns(UserWarning):
+            tuple_response()
 
     def test_list_of_dicts(self):
         @ai_fn
