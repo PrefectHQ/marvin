@@ -5,9 +5,11 @@ from types import GenericAlias
 from typing import Any, Literal, Union
 
 import pydantic
+from dateutil.rrule import rrulestr
 from pydantic import BaseModel, Field, PrivateAttr
 
 import marvin
+from marvin.utilities.strings import condense_newlines
 from marvin.utilities.types import (
     DiscriminatedUnionType,
     LoggerMixin,
@@ -189,6 +191,19 @@ class PydanticFormatter(ResponseFormatter):
 
     def parse_response(self, response):
         return pydantic.parse_raw_as(self.get_model(), response)
+
+
+class RRuleFormatter(ResponseFormatter):
+    format: str = condense_newlines("""    
+        A valid RRULE (RFC 5545) string that can be parsed by
+        dateutil.rrule.rrulestr(). Each property (RRULE, DTSTART, EXDATE, etc.)
+        should be on a new line, and parameters (FREQ, BYHOUR, INTERVAL, etc.)
+        should be separated by semicolons. Round off hours/minutes/seconds to 0
+        if not specified.
+        """)
+
+    def validate_response(self, response: str):
+        rrulestr(response)
 
 
 def load_formatter_from_shorthand(shorthand_response_format) -> ResponseFormatter:

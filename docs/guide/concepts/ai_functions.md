@@ -399,3 +399,24 @@ def get_emoji(text: str) -> str:
 get_emoji("incredible snack") # '🍿'
 ```
 
+
+### Generate RRULEs
+RRULE strings are standardized representations of calendar events. This AI
+function can convert natural language into an RRULE.
+
+This is also available as a builtin function: `marvin.ai_functions.strings.rrule`
+
+```python
+
+from marvin import ai_fn
+
+@ai_fn
+def rrule(text: str) -> str:
+    """
+    Generate valid RRULE strings from a natural language description of an event
+    """
+    yield pendulum.now.isoformat()
+
+rrule('every hour from 9-6 on thursdays')
+# "RRULE:FREQ=WEEKLY;BYDAY=TH;BYHOUR=9,10,11,12,13,14,15,16;BYMINUTE=0;BYSECOND=0"
+```
