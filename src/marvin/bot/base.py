@@ -13,6 +13,7 @@ import marvin
 from marvin.bot.history import History, ThreadHistory
 from marvin.bot.input_transformers import InputTransformer
 from marvin.bot.response_formatters import (
+    JSONFormatter,
     ResponseFormatter,
     load_formatter_from_shorthand,
 )
@@ -695,14 +696,14 @@ def _reformat_response(
 ) -> str:
     @marvin.ai_fn(
         plugins=[],
-        bot_modifier=lambda bot: setattr(bot.response_format, "on_error", "ignore"),
+        response_format=JSONFormatter(on_error="ignore"),
         llm_model_name="gpt-3.5-turbo",
     )
     def reformat_response(
         llm_response: str,
         target_return_type: str,
         error_message: str,
-    ) -> "JSON str":  # noqa: F722
+    ) -> str:
         """
         An error (`error_message`) was raised when attempting to parse
         `llm_response` into `target_return_type`.

@@ -31,7 +31,7 @@ class TestRRule:
             ),
             (
                 "9am on the first business day of the quarter",
-                "RRULE:FREQ=MONTHLY;BYSETPOS=1;BYDAY=MO,TU,WE,TH,FR;BYMONTH=1,4,7,10;BYHOUR=9;BYMINUTE=0;BYSECOND=0;BYWEEKNO=1,14,27,40",
+                "RRULE:FREQ=MONTHLY;BYSETPOS=1;BYDAY=MO,TU,WE,TH,FR;BYMONTH=1,4,7,10;BYHOUR=9;BYMINUTE=0;BYSECOND=0",
             ),
         ],
     )
