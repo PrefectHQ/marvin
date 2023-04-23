@@ -200,6 +200,8 @@ class RRuleFormatter(ResponseFormatter):
         should be on a new line, and parameters (FREQ, BYHOUR, INTERVAL, etc.)
         should be separated by semicolons. Round off hours/minutes/seconds to 0
         if not specified.
+        
+        The result must be a string delimited by optional newlines, not a JSON object.
         """)
 
     def validate_response(self, response: str):
