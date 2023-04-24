@@ -27,8 +27,9 @@ bot.save_sync()
 Marvin will discover these settings whether you set them in a project `.env` file or in your shell config, let's set:
 ```environment
 MARVIN_OPENAI_API_KEY=<your openai api key>
-MARVIN_SLACK_BOT_TOKEN=<your slack api token>
+MARVIN_SLACK_API_TOKEN=<your slack api token>
 MARVIN_SLACK_BOT_NAME=<your bot name ("Suspiciously Nice Bot" in this example)>
+MARVIN_SLACK_BOT_ADMIN_USER=@<your slack user id>
 MARVIN_LOG_LEVEL=DEBUG
 ```
 and that's it! We can now use something like `ngrok` to get ourselves a public IP to hit from Slack:
