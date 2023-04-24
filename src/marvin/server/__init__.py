@@ -1,2 +1,2 @@
-from . import server
+from . import slackbot
 from .server import app

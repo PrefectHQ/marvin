@@ -5,7 +5,7 @@ import marvin
 from marvin.config import CHROMA_INSTALLED
 from marvin.models.documents import Document
 from marvin.utilities.algorithms import max_marginal_relevance as mmr
-from marvin.utilities.async_utils import run_async
+from marvin.utilities.async_utils import retry_async, run_async
 
 if TYPE_CHECKING and CHROMA_INSTALLED:
     import chromadb
@@ -18,6 +18,10 @@ def get_client() -> "chromadb.Client":
     import chromadb
 
     return chromadb.Client(marvin.settings.chroma)
+
+
+async def run_async_with_retry(func, *args, **kwargs):
+    return await retry_async()(run_async)(func, *args, **kwargs)
 
 
 class Chroma:
@@ -67,8 +71,18 @@ class Chroma:
         self._in_context = False
         await run_async(self.client.persist)
 
-    async def delete(self, ids: list[str] = None, where: dict = None):
-        await run_async(self.collection.delete, ids=ids, where=where)
+    async def delete(
+        self,
+        ids: list[str] = None,
+        where: dict = None,
+        where_document: Document = None,
+    ):
+        await run_async(
+            self.collection.delete,
+            ids=ids,
+            where=where,
+            where_document=where_document,
+        )
 
     async def delete_collection(self, collection_name: str):
         await run_async(self.client.delete_collection, collection_name=collection_name)
@@ -86,7 +100,7 @@ class Chroma:
             if not documents:
                 return 0
 
-        await run_async(
+        await run_async_with_retry(
             self.collection.add,
             ids=[document.hash for document in documents],
             documents=[document.text for document in documents],

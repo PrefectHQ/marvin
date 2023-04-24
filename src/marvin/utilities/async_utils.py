@@ -33,8 +33,17 @@ def create_task(coro):
 
 
 async def run_async(func, *args, **kwargs):
+    async def wrapper():
+        try:
+            return await loop.run_in_executor(
+                None, functools.partial(func, *args, **kwargs)
+            )
+        except Exception as e:
+            # propagate the exception to the caller
+            raise e
+
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, lambda: func(*args, **kwargs))
+    return await wrapper()
 
 
 def _cloudpickle_wrapper(pickle):
@@ -61,3 +70,24 @@ def as_sync_fn(fn):
         return asyncio.run(fn(*args, **kwargs))
 
     return wrapper
+
+
+def retry_async(max_retries=3, sleep_between_retries=1, exceptions=None):
+    if exceptions is None:
+        exceptions = (Exception,)
+
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            for retry_count in range(max_retries):
+                try:
+                    return await func(*args, **kwargs)
+                except exceptions as e:
+                    if retry_count < max_retries - 1:
+                        await asyncio.sleep(sleep_between_retries)
+                    else:
+                        raise e
+
+        return wrapper
+
+    return decorator

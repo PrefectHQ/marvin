@@ -1,4 +1,6 @@
 import asyncio
+import inspect
+import json
 import logging
 import re
 import warnings
@@ -29,15 +31,17 @@ from textual.widgets import (
 from textual.widgets.option_list import Option
 
 import marvin
+from marvin.bot.base import PLUGINS_REGEX
 from marvin.config import ENV_FILE
 from marvin.models.ids import MessageID, ThreadID
+from marvin.utilities.strings import jinja_env
 
 logging.basicConfig(
     level="NOTSET",
     handlers=[TextualHandler()],
 )
 
-USING_PLUGIN_REGEX = re.compile(r'{\s*"action":\s*"run-plugin",\s*"name":\s*"(.*?)"')
+ENTERING_PLUGINS_REGEX = re.compile(r'(.*){\s*"mode":\s*"plugins"', re.DOTALL)
 
 
 @marvin.ai_fn(llm_model_name="gpt-3.5-turbo", llm_model_temperature=1)
@@ -285,7 +289,7 @@ class Conversation(Container):
                     yield Label("", id="empty-thread-bot-description")
 
     async def add_response(self, response: Response, scroll: bool = True) -> None:
-        messages = self.query_one("Conversation #messages", VerticalScroll)
+        messages = self.app.query_one("Conversation #messages", VerticalScroll)
         # wait for the responses to be fully mounted before scrolling
         # to avoid issues with rendering Markdown
         await messages.mount(response)
@@ -293,11 +297,11 @@ class Conversation(Container):
             messages.scroll_end(duration=0.2)
 
         # show / hide the empty thread message
-        empty = self.query_one("Conversation #empty-thread-container")
+        empty = self.app.query_one("Conversation #empty-thread-container")
         empty.add_class("hidden")
 
     def clear_responses(self) -> None:
-        responses = self.query("Response")
+        responses = self.app.query("Response")
         for response in responses:
             response.remove()
         self.bot_name = getattr(self.app.bot, "name")
@@ -319,7 +323,7 @@ class Conversation(Container):
                     await self.add_response(BotResponse(message), scroll=False)
 
             # scroll to bottom
-            messages = self.query_one("Conversation #messages", VerticalScroll)
+            messages = self.app.query_one("Conversation #messages", VerticalScroll)
             messages.scroll_end(animate=False)
 
 
@@ -578,19 +582,39 @@ class MainScreen(Screen):
         ("n", "new_thread", "New Thread"),
         ("s", "show_settings_screen", "Show Settings"),
         ("x", "delete_thread", "Delete Thread"),
+        ("k", "scroll_up_messages", "Scroll Up"),
+        ("j", "scroll_down_messages", "Scroll Down"),
+        ("u", "page_up_messages", "Page Up"),
+        ("d", "page_down_messages", "Page Down"),
     ]
 
     def action_focus_threads(self) -> None:
-        self.query_one("#threads", Threads).focus()
+        self.app.query_one("#threads", Threads).focus()
 
     def action_focus_message(self) -> None:
-        self.query_one("#message-input", Input).focus()
+        self.app.query_one("#message-input", Input).focus()
 
     def action_show_bots_screen(self) -> None:
         self.app.push_screen(BotsScreen())
 
     def action_show_settings_screen(self) -> None:
         self.app.push_screen(SettingsScreen())
+
+    def action_scroll_up_messages(self) -> None:
+        messages = self.query_one("Conversation #messages", VerticalScroll)
+        messages.scroll_up(duration=0.1)
+
+    def action_scroll_down_messages(self) -> None:
+        messages = self.query_one("Conversation #messages", VerticalScroll)
+        messages.scroll_down(duration=0.1)
+
+    def action_page_up_messages(self) -> None:
+        messages = self.query_one("Conversation #messages", VerticalScroll)
+        messages.scroll_page_up(duration=0.1)
+
+    def action_page_down_messages(self) -> None:
+        messages = self.query_one("Conversation #messages", VerticalScroll)
+        messages.scroll_page_down(duration=0.1)
 
     def compose(self) -> ComposeResult:
         yield Sidebar(id="sidebar")
@@ -628,18 +652,41 @@ class MainScreen(Screen):
         elif event.button.id == "quit":
             self.app.exit()
 
-    async def stream_bot_response(self, token_buffer: list[str], response: BotResponse):
+    def stream_bot_response(self, token_buffer: list[str], response: BotResponse):
         streaming_response = "".join(token_buffer)
 
         if not self.app.is_mounted(response):
             conversation = self.query_one("Conversation", Conversation)
-            await conversation.add_response(response)
+            asyncio.run(conversation.add_response(response))
 
         # the bot is going to use a plugin
-        if match := USING_PLUGIN_REGEX.search(streaming_response):
-            plugin_name = match.group(1)
-            if not response.body.text == f'Using plugin "{plugin_name}"...':
-                response.body.update(f'Using plugin "{plugin_name}"...')
+        if in_autopilot := ENTERING_PLUGINS_REGEX.search(streaming_response):
+            user_update = in_autopilot.group(1).strip()
+            if user_update:
+                user_update += "\n\nEngaging autopilot..."
+            else:
+                user_update = "Engaging autopilot..."
+            try:
+                if plugins_match := PLUGINS_REGEX.search(streaming_response):
+                    payload = json.loads(plugins_match.group(1))
+                    user_update = payload.get("user_update", user_update)
+                    template = inspect.cleandoc("""
+                        {{ user_update }}
+                        
+                        {% for task in payload.get('tasks', []) %}
+                        - {{ '[x]' if task['is_complete'] else '[ ]' }} {{ task['name'] }}
+                        {% endfor %}
+                        """)  # noqa: E501
+                    response.body.update(
+                        jinja_env.from_string(template).render(
+                            user_update=user_update, payload=payload
+                        )
+                    )
+                else:
+                    response.body.update(user_update)
+            except json.JSONDecodeError:
+                response.body.update(user_update)
+
         else:
             response.message.content = streaming_response
             response.body.update(streaming_response)
@@ -661,6 +708,7 @@ class MainScreen(Screen):
                     content="",
                 )
             )
+
             response = await bot.say(
                 event.value,
                 on_token_callback=partial(
@@ -670,7 +718,7 @@ class MainScreen(Screen):
 
             # call once to populate the response in case there was any trouble
             # streaming live
-            await self.stream_bot_response(
+            self.stream_bot_response(
                 token_buffer=[response.content], response=bot_response
             )
 
@@ -765,12 +813,12 @@ class MarvinApp(App):
     is_ready: bool = False
     database_ready: bool = reactive(False)
 
-    def __init__(self, default_bot_name: str = None, **kwargs):
+    def __init__(self, default_bot: marvin.Bot = None, **kwargs):
         super().__init__(**kwargs)
 
-        if default_bot_name is None:
-            default_bot_name = "Marvin"
-        self._default_bot_name = default_bot_name
+        if default_bot:
+            default_bot.save_sync(if_exists="update")
+        self._default_bot = default_bot
 
     async def check_database(self):
         # trap warnings as errors
@@ -790,13 +838,14 @@ class MarvinApp(App):
 
     async def watch_database_ready(self, database_ready: bool) -> None:
         if database_ready:
-            try:
-                bot = await marvin.Bot.load(self._default_bot_name)
-            except HTTPException:
-                bot = marvin.bots.meta.marvin_bot
-                await bot.save(if_exists="update")
-            self.bot = bot
-
+            if self._default_bot:
+                self.bot = self._default_bot
+            else:
+                try:
+                    self.bot = await marvin.Bot.load("Marvin")
+                except HTTPException:
+                    self.bot = marvin.bots.meta.marvin_bot
+                    await self.bot.save()
             await self.bot.set_thread(self.thread_id)
             self.is_ready = True
 
@@ -834,7 +883,7 @@ class MarvinApp(App):
     def watch_bot_responding(self, is_responding: bool) -> None:
         if not self.is_ready:
             return
-        input_widget = self.query_one("#message-input", Input)
+        input_widget = self.app.query_one("#message-input", Input)
         if is_responding:
             input_widget.disabled = True
         else:

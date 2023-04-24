@@ -4,6 +4,7 @@ import marvin
 import pydantic
 import pytest
 from marvin import ai_fn
+from marvin.ai_functions import AIFunction
 from marvin.utilities.tests import assert_llm
 
 
@@ -146,7 +147,56 @@ class TestBool:
             """
 
         x = build_json()
-        assert x == "{'a': 1}"
+        assert x == '{"a": 1}'
+
+    def test_functions_are_not_run(self):
+        @ai_fn
+        def number_one() -> int:
+            """
+            Always returns 1
+            """
+            raise ValueError("This will not be raised")
+
+        result = number_one()
+        assert result == 1
+
+    def test_generators_are_run(self):
+        @ai_fn
+        def number_one() -> int:
+            """
+            Always returns 1
+            """
+            raise ValueError("This will be raised")
+            yield
+
+        with pytest.raises(ValueError, match="(This will be raised)"):
+            number_one()
+
+    async def test_async_generators_are_run(self):
+        @ai_fn
+        async def number_one() -> int:
+            """
+            Always returns 1
+            """
+            raise ValueError("This will be raised")
+            yield
+
+        with pytest.raises(ValueError, match="(This will be raised)"):
+            number_one()
+
+    def test_yield_from_function(self):
+        # assign p outside the function source code
+        p = 99
+
+        @ai_fn
+        def yielding_fn() -> int:
+            """
+            Returns -1 * a number generated at runtime.
+            """
+            yield p
+
+        result = yielding_fn()
+        assert result == -1 * p
 
 
 class TestContainers:
@@ -179,7 +229,7 @@ class TestContainers:
         assert isinstance(response[0], (int, float))
         assert isinstance(response[1], (int, float))
 
-    def test_set(self, gpt_4):
+    def test_set_gpt4(self, gpt_4):
         @ai_fn
         def set_response() -> set[int]:
             """
@@ -192,7 +242,7 @@ class TestContainers:
         assert isinstance(response.pop(), (int, float))
         assert isinstance(response.pop(), (int, float))
 
-    def test_set_35(self):
+    def test_set_gpt35(self):
         assert marvin.settings.openai_model_name.startswith("gpt-3.5")
 
         @ai_fn
@@ -201,35 +251,35 @@ class TestContainers:
             Returns a set that contains two numbers, such as {3, 5}
             """
 
+        # warn when running an ai function with a set under 3.5
         with pytest.warns(UserWarning):
-            # it may be possible to call the function without error
-            try:
-                response = set_response()
-                assert isinstance(response, set)
-            except Exception:
-                pass
+            set_response()
 
-    def test_tuple(self):
+    def test_tuple_gpt4(self, gpt_4):
         @ai_fn
         def tuple_response() -> tuple:
             """
             Returns a tuple that contains two numbers
             """
 
-        if marvin.settings.openai_model_name.startswith("gpt-3.5"):
-            with pytest.warns(UserWarning):
-                # it may be possible to call the function without error
-                try:
-                    response = tuple_response()
-                    assert isinstance(response, tuple)
-                except Exception:
-                    pass
-        else:
-            response = tuple_response()
-            assert isinstance(response, tuple)
-            assert len(response) == 2
-            assert isinstance(response[0], (int, float))
-            assert isinstance(response[1], (int, float))
+        response = tuple_response()
+        assert isinstance(response, tuple)
+        assert len(response) == 2
+        assert isinstance(response[0], (int, float))
+        assert isinstance(response[1], (int, float))
+
+    def test_tuple_gpt35(self):
+        assert marvin.settings.openai_model_name.startswith("gpt-3.5")
+
+        @ai_fn
+        def tuple_response() -> tuple:
+            """
+            Returns a tuple that contains two numbers
+            """
+
+        # warn when running an ai function with a tuple under 3.5
+        with pytest.warns(UserWarning):
+            tuple_response()
 
     def test_list_of_dicts(self):
         @ai_fn
@@ -338,3 +388,32 @@ class TestPydantic:
         x = fn()
         assert isinstance(x, ReturnModel)
         assert len(x.people) == 2
+
+
+class TestAIFunctionClass:
+    def test_decorated_function_is_class(self):
+        @ai_fn
+        def my_fn() -> int:
+            """returns 1"""
+
+        assert isinstance(my_fn, AIFunction)
+
+    def test_repr(self):
+        @ai_fn
+        def my_fn() -> int:
+            """returns 1"""
+
+        assert repr(my_fn) == "<AIFunction my_fn>"
+
+    def test_name(self):
+        fn = AIFunction(name="my_fn", fn=lambda: 1, description="returns 1")
+        assert fn.name == "my_fn"
+        assert fn.description == "returns 1"
+
+    def test_name_from_fn(self):
+        @ai_fn
+        def my_fn() -> int:
+            """returns 1"""
+
+        assert my_fn.name == "my_fn"
+        assert my_fn.description == "returns 1"

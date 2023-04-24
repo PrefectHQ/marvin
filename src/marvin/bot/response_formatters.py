@@ -5,9 +5,11 @@ from types import GenericAlias
 from typing import Any, Literal, Union
 
 import pydantic
+from dateutil.rrule import rrulestr
 from pydantic import BaseModel, Field, PrivateAttr
 
 import marvin
+from marvin.utilities.strings import condense_newlines
 from marvin.utilities.types import (
     DiscriminatedUnionType,
     LoggerMixin,
@@ -23,12 +25,18 @@ class ResponseFormatter(DiscriminatedUnionType, LoggerMixin):
     format: str = Field(None, description="The format of the response")
     on_error: Literal["reformat", "raise", "ignore"] = "reformat"
 
-    def validate_response(self, response):
+    def validate_response(self, response: str):
         # by default, try to parse the response to validate it
         self.parse_response(response)
 
-    def parse_response(self, response):
+    def parse_response(self, response: str) -> str:
         return response
+
+
+class StringFormatter(ResponseFormatter):
+    format: str = (
+        "The response will be parsed as a string. Do not add unecessary quotes."
+    )
 
 
 class JSONFormatter(ResponseFormatter):
@@ -127,11 +135,15 @@ class TypeFormatter(ResponseFormatter):
                 return str(json.loads(response))
             return pydantic.parse_raw_as(type_, response)
         except Exception as exc:
-            raise ValueError(
-                f"Could not parse response as type. Response: '{response}'. Type:"
-                f" '{type_}'. Format: '{self.format}'. Error from parsing:"
-                f" '{exc}'"
-            )
+            # if an error should be raised, make it highly informative
+            if self.on_error == "raise":
+                raise ValueError(
+                    f"Could not parse response as type. Response: '{response}'. Type:"
+                    f" '{type_}'. Format: '{self.format}'. Error from parsing:"
+                    f" '{repr(exc)}'"
+                )
+            else:
+                raise
 
 
 class PydanticFormatter(ResponseFormatter):
@@ -181,18 +193,40 @@ class PydanticFormatter(ResponseFormatter):
         return pydantic.parse_raw_as(self.get_model(), response)
 
 
+class RRuleFormatter(ResponseFormatter):
+    format: str = condense_newlines("""    
+        A valid RRULE (RFC 5545) string that can be parsed by
+        dateutil.rrule.rrulestr(). Each property (RRULE, DTSTART, EXDATE, etc.)
+        should be on a new line, and parameters (FREQ, BYHOUR, INTERVAL, etc.)
+        should be separated by semicolons. Round off hours/minutes/seconds to 0
+        if not specified.
+        
+        The result must be a string delimited by optional newlines, not a JSON object.
+        """)
+
+    def validate_response(self, response: str):
+        rrulestr(response)
+
+
 def load_formatter_from_shorthand(shorthand_response_format) -> ResponseFormatter:
     if shorthand_response_format is None:
         return ResponseFormatter()
     elif isinstance(shorthand_response_format, ResponseFormatter):
         return shorthand_response_format
+    elif shorthand_response_format is str:
+        return StringFormatter()
     elif shorthand_response_format is bool:
         return BooleanFormatter()
     elif isinstance(shorthand_response_format, str):
         if re.search(r"\bjson\b", shorthand_response_format.lower()):
             return JSONFormatter(format=shorthand_response_format)
         else:
-            return ResponseFormatter(format=shorthand_response_format)
+            return ResponseFormatter(
+                format=(
+                    "A response that complies with the instruction"
+                    f" '{shorthand_response_format}', and nothing else."
+                )
+            )
     elif genericalias_contains(shorthand_response_format, pydantic.BaseModel):
         return PydanticFormatter(model=shorthand_response_format)
     elif isinstance(shorthand_response_format, (type, GenericAlias)):

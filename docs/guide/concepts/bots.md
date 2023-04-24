@@ -78,7 +78,16 @@ Bots can be loaded with the `Bot.load()` method.
 ```python
 bot = await Bot.load("Ford")
 ```
+### Interactive Chats
+To quickly jump into an interactive chat with a bot:
 
+```python
+bot.interactive_chat()
+```
+
+This will launch the Marvin TUI with the current bot already selected. Note this will also save the bot to the database, overwriting any existing bot with the same name. 
+
+To launch a simpler experience, pass `tui=False` when you call the function.
 ### Streaming responses
 By default, bots process an entire response and return it as a structured object. However, you can get a streaming response by providing a custom `on_token_callback` function. Every time the bot generates a token, the callback will be called with a buffer of all the tokens generated to that point. You can access the most recent token as `buffer[-1]`. 
 
@@ -145,7 +154,7 @@ Personality affects the style of a bot's responses. For example different bots c
 By combining personality and instructions, bot instances can produce complex behavior that can be very different from what users might expect from a chat interface. For example, you could instruct a bot to always respond in a certain way, but use personality to have it act a role (such as a coach, engineer, or therapist).
 
 ### Plugins
-[Plugins](./plugins/) allow bots to access new information and functionality. By default, bots have plugins that let them browse the internet, visit URLs, and run simple calculations.
+[Plugins](/guide/concepts/plugins) allow bots to access new information and functionality. By default, bots have plugins that let them browse the internet, visit URLs, and run simple calculations.
 
 ### Formatting responses
 

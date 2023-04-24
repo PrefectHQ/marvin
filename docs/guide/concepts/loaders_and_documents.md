@@ -43,11 +43,11 @@ from marvin.models.metadata import Metadata
 
 my_document = Document(
     text="This is a document.",
-    metadata=Metadata(
-        title="My Document",
-        link="https://www.example.com",
-        random_metadata_field="This is very important to me!"
-    )
+    metadata={
+        "title": "My Document",
+        "link": "https://www.example.com",
+        "random_metadata_field": "This is very important to me!"
+    }
 )
 ```
 
@@ -56,7 +56,7 @@ my_document = Document(
 
 ```python
 # using the same document as above
-my_document.to_excerpts()
+await my_document.to_excerpts()
 
 # yields
 [
@@ -164,13 +164,16 @@ class PokemonLoader(Loader):
             excerpts.extend(await document.to_excerpts())
         
         return excerpts
+        
+if __name__ == "__main__":
+    print(asyncio.run(PokemonLoader().load()))
 ```
-> ‼️ **Note:**
->
-> Like most of the code in Marvin, the `load` method must be `async`.
+
+!!! note
+
+    Like most of the code in Marvin, the `load` method must be `async`.
 
 
 **Try it out!**
-- Copy the above code.
-- Paste it into a Python script or `jupyter notebook`.
-- Run `await PokemonLoader(limit=5).load()`.
+- Copy the above code into a Python script or `jupyter notebook`.
+- Run the script or cell.

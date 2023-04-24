@@ -5,13 +5,17 @@ from fastapi.responses import JSONResponse, RedirectResponse
 
 import marvin
 
+from .slackbot import router as slackbot_router
+from .slackbot import startup as slackbot_startup
+
 logger = marvin.get_logger("app")
 
-routers = (
+routers = [
     marvin.api.bots.router,
     marvin.api.topics.router,
     marvin.api.threads.router,
-)
+    slackbot_router,
+]
 
 
 app = FastAPI(title="Marvin", version=marvin.__version__)
@@ -42,3 +46,8 @@ def hello():
 @app.get("/health", tags=["Admin"])
 def health():
     return True
+
+
+@app.on_event("startup")
+async def startup():
+    await slackbot_startup()

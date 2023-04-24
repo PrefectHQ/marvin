@@ -115,9 +115,13 @@ def get_llm(
                 [StreamingCallbackHandler(on_token_callback=on_token_callback)]
             ),
         )
+    if model_name is None:
+        model_name = marvin.settings.openai_model_name
+    if temperature is None:
+        temperature = marvin.settings.openai_model_temperature
     return ChatOpenAI(
-        model_name=model_name or marvin.settings.openai_model_name,
-        temperature=temperature or marvin.settings.openai_model_temperature,
+        model_name=model_name,
+        temperature=temperature,
         openai_api_key=(
             openai_api_key or marvin.settings.openai_api_key.get_secret_value()
         ),

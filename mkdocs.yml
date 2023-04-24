@@ -22,8 +22,13 @@ nav:
       - Loaders: guide/concepts/loaders_and_documents.md
       - Infrastructure: guide/concepts/infra.md
       - Plugins: guide/concepts/plugins.md
-    - Examples:
-      - Enforcing AI format: guide/use_cases/enforcing_format.md
+    - AI Functions Library:
+      - Entity extraction: guide/ai_functions/entities.md
+      - Data: guide/ai_functions/data.md
+      - Strings: guide/ai_functions/strings.md
+    - Use Cases:
+      - Enforcing LLM output formats: guide/use_cases/enforcing_format.md
+      - Slackbot: guide/use_cases/slackbot.md
     - Development:
       - Setting up: development/development.md
   - FAQ: faq.md

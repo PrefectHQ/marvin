@@ -3,6 +3,7 @@ from typing import Any, Callable, Optional
 import pendulum
 from pydantic import Field
 
+import marvin
 from marvin.infra.chroma import Chroma
 from marvin.plugins import Plugin, plugin
 from marvin.utilities.strings import extract_keywords
@@ -32,37 +33,50 @@ def build_keyword_filter(keywords: list[str]) -> dict:
     return {"$or": filters}
 
 
-async def query_chroma(**query_kwargs) -> str:
-    async with Chroma() as chroma:
-        query_result = await chroma.query(**query_kwargs)
+async def query_chroma(
+    query: str,
+    where: Optional[dict[str, Any]] = None,
+    where_document: Optional[dict[str, Any]] = None,
+    n_results: int = 4,
+    include: Optional[list[str]] = ["documents"],
+    topic: str = None,
+) -> str:
+    async with Chroma(topic or marvin.settings.default_topic) as chroma:
+        query_result = await chroma.query(
+            query_texts=[query],
+            where=where,
+            where_document=where_document,
+            n_results=n_results,
+            include=include,
+        )
 
     return "\n\n".join(
         excerpt for excerpts in query_result["documents"] for excerpt in excerpts
     )
 
 
-async def keyword_query_chroma(query: str, where: dict, n: int = 4) -> str:
+async def keyword_query_chroma(query: str, where: dict, n: int = 4, topic=None) -> str:
     keywords = await extract_keywords(query)
 
-    query_kwargs = dict(
-        query_texts=[query],
+    return await query_chroma(
+        query=query,
         n_results=n,
         include=["documents"],
         where=build_metadata_filter(where) if where else None,
         where_document=build_keyword_filter(keywords) if keywords else None,
+        topic=topic,
     )
-
-    return await query_chroma(**query_kwargs)
 
 
 class SimpleChromaSearch(Plugin):
     description: str = (
-        "Semantic search for relevant documents."
+        "Use this plugin to search for relevant documents."
         " To use this plugin, simply provide a natural language `query`"
         " and relevant document excerpts will be returned to you."
     )
 
     keywords: list[str] = Field(default_factory=list)
+    topic: Optional[str] = None
 
     def get_full_description(self) -> str:
         base_description = super().get_full_description()
@@ -76,7 +90,7 @@ class SimpleChromaSearch(Plugin):
         return base_description
 
     async def run(self, query: str) -> str:
-        return await keyword_query_chroma(query, where=None)
+        return await keyword_query_chroma(query, where=None, topic=self.topic)
 
 
 """ --- decorator plugin definition ---
@@ -92,6 +106,7 @@ Best with GPT-4.
 
 
 def apply_fn_to_field(data: dict, field: str, visit_fn: Callable) -> dict:
+    """Apply a function to a field in a nested dictionary"""
     for key, value in data.items():
         if key == field:
             data[key] = visit_fn(value)
@@ -113,26 +128,32 @@ async def chroma_search(
     query: str,
     where: Optional[dict[str, Any]] = None,
     where_document: Optional[dict[str, Any]] = None,
+    topic: Optional[str] = None,
 ) -> str:
     """
-    query (str): A verbose natural language query.
-    where (dict): A dictionary of filters to refine a search. Valid operators
+    Use `chroma_search` to find relevant documents based on a natural language query,
+    and optionally filter the results by metadata or document text.
+
+    query: A verbose natural language query.
+    where: A dictionary of filters to refine a search. Valid operators
         are `$eq`, `$ne`, `$gt`, `$gte`, `$lt`, `$lte`. For example, to filter
-        for info after Feb 1 2017, include "created_at" --> "$gte": "2017-02-01".
+        for info after Feb 1 2017, include {"created_at": {"$gte": "2017-02-01"}}.
         You may `$and` or `$or` a list of many such filters together, and only
         one metadata field can be present in a single filter.
-    where_document (dict): A dictionary to filter search results by keywords.
+    where_document: A dictionary to filter search results by keywords.
         The only valid operator is `$contains`. For example, to find documents
-        containing the word "python", use "$contains" --> "python". You may `$and`
+        containing the word "python", use {"$contains": "python"}. You may `$and`
         or `$or` multiple such filters together, the operator being the outer key.
+    topic (str): The topic to search for documents in. Do not specify this argument
+        if the user does not explicitly specify a topic.
     """
 
     where = apply_fn_to_field(where, "created_at", iso_to_timestamp) if where else None
 
     return await query_chroma(
-        query_texts=[query],
+        query=query,
         n_results=4,
-        include=["documents"],
         where=where,
         where_document=where_document if where_document else None,
+        topic=topic,
     )

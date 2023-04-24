@@ -5,14 +5,12 @@ import pydantic
 import pytest
 from marvin import Bot
 from marvin.bot.response_formatters import ResponseFormatter
-from marvin.utilities.strings import condense_newlines, jinja_env
+from marvin.utilities.strings import condense_newlines
 from marvin.utilities.types import format_type_str
 
-custom_instructions_template = inspect.cleandoc(
-    """
+custom_instructions_template = inspect.cleandoc("""
     Your instructions are: {{ instructions }}
-    """
-)
+    """)
 
 
 class TestCreateBots:
@@ -45,21 +43,6 @@ class TestCreateBots:
         assert bot.name == marvin.bot.base.DEFAULT_NAME
         assert bot.personality == condense_newlines(marvin.bot.base.DEFAULT_PERSONALITY)
         assert bot.instructions == "Test Instructions"
-
-    async def test_create_bot_with_custom_instruction_template(self):
-        bot = Bot(
-            instructions="Test Instructions",
-            instructions_template=custom_instructions_template,
-        )
-        assert bot.name == marvin.bot.base.DEFAULT_NAME
-        assert bot.personality == condense_newlines(marvin.bot.base.DEFAULT_PERSONALITY)
-        assert bot.instructions == "Test Instructions"
-        assert (
-            jinja_env.from_string(bot.instructions_template).render(
-                instructions="Test Instructions"
-            )
-            == "Your instructions are: Test Instructions"
-        )
 
 
 class TestSaveBots:
@@ -174,20 +157,6 @@ class TestSaveBots:
         assert loaded_bot.instructions == bot1.instructions
         assert loaded_bot.id == bot1.id
 
-    async def test_save_bot_with_custom_instructions_template(self):
-        bot = Bot(
-            instructions="Test Instructions",
-            instructions_template=custom_instructions_template,
-        )
-        await bot.save()
-        loaded_bot = await Bot.load(bot.name)
-        assert (
-            jinja_env.from_string(loaded_bot.instructions_template).render(
-                instructions="Test Instructions"
-            )
-            == "Your instructions are: Test Instructions"
-        )
-
 
 class TestResponseFormat:
     async def test_default_response_formatter(self):
@@ -202,7 +171,7 @@ class TestResponseFormat:
             bot.response_format, marvin.bot.response_formatters.ResponseFormatter
         )
 
-        assert bot.response_format.format == "list of strings"
+        assert "list of strings" in bot.response_format.format
 
     async def test_response_formatter_from_json_string(self):
         bot = Bot(response_format="JSON list of strings")

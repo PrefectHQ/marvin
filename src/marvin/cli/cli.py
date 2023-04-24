@@ -80,7 +80,12 @@ def chat(
 ):
     from marvin.cli.tui import MarvinApp
 
-    app = MarvinApp(default_bot_name=bot)
+    try:
+        bot = marvin.Bot.load_sync(name=bot)
+    except Exception as exc:
+        marvin.get_logger().warning(exc)
+        bot = None
+    app = MarvinApp(default_bot=bot)
     app.run()
 
 

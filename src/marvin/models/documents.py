@@ -55,8 +55,8 @@ async def _create_excerpt(
         else None
     )
 
-    excerpt_text = excerpt_template.render(
-        document=document.copy_with_updates(type="excerpt"),
+    excerpt_text = await excerpt_template.render_async(
+        document=document,
         excerpt_text=text,
         keywords=", ".join(keywords),
         minimap=minimap,
@@ -126,7 +126,7 @@ class Document(MarvinBaseModel):
     ) -> list["Document"]:
         """
         Create document excerpts by chunking the document text into regularly-sized
-        chunks and adding a "minimap" directory to the top.
+        chunks and adding a "minimap" directory to the top (if document is markdown).
 
         Args:
             excerpt_template: A jinja2 template to use for rendering the excerpt.

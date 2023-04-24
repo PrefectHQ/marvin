@@ -43,7 +43,7 @@ spinner_messages = [
 ]
 
 
-async def chat(bot: Bot, first_message: str = None):
+def chat(bot: Bot, first_message: str = None):
     rprint(f"\n[bold blue]:robot::speech_balloon: {bot.name}[/] is listening...")
 
     try:
@@ -69,7 +69,7 @@ async def chat(bot: Bot, first_message: str = None):
             if message == "exit":
                 raise KeyboardInterrupt()
             elif message == "!forget":
-                await bot.reset_thread()
+                bot.reset_thread_sync()
                 rprint(
                     Panel(
                         (
@@ -95,7 +95,7 @@ async def chat(bot: Bot, first_message: str = None):
                 progress.add_task(
                     description=random.choice(spinner_messages), total=None
                 )
-                response = await bot.say(message)
+                response = bot.say_sync(message)
             rprint(
                 Panel(
                     response.content,

@@ -76,7 +76,7 @@ class TestResponseFormatShorthand:
 
     async def test_list_str(self):
         bot = Bot(
-            instructions="solve the math problems and return only the answer",
+            instructions="solve each math problem and return only the answers",
             response_format=list[str],
         )
         response = await bot.say("Problem 1: 1 + 1\n\nProblem 2: 2 + 2")
@@ -86,20 +86,23 @@ class TestResponseFormatShorthand:
 
     async def test_natural_language_list(self):
         bot = Bot(
-            instructions="solve the math problems and return only the answer",
+            instructions="solve each math problem and return only the answers",
             response_format="a list of strings",
         )
         response = await bot.say("Problem 1: 1 + 1\n\nProblem 2: 2 + 2")
         assert_llm(response.parsed_content, '["2", "4"]')
 
     async def test_natural_language_list_2(self):
-        bot = Bot(instructions="list the keywords", response_format="a list of strings")
+        bot = Bot(
+            instructions="list any keywords",
+            response_format="a list of strings",
+        )
         response = await bot.say("The keywords are apple, banana, and cherry")
         assert response.parsed_content == '["apple", "banana", "cherry"]'
 
     async def test_natural_language_list_with_json_keyword(self):
         bot = Bot(
-            instructions="solve the math problems and return only the answer",
+            instructions="solve each math problem and return only the answers",
             response_format="a JSON list of strings",
         )
         response = await bot.say("Problem 1: 1 + 1\n\nProblem 2: 2 + 2")
