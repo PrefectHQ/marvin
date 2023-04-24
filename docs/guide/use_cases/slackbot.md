@@ -1,7 +1,7 @@
 # Running a Marvin-powered Slackbot
 
 !!! note
-    This guide assumes you have already created a Slack app and have a bot user. If you haven't, you can follow the [Slack documentation](https://api.slack.com/start/building) to get started. You'll need an app with `app_mentions:read` and `chat:write`
+    This guide assumes you have already created a Slack app and have a bot user. If you haven't created an app, you can follow the [Slack documentation](https://api.slack.com/start/building). You'll need an app with `app_mentions:read` and `chat:write`
     permissions.
 
 
