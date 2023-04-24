@@ -46,26 +46,23 @@ def rrule(text: str) -> str:
     """
     Write an RRULE (RFC 5545) that represents the provided `text`.
 
-    Avoid specific dates and EXDATE properties unless the `text` explicitly says
+    Do not reference specific dates or EXDATE unless the `text` explicitly says
     to. For example:
 
-    "Every day at 9am except Wednesday" ->
-    "RRULE:FREQ=DAILY;BYHOUR=9;BYMINUTE=0;BYSECOND=0;BYDAY=MO,TU,TH,FR,SA,SU"
+    # no specifc dates...
 
-    "Every week on Monday for 5 weeks" ->
-    "RRULE:FREQ=WEEKLY;COUNT=5;BYDAY=MO;BYHOUR=0;BYMINUTE=0;BYSECOND=0"
+    "Every day at 9am except Wednesday" -> RRULE:FREQ=DAILY;BYHOUR=9;BYMINUTE=0;BYSECOND=0;BYDAY=MO,TU,TH,FR,SA,SU
 
-    "Every 3 hours on Thursdays except 12pm" ->
-    "RRULE:FREQ=WEEKLY;INTERVAL=3;BYDAY=TH;BYHOUR=0,3,6,9,15,18,21;BYMINUTE=0;BYSECOND=0"
+    "Every week on Monday for 5 weeks" -> RRULE:FREQ=WEEKLY;COUNT=5;BYDAY=MO;BYHOUR=0;BYMINUTE=0;BYSECOND=0
+
+    "Every 3 hours on Thursdays except 12pm" -> RRULE:FREQ=WEEKLY;INTERVAL=3;BYDAY=TH;BYHOUR=0,3,6,9,15,18,21;BYMINUTE=0;BYSECOND=0
 
     # if today's date is April 22, 2023
 
-    "Every day at 9am except tomorrow" ->
-    "RRULE:FREQ=DAILY;BYHOUR=9;BYMINUTE=0;BYSECOND=0\nEXDATE:20230423T130000Z"
+    "Every day at 9am except tomorrow" -> RRULE:FREQ=DAILY;BYHOUR=9;BYMINUTE=0;BYSECOND=0\nEXDATE:20230423T130000Z
 
-    "Every week on Monday until May 31" ->
-    "RRULE:FREQ=WEEKLY;UNTIL=20230531T000000Z;BYDAY=MO;BYHOUR=0;BYMINUTE=0;BYSECOND=0"
+    "Every week on Monday until May 31" -> RRULE:FREQ=WEEKLY;UNTIL=20230531T000000Z;BYDAY=MO;BYHOUR=0;BYMINUTE=0;BYSECOND=0
 
-    """
+    """  # noqa: E501
     # yield the current date and time to help with relative dates
     yield pendulum.now().format("dddd, MMMM D, YYYY HH:mm ZZ")
