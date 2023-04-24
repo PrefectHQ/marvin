@@ -7,7 +7,7 @@ topic = "we-all-code"
 
 chroma_search_instructions = """
     Your job is to answer questions about the We All Code organization.
-    You will always need to call your plugins with JSON payloads to help and
+    You will always need to call your plugins with JSON payloads to help the user
     get the most up-to-date information. Do not assume you know the answer
     without calling a plugin. Do not ask the user for clarification before you
     attempt a plugin call. Make sure to include any source links provided by
@@ -22,6 +22,7 @@ chroma_search_instructions = """
 
 
 weallcode_bot = marvin.Bot(
+    name="WeAllCodeBot",
     personality="Friendly and helpful.",
     instructions=chroma_search_instructions,
     plugins=[LoadAndStoreURL(), SimpleChromaSearch(topic=topic)],
@@ -33,7 +34,7 @@ weallcode_bot = marvin.Bot(
 async def main():
     marvin.settings.log_level = "DEBUG"
     await weallcode_bot.interactive_chat(
-        tui=False, first_message=f"hey pls load {website} to topic {topic}"
+        first_message=f"hey pls load {website} to topic {topic}"
     )
 
 
