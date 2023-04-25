@@ -5,21 +5,11 @@ from marvin.loaders import (
     github,
     web,
 )
-from marvin.plugins import (
-    chroma as chroma_plugins,
-)
-from marvin.plugins import (
-    duckduckgo as ddg_plugins,
-)
-from marvin.plugins import (
-    github as github_plugins,
-)
-from marvin.plugins import (
-    prefect_stuff as prefect_plugins,
-)
-from marvin.plugins import (
-    stack_exchange as se_plugins,
-)
+from marvin.plugins.chroma import chroma_search
+from marvin.plugins.duckduckgo import DuckDuckGo
+from marvin.plugins.github import search_github_issues
+from marvin.plugins.prefect_stuff import review_flow_run
+from marvin.plugins.stack_exchange import search_stack_exchange
 
 # Discourse categories
 SHOW_AND_TELL_CATEGORY_ID = 26
@@ -144,11 +134,11 @@ community_bot = Bot(
     ),
     instructions=instructions,
     plugins=[
-        chroma_plugins.chroma_search,
-        ddg_plugins.DuckDuckGo(),
-        github_plugins.search_github_issues,
-        prefect_plugins.review_flow_run,
-        se_plugins.search_stack_exchange,
+        chroma_search,
+        DuckDuckGo(),
+        search_github_issues,
+        review_flow_run,
+        search_stack_exchange,
     ],
     llm_model_name="gpt-4",
     llm_model_temperature=0.2,
@@ -159,8 +149,6 @@ async def main():
     # await load_prefect_things()
 
     await community_bot.save(if_exists="update")
-
-    await community_bot.interactive_chat(tui=False)
 
 
 if __name__ == "__main__":
