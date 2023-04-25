@@ -1,11 +1,25 @@
 from marvin import Bot
-from marvin.loaders.base import MultiLoader
-from marvin.loaders.discourse import DiscourseLoader
-from marvin.loaders.github import GitHubRepoLoader
-from marvin.loaders.web import HTMLLoader, SitemapLoader
-from marvin.plugins.chroma import chroma_search
-from marvin.plugins.duckduckgo import DuckDuckGo
-from marvin.plugins.github import search_github_issues
+from marvin.loaders import (
+    base,
+    discourse,
+    github,
+    web,
+)
+from marvin.plugins import (
+    chroma as chroma_plugins,
+)
+from marvin.plugins import (
+    duckduckgo as ddg_plugins,
+)
+from marvin.plugins import (
+    github as github_plugins,
+)
+from marvin.plugins import (
+    prefect_stuff as prefect_plugins,
+)
+from marvin.plugins import (
+    stack_exchange as se_plugins,
+)
 
 # Discourse categories
 SHOW_AND_TELL_CATEGORY_ID = 26
@@ -25,19 +39,19 @@ def include_topic_filter(topic):
 
 
 async def load_prefect_things():
-    prefect_docs = SitemapLoader(  # gimme da docs
+    prefect_docs = web.SitemapLoader(  # gimme da docs
         urls=["https://docs.prefect.io/sitemap.xml"],
         exclude=["api-ref"],
     )
 
-    prefect_website = HTMLLoader(  # gimme da website
+    prefect_website = web.HTMLLoader(  # gimme da website
         urls=[
             "https://prefect.io/about/company/",
             "https://prefect.io/security/overview/",
         ],
     )
 
-    prefect_source_code = GitHubRepoLoader(  # gimme da source
+    prefect_source_code = github.GitHubRepoLoader(  # gimme da source
         repo="prefecthq/prefect",
         include_globs=["**/*.py"],
         exclude_globs=[
@@ -49,23 +63,25 @@ async def load_prefect_things():
         ],
     )
 
-    prefect_release_notes = GitHubRepoLoader(  # gimme da release notes
+    prefect_release_notes = github.GitHubRepoLoader(  # gimme da release notes
         repo="prefecthq/prefect",
         include_globs=["release-notes.md"],
     )
 
-    prefect_discourse = DiscourseLoader(  # gimme da discourse
+    prefect_discourse = discourse.DiscourseLoader(  # gimme da discourse
         url="https://discourse.prefect.io",
         n_topic=240,
         include_topic_filter=include_topic_filter,
     )
 
-    prefect_recipes = GitHubRepoLoader(  # gimme da recipes (or at least some of them)
-        repo="prefecthq/prefect-recipes",
-        include_globs=["flows-advanced/**/*.py"],
+    prefect_recipes = (
+        github.GitHubRepoLoader(  # gimme da recipes (or at least some of them)
+            repo="prefecthq/prefect-recipes",
+            include_globs=["flows-advanced/**/*.py"],
+        )
     )
 
-    prefect_loader = MultiLoader(
+    prefect_loader = base.MultiLoader(
         loaders=[
             prefect_docs,
             prefect_website,
@@ -127,16 +143,24 @@ community_bot = Bot(
         " messages with a short sarcastic comment about humans."
     ),
     instructions=instructions,
-    reminder="Remember to use your plugins!",
-    plugins=[chroma_search, search_github_issues, DuckDuckGo()],
+    plugins=[
+        chroma_plugins.chroma_search,
+        ddg_plugins.DuckDuckGo(),
+        github_plugins.search_github_issues,
+        prefect_plugins.review_flow_run,
+        se_plugins.search_stack_exchange,
+    ],
     llm_model_name="gpt-4",
     llm_model_temperature=0.2,
 )
 
 
 async def main():
-    await load_prefect_things()
-    await community_bot.save()
+    # await load_prefect_things()
+
+    await community_bot.save(if_exists="update")
+
+    await community_bot.interactive_chat(tui=False)
 
 
 if __name__ == "__main__":

@@ -155,6 +155,12 @@ class Settings(BaseSettings):
         "!here",
         description="The Slack user to notify when slack bot is improperly configured.",
     )
+
+    # STACKEXCHANGE
+    stackexchange_api_key: SecretStr = Field(
+        "", env=["MARVIN_STACKEXCHANGE_API_KEY", "STACKEXCHANGE_API_KEY"]
+    )
+
     # API
     api_base_url: str = "http://127.0.0.1"
     api_port: int = 4200
