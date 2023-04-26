@@ -143,7 +143,6 @@ community_bot = Bot(
         review_flow_run,
         search_stack_exchange,
     ],
-    plugins=[chroma_search, search_github_issues, DuckDuckGo()],
     llm_model_name="gpt-4",
     llm_model_temperature=0.2,
 )
