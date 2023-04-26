@@ -69,7 +69,8 @@ class Chroma:
 
     async def __aexit__(self, exc_type, exc_value, traceback):
         self._in_context = False
-        await run_async(self.client.persist)
+        if marvin.settings.chroma.chroma_db_impl != "clickhouse":
+            await run_async(self.client.persist)
 
     async def delete(
         self,
@@ -107,7 +108,10 @@ class Chroma:
             metadatas=[document.metadata.dict() for document in documents],
         )
 
-        if not self._in_context:
+        if (
+            not self._in_context
+            and marvin.settings.chroma.chroma_db_impl != "clickhouse"
+        ):
             await run_async(self.client.persist)
         return len(documents)
 

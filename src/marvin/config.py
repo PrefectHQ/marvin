@@ -33,9 +33,11 @@ if CHROMA_INSTALLED:
     class ChromaSettings(chromadb.config.Settings):
         class Config:
             env_file = ".env", str(ENV_FILE)
-            env_prefix = "MARVIN_CHROMA_"
+            env_prefix = "MARVIN_"
 
-        chroma_db_impl: Literal["duckdb", "duckdb+parquet"] = "duckdb+parquet"
+        chroma_db_impl: Literal["duckdb", "duckdb+parquet", "clickhouse"] = (
+            "duckdb+parquet"
+        )
         chroma_server_host: str = "localhost"
         chroma_server_http_port: int = 8000
         # relative paths will be prefixed with the marvin home directory

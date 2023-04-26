@@ -38,6 +38,9 @@ async def load_prefect_things():
         urls=[
             "https://prefect.io/about/company/",
             "https://prefect.io/security/overview/",
+            "https://prefect.io/security/sub-processors/",
+            "https://prefect.io/security/gdpr-compliance/",
+            "https://prefect.io/security/bug-bounty-program/",
         ],
     )
 
@@ -140,14 +143,14 @@ community_bot = Bot(
         review_flow_run,
         search_stack_exchange,
     ],
+    plugins=[chroma_search, search_github_issues, DuckDuckGo()],
     llm_model_name="gpt-4",
     llm_model_temperature=0.2,
 )
 
 
 async def main():
-    # await load_prefect_things()
-
+    await load_prefect_things()
     await community_bot.save(if_exists="update")
 
 
