@@ -1,7 +1,9 @@
 # Running a Marvin-powered Slackbot
 
 !!! note
-    This guide assumes you have already created a Slack app and have a bot user. If you haven't, you can follow the [Slack documentation](https://api.slack.com/start/building) to get started.
+    This guide assumes you have already created a Slack app and have a bot user. If you haven't created an app, you can follow the [Slack documentation](https://api.slack.com/start/building). You'll need an app with `app_mentions:read` and `chat:write`
+    permissions.
+
 
 Marvin now ships with endpoints supporting a customizable Slackbot that runs directly within the `marvin` FastAPI application.
 
@@ -27,8 +29,9 @@ bot.save_sync()
 Marvin will discover these settings whether you set them in a project `.env` file or in your shell config, let's set:
 ```environment
 MARVIN_OPENAI_API_KEY=<your openai api key>
-MARVIN_SLACK_BOT_TOKEN=<your slack api token>
+MARVIN_SLACK_API_TOKEN=<your slack api token>
 MARVIN_SLACK_BOT_NAME=<your bot name ("Suspiciously Nice Bot" in this example)>
+MARVIN_SLACK_BOT_ADMIN_USER=@<your slack user id>
 MARVIN_LOG_LEVEL=DEBUG
 ```
 and that's it! We can now use something like `ngrok` to get ourselves a public IP to hit from Slack:
