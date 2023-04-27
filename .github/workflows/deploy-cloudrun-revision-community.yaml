@@ -1,0 +1,36 @@
+---
+name: Deploy new revision of marvin internal bot cloudrun service
+
+on:
+  workflow_dispatch: {}
+
+# Do not grant jobs any permissions by default
+permissions: {}
+
+jobs:
+  deploy_cloudrun_revision:
+    name: Deploy revision with latest image
+    runs-on: ubuntu-latest
+    permissions:
+      # required to read from the repo
+      contents: read
+      # required to obtain Google Cloud service account credentials
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Authenticate to google cloud
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ vars.GHA_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: marvin-workflow-main@prefect-org-github-actions.iam.gserviceaccount.com
+
+      - name: Deploy revision
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          image: us-docker.pkg.dev/prefect-prd-internal-tools/marvin/marvin-internal-bot:latest
+          project_id: prefect-prd-internal-tools
+          region: us-east1
+          service: marvin-internal-bot

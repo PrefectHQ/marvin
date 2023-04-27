@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - .github/workflows/image-build-and-push.yaml
+      - .github/workflows/image-build-and-push-community.yaml
       - examples/slackbot/community_bot/**
       - src/marvin/api/slackbot/**
   schedule:
@@ -97,7 +97,7 @@ jobs:
 
       - name: Trigger cloudrun revision deploy workflow
         run: |
-          gh workflow run deploy-cloudrun-revision.yaml \
+          gh workflow run deploy-cloudrun-revision-community.yaml \
             --ref main
         env:
           GITHUB_TOKEN: ${{ github.token }}
