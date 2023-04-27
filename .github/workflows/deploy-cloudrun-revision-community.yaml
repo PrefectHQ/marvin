@@ -1,5 +1,5 @@
 ---
-name: Deploy new revision of marvin internal bot cloudrun service
+name: Deploy new revision of marvin community bot cloudrun service
 
 on:
   workflow_dispatch: {}
@@ -30,7 +30,7 @@ jobs:
       - name: Deploy revision
         uses: google-github-actions/deploy-cloudrun@v1
         with:
-          image: us-docker.pkg.dev/prefect-prd-internal-tools/marvin/marvin-internal-bot:latest
-          project_id: prefect-prd-internal-tools
+          image: us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:latest
+          project_id: prefect-prd-external-tools
           region: us-east1
-          service: marvin-internal-bot
+          service: marvin-community-bot
