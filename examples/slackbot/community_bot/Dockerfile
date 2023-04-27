@@ -6,7 +6,7 @@ RUN python -m venv venv
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN pip install git+https://github.com/PrefectHQ/marvin.git#egg=marvin[chromadb]
+RUN pip install git+https://github.com/PrefectHQ/marvin.git@refactor-slackbot#egg=marvin[chromadb]
 
 RUN pip uninstall uvloop -y
 
