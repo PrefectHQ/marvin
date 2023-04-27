@@ -148,5 +148,7 @@ community_bot = Bot(
 )
 
 if __name__ == "__main__":
-    # asyncio.run(load_prefect_things())
+    import asyncio
+
+    asyncio.run(load_prefect_things())
     community_bot.save_sync(if_exists="update")
