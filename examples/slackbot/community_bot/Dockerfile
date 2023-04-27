@@ -12,8 +12,6 @@ RUN pip uninstall uvloop -y
 
 COPY setup.py /app/examples/slackbot/community_bot/setup.py
 
-RUN marvin database reset -y
-
 RUN python /app/examples/slackbot/community_bot
 
 CMD ["uvicorn", "marvin.server:app", "--host", "0.0.0.0", "--port", "4200"]
