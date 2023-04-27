@@ -18,7 +18,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.drop_column("bot_config", "instructions_template")
+    with op.batch_alter_table("bot_config") as batch_op:
+        batch_op.drop_column("instructions_template")
 
 
 def downgrade() -> None:
