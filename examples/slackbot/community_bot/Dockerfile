@@ -14,8 +14,10 @@ RUN pip uninstall uvloop -y
 
 RUN marvin database upgrade -y
 
+RUN pip install langchain==0.0.150
+
 COPY setup.py /app/examples/slackbot/community_bot/setup.py
 
-RUN python /app/examples/slackbot/community_bot/setup.py
+COPY entrypoint.sh /app/entrypoint.sh
 
-CMD ["uvicorn", "marvin.server:app", "--host", "0.0.0.0", "--port", "4200"]
+ENTRYPOINT ["/app/entrypoint.sh"]
