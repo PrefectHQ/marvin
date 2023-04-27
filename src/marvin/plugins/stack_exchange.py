@@ -33,8 +33,10 @@ async def search_stack_exchange(
     token_limit: int = 3000,
 ) -> str:
     """
-    Use the Stack Exchange API to search for questions.
-    Especially useful for finding code examples.
+    Use the Stack Exchange API to search for Stack Exchange questions.
+    Most often used to search StackOverflow for Python questions.
+    Do not alter the `tag` argument unless you're told explicitly.
+
 
     For example, to search StackOverflow for questions about reading files in Python:
         - query: How to read a file?

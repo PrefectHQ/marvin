@@ -6,10 +6,7 @@ RUN python -m venv venv
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-ARG CACHE_BUST=1
-
-RUN echo "Cache bust: ${CACHE_BUST}" && \
-    pip install git+https://github.com/PrefectHQ/marvin.git@slackbot#egg=marvin[chromadb]
+RUN pip install git+https://github.com/PrefectHQ/marvin.git#egg=marvin[chromadb]
 
 RUN pip uninstall uvloop -y
 

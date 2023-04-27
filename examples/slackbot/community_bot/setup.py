@@ -147,13 +147,6 @@ community_bot = Bot(
     llm_model_temperature=0.2,
 )
 
-
-async def main():
-    await load_prefect_things()
-    await community_bot.save(if_exists="update")
-
-
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
+    # asyncio.run(load_prefect_things())
+    community_bot.save_sync(if_exists="update")
