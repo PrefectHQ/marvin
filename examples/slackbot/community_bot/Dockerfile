@@ -12,7 +12,7 @@ RUN pip uninstall uvloop -y
 
 COPY setup.py /app/examples/slackbot/community_bot/setup.py
 
-RUN marvin database upgrade -y
+RUN marvin database reset -y
 
 RUN python /app/examples/slackbot/community_bot
 
