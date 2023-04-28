@@ -82,18 +82,21 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: image
-          image-ref:  us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:${SHORT_SHA}
+          image-ref:  us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:${{ env.SHORT_SHA }}
           ignore-unfixed: true
           severity: HIGH,CRITICAL
           security-checks: vuln
           hide-progress: true
           format: sarif
           output: trivy-results.sarif
+          timeout: 10m0s
 
       - name: Upload Trivy scan results to CodeQL
         uses: github/codeql-action/upload-sarif@v2
         with:
           sarif_file: trivy-results.sarif
+          ref: refs/heads/main
+          sha: ${{ github.sha }}
 
       - name: Trigger cloudrun revision deploy workflow
         run: |
