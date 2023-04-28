@@ -1,12 +1,12 @@
 ---
-name: Build and publish marvin community bot image
+name: Build and publish marvin internal bot image
 
 on:
   push:
     branches:
       - main
     paths:
-      - .github/workflows/image-build-and-push.yaml
+      - .github/workflows/image-build-and-push-internal.yaml
       - examples/slackbot/community_bot/**
       - src/marvin/api/slackbot/**
   schedule:
@@ -37,7 +37,7 @@ permissions: {}
 
 jobs:
   build_push_image:
-    name: Build marvin community bot image
+    name: Build marvin internal bot image
     runs-on: ubuntu-latest
     permissions:
       # required to initiate a downstream workflow (read needed for codeql scan)
@@ -56,7 +56,7 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
         with:
-          workload_identity_provider: ${{ vars.GHA_WORKLOAD_IDENTITY_PROVIDER }}
+          workload_identity_provider: ${{ secrets.GHA_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: marvin-general-main@prefect-org-github-actions.iam.gserviceaccount.com
 
       - name: Configure Google Cloud credential helper
@@ -72,17 +72,17 @@ jobs:
         run: |
           docker build ./examples/slackbot/community_bot \
             --no-cache \
-            --tag us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:latest \
-            --tag us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:${SHORT_SHA} \
+            --tag us-docker.pkg.dev/prefect-prd-internal-tools/marvin/marvin-internal-bot:latest \
+            --tag us-docker.pkg.dev/prefect-prd-internal-tools/marvin/marvin-internal-bot:${SHORT_SHA} \
 
-      - name: Push image to prefect-prd-external-tools
-        run: docker push --all-tags us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot
+      - name: Push image to prefect-prd-internal-tools
+        run: docker push --all-tags us-docker.pkg.dev/prefect-prd-internal-tools/marvin/marvin-internal-bot
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: image
-          image-ref:  us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:${{ env.SHORT_SHA }}
+          image-ref:  us-docker.pkg.dev/prefect-prd-internal-tools/marvin/marvin-internal-bot:${{ env.SHORT_SHA }}
           ignore-unfixed: true
           severity: HIGH,CRITICAL
           security-checks: vuln
@@ -97,7 +97,7 @@ jobs:
 
       - name: Trigger cloudrun revision deploy workflow
         run: |
-          gh workflow run deploy-cloudrun-revision.yaml \
+          gh workflow run deploy-cloudrun-revision-internal.yaml \
             --ref main
         env:
           GITHUB_TOKEN: ${{ github.token }}
