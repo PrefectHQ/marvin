@@ -1,92 +1,9 @@
 from marvin import Bot
-from marvin.loaders import (
-    base,
-    discourse,
-    github,
-    web,
-)
 from marvin.plugins.chroma import chroma_search
 from marvin.plugins.duckduckgo import DuckDuckGo
 from marvin.plugins.github import search_github_issues
 from marvin.plugins.prefect_stuff import review_flow_run
 from marvin.plugins.stack_exchange import search_stack_exchange
-
-# Discourse categories
-SHOW_AND_TELL_CATEGORY_ID = 26
-HELP_CATEGORY_ID = 27
-
-PREFECT_COMMUNITY_CATEGORIES = {
-    SHOW_AND_TELL_CATEGORY_ID,
-    HELP_CATEGORY_ID,
-}
-
-
-def include_topic_filter(topic):
-    return (
-        "marvin" in topic["tags"]
-        and topic["category_id"] in PREFECT_COMMUNITY_CATEGORIES
-    )
-
-
-async def load_prefect_things():
-    prefect_docs = web.SitemapLoader(  # gimme da docs
-        urls=["https://docs.prefect.io/sitemap.xml"],
-        exclude=["api-ref"],
-    )
-
-    prefect_website = web.HTMLLoader(  # gimme da website
-        urls=[
-            "https://prefect.io/about/company/",
-            "https://prefect.io/security/overview/",
-            "https://prefect.io/security/sub-processors/",
-            "https://prefect.io/security/gdpr-compliance/",
-            "https://prefect.io/security/bug-bounty-program/",
-        ],
-    )
-
-    prefect_source_code = github.GitHubRepoLoader(  # gimme da source
-        repo="prefecthq/prefect",
-        include_globs=["**/*.py"],
-        exclude_globs=[
-            "tests/**/*",
-            "docs/**/*",
-            "**/migrations/**/*",
-            "**/__init__.py",
-            "**/_version.py",
-        ],
-    )
-
-    prefect_release_notes = github.GitHubRepoLoader(  # gimme da release notes
-        repo="prefecthq/prefect",
-        include_globs=["release-notes.md"],
-    )
-
-    prefect_discourse = discourse.DiscourseLoader(  # gimme da discourse
-        url="https://discourse.prefect.io",
-        n_topic=240,
-        include_topic_filter=include_topic_filter,
-    )
-
-    prefect_recipes = (
-        github.GitHubRepoLoader(  # gimme da recipes (or at least some of them)
-            repo="prefecthq/prefect-recipes",
-            include_globs=["flows-advanced/**/*.py"],
-        )
-    )
-
-    prefect_loader = base.MultiLoader(
-        loaders=[
-            prefect_docs,
-            prefect_website,
-            prefect_discourse,
-            prefect_recipes,
-            prefect_release_notes,
-            prefect_source_code,
-        ]
-    )
-
-    await prefect_loader.load_and_store()
-
 
 how_to_write_a_prefect_2_flow = """
 from prefect import flow, task
@@ -148,7 +65,4 @@ community_bot = Bot(
 )
 
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(load_prefect_things())
     community_bot.save_sync(if_exists="update")
