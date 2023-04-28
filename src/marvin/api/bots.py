@@ -124,7 +124,7 @@ async def talk_to_bot(
     """
     bot = await marvin.Bot.load(name=name)
     await bot.set_thread(thread_lookup_key=thread_lookup_key)
-    response = await bot.say(message=message)
+    response = await bot.say(message)
     return MessageRead(**response.dict())
 
 
