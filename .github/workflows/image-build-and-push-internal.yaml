@@ -82,7 +82,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: image
-          image-ref:  us-docker.pkg.dev/prefect-prd-internal-tools/marvin/marvin-internal-bot:${{SHORT_SHA }}
+          image-ref:  us-docker.pkg.dev/prefect-prd-internal-tools/marvin/marvin-internal-bot:${SHORT_SHA}
           ignore-unfixed: true
           severity: HIGH,CRITICAL
           security-checks: vuln
