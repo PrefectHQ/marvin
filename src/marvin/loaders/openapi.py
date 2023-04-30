@@ -14,18 +14,14 @@ class OpenAPISpecLoader(Loader):
         Store the OpenAPI spec for the Prefect Cloud API as documents
         ```python
             import asyncio
+            from marvin.loaders.openapi import OpenAPISpecLoader
             loader = OpenAPISpecLoader(openapi_spec_url='https://api.prefect.cloud/api/openapi.json')
             asyncio.run(loader.load_and_store())
         ```
     """
 
     openapi_spec_url: HttpUrl
-
-    @property
-    def api_doc_url(self) -> str:
-        return self.openapi_spec_url.replace("/openapi.json", "/docs").replace(
-            "api.", "app."
-        )
+    api_doc_url: HttpUrl
 
     async def load(self) -> List[Document]:
         response = httpx.get(self.openapi_spec_url)
@@ -41,6 +37,9 @@ class OpenAPISpecLoader(Loader):
                     continue
                 parameters = details.get("parameters", [])
 
+                link = f'{self.api_doc_url}#tag/{details.get("tags")[0]}/operation/{details.get("operationId")}'.replace(  # noqa: E501
+                    " ", "-"
+                )
                 path_params = [param for param in parameters if param["in"] == "path"]
                 query_params = [param for param in parameters if param["in"] == "query"]
 
@@ -49,7 +48,7 @@ class OpenAPISpecLoader(Loader):
                         text=details.get("description", ""),
                         metadata={
                             "title": f"{method.upper()} {path}",
-                            "link": f'{self.api_doc_url}#tag/{details.get("tags")[0]}/operation/{details.get("operationId")}',  # noqa: E501
+                            "link": link,
                             "path": path,
                             "method": method,
                             "operationId": details.get("operationId"),

@@ -1,0 +1,21 @@
+# File for configuring project / deployment build, push and pull steps
+
+# Generic metadata about this project
+name: community_bot
+prefect-version: 2.10.5
+
+# build section allows you to manage and build docker images
+build:
+- prefect_docker.projects.steps.build_docker_image:
+    requires: prefect-docker>0.1.0
+    image_name: marvin-knowledge
+    tag: latest
+    dockerfile: auto
+
+# push section allows you to manage if and how this project is uploaded to remote locations
+push: null
+
+# pull section allows you to provide instructions for cloning this project in remote locations
+pull:
+- prefect.projects.steps.set_working_directory:
+    directory: /opt/prefect/community_bot

@@ -1,0 +1,12 @@
+description: null
+entrypoint: null
+flow_name: null
+name: null
+parameters: {}
+schedule: null
+tags: []
+version: null
+work_pool:
+  job_variables: {}
+  name: null
+  work_queue_name: null
