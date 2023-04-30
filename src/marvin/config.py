@@ -100,6 +100,12 @@ class Settings(BaseSettings):
         "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
     )
 
+    # AZURE OPENAI SERVICE 
+    openai_api_type: str = Field("", env=["MARVIN_OPENAI_API_TYPE", "OPENAI_API_TYPE"])
+    openai_api_base: str = Field("", env=["MARVIN_OPENAI_API_BASE", "OPENAI_API_BASE"])
+    openai_api_version: str = Field("", env=["MARVIN_OPENAI_API_VERSION", "OPENAI_API_VERSION"])
+    openai_azure_deployment_name: str = Field("", env=["MARVIN_OPENAI_AZURE_DEPLOYMENT_NAME", "OPENAI_AZURE_DEPLOYMENT_NAME"])
+
     # CHROMA
     chroma: ChromaSettings = Field(default_factory=ChromaSettings)
 

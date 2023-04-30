@@ -3,7 +3,7 @@ import inspect
 from typing import Any, Callable, Union
 
 from langchain.callbacks.base import BaseCallbackHandler, CallbackManager
-from langchain.chat_models import ChatOpenAI
+from langchain.chat_models import ChatOpenAI, AzureChatOpenAI
 from langchain.schema import (
     AgentAction,
     AgentFinish,
@@ -103,6 +103,10 @@ def get_llm(
     model_name: str = None,
     temperature: float = None,
     openai_api_key: str = None,
+    openai_api_type: str = None,
+    openai_api_version: str = None,
+    openai_api_base: str = None,
+    openai_azure_deployment_name: str = None,
     on_token_callback: Callable = None,
 ) -> ChatOpenAI:
     kwargs = dict()
@@ -117,15 +121,36 @@ def get_llm(
         model_name = marvin.settings.openai_model_name
     if temperature is None:
         temperature = marvin.settings.openai_model_temperature
-    return ChatOpenAI(
-        model_name=model_name,
-        temperature=temperature,
-        openai_api_key=(
-            openai_api_key or marvin.settings.openai_api_key.get_secret_value()
-        ),
-        max_tokens=marvin.settings.openai_model_max_tokens,
-        **kwargs,
-    )
+    
+    openai_api_type = openai_api_type or marvin.settings.openai_api_type
+    if openai_api_type == "azure":
+        return AzureChatOpenAI(
+            deployment_name=(
+                openai_azure_deployment_name or marvin.settings.openai_azure_deployment_name
+            ),
+            temperature=temperature,
+            openai_api_base=(
+                openai_api_base or marvin.settings.openai_api_base
+            ),
+            openai_api_version=(
+                openai_api_version or marvin.settings.openai_api_version
+            ),
+            openai_api_key=(
+                openai_api_key or marvin.settings.openai_api_key.get_secret_value()
+            ),
+            max_tokens=marvin.settings.openai_model_max_tokens,
+            **kwargs,
+        )
+    else:
+        return ChatOpenAI(
+            model_name=model_name,
+            temperature=temperature,
+            openai_api_key=(
+                openai_api_key or marvin.settings.openai_api_key.get_secret_value()
+            ),
+            max_tokens=marvin.settings.openai_model_max_tokens,
+            **kwargs,
+        )
 
 
 def prepare_messages(
