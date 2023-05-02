@@ -10,20 +10,22 @@ By default, Marvin uses a Sqlite database located at `~/.marvin/marvin.sqlite`. 
 ### Postgres
 Marvin can also use Postgres (though this isn't as actively tested at this time). To do so, install the postgres extra: `pip install "marvin[postgres]"` and set `MARVIN_DATABASE_CONNECTION_URL` to `postgresql+asyncpg://{username}:{password}@{host}:{port}/{database}`, filling all variables appropriately.
 
-#### Postgres with GCP Cloud SQL
-If you want to connect to GCP Cloud SQL
+#### Postgres on GCP Cloud SQL
+If you want to connect to Postgres on GCP Cloud SQL
 
 ##### by local
-```
-cloud_sql_proxy -instances={project}:{region}:{instance}=tcp:5432`
+You can connect to Cloud SQL by using [cloud-sql-proxy](https://cloud.google.com/sql/docs/postgres/sql-proxy#install) and set the `MARVIN_DATABASE_CONNECTION_URL` in the .env file.
+
+```environment
 MARVIN_DATABASE_CONNECTION_URL="postgresql+asyncpg:/{username}:{password}@localhost:5432/{database}"
 ```
 ##### through another GCP service
-On cloud run or another GCP service 
+`MARVIN_DATABASE_CONNECTION_URL` could be like
+
+```environment
+MARVIN_DATABASE_CONNECTION_URL="postgresql+asyncpg://{username}:{password}@/{database}?host=/cloudsql/{project}:{region}:{instance}"
 ```
-postgresql+asyncpg://{username}:{password}@/{database}?host=/cloudsql/{project}:{region}:{db-instance}
-```
-For more detail, see the [GCP SQL docs](https://cloud.google.com/sql/docs/postgres/sql-proxy).
+For more detail, see the GCP SQL [docs](https://cloud.google.com/sql/docs/postgres/sql-proxy).
 
 ### Migrations
 Marvin keeps the database schema up-to-date with Alembic migrations. If Marvin detects an empty database, it will run the initial migration update automatically. However, subsequent migrations will not be run automatically (to avoid any conflicts). Instead, Marvin checks to see if the database is up-to-date on startup and prints a warning if it isn't. You can disable this behavior by setting `MARVIN_DATABASE_CHECK_MIGRATION_VERSION_ON_STARTUP=0`.
