@@ -1,1 +1,0 @@
-git+https://github.com/PrefectHQ/marvin.git@openapi#egg=marvin

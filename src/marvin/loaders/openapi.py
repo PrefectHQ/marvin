@@ -15,7 +15,10 @@ class OpenAPISpecLoader(Loader):
         ```python
             import asyncio
             from marvin.loaders.openapi import OpenAPISpecLoader
-            loader = OpenAPISpecLoader(openapi_spec_url='https://api.prefect.cloud/api/openapi.json')
+            loader = OpenAPISpecLoader(
+                api_doc_url='https://app.prefect.cloud/api',
+                openapi_spec_url='https://api.prefect.cloud/api/openapi.json',
+            )
             asyncio.run(loader.load_and_store())
         ```
     """
