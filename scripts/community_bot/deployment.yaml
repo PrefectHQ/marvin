@@ -1,5 +1,5 @@
 description: null
-entrypoint: null
+entrypoint: scripts/community_bot/update_knowledge.py
 flow_name: null
 name: null
 parameters: {}

@@ -33,7 +33,8 @@ def get_prefect_loader():
     )
 
     prefect_api_docs = openapi.OpenAPISpecLoader(  # gimme da api docs
-        openapi_spec_url="https://api.prefect.cloud/api/openapi.json"
+        openapi_spec_url="https://api.prefect.cloud/api/openapi.json",
+        api_doc_url="https://app.prefect.cloud/api",
     )
 
     prefect_website = web.HTMLLoader(  # gimme da website
@@ -88,11 +89,13 @@ def get_prefect_loader():
     )
 
 
-@flow
+@flow(
+    name="Update Marvin's Knowledge",
+)
 async def update_marvin_knowledge(topic_name: str | None = None):
     prefect_loader = get_prefect_loader()
 
-    chroma_client_settings = await JSON.load("internal-chroma-client-settings")
+    chroma_client_settings = await JSON.load("chroma-client-settings")
 
     updated_client_settings = {
         f"chroma.{key}": value for key, value in chroma_client_settings.value.items()
@@ -105,4 +108,4 @@ async def update_marvin_knowledge(topic_name: str | None = None):
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(update_marvin_knowledge())
+    asyncio.run(update_marvin_knowledge("community"))

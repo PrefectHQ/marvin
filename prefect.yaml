@@ -1,0 +1,17 @@
+name: marvin
+prefect-version: 2.10.6
+
+build:
+- prefect_docker.projects.steps.build_docker_image:
+    requires: prefect-docker>0.1.0
+    image_name: zzstoatzz/marvin-knowledge
+    tag: latest
+    dockerfile: auto
+
+push: null
+
+pull:
+- prefect.projects.steps.git_clone_project:
+    repository: https://github.com/PrefectHQ/marvin.git
+    branch: openapi
+
