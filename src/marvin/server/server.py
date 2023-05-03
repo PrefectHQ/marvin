@@ -12,6 +12,7 @@ logger = marvin.get_logger("app")
 
 routers = [
     marvin.api.bots.router,
+    marvin.api.plugins.router,
     marvin.api.topics.router,
     marvin.api.threads.router,
     slackbot_router,
