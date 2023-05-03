@@ -22,7 +22,7 @@ dependencies = [
     "fastapi~=0.89",
     "httpx~=0.23",
     "jinja2~=3.1",
-    "langchain==0.0.153",
+    "langchain==0.0.157",
     "nest_asyncio~=1.5",
     "openai~=0.27",
     "pendulum~=2.1",
