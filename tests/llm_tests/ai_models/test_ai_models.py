@@ -27,8 +27,8 @@ class TestAIModels:
         x = Location("The largest city in the Sunshine State.")
         assert x.city == "Miami"
         assert x.state == "Florida"
-        assert x.country.str.contains("United")
-        assert x.country.str.contains("States")
+        assert "United" in x.country
+        assert "States" in x.country
         assert x.latitude // 1 == 25
         assert x.longitude // 1 == -81
 
