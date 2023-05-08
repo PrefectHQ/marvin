@@ -1,7 +1,3 @@
-from typing import List, Literal, Optional
-import pydantic
-
-
 # class TestAIModels:
 #     def test_arithmetic(self):
 #         @ai_model
