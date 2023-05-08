@@ -161,6 +161,9 @@ class Settings(BaseSettings):
         False,
         description="If True, slack bot responses will be intercepted in a QA channel.",
     )
+    slack_bot_QA_channel: str = Field(
+        "", description="The Slack channel to use for QA."
+    )
 
     # STACKEXCHANGE
     stackexchange_api_key: SecretStr = Field(
