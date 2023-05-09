@@ -277,5 +277,6 @@ def check_alembic_version():
                 DatabaseWarning,
             )
 
+
 async def acheck_alembic_version():
     check_alembic_version()
