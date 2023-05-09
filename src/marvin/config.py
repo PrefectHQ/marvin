@@ -162,7 +162,8 @@ class Settings(BaseSettings):
         description="If True, slack bot responses will be intercepted in a QA channel.",
     )
     slack_bot_QA_channel: str = Field(
-        "", description="The Slack channel to use for QA."
+        "",
+        description="The ID of the Slack channel to use for QA'ing slackbot answers.",
     )
 
     # STACKEXCHANGE
