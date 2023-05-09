@@ -160,7 +160,7 @@ def _alembic_cfg(stdout=None):
 
 def alembic_upgrade(revision: str = "head", dry_run: bool = False):
     """
-    Run alembic upgrades on Prefect REST API database
+    Run alembic upgrades on Marvin REST API database
 
     Args:
         revision: The revision passed to `alembic downgrade`. Defaults to
@@ -212,7 +212,7 @@ def alembic_revision(message: str = None, autogenerate: bool = False, **kwargs):
     )
 
 
-async def check_alembic_version():
+def check_alembic_version():
     # get current alembic version as scalar
     output_buffer = io.StringIO()
     alembic_cfg = _alembic_cfg(stdout=output_buffer)
