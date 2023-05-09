@@ -33,9 +33,11 @@ if CHROMA_INSTALLED:
     class ChromaSettings(chromadb.config.Settings):
         class Config:
             env_file = ".env", str(ENV_FILE)
-            env_prefix = "MARVIN_CHROMA_"
+            env_prefix = "MARVIN_"
 
-        chroma_db_impl: Literal["duckdb", "duckdb+parquet"] = "duckdb+parquet"
+        chroma_db_impl: Literal["duckdb", "duckdb+parquet", "clickhouse"] = (
+            "duckdb+parquet"
+        )
         chroma_server_host: str = "localhost"
         chroma_server_http_port: int = 8000
         # relative paths will be prefixed with the marvin home directory
@@ -155,6 +157,12 @@ class Settings(BaseSettings):
         "!here",
         description="The Slack user to notify when slack bot is improperly configured.",
     )
+
+    # STACKEXCHANGE
+    stackexchange_api_key: SecretStr = Field(
+        "", env=["MARVIN_STACKEXCHANGE_API_KEY", "STACKEXCHANGE_API_KEY"]
+    )
+
     # API
     api_base_url: str = "http://127.0.0.1"
     api_port: int = 4200

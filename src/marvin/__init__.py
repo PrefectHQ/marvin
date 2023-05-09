@@ -30,13 +30,13 @@ from marvin.ai_functions import ai_fn
 _logger = get_logger(__name__)
 if settings.test_mode:
     _logger.debug_style("Marvin is running in test mode!", style="yellow")
-if not settings.openai_model_name.startswith("gpt-4"):
-    _logger.info_style(f'Using OpenAI model "{settings.openai_model_name}"')
+
+_logger.info_style(f'Using OpenAI model "{settings.openai_model_name}"')
 
 
 # check alembic versions
 if settings.database_check_migration_version_on_startup:
-    _asyncio.run(infra.database.check_alembic_version())
+    infra.database.check_alembic_version()
 
 # load bots
 from . import bots

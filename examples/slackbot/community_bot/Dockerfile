@@ -6,13 +6,16 @@ RUN python -m venv venv
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-ARG CACHE_BUST=1
-
-RUN echo "Cache bust: ${CACHE_BUST}" && \
-    pip install git+https://github.com/PrefectHQ/marvin.git@slackbot#egg=marvin[chromadb]
+RUN pip install git+https://github.com/PrefectHQ/marvin.git#egg=marvin[chromadb]
 
 RUN pip uninstall uvloop -y
 
+RUN marvin database upgrade -y
+
+RUN pip install langchain==0.0.150
+
 COPY setup.py /app/examples/slackbot/community_bot/setup.py
 
-CMD ["uvicorn", "marvin.server:app", "--host", "0.0.0.0", "--port", "4200"]
+COPY entrypoint.sh /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]

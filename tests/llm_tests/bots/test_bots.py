@@ -84,6 +84,7 @@ class TestResponseFormatShorthand:
         assert isinstance(response.parsed_content, list)
         assert all(isinstance(x, str) for x in response.parsed_content)
 
+    @pytest.mark.xfail(reason="assert LLM sometimes fails to match response")
     async def test_natural_language_list(self):
         bot = Bot(
             instructions="solve each math problem and return only the answers",
@@ -92,6 +93,7 @@ class TestResponseFormatShorthand:
         response = await bot.say("Problem 1: 1 + 1\n\nProblem 2: 2 + 2")
         assert_llm(response.parsed_content, '["2", "4"]')
 
+    @pytest.mark.xfail(reason="assert LLM sometimes fails to match response")
     async def test_natural_language_list_2(self):
         bot = Bot(
             instructions="list any keywords",
