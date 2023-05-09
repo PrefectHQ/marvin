@@ -160,7 +160,7 @@ def _alembic_cfg(stdout=None):
 
 def alembic_upgrade(revision: str = "head", dry_run: bool = False):
     """
-    Run alembic upgrades on Prefect REST API database
+    Run alembic upgrades on Marvin REST API database
 
     Args:
         revision: The revision passed to `alembic downgrade`. Defaults to
