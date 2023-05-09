@@ -48,5 +48,5 @@ def event_loop(request):
         tasks = asyncio.all_tasks(loop=loop)
         for task in tasks:
             task.cancel()
-        asyncio.run(asyncio.gather(*tasks, return_exceptions=True))
+        loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
         loop.close()
