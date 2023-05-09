@@ -36,7 +36,7 @@ _logger.info_style(f'Using OpenAI model "{settings.openai_model_name}"')
 
 # check alembic versions
 if settings.database_check_migration_version_on_startup:
-    _asyncio.run(infra.database.check_alembic_version())
+    infra.database.check_alembic_version()
 
 # load bots
 from . import bots
