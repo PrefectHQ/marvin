@@ -825,7 +825,7 @@ class MarvinApp(App):
         warnings.filterwarnings("error")
 
         try:
-            await marvin.infra.database.check_alembic_version()
+            marvin.infra.database.check_alembic_version()
             self.database_ready = True
         except marvin.infra.database.DatabaseWarning as w:
             if "Database migrations are not up to date" in str(w):
