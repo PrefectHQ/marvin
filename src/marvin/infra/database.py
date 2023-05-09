@@ -212,7 +212,7 @@ def alembic_revision(message: str = None, autogenerate: bool = False, **kwargs):
     )
 
 
-async def check_alembic_version():
+def check_alembic_version():
     # get current alembic version as scalar
     output_buffer = io.StringIO()
     alembic_cfg = _alembic_cfg(stdout=output_buffer)
