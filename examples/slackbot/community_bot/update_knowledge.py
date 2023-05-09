@@ -132,10 +132,20 @@ async def get_prefect_loader():
 
 @flow(name="Update Marvin's Knowledge")
 async def update_marvin_knowledge(topic_name: str | None = None):
+    """A flow that updates Marvin's knowledgebase with information from the Prefect community.
+    
+    the `json/chroma-client-settings` Block should look like this:
+    {
+        "chroma_db_impl": "clickhouse",
+        "chroma_api_impl": "rest",
+        "chroma_server_host": "<chroma-server-host>",
+        "chroma_server_http_port": 8000
+    }    
+    """
     marvin.settings.log_level = "DEBUG"
-    
+
+    # comment out the next 2 lines if you want to use in-memory DuckDB (default)
     chroma_client_settings = await JSON.load("chroma-client-settings")
-    
     marvin.settings.chroma = ChromaSettings(**chroma_client_settings.value)
     
     prefect_loader = await get_prefect_loader()
