@@ -2,6 +2,7 @@ import marvin
 import marvin.config
 import pytest
 import sqlmodel
+from prefect._internal.concurrency.threads import get_global_loop
 
 
 @pytest.fixture(scope="session")
@@ -12,6 +13,7 @@ def session_tmp_path(tmp_path_factory):
 @pytest.fixture(scope="session", autouse=True)
 async def test_database(session_tmp_path):
     """Set up the test database"""
+    get_global_loop().start()
     marvin.infra.database.alembic_upgrade()
     yield
     marvin.infra.database.alembic_downgrade()
