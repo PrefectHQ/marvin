@@ -143,13 +143,77 @@ exec uvicorn marvin.server:app --host 0.0.0.0 --port 4200
 ```
 
 ### Build and Push the image with a GitHub Action
-See [our workflow](https://github.com/PrefectHQ/marvin/blob/main/.github/workflows/image-build-and-push-community.yaml) for building and pushing the image to Artifact Registry, and then deploying the Cloud Run service.
+Note: all of these GitHub Action workflows use [GCP workload identity federation](https://cloud.google.com/iam/docs/workload-identity-federation) to authenticate to google cloud & perform actions. You can instead use regular auth by passing a GCP service account key to your workflows.
+
+
+Here's how we can build our slackbot image and push it to GCP Artifact Registry using a GitHub Action:
+```yaml
+---
+name: Build and publish slack bot image
+
+on:
+  push:
+    branches:
+      - main
+
+# Do not grant jobs any permissions by default
+permissions: {}
+
+jobs:
+  build_push_image:
+    name: Build slack bot image
+    runs-on: ubuntu-latest
+    permissions:
+      # required to initiate a downstream workflow (read needed for codeql scan)
+      actions: write
+      # required to read from the repo
+      contents: read
+      # required to obtain Google Cloud service account credentials
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: projects/GCP_PROJECT_NUMBER/locations/global/workloadIdentityPools/WORKLOAD_IDENTITY_POOL/providers/PROVIDER
+          service_account: SERVICE_ACCOUNT_NAME@GCP_PROJECT_NAME.iam.gserviceaccount.com
+
+      - name: Configure Google Cloud credential helper
+        run: gcloud auth configure-docker --quiet us-docker.pkg.dev
+
+      - name: Get image version
+        run: |
+          short_sha=$(git rev-parse --short=7 HEAD)
+          echo "short_sha: ${short_sha}"
+          echo "SHORT_SHA=${short_sha}" >> $GITHUB_ENV
+
+      - name: Build container image
+        run: |
+          docker build ./path/to/dockerfile \
+            --no-cache \
+            --tag us-docker.pkg.dev/GCP_PROJECT_NAME/REGISTRY/slackbot:latest \
+            --tag us-docker.pkg.dev/GCP_PROJECT_NAME/REGISTRY/slackbot:${SHORT_SHA} \
+
+      - name: Push image to GCP project
+        run: docker push --all-tags us-docker.pkg.dev/GCP_PROJECT_NAME/REGISTRY/slackbot
+
+      # optionally automatically deploy the latest revision to cloudrun (see below)
+      - name: Trigger cloudrun revision deploy workflow
+        run: |
+          gh workflow run deploy-cloudrun-slackbot.yaml \
+            --ref main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+```
 
 ### Deploy the Cloud Run Service with a GitHub Action
 Here's how we can deploy our bot to Cloud Run using a GitHub Action:
 ```yaml
 ---
-name: Deploy new revision of marvin community bot cloudrun service
+name: Deploy new revision of slackbot cloudrun service
 
 on:
   workflow_dispatch: {}
@@ -174,19 +238,27 @@ jobs:
       - name: Authenticate to google cloud
         uses: google-github-actions/auth@v1
         with:
-          workload_identity_provider: ${{ secrets.GHA_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: marvin-workflow-main@prefect-org-github-actions.iam.gserviceaccount.com
+          workload_identity_provider: projects/GCP_PROJECT_NUMBER/locations/global/workloadIdentityPools/WORKLOAD_IDENTITY_POOL/providers/PROVIDER
+          service_account: SERVICE_ACCOUNT_NAME@GCP_PROJECT_NAME.iam.gserviceaccount.com
 
       - name: Deploy revision
         uses: google-github-actions/deploy-cloudrun@v1
         with:
-          image: us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:latest
-          project_id: prefect-prd-external-tools
-          region: us-east1
-          service: marvin-community-bot
+          image: us-docker.pkg.dev/GCP_PROJECT_NAME/REGISTRY/slackbot:latest
+          project_id: GCP_PROJECT_NAME
+          region: REGION
+          service: slackbot
 ```
 
-### [Placeholder for more color]
+### Deploy the Cloud Run Service [infrastructure] with Terraform
+You can find sample terraform code under `docs/guide/use_cases/terraform` that will enable you to provision the Cloud Run Service using Infrastructure as Code. Update the `vars.tfvars` file to reflect your specific configuration and follow the below steps to setup your Cloud Run Service.
+```shell
+cd ./docs/guide/use_cases/terraform
+terraform init
+# if granting the cloud run service access to pull from secrets manager, run this command first, otherwise skip:
+terraform apply -target google_service_account.cloudrun -target google_project_iam_member.cloudrun_secret_manager_accessor -var-file vars.tfvars 
+terraform apply -var-file vars.tfvars
+```
 
 !!! note
     For more details on using Cloud Run, see the [Cloud Run guide](https://cloud.google.com/run/docs/quickstarts/jobs/build-create-python).
