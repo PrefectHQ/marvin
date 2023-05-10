@@ -24,13 +24,13 @@ class TestAIModels:
             state: str
             country: str
 
-        x = Location("The capital city of the Sunshine State.")
-        assert x.city == "Tallahassee"
-        assert x.state == "Florida"
+        x = Location("The capital city of the Cornhusker State.")
+        assert x.city == "Lincoln"
+        assert x.state == "Nebraska"
         assert "United" in x.country
         assert "States" in x.country
-        assert x.latitude // 1 == 25
-        assert x.longitude // 1 == -81
+        assert x.latitude // 1 == 40
+        assert x.longitude // 1 == 96
 
     def test_depth(self):
         from typing import List
