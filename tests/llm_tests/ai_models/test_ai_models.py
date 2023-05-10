@@ -24,7 +24,7 @@ class TestAIModels:
             state: str
             country: str
 
-        x = Location("The largest city in the Sunshine State.")
+        x = Location("The capital city in the Sunshine State.")
         assert x.city == "Miami"
         assert x.state == "Florida"
         assert "United" in x.country
@@ -35,8 +35,9 @@ class TestAIModels:
     def test_regex(self):
         @ai_model
         class Acronym(pydantic.BaseModel):
-            value: str = pydantic.Field(regex=r"Re[a-z]+ L[a-z]+ L[a-z]+ MIa-z]+")
-
+            text: str
+            acronym: str = pydantic.Field(regex=r"Re[a-z]+ L[a-z]+ L[a-z]+ MIa-z]+")
+            
         Acronym("ReLLM is one way to get structured data out of LLMs")
 
     def test_depth(self):
@@ -57,7 +58,7 @@ class TestAIModels:
         class RentalHistory(pydantic.BaseModel):
             neighborhood: List[Neighborhood]
 
-        return RentalHistory("""\
+        assert RentalHistory("""\
             I lived in Palms, then Mar Vista, then Pico Robertson.
         """)
 
@@ -134,6 +135,7 @@ class TestAIModels:
                     "Aaron Burr",
                     "Charles C. Pinckney",
                     "Charles Pinckney",
+                    "Charles Cotesworth Pinckney",
                 ]
             )
         )
