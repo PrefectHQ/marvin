@@ -59,7 +59,7 @@ marvin server start
 
 ![Slackbot in action](../../img/slackbot/convo.png)
 
-## QA'ing Slack bot responses and providing feedback
+## QA'ing slackbot responses and providing feedback
 You can enable a Slack-native feedback mechanism by setting the following environment variables:
 
 ### Environment variables
@@ -149,7 +149,7 @@ Note: all of these GitHub Action workflows use [GCP workload identity federation
 Here's how we can build our slackbot image and push it to GCP Artifact Registry using a GitHub Action:
 ```yaml
 ---
-name: Build and publish slack bot image
+name: Build and publish slackbot image
 
 on:
   push:
@@ -161,7 +161,7 @@ permissions: {}
 
 jobs:
   build_push_image:
-    name: Build slack bot image
+    name: Build slackbot image
     runs-on: ubuntu-latest
     permissions:
       # required to initiate a downstream workflow (read needed for codeql scan)
