@@ -62,11 +62,19 @@ marvin server start
 ## QA'ing Slack bot responses and providing feedback
 You can enable a Slack-native feedback mechanism by setting the following environment variables:
 
+### Environment variables
 ```environment
 MARVIN_QA_SLACK_BOT_RESPONSES=true
 MARVIN_SLACK_BOT_QA_CHANNEL=<your slack QA channel id> # e.g. C01UJ9ZQZ0K
 ```
+### Configuring the Slack app
+To use the feedback mechanism, we'll need to configure a `Request URL` in the `Interactivity & Shortcuts` section of our Slack app.
 
+Note that these events are handled by the `/slack/block_actions` endpoint:
+
+![Slack Interactivity & Shortcuts](../../img/slackbot/interactivity.png)
+
+### Example
 Now, whenever a Slack user tags the bot in a message
 
 ![invoke](../../img/slackbot/invoke.png)
@@ -79,11 +87,11 @@ Now, whenever a Slack user tags the bot in a message
 
 ![bot response](../../img/slackbot/answer.png)
 
-So we can approve the bot's response to do nothing, or we can provide a new response for the bot to use in the future:
+So we can approve the response to do nothing, or click `Edit Response` provide a response for the bot to use in the future:
 
 ![edit response](../../img/slackbot/edit-response.png)
 
-Once edited, we can once again discard to do nothing or `Save Response to Chroma`:
+Once edited, we can `Discard` to do nothing or `Save Response to Chroma`:
 
 ![edited response](../../img/slackbot/edited-response.png)
 
@@ -125,7 +133,7 @@ ENTRYPOINT ["/app/entrypoint.sh"]
 
 Note that we're copying in our `setup.py` file, which configures the `Bot` with its `plugins` and `instructions`.
 
-The `entrypoint.sh` script is a bash script that runs our `setup.py` file and then starts the `marvin` server:
+The `entrypoint.sh` file is a bash script that runs our `setup.py` file and then starts the `marvin` server:
 
 ```bash
 #!/bin/sh
@@ -135,7 +143,7 @@ exec uvicorn marvin.server:app --host 0.0.0.0 --port 4200
 ```
 
 ### Build and Push the image with a GitHub Action
-See [our workflow](https://github.com/PrefectHQ/marvin/blob/main/.github/workflows/image-build-and-push-community.yaml) for building and pushing the image to Google Cloud's Container Registry, and then deploying the Cloud Run service.
+See [our workflow](https://github.com/PrefectHQ/marvin/blob/main/.github/workflows/image-build-and-push-community.yaml) for building and pushing the image to Artifact Registry, and then deploying the Cloud Run service.
 
 ### Deploy the Cloud Run Service with a GitHub Action
 Here's how we can deploy our bot to Cloud Run using a GitHub Action:
