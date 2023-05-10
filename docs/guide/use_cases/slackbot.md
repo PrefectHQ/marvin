@@ -143,7 +143,7 @@ exec uvicorn marvin.server:app --host 0.0.0.0 --port 4200
 ```
 
 ### Build and Push the image with a GitHub Action
-Note: all of these GitHub Action workflows use [GCP workload identity federation](https://cloud.google.com/iam/docs/workload-identity-federation) to authenticate to google cloud & perform actions. You can instead use regular auth by passing a GCP service account key to your workflows.
+Note: all of the following GitHub Action workflows use [GCP workload identity federation](https://cloud.google.com/iam/docs/workload-identity-federation) to authenticate to google cloud & perform actions. You can instead use regular auth by passing a GCP service account key to your workflows.
 
 
 Here's how we can build our slackbot image and push it to GCP Artifact Registry using a GitHub Action:
