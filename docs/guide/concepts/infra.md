@@ -13,8 +13,8 @@ Marvin can also use Postgres (though this isn't as actively tested at this time)
 #### Postgres on GCP Cloud SQL
 If you want to connect to Postgres on GCP Cloud SQL
 
-##### by local
-You can connect to Cloud SQL by using [cloud-sql-proxy](https://cloud.google.com/sql/docs/postgres/sql-proxy#install) and set the `MARVIN_DATABASE_CONNECTION_URL` in the .env file.
+##### locally
+You can connect to Cloud SQL by using [cloud-sql-proxy](https://cloud.google.com/sql/docs/postgres/sql-proxy#install) and set the `MARVIN_DATABASE_CONNECTION_URL` in the `.env` file.
 
 ```environment
 MARVIN_DATABASE_CONNECTION_URL="postgresql+asyncpg:/{username}:{password}@localhost:5432/{database}"
