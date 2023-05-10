@@ -59,8 +59,90 @@ marvin server start
 
 ![Slackbot in action](../../img/slackbot/convo.png)
 
-## (TODO) Configuring a Slackbot with a public IP on Cloud Run
+## Deploying a Slackbot on Cloud Run
 `ngrok` is great for testing, but it's not a great solution for a public-facing bot. For that, we'll need to deploy our bot somewhere with a public IP. For this example, we'll use Google Cloud Run.
 
+### Make a Dockerfile
+We'll need to make a Dockerfile that installs Marvin and our bot's dependencies. 
+
+We'll also need to run the `marvin database upgrade` command to initialize our SQLite database that stores our bot's state, like conversation history and bot configuration.
+
+```dockerfile
+FROM prefecthq/prefect:2-python3.10
+
+WORKDIR /app
+
+RUN python -m venv venv
+ENV VIRTUAL_ENV=/app/venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+RUN pip install "marvin[chromadb]"
+
+RUN pip uninstall uvloop -y
+
+RUN marvin database upgrade -y
+
+COPY setup.py /app/setup.py
+
+COPY entrypoint.sh /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
+```
+
+Note that we're copying in our `setup.py` file, which configures the `Bot` with its `plugins` and `instructions`.
+
+The `entrypoint.sh` script is a bash script that runs our `setup.py` file and then starts the `marvin` server:
+
+```bash
+#!/bin/sh
+python /app/setup.py
+
+exec uvicorn marvin.server:app --host 0.0.0.0 --port 4200
+```
+
+### Build and Push the image with a GitHub Action
+See [our workflow](https://github.com/PrefectHQ/marvin/blob/main/.github/workflows/image-build-and-push-community.yaml) for building and pushing the image to Google Cloud's Container Registry, and then deploying the Cloud Run service.
+
+### Deploy the Cloud Run Service with a GitHub Action
+Here's how we can deploy our bot to Cloud Run using a GitHub Action:
+```yaml
+---
+name: Deploy new revision of marvin community bot cloudrun service
+
+on:
+  workflow_dispatch: {}
+
+# Do not grant jobs any permissions by default
+permissions: {}
+
+jobs:
+  deploy_cloudrun_revision:
+    name: Deploy revision with latest image
+    runs-on: ubuntu-latest
+    permissions:
+      # required to read from the repo
+      contents: read
+      # required to obtain Google Cloud service account credentials
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Authenticate to google cloud
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.GHA_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: marvin-workflow-main@prefect-org-github-actions.iam.gserviceaccount.com
+
+      - name: Deploy revision
+        uses: google-github-actions/deploy-cloudrun@v1
+        with:
+          image: us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:latest
+          project_id: prefect-prd-external-tools
+          region: us-east1
+          service: marvin-community-bot
+```
+
 !!! note
-    More details to come! Follow the [Cloud Run guide](https://cloud.google.com/run/docs/quickstarts/jobs/build-create-python) to get started.
+    For more details on using Cloud Run, see the [Cloud Run guide](https://cloud.google.com/run/docs/quickstarts/jobs/build-create-python).
