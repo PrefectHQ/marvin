@@ -50,7 +50,7 @@ def AIModel(
             # We'll attempt to impute the values using the ai_imputer function.
             try:
                 return {**ai_imputer(context=__context__).dict(), **values}
-            # If the ai_imputer function fails, we'll simple return the values.
+            # If the ai_imputer function fails, we'll simply return the values.
             except Exception:  # TODO: Add a custom exception here.
                 return values
         return values
