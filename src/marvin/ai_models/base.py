@@ -44,7 +44,7 @@ def AIModel(
                 bot=bot,
                 bot_kwargs={
                     **bot_kwargs,
-                    "response_format": PydanticFormatter(type_schema=cls.schema()),
+                    "response_format": PydanticFormatter(model=cls),
                 },
             )
             # We'll attempt to impute the values using the ai_imputer function.
