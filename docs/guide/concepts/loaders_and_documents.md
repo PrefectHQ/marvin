@@ -39,7 +39,6 @@ You can attach arbitrary `Metadata` to a `Document`.
 
 ```python
 from marvin.models.documents import Document
-from marvin.models.metadata import Metadata
 
 my_document = Document(
     text="This is a document.",
