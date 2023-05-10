@@ -161,6 +161,17 @@ async def _handle_edit_response_submission(
     qa_channel: str,
     private_metadata: dict,
 ):
+    action_value = json.dumps(
+        {
+            "editing_user": editing_user,
+            "asking_user": private_metadata["asking_user"],
+            "question": private_metadata["question"],
+            "proposed_answer": new_message,
+            "channel": private_metadata["channel"],
+            "origin_ts": private_metadata["origin_ts"],
+        }
+    )
+
     await _slack_api_call(
         "POST",
         "chat.update",
@@ -185,18 +196,20 @@ async def _handle_edit_response_submission(
                             "text": "Save Response to Chroma",
                         },
                         "action_id": "approve_response",
-                        "value": json.dumps(
-                            {
-                                "editing_user": editing_user,
-                                "asking_user": private_metadata["asking_user"],
-                                "question": private_metadata["question"],
-                                "proposed_answer": new_message,
-                                "channel": private_metadata["channel"],
-                                "origin_ts": private_metadata["origin_ts"],
-                            }
-                        ),
+                        "value": action_value,
                     },
-                }
+                },
+                {
+                    "type": "actions",
+                    "elements": [
+                        {
+                            "type": "button",
+                            "text": {"type": "plain_text", "text": "Discard"},
+                            "action_id": "discard",
+                            "value": action_value,
+                        },
+                    ],
+                },
             ],
         },
     )
