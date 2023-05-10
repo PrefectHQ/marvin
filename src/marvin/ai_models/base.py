@@ -30,7 +30,7 @@ def AIModel(
 
     def _ai_imputer_base(context: str) -> cls:
         """
-        Given unstructured text infer when possible the missing data.
+        Extract and infer data from the given unstructured `context`.
         """
 
     def _ai_validator(cls, values):
