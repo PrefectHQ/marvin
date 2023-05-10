@@ -37,7 +37,7 @@ class TestAIModels:
         class Acronym(pydantic.BaseModel):
             text: str
             acronym: str = pydantic.Field(regex=r"Re[a-z]+ L[a-z]+ L[a-z]+ MIa-z]+")
-            
+
         Acronym("ReLLM is one way to get structured data out of LLMs")
 
     def test_depth(self):
