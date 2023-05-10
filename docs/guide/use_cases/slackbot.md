@@ -5,7 +5,7 @@
     permissions.
 
 
-Marvin now ships with endpoints supporting a customizable Slackbot that runs directly within the `marvin` FastAPI application.
+Marvin ships with endpoints supporting a customizable Slackbot that runs directly within the `marvin` FastAPI application.
 
 ## Configuring a simple, local Slackbot
 
@@ -58,6 +58,40 @@ marvin server start
 ... and that's it! We can now mention our bot in Slack and it will respond according to our bot setup.
 
 ![Slackbot in action](../../img/slackbot/convo.png)
+
+## QA'ing Slack bot responses and providing feedback
+You can enable a Slack-native feedback mechanism by setting the following environment variables:
+
+```environment
+MARVIN_QA_SLACK_BOT_RESPONSES=true
+MARVIN_SLACK_BOT_QA_CHANNEL=<your slack QA channel id> # e.g. C01UJ9ZQZ0K
+```
+
+Now, whenever a Slack user tags the bot in a message
+
+![invoke](../../img/slackbot/invoke.png)
+
+... a QA message will be sent to the configured QA channel
+
+![QA message](../../img/slackbot/qa-message.png)
+
+... in addition to the bot's response to the user's original message
+
+![bot response](../../img/slackbot/answer.png)
+
+So we can approve the bot's response to do nothing, or we can provide a new response for the bot to use in the future:
+
+![edit response](../../img/slackbot/edit-response.png)
+
+Once edited, we can once again discard to do nothing or `Save Response to Chroma`:
+
+![edited response](../../img/slackbot/edited-response.png)
+
+... to add the question-answer pair as a `Document` to our active Chroma vectorstore:
+
+![feedback recorded](../../img/slackbot/feedback-recorded.png)
+
+Now, the bot will be able to use the `chroma_search` to retrieve this document in the future.
 
 ## Deploying a Slackbot on Cloud Run
 `ngrok` is great for testing, but it's not a great solution for a public-facing bot. For that, we'll need to deploy our bot somewhere with a public IP. For this example, we'll use Google Cloud Run.
