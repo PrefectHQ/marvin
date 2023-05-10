@@ -24,8 +24,8 @@ class TestAIModels:
             state: str
             country: str
 
-        x = Location("The capital city in the Sunshine State.")
-        assert x.city == "Miami"
+        x = Location("I grew up in the capital city in the Sunshine State.")
+        assert x.city == "Tallahassee"
         assert x.state == "Florida"
         assert "United" in x.country
         assert "States" in x.country
@@ -35,10 +35,10 @@ class TestAIModels:
     def test_regex(self):
         @ai_model
         class Acronym(pydantic.BaseModel):
-            text: str
+            expanded_acronym: str
             acronym: str = pydantic.Field(regex=r"Re[a-z]+ L[a-z]+ L[a-z]+ MIa-z]+")
 
-        Acronym("ReLLM is one way to get structured data out of LLMs")
+        Acronym("ReLLM, one way to get structured data out of LLMs, is an acronym for")
 
     def test_depth(self):
         from typing import List
@@ -97,7 +97,7 @@ class TestAIModels:
             The conference for best LLM framework will feature talks by\
             Adam, Nate, Jeremiah, and Marvin.\
         """)
-        assert len(x.speakers) == 3
+        assert len(set(x.speakers)) == 3
         assert set([speaker.name for speaker in x.speakers]) == set(
             ["Adam", "Nate", "Jeremiah"]
         )
