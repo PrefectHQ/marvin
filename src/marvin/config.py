@@ -157,6 +157,14 @@ class Settings(BaseSettings):
         "!here",
         description="The Slack user to notify when slack bot is improperly configured.",
     )
+    QA_slack_bot_responses: bool = Field(
+        False,
+        description="If True, slack bot responses will be intercepted in a QA channel.",
+    )
+    slack_bot_QA_channel: str = Field(
+        "",
+        description="The ID of the Slack channel to use for QA'ing slackbot answers.",
+    )
 
     # STACKEXCHANGE
     stackexchange_api_key: SecretStr = Field(

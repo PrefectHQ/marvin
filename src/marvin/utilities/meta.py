@@ -1,25 +1,25 @@
-import inspect
-
+import pendulum
 from prefect.utilities.asyncutils import sync_compatible
 
 import marvin
-from marvin.bots.utilities import mermaid_bot
+from marvin.infra.chroma import Chroma
+from marvin.models.documents import Document
 
 
-def enable_mermaid(func):
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
+@sync_compatible
+async def record_feedback(feedback: str, topic: str = None):
+    """Record feedback on a given topic."""
 
-    @sync_compatible
-    async def source_to_mermaid():
-        lines, _ = inspect.getsourcelines(func)
-        result = ""
-        for line in lines:
-            stripped_line = line.strip()
-            if "@enable_mermaid" not in stripped_line:
-                num_spaces = len(line) - len(line.lstrip())
-                result += f"{' ' * num_spaces}{stripped_line}\n"
-        marvin.get_logger().info((await mermaid_bot.say(result)).content)
+    processed_feedback = await Document(
+        text=feedback,
+        metadata={
+            "source": "user feedback",
+            "created_at": pendulum.now().isoformat(),
+        },
+    ).to_excerpts()
 
-    wrapper.to_mermaid = source_to_mermaid
-    return wrapper
+    async with Chroma(topic or marvin.settings.default_topic) as chroma:
+        await chroma.add(
+            documents=processed_feedback,
+            skip_existing=True,
+        )
