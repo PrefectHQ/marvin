@@ -186,5 +186,7 @@ jobs:
           service: marvin-community-bot
 ```
 
+### [Placeholder for more color]
+
 !!! note
     For more details on using Cloud Run, see the [Cloud Run guide](https://cloud.google.com/run/docs/quickstarts/jobs/build-create-python).
