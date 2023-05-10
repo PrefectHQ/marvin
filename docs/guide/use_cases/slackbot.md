@@ -59,7 +59,7 @@ marvin server start
 
 ![Slackbot in action](../../img/slackbot/convo.png)
 
-## QA'ing slackbot responses and providing feedback
+## QA'ing Slackbot responses and providing feedback
 You can enable a Slack-native feedback mechanism by setting the following environment variables:
 
 ### Environment variables
