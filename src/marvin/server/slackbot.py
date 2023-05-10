@@ -140,6 +140,12 @@ async def _post_QA_message(
                                 "action_id": "edit_response",
                                 "value": action_value,
                             },
+                            {
+                                "type": "button",
+                                "text": {"type": "plain_text", "text": "Discard"},
+                                "action_id": "discard",
+                                "value": action_value,
+                            },
                         ],
                     },
                 ],
@@ -216,6 +222,36 @@ async def _handle_view_submission(payload: Dict[str, Any]):
             qa_channel,
             json.loads(view["private_metadata"]),
         )
+
+
+async def _handle_discard(action: SlackAction):
+    action_value = json.loads(action.actions[0]["value"])
+
+    # Update the QA message
+    await _slack_api_call(
+        "POST",
+        "chat.update",
+        json_data={
+            "channel": action.channel["id"],
+            "ts": action.container["message_ts"],
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": (
+                            f":bangbang: `<@{action_value.get('asking_user')}>` asked a"
+                            " question"
+                            f" :bangbang:\n\n*Question:*\n{action_value['question']}\n\n*Marvin"  # noqa
+                            " proposed an"
+                            f" answer*:\n{action_value['proposed_answer']}\n\n:wastebasket:"  # noqa
+                            " Discarded"
+                        ),
+                    },
+                }
+            ],
+        },
+    )
 
 
 async def _show_edit_response_modal(action_event: SlackAction) -> Dict[str, Any]:
@@ -365,6 +401,8 @@ async def handle_block_actions(request: Request):
             asyncio.ensure_future(_handle_approve_response(action_event))
         elif action_event.actions[0]["action_id"] == "edit_response":
             asyncio.ensure_future(_show_edit_response_modal(action_event))
+        elif action_event.actions[0]["action_id"] == "discard":
+            asyncio.ensure_future(_handle_discard(action_event))
 
     elif payload.get("type") == "view_submission":
         await _handle_view_submission(payload)
