@@ -30,7 +30,7 @@ class TestAIModels:
         assert "United" in x.country
         assert "States" in x.country
         assert x.latitude // 1 == 40
-        assert x.longitude // 1 == 96
+        assert x.longitude // 1 == -97
 
     def test_depth(self):
         from typing import List
