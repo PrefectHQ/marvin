@@ -4,7 +4,7 @@
 
 AI models, grounded in Pydantic, offer a transformative approach to data processing by converting unstructured contexts into type-safe outputs that align with your model schema. This empowers you to interrogate your data through your schema, by combining the potent reasoning capabilities of AI with the type boundaries set by Pydantic.
 
-The challenge of transforming unstructured text data into a structured format is a familiar adversary to engineers, analysts, and data scientists. Traditionally, dealing with unstructured data has been the exclusive domain of specialists, requiring the creation of custom models for each data feature. Overlooked a feature? Time to reset the clock for the next quarter. However, with AI models, adjusting your schema suffices, and our tool, Marvin, handles the rest.
+The challenge of transforming unstructured text data into a structured format is a familiar adversary to engineers, analysts, and data scientists. Traditionally, dealing with unstructured data has been the exclusive domain of specialists, requiring the creation of custom models for each data feature. Overlooked a feature? Time to reset the clock for the next quarter. However, with AI models, adjusting your schema suffices, and Marvin handles the rest.
 
 AI Models make inference declarative - they offer a method to generate synthetic and hyper-realistic training data for custom tools.
 
