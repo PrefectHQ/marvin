@@ -6,7 +6,7 @@ AI models, grounded in Pydantic, offer a transformative approach to data process
 
 The challenge of transforming unstructured text data into a structured format is a familiar adversary to engineers, analysts, and data scientists. Traditionally, dealing with unstructured data has been the exclusive domain of specialists, requiring the creation of custom models for each data feature. Overlooked a feature? Time to reset the clock for the next quarter. However, with AI models, adjusting your schema suffices, and our tool, Marvin, handles the rest.
 
-AI Models herald a seismic shift in the interaction between engineers, data scientists, and machine learning by rendering inference declarative. They offer a robust method for veterans in the field to generate synthetic and hyperrealistic training data for their custom tools. AI Models introduce type safety to Large Language Models (LLMs), forming the nuts and bolts that allow us to utilize LLMs to drive an otherwise conventional software system.
+AI Models make inference declarative - they offer a method to generate synthetic and hyper-realistic training data for custom tools.
 
 Let's illustrate with a practical example. Suppose we aim to devise a system to parse resumes in an applicant tracking system. Resumes are diverse in shape, size, and format. In the past, data scientists would craft an array of regular expressions and custom Natural Language Processing (NLP) models to extract entities such as companies or universities and link them to specific dates. The introduction of each new feature would trigger a fresh development cycle.
 
