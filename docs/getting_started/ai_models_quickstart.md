@@ -37,10 +37,10 @@ Resume('Ford Prefect • (555) 5124-5242 • ford@prefect.io').json(indent = 2)
 This is a rather idealized scenario, so let's delve into a more realistic use case. Imagine a real-world situation where resumes are not as neat and predictable. They may include varied sections like work history, education, skills, and they might even contain unconventional structures or typos. Let's enrich our model to handle this complexity:
 
 ```python
-from marvin import ai_model
-from typing import List, Optional, Union, Literal
 import datetime
+from typing import List, Literal, Optional, Union
 import pydantic
+from marvin import ai_model
 
 class Institution(pydantic.BaseModel):
     name: str
