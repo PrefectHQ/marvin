@@ -15,22 +15,28 @@
 
 AI models are Pydantic models that are defined locally but use AI to process their inputs. Like normal Pydantic models, AI models define a schema that data must comply with. Unlike normal Pydantic models, they can handle unstructured text and automatically convert it into structured, type-safe outputs without requiring any additional source code!
 
-Consider the following example, which contains a function that generates a list of fruits. The function is defined with a descriptive name, annotated input and return types, and a docstring -- but doesn't appear to actually do anything. Nonetheless, because of the `@ai_fn` decorator, it can be called like a normal function and returns a list of fruits.
+With Marvin, you employ Pydantic to shape your data model as per usual and enhance your model with @ai_model. This imparts an extraordinary capability to your Pydantic model: the capacity to manage unstructured text.
 
-Under the hood, ai_models a
+```python hl_lines="5"
+from marvin import ai_model
+import pydantic
+from typing import Optional
 
+@ai_model
+class Resume(pydantic.BaseModel):
+    first_name: str
+    last_name: str
+    phone_number: Optional[str]
+    email: str
 
+Resume('Ford Prefect • (555) 5124-5242 • ford@prefect.io').json(indent = 2)
 
-```python hl_lines="4"
-from marvin import ai_fn
-
-
-@ai_fn
-def list_fruits(n: int) -> list[str]:
-    """Generate a list of n fruits"""
-
-
-list_fruits(n=3) # ["apple", "banana", "orange"]
+#{
+#     first_name: 'Ford',
+#     last_name: 'Prefect',
+#     email: 'ford@prefect.io',
+#     phone: '(555) 5124-5242',
+# }
 ```
 !!! tip
     AI models work best with GPT-4, but results are still very good with GPT-3.5.
