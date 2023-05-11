@@ -35,7 +35,7 @@ Marvin is built with 💙 by [Prefect](https://www.prefect.io).
 <!-- ![](img/heroes/gpp.png) -->
 ![](img/tui/colorful_fruit.png)
 
-⚙️ Create [AI Models](guide/concepts/ai_models.md) to make data models that can structure and infer derived information from unstructured text data
+⚙️ Create [AI Models](guide/concepts/ai_models.md) to make data models that can derive structured information from unstructured text data
 
 🪄 Write [AI functions](guide/concepts/ai_functions.md) to process structured data without source code or generate high quality synthetic data
 
