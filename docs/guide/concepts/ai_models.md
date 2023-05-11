@@ -260,6 +260,39 @@ Ms. Lee's most recent lipid panel showed elevated LDL levels, and she was prescr
 # }
 ```
 
+### Text to ORM
+```python
+from datetime import date
+from typing import Optional
+from pydantic import BaseModel
+from django.db.models import Q
+
+class DjangoLookup(BaseModel):
+    field: Literal[*django_fields]
+    lookup: Literal[*django_lookups] = pydantic.Field(description = 'e.g. __iregex')
+    value: Any
+
+@ai_model
+class DjangoQuery(BaseModel):
+    ''' A model represneting a Django ORM query'''
+    lookups: List[DjangoLookup]
+    def to_q(self) -> Q:
+        q = Q()
+        for lookup in self.lookups:
+            q &= Q(**{f"{lookup.field}__{lookup.lookup}": lookup.value})
+        return q
+
+DjangoQuery('''\
+    All users who joined more than two months ago but\
+    haven't made a purchase in the last 30 days'''
+).to_q()
+
+# <Q: (AND: 
+#     ('date_joined__lte', '2023-03-11'), 
+#     ('last_purchase_date__isnull', False), 
+#     ('last_purchase_date__lte', '2023-04-11'))>
+```
+
 ### Extracting financials from terrible CSV data
 
 ```python
