@@ -19,10 +19,10 @@ from typing import Optional
 
 @ai_model
 class Resume(pydantic.BaseModel):
-	first_name: str
-	last_name: str
-	phone_number: Optional[str]
-	email: str
+    first_name: str
+    last_name: str
+    phone_number: Optional[str]
+    email: str
 
 Resume('Ford Prefect • (555) 5124-5242 • ford@prefect.io').json(indent = 2)
 
