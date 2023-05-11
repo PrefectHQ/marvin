@@ -2,7 +2,6 @@ from marvin import Bot
 from marvin.plugins.chroma import chroma_search
 from marvin.plugins.duckduckgo import DuckDuckGo
 from marvin.plugins.github import search_github_issues
-from marvin.plugins.prefect_stuff import review_flow_run
 from marvin.plugins.stack_exchange import search_stack_exchange
 
 how_to_write_a_prefect_2_flow = """
@@ -24,7 +23,19 @@ if __name__ == "__main__":
     hello(count=3)
 """
 
-instructions = """
+how_to_load_and_update_a_block = """
+from prefect.blocks.system import Secret
+
+my_secret = Secret.load("my-secret")
+
+assert my_secret.get() == "my secret value"
+
+my_secret.value = "new secret value"
+
+my_secret.save(overwrite=True)
+"""
+
+instructions = f"""
     Your job is to answer questions about Prefect workflow orchestration
     software. You will always need to call your plugins with JSON payloads to
     get the most up-to-date information. Do not assume you know the answer
@@ -33,7 +44,16 @@ instructions = """
     by your plugins. Remember that Prefect has 2 major versions, Prefect 1 and
     Prefect 2. Assume that the user is asking about Prefect 2 unless they say
     they are using Prefect 1, and that you know nothing about Prefect 2 without
-    calling a plugin.
+    calling a plugin. In case it proves useful, here are some examples of how to
+    use Prefect 2:
+    - how to write a Prefect 2 flow: 
+    ```python
+    {how_to_write_a_prefect_2_flow}
+    ```
+    - how to load and update an existing Block from/to the server:
+    ```python
+    {how_to_load_and_update_a_block}
+    ```
     
     These are your plugins:
     - `chroma_search`: search the Prefect documentation and knowledgebase for
@@ -57,7 +77,6 @@ community_bot = Bot(
         chroma_search,
         DuckDuckGo(),
         search_github_issues,
-        review_flow_run,
         search_stack_exchange,
     ],
     llm_model_name="gpt-4",
