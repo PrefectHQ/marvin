@@ -116,6 +116,12 @@ class Trip(pydantic.BaseModel):
     trip_preferences: list[str]
     destinations: List[Destination]
 
+Trip('''\
+I've got all of June off, so hoping to spend the first\
+half of June in London and the second half in Rabat. I love \
+good food and going to museums.
+''').json(indent = 2)
+
 # {
 #   "trip_start": "2023-06-01",
 #   "trip_end": "2023-06-30",
