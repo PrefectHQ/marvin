@@ -1,6 +1,6 @@
 # Marvin 🤖🏖️
 
-![](docs/img/heroes/ai_fn_fruits_hero.png)
+![](docs/img/heroes/ai_model_windy_city_hero.png)
 
 
 Meet Marvin: a batteries-included library for building AI-powered software. Marvin's job is to integrate AI directly into your codebase by making it look and feel like any other function. 
