@@ -5,7 +5,7 @@ import pydantic
 
 from marvin import ai_fn
 from marvin.bot import Bot
-from marvin.bot.response_formatters import TypeFormatter
+from marvin.bot.response_formatters import PydanticFormatter
 
 M = TypeVar("M", bound=pydantic.BaseModel)
 
@@ -44,7 +44,7 @@ def AIModel(
                 bot=bot,
                 bot_kwargs={
                     **bot_kwargs,
-                    "response_format": TypeFormatter(type_schema=cls.schema()),
+                    "response_format": PydanticFormatter(model=cls),
                 },
             )
             # We'll attempt to impute the values using the ai_imputer function.
