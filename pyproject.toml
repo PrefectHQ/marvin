@@ -29,6 +29,7 @@ dependencies = [
     "prefect~=2.8",
     "pydantic[dotenv]~=1.10",
     "pyperclip~=1.8",
+    "python-multipart~=0.0.6",
     "rich~=13.3",
     "sqlalchemy[asyncio]~=1.4",
     "sqlitedict~=2.1",
