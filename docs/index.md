@@ -9,12 +9,14 @@ title: Welcome to Marvin
 Meet [Marvin](https://github.com/prefecthq/marvin): a batteries-included library for building AI-powered software. Marvin's job is to integrate AI directly into your codebase by making it look and feel like any other function. Marvin is building the gears, cranks, and pistons to let mechanical software systems integrate with and leverage the raw power of Large Language Models.
 
 Marvin introduces two new concepts:
+
   - [**AI Models**](guide/concepts/ai_models.md). These models, grounded in Pydantic, offer a transformative approach to data processing by converting unstructured contexts into type-safe outputs that validate against your model schema. This empowers you to interrogate your data through your schema. AI models present an elegant solution that combines the potent reasoning capabilities of AI with the sturdy, type-safe boundaries set by Pydantic.
 
 
   - [**AI Functions**](guide/concepts/ai_functions.md). These functions differ from conventional ones in that they don’t rely on source code, but instead generate their outputs on-demand with AI by using an LLM as a runtime. With AI functions, you don't have to write complex code for tasks like extracting entities from web pages, scoring sentiment, or categorizing items in your database. Just describe your needs, call the function, and you're done!
 
-    AI functions work with native data types, so you can seamlessly integrate them into any codebase and chain them into sophisticated pipelines. Technically speaking, Marvin transforms the signature of using AI from `(str) -> str` to `(**kwargs) -> Any`. 
+
+AI functions and models work with native data types, so you can seamlessly integrate them into any codebase and chain them into sophisticated pipelines. Technically speaking, Marvin transforms the signature of using AI from `(str) -> str` to `(**kwargs) -> Any`. 
     
 Marvin leverages **"functional prompt engineering"** to build a battle-tested and typesafe interface to LLMs. We expose our API through drop-in decorators, creating an unparalleled developer experience so that every developer can reach for LLMs when it's the right tool. 
 

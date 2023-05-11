@@ -10,7 +10,7 @@ AI Models make inference declarative - they offer a method to generate synthetic
 
 Let's illustrate with a practical example. Suppose we aim to devise a system to parse resumes in an applicant tracking system. Resumes are diverse in shape, size, and format. In the past, data scientists would craft an array of regular expressions and custom Natural Language Processing (NLP) models to extract entities such as companies or universities and link them to specific dates. The introduction of each new feature would trigger a fresh development cycle.
 
-With Marvin, you employ Pydantic to shape your data model as per usual and enhance your model with @ai_model. This imparts an extraordinary capability to your Pydantic model: the capacity to manage unstructured text.
+With Marvin, you employ Pydantic to shape your data model as per usual and enhance your model with `@ai_model`. This imparts an extraordinary capability to your Pydantic model: the capacity to manage unstructured text.
 
 ```python hl_lines="5"
 from marvin import ai_model
@@ -31,7 +31,7 @@ Resume('Ford Prefect • (555) 5124-5242 • ford@prefect.io').json(indent = 2)
 #     last_name: 'Prefect',
 #     email: 'ford@prefect.io',
 #     phone: '(555) 5124-5242',
-# }
+#}
 ```
 
 This is a rather idealized scenario, so let's delve into a more realistic use case. Imagine a real-world situation where resumes are not as neat and predictable. They may include varied sections like work history, education, skills, and they might even contain unconventional structures or typos. Let's enrich our model to handle this complexity:
