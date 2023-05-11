@@ -103,7 +103,7 @@ Work Experience:
 
 The magic here is not just that Marvin can parse this structure, but that it can also evolve with the schema. If we decide tomorrow that we want to parse out a new section, or get more granular with the dates, we just change our Pydantic schema, and Marvin takes care of the rest.
 
-One of the most powerful features of AI Models is that it can infer or deduce derived information. 
+One of the most powerful features of AI Models is that it can infer and/or derive information. 
 Let's revist the previous example, but let's say we want our Experience model to infer *derived* information.
 
 ```python
