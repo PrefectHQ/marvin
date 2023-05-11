@@ -31,7 +31,7 @@ Resume('Ford Prefect • (555) 5124-5242 • ford@prefect.io').json(indent = 2)
 #     last_name: 'Prefect',
 #     email: 'ford@prefect.io',
 #     phone: '(555) 5124-5242',
-# }
+#}
 ```
 
 This is a rather idealized scenario, so let's delve into a more realistic use case. Imagine a real-world situation where resumes are not as neat and predictable. They may include varied sections like work history, education, skills, and they might even contain unconventional structures or typos. Let's enrich our model to handle this complexity:
