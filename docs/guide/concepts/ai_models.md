@@ -433,6 +433,61 @@ MySchema(
 # }
 ```
 
+### Structing data from scraping web pages
+
+```python
+from marvin import ai_model
+import pydantic
+import requests
+from bs4 import BeautifulSoup as soup
+
+@ai_model
+class Company(pydantic.BaseModel):
+    name: str
+    industries: List[str]
+    description_short: str
+    description_long: str
+    products: List[str]
+
+response = requests.get('https://www.apple.com')
+text = soup(response.content).get_text(separator = ' ', strip = True)
+Company(text).json(indent = 2)
+
+# {
+#   "name": "Apple",
+#   "industries": [
+#     "Technology",
+#     "Consumer electronics"
+#   ],
+#   "description_short": "Apple is a multinational technology company that designs, develops, and sells consumer electronics, computer software, and online services.",
+#   "description_long": "Apple Inc. is an American multinational technology company that designs, develops, and sells consumer electronics, computer software, and online services. The company's hardware products include the iPhone smartphone, the iPad tablet computer, the Mac personal computer, the iPod portable media player, the Apple Watch smartwatch, the Apple TV digital media player, and the HomePod smart speaker. Apple's software includes the macOS, iOS, iPadOS, watchOS, and tvOS operating systems, the iTunes media player, the Safari web browser, and the iLife and iWork creativity and productivity suites. The online services include the iTunes Store, the iOS App Store, and Mac App Store, Apple Music, and iCloud. The company was founded on April 1, 1976, and incorporated on January 3, 1977, by Steve Jobs, Steve Wozniak, and Ronald Wayne.",
+#   "products": [
+#     "iPhone",
+#     "iPad",
+#     "Mac",
+#     "iPod",
+#     "Apple Watch",
+#     "Apple TV",
+#     "HomePod",
+#     "macOS",
+#     "iOS",
+#     "iPadOS",
+#     "watchOS",
+#     "tvOS",
+#     "iTunes",
+#     "Safari",
+#     "iLife",
+#     "iWork",
+#     "iTunes Store",
+#     "iOS App Store",
+#     "Mac App Store",
+#     "Apple Music",
+#     "iCloud"
+#   ]
+# }
+
+```
+
 
 ### Smart routing in application development
 ```python
