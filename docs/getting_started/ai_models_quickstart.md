@@ -27,10 +27,10 @@ class Resume(pydantic.BaseModel):
 Resume('Ford Prefect • (555) 5124-5242 • ford@prefect.io').json(indent = 2)
 
 #{
-# first_name: 'Ford',
-# last_name: 'Prefect',
-# email: 'ford@prefect.io',
-# phone: '(555) 5124-5242',
+#     first_name: 'Ford',
+#     last_name: 'Prefect',
+#     email: 'ford@prefect.io',
+#     phone: '(555) 5124-5242',
 # }
 ```
 
