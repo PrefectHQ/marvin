@@ -36,7 +36,7 @@ Resume('Ford Prefect • (555) 5124-5242 • ford@prefect.io').json(indent = 2)
 #     last_name: 'Prefect',
 #     email: 'ford@prefect.io',
 #     phone: '(555) 5124-5242',
-# }
+#}
 ```
 !!! tip
     AI models work best with GPT-4, but results are still very good with GPT-3.5.
