@@ -1,10 +1,10 @@
-# 🪄 AI Functions
+# 🪄 AI Models
 
 ![](../../img/heroes/ai_model_windy_city_hero.png)
 
 !!! tip "Features"
 
-    🎉 Create AI models with a single @ai_model decorator
+    🎉 Create AI models with a single `@ai_model` decorator
 
     🧱 Define Pydantic models that work with both structured data and unstructured text
 
@@ -15,7 +15,7 @@
 
 AI models are Pydantic models that are defined locally but use AI to process their inputs. Like normal Pydantic models, AI models define a schema that data must comply with. Unlike normal Pydantic models, they can handle unstructured text and automatically convert it into structured, type-safe outputs without requiring any additional source code!
 
-With Marvin, you employ Pydantic to shape your data model as per usual and enhance your model with @ai_model. This imparts an extraordinary capability to your Pydantic model: the capacity to manage unstructured text.
+With Marvin, you employ Pydantic to shape your data model as per usual and enhance your model with `@ai_model`. This imparts an extraordinary capability to your Pydantic model: the capacity to manage unstructured text.
 
 ```python hl_lines="5"
 from marvin import ai_model
@@ -36,7 +36,7 @@ Resume('Ford Prefect • (555) 5124-5242 • ford@prefect.io').json(indent = 2)
 #     last_name: 'Prefect',
 #     email: 'ford@prefect.io',
 #     phone: '(555) 5124-5242',
-# }
+#}
 ```
 !!! tip
     AI models work best with GPT-4, but results are still very good with GPT-3.5.
