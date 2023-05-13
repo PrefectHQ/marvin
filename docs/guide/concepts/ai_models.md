@@ -15,7 +15,7 @@
 
 AI models are Pydantic models that are defined locally and use AI to process their inputs at runtime. Like normal Pydantic models, AI models define a schema that data must comply with. Unlike normal Pydantic models, AI models can handle unstructured text and automatically convert it into structured, type-safe outputs without requiring any additional source code!
 
-With Marvin, you use Pydantic to shape your data model as usual and enhance your model with `@ai_model`. This decorator imparts an extraordinary capability to your Pydantic model: the capabiliy to manage unstructured text.
+With Marvin, you use Pydantic to shape your data model as usual and enhance your model with `@ai_model`. This decorator imparts an extraordinary capability to your Pydantic model: the capability to manage unstructured text.
 
 ```python hl_lines="5"
 from marvin import ai_model
