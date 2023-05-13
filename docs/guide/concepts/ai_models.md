@@ -55,7 +55,7 @@ Therefore, while there are many suitable times to use AI models, they aren't alw
 
 The `ai_model` decorator can be applied to any Pydantic model. For optimal results, the model should have a descriptive name, annotated fields, and a class docstring. The model does not need to have any pre-processing or post-processing methods written. However, advanced users can add these methods to influence the output.
 
-When an `ai_model`-decorated model is instantiated with unstructured text, all available information is sent to the AI. Note that the data is sent to the LLM as the first `root_validator`. The AI generates a predicted output that is parsed according to the model's schema and returned as the model's instance.
+When an `ai_model`-decorated class is instantiated with unstructured text, all available information is sent to the AI. The AI generates a predicted output that is parsed according to the model's schema and returned as an instance of the model.
 
 ```python hl_lines="5"
 from marvin import ai_model
