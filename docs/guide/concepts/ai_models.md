@@ -13,9 +13,9 @@
     🧙 Enhance your data schema with AI capabilities that would be difficult or impossible to implement manually
 
 
-AI models are Pydantic models that are defined locally but use AI to process their inputs. Like normal Pydantic models, AI models define a schema that data must comply with. Unlike normal Pydantic models, they can handle unstructured text and automatically convert it into structured, type-safe outputs without requiring any additional source code!
+AI models are Pydantic models that are defined locally and use AI to process their inputs at runtime. Like normal Pydantic models, AI models define a schema that data must comply with. Unlike normal Pydantic models, AI models can handle unstructured text and automatically convert it into structured, type-safe outputs without requiring any additional source code!
 
-With Marvin, you employ Pydantic to shape your data model as per usual and enhance your model with `@ai_model`. This imparts an extraordinary capability to your Pydantic model: the capacity to manage unstructured text.
+With Marvin, you use Pydantic to shape your data model as usual and enhance your model with `@ai_model`. This decorator imparts an extraordinary capability to your Pydantic model: the capabiliy to manage unstructured text.
 
 ```python hl_lines="5"
 from marvin import ai_model
@@ -43,17 +43,19 @@ Resume('Ford Prefect • (555) 5124-5242 • ford@prefect.io').json(indent = 2)
 
 ## When to use AI Models
 
-Because AI models integrate seamlessly with the Pydantic framework, they are the most straightforward method to infuse AI capabilities into your data processing pipeline. Just define the Pydantic model with the fields you want to extract from the unstructured text and use it anywhere! However, even though they can feel like magic, it's crucial to understand that there are situations where you might prefer not to use AI models.
+Because AI models integrate seamlessly with the Pydantic framework, they are a straightforward way to infuse AI capabilities into your data processing pipeline. Just define the Pydantic model with the fields you want to extract from the unstructured text and use it anywhere! However, even though they can feel like magic, it's crucial to understand that there are situations where you might prefer not to use AI models.
 
-Modern LLMs are extraordinarily potent, particularly when dealing with natural language and concepts that are simple to express but challenging to encode algorithmically. However, since they don't actually execute code, computing incredibly precise results can be unexpectedly tricky. Asking an AI to understand intricate legal language is akin to asking a human to do the same -- it's feasible they'll comprehend the right context, but you'll probably want to double-check with a legal expert. On the other hand, you wouldn't ask the legal expert to summarize a complex research paper, which is a perfectly natural thing to ask an AI. 
+Modern LLMs are extraordinarily potent, particularly when dealing with natural language and concepts that are simple to express but challenging to encode algorithmically. However, because they don't actually execute code, computing precise results can be tricky. 
 
-Therefore, while there are many suitable times to use AI models, it's important to note that they complement traditional data processing models remarkably well and to know when to use one or the other. AI models tend to excel at exactly the things that are very hard to codify algorithmically. If you're performing simple data validation, use a normal Pydantic model. If you're extracting context from unstructured text, use an AI model.
+For example, asking an AI to summarize intricate legal language is akin to asking a human to do the same -- it's feasible they'll comprehend the right context, but you'll probably want to double-check with a legal expert. On the other hand, you wouldn't ask the legal expert to summarize a complex research paper, which is a perfectly natural thing to ask an AI. 
+
+Therefore, while there are many suitable times to use AI models, they aren't always a great fit. AI models tend to excel at exactly the things that are hard to codify algorithmically. If you're performing simple data validation, use a normal Pydantic model. If you're extracting context from unstructured text, use an AI model.
 
 ## Basic usage
 
-The `ai_model` decorator can be applied to any Pydantic model. For optimal results, the model should have a descriptive name, annotated fields, and a class docstring. The model does not need to have any pre-processing or post-processing methods written, but advanced users can add these methods to influence the output in two different ways (Note that the data is sent to the LLM as the first root_validator). 
+The `ai_model` decorator can be applied to any Pydantic model. For optimal results, the model should have a descriptive name, annotated fields, and a class docstring. The model does not need to have any pre-processing or post-processing methods written. However, advanced users can add these methods to influence the output.
 
-When an `ai_model`-decorated model is instantiated with unstructured text, all available information is sent to the AI, which generates a predicted output. This output is parsed according to the model's schema and returned as the model's instance.
+When an `ai_model`-decorated model is instantiated with unstructured text, all available information is sent to the AI. Note that the data is sent to the LLM as the first `root_validator`. The AI generates a predicted output that is parsed according to the model's schema and returned as the model's instance.
 
 ```python hl_lines="5"
 from marvin import ai_model
@@ -94,7 +96,7 @@ internal documentation, or a sanitized executable environment by using Marvin's 
 
 ## Examples
 
-### Structing conversational user input
+### Structure conversational user input
 
 ```python
 from marvin import ai_model
@@ -305,7 +307,7 @@ DjangoQuery('''\
 #     ('last_purchase_date__lte', '2023-04-11'))>
 ```
 
-### Extracting financials from terrible CSV data
+### Extract financial information from messy CSV data
 
 ```python
 from datetime import date
@@ -439,7 +441,7 @@ MySchema(
 # }
 ```
 
-### Structing data from scraping web pages
+### Structure data from scraping web pages
 
 ```python
 from marvin import ai_model
