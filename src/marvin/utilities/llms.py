@@ -1,15 +1,11 @@
-import asyncio
 import inspect
 from typing import Any, Callable, Union
 
-from langchain.callbacks.base import BaseCallbackHandler, CallbackManager
+from langchain.callbacks.base import AsyncCallbackHandler
 from langchain.chat_models import ChatOpenAI
 from langchain.schema import (
-    AgentAction,
-    AgentFinish,
     AIMessage,
     HumanMessage,
-    LLMResult,
     SystemMessage,
 )
 
@@ -17,7 +13,7 @@ import marvin
 from marvin.models.threads import Message
 
 
-class StreamingCallbackHandler(BaseCallbackHandler):
+class StreamingCallbackHandler(AsyncCallbackHandler):
     """
     Callback handler for streaming responses.
     """
@@ -41,62 +37,19 @@ class StreamingCallbackHandler(BaseCallbackHandler):
     def always_verbose(self) -> bool:
         return True
 
-    def on_llm_start(
+    async def on_llm_start(
         self, serialized: dict[str, Any], prompts: list[str], **kwargs: Any
     ) -> None:
         """Run when LLM starts running."""
         self.buffer.clear()
 
-    def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
+    async def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
         """Run on new LLM token. Only available when streaming is enabled."""
         self.buffer.append(token)
         if self.on_token_callback is not None:
             output = self.on_token_callback(self.buffer)
             if inspect.iscoroutine(output):
-                asyncio.run(self.on_token_callback(self.buffer))
-
-    def on_llm_end(self, response: LLMResult, **kwargs: Any) -> Any:
-        """Run when LLM ends running."""
-
-    def on_llm_error(
-        self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any
-    ) -> Any:
-        """Run when LLM errors."""
-
-    def on_chain_start(
-        self, serialized: dict[str, Any], inputs: dict[str, Any], **kwargs: Any
-    ) -> Any:
-        """Run when chain starts running."""
-
-    def on_chain_end(self, outputs: dict[str, Any], **kwargs: Any) -> Any:
-        """Run when chain ends running."""
-
-    def on_chain_error(
-        self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any
-    ) -> Any:
-        """Run when chain errors."""
-
-    def on_tool_start(
-        self, serialized: dict[str, Any], input_str: str, **kwargs: Any
-    ) -> Any:
-        """Run when tool starts running."""
-
-    def on_tool_end(self, output: str, **kwargs: Any) -> Any:
-        """Run when tool ends running."""
-
-    def on_tool_error(
-        self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any
-    ) -> Any:
-        """Run when tool errors."""
-
-    def on_text(self, text: str, **kwargs: Any) -> Any:
-        """Run on arbitrary text."""
-
-    def on_agent_action(self, action: AgentAction, **kwargs: Any) -> Any:
-        """Run on agent action."""
-
-    def on_agent_finish(self, finish: AgentFinish, **kwargs: Any) -> Any:
-        """Run on agent end."""
+                await output
 
 
 def get_llm(
@@ -109,9 +62,7 @@ def get_llm(
     if on_token_callback is not None:
         kwargs.update(
             streaming=True,
-            callback_manager=CallbackManager(
-                [StreamingCallbackHandler(on_token_callback=on_token_callback)]
-            ),
+            callbacks=[StreamingCallbackHandler(on_token_callback=on_token_callback)],
         )
     if model_name is None:
         model_name = marvin.settings.openai_model_name
