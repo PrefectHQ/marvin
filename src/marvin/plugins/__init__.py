@@ -6,6 +6,5 @@ from . import (
     google,
     duckduckgo,
     chroma,
-    prefect_stuff,
     stack_exchange,
 )
