@@ -1,12 +1,10 @@
 import pendulum
-from prefect.utilities.asyncutils import sync_compatible
 
 import marvin
 from marvin.infra.chroma import Chroma
 from marvin.models.documents import Document
 
 
-@sync_compatible
 async def record_feedback(feedback: str, topic: str = None):
     """Record feedback on a given topic."""
 
