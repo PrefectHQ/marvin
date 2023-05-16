@@ -33,11 +33,7 @@ if settings.test_mode:
     _logger.debug_style("Marvin is running in test mode!", style="yellow")
 
 _logger.debug_kv("LLM Model", settings.llm_model, "green")
-_logger.debug_kv(
-    "LLM Backend",
-    settings.llm_backend or "not set; will attempt to infer at runtime",
-    "green",
-)
+_logger.debug_kv("LLM Backend", settings.llm_backend, "green")
 
 
 # check alembic versions
