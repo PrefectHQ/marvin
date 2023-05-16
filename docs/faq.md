@@ -16,7 +16,7 @@ ChatGPT is a powerful service primarily accessed through its own UI or by making
 
 ### Should I use GPT-4 or GPT-3.5?
 
-Marvin supports multiple LLM models. At this time, models include OpenAI's GPT-4 (`gpt-4`) and GPT-3.5 (`gpt-3.5-turbo`). To set the model, use the environment variable `MARVIN_OPENAI_MODEL_NAME`. Because not every developer has access to GPT-4 (yet), Marvin's default model is GPT-3.5. This guarantees that everyone can use Marvin "out of the box."
+Marvin supports multiple LLM models. At this time, models include OpenAI's GPT-4 (`gpt-4`) and GPT-3.5 (`gpt-3.5-turbo`). To set the model, use the environment variable `MARVIN_LLM_MODEL`. Because not every developer has access to GPT-4 (yet), Marvin's default model is GPT-3.5. This guarantees that everyone can use Marvin "out of the box."
 
 Performance is much better on GPT-4 than GPT-3.5, though GPT-3.5 is still very good for many use cases. In particular, GPT-4 is better at following instructions over long interactions and staying "on-script" throughout an entire conversation. It is much less susceptible to being distracted and can break problems down into manageable pieces more easily. However, it is slower and up to 30x more expensive than GPT-3.5, and is also not yet widely available to all OpenAI accounts. Many of Marvin's prompts were originally written for GPT-3.5, which is one of the reasons the smaller model still has great results. In our experience, prompts optimized for GPT-4 usually fail outright with GPT-3.5.
 

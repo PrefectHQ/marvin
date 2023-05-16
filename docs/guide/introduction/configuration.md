@@ -36,9 +36,9 @@ OPENAI_API_KEY=
 ```
 
 **Model name**: 
-Choose the OpenAI model.
+Choose the LLM model.
 ```
-MARVIN_OPENAI_MODEL_NAME='gpt-4'
+MARVIN_LLM_MODEL='gpt-4'
 ```
 
 #### Database

@@ -98,7 +98,7 @@ For example, this function will always use GPT-3.5 with a temperature of 0.2.
 ```python
 from marvin import ai_fn
 
-@ai_fn(llm_model_name='gpt-3.5-turbo', llm_model_temperature=0.2)
+@ai_fn(llm_model='gpt-3.5-turbo', llm_temperature=0.2)
 def my_function():
     ...
 ```

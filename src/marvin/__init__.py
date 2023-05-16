@@ -32,7 +32,12 @@ _logger = get_logger(__name__)
 if settings.test_mode:
     _logger.debug_style("Marvin is running in test mode!", style="yellow")
 
-_logger.info_style(f'Using OpenAI model "{settings.openai_model_name}"')
+_logger.debug_kv("LLM Model", settings.llm_model, "green")
+_logger.debug_kv(
+    "LLM Backend",
+    settings.llm_backend or "not set; will attempt to infer at runtime",
+    "green",
+)
 
 
 # check alembic versions

@@ -4,10 +4,10 @@ import inspect
 import json
 import re
 from typing import TYPE_CHECKING, Any, Callable
+from warnings import warn
 
 from fastapi import HTTPException, status
-from openai.error import InvalidRequestError
-from pydantic import Field, validator
+from pydantic import Field, confloat, validator
 
 import marvin
 from marvin.bot.history import History, ThreadHistory
@@ -187,8 +187,11 @@ class Bot(MarvinBaseModel, LoggerMixin):
         None, description="A list of plugins that the bot can use."
     )
     history: History = Field(None, repr=False)
-    llm_model_name: str = Field(None, repr=False)
-    llm_model_temperature: float = Field(None, repr=False)
+    llm_backend: str = Field(None, repr=False)
+    llm_model: str = Field(None, repr=False)
+    llm_temperature: confloat(ge=0, le=1) = Field(None, repr=False)
+    llm_max_tokens: float = Field(None, repr=False)
+    llm_kwargs: dict = Field(None, repr=False)
 
     input_transformers: list[InputTransformer] = Field(
         default_factory=list,
@@ -287,14 +290,35 @@ class Bot(MarvinBaseModel, LoggerMixin):
         else:
             return marvin.bot.response_formatters.load_formatter_from_shorthand(v)
 
+    def __init__(self, **data):
+        # handle deprecated fields
+        if data.get("llm_model_name"):
+            warn(
+                "`llm_model_name` is deprecated; use `llm_model` instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            data["llm_model"] = data.pop("llm_model_name")
+        if data.get("llm_model_temperature"):
+            warn(
+                "`llm_model_temperature` is deprecated; use `llm_temperature` instead",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            data["llm_temperature"] = data.pop("llm_model_temperature")
+
+        super().__init__(**data)
+
     def to_bot_config(self) -> "BotConfig":
         from marvin.models.bots import BotConfig
 
-        llm_settings = {}
-        if self.llm_model_name is not None:
-            llm_settings.update(llm_model_name=self.llm_model_name)
-        if self.llm_model_temperature is not None:
-            llm_settings.update(llm_model_temperature=self.llm_model_temperature)
+        llm_settings = dict(
+            llm_backend=self.llm_backend,
+            llm_model=self.llm_model,
+            llm_temperature=self.llm_temperature,
+            llm_max_tokens=self.llm_max_tokens,
+            llm_kwargs=self.llm_kwargs,
+        )
 
         return BotConfig(
             id=self.id,
@@ -309,6 +333,14 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
     @classmethod
     def from_bot_config(cls, bot_config: "BotConfig") -> "Bot":
+        llm_settings = bot_config.llm_settings.copy()
+
+        # handle legacy configs with old setting names
+        if "llm_model_name" in llm_settings:
+            llm_settings["llm_model"] = llm_settings.pop("llm_model_name")
+        if "llm_model_temperature" in llm_settings:
+            llm_settings["llm_temperature"] = llm_settings.pop("llm_model_temperature")
+
         return cls(
             id=bot_config.id,
             name=bot_config.name,
@@ -317,7 +349,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             plugins=bot_config.plugins,
             input_transformers=bot_config.input_transformers,
             description=bot_config.description,
-            **bot_config.llm_settings,
+            **llm_settings,
         )
 
     async def save(self, if_exists: str = None):
@@ -535,7 +567,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
     async def _get_history(self) -> list[Message]:
         history = await self.history.get_messages(
-            max_tokens=3500 - marvin.settings.openai_model_max_tokens
+            max_tokens=3500 - marvin.settings.llm_max_tokens
         )
         return history
 
@@ -551,9 +583,12 @@ class Bot(MarvinBaseModel, LoggerMixin):
         import marvin.utilities.llms
 
         langchain_messages = marvin.utilities.llms.prepare_messages(messages)
-        llm = marvin.utilities.llms.get_llm(
-            model_name=self.llm_model_name,
-            temperature=self.llm_model_temperature,
+        llm = marvin.utilities.llms.get_model(
+            model=self.llm_model,
+            backend=self.llm_backend,
+            temperature=self.llm_temperature,
+            max_tokens=self.llm_max_tokens,
+            llm_kwargs=self.llm_kwargs,
             on_token_callback=on_token_callback,
         )
 
@@ -562,21 +597,13 @@ class Bot(MarvinBaseModel, LoggerMixin):
             self.logger.debug_kv(
                 "Sending messages to LLM", messages_repr, key_style="green"
             )
-        try:
-            result = await llm.agenerate(
-                messages=[langchain_messages], stop=["</stop>"]
-            )
-        except InvalidRequestError as exc:
-            if "does not exist" in str(exc):
-                raise ValueError(
-                    "Please check your `openai_model_name` and that your OpenAI account"
-                    " has access to this model. You can select an OpenAI model by"
-                    " setting the `MARVIN_OPENAI_MODEL_NAME` env var."
-                    " Read more about settings in the docs: https://www.askmarvin.ai/guide/introduction/configuration/#settings"  # noqa: E501
-                )
-            raise exc
 
-        return result.generations[0][0].text
+        predict_fn = functools.partial(
+            llm.predict_messages, messages=langchain_messages, stop=["</stop>"]
+        )
+        result = await asyncio.get_event_loop().run_in_executor(None, predict_fn)
+
+        return result.content
 
     def interactive_chat(self, first_message: str = None, tui: bool = True):
         """
@@ -697,7 +724,8 @@ def _reformat_response(
     @marvin.ai_fn(
         plugins=[],
         response_format=JSONFormatter(on_error="ignore"),
-        llm_model_name="gpt-3.5-turbo",
+        llm_model="gpt-3.5-turbo",
+        llm_temperature=0,
     )
     def reformat_response(
         llm_response: str,

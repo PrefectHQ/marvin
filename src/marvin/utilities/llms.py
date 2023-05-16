@@ -2,7 +2,6 @@ import inspect
 from typing import Any, Callable, Union
 
 from langchain.callbacks.base import AsyncCallbackHandler
-from langchain.chat_models import ChatOpenAI
 from langchain.schema import (
     AIMessage,
     HumanMessage,
@@ -10,6 +9,7 @@ from langchain.schema import (
 )
 
 import marvin
+from marvin.config import LLMBackend, infer_llm_backend
 from marvin.models.threads import Message
 
 
@@ -52,31 +52,90 @@ class StreamingCallbackHandler(AsyncCallbackHandler):
                 await output
 
 
-def get_llm(
-    model_name: str = None,
+def get_model(
+    backend: str = None,
+    model: str = None,
     temperature: float = None,
-    openai_api_key: str = None,
+    max_tokens: int = None,
+    llm_kwargs: dict[str, Any] = None,
     on_token_callback: Callable = None,
-) -> ChatOpenAI:
-    kwargs = dict()
+):
+    """
+    Given a backend, model name, and optional kwargs, returns a callable that
+    returns an AI model.
+    """
+
+    if llm_kwargs is None:
+        llm_kwargs = dict()
+
     if on_token_callback is not None:
-        kwargs.update(
+        llm_kwargs.update(
             streaming=True,
             callbacks=[StreamingCallbackHandler(on_token_callback=on_token_callback)],
         )
-    if model_name is None:
-        model_name = marvin.settings.openai_model_name
+
+    if model is None:
+        model = marvin.settings.llm_model
     if temperature is None:
-        temperature = marvin.settings.openai_model_temperature
-    return ChatOpenAI(
-        model_name=model_name,
-        temperature=temperature,
-        openai_api_key=(
-            openai_api_key or marvin.settings.openai_api_key.get_secret_value()
-        ),
-        max_tokens=marvin.settings.openai_model_max_tokens,
-        **kwargs,
-    )
+        temperature = marvin.settings.llm_temperature
+    if max_tokens is None:
+        max_tokens = marvin.settings.llm_max_tokens
+
+    if backend is None:
+        try:
+            backend = infer_llm_backend(model)
+        except ValueError:
+            backend = marvin.settings.llm_backend
+
+    # OpenAI chat models
+    if backend == LLMBackend.OpenAIChat:
+        from langchain.chat_models import ChatOpenAI
+
+        return ChatOpenAI(
+            openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
+            model_name=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            **llm_kwargs,
+        )
+
+    # OpenAI completion models
+    elif backend == LLMBackend.OpenAI:
+        from langchain.llms import OpenAI
+
+        return OpenAI(
+            openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
+            model_name=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            **llm_kwargs,
+        )
+
+    # Anthropic chat models
+    elif backend == LLMBackend.Anthropic:
+        from langchain.chat_models import ChatAnthropic
+
+        return ChatAnthropic(
+            anthropic_api_key=marvin.settings.anthropic_api_key.get_secret_value(),
+            model=model,
+            max_tokens_to_sample=max_tokens,
+            temperature=temperature,
+            **llm_kwargs,
+        )
+
+    # HuggingFaceHub models
+    elif backend == LLMBackend.HuggingFaceHub:
+        raise ValueError("HuggingFaceHub models are not fully supported yet.")
+        from langchain.llms import HuggingFaceHub
+
+        return HuggingFaceHub(
+            huggingfacehub_api_token=marvin.settings.huggingfacehub_api_token.get_secret_value(),
+            repo_id=model,
+            model_kwargs=llm_kwargs,
+        )
+
+    else:
+        raise ValueError(f"Unknown LLM backend: {backend}")
 
 
 def prepare_messages(

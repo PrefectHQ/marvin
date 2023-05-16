@@ -1,6 +1,7 @@
 import os
 import platform
 from contextlib import contextmanager
+from enum import Enum
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -27,6 +28,36 @@ import marvin
 ENV_FILE = Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()
 ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
 ENV_FILE.touch(exist_ok=True)
+
+
+class LLMBackend(str, Enum):
+    OpenAI = "OpenAI"
+    OpenAIChat = "OpenAIChat"
+    Anthropic = "Anthropic"
+    HuggingFaceHub = "HuggingFaceHub"
+
+
+def infer_llm_backend(model: str = None) -> LLMBackend:
+    """
+    Infer backends for common models. This list does NOT have to be complete, as
+    it is purely a convenience.
+    """
+    if model.startswith("gpt-3") or model.startswith("gpt-4"):
+        return LLMBackend.OpenAIChat
+    elif (
+        model.startswith("text-davinci")
+        or model.startswith("text-curie")
+        or model.startswith("text-babbage")
+        or model.startswith("text-ada")
+    ):
+        return LLMBackend.OpenAI
+    elif model.startswith("claude"):
+        return LLMBackend.Anthropic
+    else:
+        raise ValueError(
+            "No LLM backend provided and could not infer one from `llm_model`."
+        )
+
 
 if CHROMA_INSTALLED:
 
@@ -84,6 +115,20 @@ class Settings(BaseSettings):
     )
     rich_tracebacks: bool = Field(False, description="Enable rich traceback formatting")
 
+    # LLMS
+    llm_model: str = Field(
+        "gpt-3.5-turbo", description="An LLM model name compatible with the backend"
+    )
+    llm_backend: LLMBackend = Field(
+        None,
+        description=(
+            "A compatible LLM backend. In some cases, can be inferred from the"
+            " llm_model."
+        ),
+    )
+    llm_max_tokens: int = 1250
+    llm_temperature: float = 0.8
+
     # EMBEDDINGS
     # specify the path to the embeddings cache, relative to the home dir
     embeddings_cache_path: Path = Path("cache/embeddings.sqlite")
@@ -93,11 +138,18 @@ class Settings(BaseSettings):
     openai_default_organization: SecretStr = Field(
         "", env=["MARVIN_OPENAI_DEFAULT_ORGANIZATION", "OPENAI_DEFAULT_ORGANIZATION"]
     )
-    openai_model_name: str = "gpt-3.5-turbo"
-    openai_model_temperature: float = 0.8
-    openai_model_max_tokens: int = 1250
     openai_api_key: SecretStr = Field(
         "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
+    )
+
+    # ANTHROPIC
+    anthropic_api_key: SecretStr = Field(
+        "", env=["MARVIN_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"]
+    )
+
+    # HUGGINGFACE HUB
+    huggingfacehub_api_token: SecretStr = Field(
+        "", env=["MARVIN_HUGGINGFACEHUB_API_TOKEN", "HUGGINGFACEHUB_API_TOKEN"]
     )
 
     # CHROMA
@@ -215,6 +267,12 @@ class Settings(BaseSettings):
 
         return values
 
+    @validator("llm_backend", pre=True, always=True)
+    def infer_llm_backend(cls, v, values):
+        if v is None:
+            return infer_llm_backend(values["llm_model"])
+        return v
+
     @validator("openai_api_key")
     def warn_if_missing_api_keys(cls, v, field):
         if not v:
@@ -236,9 +294,10 @@ class Settings(BaseSettings):
             # don't load default plugins
             values["bot_load_default_plugins"] = False
             # remove all model variance
-            values["openai_model_temperature"] = 0.0
+            values["llm_temperature"] = 0.0
             # use 3.5 by default
-            values["openai_model_name"] = "gpt-3.5-turbo"
+            values["llm_model"] = "gpt-3.5-turbo"
+            values["llm_backend"] = LLMBackend.OpenAIChat
             # don't check migration version
             values["database_check_migration_version_on_startup"] = False
 

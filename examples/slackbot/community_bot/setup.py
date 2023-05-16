@@ -79,8 +79,8 @@ community_bot = Bot(
         search_github_issues,
         search_stack_exchange,
     ],
-    llm_model_name="gpt-4",
-    llm_model_temperature=0.2,
+    llm_model="gpt-4",
+    llm_temperature=0.2,
 )
 
 if __name__ == "__main__":

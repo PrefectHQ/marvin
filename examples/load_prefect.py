@@ -98,6 +98,8 @@ async def hello_marvin():
         ),
         instructions=instructions,
         plugins=plugins,
+        llm_model="gpt-4",
+        llm_temperature=0.2,
     )
 
     def printer(buf):
@@ -115,6 +117,4 @@ if __name__ == "__main__":
     import asyncio
 
     marvin.settings.log_level = "DEBUG"
-    marvin.settings.openai_model_temperature = 0.2
-    marvin.settings.openai_model_name = "gpt-4"
     bot = asyncio.run(hello_marvin())
