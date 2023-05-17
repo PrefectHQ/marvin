@@ -89,6 +89,7 @@ async def _post_QA_message(
     question: str,
     answer: str,
     asking_user: str,
+    origin_channel: str,
     origin_ts: str = None,
 ) -> Dict[str, Any]:
     formatted_message = (
@@ -109,6 +110,7 @@ async def _post_QA_message(
                 "question": question,
                 "proposed_answer": answer,
                 "asking_user": asking_user,
+                "origin_channel": origin_channel,
                 "origin_ts": origin_ts,
             }
         )
@@ -172,6 +174,17 @@ async def _handle_edit_response_submission(
         }
     )
 
+    # update Marvin's answer to the user
+    await _slack_api_call(
+        "POST",
+        "chat.update",
+        json_data={
+            "channel": private_metadata["origin_channel"],
+            "ts": private_metadata["origin_ts"],
+            "text": f"*Edited by <@{editing_user}>*: {new_message}",
+        },
+    )
+
     await _slack_api_call(
         "POST",
         "chat.update",
@@ -193,7 +206,7 @@ async def _handle_edit_response_submission(
                         "type": "button",
                         "text": {
                             "type": "plain_text",
-                            "text": "Save Response to Chroma",
+                            "text": "Save as Discourse Topic",
                         },
                         "action_id": "approve_response",
                         "value": action_value,
@@ -298,7 +311,8 @@ async def _show_edit_response_modal(action_event: SlackAction) -> Dict[str, Any]
                         "qa_message_ts": action_event.container["message_ts"],
                         "question": action_value["question"],
                         "channel": action_event.channel["id"],
-                        "origin_ts": action_event.actions[0]["action_ts"],
+                        "origin_channel": action_value["origin_channel"],
+                        "origin_ts": action_value["origin_ts"],
                     }
                 ),
                 "submit": {"type": "plain_text", "text": "Submit"},
@@ -312,10 +326,9 @@ async def _handle_approve_response(action: SlackAction):
     asking_user = action_value.get("asking_user")
     editing_user = action.user["id"]
 
-    feedback = f"""
-    Community user <@{asking_user}> tagged Marvin and said:\n\n{action_value["question"]}
+    feedback = f"""**{action_value["question"]}**\n\n
     
-    Internal user <@{editing_user}> provided an answer:\n\n{action_value["proposed_answer"]}
+    {action_value["proposed_answer"]}
     """  # noqa
 
     marvin.get_logger().debug(f"recording: {feedback}")
@@ -372,18 +385,21 @@ async def _slackbot_response(event: SlackEvent):
     text = event.text.replace(f"<@{BOT_SLACK_ID}>", bot.name).strip()
     response = await bot.say(text)
 
+    slack_response = await _post_message(
+        channel=event.channel, message=response.content, thread_ts=event.ts
+    )
+
+    response_ts = slack_response.get("ts")
+
     if marvin.settings.QA_slack_bot_responses:
         await _post_QA_message(
             channel=marvin.settings.slack_bot_QA_channel or event.channel,
             question=text,
             answer=response.content,
             asking_user=event.user,
-            origin_ts=event.ts,
+            origin_channel=event.channel,
+            origin_ts=response_ts,
         )
-
-    return await _post_message(
-        channel=event.channel, message=response.content, thread_ts=event.ts
-    )
 
 
 @router.post("/events", status_code=status.HTTP_200_OK)

@@ -41,7 +41,7 @@ class DiscourseLoader(Loader):
     @validator("request_headers", always=True)
     def auth_headers(cls, v):
         """Add authentication headers if a Discourse token is available."""
-        if not (api_key := marvin.settings.DISCOURSE_API_KEY.get_secret_value()):
+        if not (api_key := marvin.settings.discourse_api_key.get_secret_value()):
             marvin.get_logger().warning(
                 "No Discourse API key found - some endpoints may be inaccessible. You"
                 " can set `DISCOURSE_API_KEY` and `DISCOURSE_API_USERNAME` in your"
@@ -50,7 +50,7 @@ class DiscourseLoader(Loader):
         v.update(
             {
                 "Api-Key": api_key,
-                "Api-Username": marvin.settings.DISCOURSE_API_USERNAME,
+                "Api-Username": marvin.settings.discourse_api_username,
             }
         )
         return v

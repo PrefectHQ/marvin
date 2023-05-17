@@ -104,12 +104,16 @@ class Settings(BaseSettings):
     chroma: ChromaSettings = Field(default_factory=ChromaSettings)
 
     # DISCOURSE
-    DISCOURSE_API_KEY: SecretStr = Field(
+    discourse_api_key: SecretStr = Field(
         "", env=["MARVIN_DISCOURSE_API_KEY", "DISCOURSE_API_KEY"]
     )
-    DISCOURSE_API_USERNAME: str = Field(
+    discourse_api_username: str = Field(
         "nate", env=["MARVIN_DISCOURSE_API_USERNAME", "DISCOURSE_API_USERNAME"]
     )
+    discourse_url: str = Field(
+        "https://discourse.prefect.io", env=["MARVIN_DISCOURSE_URL", "DISCOURSE_URL"]
+    )
+    discourse_help_category_id: int = 27
 
     # DOCUMENTS
     default_topic = "marvin"
