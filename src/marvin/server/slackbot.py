@@ -185,6 +185,7 @@ async def _handle_edit_response_submission(
         },
     )
 
+    # update the QA message
     await _slack_api_call(
         "POST",
         "chat.update",

@@ -169,7 +169,9 @@ class Settings(BaseSettings):
         "",
         description="The ID of the Slack channel to use for QA'ing slackbot answers.",
     )
-
+    feedback_mechanism: Literal["save_to_chroma", "save_to_discourse"] = Field(
+        "save_to_discourse", description="Where to save feedback from Slack."
+    )
     # STACKEXCHANGE
     stackexchange_api_key: SecretStr = Field(
         "", env=["MARVIN_STACKEXCHANGE_API_KEY", "STACKEXCHANGE_API_KEY"]

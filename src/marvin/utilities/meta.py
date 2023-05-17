@@ -14,12 +14,19 @@ async def make_post_title(interaction: str) -> str:
     Ideally, it should be in the form of "How to {do something} with {some concept}"."""
 
 
-async def _save_feedback_to_chroma(feedback: str, topic: str = None):
+async def save_to_chroma(
+    title: str,
+    text: str,
+    topic: str = None,
+    **kwargs,
+):
     processed_feedback = await Document(
-        text=feedback,
+        text=text,
         metadata={
+            "title": title,
             "source": "user feedback",
             "created_at": pendulum.now().isoformat(),
+            **kwargs,
         },
     ).to_excerpts()
 
@@ -30,11 +37,12 @@ async def _save_feedback_to_chroma(feedback: str, topic: str = None):
         )
 
 
-async def create_discourse_topic(
+async def save_to_discourse(
     title: str,
-    raw: str,
+    text: str,
     category: int = marvin.settings.discourse_help_category_id,
     url: str = marvin.settings.discourse_url,
+    topic: str = None,
 ):
     headers = {
         "Api-Key": marvin.settings.discourse_api_key.get_secret_value(),
@@ -43,9 +51,13 @@ async def create_discourse_topic(
     }
     data = {
         "title": title,
-        "raw": raw,
+        "raw": text,
         "category": category,
+        "tags": [marvin.settings.default_topic],
     }
+
+    if topic:
+        data["tags"].append(topic)
 
     async with httpx.AsyncClient() as client:
         return await client.post(
@@ -53,12 +65,11 @@ async def create_discourse_topic(
         )
 
 
-async def record_feedback(feedback: str, topic: str = None):
+async def record_feedback(feedback: str, topic: str = None, **kwargs):
     """Record feedback on a given topic."""
 
     feedback_title = await make_post_title(feedback)
 
-    await create_discourse_topic(
-        title=feedback_title,
-        raw=feedback,
-    )
+    feedback_mechanism = globals().get(marvin.settings.feedback_mechanism)
+
+    await feedback_mechanism(title=feedback_title, text=feedback, topic=topic, **kwargs)
