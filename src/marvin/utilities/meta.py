@@ -40,9 +40,9 @@ async def save_to_chroma(
 async def save_to_discourse(
     title: str,
     text: str,
+    topic: str = None,
     category: int = marvin.settings.discourse_help_category_id,
     url: str = marvin.settings.discourse_url,
-    topic: str = None,
 ):
     headers = {
         "Api-Key": marvin.settings.discourse_api_key.get_secret_value(),
@@ -60,7 +60,7 @@ async def save_to_discourse(
         data["tags"].append(topic)
 
     async with httpx.AsyncClient() as client:
-        return await client.post(
+        await client.post(
             url=f"{url}/posts.json", headers=headers, data=json.dumps(data)
         )
 

@@ -207,7 +207,9 @@ async def _handle_edit_response_submission(
                         "type": "button",
                         "text": {
                             "type": "plain_text",
-                            "text": "Save as Discourse Topic",
+                            "text": marvin.settings.feedback_mechanism.replace(
+                                "_", " "
+                            ).title(),
                         },
                         "action_id": "approve_response",
                         "value": action_value,
