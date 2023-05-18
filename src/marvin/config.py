@@ -100,7 +100,7 @@ class Settings(BaseSettings):
         "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
     )
     llm_request_timeout_seconds: Union[float, List[float], None] = Field(
-        None, env=["MARVIN_LLM_TIMEOUT"]
+        None, env=["MARVIN_LLM_REQUEST_TIMEOUT_SETTING"]
     )
 
     # CHROMA
