@@ -35,7 +35,8 @@ class ResponseFormatter(DiscriminatedUnionType, LoggerMixin):
 
 class StringFormatter(ResponseFormatter):
     format: str = (
-        "The response will be parsed as a string. Do not add unecessary quotes."
+        "The response will be parsed as a string. Do not add unecessary surrounding"
+        " quotes."
     )
 
 
