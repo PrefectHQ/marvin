@@ -49,13 +49,12 @@ dependencies = [
     "fake-useragent~=1.1",
     "google_api_python_client~=2.72",
     "simpleeval~=0.9",
-    "trafilatura~=1.4",
     "chardet~=5.1",
     "wikipedia~=1.4",
 ]
 
 [project.optional-dependencies]
-
+copyleft = ["trafilatura~=1.4"]
 
 dev = [
     "black[jupyter]",
