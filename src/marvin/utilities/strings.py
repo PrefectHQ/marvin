@@ -235,7 +235,7 @@ def html_to_content(html: str) -> str:
         import trafilatura
     except ModuleNotFoundError:
         raise ImportError(
-            "Please install the `copyleft` extra with `pip install 'marvin[copyleft]'"
+            "Please install the `copyleft` extra with `pip install 'marvin[copyleft]'`"
             " in order to use `trifilatura` for html parsing."
         )
 
