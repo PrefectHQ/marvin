@@ -3,7 +3,7 @@ import platform
 from contextlib import contextmanager
 from enum import Enum
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal, Optional, Union
 
 try:
     import chromadb
@@ -128,7 +128,7 @@ class Settings(BaseSettings):
     )
     llm_max_tokens: int = 1250
     llm_temperature: float = 0.8
-    llm_request_timeout_seconds: float = None
+    llm_request_timeout_seconds: Union[float, list[float]] = None
     llm_extra_kwargs: dict = Field(
         default_factory=dict,
         description=(
