@@ -99,8 +99,8 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr = Field(
         "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
     )
-    openai_request_timeout: Union[float, List[float], None] = Field(
-        None, env=["MARVIN_OPENAI_REQUEST_TIMEOUT", "OPENAI_REQUEST_TIMEOUT"]
+    llm_timeout: Union[float, List[float], None] = Field(
+        None, env=["MARVIN_LLM_TIMEOUT"]
     )
 
     # CHROMA
