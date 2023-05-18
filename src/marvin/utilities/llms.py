@@ -70,7 +70,7 @@ def get_llm(
     if temperature is None:
         temperature = marvin.settings.openai_model_temperature
     if request_timeout is None:
-        request_timeout = marvin.settings.llm_timeout
+        request_timeout = marvin.settings.llm_request_timeout_seconds
     return ChatOpenAI(
         model_name=model_name,
         temperature=temperature,
