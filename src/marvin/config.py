@@ -128,6 +128,14 @@ class Settings(BaseSettings):
     )
     llm_max_tokens: int = 1250
     llm_temperature: float = 0.8
+    llm_request_timeout_seconds: float = None
+    llm_extra_kwargs: dict = Field(
+        default_factory=dict,
+        description=(
+            "Additional kwargs to pass to the LLM backend. Only use for kwargs that"
+            " aren't directly exposed."
+        ),
+    )
 
     # EMBEDDINGS
     # specify the path to the embeddings cache, relative to the home dir
@@ -135,33 +143,26 @@ class Settings(BaseSettings):
     embeddings_cache_warn_size: int = 4000000000  # 4GB
 
     # OPENAI
-    openai_default_organization: SecretStr = Field(
-        "", env=["MARVIN_OPENAI_DEFAULT_ORGANIZATION", "OPENAI_DEFAULT_ORGANIZATION"]
-    )
     openai_api_key: SecretStr = Field(
-        "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
+        None,
+        # for the OpenAI key we check two env vars for legacy reasons
+        env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"],
     )
+    openai_organization: str = Field(None)
+    openai_api_base: str = None
 
     # ANTHROPIC
-    anthropic_api_key: SecretStr = Field(
-        "", env=["MARVIN_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"]
-    )
+    anthropic_api_key: SecretStr = Field(None)
 
     # HUGGINGFACE HUB
-    huggingfacehub_api_token: SecretStr = Field(
-        "", env=["MARVIN_HUGGINGFACEHUB_API_TOKEN", "HUGGINGFACEHUB_API_TOKEN"]
-    )
+    huggingfacehub_api_token: SecretStr = Field(None)
 
     # CHROMA
     chroma: ChromaSettings = Field(default_factory=ChromaSettings)
 
     # DISCOURSE
-    DISCOURSE_API_KEY: SecretStr = Field(
-        "", env=["MARVIN_DISCOURSE_API_KEY", "DISCOURSE_API_KEY"]
-    )
-    DISCOURSE_API_USERNAME: str = Field(
-        "nate", env=["MARVIN_DISCOURSE_API_USERNAME", "DISCOURSE_API_USERNAME"]
-    )
+    DISCOURSE_API_KEY: SecretStr = Field(None)
+    DISCOURSE_API_USERNAME: str = Field("nate")
 
     # DOCUMENTS
     default_topic = "marvin"
@@ -173,10 +174,10 @@ class Settings(BaseSettings):
     database_check_migration_version_on_startup: bool = True
 
     # GITHUB
-    GITHUB_TOKEN: SecretStr = Field("", env=["MARVIN_GITHUB_TOKEN", "GITHUB_TOKEN"])
+    GITHUB_TOKEN: SecretStr = Field(None)
 
     # REDIS
-    redis_connection_url: SecretStr = ""
+    redis_connection_url: SecretStr = None
 
     # BOTS
     bot_create_profile_picture: bool = Field(
@@ -203,7 +204,7 @@ class Settings(BaseSettings):
         ),
     )
     slack_api_token: SecretStr = Field(
-        "", description="The Slack API token to use to respond to Slack messages."
+        None, description="The Slack API token to use to respond to Slack messages."
     )
     slack_bot_admin_user: str = Field(
         "!here",
@@ -214,14 +215,12 @@ class Settings(BaseSettings):
         description="If True, slack bot responses will be intercepted in a QA channel.",
     )
     slack_bot_QA_channel: str = Field(
-        "",
+        None,
         description="The ID of the Slack channel to use for QA'ing slackbot answers.",
     )
 
     # STACKEXCHANGE
-    stackexchange_api_key: SecretStr = Field(
-        "", env=["MARVIN_STACKEXCHANGE_API_KEY", "STACKEXCHANGE_API_KEY"]
-    )
+    stackexchange_api_key: SecretStr = Field(None)
 
     # API
     api_base_url: str = "http://127.0.0.1"
@@ -273,6 +272,14 @@ class Settings(BaseSettings):
             return infer_llm_backend(values["llm_model"])
         return v
 
+    @validator("openai_organization")
+    def set_openai_organization(cls, v):
+        if v:
+            import openai
+
+            openai.organization = v
+        return v
+
     @validator("openai_api_key")
     def warn_if_missing_api_keys(cls, v, field):
         if not v:
@@ -312,11 +319,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-if settings.openai_default_organization:
-    import openai
-
-    openai.organization = settings.openai_default_organization.get_secret_value()
 
 
 @contextmanager

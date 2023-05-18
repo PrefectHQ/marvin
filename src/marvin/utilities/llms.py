@@ -65,8 +65,10 @@ def get_model(
     returns an AI model.
     """
 
-    if llm_kwargs is None:
-        llm_kwargs = dict()
+    # override settings with provided kwargs
+    _llm_kwargs = marvin.settings.llm_extra_kwargs.copy()
+    _llm_kwargs.update(llm_kwargs or {})
+    llm_kwargs = _llm_kwargs
 
     if on_token_callback is not None:
         llm_kwargs.update(
@@ -96,6 +98,9 @@ def get_model(
             model_name=model,
             max_tokens=max_tokens,
             temperature=temperature,
+            openai_api_base=marvin.settings.openai_api_base,
+            openai_organization=marvin.settings.openai_organization,
+            request_timeout=marvin.settings.llm_request_timeout_seconds,
             **llm_kwargs,
         )
 
@@ -108,6 +113,9 @@ def get_model(
             model_name=model,
             max_tokens=max_tokens,
             temperature=temperature,
+            openai_api_base=marvin.settings.openai_api_base,
+            openai_organization=marvin.settings.openai_organization,
+            request_timeout=marvin.settings.llm_request_timeout_seconds,
             **llm_kwargs,
         )
 
@@ -120,6 +128,7 @@ def get_model(
             model=model,
             max_tokens_to_sample=max_tokens,
             temperature=temperature,
+            default_request_timeout=marvin.settings.llm_request_timeout_seconds,
             **llm_kwargs,
         )
 
