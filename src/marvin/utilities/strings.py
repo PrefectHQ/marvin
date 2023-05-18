@@ -231,7 +231,13 @@ def condense_newlines(text: str) -> str:
 
 def html_to_content(html: str) -> str:
     # defer import for performance
-    import trafilatura
+    try:
+        import trafilatura
+    except ModuleNotFoundError:
+        raise ImportError(
+            "Please install the `copyleft` extra with `pip install 'marvin[copyleft]'"
+            " in order to use `trifilatura` for html parsing."
+        )
 
     text = trafilatura.extract(
         html, include_formatting=True, include_links=True, favor_precision=True
