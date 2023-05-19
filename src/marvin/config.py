@@ -2,7 +2,7 @@ import os
 import platform
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Literal, Optional
+from typing import List, Literal, Optional, Union
 
 try:
     import chromadb
@@ -98,6 +98,9 @@ class Settings(BaseSettings):
     openai_model_max_tokens: int = 1250
     openai_api_key: SecretStr = Field(
         "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
+    )
+    llm_request_timeout_seconds: Union[float, List[float], None] = Field(
+        600.0, env=["MARVIN_LLM_REQUEST_TIMEOUT_SETTING"]
     )
 
     # CHROMA

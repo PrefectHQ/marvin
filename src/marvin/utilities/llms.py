@@ -57,6 +57,7 @@ def get_llm(
     temperature: float = None,
     openai_api_key: str = None,
     on_token_callback: Callable = None,
+    request_timeout: int = None,
 ) -> ChatOpenAI:
     kwargs = dict()
     if on_token_callback is not None:
@@ -68,6 +69,8 @@ def get_llm(
         model_name = marvin.settings.openai_model_name
     if temperature is None:
         temperature = marvin.settings.openai_model_temperature
+    if request_timeout is None:
+        request_timeout = marvin.settings.llm_request_timeout_seconds
     return ChatOpenAI(
         model_name=model_name,
         temperature=temperature,
@@ -75,6 +78,7 @@ def get_llm(
             openai_api_key or marvin.settings.openai_api_key.get_secret_value()
         ),
         max_tokens=marvin.settings.openai_model_max_tokens,
+        request_timeout=request_timeout,
         **kwargs,
     )
 
