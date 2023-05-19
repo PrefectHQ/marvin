@@ -113,7 +113,7 @@ async def get_prefect_loader():
 
     prefect_discourse = discourse.DiscourseLoader(  # gimme da discourse
         url="https://discourse.prefect.io",
-        n_topic=300,
+        n_topic=500,
         include_topic_filter=include_topic_filter,
     )
 
@@ -163,4 +163,4 @@ async def update_marvin_knowledge(topic_name: str | None = None):
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(update_marvin_knowledge())
+    asyncio.run(update_marvin_knowledge("marvin-internal"))

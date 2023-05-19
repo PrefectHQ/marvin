@@ -161,6 +161,11 @@ class Settings(BaseSettings):
         "!here",
         description="The Slack user to notify when slack bot is improperly configured.",
     )
+
+    slack_bot_authorized_QA_users: str = Field(
+        "", env=["MARVIN_SLACK_BOT_AUTHORIZED_QA_USERS"]
+    )
+
     QA_slack_bot_responses: bool = Field(
         False,
         description="If True, slack bot responses will be intercepted in a QA channel.",
@@ -169,13 +174,14 @@ class Settings(BaseSettings):
         "",
         description="The ID of the Slack channel to use for QA'ing slackbot answers.",
     )
-    feedback_mechanism: Literal["save_to_chroma", "save_to_discourse"] = Field(
-        "save_to_discourse", description="Where to save feedback from Slack."
+    feedback_mechanism: Literal["create_chroma_document", "create_discourse_topic"] = (
+        Field(
+            "create_discourse_topic", description="Where to save feedback from Slack."
+        )
     )
+
     # STACKEXCHANGE
-    stackexchange_api_key: SecretStr = Field(
-        "", env=["MARVIN_STACKEXCHANGE_API_KEY", "STACKEXCHANGE_API_KEY"]
-    )
+    stackexchange_api_key: SecretStr = Field("", env=["MARVIN_STACKEXCHANGE_API_KEY"])
 
     # API
     api_base_url: str = "http://127.0.0.1"
