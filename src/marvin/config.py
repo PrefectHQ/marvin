@@ -107,12 +107,16 @@ class Settings(BaseSettings):
     chroma: ChromaSettings = Field(default_factory=ChromaSettings)
 
     # DISCOURSE
-    DISCOURSE_API_KEY: SecretStr = Field(
+    discourse_api_key: SecretStr = Field(
         "", env=["MARVIN_DISCOURSE_API_KEY", "DISCOURSE_API_KEY"]
     )
-    DISCOURSE_API_USERNAME: str = Field(
+    discourse_api_username: str = Field(
         "nate", env=["MARVIN_DISCOURSE_API_USERNAME", "DISCOURSE_API_USERNAME"]
     )
+    discourse_url: str = Field(
+        "https://discourse.prefect.io", env=["MARVIN_DISCOURSE_URL", "DISCOURSE_URL"]
+    )
+    discourse_help_category_id: int = 27
 
     # DOCUMENTS
     default_topic = "marvin"
@@ -160,6 +164,11 @@ class Settings(BaseSettings):
         "!here",
         description="The Slack user to notify when slack bot is improperly configured.",
     )
+
+    slack_bot_authorized_QA_users: str = Field(
+        "", env=["MARVIN_SLACK_BOT_AUTHORIZED_QA_USERS"]
+    )
+
     QA_slack_bot_responses: bool = Field(
         False,
         description="If True, slack bot responses will be intercepted in a QA channel.",
@@ -168,11 +177,14 @@ class Settings(BaseSettings):
         "",
         description="The ID of the Slack channel to use for QA'ing slackbot answers.",
     )
+    feedback_mechanism: Literal["create_chroma_document", "create_discourse_topic"] = (
+        Field(
+            "create_discourse_topic", description="Where to save feedback from Slack."
+        )
+    )
 
     # STACKEXCHANGE
-    stackexchange_api_key: SecretStr = Field(
-        "", env=["MARVIN_STACKEXCHANGE_API_KEY", "STACKEXCHANGE_API_KEY"]
-    )
+    stackexchange_api_key: SecretStr = Field("", env=["MARVIN_STACKEXCHANGE_API_KEY"])
 
     # API
     api_base_url: str = "http://127.0.0.1"

@@ -5,7 +5,8 @@ from typing import Any, Dict, List, Optional
 import httpx
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from prefect.utilities.collections import listrepr
+from pydantic import BaseModel, ValidationError
 
 import marvin
 from marvin.utilities.meta import record_feedback
@@ -18,6 +19,8 @@ router = MarvinRouter(
 )
 
 BOT_SLACK_ID = None
+
+USER_CACHE = {}
 
 
 class SlackEvent(BaseModel):
@@ -42,6 +45,7 @@ async def _slack_api_call(
     method: str,
     endpoint: str,
     json_data: Dict[str, Any] = None,
+    params: Dict[str, str] = None,
     headers: Dict[str, str] = None,
 ) -> httpx.Response:
     if not headers:
@@ -54,9 +58,15 @@ async def _slack_api_call(
 
     async with httpx.AsyncClient() as client:
         client_method = getattr(client, method.lower())
-        response = await client_method(
-            f"https://slack.com/api/{endpoint}", headers=headers, json=json_data
-        )
+        if method.lower() == "get":
+            response = await client_method(
+                f"https://slack.com/api/{endpoint}", headers=headers, params=params
+            )
+        else:
+            response = await client_method(
+                f"https://slack.com/api/{endpoint}", headers=headers, json=json_data
+            )
+
         marvin.get_logger().debug(f"Slack API call ({endpoint}): {response.json()}")
         response.raise_for_status()
         return response
@@ -89,6 +99,7 @@ async def _post_QA_message(
     question: str,
     answer: str,
     asking_user: str,
+    origin_channel: str,
     origin_ts: str = None,
 ) -> Dict[str, Any]:
     formatted_message = (
@@ -109,6 +120,7 @@ async def _post_QA_message(
                 "question": question,
                 "proposed_answer": answer,
                 "asking_user": asking_user,
+                "origin_channel": origin_channel,
                 "origin_ts": origin_ts,
             }
         )
@@ -172,6 +184,18 @@ async def _handle_edit_response_submission(
         }
     )
 
+    # update Marvin's answer to the user
+    await _slack_api_call(
+        "POST",
+        "chat.update",
+        json_data={
+            "channel": private_metadata["origin_channel"],
+            "ts": private_metadata["origin_ts"],
+            "text": f"*Edited by <@{editing_user}>*: {new_message}",
+        },
+    )
+
+    # update the QA message
     await _slack_api_call(
         "POST",
         "chat.update",
@@ -193,7 +217,9 @@ async def _handle_edit_response_submission(
                         "type": "button",
                         "text": {
                             "type": "plain_text",
-                            "text": "Save Response to Chroma",
+                            "text": marvin.settings.feedback_mechanism.replace(
+                                "_", " "
+                            ).title(),
                         },
                         "action_id": "approve_response",
                         "value": action_value,
@@ -298,7 +324,8 @@ async def _show_edit_response_modal(action_event: SlackAction) -> Dict[str, Any]
                         "qa_message_ts": action_event.container["message_ts"],
                         "question": action_value["question"],
                         "channel": action_event.channel["id"],
-                        "origin_ts": action_event.actions[0]["action_ts"],
+                        "origin_channel": action_value["origin_channel"],
+                        "origin_ts": action_value["origin_ts"],
                     }
                 ),
                 "submit": {"type": "plain_text", "text": "Submit"},
@@ -312,10 +339,9 @@ async def _handle_approve_response(action: SlackAction):
     asking_user = action_value.get("asking_user")
     editing_user = action.user["id"]
 
-    feedback = f"""
-    Community user <@{asking_user}> tagged Marvin and said:\n\n{action_value["question"]}
+    feedback = f"""**{action_value["question"]}**\n\n
     
-    Internal user <@{editing_user}> provided an answer:\n\n{action_value["proposed_answer"]}
+    {action_value["proposed_answer"]}
     """  # noqa
 
     marvin.get_logger().debug(f"recording: {feedback}")
@@ -372,17 +398,89 @@ async def _slackbot_response(event: SlackEvent):
     text = event.text.replace(f"<@{BOT_SLACK_ID}>", bot.name).strip()
     response = await bot.say(text)
 
+    slack_response = await _post_message(
+        channel=event.channel, message=response.content, thread_ts=event.ts
+    )
+
+    response_ts = slack_response.get("ts")
+
     if marvin.settings.QA_slack_bot_responses:
         await _post_QA_message(
             channel=marvin.settings.slack_bot_QA_channel or event.channel,
             question=text,
             answer=response.content,
             asking_user=event.user,
-            origin_ts=event.ts,
+            origin_channel=event.channel,
+            origin_ts=response_ts,
         )
 
-    return await _post_message(
-        channel=event.channel, message=response.content, thread_ts=event.ts
+
+async def _save_thread_to_discourse(payload: Dict[str, Any]):
+    thread_ts = payload["message"]["thread_ts"]
+    channel_id = payload["channel"]["id"]
+    user_id = payload["user"]["id"]
+
+    if user_id not in marvin.settings.slack_bot_authorized_QA_users.split(","):
+        await _post_message(
+            channel=channel_id,
+            message=f"Silly <@{user_id}>, you can't do that!",
+            thread_ts=thread_ts,
+        )
+        return
+
+    history = await _slack_api_call(
+        "GET", "conversations.replies", params={"channel": channel_id, "ts": thread_ts}
+    )
+    thread_messages = history.json().get("messages", [])
+
+    thread_text = ""
+    for message in thread_messages:
+        global USER_CACHE
+        if message["user"] in USER_CACHE:
+            username = USER_CACHE[message["user"]]
+        else:
+            user_info = await _slack_api_call(
+                "GET", "users.info", params={"user": message["user"]}
+            )
+            username = user_info.json().get("user", {}).get("name", "unknown user")
+            USER_CACHE[message["user"]] = username  # save the username in the cache
+
+        # skip the bot's messages that don't have a green checkmark emoji
+        if user_info.json().get("user", {}).get("id") == BOT_SLACK_ID:
+            reactions = message.get("reactions", [])
+            if not any(
+                reaction
+                for reaction in reactions
+                if reaction["name"] == "white_check_mark"
+            ):
+                continue
+
+        thread_text += f"{username}: {message['text']}\n\n"
+
+    try:
+        new_topic_url = await marvin.utilities.meta.create_discourse_topic(
+            text=thread_text
+        )
+    except ValidationError as e:
+        failed_fields = [err["loc"][0] for err in e.errors()]
+        await _post_message(
+            channel=channel_id,
+            message=(
+                f"Sorry, <@{user_id}>. I couldn't save this thread to Discourse because"
+                f" I can't identify reasonable values for: {listrepr(failed_fields)}"
+                " from the messages in this thread."
+            ),
+            thread_ts=thread_ts,
+        )
+        return
+
+    await _post_message(
+        channel=channel_id,
+        message=(
+            f"Thanks, <@{user_id}>! This thread has been saved to Discourse."
+            f" You can find it here: {new_topic_url}"
+        ),
+        thread_ts=thread_ts,
     )
 
 
@@ -418,7 +516,10 @@ async def handle_block_actions(request: Request):
             asyncio.ensure_future(_handle_discard(action_event))
 
     elif payload.get("type") == "view_submission":
-        await _handle_view_submission(payload)
+        asyncio.ensure_future(_handle_view_submission(payload))
+
+    elif payload.get("type") == "message_action":
+        asyncio.ensure_future(_save_thread_to_discourse(payload))
 
     return JSONResponse(content={}, status_code=status.HTTP_200_OK)
 
