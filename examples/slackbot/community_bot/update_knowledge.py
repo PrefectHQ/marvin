@@ -163,4 +163,4 @@ async def update_marvin_knowledge(topic_name: str | None = None):
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(update_marvin_knowledge("marvin-internal"))
+    asyncio.run(update_marvin_knowledge())
