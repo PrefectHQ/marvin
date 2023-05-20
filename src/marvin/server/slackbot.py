@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from prefect.blocks.core import Block
 from prefect.utilities.collections import listrepr
 from pydantic import BaseModel, ValidationError
 
@@ -420,10 +421,15 @@ async def _save_thread_to_discourse(payload: Dict[str, Any]):
     channel_id = payload["channel"]["id"]
     user_id = payload["user"]["id"]
 
-    if user_id not in marvin.settings.slack_bot_authorized_QA_users.split(","):
+    allowed_users = await Block.load("json/allowed-qa-users")
+
+    if user_id not in allowed_users.value:
         await _post_message(
             channel=channel_id,
-            message=f"Silly <@{user_id}>, you can't do that!",
+            message=(
+                f"Sorry <@{user_id}>, you're not allowed to do that :cry:\n"
+                f"Please contact <@{marvin.settings.slack_bot_admin_user}>"
+            ),
             thread_ts=thread_ts,
         )
         return
