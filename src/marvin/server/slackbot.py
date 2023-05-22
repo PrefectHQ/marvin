@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from prefect.blocks.core import Block
 from prefect.utilities.collections import listrepr
 from pydantic import BaseModel, ValidationError
 
@@ -420,11 +421,23 @@ async def _save_thread_to_discourse(payload: Dict[str, Any]):
     channel_id = payload["channel"]["id"]
     user_id = payload["user"]["id"]
 
-    if user_id not in marvin.settings.slack_bot_authorized_QA_users.split(","):
+    allowed_users = await Block.load("json/allowed-qa-users")
+
+    if user_id not in allowed_users.value.values():
+        dm_channel_response = await _slack_api_call(
+            "POST", "conversations.open", json_data={"users": user_id}
+        )
+        dm_channel_id = dm_channel_response.json()["channel"]["id"]
+
+        # Send a message to the DM channel
         await _post_message(
-            channel=channel_id,
-            message=f"Silly <@{user_id}>, you can't do that!",
-            thread_ts=thread_ts,
+            channel=dm_channel_id,
+            message=(
+                "Sorry, you're not allowed to take that action :cry:"
+                f" \n\nPlease contact <@{marvin.settings.slack_bot_admin_user}>"
+                " if this is a mistake - thank you :slightly_smiling_face:"
+                " \n\n[here's a duck](https://random-d.uk/) for your troubles."
+            ),
         )
         return
 
@@ -443,7 +456,7 @@ async def _save_thread_to_discourse(payload: Dict[str, Any]):
                 "GET", "users.info", params={"user": message["user"]}
             )
             username = user_info.json().get("user", {}).get("name", "unknown user")
-            USER_CACHE[message["user"]] = username  # save the username in the cache
+            USER_CACHE[message["user"]] = username
 
         # skip the bot's messages that don't have a green checkmark emoji
         if user_info.json().get("user", {}).get("id") == BOT_SLACK_ID:
@@ -477,11 +490,18 @@ async def _save_thread_to_discourse(payload: Dict[str, Any]):
     await _post_message(
         channel=channel_id,
         message=(
-            f"Thanks, <@{user_id}>! This thread has been saved to Discourse."
-            f" You can find it here: {new_topic_url}"
+            f"thanks to <@{user_id}> :slightly_smiling_face:, this thread has been"
+            f" saved to Discourse.\n\nYou can find it here: {new_topic_url}"
         ),
         thread_ts=thread_ts,
     )
+
+
+block_action_to_handler = {
+    "approve_response": _handle_approve_response,
+    "edit_response": _show_edit_response_modal,
+    "discard": _handle_discard,
+}
 
 
 @router.post("/events", status_code=status.HTTP_200_OK)
@@ -508,12 +528,9 @@ async def handle_block_actions(request: Request):
 
     if payload.get("type") == "block_actions":
         action_event = SlackAction(**payload)
-        if action_event.actions[0]["action_id"] == "approve_response":
-            asyncio.ensure_future(_handle_approve_response(action_event))
-        elif action_event.actions[0]["action_id"] == "edit_response":
-            asyncio.ensure_future(_show_edit_response_modal(action_event))
-        elif action_event.actions[0]["action_id"] == "discard":
-            asyncio.ensure_future(_handle_discard(action_event))
+        asyncio.ensure_future(
+            block_action_to_handler[action_event.actions[0]["action_id"]](action_event)
+        )
 
     elif payload.get("type") == "view_submission":
         asyncio.ensure_future(_handle_view_submission(payload))
