@@ -7,8 +7,6 @@ from typing import List, Literal, Optional, Union
 try:
     import chromadb
 
-    print(chromadb.config.Settings, type(chromadb.config.Settings))
-
     CHROMA_INSTALLED = True
 except ModuleNotFoundError:
     CHROMA_INSTALLED = False

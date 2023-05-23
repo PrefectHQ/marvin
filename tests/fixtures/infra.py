@@ -1,5 +1,4 @@
 import marvin
-import marvin.config
 import pytest
 import sqlmodel
 
@@ -28,13 +27,13 @@ async def clear_test_database(test_database, session):
     await session.commit()
 
 
-@pytest.fixture(autouse=True, scope="session")
-async def temporary_chromadb(session_tmp_path):
-    """Run chroma in a temporary directory"""
-    marvin.settings.chroma = marvin.config.ChromaSettings(
-        **marvin.settings.chroma.dict(exclude={"persist_directory"}),
-        persist_directory=str(session_tmp_path / "chroma"),
-    )
+# @pytest.fixture(autouse=True, scope="session")
+# async def temporary_chromadb(session_tmp_path):
+#     """Run chroma in a temporary directory"""
+#     marvin.settings.chroma = marvin.config.ChromaSettings(
+#         **marvin.settings.chroma.dict(exclude={"persist_directory"}),
+#         persist_directory=str(session_tmp_path / "chroma"),
+#     )
 
 
 @pytest.fixture
