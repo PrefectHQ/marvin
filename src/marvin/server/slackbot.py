@@ -341,12 +341,13 @@ async def _handle_approve_response(action: SlackAction):
     asking_user = action_value.get("asking_user")
     editing_user = action.user["id"]
 
-    feedback = f"""**{action_value["question"]}**\n\n
+    question_answer = f"""**{action_value["question"]}**\n\n
     
     {action_value["proposed_answer"]}
     """  # noqa
 
-    await create_chroma_document(text=feedback)
+    # creates and saves a document to chroma
+    await create_chroma_document(text=question_answer)
 
     await _slack_api_call(
         "POST",
