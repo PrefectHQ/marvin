@@ -407,7 +407,7 @@ async def _slackbot_response(event: SlackEvent):
     response_tokens = count_tokens(response.content)
 
     # this will do nothing if Prefect credentials are not configured
-    emit_event(  # fmt: off
+    emit_event(
         event=f"bot.{bot.name.lower()}.responded",
         resource={"prefect.resource.id": f"bot.{bot.name.lower()}"},
         payload={
@@ -420,7 +420,7 @@ async def _slackbot_response(event: SlackEvent):
             "response_tokens": response_tokens,
             "total_tokens": prompt_tokens + response_tokens,
         },
-    )  # fmt: on
+    )
 
     if marvin.settings.QA_slack_bot_responses:
         await _post_QA_message(
