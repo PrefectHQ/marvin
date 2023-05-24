@@ -598,10 +598,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 "Sending messages to LLM", messages_repr, key_style="green"
             )
 
-        predict_fn = functools.partial(
-            llm.predict_messages, messages=langchain_messages, stop=["</stop>"]
+        result = await llm.apredict_messages(
+            messages=langchain_messages, stop=["</stop>"]
         )
-        result = await asyncio.get_event_loop().run_in_executor(None, predict_fn)
 
         return result.content
 
