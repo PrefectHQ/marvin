@@ -11,6 +11,7 @@ from prefect.utilities.collections import listrepr
 from pydantic import BaseModel, ValidationError
 
 import marvin
+from marvin.config import CHROMA_INSTALLED
 from marvin.utilities.meta import create_chroma_document
 from marvin.utilities.strings import convert_md_links_to_slack, count_tokens
 from marvin.utilities.types import MarvinRouter
@@ -347,7 +348,17 @@ async def _handle_approve_response(action: SlackAction):
     """  # noqa
 
     # creates and saves a document to chroma
-    await create_chroma_document(text=question_answer)
+    if CHROMA_INSTALLED:
+        await create_chroma_document(text=question_answer)
+    else:
+        await _post_message(
+            channel=action.channel["id"],
+            message=(  # noqa
+                f"hey <@{marvin.settings.slack_bot_admin_user}, I can't use Chroma -"
+                " did you install it on my machine?"
+            ),
+            thread_ts=action.container["message_ts"],
+        )
 
     await _slack_api_call(
         "POST",
