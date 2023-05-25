@@ -73,7 +73,7 @@ dev = [
     "ruff",
 ]
 postgres = ["asyncpg~=0.27.0"]
-chromadb = ["chromadb~=0.3"]
+chromadb = ["chromadb==0.3.22"]
 pdf = ["pypdf~=3.7.0"]
 
 [project.urls]
