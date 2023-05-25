@@ -92,7 +92,7 @@ class GitHubIssueLoader(Loader):
         """Add authentication headers if a GitHub token is available."""
         v.update({"Accept": "application/vnd.github.v3+json"})
         if values["use_GH_token"] and (
-            token := marvin.settings.GITHUB_TOKEN.get_secret_value()
+            token := marvin.settings.github_token.get_secret_value()
         ):
             v["Authorization"] = f"Bearer {token}"
         return v
