@@ -113,7 +113,7 @@ async def get_prefect_loader():
 
     prefect_discourse = discourse.DiscourseLoader(  # gimme da discourse
         url="https://discourse.prefect.io",
-        n_topic=300,
+        n_topic=500,
         include_topic_filter=include_topic_filter,
     )
 

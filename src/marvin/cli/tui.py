@@ -42,20 +42,31 @@ logging.basicConfig(
 )
 
 ENTERING_PLUGINS_REGEX = re.compile(r'(.*){\s*"mode":\s*"plugins"', re.DOTALL)
+# extract text surrounded by quotation marks at the start and end of a string
+QUOTATION_MARKS_REGEX = re.compile(r'^"(.*)"$')
 
 
-@marvin.ai_fn(llm_model="gpt-3.5-turbo", llm_temperature=1)
-async def name_thread(history: str, personality: str, current_name: str = None) -> str:
+@marvin.ai_fn(llm_model="gpt-3.5-turbo", llm_temperature=0.8)
+async def _name_thread(history: str, personality: str, current_name: str = None) -> str:
     """
     This function generates a short, relevant name for the provided thread
     `history`. The name should be fewer than five words and must reflect the
     user's intent or objective in a clear, fun way. Return only the name, no
     other commentary. It can include emojis and use sentence capitalization, but
-    should not end with a period. The name itself should be entirely based on
+    do not put a period at the end. The name itself should be entirely based on
     the provided `history`, but the tone should reflect the provided
     `personality`. If the thread has a `current_name` already, it is provided
     and you can choose to keep it unchanged.
     """
+
+
+async def name_thread(history: str, personality: str, current_name: str = None):
+    """Name a thread - the LLM has a tendency to add quotation marks so we strip
+    them out manually"""
+    name = await _name_thread(history, personality, current_name)
+    if match := QUOTATION_MARKS_REGEX.match(name):
+        return match.group(1)
+    return name
 
 
 class Threads(OptionList):
