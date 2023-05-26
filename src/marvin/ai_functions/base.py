@@ -3,7 +3,10 @@ import inspect
 import re
 import sys
 from functools import partial
-from typing import Callable, TypeVar
+from typing import Any, Callable, Dict, List, TypeVar
+
+from prefect import flow, task
+from prefect.utilities.asyncutils import sync_compatible
 
 from marvin.bot import Bot
 from marvin.bot.history import InMemoryHistory
@@ -189,6 +192,26 @@ class AIFunction:
         a passed function
         """
         raise NotImplementedError()
+
+    @sync_compatible
+    async def map(
+        self,
+        *args,
+        task_kwargs: Dict[str, Any] = None,
+        flow_kwargs: Dict[str, Any] = None,
+        **kwargs,
+    ) -> List[T]:
+        @task(**{"name": self.fn.__name__, **(task_kwargs or {})})
+        async def process_item(item: Any):
+            return await self._run(item, **kwargs)
+
+        @flow(**{"name": self.fn.__name__, **(flow_kwargs or {})})
+        async def mapped_ai_fn(*args, **kwargs):
+            return await process_item.map(*args, **kwargs)
+
+        return [
+            await state.result().get() for state in await mapped_ai_fn(*args, **kwargs)
+        ]
 
 
 def ai_fn(

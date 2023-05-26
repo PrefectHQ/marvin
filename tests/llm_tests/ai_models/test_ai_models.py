@@ -131,3 +131,29 @@ class TestAIModels:
                 ]
             )
         )
+
+
+class TestAIModelsMapping:
+    def test_mapping_sync(self, prefect_db):
+        @ai_model
+        class CardinalDirection(pydantic.BaseModel):
+            """use a single capital letter for each cardinal direction."""
+
+            direction: str
+
+        assert CardinalDirection.map(["sunrise", "sunset"]) == [
+            CardinalDirection(direction="E"),
+            CardinalDirection(direction="W"),
+        ]
+
+    async def test_mapping_async(self, prefect_db):
+        @ai_model
+        class CardinalDirection(pydantic.BaseModel):
+            """use a single capital letter for each cardinal direction."""
+
+            direction: str
+
+        assert await CardinalDirection.map(["sunrise", "sunset"]) == [
+            CardinalDirection(direction="E"),
+            CardinalDirection(direction="W"),
+        ]
