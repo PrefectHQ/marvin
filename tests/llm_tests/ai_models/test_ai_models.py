@@ -140,10 +140,11 @@ class TestAIModelsMapping:
             """use a single capital letter for each cardinal direction."""
 
             direction: str
+            degrees: int
 
         assert CardinalDirection.map(["sunrise", "sunset"]) == [
-            CardinalDirection(direction="E"),
-            CardinalDirection(direction="W"),
+            CardinalDirection(direction="E", degrees=90),
+            CardinalDirection(direction="W", degrees=270),
         ]
 
     async def test_mapping_async(self, prefect_db):
@@ -152,8 +153,9 @@ class TestAIModelsMapping:
             """use a single capital letter for each cardinal direction."""
 
             direction: str
+            degrees: int
 
         assert await CardinalDirection.map(["sunrise", "sunset"]) == [
-            CardinalDirection(direction="E"),
-            CardinalDirection(direction="W"),
+            CardinalDirection(direction="E", degrees=90),
+            CardinalDirection(direction="W", degrees=270),
         ]
