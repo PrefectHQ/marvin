@@ -155,7 +155,7 @@ class AIFunction:
 
         return output
 
-    async def _run(self, *args, **kwargs):
+    async def __prompt__(self, *args, **kwargs):
         # Get function signature
         sig = inspect.signature(self.fn)
 
@@ -181,7 +181,10 @@ class AIFunction:
             input_binds=bound_args.arguments,
             yield_value=yield_value,
         )
+        return message
 
+    async def _run(self, *args, **kwargs):
+        message = await self.__prompt__(*args, **kwargs)
         bot = self.get_bot()
         response = await bot.say(message)
         return response.parsed_content
