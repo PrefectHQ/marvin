@@ -2,7 +2,8 @@ import inspect
 from typing import Any, Callable, Union
 
 from langchain.callbacks.base import AsyncCallbackHandler
-from langchain.chat_models import ChatOpenAI
+from langchain.llms import AzureOpenAI, OpenAI
+from langchain.chat_models import AzureChatOpenAI, ChatOpenAI
 from langchain.schema import (
     AIMessage,
     HumanMessage,
@@ -58,29 +59,53 @@ def get_llm(
     openai_api_key: str = None,
     on_token_callback: Callable = None,
     request_timeout: int = None,
-) -> ChatOpenAI:
+) -> Any:
     kwargs = dict()
     if on_token_callback is not None:
         kwargs.update(
             streaming=True,
             callbacks=[StreamingCallbackHandler(on_token_callback=on_token_callback)],
         )
+    [kwargs.update({k: v}) for k, v in marvin.settings.openai_llm_settings.items()]
     if model_name is None:
         model_name = marvin.settings.openai_model_name
     if temperature is None:
         temperature = marvin.settings.openai_model_temperature
     if request_timeout is None:
         request_timeout = marvin.settings.llm_request_timeout_seconds
-    return ChatOpenAI(
-        model_name=model_name,
-        temperature=temperature,
-        openai_api_key=(
-            openai_api_key or marvin.settings.openai_api_key.get_secret_value()
-        ),
-        max_tokens=marvin.settings.openai_model_max_tokens,
-        request_timeout=request_timeout,
-        **kwargs,
-    )
+    openai_api_type = marvin.settings.openai_api_type
+    if openai_api_type in ["", "open_ai"]:
+        if marvin.settings.openai_model_type == "chat_model":
+            api_class = ChatOpenAI
+        else:
+            api_class = OpenAI
+        return api_class(
+            model_name=model_name,
+            temperature=temperature,
+            openai_api_key=(
+                openai_api_key or marvin.settings.openai_api_key.get_secret_value()
+            ),
+            max_tokens=marvin.settings.openai_model_max_tokens,
+            request_timeout=request_timeout,
+            **kwargs,
+        )
+    elif openai_api_type == "azure":
+        if marvin.settings.openai_model_type == "chat_model":
+            api_class = AzureChatOpenAI
+        else:
+            api_class = AzureOpenAI
+        return api_class(
+            model_name=model_name,
+            temperature=temperature,
+            openai_api_key=(
+                openai_api_key or marvin.settings.openai_api_key.get_secret_value()
+            ),
+            max_tokens=marvin.settings.openai_model_max_tokens,
+            request_timeout=request_timeout,
+            **kwargs,
+        )
+    else:
+        raise NotImplementedError(f"{openai_api_type} is not the supported OpenAI API types...")
 
 
 def prepare_messages(
