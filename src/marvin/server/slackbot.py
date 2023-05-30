@@ -6,12 +6,14 @@ import httpx
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from prefect.blocks.core import Block
+from prefect.events import emit_event
 from prefect.utilities.collections import listrepr
 from pydantic import BaseModel, ValidationError
 
 import marvin
-from marvin.utilities.meta import record_feedback
-from marvin.utilities.strings import convert_md_links_to_slack
+from marvin.config import CHROMA_INSTALLED
+from marvin.utilities.meta import create_chroma_document
+from marvin.utilities.strings import convert_md_links_to_slack, count_tokens
 from marvin.utilities.types import MarvinRouter
 
 router = MarvinRouter(
@@ -340,14 +342,23 @@ async def _handle_approve_response(action: SlackAction):
     asking_user = action_value.get("asking_user")
     editing_user = action.user["id"]
 
-    feedback = f"""**{action_value["question"]}**\n\n
+    question_answer = f"""**{action_value["question"]}**\n\n
     
     {action_value["proposed_answer"]}
     """  # noqa
 
-    marvin.get_logger().debug(f"recording: {feedback}")
-
-    await record_feedback(feedback)
+    # creates and saves a document to chroma
+    if CHROMA_INSTALLED:
+        await create_chroma_document(text=question_answer)
+    else:
+        await _post_message(
+            channel=action.channel["id"],
+            message=(  # noqa
+                f"hey <@{marvin.settings.slack_bot_admin_user}, I can't use Chroma -"
+                " did you install it on my machine?"
+            ),
+            thread_ts=action.container["message_ts"],
+        )
 
     await _slack_api_call(
         "POST",
@@ -404,6 +415,24 @@ async def _slackbot_response(event: SlackEvent):
     )
 
     response_ts = slack_response.get("ts")
+    prompt_tokens = count_tokens(text)
+    response_tokens = count_tokens(response.content)
+
+    # this will do nothing if Prefect credentials are not configured
+    emit_event(
+        event=f"bot.{bot.name.lower()}.responded",
+        resource={"prefect.resource.id": f"bot.{bot.name.lower()}"},
+        payload={
+            "user": event.user,
+            "channel": event.channel,
+            "thread_ts": thread,
+            "text": text,
+            "response": response.content,
+            "prompt_tokens": prompt_tokens,
+            "response_tokens": response_tokens,
+            "total_tokens": prompt_tokens + response_tokens,
+        },
+    )
 
     if marvin.settings.QA_slack_bot_responses:
         await _post_QA_message(
