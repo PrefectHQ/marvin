@@ -23,6 +23,7 @@ nav:
       - Loaders: guide/concepts/loaders_and_documents.md
       - Infrastructure: guide/concepts/infra.md
       - Plugins: guide/concepts/plugins.md
+      - Mapping: guide/concepts/mapping.md
     - AI Functions Library:
       - Entity extraction: guide/ai_functions/entities.md
       - Data: guide/ai_functions/data.md
