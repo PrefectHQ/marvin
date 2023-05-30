@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 
 import httpx
 from marvin import ai_fn
-from marvin.config import temporary_settings
+from marvin.config import LLMBackend, temporary_settings
 from marvin.utilities.strings import jinja_env
 from prefect import flow, task
 from prefect.artifacts import create_markdown_artifact
@@ -133,7 +133,7 @@ async def daily_github_digest(username: str, gh_token_secret_name: str):
         username=username, **data
     )
 
-    with temporary_settings(openai_model_name="gpt-4"):
+    with temporary_settings(llm_model="gpt-4", llm_backend=LLMBackend.OpenAIChat):
         tldr = await summarize_digest(markdown_digest)
 
     await create_markdown_artifact(

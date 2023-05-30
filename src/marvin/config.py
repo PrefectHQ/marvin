@@ -1,8 +1,9 @@
 import os
 import platform
 from contextlib import contextmanager
+from enum import Enum
 from pathlib import Path
-from typing import List, Literal, Optional, Union
+from typing import Literal, Optional, Union
 
 try:
     import chromadb
@@ -27,6 +28,36 @@ import marvin
 ENV_FILE = Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()
 ENV_FILE.parent.mkdir(parents=True, exist_ok=True)
 ENV_FILE.touch(exist_ok=True)
+
+
+class LLMBackend(str, Enum):
+    OpenAI = "OpenAI"
+    OpenAIChat = "OpenAIChat"
+    Anthropic = "Anthropic"
+    HuggingFaceHub = "HuggingFaceHub"
+
+
+def infer_llm_backend(model: str = None) -> LLMBackend:
+    """
+    Infer backends for common models. This list does NOT have to be complete, as
+    it is purely a convenience.
+    """
+    if model.startswith("gpt-3") or model.startswith("gpt-4"):
+        return LLMBackend.OpenAIChat
+    elif (
+        model.startswith("text-davinci")
+        or model.startswith("text-curie")
+        or model.startswith("text-babbage")
+        or model.startswith("text-ada")
+    ):
+        return LLMBackend.OpenAI
+    elif model.startswith("claude"):
+        return LLMBackend.Anthropic
+    else:
+        raise ValueError(
+            "No LLM backend provided and could not infer one from `llm_model`."
+        )
+
 
 if CHROMA_INSTALLED:
 
@@ -84,38 +115,55 @@ class Settings(BaseSettings):
     )
     rich_tracebacks: bool = Field(False, description="Enable rich traceback formatting")
 
+    # LLMS
+    llm_model: str = Field(
+        "gpt-3.5-turbo", description="An LLM model name compatible with the backend"
+    )
+    llm_backend: LLMBackend = Field(
+        None,
+        description=(
+            "A compatible LLM backend. In some cases, can be inferred from the"
+            " llm_model."
+        ),
+    )
+    llm_max_tokens: int = 1250
+    llm_temperature: float = 0.8
+    llm_request_timeout_seconds: Union[float, list[float]] = 600.0
+    llm_extra_kwargs: dict = Field(
+        default_factory=dict,
+        description=(
+            "Additional kwargs to pass to the LLM backend. Only use for kwargs that"
+            " aren't directly exposed."
+        ),
+    )
+
     # EMBEDDINGS
     # specify the path to the embeddings cache, relative to the home dir
     embeddings_cache_path: Path = Path("cache/embeddings.sqlite")
     embeddings_cache_warn_size: int = 4000000000  # 4GB
 
     # OPENAI
-    openai_default_organization: SecretStr = Field(
-        "", env=["MARVIN_OPENAI_DEFAULT_ORGANIZATION", "OPENAI_DEFAULT_ORGANIZATION"]
-    )
-    openai_model_name: str = "gpt-3.5-turbo"
-    openai_model_temperature: float = 0.8
-    openai_model_max_tokens: int = 1250
     openai_api_key: SecretStr = Field(
-        "", env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"]
+        None,
+        # for the OpenAI key we check two env vars for legacy reasons
+        env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"],
     )
-    llm_request_timeout_seconds: Union[float, List[float], None] = Field(
-        600.0, env=["MARVIN_LLM_REQUEST_TIMEOUT_SETTING"]
-    )
+    openai_organization: str = Field(None)
+    openai_api_base: str = None
+
+    # ANTHROPIC
+    anthropic_api_key: SecretStr = Field(None)
+
+    # HUGGINGFACE HUB
+    huggingfacehub_api_token: SecretStr = Field(None)
 
     # CHROMA
     chroma: ChromaSettings = Field(default_factory=ChromaSettings)
 
     # DISCOURSE
-    discourse_api_key: SecretStr = Field(
-        "", env=["MARVIN_DISCOURSE_API_KEY", "DISCOURSE_API_KEY"]
-    )
-    discourse_api_username: str = Field(
-        "nate", env=["MARVIN_DISCOURSE_API_USERNAME", "DISCOURSE_API_USERNAME"]
-    )
-    discourse_url: str = Field(
-        "https://discourse.prefect.io", env=["MARVIN_DISCOURSE_URL", "DISCOURSE_URL"]
-    )
+    discourse_api_key: SecretStr = Field(None)
+    discourse_api_username: str = Field("nate")
+    discourse_url: str = Field("https://discourse.prefect.io")
     discourse_help_category_id: int = 27
 
     # DOCUMENTS
@@ -128,10 +176,10 @@ class Settings(BaseSettings):
     database_check_migration_version_on_startup: bool = True
 
     # GITHUB
-    GITHUB_TOKEN: SecretStr = Field("", env=["MARVIN_GITHUB_TOKEN", "GITHUB_TOKEN"])
+    github_token: SecretStr = Field(None)
 
     # REDIS
-    redis_connection_url: SecretStr = ""
+    redis_connection_url: SecretStr = None
 
     # BOTS
     bot_create_profile_picture: bool = Field(
@@ -158,7 +206,7 @@ class Settings(BaseSettings):
         ),
     )
     slack_api_token: SecretStr = Field(
-        "", description="The Slack API token to use to respond to Slack messages."
+        None, description="The Slack API token to use to respond to Slack messages."
     )
     slack_bot_admin_user: str = Field(
         "!here",
@@ -174,7 +222,7 @@ class Settings(BaseSettings):
         description="If True, slack bot responses will be intercepted in a QA channel.",
     )
     slack_bot_QA_channel: str = Field(
-        "",
+        None,
         description="The ID of the Slack channel to use for QA'ing slackbot answers.",
     )
     feedback_mechanism: Literal["create_chroma_document", "create_discourse_topic"] = (
@@ -184,7 +232,7 @@ class Settings(BaseSettings):
     )
 
     # STACKEXCHANGE
-    stackexchange_api_key: SecretStr = Field("", env=["MARVIN_STACKEXCHANGE_API_KEY"])
+    stackexchange_api_key: SecretStr = Field(None)
 
     # API
     api_base_url: str = "http://127.0.0.1"
@@ -230,6 +278,20 @@ class Settings(BaseSettings):
 
         return values
 
+    @validator("llm_backend", pre=True, always=True)
+    def infer_llm_backend(cls, v, values):
+        if v is None:
+            return infer_llm_backend(values["llm_model"])
+        return v
+
+    @validator("openai_organization")
+    def set_openai_organization(cls, v):
+        if v:
+            import openai
+
+            openai.organization = v
+        return v
+
     @validator("openai_api_key")
     def warn_if_missing_api_keys(cls, v, field):
         if not v:
@@ -251,9 +313,10 @@ class Settings(BaseSettings):
             # don't load default plugins
             values["bot_load_default_plugins"] = False
             # remove all model variance
-            values["openai_model_temperature"] = 0.0
+            values["llm_temperature"] = 0.0
             # use 3.5 by default
-            values["openai_model_name"] = "gpt-3.5-turbo"
+            values["llm_model"] = "gpt-3.5-turbo"
+            values["llm_backend"] = LLMBackend.OpenAIChat
             # don't check migration version
             values["database_check_migration_version_on_startup"] = False
 
@@ -268,11 +331,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-if settings.openai_default_organization:
-    import openai
-
-    openai.organization = settings.openai_default_organization.get_secret_value()
 
 
 @contextmanager

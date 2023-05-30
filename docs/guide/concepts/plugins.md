@@ -68,7 +68,7 @@ Luckily, the GitHub API makes the actual implementation easy. We'll use the `htt
 headers = {"Accept": "application/vnd.github.v3+json"}
 
 # let's increase our rate limit by using an auth token if we have one
-if token := marvin.settings.GITHUB_TOKEN.get_secret_value():
+if token := marvin.settings.github_token.get_secret_value():
     headers["Authorization"] = f"Bearer {token}"
 
 async with httpx.AsyncClient() as client:
@@ -128,7 +128,7 @@ async def search_github_issues(
 
     headers = {"Accept": "application/vnd.github.v3+json"}
 
-    if token := marvin.settings.GITHUB_TOKEN.get_secret_value():
+    if token := marvin.settings.github_token.get_secret_value():
         headers["Authorization"] = f"Bearer {token}"
 
     async with httpx.AsyncClient() as client:
