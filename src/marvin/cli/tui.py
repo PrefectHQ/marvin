@@ -46,7 +46,7 @@ ENTERING_PLUGINS_REGEX = re.compile(r'(.*){\s*"mode":\s*"plugins"', re.DOTALL)
 QUOTATION_MARKS_REGEX = re.compile(r'^"(.*)"$')
 
 
-@marvin.ai_fn(llm_model_name="gpt-3.5-turbo", llm_model_temperature=0.8)
+@marvin.ai_fn(llm_model="gpt-3.5-turbo", llm_temperature=0.8)
 async def _name_thread(history: str, personality: str, current_name: str = None) -> str:
     """
     This function generates a short, relevant name for the provided thread

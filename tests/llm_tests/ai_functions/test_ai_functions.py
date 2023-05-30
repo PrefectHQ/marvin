@@ -243,7 +243,7 @@ class TestContainers:
         assert isinstance(response.pop(), (int, float))
 
     def test_set_gpt35(self):
-        assert marvin.settings.openai_model_name.startswith("gpt-3.5")
+        assert marvin.settings.llm_model.startswith("gpt-3.5")
 
         @ai_fn
         def set_response() -> set:
@@ -269,7 +269,7 @@ class TestContainers:
         assert isinstance(response[1], (int, float))
 
     def test_tuple_gpt35(self):
-        assert marvin.settings.openai_model_name.startswith("gpt-3.5")
+        assert marvin.settings.llm_model.startswith("gpt-3.5")
 
         @ai_fn
         def tuple_response() -> tuple:
@@ -417,3 +417,19 @@ class TestAIFunctionClass:
 
         assert my_fn.name == "my_fn"
         assert my_fn.description == "returns 1"
+
+
+class TestAIFunctionMapping:
+    def test_mapping_sync(self, prefect_db):
+        @ai_fn
+        def opposite(thing: str) -> str:
+            """returns the opposite of the input"""
+
+        assert opposite.map(["up", "happy"]) == ["down", "sad"]
+
+    async def test_mapping_async(self, prefect_db):
+        @ai_fn
+        async def opposite(thing: str) -> str:
+            """returns the opposite of the input"""
+
+        assert await opposite.map(["up", "happy"]) == ["down", "sad"]
