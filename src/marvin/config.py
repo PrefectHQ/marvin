@@ -32,7 +32,9 @@ ENV_FILE.touch(exist_ok=True)
 
 class LLMBackend(str, Enum):
     OpenAI = "OpenAI"
+    AzureOpenAI = "AzureOpenAI"
     OpenAIChat = "OpenAIChat"
+    AzureOpenAIChat = "AzureOpenAIChat"
     Anthropic = "Anthropic"
     HuggingFaceHub = "HuggingFaceHub"
 
@@ -148,10 +150,6 @@ class Settings(BaseSettings):
         # for the OpenAI key we check two env vars for legacy reasons
         env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"],
     )
-    openai_api_type = Field("", env=["OPENAI_API_TYPE"])
-    openai_model_type: str = "chat_model"
-    openai_llm_settings: dict = dict()
-
     openai_organization: str = Field(None)
     openai_api_base: str = None
 

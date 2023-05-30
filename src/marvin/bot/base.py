@@ -597,7 +597,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             self.logger.debug_kv(
                 "Sending messages to LLM", messages_repr, key_style="green"
             )
- 
+
         result = await llm.apredict_messages(
             messages=langchain_messages, stop=["</stop>"]
         )

@@ -104,11 +104,41 @@ def get_model(
             **llm_kwargs,
         )
 
+    # AzureChatOpenAI chat models
+    elif backend == LLMBackend.AzureOpenAIChat:
+        from langchain.chat_models import AzureChatOpenAI
+
+        return AzureChatOpenAI(
+            openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
+            model_name=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            openai_api_base=marvin.settings.openai_api_base,
+            openai_organization=marvin.settings.openai_organization,
+            request_timeout=marvin.settings.llm_request_timeout_seconds,
+            **llm_kwargs,
+        )
+
     # OpenAI completion models
     elif backend == LLMBackend.OpenAI:
         from langchain.llms import OpenAI
 
         return OpenAI(
+            openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
+            model_name=model,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            openai_api_base=marvin.settings.openai_api_base,
+            openai_organization=marvin.settings.openai_organization,
+            request_timeout=marvin.settings.llm_request_timeout_seconds,
+            **llm_kwargs,
+        )
+
+    # AzureOpenAI completion models
+    elif backend == LLMBackend.AzureOpenAI:
+        from langchain.llms import AzureOpenAI
+
+        return AzureOpenAI(
             openai_api_key=marvin.settings.openai_api_key.get_secret_value(),
             model_name=model,
             max_tokens=max_tokens,
