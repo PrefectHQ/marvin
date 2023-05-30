@@ -86,7 +86,7 @@ opposites = opposite.map(
 print(opposites)
 ```
 After the first execution, the results can be pulled from cache and subsequent executions will be much faster (and free 🙂):
-```bash hl_lines="8,9,10"
+```bash hl_lines="8-10"
 09:08:46.428 | INFO    | prefect.engine - Created flow run 'fantastic-caterpillar' for flow 'opposite'
 09:08:47.116 | INFO    | Flow run 'fantastic-caterpillar' - Created task run 'opposite-2' for task 'opposite'
 09:08:47.118 | INFO    | Flow run 'fantastic-caterpillar' - Submitted task run 'opposite-2' for execution.
