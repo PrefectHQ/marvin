@@ -6,6 +6,8 @@ import re
 from typing import TYPE_CHECKING, Any, Callable
 
 from fastapi import HTTPException, status
+from langchain.chat_models import ChatOpenAI
+from langchain.llms.openai import BaseLLM
 from openai.error import InvalidRequestError
 from pydantic import Field, validator
 
@@ -23,9 +25,6 @@ from marvin.plugins import Plugin
 from marvin.utilities.async_utils import as_sync_fn
 from marvin.utilities.strings import condense_newlines, jinja_env
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
-
-from langchain.llms.openai import BaseLLM
-from langchain.chat_models import ChatOpenAI
 
 PLUGINS_REGEX = re.compile(r'({\s*"mode":\s*"plugins".*})', re.DOTALL)
 
@@ -573,9 +572,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
             elif isinstance(llm, BaseLLM):
                 # LLM only supports single prompt
                 prompt_txt = "\n\n".join([item.content for item in messages])
-                result = await llm.agenerate(
-                    prompts=[prompt_txt], stop=["</stop>"]
-                )
+                result = await llm.agenerate(prompts=[prompt_txt], stop=["</stop>"])
         except InvalidRequestError as exc:
             if "does not exist" in str(exc):
                 raise ValueError(

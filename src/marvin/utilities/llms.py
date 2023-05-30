@@ -2,8 +2,8 @@ import inspect
 from typing import Any, Callable, Union
 
 from langchain.callbacks.base import AsyncCallbackHandler
-from langchain.llms import AzureOpenAI, OpenAI
 from langchain.chat_models import AzureChatOpenAI, ChatOpenAI
+from langchain.llms import AzureOpenAI, OpenAI
 from langchain.schema import (
     AIMessage,
     HumanMessage,
@@ -105,7 +105,9 @@ def get_llm(
             **kwargs,
         )
     else:
-        raise NotImplementedError(f"{openai_api_type} is not the supported OpenAI API types...")
+        raise NotImplementedError(
+            f"{openai_api_type} is not the supported OpenAI API types..."
+        )
 
 
 def prepare_messages(

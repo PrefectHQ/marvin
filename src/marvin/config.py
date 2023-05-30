@@ -102,9 +102,7 @@ class Settings(BaseSettings):
     llm_request_timeout_seconds: Union[float, List[float], None] = Field(
         600.0, env=["MARVIN_LLM_REQUEST_TIMEOUT_SETTING"]
     )
-    openai_api_type = Field(
-        "", env=["OPENAI_API_TYPE"]
-    )
+    openai_api_type = Field("", env=["OPENAI_API_TYPE"])
     openai_model_type: str = "chat_model"
     openai_llm_settings: dict = dict()
 
