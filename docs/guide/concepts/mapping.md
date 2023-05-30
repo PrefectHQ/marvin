@@ -64,7 +64,7 @@ print(locations)
 ```
 
 !!! tip
-    The `.map` method is powered by Prefect, and you can run `prefect server start` to get an observability into your AI workloads for free. You can also sign up for a free [Prefect Cloud](https://www.prefect.io/cloud) account to get a hosted version of Prefect Server.
+    Since mapping is powered by Prefect, you can run `prefect server start` to launch an observability UI for all your Marvin workflows. You can also use Marvin with [Prefect Cloud](https://www.prefect.io/cloud)'s managed workflow platform.
 
 ## Caching results
 Now that each ai function or ai model is being executed as a Prefect task, you can take advantage of Prefect's [caching](https://docs.prefect.io/latest/concepts/tasks/#caching) feature to avoid re-processing items / paying for duplicate AI calls.
