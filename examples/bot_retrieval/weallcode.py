@@ -26,8 +26,8 @@ weallcode_bot = marvin.Bot(
     personality="Friendly and helpful.",
     instructions=chroma_search_instructions,
     plugins=[LoadAndStoreURL(), SimpleChromaSearch(topic=topic)],
-    llm_model_name="gpt-3.5-turbo",
-    llm_model_temperature=0,
+    llm_model="gpt-3.5-turbo",
+    llm_temperature=0,
 )
 
 

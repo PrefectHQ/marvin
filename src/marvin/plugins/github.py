@@ -21,7 +21,7 @@ async def search_github_issues(
     """
     headers = {"Accept": "application/vnd.github.v3+json"}
 
-    if token := marvin.settings.GITHUB_TOKEN.get_secret_value():
+    if token := marvin.settings.github_token.get_secret_value():
         headers["Authorization"] = f"Bearer {token}"
 
     async with httpx.AsyncClient() as client:
