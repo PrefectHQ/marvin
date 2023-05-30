@@ -1,6 +1,6 @@
 # 🪭 Mapping 
 
-Sometimes you may want to apply an AI function or AI model over a whole iterable of items. For example, you may want to apply a sentiment analysis model to a list of tweets, or a named entity recognition model to a list of documents.
+Sometimes you may want to apply an AI function or AI model over a whole iterable of items. For example, you may want to perform a sentiment analysis with an `ai_fn` over a list of tweets, or coerce a list of documents into a list of `ai_model`s.
 
 At scale it can be quite slow to process each item sequentially, so Marvin provides a `.map` method that allows you to process items concurrently, or in parallel - [powered by Prefect](https://docs.prefect.io/latest/concepts/tasks/?h=.map#map).
 
