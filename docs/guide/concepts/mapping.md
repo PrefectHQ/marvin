@@ -102,4 +102,4 @@ After the first execution, the results can be pulled from cache and subsequent e
 ```
 
 !!! tip
-    See the docs on Prefect tasks to see all the different [task configuration options](https://docs.prefect.io/latest/tutorial/flow-task-config/)!
+    See the docs on Prefect tasks to see all the different [task configuration options](https://docs.prefect.io/latest/tutorial/flow-task-config/)! For example, you can achieve true parallelism with `task_runner=DaskTaskRunner()`, or you can use `retries=2` to retry failed tasks.
