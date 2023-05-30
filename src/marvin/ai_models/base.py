@@ -1,13 +1,20 @@
 from functools import partial, wraps
-from typing import Optional, Type, TypeVar
+from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
 
 import pydantic
+from prefect import flow, task
+from prefect.utilities.asyncutils import sync_compatible
 
 from marvin import ai_fn
 from marvin.bot import Bot
 from marvin.bot.response_formatters import PydanticFormatter
 
 M = TypeVar("M", bound=pydantic.BaseModel)
+
+Context = Union[
+    str,
+    Tuple[str, Optional[Dict[str, Any]]],
+]
 
 
 def AIModel(
@@ -60,6 +67,36 @@ def AIModel(
 
     # add _ai_validator as a pre root validator to run before any other root validators.
     cls.__pre_root_validators__ = [_ai_validator, *cls.__pre_root_validators__]
+
+    @sync_compatible
+    async def map(
+        cls,
+        contexts: List[Context],
+        task_kwargs: Dict[str, Any] = None,
+        flow_kwargs: Dict[str, Any] = None,
+    ) -> List[M]:
+        @task(**{"name": cls.__name__, **(task_kwargs or {})})
+        async def process_item(context: Context):
+            if isinstance(context, str):
+                return cls(context)
+            elif isinstance(context, tuple):
+                iter_context = iter(context)
+                unstructured = next(iter_context, None)
+                structured = next(iter_context, None)
+                return cls(unstructured, **(structured or {}))
+            else:
+                raise TypeError(
+                    "`Context` must be a `str` or a"
+                    f" `Tuple[str, Optional[Dict[str, Any]]]`, not {type(context)}"
+                )
+
+        @flow(**{"name": cls.__name__, **(flow_kwargs or {})})
+        async def mapped_ai_fn(contexts: List[Context]):
+            return await process_item.map(contexts)
+
+        return [await state.result().get() for state in await mapped_ai_fn(contexts)]
+
+    cls.map = classmethod(map)
     return cls
 
 

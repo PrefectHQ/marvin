@@ -22,7 +22,7 @@ dependencies = [
     "fastapi~=0.89",
     "httpx~=0.23",
     "jinja2~=3.1",
-    "langchain~=0.0.154",
+    "langchain~=0.0.179",
     "nest_asyncio~=1.5",
     "openai~=0.27",
     "pendulum~=2.1",
@@ -74,7 +74,7 @@ dev = [
     "ruff",
 ]
 postgres = ["asyncpg~=0.27.0"]
-chromadb = ["chromadb~=0.3"]
+chromadb = ["chromadb==0.3.22"]
 pdf = ["pypdf~=3.7.0"]
 
 [project.urls]
@@ -116,7 +116,7 @@ env = [
     "D:MARVIN_DATABASE_CONNECTION_URL=sqlite+aiosqlite:////tmp/marvin/marvin-tests.sqlite",
     "MARVIN_LOG_CONSOLE_WIDTH=120",
     # use 3.5 for tests by default
-    'MARVIN_OPENAI_MODEL_NAME=gpt-3.5-turbo',
+    'MARVIN_LLM_MODEL=gpt-3.5-turbo',
 
 ]
 

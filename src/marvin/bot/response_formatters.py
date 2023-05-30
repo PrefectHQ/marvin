@@ -35,7 +35,8 @@ class ResponseFormatter(DiscriminatedUnionType, LoggerMixin):
 
 class StringFormatter(ResponseFormatter):
     format: str = (
-        "The response will be parsed as a string. Do not add unecessary quotes."
+        "The response will be parsed as a string. Do not add unecessary surrounding"
+        " quotes."
     )
 
 
@@ -78,7 +79,7 @@ class TypeFormatter(ResponseFormatter):
                 raise ValueError(f"Expected a type or GenericAlias, got {type_}")
 
             # warn if the type is a set or tuple with GPT 3.5
-            if marvin.settings.openai_model_name.startswith("gpt-3.5"):
+            if marvin.settings.llm_model.startswith("gpt-3.5"):
                 if safe_issubclass(type_, (set, tuple)) or genericalias_contains(
                     type_, (set, tuple)
                 ):

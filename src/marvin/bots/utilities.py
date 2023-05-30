@@ -15,8 +15,8 @@ class UtilityBot(Bot):
     plugins: list[Plugin] = []
     include_date_in_prompt: bool = False
     history: History = Field(default_factory=lambda: InMemoryHistory(max_messages=1))
-    llm_model_name: str = "gpt-3.5-turbo"
-    llm_model_temperature: float = 0
+    llm_model: str = "gpt-3.5-turbo"
+    llm_temperature: float = 0
 
 
 summarize_bot = UtilityBot(

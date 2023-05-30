@@ -28,8 +28,8 @@ def assert_approx_equal(statement_1: str, statement_2: str):
 
 def assert_llm(response: str, expectation: Any, model_name: str = None):
     @ai_fn(
-        llm_model_name=model_name or marvin.settings.openai_model_name,
-        llm_model_temperature=0,
+        llm_model=model_name or marvin.settings.llm_model,
+        llm_temperature=0,
     )
     def _assert_llm(response: Any, expectation: Any) -> bool:
         """
