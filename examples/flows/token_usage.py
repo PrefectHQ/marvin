@@ -1,15 +1,12 @@
-import json
-
 from prefect import flow, task
 from prefect.blocks.system import JSON
-from prefect.events import Event
 from prefect.exceptions import ObjectNotFound
 
 TOKEN_TRACKER_BLOCK_NAME = "marvin-bot-token-usage"
 
 
 @task
-async def increment_token_tracker(event: Event, token_tracker_block_name: str) -> int:
+async def increment_token_tracker(total_tokens: int, token_tracker_block_name: str):
     try:
         token_tracker = await JSON.load(token_tracker_block_name)
     except ValueError as exc:
@@ -23,13 +20,9 @@ async def increment_token_tracker(event: Event, token_tracker_block_name: str) -
         else:
             raise
 
-    token_tracker.value["total_tokens"] += (
-        total_tokens := event.payload["total_tokens"]
-    )
+    token_tracker.value["total_tokens"] += total_tokens
 
     await token_tracker.save(token_tracker_block_name, overwrite=True)
-
-    return total_tokens
 
 
 @flow(
@@ -37,16 +30,16 @@ async def increment_token_tracker(event: Event, token_tracker_block_name: str) -
     log_prints=True,
 )
 async def increment_token_usage(
-    event_str: str,
+    event_total_tokens: str = None,
     token_tracker_block_name: str = TOKEN_TRACKER_BLOCK_NAME,
 ):
-    event_dict = json.loads(event_str)
+    event_total_tokens = int(event_total_tokens)
 
-    n_tokens_used = await increment_token_tracker(
-        event=Event(**event_dict),
+    await increment_token_tracker(
+        total_tokens=event_total_tokens,
         token_tracker_block_name=token_tracker_block_name,
     )
-    print(f"Marvin used {n_tokens_used} tokens in this event.")
+    print(f"Marvin used {event_total_tokens} tokens in this event.")
 
 
 if __name__ == "__main__":
