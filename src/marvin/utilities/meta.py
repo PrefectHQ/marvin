@@ -17,8 +17,8 @@ async def create_chroma_document(
 ):
     processed_feedback = await Document(
         text=text,
+        source="slack",
         metadata={
-            "source": "user feedback",
             "created_at": pendulum.now().isoformat(),
             **kwargs,
         },

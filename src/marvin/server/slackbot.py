@@ -5,12 +5,15 @@ from typing import Any, Dict, List, Optional
 import httpx
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
+from prefect.blocks.core import Block
+from prefect.events import emit_event
 from prefect.utilities.collections import listrepr
 from pydantic import BaseModel, ValidationError
 
 import marvin
-from marvin.utilities.meta import record_feedback
-from marvin.utilities.strings import convert_md_links_to_slack
+from marvin.config import CHROMA_INSTALLED
+from marvin.utilities.meta import create_chroma_document
+from marvin.utilities.strings import convert_md_links_to_slack, count_tokens
 from marvin.utilities.types import MarvinRouter
 
 router = MarvinRouter(
@@ -339,14 +342,23 @@ async def _handle_approve_response(action: SlackAction):
     asking_user = action_value.get("asking_user")
     editing_user = action.user["id"]
 
-    feedback = f"""**{action_value["question"]}**\n\n
+    question_answer = f"""**{action_value["question"]}**\n\n
     
     {action_value["proposed_answer"]}
     """  # noqa
 
-    marvin.get_logger().debug(f"recording: {feedback}")
-
-    await record_feedback(feedback)
+    # creates and saves a document to chroma
+    if CHROMA_INSTALLED:
+        await create_chroma_document(text=question_answer)
+    else:
+        await _post_message(
+            channel=action.channel["id"],
+            message=(  # noqa
+                f"hey <@{marvin.settings.slack_bot_admin_user}, I can't use Chroma -"
+                " did you install it on my machine?"
+            ),
+            thread_ts=action.container["message_ts"],
+        )
 
     await _slack_api_call(
         "POST",
@@ -403,6 +415,24 @@ async def _slackbot_response(event: SlackEvent):
     )
 
     response_ts = slack_response.get("ts")
+    prompt_tokens = count_tokens(text)
+    response_tokens = count_tokens(response.content)
+
+    # this will do nothing if Prefect credentials are not configured
+    emit_event(
+        event=f"bot.{bot.name.lower()}.responded",
+        resource={"prefect.resource.id": f"bot.{bot.name.lower()}"},
+        payload={
+            "user": event.user,
+            "channel": event.channel,
+            "thread_ts": thread,
+            "text": text,
+            "response": response.content,
+            "prompt_tokens": prompt_tokens,
+            "response_tokens": response_tokens,
+            "total_tokens": prompt_tokens + response_tokens,
+        },
+    )
 
     if marvin.settings.QA_slack_bot_responses:
         await _post_QA_message(
@@ -420,11 +450,23 @@ async def _save_thread_to_discourse(payload: Dict[str, Any]):
     channel_id = payload["channel"]["id"]
     user_id = payload["user"]["id"]
 
-    if user_id not in marvin.settings.slack_bot_authorized_QA_users.split(","):
+    allowed_users = await Block.load("json/allowed-qa-users")
+
+    if user_id not in allowed_users.value.values():
+        dm_channel_response = await _slack_api_call(
+            "POST", "conversations.open", json_data={"users": user_id}
+        )
+        dm_channel_id = dm_channel_response.json()["channel"]["id"]
+
+        # Send a message to the DM channel
         await _post_message(
-            channel=channel_id,
-            message=f"Silly <@{user_id}>, you can't do that!",
-            thread_ts=thread_ts,
+            channel=dm_channel_id,
+            message=(
+                "Sorry, you're not allowed to take that action :cry:"
+                f" \n\nPlease contact <@{marvin.settings.slack_bot_admin_user}>"
+                " if this is a mistake - thank you :slightly_smiling_face:"
+                " \n\n[here's a duck](https://random-d.uk/) for your troubles."
+            ),
         )
         return
 
@@ -443,7 +485,7 @@ async def _save_thread_to_discourse(payload: Dict[str, Any]):
                 "GET", "users.info", params={"user": message["user"]}
             )
             username = user_info.json().get("user", {}).get("name", "unknown user")
-            USER_CACHE[message["user"]] = username  # save the username in the cache
+            USER_CACHE[message["user"]] = username
 
         # skip the bot's messages that don't have a green checkmark emoji
         if user_info.json().get("user", {}).get("id") == BOT_SLACK_ID:
@@ -477,11 +519,18 @@ async def _save_thread_to_discourse(payload: Dict[str, Any]):
     await _post_message(
         channel=channel_id,
         message=(
-            f"Thanks, <@{user_id}>! This thread has been saved to Discourse."
-            f" You can find it here: {new_topic_url}"
+            f"thanks to <@{user_id}> :slightly_smiling_face:, this thread has been"
+            f" saved to Discourse.\n\nYou can find it here: {new_topic_url}"
         ),
         thread_ts=thread_ts,
     )
+
+
+block_action_to_handler = {
+    "approve_response": _handle_approve_response,
+    "edit_response": _show_edit_response_modal,
+    "discard": _handle_discard,
+}
 
 
 @router.post("/events", status_code=status.HTTP_200_OK)
@@ -508,12 +557,9 @@ async def handle_block_actions(request: Request):
 
     if payload.get("type") == "block_actions":
         action_event = SlackAction(**payload)
-        if action_event.actions[0]["action_id"] == "approve_response":
-            asyncio.ensure_future(_handle_approve_response(action_event))
-        elif action_event.actions[0]["action_id"] == "edit_response":
-            asyncio.ensure_future(_show_edit_response_modal(action_event))
-        elif action_event.actions[0]["action_id"] == "discard":
-            asyncio.ensure_future(_handle_discard(action_event))
+        asyncio.ensure_future(
+            block_action_to_handler[action_event.actions[0]["action_id"]](action_event)
+        )
 
     elif payload.get("type") == "view_submission":
         asyncio.ensure_future(_handle_view_submission(payload))

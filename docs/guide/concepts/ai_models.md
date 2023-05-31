@@ -86,7 +86,7 @@ Under the hood, AI Models use AI Functions to extract data before it's passed to
 validation rules. Unsurprisingly then, AI Models expose the same advanced customizations that AI Functions do. 
 
 ```python
-@ai_model(llm_model_name='gpt-3.5-turbo', llm_model_temperature=0.2)
+@ai_model(llm_model='gpt-3.5-turbo', llm_temperature=0.2)
 class MyFirstModel(pydantic.BaseModel):
     ...
 ```
