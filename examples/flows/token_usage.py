@@ -30,10 +30,16 @@ async def increment_token_tracker(total_tokens: int, token_tracker_block_name: s
     log_prints=True,
 )
 async def increment_token_usage(
-    event_total_tokens: str = None,
+    user_question: str,
+    bot_response: str,
+    total_tokens_str: str,
     token_tracker_block_name: str = TOKEN_TRACKER_BLOCK_NAME,
 ):
-    event_total_tokens = int(event_total_tokens)
+    print(f"User question:\n{user_question}")
+
+    print(f"Bot response:\n{bot_response}")
+
+    event_total_tokens = int(total_tokens_str)
 
     await increment_token_tracker(
         total_tokens=event_total_tokens,
