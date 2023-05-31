@@ -163,7 +163,7 @@ class Settings(BaseSettings):
     chroma: ChromaSettings = Field(default_factory=ChromaSettings)
 
     # DISCOURSE
-    discourse_api_key: SecretStr = Field(None)
+    discourse_api_key: SecretStr = Field(default_factory=SecretStr)
     discourse_api_username: str = Field("nate")
     discourse_url: str = Field("https://discourse.prefect.io")
     discourse_help_category_id: int = 27
@@ -178,7 +178,7 @@ class Settings(BaseSettings):
     database_check_migration_version_on_startup: bool = True
 
     # GITHUB
-    github_token: SecretStr = Field(None)
+    github_token: SecretStr = Field(default_factory=SecretStr)
 
     # REDIS
     redis_connection_url: SecretStr = None
