@@ -32,7 +32,9 @@ ENV_FILE.touch(exist_ok=True)
 
 class LLMBackend(str, Enum):
     OpenAI = "OpenAI"
+    AzureOpenAI = "AzureOpenAI"
     OpenAIChat = "OpenAIChat"
+    AzureOpenAIChat = "AzureOpenAIChat"
     Anthropic = "Anthropic"
     HuggingFaceHub = "HuggingFaceHub"
 
