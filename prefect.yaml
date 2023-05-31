@@ -14,5 +14,5 @@ push: null
 pull:
 - prefect.projects.steps.git_clone_project:
     repository: https://github.com/PrefectHQ/marvin.git
-    branch: main
+    branch: token-usage
     access_token: null
