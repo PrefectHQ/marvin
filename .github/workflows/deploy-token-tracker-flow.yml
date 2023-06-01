@@ -1,0 +1,40 @@
+# Deploys the `increment-token-usage` flow to `marvin-bot` workspace
+
+name: Deploy token tracker flow
+
+env:
+  PREFECT_API_KEY: ${{ secrets.MARVIN_BOT_WORKSPACE_API_KEY }}
+  PREFECT_API_URL: ${{ secrets.MARVIN_BOT_WORKSPACE_URL }}
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - examples/flows/token_usage.py
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy_token_tracker:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Prefect
+        run: |
+          pip install -U prefect
+
+      - name: Update token tracker deployment
+        run: |
+          prefect deploy examples/flows/token_usage.py:increment_token_usage \
+            -p kubernetes-prd-internal-tools \
+            -n increment-token-usage
