@@ -3,7 +3,7 @@
 name: Deploy token tracker flow
 
 env:
-  PREFECT_API_KEY: ${{ secrets.PREFECT_API_KEY }}
+  PREFECT_API_KEY: ${{ secrets.MARVIN_BOT_WORKSPACE_API_KEY }}
   PREFECT_API_URL: ${{ secrets.MARVIN_BOT_WORKSPACE_URL }}
 
 on:
