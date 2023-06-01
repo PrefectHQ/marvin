@@ -11,7 +11,7 @@ from prefect.blocks.system import JSON
 from prefect.exceptions import ObjectNotFound
 
 TOKEN_TRACKER_BLOCK_NAME = "marvin-bot-token-usage"
-GLOBAL_TOKEN_LIMIT = int(1e5)
+WEEKLY_GLOBAL_TOKEN_LIMIT = int(1e5)
 
 
 @task
@@ -25,7 +25,7 @@ async def increment_token_tracker(
             token_tracker = JSON(
                 value={
                     "total_tokens": 0,
-                    "global_token_limit": GLOBAL_TOKEN_LIMIT,
+                    "global_token_limit": WEEKLY_GLOBAL_TOKEN_LIMIT,
                     "updated_at": pendulum.now().isoformat(),
                 },
             )
