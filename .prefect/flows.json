@@ -1,4 +1,3 @@
 {
-  "Increment Token Usage": "token_usage.py:increment_token_usage",
   "Increment Token Usage on Bot Mention": "examples/flows/token_usage.py:increment_token_usage"
 }
