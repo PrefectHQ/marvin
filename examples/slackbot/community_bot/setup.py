@@ -35,6 +35,30 @@ my_secret.value = "new secret value"
 my_secret.save(overwrite=True)
 """
 
+how_to_use_the_prefect_2_rest_api = """
+from prefect import get_client
+from prefect.client.schemas.core import TaskRun
+from prefect.client.schemas.filters import (
+    TaskRunFilter,
+    TaskRunFilterName,
+    DeploymentFilter,
+    DeploymentFilterName,
+)
+
+async def demo():
+    async with get_client() as client:
+        task_runs: list[TaskRun] = await client.read_task_runs(
+            task_run_filter=TaskRunFilter(name=TaskRunFilterName(like_="taskNamePrefix")),
+            deployment_filter=DeploymentFilter(name=DeploymentFilterName(like_="deploymentNamePrefix")),
+        )
+        
+        print(len(task_runs))
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(demo())
+"""
+
 instructions = f"""
     Your job is to answer questions about Prefect workflow orchestration
     software. You will always need to call your plugins with JSON payloads to
@@ -53,6 +77,10 @@ instructions = f"""
     - how to load and update an existing Block from/to the server:
     ```python
     {how_to_load_and_update_a_block}
+    ```
+    - how to use the Prefect 2 REST API (Prefect 2 does *NOT* have a GraphQL API):
+    ```python
+    {how_to_use_the_prefect_2_rest_api}
     ```
     
     These are your plugins:

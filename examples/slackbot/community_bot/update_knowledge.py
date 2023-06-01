@@ -1,3 +1,4 @@
+import re
 import tempfile
 from pathlib import Path
 
@@ -123,6 +124,12 @@ async def get_prefect_loader():
             include_globs=["flows-advanced/**/*.py"],
         )
     )
+
+    prefect_case_studies = web.SitemapLoader(
+        urls=["https://www.prefect.io/sitemap.xml"],
+        include=[re.compile("prefect.io/guide/case-studies/.+")],
+    )
+
     return base.MultiLoader(
         loaders=[
             prefect_docs,
@@ -132,6 +139,7 @@ async def get_prefect_loader():
             prefect_recipes,
             prefect_release_notes,
             prefect_source_code,
+            prefect_case_studies,
             *policy_document_loaders,
         ]
     )
