@@ -92,6 +92,6 @@ if __name__ == "__main__":
         messages = await bot.history.get_messages()
         await knowledge_graph.update_knowledge_graph_from_messages(messages)
 
-        print(knowledge_graph.draw())
+        knowledge_graph.draw()
 
     asyncio.run(main())
