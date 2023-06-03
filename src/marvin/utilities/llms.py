@@ -13,7 +13,7 @@ from marvin.config import LLMBackend, infer_llm_backend
 from marvin.models.threads import Message
 
 
-class StreamingCallbackHandler(AsyncCallbackHandler):
+class AsyncStreamingCallbackHandler(AsyncCallbackHandler):
     """
     Callback handler for streaming responses.
     """
@@ -73,7 +73,9 @@ def get_model(
     if on_token_callback is not None:
         llm_kwargs.update(
             streaming=True,
-            callbacks=[StreamingCallbackHandler(on_token_callback=on_token_callback)],
+            callbacks=[
+                AsyncStreamingCallbackHandler(on_token_callback=on_token_callback)
+            ],
         )
 
     if model is None:
@@ -134,7 +136,6 @@ def get_model(
 
     # HuggingFaceHub models
     elif backend == LLMBackend.HuggingFaceHub:
-        raise ValueError("HuggingFaceHub models are not fully supported yet.")
         from langchain.llms import HuggingFaceHub
 
         return HuggingFaceHub(

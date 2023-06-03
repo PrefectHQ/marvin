@@ -598,9 +598,18 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 "Sending messages to LLM", messages_repr, key_style="green"
             )
 
-        result = await llm.apredict_messages(
-            messages=langchain_messages, stop=["</stop>"]
-        )
+        try:
+            result = await llm.apredict_messages(
+                messages=langchain_messages, stop=["</stop>"]
+            )
+        # some LLMs, like HuggingFaceHub, don't support async
+        except NotImplementedError as exc:
+            if "Async generation not implemented for this LLM" in str(exc):
+                result = llm.predict_messages(
+                    messages=langchain_messages, stop=["</stop>"]
+                )
+            else:
+                raise
 
         return result.content
 

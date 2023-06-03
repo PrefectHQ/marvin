@@ -145,17 +145,25 @@ class Settings(BaseSettings):
     # OPENAI
     openai_api_key: SecretStr = Field(
         None,
-        # for the OpenAI key we check two env vars for legacy reasons
+        # for third-party LLM services we check global env vars as well
         env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"],
     )
     openai_organization: str = Field(None)
     openai_api_base: str = None
 
     # ANTHROPIC
-    anthropic_api_key: SecretStr = Field(None)
+    anthropic_api_key: SecretStr = Field(
+        None,
+        # for third-party LLM services we check global env vars as well
+        env=["MARVIN_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"],
+    )
 
     # HUGGINGFACE HUB
-    huggingfacehub_api_token: SecretStr = Field(None)
+    huggingfacehub_api_token: SecretStr = Field(
+        None,
+        # for third-party LLM services we check global env vars as well
+        env=["MARVIN_HUGGINGFACEHUB_API_TOKEN", "HUGGINGFACEHUB_API_TOKEN"],
+    )
 
     # CHROMA
     chroma: ChromaSettings = Field(default_factory=ChromaSettings)
