@@ -4,7 +4,7 @@ title: Welcome to Marvin
 
 # Welcome to Marvin 🤖🏖️
 
-![](img/heroes/ai_model_windy_city_hero.png)
+![](img/heroes/ai_model_windy_city_hero.png){ width="400" }
 
 Meet [Marvin](https://github.com/prefecthq/marvin): a batteries-included library for building AI-powered software. Marvin's job is to integrate AI directly into your codebase by making it look and feel like any other function. Marvin is building the gears, cranks, and pistons to let mechanical software systems integrate with and leverage the raw power of Large Language Models.
 
