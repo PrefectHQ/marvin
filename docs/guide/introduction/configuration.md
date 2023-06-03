@@ -10,7 +10,7 @@ At this time, valid options include:
 
 | Backend | Description | Models | Notes |
 | --- | --- | --- | --- |
-| `OpenAIChat` (default) | OpenAI's chat models | `gpt-3.5-turbo` (default), `gpt-4` | Marvin is generally tested and optimized with this backend. |
+| `OpenAIChat` (default) | OpenAI's chat models | `gpt-3.5-turbo` (default), `gpt-4`, etc. | Marvin is generally tested and optimized with this backend. |
 | `AzureOpenAIChat` | OpenAI chat models via Azure | (same as `OpenAIChat`) |
 | `OpenAI` | OpenAI's completion models | `text-davinci-003`, etc. |
 | `AzureOpenAI` | OpenAI completion models via Azure | (same as `OpenAI`) |
