@@ -16,8 +16,10 @@ At this time, valid options include:
 | `AzureOpenAI` | OpenAI completion models via Azure | (same as `OpenAI`) |
 | `Anthropic` | Anthropic models | `claude-v1`, `claude-v1.3`, `claude-v1.3-100k`, any other [available model](https://console.anthropic.com/docs/api/reference#parameters) |
 | `HuggingFaceHub` | Models hosted on HuggingFaceHub | Any valid `repo/model` combination | Support for these models is **experimental** and quality will vary. |
+| `VertexAI` | Google's enterprise text generation (PaLM) | `text-bison@001`, etc. | See [Google's docs](https://cloud.google.com/vertex-ai/docs/generative-ai/learn/overview). Note: Vertex AI uses [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) rather than API keys. |
+| `VertexAIChat` | Google's enterprise chat model (PaLM) | `chat-bison@001`, etc. | See [Google's docs](https://cloud.google.com/vertex-ai/docs/generative-ai/learn/overview). Note: Vertex AI uses [Application Default Credentials](https://cloud.google.com/docs/authentication/application-default-credentials) rather than API keys. |
 
- 
+
 Models may have unique settings which are detailed below.
 
 ### OpenAI

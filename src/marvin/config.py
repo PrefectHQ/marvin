@@ -38,7 +38,7 @@ class LLMBackend(str, Enum):
     Anthropic = "Anthropic"
     HuggingFaceHub = "HuggingFaceHub"
     VertexAI = "VertexAI"
-    ChatVertexAI = "ChatVertexAI"
+    VertexAIChat = "VertexAIChat"
 
 
 def infer_llm_backend(model: str = None) -> LLMBackend:
@@ -60,7 +60,7 @@ def infer_llm_backend(model: str = None) -> LLMBackend:
     elif model.startswith("text-bison"):
         return LLMBackend.VertexAI
     elif model.startswith("chat-bison"):
-        return LLMBackend.ChatVertexAI
+        return LLMBackend.VertexAIChat
     else:
         raise ValueError(
             "No LLM backend provided and could not infer one from `llm_model`."

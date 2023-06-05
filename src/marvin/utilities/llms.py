@@ -155,8 +155,6 @@ def get_model(
     elif backend == LLMBackend.VertexAI:
         from langchain.llms import VertexAI
 
-        # Note: No API Key. Uses Google's Application Default Credentials.
-        # https://cloud.google.com/docs/authentication/provide-credentials-adc
         return VertexAI(
             model_name=model,
             max_output_tokens=max_tokens,
@@ -165,11 +163,9 @@ def get_model(
         )
 
     # Google Vertex AI Chat (PaLM)
-    elif backend == LLMBackend.ChatVertexAI:
+    elif backend == LLMBackend.VertexAIChat:
         from langchain.chat_models import ChatVertexAI
 
-        # Note: No API Key. Uses Google's Application Default Credentials.
-        # https://cloud.google.com/docs/authentication/provide-credentials-adc
         return ChatVertexAI(
             model=model,
             max_output_tokens=max_tokens,
