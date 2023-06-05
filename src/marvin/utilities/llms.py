@@ -151,6 +151,32 @@ def get_model(
             **llm_kwargs,
         )
 
+    # Google Vertex AI (PaLM)
+    elif backend == LLMBackend.VertexAI:
+        from langchain.llms import VertexAI
+
+        # Note: No API Key. Uses Google's Application Default Credentials.
+        # https://cloud.google.com/docs/authentication/provide-credentials-adc
+        return VertexAI(
+            model_name=model,
+            max_output_tokens=max_tokens,
+            temperature=temperature,
+            **llm_kwargs,
+        )
+
+    # Google Vertex AI Chat (PaLM)
+    elif backend == LLMBackend.ChatVertexAI:
+        from langchain.chat_models import ChatVertexAI
+
+        # Note: No API Key. Uses Google's Application Default Credentials.
+        # https://cloud.google.com/docs/authentication/provide-credentials-adc
+        return ChatVertexAI(
+            model=model,
+            max_output_tokens=max_tokens,
+            temperature=temperature,
+            **llm_kwargs,
+        )
+
     # Anthropic chat models
     elif backend == LLMBackend.Anthropic:
         from langchain.chat_models import ChatAnthropic

@@ -37,6 +37,8 @@ class LLMBackend(str, Enum):
     AzureOpenAIChat = "AzureOpenAIChat"
     Anthropic = "Anthropic"
     HuggingFaceHub = "HuggingFaceHub"
+    VertexAI = "VertexAI"
+    ChatVertexAI = "ChatVertexAI"
 
 
 def infer_llm_backend(model: str = None) -> LLMBackend:
@@ -55,6 +57,10 @@ def infer_llm_backend(model: str = None) -> LLMBackend:
         return LLMBackend.OpenAI
     elif model.startswith("claude"):
         return LLMBackend.Anthropic
+    elif model.startswith("text-bison"):
+        return LLMBackend.VertexAI
+    elif model.startswith("chat-bison"):
+        return LLMBackend.ChatVertexAI
     else:
         raise ValueError(
             "No LLM backend provided and could not infer one from `llm_model`."
