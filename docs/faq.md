@@ -8,12 +8,6 @@
 
 Marvin is under rapid development and has a few sharp edges! If you run into trouble, please open an issue [here](https://github.com/PrefectHQ/marvin/issues/new).
 
-### Should I use Marvin or ChatGPT?
-
-Use both! In a true sense, Marvin *is* ChatGPT, and anything your OpenAI account has access to (including GPT-4, plugins, and more) is automatically available to Marvin as well. More specifically, Marvin is a client for ChatGPT, not an alternative to it.
-
-ChatGPT is a powerful service primarily accessed through its own UI or by making raw API calls. Marvin provides a new way of accessing ChatGPT through a convenient library. It brings ChatGPT into your normal engineering workflow by letting you intermix Python code with AI-powered constructs that are optimized for your use case.
-
 ### Should I use GPT-4 or GPT-3.5?
 
 Marvin supports multiple LLM models. At this time, models include OpenAI's GPT-4 (`gpt-4`) and GPT-3.5 (`gpt-3.5-turbo`). To set the model, use the environment variable `MARVIN_LLM_MODEL`. Because not every developer has access to GPT-4 (yet), Marvin's default model is GPT-3.5. This guarantees that everyone can use Marvin "out of the box."
