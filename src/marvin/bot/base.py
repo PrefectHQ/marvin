@@ -579,10 +579,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
         """
 
         # deferred import for performance
-
         import marvin.utilities.llms
 
-        langchain_messages = marvin.utilities.llms.prepare_messages(messages)
         llm = marvin.utilities.llms.get_model(
             model=self.llm_model,
             backend=self.llm_backend,
@@ -592,26 +590,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
             on_token_callback=on_token_callback,
         )
 
-        if marvin.settings.verbose:
-            messages_repr = "\n".join(repr(m) for m in langchain_messages)
-            self.logger.debug_kv(
-                "Sending messages to LLM", messages_repr, key_style="green"
-            )
-
-        try:
-            result = await llm.apredict_messages(
-                messages=langchain_messages, stop=["</stop>"]
-            )
-        # some LLMs, like HuggingFaceHub, don't support async
-        except NotImplementedError as exc:
-            if "Async generation not implemented for this LLM" in str(exc):
-                result = llm.predict_messages(
-                    messages=langchain_messages, stop=["</stop>"]
-                )
-            else:
-                raise
-
-        return result.content
+        response = marvin.utilities.llms.call_llm_messages(llm=llm, messages=messages)
+        return response.content
 
     def interactive_chat(self, first_message: str = None, tui: bool = True):
         """
