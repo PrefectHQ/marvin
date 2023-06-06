@@ -45,7 +45,7 @@ dependencies = [
     # plugins requirements
     "beautifulsoup4~=4.11",
     "bleach~=6.0",
-    "duckduckgo_search~=2.8",
+    "duckduckgo_search~=3.8",
     "fake-useragent~=1.1",
     "google_api_python_client~=2.72",
     "simpleeval~=0.9",
