@@ -197,6 +197,28 @@ def prepare_messages(
     return langchain_messages
 
 
+async def call_llm(llm, text: str, logger: Logger = None) -> str:
+    """
+    Get an LLM response to a string prompt via langchain
+    """
+    if logger is None:
+        logger = get_logger("llm")
+
+    if marvin.settings.verbose:
+        logger.debug_kv("Sending text to LLM", text, key_style="green")
+
+    try:
+        response = await llm.apredict(text=text)
+    # some LLMs, like HuggingFaceHub, don't support async
+    except NotImplementedError as exc:
+        if "Async generation not implemented for this LLM" in str(exc):
+            response = llm.predict(text=text)
+        else:
+            raise
+
+    return response
+
+
 async def call_llm_messages(
     llm, messages: list[Message], logger: Logger = None
 ) -> AIMessage:
@@ -214,37 +236,11 @@ async def call_llm_messages(
         logger.debug_kv("Sending messages to LLM", messages_repr, key_style="green")
 
     try:
-        response = await llm.apredict_messages(
-            messages=langchain_messages, stop=["</stop>"]
-        )
+        response = await llm.apredict_messages(messages=langchain_messages)
     # some LLMs, like HuggingFaceHub, don't support async
     except NotImplementedError as exc:
         if "Async generation not implemented for this LLM" in str(exc):
-            response: AIMessage = llm.predict_messages(
-                messages=langchain_messages, stop=["</stop>"]
-            )
-        else:
-            raise
-
-    return response
-
-
-async def call_llm(llm, text: str, logger: Logger = None) -> str:
-    """
-    Get an LLM response to a string prompt via langchain
-    """
-    if logger is None:
-        logger = get_logger("llm")
-
-    if marvin.settings.verbose:
-        logger.debug_kv("Sending text to LLM", text, key_style="green")
-
-    try:
-        response = await llm.apredict(text=text)
-    # some LLMs, like HuggingFaceHub, don't support async
-    except NotImplementedError as exc:
-        if "Async generation not implemented for this LLM" in str(exc):
-            response = llm.predict(text=text)
+            response: AIMessage = llm.predict_messages(messages=langchain_messages)
         else:
             raise
 

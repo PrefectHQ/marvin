@@ -590,7 +590,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
             on_token_callback=on_token_callback,
         )
 
-        response = marvin.utilities.llms.call_llm_messages(llm=llm, messages=messages)
+        response = await marvin.utilities.llms.call_llm_messages(
+            llm=llm, messages=messages, logger=self.logger
+        )
         return response.content
 
     def interactive_chat(self, first_message: str = None, tui: bool = True):
