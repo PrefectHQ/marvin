@@ -19,6 +19,7 @@ from marvin.utilities.types import (
 )
 
 SENTINEL = "__SENTINEL__"
+MAX_VALIDATION_ATTEMPTS = 3
 
 
 class ResponseFormatter(DiscriminatedUnionType, LoggerMixin):
@@ -31,6 +32,51 @@ class ResponseFormatter(DiscriminatedUnionType, LoggerMixin):
 
     def parse_response(self, response: str) -> str:
         return response
+
+    async def run(self, llm_response: str):
+        """
+        Parses the response from the LLM into the required format, applying
+        error correction if neccessary. Leverages `validate_response` and
+        `parse_response`.
+        """
+
+        parsed_response = llm_response
+        validated = False
+
+        for _ in range(MAX_VALIDATION_ATTEMPTS):
+            try:
+                self.validate_response(llm_response)
+                validated = True
+                break
+            except Exception as exc:
+                if self.on_error == "ignore":
+                    break
+                elif self.on_error == "raise":
+                    raise exc
+                elif self.on_error == "reformat":
+                    self.logger.debug_kv(
+                        "Response did not pass validation. Attempted to reformat",
+                        f" {llm_response}",
+                        key_style="red",
+                    )
+                    llm_response = reformat_response_fn(
+                        llm_response=llm_response,
+                        error_message=repr(exc),
+                        target_return_type=self.format,
+                    )
+                else:
+                    raise ValueError(f"Unknown on_error value: {self.on_error}")
+        else:
+            llm_response = (
+                "Error: could not validate response after"
+                f" {MAX_VALIDATION_ATTEMPTS} attempts."
+            )
+            parsed_response = llm_response
+
+        if validated:
+            parsed_response = self.parse_response(llm_response)
+
+        return parsed_response
 
 
 class StringFormatter(ResponseFormatter):
@@ -234,3 +280,37 @@ def load_formatter_from_shorthand(shorthand_response_format) -> ResponseFormatte
         return TypeFormatter(type_=shorthand_response_format)
     else:
         raise ValueError("Invalid output format")
+
+
+def reformat_response_fn(
+    llm_response: str,
+    target_return_type: Any,
+    error_message: str,
+) -> str:
+    @marvin.ai_fn(
+        plugins=[],
+        response_format=JSONFormatter(on_error="ignore"),
+        llm_model=marvin.settings.llm_model_for_response_format,
+        llm_temperature=0,
+    )
+    def reformat_response(
+        llm_response: str,
+        target_return_type: str,
+        error_message: str,
+    ) -> str:
+        """
+        An error (`error_message`) was raised when attempting to parse
+        `llm_response` into `target_return_type`.
+
+        Convert `llm_response` into a valid JSON string compatible with
+        `target_return_type`.
+        """
+
+    reformatted_response = reformat_response(
+        llm_response=llm_response,
+        target_return_type=target_return_type,
+        error_message=error_message,
+    )
+    if not isinstance(reformatted_response, str):
+        reformatted_response = json.dumps(reformatted_response)
+    return reformatted_response
