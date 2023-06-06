@@ -11,7 +11,7 @@ To install Marvin, run `pip install marvin`. As a matter of best practice, we re
 
 To use Marvin's [knowledge features](../guide/concepts/infra.md), please include the [Chroma](https://www.trychroma.com/) dependency: `pip install "marvin[chromadb]"`.
 
-Before using Marvin, you'll need to [configure your OpenAI API key](openai.md).
+Marvin uses OpenAI's GPT-3.5 (ChatGPT) model by default. Before using Marvin, you'll need to provide an [OpenAI API key](guide/introduction/configuration/#openai) (via the the `MARVIN_OPENAI_API_KEY` or `OPENAI_API_KEY` environment variables) or choose a [different LLM backend](/guide/introduction/configuration#selecting-an-llm-backend).
 
 ## For development
 
