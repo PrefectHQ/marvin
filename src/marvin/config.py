@@ -138,6 +138,14 @@ class Settings(BaseSettings):
             " aren't directly exposed."
         ),
     )
+    llm_model_for_response_format: str = Field(
+        None,
+        description=(
+            "An LLM model name compatible with the backend, solely used for formatting"
+            " responses. If not supplied, will be the same as the `llm_model` (except"
+            " GPT-3.5 will be used for GPT-4.)"
+        ),
+    )
 
     # EMBEDDINGS
     # specify the path to the embeddings cache, relative to the home dir
@@ -292,6 +300,15 @@ class Settings(BaseSettings):
     def infer_llm_backend(cls, v, values):
         if v is None:
             return infer_llm_backend(values["llm_model"])
+        return v
+
+    @validator("llm_model_for_response_format", pre=True, always=True)
+    def infer_llm_model_for_response_format(cls, v, values):
+        if v is None:
+            if values["llm_model"].startswith("gpt-4"):
+                v = "gpt-3.5-turbo"
+            else:
+                v = values["llm_model"]
         return v
 
     @validator("openai_organization")

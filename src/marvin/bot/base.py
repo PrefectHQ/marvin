@@ -13,7 +13,6 @@ import marvin
 from marvin.bot.history import History, ThreadHistory
 from marvin.bot.input_transformers import InputTransformer
 from marvin.bot.response_formatters import (
-    JSONFormatter,
     ResponseFormatter,
     load_formatter_from_shorthand,
 )
@@ -30,8 +29,6 @@ PLUGINS_REGEX = re.compile(r'({\s*"mode":\s*"plugins".*})', re.DOTALL)
 class BotResponse(BaseMessage):
     parsed_content: Any = None
 
-
-MAX_VALIDATION_ATTEMPTS = 3
 
 if TYPE_CHECKING:
     from marvin.models.bots import BotConfig
@@ -449,53 +446,6 @@ class Bot(MarvinBaseModel, LoggerMixin):
             return True
         return False
 
-    async def _parse_llm_response(self, llm_response: str):
-        """
-        Parses the response from the LLM into the required format
-        """
-        if self.response_format.format is None:
-            return llm_response
-
-        parsed_response = llm_response
-        validated = False
-
-        for _ in range(MAX_VALIDATION_ATTEMPTS):
-            try:
-                self.response_format.validate_response(llm_response)
-                validated = True
-                break
-            except Exception as exc:
-                if self.response_format.on_error == "ignore":
-                    break
-                elif self.response_format.on_error == "raise":
-                    raise exc
-                elif self.response_format.on_error == "reformat":
-                    self.logger.debug_kv(
-                        "Response did not pass validation. Attempted to reformat",
-                        f" {llm_response}",
-                        key_style="red",
-                    )
-                    llm_response = _reformat_response(
-                        llm_response=llm_response,
-                        error_message=repr(exc),
-                        target_return_type=self.response_format.format,
-                    )
-                else:
-                    raise ValueError(
-                        f"Unknown on_error value: {self.response_format.on_error}"
-                    )
-        else:
-            llm_response = (
-                "Error: could not validate response after"
-                f" {MAX_VALIDATION_ATTEMPTS} attempts."
-            )
-            parsed_response = llm_response
-
-        if validated:
-            parsed_response = self.response_format.parse_response(llm_response)
-
-        return parsed_response
-
     async def _say(self, messages: list[Message], on_token_callback: Callable = None):
         counter = 1
         loop_messages = []
@@ -505,7 +455,14 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 messages=messages + loop_messages,
                 on_token_callback=on_token_callback,
             )
-            parsed_response = await self._parse_llm_response(llm_response=llm_response)
+
+            # reformat output to conform to response format
+            if self.response_format is not None:
+                parsed_response = await self.response_format.run(
+                    llm_response=llm_response
+                )
+            else:
+                parsed_response = llm_response
 
             response = BotResponse(
                 name=self.name,
@@ -579,10 +536,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
         """
 
         # deferred import for performance
-
         import marvin.utilities.llms
 
-        langchain_messages = marvin.utilities.llms.prepare_messages(messages)
         llm = marvin.utilities.llms.get_model(
             model=self.llm_model,
             backend=self.llm_backend,
@@ -592,26 +547,10 @@ class Bot(MarvinBaseModel, LoggerMixin):
             on_token_callback=on_token_callback,
         )
 
-        if marvin.settings.verbose:
-            messages_repr = "\n".join(repr(m) for m in langchain_messages)
-            self.logger.debug_kv(
-                "Sending messages to LLM", messages_repr, key_style="green"
-            )
-
-        try:
-            result = await llm.apredict_messages(
-                messages=langchain_messages, stop=["</stop>"]
-            )
-        # some LLMs, like HuggingFaceHub, don't support async
-        except NotImplementedError as exc:
-            if "Async generation not implemented for this LLM" in str(exc):
-                result = llm.predict_messages(
-                    messages=langchain_messages, stop=["</stop>"]
-                )
-            else:
-                raise
-
-        return result.content
+        response = await marvin.utilities.llms.call_llm_messages(
+            llm=llm, messages=messages, logger=self.logger
+        )
+        return response.content
 
     def interactive_chat(self, first_message: str = None, tui: bool = True):
         """
@@ -722,37 +661,3 @@ class Bot(MarvinBaseModel, LoggerMixin):
             )
             self.logger.error(msg)
             return msg
-
-
-def _reformat_response(
-    llm_response: str,
-    target_return_type: Any,
-    error_message: str,
-) -> str:
-    @marvin.ai_fn(
-        plugins=[],
-        response_format=JSONFormatter(on_error="ignore"),
-        llm_model="gpt-3.5-turbo",
-        llm_temperature=0,
-    )
-    def reformat_response(
-        llm_response: str,
-        target_return_type: str,
-        error_message: str,
-    ) -> str:
-        """
-        An error (`error_message`) was raised when attempting to parse
-        `llm_response` into `target_return_type`.
-
-        Convert `llm_response` into a valid JSON string compatible with
-        `target_return_type`.
-        """
-
-    reformatted_response = reformat_response(
-        llm_response=llm_response,
-        target_return_type=target_return_type,
-        error_message=error_message,
-    )
-    if not isinstance(reformatted_response, str):
-        reformatted_response = json.dumps(reformatted_response)
-    return reformatted_response
