@@ -3,10 +3,15 @@ import functools
 import inspect
 import json
 import re
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Optional
 from warnings import warn
 
 from fastapi import HTTPException, status
+from prefect.events.instrument import (
+    ResourceTuple,
+    instrument_method_calls_on_class_instances,
+)
+from prefect.utilities.slugify import slugify
 from pydantic import Field, confloat, validator
 
 import marvin
@@ -164,6 +169,7 @@ DEFAULT_PLUGINS = [
 ]
 
 
+@instrument_method_calls_on_class_instances
 class Bot(MarvinBaseModel, LoggerMixin):
     class Config:
         validate_assignment = True
@@ -722,6 +728,29 @@ class Bot(MarvinBaseModel, LoggerMixin):
             )
             self.logger.error(msg)
             return msg
+
+    def _event_kind(self) -> str:
+        return f"bot.{slugify(self.name)}"
+
+    def _event_method_called_resources(self) -> Optional[ResourceTuple]:
+        thread_id = (
+            self.history.thread_id
+            if isinstance(self.history, ThreadHistory)
+            else "ephemeral"
+        )
+
+        return (
+            {
+                "prefect.resource.id": f"marvin.{self.id}",
+                "marvin.resource.name": self.name,
+            },
+            [
+                {
+                    "prefect.resource.id": thread_id,
+                    "prefect.resource.role": "thread",
+                }
+            ],
+        )
 
 
 def _reformat_response(
