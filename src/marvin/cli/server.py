@@ -8,6 +8,12 @@ server_app = typer.Typer(help="Server commands")
 
 @server_app.command()
 def start(
+    host: str = typer.Option(
+        marvin.settings.api_base_url,
+        "--host",
+        "-h",
+        help="Host to run the server on",
+    ),
     port: int = typer.Option(
         marvin.settings.api_port,
         "--port",
@@ -22,5 +28,9 @@ def start(
     ),
 ):
     uvicorn.run(
-        "marvin.server:app", port=port, log_level=log_level.lower(), reload=reload
+        "marvin.server:app",
+        host=host,
+        port=port,
+        log_level=log_level.lower(),
+        reload=reload,
     )
