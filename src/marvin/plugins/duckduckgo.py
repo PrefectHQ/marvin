@@ -1,7 +1,7 @@
 import asyncio
 
 import httpx
-from duckduckgo_search import ddg, ddg_answers
+from duckduckgo_search import DDGS
 
 import marvin
 from marvin.plugins import Plugin
@@ -10,16 +10,38 @@ from marvin.utilities.strings import html_to_content, slice_tokens
 
 async def safe_get(client, url):
     try:
-        await client.get(url)
+        return await client.get(url)
     except httpx.ReadTimeout:
         pass
+
+
+def ddg_answer_search(keywords: str):
+    results = []
+    for r in DDGS().answers(keywords=keywords):
+        results.append(r)
+        if len(results) >= 1:
+            break
+    return results
+
+
+def ddg_text_search(keywords: str, max_results: int = None, page: int = None):
+    results = []
+    for r in DDGS().text(keywords=keywords):
+        results.append(r)
+        if (max_results and len(results) >= max_results) or (
+            page and len(results) >= 20
+        ):
+            break
+    return results
 
 
 async def search_ddg(query: str, n: int = 5) -> str:
     answers, search_results = await asyncio.gather(
         *[
-            marvin.utilities.async_utils.run_async(ddg_answers, query),
-            marvin.utilities.async_utils.run_async(ddg, query, max_results=n),
+            marvin.utilities.async_utils.run_async(ddg_answer_search, query),
+            marvin.utilities.async_utils.run_async(
+                ddg_text_search, query, max_results=n
+            ),
         ]
     )
 

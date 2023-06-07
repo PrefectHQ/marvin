@@ -36,27 +36,54 @@ my_secret.save(overwrite=True)
 """
 
 how_to_use_the_prefect_2_rest_api = """
-from prefect import get_client
-from prefect.client.schemas.core import TaskRun
-from prefect.client.schemas.filters import (
-    TaskRunFilter,
-    TaskRunFilterName,
-    DeploymentFilter,
-    DeploymentFilterName,
-)
+import pendulum
+from httpx import AsyncClient
 
-async def demo():
-    async with get_client() as client:
-        task_runs: list[TaskRun] = await client.read_task_runs(
-            task_run_filter=TaskRunFilter(name=TaskRunFilterName(like_="taskNamePrefix")),
-            deployment_filter=DeploymentFilter(name=DeploymentFilterName(like_="deploymentNamePrefix")),
+from prefect.events import Event
+from prefect.settings import PREFECT_API_KEY, PREFECT_API_URL
+
+
+async def read_flow_runs_executed_in_last_day(
+    limit: int = 50,
+    event_name: str = None,
+    filter: dict = None,
+) -> list[Event]:
+    if event_name is None:
+        event_name = "prefect.worker.executed-flow-run"
+    
+    if filter is None:
+        filter = {
+            "occurred": {
+                "since": pendulum.now().subtract(days=1).isoformat(),
+                "until": pendulum.now().isoformat(),
+            },
+            "event": {
+                "name": [event_name]
+            }
+        }
+    
+    headers = {
+        "Authorization": "Bearer " + PREFECT_API_KEY.value(),
+        "Content-Type": "application/json",
+    }
+    
+    async with AsyncClient() as client:
+        response = await client.post(
+            f"{PREFECT_API_URL.value()}/events/filter",
+            headers=headers,
+            json={
+                "limit": limit,
+                "filter": filter,
+            },
         )
-        
-        print(len(task_runs))
+        response.raise_for_status()
+        return response.json()
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(demo())
+    events = asyncio.run(read_flow_runs_executed_in_last_day())
+        
+    print(f"Number of flow runs executed in the last 24 hours: {len(events)}")
 """
 
 instructions = f"""

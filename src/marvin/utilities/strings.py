@@ -237,9 +237,10 @@ def html_to_content(html: str) -> str:
         html, include_formatting=True, include_links=True, favor_precision=True
     )
 
-    text = condense_newlines(text)
+    if not text:
+        return ""
 
-    return text
+    return condense_newlines(text)
 
 
 def rm_html_comments(text: str) -> str:
