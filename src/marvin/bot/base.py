@@ -18,7 +18,6 @@ import marvin
 from marvin.bot.history import History, ThreadHistory
 from marvin.bot.input_transformers import InputTransformer
 from marvin.bot.response_formatters import (
-    JSONFormatter,
     ResponseFormatter,
     load_formatter_from_shorthand,
 )
@@ -691,37 +690,3 @@ class Bot(MarvinBaseModel, LoggerMixin):
                 }
             ],
         )
-
-
-def _reformat_response(
-    llm_response: str,
-    target_return_type: Any,
-    error_message: str,
-) -> str:
-    @marvin.ai_fn(
-        plugins=[],
-        response_format=JSONFormatter(on_error="ignore"),
-        llm_model="gpt-3.5-turbo",
-        llm_temperature=0,
-    )
-    def reformat_response(
-        llm_response: str,
-        target_return_type: str,
-        error_message: str,
-    ) -> str:
-        """
-        An error (`error_message`) was raised when attempting to parse
-        `llm_response` into `target_return_type`.
-
-        Convert `llm_response` into a valid JSON string compatible with
-        `target_return_type`.
-        """
-
-    reformatted_response = reformat_response(
-        llm_response=llm_response,
-        target_return_type=target_return_type,
-        error_message=error_message,
-    )
-    if not isinstance(reformatted_response, str):
-        reformatted_response = json.dumps(reformatted_response)
-    return reformatted_response
