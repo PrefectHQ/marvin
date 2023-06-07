@@ -15,7 +15,8 @@ async def search_github_issues(
     not alter the default value for `n` unless specifically requested by
     a user.
 
-    For example, to search for issues with the label "bug" in PrefectHQ/prefect:
+    For example, to search for issues about "blocks" with the label "bug"
+    in PrefectHQ/prefect:
         - repo: prefecthq/prefect
         - query: label:bug is:issue is:open blocks
     """
