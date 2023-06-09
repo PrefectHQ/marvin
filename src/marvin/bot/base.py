@@ -9,7 +9,7 @@ from warnings import warn
 from fastapi import HTTPException, status
 from prefect.events.instrument import (
     ResourceTuple,
-    instrument_method_calls_on_class_instances,
+    emit_instance_method_called_event,
 )
 from prefect.utilities.slugify import slugify
 from pydantic import Field, confloat, validator
@@ -25,7 +25,7 @@ from marvin.models.ids import BotID, ThreadID
 from marvin.models.threads import BaseMessage, Message
 from marvin.plugins import Plugin
 from marvin.utilities.async_utils import as_sync_fn
-from marvin.utilities.strings import condense_newlines, jinja_env
+from marvin.utilities.strings import condense_newlines, count_tokens, jinja_env
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 PLUGINS_REGEX = re.compile(r'({\s*"mode":\s*"plugins".*})', re.DOTALL)
@@ -166,7 +166,6 @@ DEFAULT_PLUGINS = [
 ]
 
 
-@instrument_method_calls_on_class_instances
 class Bot(MarvinBaseModel, LoggerMixin):
     class Config:
         validate_assignment = True
@@ -361,9 +360,9 @@ class Bot(MarvinBaseModel, LoggerMixin):
         errors if a bot with the same name exists. Customize this behavior with
         the `if_exists` parameter, which can be `delete`, `update`, or `cancel`:
             - `delete`: Delete the existing bot and save this one. The bots will
-              not have the same ID.
+            not have the same ID.
             - `update`: Update the existing bot with the values from this one.
-              The bots will have the same ID and message history.
+            The bots will have the same ID and message history.
             - `cancel`: Do nothing (and do not raise an error).
         """
         if if_exists not in [None, "delete", "update", "cancel"]:
@@ -373,39 +372,47 @@ class Bot(MarvinBaseModel, LoggerMixin):
             )
 
         bot_config = self.to_bot_config()
+        bot_exists = True
+
         try:
             # this will error if there's no bot
             await marvin.api.bots.get_bot_config(name=self.name)
-
-            # if no error, then the bot exists
-            if not if_exists:
-                raise ValueError(f"Bot with name {self.name} already exists.")
-            elif if_exists == "delete":
-                await marvin.api.bots.delete_bot_config(name=self.name)
-                await marvin.api.bots.create_bot_config(bot_config=bot_config)
-                return
-            elif if_exists == "update":
-                await marvin.api.bots.update_bot_config(
-                    name=self.name,
-                    bot_config=marvin.models.bots.BotConfigUpdate(**bot_config.dict()),
-                )
-                return
-            elif if_exists == "cancel":
-                return
         except HTTPException as exc:
             if exc.status_code == status.HTTP_404_NOT_FOUND:
-                pass
+                bot_exists = False
             else:
                 raise
 
-        # create the bot
-        await marvin.api.bots.create_bot_config(bot_config=bot_config)
+        if bot_exists:
+            if if_exists == "delete":
+                await marvin.api.bots.delete_bot_config(name=self.name)
+            elif if_exists == "update":
+                bot_config_update = marvin.models.bots.BotConfigUpdate(
+                    **bot_config.dict()
+                )
+                await marvin.api.bots.update_bot_config(
+                    name=self.name, bot_config=bot_config_update
+                )
+            elif if_exists == "cancel" or if_exists is None:
+                if if_exists is None:
+                    raise ValueError(f"Bot with name {self.name} already exists.")
+                return
+        else:
+            # create the bot
+            await marvin.api.bots.create_bot_config(bot_config=bot_config)
+        emit_instance_method_called_event(
+            self,
+            "save",
+            successful=True,
+        )
 
     @classmethod
     async def load(cls, name: str) -> "Bot":
         """Load a bot from the database."""
         bot_config = await marvin.api.bots.get_bot_config(name=name)
-        return cls.from_bot_config(bot_config=bot_config)
+        bot = cls.from_bot_config(bot_config=bot_config)
+        emit_instance_method_called_event(bot, "load", successful=True)
+        return bot
 
     async def say(
         self, *args, response_format=None, on_token_callback: Callable = None, **kwargs
@@ -442,7 +449,18 @@ class Bot(MarvinBaseModel, LoggerMixin):
         bot_response = await self._say(
             messages=messages, on_token_callback=on_token_callback
         )
-
+        emit_instance_method_called_event(
+            self,
+            "say",
+            successful=True,
+            payload={
+                "user_message": user_message,
+                "bot_response": bot_response,
+                "total_tokens": count_tokens(
+                    user_message.content + bot_response.content
+                ),
+            },
+        )
         await self.history.add_message(bot_response)
         self.logger.debug_kv("AI message", bot_response.content, "bold green")
         return bot_response
