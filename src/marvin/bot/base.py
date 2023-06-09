@@ -386,6 +386,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         if bot_exists:
             if if_exists == "delete":
                 await marvin.api.bots.delete_bot_config(name=self.name)
+                await marvin.api.bots.create_bot_config(bot_config=bot_config)
             elif if_exists == "update":
                 bot_config_update = marvin.models.bots.BotConfigUpdate(
                     **bot_config.dict()
@@ -400,11 +401,8 @@ class Bot(MarvinBaseModel, LoggerMixin):
         else:
             # create the bot
             await marvin.api.bots.create_bot_config(bot_config=bot_config)
-        emit_instance_method_called_event(
-            self,
-            "save",
-            successful=True,
-        )
+
+        emit_instance_method_called_event(self, "save", successful=True)
 
     @classmethod
     async def load(cls, name: str) -> "Bot":
