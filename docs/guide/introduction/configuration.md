@@ -98,3 +98,13 @@ MARVIN_LLM_MODEL='gpt-4'
 ```
 MARVIN_DATABASE_CONNECTION_URL=
 ```
+
+#### PaLM / Google Cloud Platform / Vertex AI
+
+```
+MARVIN_LLM_BACKEND="VertexAI"
+MARVIN_LLM_MODEL="text-bison@001"
+MARVIN_LLM_MAX_TOKENS=1024
+MARVIN_OPENAI_API_KEY="set to avoid warnings"
+MARVIN_LLM_EXTRA_KWARGS="{\"project\": \"my-project\"}"
+```

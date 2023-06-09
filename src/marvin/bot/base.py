@@ -1,3 +1,4 @@
+import ast
 import asyncio
 import functools
 import inspect
@@ -729,10 +730,13 @@ def _reformat_response(
     target_return_type: Any,
     error_message: str,
 ) -> str:
+    try:
+        return json.dumps(ast.literal_eval(llm_response))
+    except ValueError:
+        pass
     @marvin.ai_fn(
         plugins=[],
         response_format=JSONFormatter(on_error="ignore"),
-        llm_model="gpt-3.5-turbo",
         llm_temperature=0,
     )
     def reformat_response(
