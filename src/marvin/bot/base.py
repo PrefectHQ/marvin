@@ -402,14 +402,18 @@ class Bot(MarvinBaseModel, LoggerMixin):
             # create the bot
             await marvin.api.bots.create_bot_config(bot_config=bot_config)
 
-        emit_instance_method_called_event(self, "save", successful=True)
+        emit_instance_method_called_event(
+            self, "save", successful=True, payload={"bot_config": bot_config}
+        )
 
     @classmethod
     async def load(cls, name: str) -> "Bot":
         """Load a bot from the database."""
         bot_config = await marvin.api.bots.get_bot_config(name=name)
         bot = cls.from_bot_config(bot_config=bot_config)
-        emit_instance_method_called_event(bot, "load", successful=True)
+        emit_instance_method_called_event(
+            bot, "load", successful=True, payload={"bot_config": bot_config}
+        )
         return bot
 
     async def say(
