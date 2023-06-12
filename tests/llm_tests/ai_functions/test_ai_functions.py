@@ -425,11 +425,11 @@ class TestAIFunctionMapping:
         def opposite(thing: str) -> str:
             """returns the opposite of the input"""
 
-        assert opposite.map(["up", "north"]) == ["down", "south"]
+        assert opposite.map(["up", "left"]) == ["down", "right"]
 
     async def test_mapping_async(self, prefect_db):
         @ai_fn
         async def opposite(thing: str) -> str:
             """returns the opposite of the input"""
 
-        assert await opposite.map(["up", "north"]) == ["down", "south"]
+        assert await opposite.map(["up", "left"]) == ["down", "right"]
