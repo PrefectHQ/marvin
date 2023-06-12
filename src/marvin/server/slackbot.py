@@ -526,6 +526,28 @@ async def _save_thread_to_discourse(payload: Dict[str, Any]):
     )
 
 
+async def _keyword_response_handler(event: SlackEvent):
+    try:
+        keywords_block = await Block.load("json/marvin-slack-keyword-responses")
+    except HTTPException as e:
+        if e.status_code == 404:
+            raise UserWarning("marvin-slack-keyword-responses block not found")
+        else:
+            raise
+
+    matched_keywords = [
+        keyword for keyword in keywords_block.value if keyword in event.text.lower()
+    ]
+
+    for keyword in matched_keywords:
+        response = await Block.load(f"string/{keywords_block.value[keyword]}")
+        await _post_message(
+            channel=event.channel,
+            message=response.value,
+            thread_ts=event.ts,
+        )
+
+
 block_action_to_handler = {
     "approve_response": _handle_approve_response,
     "edit_response": _show_edit_response_modal,
@@ -546,6 +568,8 @@ async def handle_app_mentions(request: Request):
 
         if event.type == "app_mention":
             asyncio.ensure_future(_slackbot_response(event))
+        elif event.type == "message" and event.text and event.user != BOT_SLACK_ID:
+            asyncio.ensure_future(_keyword_response_handler(event))
 
     return {"success": True}
 
