@@ -235,7 +235,7 @@ async def call_llm_messages(
         messages_repr = "\n".join(repr(m) for m in langchain_messages)
         logger.debug_kv("Sending messages to LLM", messages_repr, key_style="green")
 
-    function_kwargs = {"functions": functions}
+    function_kwargs = {"functions": functions} if functions else {}
 
     try:
         try:
