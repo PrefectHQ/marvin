@@ -22,13 +22,14 @@ def unstructured_context_handler(func):
     This decorator allows the model to accept a single positional string
     argument as the context during initialization.
     """
-
+    
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        if args and isinstance(args[0], str):
+        context = {}
+        # If the first argument is a string, we assume it is the context.
+        if next(iter(args), None) and isinstance(next(iter(args), None), str):
             context = {"__marvin_context__": args[0]}
-            kwargs = {**context, **kwargs}
-        func(self, *args, **kwargs)
+        func(self, **{**context, **kwargs})
 
     return wrapper
 
