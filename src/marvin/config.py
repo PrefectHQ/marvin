@@ -119,7 +119,8 @@ class Settings(BaseSettings):
 
     # LLMS
     llm_model: str = Field(
-        "gpt-3.5-turbo", description="An LLM model name compatible with the backend"
+        "gpt-3.5-turbo-0613",
+        description="An LLM model name compatible with the backend",
     )
     llm_backend: LLMBackend = Field(
         None,
@@ -342,7 +343,7 @@ class Settings(BaseSettings):
             # remove all model variance
             values["llm_temperature"] = 0.0
             # use 3.5 by default
-            values["llm_model"] = "gpt-3.5-turbo"
+            values["llm_model"] = "gpt-3.5-turbo-0613"
             values["llm_backend"] = LLMBackend.OpenAIChat
             # don't check migration version
             values["database_check_migration_version_on_startup"] = False

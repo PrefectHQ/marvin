@@ -69,12 +69,12 @@ VERSION_NUMBERS = re.compile(r"\b\d+\.\d+(?:\.\d+)?\w*\b")
 
 
 def tokenize(text: str) -> list[int]:
-    tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo")
+    tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo-0613")
     return tokenizer.encode(text)
 
 
 def detokenize(tokens: list[int]) -> str:
-    tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo")
+    tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo-0613")
     return tokenizer.decode(tokens)
 
 
