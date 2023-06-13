@@ -66,23 +66,17 @@ def AIModel(
         """
 
     def _ai_imputer_plugin(cls, context: str) -> cls:
-        try:
-            model = get_model()
-            model.model_name = "gpt-3.5-turbo-0613"
-
-            output = asyncio.run(
-                call_llm_messages(
-                    model,
-                    messages=[Message(role="user", content=f"Context: {context}")],
-                    functions=[cls.as_function()],
-                )
+        model = get_model()
+        output = asyncio.run(
+            call_llm_messages(
+                model,
+                messages=[Message(role="user", content=f"Context: {context}")],
+                functions=[cls.as_function()],
             )
-
-            return cls.parse_raw(
-                output.additional_kwargs.get("function_call", {}).get("arguments", "")
-            )
-        except Exception as exc:
-            print(exc)
+        )
+        return cls.parse_raw(
+            output.additional_kwargs.get("function_call", {}).get("arguments", "")
+        )
 
     def ai_validator(cls, values):
         # Check if a __marvin_context__ has been passed in the init method.
