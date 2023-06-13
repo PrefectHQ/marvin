@@ -75,9 +75,11 @@ def AIModel(
                 functions=[cls.as_function()],
             )
         )
-        return cls.parse_raw(
+        
+        parsed_output = cls.parse_raw(
             output.additional_kwargs.get("function_call", {}).get("arguments", "")
         )
+        return parsed_output
 
     def ai_validator(cls, values):
         # Check if a __marvin_context__ has been passed in the init method.
