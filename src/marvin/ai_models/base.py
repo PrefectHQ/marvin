@@ -1,3 +1,4 @@
+import asyncio
 from functools import partial, wraps
 from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
 
@@ -8,13 +9,28 @@ from prefect.utilities.asyncutils import sync_compatible
 from marvin import ai_fn
 from marvin.bot import Bot
 from marvin.bot.response_formatters import PydanticFormatter
+from marvin.models.threads import Message
+from marvin.utilities.llms import call_llm_messages, get_model
 
 M = TypeVar("M", bound=pydantic.BaseModel)
 
-Context = Union[
-    str,
-    Tuple[str, Optional[Dict[str, Any]]],
-]
+Context = Union[str, Tuple[str, Optional[Dict[str, Any]]]]
+
+
+def unstructured_context_handler(func):
+    """
+    This decorator allows the model to accept a single positional string
+    argument as the context during initialization.
+    """
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if args and isinstance(args[0], str):
+            context = {"__marvin_context__": args[0]}
+            kwargs = {**context, **kwargs}
+        func(self, *args, **kwargs)
+
+    return wrapper
 
 
 def AIModel(
@@ -23,50 +39,80 @@ def AIModel(
     bot: Bot = None,
     **bot_kwargs,
 ) -> Type[M]:
-    def __unstructured_context_handler__(func):
-        # wrapper to handle a single positional `str` in the __init__ method.
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            context = {}
-            # If the first argument is a string, we assume it is the context.
-            if next(iter(args), None) and isinstance(next(iter(args), None), str):
-                context = {"__marvin_context__": args[0]}
-            func(self, **{**context, **kwargs})
+    """
+    This decorator modifies a Pydantic model class to be able to impute missing
+    values from an unstructured context using an AI model. The AI model can be
+    either a built-in or an external one, provided via the 'bot' parameter.
+    """
 
-        return wrapper
+    def as_function(cls, description=None):
+        """
+        This method returns the metadata for the model that can be used to call it
+        as a function.
+        """
+        return {
+            "name": f"get_{cls.__name__.lower()}",
+            "description": (
+                description or f"Extract {cls.__name__} attributes from given context"
+            ),
+            "parameters": cls.schema(),
+        }
+
+    cls.as_function = classmethod(as_function)
 
     def _ai_imputer_base(context: str) -> cls:
         """
         Given unstructured text infer when possible the missing data.
         """
 
-    def _ai_validator(cls, values):
+    def _ai_imputer_plugin(cls, context: str) -> cls:
+        try:
+            model = get_model()
+            model.model_name = "gpt-3.5-turbo-0613"
+
+            output = asyncio.run(
+                call_llm_messages(
+                    model,
+                    messages=[Message(role="user", content=f"Context: {context}")],
+                    functions=[cls.as_function()],
+                )
+            )
+
+            return cls.parse_raw(
+                output.additional_kwargs.get("function_call", {}).get("arguments", "")
+            )
+        except Exception as exc:
+            print(exc)
+
+    def ai_validator(cls, values):
         # Check if a __marvin_context__ has been passed in the init method.
         __context__ = values.pop("__marvin_context__", None)
         # If __marvin_context__ has been passed, use an ai_fn to impute the values.
         if __context__:
-            # use ai_fn  to create a function that will be used to impute the values.
-            ai_imputer = ai_fn(
-                _ai_imputer_base,
-                bot=bot,
-                bot_kwargs={
-                    **bot_kwargs,
-                    "response_format": PydanticFormatter(model=cls),
-                },
-            )
-            # We'll attempt to impute the values using the ai_imputer function.
+            model = get_model()
+            if model.__class__.__name__ == "ChatOpenAI":
+                ai_imputer = cls._ai_imputer_plugin
+
+            else:
+                ai_imputer = ai_fn(
+                    _ai_imputer_base,
+                    bot=bot,
+                    bot_kwargs={
+                        **bot_kwargs,
+                        "response_format": PydanticFormatter(model=cls),
+                    },
+                )
             try:
                 return {**ai_imputer(context=__context__).dict(), **values}
-            # If the ai_imputer function fails, we'll simply return the values.
-            except Exception:  # TODO: Add a custom exception here.
+            except Exception:
                 return values
         return values
 
-    # wrap the __init__ method in __unstructured_context_handler__
-    cls.__init__ = __unstructured_context_handler__(cls.__init__)
+    # Wrap the __init__ method with the unstructured_context_handler decorator
+    cls.__init__ = unstructured_context_handler(cls.__init__)
 
-    # add _ai_validator as a pre root validator to run before any other root validators.
-    cls.__pre_root_validators__ = [_ai_validator, *cls.__pre_root_validators__]
+    # Add the ai_validator as a preroot validator to run before other root validators
+    cls.__pre_root_validators__ = [ai_validator, *cls.__pre_root_validators__]
 
     @sync_compatible
     async def map(
@@ -75,19 +121,23 @@ def AIModel(
         task_kwargs: Dict[str, Any] = None,
         flow_kwargs: Dict[str, Any] = None,
     ) -> List[M]:
+        """
+        This method maps the AIModel over a list of contexts and returns the
+        processed results. The contexts can be either strings or tuples
+        consisting of a string and an optional dictionary.
+        """
+
         @task(**{"name": cls.__name__, **(task_kwargs or {})})
         async def process_item(context: Context):
             if isinstance(context, str):
                 return cls(context)
             elif isinstance(context, tuple):
-                iter_context = iter(context)
-                unstructured = next(iter_context, None)
-                structured = next(iter_context, None)
+                unstructured, structured = context
                 return cls(unstructured, **(structured or {}))
             else:
                 raise TypeError(
-                    "`Context` must be a `str` or a"
-                    f" `Tuple[str, Optional[Dict[str, Any]]]`, not {type(context)}"
+                    "`Context` must be a `str` or a `Tuple[str, Optional[Dict[str,"
+                    " Any]]]`, not {type(context)}"
                 )
 
         @flow(**{"name": cls.__name__, **(flow_kwargs or {})})
@@ -96,6 +146,7 @@ def AIModel(
 
         return [await state.result().get() for state in await mapped_ai_fn(contexts)]
 
+    cls._ai_imputer_plugin = classmethod(_ai_imputer_plugin)
     cls.map = classmethod(map)
     return cls
 
@@ -106,7 +157,11 @@ def ai_model(
     bot: Bot = None,
     **bot_kwargs,
 ) -> Type[M]:
-    # this allows the decorator to be used with or without calling it
+    """
+    This function allows the AIModel decorator to be used with or without
+    calling it. It's a wrapper around the AIModel decorator that adds some
+    extra flexibility.
+    """
     if cls is None:
         return partial(ai_model, bot=bot, **bot_kwargs)
     return AIModel(cls=cls, bot=bot, bot_kwargs=bot_kwargs)
