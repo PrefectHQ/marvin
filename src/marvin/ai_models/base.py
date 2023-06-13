@@ -22,7 +22,7 @@ def unstructured_context_handler(func):
     This decorator allows the model to accept a single positional string
     argument as the context during initialization.
     """
-    
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         context = {}
