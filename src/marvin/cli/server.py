@@ -14,6 +14,12 @@ def start(
         "-p",
         help="Port to run the server on",
     ),
+    host: str = typer.Option(
+        marvin.settings.api_base_url,
+        "--host",
+        "-h",
+        help="Host to run the server on (default 127.0.0.1)",
+    ),
     reload: bool = typer.Option(
         marvin.settings.api_reload, "--reload", help="Reload the server on code changes"
     ),
@@ -22,5 +28,9 @@ def start(
     ),
 ):
     uvicorn.run(
-        "marvin.server:app", port=port, log_level=log_level.lower(), reload=reload
+        "marvin.server:app",
+        port=port,
+        host=host,
+        log_level=log_level.lower(),
+        reload=reload,
     )
