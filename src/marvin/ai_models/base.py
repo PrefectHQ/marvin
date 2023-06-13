@@ -54,7 +54,7 @@ def AIModel(
         return {
             "name": f"get_{cls.__name__.lower()}",
             "description": (
-                description or f"Extract {cls.__name__} attributes from given context"
+                description or cls.ai_imputer.__doc__
             ),
             "parameters": cls.schema(),
         }
@@ -71,7 +71,7 @@ def AIModel(
         output = asyncio.run(
             call_llm_messages(
                 model,
-                messages=[Message(role="user", content=f"Context: {context}")],
+                messages=[Message(role="system", content=context)],
                 functions=[cls.as_function()],
             )
         )
