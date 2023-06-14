@@ -220,7 +220,11 @@ async def call_llm(llm, text: str, logger: Logger = None) -> str:
 
 
 async def call_llm_messages(
-    llm, messages: list[Message], logger: Logger = None, functions: list[dict] = [], function_call: Any = 'auto'
+    llm,
+    messages: list[Message],
+    logger: Logger = None,
+    functions: list[dict] = [],
+    function_call: Any = "auto",
 ) -> AIMessage:
     """
     Get an LLM response to a history of Marvin messages via langchain
@@ -235,7 +239,9 @@ async def call_llm_messages(
         messages_repr = "\n".join(repr(m) for m in langchain_messages)
         logger.debug_kv("Sending messages to LLM", messages_repr, key_style="green")
 
-    function_kwargs = {"functions": functions, "function_call": function_call} if functions else {}
+    function_kwargs = (
+        {"functions": functions, "function_call": function_call} if functions else {}
+    )
 
     try:
         try:

@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 from functools import partial, wraps
 from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar, Union
 
@@ -33,7 +34,11 @@ def unstructured_context_handler(func):
 
     return wrapper
 
-AI_MODEL_INSTRUCTIONS = '''Given unstructured `context` infer, impute, and deduce when possible the missing data.'''
+
+AI_MODEL_INSTRUCTIONS = inspect.cleandoc("""
+    Given unstructured `context` infer, impute, and deduce when possible the
+    missing data.
+    """)
 
 
 def AIModel(
@@ -54,10 +59,8 @@ def AIModel(
         as a function.
         """
         return {
-            "name": f"deduce_infer_and_extract",
-            "description": (
-                description or AI_MODEL_INSTRUCTIONS
-            ),
+            "name": "deduce_infer_and_extract",
+            "description": description or AI_MODEL_INSTRUCTIONS,
             "parameters": cls.schema(),
         }
 
@@ -72,14 +75,19 @@ def AIModel(
             call_llm_messages(
                 model,
                 messages=[
-                        Message(role = "system", content=f'''\
-                        Your goal is to infer, extrapolate, and interpolate structured data from user provided context.\
-                        - If you choose a tool it must validate against the schema provided.\    
-                        '''),
-                        Message(role="user", content=f"Context: {context}")
-                    ],
+                    Message(
+                        role="system",
+                        content=(
+                            "Your goal is to infer, extrapolate, and "
+                            "interpolate structured data from user provided context. "
+                            "- If you choose a tool it must validate against the "
+                            "schema provided."
+                        ),
+                    ),
+                    Message(role="user", content=f"Context: {context}"),
+                ],
                 functions=[cls.as_function()],
-                function_call={"name": cls.as_function()["name"]}
+                function_call={"name": cls.as_function()["name"]},
             )
         )
         print(output.dict())
