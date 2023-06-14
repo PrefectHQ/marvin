@@ -62,8 +62,10 @@ class TestAIModels:
 
         @ai_model
         class Resume(pydantic.BaseModel):
-            has_three_years_management_experience: bool
-            has_ten_years_management_experience: bool
+            """Details about a person's work experience."""
+
+            greater_than_three_years_management_experience: bool
+            greater_than_ten_years_management_experience: bool
             technologies: List[Experience]
 
         x = Resume("""\
@@ -73,8 +75,8 @@ class TestAIModels:
             • Built tree-based classifier to predict customer churn (xgboost)\
         """)
 
-        assert x.has_three_years_management_experience
-        assert not x.has_ten_years_management_experience
+        assert x.greater_than_three_years_management_experience
+        assert not x.greater_than_ten_years_management_experience
         assert len(x.technologies) == 2
 
     def test_literal(self):
@@ -109,8 +111,8 @@ class TestAIModels:
 
         @ai_model
         class Election(pydantic.BaseModel):
-            winner: Candidate
             candidates: List[Candidate]
+            winner: Candidate
 
         x = Election("The United States Election of 1800")
 
