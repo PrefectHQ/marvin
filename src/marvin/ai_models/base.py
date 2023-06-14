@@ -58,8 +58,9 @@ def AIModel(
         This method returns the metadata for the model that can be used to call it
         as a function.
         """
+
         return {
-            "name": "deduce_infer_and_extract",
+            "name": "extract_entity",
             "description": description or AI_MODEL_INSTRUCTIONS,
             "parameters": cls.schema(),
         }
@@ -78,19 +79,24 @@ def AIModel(
                     Message(
                         role="system",
                         content=(
-                            "Your goal is to infer, extrapolate, and "
-                            "interpolate structured data from user provided context. "
-                            "- If you choose a tool it must validate against the "
-                            "schema provided."
+                            "Given the unstructured `context` information, infer all"
+                            " related fields so you can call the `extract_entity`"
+                            " function and provide structured data to the API. If"
+                            " information is missing, extrapolate it from the context."
                         ),
                     ),
                     Message(role="user", content=f"Context: {context}"),
                 ],
-                functions=[cls.as_function()],
+                functions=[
+                    cls.as_function(
+                        description=(
+                            "Sends a payload that describes an entity to the API."
+                        )
+                    )
+                ],
                 function_call={"name": cls.as_function()["name"]},
             )
         )
-        print(output.dict())
         parsed_output = cls.parse_raw(
             output.additional_kwargs.get("function_call", {}).get("arguments", "")
         )
