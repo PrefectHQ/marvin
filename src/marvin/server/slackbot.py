@@ -11,6 +11,7 @@ from prefect.utilities.collections import listrepr
 from pydantic import BaseModel, ValidationError
 
 import marvin
+from marvin.ai_functions.data import summarize
 from marvin.config import CHROMA_INSTALLED
 from marvin.utilities.meta import create_chroma_document
 from marvin.utilities.strings import convert_md_links_to_slack, count_tokens
@@ -539,13 +540,27 @@ async def _keyword_response_handler(event: SlackEvent):
         keyword for keyword in keywords_block.value if keyword in event.text.lower()
     ]
 
-    for keyword in matched_keywords:
-        response = await Block.load(f"string/{keywords_block.value[keyword]}")
-        await _post_message(
-            channel=event.channel,
-            message=response.value,
-            thread_ts=event.ts,
+    if not matched_keywords:
+        return
+    elif len(matched_keywords) == 1:
+        message = (
+            await Block.load(f"string/{keywords_block.value[matched_keywords[0]]}")
+        ).value
+    else:
+        injected_context = "\n\n".join(
+            [
+                (await Block.load(f"string/{keywords_block.value[keyword]}")).value
+                for keyword in matched_keywords
+            ]
         )
+
+        message = summarize(injected_context)
+
+    await _post_message(
+        channel=event.channel,
+        message=message,
+        thread_ts=event.ts,
+    )
 
 
 block_action_to_handler = {

@@ -59,3 +59,10 @@ def standardize(data: list[str], format: str) -> list[str]:
     Given a list of data, standardize the data to the given format. For example,
     the format could be "phone number", "sentence case", "ISO date", etc.
     """
+
+
+@ai_fn(llm_model="gpt-3.5-turbo", temperature=0)
+def summarize(text: str) -> str:
+    """
+    Given a block of text, return a summary of the text.
+    """
