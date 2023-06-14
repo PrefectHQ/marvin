@@ -58,7 +58,6 @@ def AIModel(
         This method returns the metadata for the model that can be used to call it
         as a function.
         """
-
         return {
             "name": "extract_entity",
             "description": description or AI_MODEL_INSTRUCTIONS,
@@ -79,10 +78,14 @@ def AIModel(
                     Message(
                         role="system",
                         content=(
-                            "Given the unstructured `context` information, infer all"
-                            " related fields so you can call the `extract_entity`"
-                            " function and provide structured data to the API. If"
-                            " information is missing, extrapolate it from the context."
+                            "Your job is to extract structured details from"
+                            " unstructured text. The user will provide you with text as"
+                            " `Context`. You must call the `extract_entity` function by"
+                            " extracting or inferring all of its arguments from the"
+                            " provided context. You must provide all required"
+                            " arguments. You must provide arguments with the correct"
+                            " types and details. Here is the OpenAPI argument schema:"
+                            f" {cls.schema()}"
                         ),
                     ),
                     Message(role="user", content=f"Context: {context}"),
@@ -97,9 +100,9 @@ def AIModel(
                 function_call={"name": cls.as_function()["name"]},
             )
         )
-        parsed_output = cls.parse_raw(
-            output.additional_kwargs.get("function_call", {}).get("arguments", "")
-        )
+        args = output.additional_kwargs.get("function_call", {}).get("arguments", "")
+        print(args)
+        parsed_output = cls.parse_raw(args)
         return parsed_output
 
     def ai_validator(cls, values):
@@ -108,7 +111,9 @@ def AIModel(
         # If __marvin_context__ has been passed, use an ai_fn to impute the values.
         if __context__:
             model = get_model()
-            if model.__class__.__name__ == "ChatOpenAI":
+            if model.model_name.startswith("gpt-") and model.model_name.endswith(
+                "-0613"
+            ):
                 ai_imputer = cls._ai_imputer_plugin
 
             else:
