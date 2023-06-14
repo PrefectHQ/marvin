@@ -62,7 +62,7 @@ def standardize(data: list[str], format: str) -> list[str]:
 
 
 @ai_fn(llm_model="gpt-3.5-turbo", temperature=0)
-def summarize(text: str) -> str:
+def summarize(text: str, tone: str = "conversational agent") -> str:
     """
-    Given a block of text, return a summary of the text.
+    Given a block of text, return a summary of the text in the given tone.
     """
