@@ -33,6 +33,8 @@ def unstructured_context_handler(func):
 
     return wrapper
 
+AI_MODEL_INSTRUCTIONS = '''Given unstructured `context` infer, impute, and deduce when possible the missing data.'''
+
 
 def AIModel(
     cls: Optional[Type[M]],
@@ -52,9 +54,9 @@ def AIModel(
         as a function.
         """
         return {
-            "name": f"get_{cls.__name__.lower()}",
+            "name": f"deduce_infer_and_extract",
             "description": (
-                description or cls.ai_imputer.__doc__
+                description or AI_MODEL_INSTRUCTIONS
             ),
             "parameters": cls.schema(),
         }
@@ -62,20 +64,25 @@ def AIModel(
     cls.as_function = classmethod(as_function)
 
     def _ai_imputer_base(context: str) -> cls:
-        """
-        Given unstructured text infer when possible the missing data.
-        """
+        f"""{AI_MODEL_INSTRUCTIONS}"""
 
     def _ai_imputer_plugin(cls, context: str) -> cls:
         model = get_model()
         output = asyncio.run(
             call_llm_messages(
                 model,
-                messages=[Message(role="system", content=context)],
+                messages=[
+                        Message(role = "system", content=f'''\
+                        Your goal is to infer, extrapolate, and interpolate structured data from user provided context.\
+                        - If you choose a tool it must validate against the schema provided.\    
+                        '''),
+                        Message(role="user", content=f"Context: {context}")
+                    ],
                 functions=[cls.as_function()],
+                function_call={"name": cls.as_function()["name"]}
             )
         )
-        
+        print(output.dict())
         parsed_output = cls.parse_raw(
             output.additional_kwargs.get("function_call", {}).get("arguments", "")
         )
