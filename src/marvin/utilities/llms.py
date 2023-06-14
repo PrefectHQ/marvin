@@ -1,18 +1,27 @@
 import inspect
+import json
 from logging import Logger
-from typing import Any, Callable, Union
+from typing import TYPE_CHECKING, Any, Callable, Union
 
 from langchain.callbacks.base import AsyncCallbackHandler
-from langchain.schema import (
-    AIMessage,
-    HumanMessage,
-    SystemMessage,
-)
+from langchain.schema import AIMessage, FunctionMessage, HumanMessage, SystemMessage
 
 import marvin
 from marvin.config import LLMBackend, infer_llm_backend
-from marvin.models.threads import Message
+from marvin.models.threads import BaseMessage, Message
 from marvin.utilities.logging import get_logger
+
+if TYPE_CHECKING:
+    from marvin.experimental.tools import Tool
+
+
+class EndTools(Exception):
+    def __init__(self, response: Any):
+        self.response = response
+
+
+class ParsedResponse(BaseMessage):
+    parsed_content: Any = None
 
 
 class AsyncStreamingCallbackHandler(AsyncCallbackHandler):
@@ -182,22 +191,26 @@ def get_model(
 
 def prepare_messages(
     messages: list[Message],
-) -> Union[AIMessage, HumanMessage, SystemMessage]:
+) -> list[Union[AIMessage, HumanMessage, SystemMessage, FunctionMessage]]:
     """Prepare messages for LLM."""
     langchain_messages = []
     for msg in messages:
         if msg.role == "system":
             langchain_messages.append(SystemMessage(content=msg.content))
-        elif msg.role == "bot":
+        elif msg.role == "ai":
             langchain_messages.append(AIMessage(content=msg.content))
         elif msg.role == "user":
             langchain_messages.append(HumanMessage(content=msg.content))
+        elif msg.role == "function":
+            langchain_messages.append(
+                FunctionMessage(name=msg.name, content=msg.content)
+            )
         else:
             raise ValueError(f"Unrecognized role: {msg.role}")
     return langchain_messages
 
 
-async def call_llm(llm, text: str, logger: Logger = None) -> str:
+async def call_llm(llm, text: str, logger: Logger = None, **kwargs) -> str:
     """
     Get an LLM response to a string prompt via langchain
     """
@@ -208,11 +221,11 @@ async def call_llm(llm, text: str, logger: Logger = None) -> str:
         logger.debug_kv("Sending text to LLM", text, key_style="green")
 
     try:
-        response = await llm.apredict(text=text)
+        response = await llm.apredict(text=text, **kwargs)
     # some LLMs, like HuggingFaceHub, don't support async
     except NotImplementedError as exc:
         if "Async generation not implemented for this LLM" in str(exc):
-            response = llm.predict(text=text)
+            response = llm.predict(text=text, **kwargs)
         else:
             raise
 
@@ -220,11 +233,7 @@ async def call_llm(llm, text: str, logger: Logger = None) -> str:
 
 
 async def call_llm_messages(
-    llm,
-    messages: list[Message],
-    logger: Logger = None,
-    functions: list[dict] = [],
-    function_call: Any = "auto",
+    llm, messages: list[Message], logger: Logger = None, **kwargs
 ) -> AIMessage:
     """
     Get an LLM response to a history of Marvin messages via langchain
@@ -239,28 +248,85 @@ async def call_llm_messages(
         messages_repr = "\n".join(repr(m) for m in langchain_messages)
         logger.debug_kv("Sending messages to LLM", messages_repr, key_style="green")
 
-    function_kwargs = (
-        {"functions": functions, "function_call": function_call} if functions else {}
-    )
-
     try:
-        try:
-            response = await llm.apredict_messages(
-                messages=langchain_messages, **function_kwargs
-            )
-        except TypeError:
-            # The function doesn't accept the 'functions' parameter
-            response = await llm.apredict_messages(messages=langchain_messages)
+        response = await llm.apredict_messages(messages=langchain_messages, **kwargs)
     # some LLMs, like HuggingFaceHub, don't support async
     except NotImplementedError as exc:
         if "Async generation not implemented for this LLM" in str(exc):
-            try:
-                response: AIMessage = llm.predict_messages(
-                    messages=langchain_messages, **function_kwargs
-                )
-            except TypeError:
-                response: AIMessage = llm.predict_messages(messages=langchain_messages)
+            response: AIMessage = llm.predict_messages(
+                messages=langchain_messages, **kwargs
+            )
         else:
             raise
+
+    return response
+
+
+async def call_llm_with_tools(
+    llm,
+    messages: list[Message],
+    logger: Logger = None,
+    tools: list["Tool"] = None,
+    function_call="auto",
+    **kwargs,
+) -> Union[AIMessage, Any]:
+    """
+    function_call: 'auto' (automatically decide whether to call a function),
+        'none' (do not call a function) or {'name': <a function name>} to call a
+        specific function.
+    """
+
+    if logger is None:
+        logger = get_logger("llm")
+
+    messages = messages.copy()
+
+    if not llm.model_name.endswith("-0613"):
+        raise ValueError("Tools are only compatible with the latest OpenAI models.")
+
+    functions = [t.as_function_schema() for t in tools]
+
+    i = 1
+    while i <= marvin.settings.llm_max_tool_iterations:
+        logger.debug(f"Sending messages to LLM:' {messages}")
+
+        response = await call_llm_messages(
+            llm,
+            messages,
+            logger,
+            functions=functions,
+            # force no function call if we're at  max iterations
+            function_call=(
+                function_call if i < marvin.settings.llm_max_tool_iterations else "none"
+            ),
+            **kwargs,
+        )
+
+        if function_payload := response.additional_kwargs.get("function_call", None):
+            logger.debug(
+                f"Running tool '{function_payload['name']}' with payload"
+                f" {function_payload['arguments']}"
+            )
+            tool_name = function_payload["name"]
+            tool = next((t for t in tools if t.name == tool_name), None)
+            if not tool:
+                break
+            try:
+                tool_output = tool.run(**json.loads(function_payload["arguments"]))
+            except Exception as exc:
+                tool_output = str(exc)
+
+            if tool.is_final_tool:
+                return tool_output
+            else:
+                messages.append(
+                    Message(
+                        role="function", name=tool_name, content=str(tool_output or "")
+                    )
+                )
+            i += 1
+
+        else:
+            break
 
     return response

@@ -1,4 +1,5 @@
 import importlib.util
+import inspect
 import json
 import logging
 import re
@@ -13,7 +14,7 @@ import pydantic
 import ulid
 from fastapi import APIRouter, Response, status
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel, PrivateAttr, constr
+from pydantic import BaseModel, PrivateAttr, constr, create_model
 from pydantic.fields import ModelField
 from sqlalchemy import TypeDecorator
 
@@ -283,15 +284,53 @@ def safe_issubclass(type_, classes):
         return False
 
 
-def type_to_schema(type_) -> dict:
+def type_to_schema(type_, set_root_type: bool = True) -> dict:
     if safe_issubclass(type_, pydantic.BaseModel):
         return type_.schema()
-    else:
+    elif set_root_type:
 
         class Model(pydantic.BaseModel):
             __root__: type_
 
         return Model.schema()
+    else:
+
+        class Model(pydantic.BaseModel):
+            data: type_
+
+        return Model.schema()
+
+
+def function_to_schema(function: Callable[..., Any], name: str = None) -> dict:
+    """
+    Converts a function's arguments into an OpenAPI schema by parsing it into a
+    Pydantic model. To work, all arguments must have valid type annotations.
+    """
+    signature = inspect.signature(function)
+
+    fields = {
+        p: (
+            signature.parameters[p].annotation,
+            (
+                signature.parameters[p].default
+                if signature.parameters[p].default != inspect._empty
+                else ...
+            ),
+        )
+        for p in signature.parameters
+        if p != getattr(function, "__self__", None)
+    }
+
+    # Create Pydantic model
+    try:
+        Model = create_model(name or function.__name__, **fields)
+    except RuntimeError as exc:
+        if "see `arbitrary_types_allowed` " in str(exc):
+            raise ValueError("All arguments must have valid type annotations.")
+        else:
+            raise
+
+    return Model.schema()
 
 
 def schema_to_type(schema: dict):

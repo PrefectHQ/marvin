@@ -492,7 +492,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
 
             response = BotResponse(
                 name=self.name,
-                role="bot",
+                role="ai",
                 content=llm_response,
                 parsed_content=parsed_response,
                 bot_id=self.id,
@@ -632,7 +632,7 @@ class Bot(MarvinBaseModel, LoggerMixin):
         if match := PLUGINS_REGEX.search(response.content):
             try:
                 payload = json.loads(match.group(1))
-                new_messages.append(Message(role="bot", content=response.content))
+                new_messages.append(Message(role="ai", content=response.content))
                 self.logger.debug_kv("Plugins payload", payload)
 
                 plugins = payload.get("plugins", [])

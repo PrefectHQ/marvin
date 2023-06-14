@@ -11,7 +11,7 @@ from marvin.models.ids import BotID, MessageID, ThreadID
 from marvin.utilities.models import CreatedUpdatedMixin, MarvinSQLModel
 from marvin.utilities.types import MarvinBaseModel
 
-RoleType = Literal["system", "user", "bot"]
+RoleType = Literal["system", "user", "ai", "function"]
 
 
 class BaseMessage(MarvinBaseModel):
