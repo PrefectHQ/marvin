@@ -220,7 +220,11 @@ async def call_llm(llm, text: str, logger: Logger = None) -> str:
 
 
 async def call_llm_messages(
-    llm, messages: list[Message], logger: Logger = None
+    llm,
+    messages: list[Message],
+    logger: Logger = None,
+    functions: list[dict] = [],
+    function_call: Any = "auto",
 ) -> AIMessage:
     """
     Get an LLM response to a history of Marvin messages via langchain
@@ -235,12 +239,27 @@ async def call_llm_messages(
         messages_repr = "\n".join(repr(m) for m in langchain_messages)
         logger.debug_kv("Sending messages to LLM", messages_repr, key_style="green")
 
+    function_kwargs = (
+        {"functions": functions, "function_call": function_call} if functions else {}
+    )
+
     try:
-        response = await llm.apredict_messages(messages=langchain_messages)
+        try:
+            response = await llm.apredict_messages(
+                messages=langchain_messages, **function_kwargs
+            )
+        except TypeError:
+            # The function doesn't accept the 'functions' parameter
+            response = await llm.apredict_messages(messages=langchain_messages)
     # some LLMs, like HuggingFaceHub, don't support async
     except NotImplementedError as exc:
         if "Async generation not implemented for this LLM" in str(exc):
-            response: AIMessage = llm.predict_messages(messages=langchain_messages)
+            try:
+                response: AIMessage = llm.predict_messages(
+                    messages=langchain_messages, **function_kwargs
+                )
+            except TypeError:
+                response: AIMessage = llm.predict_messages(messages=langchain_messages)
         else:
             raise
 

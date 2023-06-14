@@ -10,8 +10,10 @@ if TYPE_CHECKING:
 def map_categories(data: list[str], categories: list[str]) -> list[str]:
     """
     Assign each item in `data` to the value in `categories` that it matches most
-    closely. Every item must be assigned to a category. Do not assign a `null`
-    cateogry.
+    closely. For example, if the data is ["apple", "carrot", "banana",
+    "broccoli"] and the categories are ["fruit", "vegetable"], then the result
+    would be ["fruit", "vegetable", "fruit", "vegetable"]. If the categories
+    were ["a", "b", "c", "d"] then the result would be ["a", "c", "b", "b"].
     """
 
 

@@ -22,11 +22,11 @@ dependencies = [
     "fastapi~=0.89",
     "httpx~=0.23",
     "jinja2~=3.1",
-    "langchain~=0.0.179",
+    "langchain~=0.0.199",
     "nest_asyncio~=1.5",
     "openai~=0.27",
     "pendulum~=2.1",
-    "prefect~=2.8",
+    "prefect",
     "pydantic[dotenv]~=1.10",
     "pyperclip~=1.8",
     "python-multipart~=0.0.6",
@@ -116,7 +116,7 @@ env = [
     "D:MARVIN_DATABASE_CONNECTION_URL=sqlite+aiosqlite:////tmp/marvin/marvin-tests.sqlite",
     "MARVIN_LOG_CONSOLE_WIDTH=120",
     # use 3.5 for tests by default
-    'MARVIN_LLM_MODEL=gpt-3.5-turbo',
+    'MARVIN_LLM_MODEL=gpt-3.5-turbo-0613',
 
 ]
 
