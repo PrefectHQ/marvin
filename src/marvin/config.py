@@ -139,6 +139,7 @@ class Settings(BaseSettings):
             " aren't directly exposed."
         ),
     )
+    llm_max_tool_iterations: float = 10
     llm_model_for_response_format: str = Field(
         None,
         description=(
