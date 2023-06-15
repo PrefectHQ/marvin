@@ -6,7 +6,7 @@ import pydantic
 from pydantic import BaseModel, Field, PrivateAttr
 
 import marvin
-from marvin.experimental.tools import Tool
+from marvin.openai.tools import Tool
 from marvin.utilities.types import (
     genericalias_contains,
     safe_issubclass,

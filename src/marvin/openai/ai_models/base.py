@@ -4,8 +4,8 @@ from typing import Optional, Type, TypeVar
 
 import pydantic
 
-from marvin.experimental.tools.format_response import FormatResponse
 from marvin.models.threads import Message
+from marvin.openai.tools.format_response import FormatResponse
 from marvin.utilities.llms import call_llm_with_tools, get_model
 
 T = TypeVar("T")

@@ -12,7 +12,7 @@ from marvin.models.threads import BaseMessage, Message
 from marvin.utilities.logging import get_logger
 
 if TYPE_CHECKING:
-    from marvin.experimental.tools import Tool
+    from marvin.openai.tools import Tool
 
 
 class EndTools(Exception):
