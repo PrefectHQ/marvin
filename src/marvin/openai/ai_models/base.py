@@ -6,7 +6,8 @@ import pydantic
 
 from marvin.models.threads import Message
 from marvin.openai.tools.format_response import FormatResponse
-from marvin.utilities.llms import call_llm_with_tools, get_model
+from marvin.utilities.llms import get_model
+from marvin.utilities.openai import call_llm_with_tools
 
 T = TypeVar("T")
 
@@ -21,12 +22,13 @@ class AIModel(pydantic.BaseModel):
                     Message(
                         role="system",
                         content=(
-                            "The user will provide text that you need to parse into a"
-                            " structured form that is compatible with the"
-                            " FinalizeResponse function. Extract or infer any"
-                            " parameters from the user's text, including any missing"
-                            " data. You must call FinalizeResponse to validate your"
-                            " answer before responding to the user."
+                            "The user will provide context through text that you need"
+                            " to parse into a structured form that is compatible with"
+                            " the FormatResponse function. Based on the text, extract"
+                            " or infer any parameters needed by FormatResponse,"
+                            " including any missing data. You must call"
+                            " FormatResponse to validate your answer before"
+                            " responding to the user."
                         ),
                     ),
                     Message(role="user", content=f"Text to parse: {text}"),

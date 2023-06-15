@@ -6,16 +6,16 @@ from typing import Callable, TypeVar
 
 from pydantic import BaseModel
 
-from marvin.experimental.tools.format_response import FormatResponse
 from marvin.models.threads import Message
-from marvin.utilities.llms import call_llm_with_tools, get_model
+from marvin.openai.tools.format_response import FormatResponse
+from marvin.utilities.llms import get_model
+from marvin.utilities.openai import call_llm_with_tools
 from marvin.utilities.strings import jinja_env
-from marvin.utilities.types import (
-    safe_issubclass,
-)
+from marvin.utilities.types import safe_issubclass
 
 T = TypeVar("T")
 A = TypeVar("A")
+
 AI_FN_SYSTEM_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
     Your job is to generate likely outputs for a Python function with the following
     signature and docstring:
