@@ -330,7 +330,7 @@ class Conversation(Container):
             for message in messages:
                 if message.role == "user":
                     await self.add_response(UserResponse(message), scroll=False)
-                elif message.role == "bot":
+                elif message.role == "ai":
                     await self.add_response(BotResponse(message), scroll=False)
 
             # scroll to bottom
@@ -713,7 +713,7 @@ class MainScreen(Screen):
         try:
             bot_response = BotResponse(
                 marvin.models.threads.Message(
-                    role="bot",
+                    role="ai",
                     name=self.app.bot.name,
                     bot_id=self.app.bot.id,
                     content="",
