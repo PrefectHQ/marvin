@@ -20,7 +20,7 @@ class FormatResponse(Tool):
     type_schema: dict[str, Any] = Field(
         ..., description="The OpenAPI schema for the type"
     )
-    is_final_tool: bool = True
+    is_final: bool = True
     description: str = (
         "You MUST always call this function before responding to the user to ensure"
         " that your final response is formatted correctly and complies with the output"

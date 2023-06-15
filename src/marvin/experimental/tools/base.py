@@ -12,7 +12,7 @@ class Tool(MarvinBaseModel):
     name: str = None
     description: str = None
     fn: Optional[Callable] = None
-    is_final_tool: bool = Field(
+    is_final: bool = Field(
         False,
         description="This tool's response should be returned directly to the user",
     )
@@ -22,7 +22,7 @@ class Tool(MarvinBaseModel):
         # assuming fn has a name and a description
         name = fn.__name__
         description = fn.__doc__
-        return cls(name=name, description=description, fn=fn, is_final_tool=is_final)
+        return cls(name=name, description=description, fn=fn, is_final=is_final)
 
     @validator("name", always=True)
     def default_name_from_class_name(cls, v):
