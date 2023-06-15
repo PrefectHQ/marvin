@@ -1,4 +1,4 @@
-from functools import partial, wraps
+from functools import partial
 from typing import Callable, Optional
 
 from pydantic import Field, validator
@@ -18,12 +18,12 @@ class Tool(MarvinBaseModel):
     )
 
     @classmethod
-    def from_function(cls, fn, is_final = False):
+    def from_function(cls, fn, is_final=False):
         # assuming fn has a name and a description
         name = fn.__name__
         description = fn.__doc__
-        return cls(name=name, description=description, fn = fn, is_final_tool = is_final)
-        
+        return cls(name=name, description=description, fn=fn, is_final_tool=is_final)
+
     @validator("name", always=True)
     def default_name_from_class_name(cls, v):
         if v is None:
@@ -35,7 +35,7 @@ class Tool(MarvinBaseModel):
             raise NotImplementedError()
         else:
             return self.fn
-        
+
     def __call__(self, *args, **kwargs):
         if not self.fn:
             raise NotImplementedError()
@@ -50,6 +50,7 @@ class Tool(MarvinBaseModel):
             description=self.description or "",
             parameters=schema,
         )
+
 
 def tool(arg=None, *, is_final=False):
     if callable(arg):  # Direct function decoration
