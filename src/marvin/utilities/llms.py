@@ -3,11 +3,7 @@ from logging import Logger
 from typing import Any, Callable, Union
 
 from langchain.callbacks.base import AsyncCallbackHandler
-from langchain.schema import (
-    AIMessage,
-    HumanMessage,
-    SystemMessage,
-)
+from langchain.schema import AIMessage, FunctionMessage, HumanMessage, SystemMessage
 
 import marvin
 from marvin.config import LLMBackend, infer_llm_backend
@@ -182,22 +178,26 @@ def get_model(
 
 def prepare_messages(
     messages: list[Message],
-) -> Union[AIMessage, HumanMessage, SystemMessage]:
+) -> list[Union[AIMessage, HumanMessage, SystemMessage, FunctionMessage]]:
     """Prepare messages for LLM."""
     langchain_messages = []
     for msg in messages:
         if msg.role == "system":
             langchain_messages.append(SystemMessage(content=msg.content))
-        elif msg.role == "bot":
+        elif msg.role == "ai":
             langchain_messages.append(AIMessage(content=msg.content))
         elif msg.role == "user":
             langchain_messages.append(HumanMessage(content=msg.content))
+        elif msg.role == "function":
+            langchain_messages.append(
+                FunctionMessage(name=msg.name, content=msg.content)
+            )
         else:
             raise ValueError(f"Unrecognized role: {msg.role}")
     return langchain_messages
 
 
-async def call_llm(llm, text: str, logger: Logger = None) -> str:
+async def call_llm(llm, text: str, logger: Logger = None, **kwargs) -> str:
     """
     Get an LLM response to a string prompt via langchain
     """
@@ -208,11 +208,11 @@ async def call_llm(llm, text: str, logger: Logger = None) -> str:
         logger.debug_kv("Sending text to LLM", text, key_style="green")
 
     try:
-        response = await llm.apredict(text=text)
+        response = await llm.apredict(text=text, **kwargs)
     # some LLMs, like HuggingFaceHub, don't support async
     except NotImplementedError as exc:
         if "Async generation not implemented for this LLM" in str(exc):
-            response = llm.predict(text=text)
+            response = llm.predict(text=text, **kwargs)
         else:
             raise
 
@@ -220,7 +220,7 @@ async def call_llm(llm, text: str, logger: Logger = None) -> str:
 
 
 async def call_llm_messages(
-    llm, messages: list[Message], logger: Logger = None
+    llm, messages: list[Message], logger: Logger = None, **kwargs
 ) -> AIMessage:
     """
     Get an LLM response to a history of Marvin messages via langchain
@@ -236,11 +236,13 @@ async def call_llm_messages(
         logger.debug_kv("Sending messages to LLM", messages_repr, key_style="green")
 
     try:
-        response = await llm.apredict_messages(messages=langchain_messages)
+        response = await llm.apredict_messages(messages=langchain_messages, **kwargs)
     # some LLMs, like HuggingFaceHub, don't support async
     except NotImplementedError as exc:
         if "Async generation not implemented for this LLM" in str(exc):
-            response: AIMessage = llm.predict_messages(messages=langchain_messages)
+            response: AIMessage = llm.predict_messages(
+                messages=langchain_messages, **kwargs
+            )
         else:
             raise
 

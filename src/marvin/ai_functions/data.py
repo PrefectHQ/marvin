@@ -10,8 +10,10 @@ if TYPE_CHECKING:
 def map_categories(data: list[str], categories: list[str]) -> list[str]:
     """
     Assign each item in `data` to the value in `categories` that it matches most
-    closely. Every item must be assigned to a category. Do not assign a `null`
-    cateogry.
+    closely. For example, if the data is ["apple", "carrot", "banana",
+    "broccoli"] and the categories are ["fruit", "vegetable"], then the result
+    would be ["fruit", "vegetable", "fruit", "vegetable"]. If the categories
+    were ["a", "b", "c", "d"] then the result would be ["a", "c", "b", "b"].
     """
 
 
@@ -58,4 +60,11 @@ def standardize(data: list[str], format: str) -> list[str]:
     """
     Given a list of data, standardize the data to the given format. For example,
     the format could be "phone number", "sentence case", "ISO date", etc.
+    """
+
+
+@ai_fn(llm_model="gpt-3.5-turbo", temperature=0)
+def summarize(text: str, tone: str = "conversational agent") -> str:
+    """
+    Given a block of text, return a summary of the text in the given tone.
     """

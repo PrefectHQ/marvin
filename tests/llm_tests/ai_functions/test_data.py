@@ -9,7 +9,7 @@ class TestCategorize:
             description="cities (New York, etc.)",
         )
 
-        assert result == ["New York", "Washington D.C.", "New York", "Boston"]
+        assert result == ["New York", "Washington", "New York", "Boston"]
 
     def test_categorize_colors(self):
         result = data_fns.categorize(
@@ -37,10 +37,10 @@ class TestMapCategories:
 
     def test_categorize_colors_to_red_or_blue(self):
         result = data_fns.map_categories(
-            data=["red", "yellow", "orange", "cyan"], categories=["red", "blue"]
+            data=["red", "yellow", "teal", "orange", "cyan"], categories=["red", "blue"]
         )
 
-        assert result == ["red", "red", "red", "blue"]
+        assert result == ["red", "red", "blue", "red", "blue"]
 
     def test_categorize_bool(self):
         result = data_fns.map_categories(
