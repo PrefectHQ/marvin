@@ -36,8 +36,6 @@ jinja_env = Environment(
 )
 jinja_env.globals.update(
     zip=zip,
-    str=str,
-    len=len,
     arun=asyncio.run,
     pendulum=pendulum,
     dt=lambda: pendulum.now("UTC").to_day_datetime_string(),

@@ -183,14 +183,14 @@ def prepare_messages(
     langchain_messages = []
     for msg in messages:
         if msg.role == "system":
-            langchain_messages.append(SystemMessage(content=msg.content))
+            langchain_messages.append(SystemMessage(content=msg.content or ""))
         elif msg.role == "ai":
-            langchain_messages.append(AIMessage(content=msg.content))
+            langchain_messages.append(AIMessage(content=msg.content or ""))
         elif msg.role == "user":
-            langchain_messages.append(HumanMessage(content=msg.content))
+            langchain_messages.append(HumanMessage(content=msg.content or ""))
         elif msg.role == "function":
             langchain_messages.append(
-                FunctionMessage(name=msg.name, content=msg.content)
+                FunctionMessage(name=msg.name, content=msg.content or "")
             )
         else:
             raise ValueError(f"Unrecognized role: {msg.role}")
