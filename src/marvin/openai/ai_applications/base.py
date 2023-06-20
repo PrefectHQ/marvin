@@ -79,7 +79,6 @@ class FreeformState(BaseModel):
 class AIApplication(MarvinBaseModel, LoggerMixin):
     description: str
     state: BaseModel = Field(default_factory=FreeformState)
-    state_schema: Union[str, dict[str, Any]] = None
     tools: list[Tool] = []
     history: History = Field(default_factory=InMemoryHistory)
 
