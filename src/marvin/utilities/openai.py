@@ -74,6 +74,10 @@ async def call_llm_with_tools(
                         " using the correct keyword names."
                     )
                 tool_output = tool.run(**arguments)
+                logger.debug(
+                    f"Received output from tool '{function_payload['name']}':"
+                    f" {tool_output}"
+                )
                 if tool.is_final:
                     return tool_output
             except Exception as exc:
