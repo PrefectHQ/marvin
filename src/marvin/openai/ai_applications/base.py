@@ -83,11 +83,6 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
     tools: list[Tool] = []
     history: History = Field(default_factory=InMemoryHistory)
 
-    def update_schema(self, new_schema):
-        if isinstance(new_schema, str):
-            new_schema = jinja_env.from_string(new_schema).render(app=self)
-        self.state_schema = new_schema
-
     async def run(self, input_text: str = None):
         messages = []
 
