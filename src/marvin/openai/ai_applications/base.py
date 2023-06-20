@@ -1,5 +1,4 @@
 import inspect
-from enum import Enum
 from typing import Any, Union
 
 import uvicorn
@@ -38,18 +37,9 @@ AI_APP_SYSTEM_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
     about ongoing process, or anything else. In order to update state, you must
     use the `UpdateApplicationState` tool. It will respond with "State updated
     successfully!" If you do not see that message, then state has not been
-    updated.
+    updated. Since the user can examine state at any time, you do not need to
+    repeat the state back to the user in your response unless it is necessary.
     
-    The application is defined as an iterated control loop. After each
-    iteration, you can respond to the user and wait for their next input, or you
-    can invoke the application yourself and iterate autonomously. This is useful
-    for behaviors or tasks that do require user supervision but may require
-    multiple introspection cycles. For example, an application for editing
-    software might iterate autonomously multiple times to adjust code before
-    yielding control back to the user. In order to repeat automatically, call
-    the `RepeatApplication()` function with a message. The message will be
-    provided to the next iteration of the application as an input. Note that you
-    must call this function last, so update state before calling it.
     
     This is the description of the application:
      
@@ -63,22 +53,23 @@ AI_APP_SYSTEM_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
     
     {{ app.state.schema() }}
     
+    
     Today's date is {{ dt() }}
     
     """))
 
 
-class TaskState(Enum):
-    IN_PROGRESS = "IN_PROGRESS"
-    COMPLETED = "COMPLETED"
-    FAILED = "FAILED"
+# class TaskState(Enum):
+#     IN_PROGRESS = "IN_PROGRESS"
+#     COMPLETED = "COMPLETED"
+#     FAILED = "FAILED"
 
 
-class Task(BaseModel):
-    id: int
-    description: str
-    parent_task_id: int = None
-    status: TaskState = TaskState.IN_PROGRESS
+# class Task(BaseModel):
+#     id: int
+#     description: str
+#     parent_task_id: int = None
+#     status: TaskState = TaskState.IN_PROGRESS
 
 
 class FreeformState(BaseModel):
@@ -88,16 +79,22 @@ class FreeformState(BaseModel):
 class AIApplication(MarvinBaseModel, LoggerMixin):
     description: str
     state: BaseModel = Field(default_factory=FreeformState)
-    tasks: list[Task] = Field(
-        default_factory=list, description="Internal tracking of application goals"
-    )
+    state_schema: Union[str, dict[str, Any]] = None
     tools: list[Tool] = []
     history: History = Field(default_factory=InMemoryHistory)
 
+    def update_schema(self, new_schema):
+        if isinstance(new_schema, str):
+            new_schema = jinja_env.from_string(new_schema).render(app=self)
+        self.state_schema = new_schema
+
     async def run(self, input_text: str = None):
+        messages = []
+
         system_message = Message(
             role="system", content=AI_APP_SYSTEM_MESSAGE.render(app=self)
         )
+        messages.append(system_message)
 
         def message_processor(messages: list[Message]) -> list[Message]:
             # update the system message in case the state has changed
@@ -107,35 +104,22 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
             return messages
 
         historical_messages = await self.history.get_messages()
+        messages.extend(historical_messages)
 
         if input_text:
             self.logger.debug_kv("User input", input_text, key_style="green")
             input_message = Message(role="user", content=input_text)
             await self.history.add_message(input_message)
+            messages.append(input_message)
 
         llm = get_model()
         output = await call_llm_with_tools(
             llm,
-            messages=[system_message, *historical_messages, input_message],
-            tools=self.tools
-            + [
-                UpdateApplicationState(app=self),
-                RepeatApplication(),
-            ],
+            messages=messages,
+            tools=self.tools + [UpdateApplicationState(app=self)],
             message_processor=message_processor,
         )
 
-        if isinstance(output, RepeatApplicationResponse):
-            response = ApplicationResponse(
-                role="ai",
-                content=(
-                    "Automatically invoking the application again with input"
-                    f' "{output.message}"'
-                ),
-            )
-            self.logger.debug_kv("AI response", response.content, key_style="blue")
-            await self.history.add_message(response)
-            await self.run(input_text=output.message)
         if isinstance(output, AIMessage):
             response = ApplicationResponse(role="ai", content=output.content)
         else:
@@ -156,8 +140,8 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
         def get_state() -> state_type:
             return self.state
 
-        @app.post("/interact")
-        async def interact(text: str = Body(embed=True)) -> ApplicationResponse:
+        @app.post("/run")
+        async def run(text: str = Body(embed=True)) -> ApplicationResponse:
             return await self.run(text)
 
         config = uvicorn.config.Config(app=app, host=host, port=port)
@@ -197,20 +181,3 @@ class UpdateApplicationState(Tool):
         updated_state = patch.apply(self._app.state.dict())
         self._app.state = type(self._app.state)(**updated_state)
         return "State updated successfully!"
-
-
-class RepeatApplicationResponse(BaseModel):
-    message: str
-
-
-class RepeatApplication(Tool):
-    description: str = (
-        "Call this function with a message to autonomously invoke the application using"
-        " the provided message as input. You will not be able to see the function call"
-        " history in the new invocation, so write any updates to states before calling"
-        " this function."
-    )
-    is_final: bool = True
-
-    def run(self, message: str) -> RepeatApplicationResponse:
-        return RepeatApplicationResponse(message=message)
