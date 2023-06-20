@@ -1,8 +1,10 @@
+import inspect
 from functools import partial
 from typing import Callable, Optional
 
 from pydantic import Field, validator
 
+from marvin.utilities.strings import jinja_env
 from marvin.utilities.types import MarvinBaseModel, function_to_schema
 
 SENTINEL = "__SENTINEL__"
@@ -42,9 +44,15 @@ class Tool(MarvinBaseModel):
     def as_function_schema(self) -> dict:
         schema = function_to_schema(self.fn or self.run)
         schema.pop("title", None)
+
+        if self.description:
+            description = jinja_env.from_string(inspect.cleandoc(self.description))
+            description = description.render(**self.dict(), TOOL=self)
+        else:
+            description = ""
         return dict(
             name=self.name,
-            description=self.description or "",
+            description=description,
             parameters=schema,
         )
 
