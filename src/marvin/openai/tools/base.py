@@ -36,13 +36,10 @@ class Tool(MarvinBaseModel):
         if not self.fn:
             raise NotImplementedError()
         else:
-            return self.fn
+            return self.fn(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        if not self.fn:
-            raise NotImplementedError()
-        else:
-            return self.fn.__call__(*args, **kwargs)
+        return self.run(*args, **kwargs)
 
     def as_function_schema(self) -> dict:
         schema = function_to_schema(self.fn or self.run)
