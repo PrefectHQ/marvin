@@ -2,7 +2,10 @@ import inspect
 from enum import Enum
 from typing import Any, Union
 
+import uvicorn
+from fastapi import Body, FastAPI
 from jsonpatch import JsonPatch
+from langchain.schema import AIMessage
 from pydantic import BaseModel, Field, PrivateAttr
 
 from marvin.bot.history import History, InMemoryHistory
@@ -122,7 +125,6 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
             ],  # , UpdateTasks(app=self)],
             message_processor=message_processor,
         )
-        from langchain.schema import AIMessage
 
         if isinstance(output, RepeatApplicationResponse):
             response = ApplicationResponse(
@@ -145,6 +147,23 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
         self.logger.debug_kv("AI response", response.content, key_style="blue")
         await self.history.add_message(response)
         return response
+
+    async def serve(self, host="127.0.0.1", port=8000):
+        app = FastAPI()
+
+        state_type = type(self.state)
+
+        @app.get("/state")
+        def get_state() -> state_type:
+            return self.state
+
+        @app.post("/interact")
+        async def interact(text: str = Body(embed=True)) -> ApplicationResponse:
+            return await self.run(text)
+
+        config = uvicorn.config.Config(app=app, host=host, port=port)
+        server = uvicorn.Server(config=config)
+        await server.serve()
 
 
 class JSONPatchModel(BaseModel):
