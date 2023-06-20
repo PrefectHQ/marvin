@@ -119,10 +119,9 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
             messages=[system_message, *historical_messages, input_message],
             tools=self.tools
             + [
-                # UpdateState(type_=type(self.state), app=self)
                 UpdateApplicationState(app=self),
-                # UpdateApplicationSchema(app=self),
-            ],  # , UpdateTasks(app=self)],
+                RepeatApplication(),
+            ],
             message_processor=message_processor,
         )
 
