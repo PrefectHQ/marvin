@@ -35,7 +35,7 @@ AI_APP_SYSTEM_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
     You may respond to the user and use any other tools to help you interpret
     the user's inputs. However, you are solely responsible for updating the
     application's state. State could represents notes, a game world, statistics
-    about ongoing process, or anythine else. In order to update state, you must
+    about ongoing process, or anything else. In order to update state, you must
     use the `UpdateApplicationState` tool. It will respond with "State updated
     successfully!" If you do not see that message, then state has not been
     updated.
