@@ -31,9 +31,6 @@ todo_app = AIApplication(
 )
 
 
-from marvin.openai.tools import filesystem, python, shell
-
-
 class EngState(BaseModel):
     paths: list[str] = []
     program_description: str = None
@@ -50,10 +47,10 @@ test_app = AIApplication(
     ),
     state=EngState(),
     tools=[
-        filesystem.ListFiles(root_dir=ROOT_DIR),
-        filesystem.ReadFiles(root_dir=ROOT_DIR),
-        filesystem.WriteFiles(root_dir=ROOT_DIR),
-        python.Python(),
-        shell.Shell(),
+        marvin.openai.tools.filesystem.ListFiles(root_dir=ROOT_DIR),
+        marvin.openai.tools.filesystem.ReadFiles(root_dir=ROOT_DIR),
+        marvin.openai.tools.filesystem.WriteFiles(root_dir=ROOT_DIR),
+        marvin.openai.tools.python.Python(),
+        marvin.openai.tools.shell.Shell(),
     ],
 )
