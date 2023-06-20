@@ -326,7 +326,10 @@ def function_to_schema(function: Callable[..., Any], name: str = None) -> dict:
         Model = create_model(name or function.__name__, **fields)
     except RuntimeError as exc:
         if "see `arbitrary_types_allowed` " in str(exc):
-            raise ValueError("All arguments must have valid type annotations.")
+            raise ValueError(
+                f"Error while inspecting {function.__name__} with signature"
+                f" {signature}: {exc}"
+            )
         else:
             raise
 
@@ -359,7 +362,10 @@ def schema_to_type(schema: dict):
 
         model_name = schema.get("title", "Model")
         model = getattr(module, model_name)
-        model.update_forward_refs(**typing.__dict__)
+        try:
+            model.update_forward_refs(**typing.__dict__)
+        except Exception:
+            pass
 
         return model
 

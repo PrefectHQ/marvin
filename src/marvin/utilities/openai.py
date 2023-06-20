@@ -1,6 +1,6 @@
 import json
 from logging import Logger
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Callable, Union
 
 from langchain.schema import AIMessage
 
@@ -19,6 +19,7 @@ async def call_llm_with_tools(
     logger: Logger = None,
     tools: list["Tool"] = None,
     function_call="auto",
+    message_processor: Callable[[list[Message]], list[Message]] = None,
     **kwargs,
 ) -> Union[AIMessage, Any]:
     """
@@ -43,8 +44,6 @@ async def call_llm_with_tools(
 
     i = 1
     while i <= marvin.settings.llm_max_tool_iterations:
-        logger.debug(f"Sending messages to LLM:' {messages}")
-
         response = await marvin.utilities.llms.call_llm_messages(
             llm,
             messages,
@@ -58,28 +57,44 @@ async def call_llm_with_tools(
         )
 
         if function_payload := response.additional_kwargs.get("function_call", None):
-            logger.debug(
-                f"Running tool '{function_payload['name']}' with payload"
-                f" {function_payload['arguments']}"
-            )
             tool_name = function_payload["name"]
             tool = next((t for t in tools if t.name == tool_name), None)
             if not tool:
                 break
             try:
-                tool_output = tool.run(**json.loads(function_payload["arguments"]))
-            except Exception as exc:
-                tool_output = str(exc)
-
-            if tool.is_final:
-                return tool_output
-            else:
-                messages.append(
-                    Message(
-                        role="function", name=tool_name, content=str(tool_output or "")
-                    )
+                logger.debug(
+                    f"Running tool '{function_payload['name']}' with payload"
+                    f" {function_payload['arguments']}"
                 )
+                arguments = json.loads(function_payload["arguments"])
+                if not isinstance(arguments, dict):
+                    raise ValueError(
+                        "Expected a dictionary of arguments, got a"
+                        f" {type(arguments).__name__}. Try calling the function again"
+                        " using the correct keyword names."
+                    )
+                tool_output = tool.run(**arguments)
+                if tool.is_final:
+                    return tool_output
+            except Exception as exc:
+                logger.error(
+                    f'The function "{tool_name}" encountered an error. The payload'
+                    f' was {function_payload["arguments"]}\n\n{str(exc)}'
+                )
+                tool_output = (
+                    f"The function encountered an error: {str(exc)}\n\nThe payload you"
+                    f" provided was: '{function_payload['arguments']}\n\nPlease try"
+                    " calling the function again.'"
+                )
+
+            messages.append(
+                Message(role="function", name=tool_name, content=str(tool_output or ""))
+            )
             i += 1
+
+            # optionally process messages
+            if message_processor:
+                messages = message_processor(messages)
 
         else:
             break
