@@ -75,7 +75,7 @@ dev = [
 ]
 postgres = ["asyncpg~=0.27.0"]
 chromadb = ["chromadb~=0.3.25"]
-pdf = ["pypdf~=3.7.0"]
+pdf = ["pypdf>=3.7,<3.11"]
 
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"
