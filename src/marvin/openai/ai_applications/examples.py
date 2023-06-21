@@ -78,7 +78,13 @@ nested_app = AIApplication(
     ),
     state_enabled=False,
     tools=[
-        AIApplication(description="An application that only converts feet to inches."),
-        AIApplication(description="An application that only converts months to days."),
+        AIApplication(
+            description="An application that only converts feet to inches.",
+            state_enabled=False,
+        ),
+        AIApplication(
+            description="An application that only converts months to days.",
+            state_enabled=False,
+        ),
     ],
 )
