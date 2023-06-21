@@ -1,4 +1,4 @@
-from marvin.openai.tools.base import Tool
+from marvin.openai.tools.base import Tool, tool
 from . import format_response, filesystem, python, shell
 
 TOOL_MAP = {
