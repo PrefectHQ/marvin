@@ -54,3 +54,22 @@ test_app = AIApplication(
         marvin.openai.tools.shell.Shell(),
     ],
 )
+
+
+class GameState(BaseModel):
+    mission: str = None
+    notes: list[str] = []
+    environment: str = None
+
+
+game_app = AIApplication(
+    description=(
+        "A simple text-based RPG that guides the user through an interactive mission in"
+        " the Star Wars universe. Take any input from the user but do not ask any"
+        " questions, just begin a highly engrossing and cinematic story. Make sure to"
+        " move the story along to keep it interesting and engaging. Write"
+        " highly-detailed narratives that always keep the user engaged and moving"
+        " forward."
+    ),
+    state=GameState(),
+)
