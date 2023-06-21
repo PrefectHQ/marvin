@@ -8,7 +8,7 @@ import marvin.openai.tools
 from marvin.openai.ai_applications import AIApplication
 
 marvin.settings.log_level = "DEBUG"
-marvin.settings.llm_model = "gpt-4-0613"
+marvin.settings.llm_model = "gpt-3.5-turbo-0613"
 
 
 class ToDo(BaseModel):
@@ -23,10 +23,7 @@ class ToDoState(BaseModel):
 
 
 todo_app = AIApplication(
-    description=(
-        "A simple to-do tracker. Users will add, update, and complete tasks. Do not"
-        " create duplicate tasks."
-    ),
+    description="A simple to-do tracker. Users will add, update, and complete tasks.",
     state=ToDoState(),
 )
 
@@ -72,4 +69,16 @@ game_app = AIApplication(
         " forward."
     ),
     state=GameState(),
+)
+
+
+nested_app = AIApplication(
+    description=(
+        "An application that can convert between different units of measurement."
+    ),
+    state_enabled=False,
+    tools=[
+        AIApplication(description="An application that only converts feet to inches."),
+        AIApplication(description="An application that only converts months to days."),
+    ],
 )

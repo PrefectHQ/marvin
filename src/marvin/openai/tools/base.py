@@ -5,12 +5,12 @@ from typing import Callable, Optional
 from pydantic import Field, validator
 
 from marvin.utilities.strings import jinja_env
-from marvin.utilities.types import MarvinBaseModel, function_to_schema
+from marvin.utilities.types import LoggerMixin, MarvinBaseModel, function_to_schema
 
 SENTINEL = "__SENTINEL__"
 
 
-class Tool(MarvinBaseModel):
+class Tool(MarvinBaseModel, LoggerMixin):
     name: str = None
     description: str = None
     fn: Optional[Callable] = None
@@ -20,10 +20,12 @@ class Tool(MarvinBaseModel):
     )
 
     @classmethod
-    def from_function(cls, fn, is_final=False):
+    def from_function(
+        cls, fn, name: str = None, description: str = None, is_final=False
+    ):
         # assuming fn has a name and a description
-        name = fn.__name__
-        description = fn.__doc__
+        name = name or fn.__name__
+        description = description or fn.__doc__
         return cls(name=name, description=description, fn=fn, is_final=is_final)
 
     @validator("name", always=True)
@@ -57,10 +59,14 @@ class Tool(MarvinBaseModel):
         )
 
 
-def tool(arg=None, *, is_final=False):
+def tool(
+    arg=None, *, name: str = None, description: str = None, is_final: bool = False
+):
     if callable(arg):  # Direct function decoration
-        return Tool.from_function(arg, is_final=is_final)
+        return Tool.from_function(
+            arg, name=name, description=description, is_final=is_final
+        )
     elif arg is None:  # Partial application
-        return partial(tool, is_final=is_final)
+        return partial(tool, name=name, description=description, is_final=is_final)
     else:
         raise TypeError("Invalid argument passed to decorator.")

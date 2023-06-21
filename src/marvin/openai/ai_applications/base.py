@@ -1,3 +1,4 @@
+import asyncio
 import inspect
 from enum import Enum
 from typing import Any, Union
@@ -6,11 +7,11 @@ import uvicorn
 from fastapi import Body, FastAPI
 from jsonpatch import JsonPatch
 from langchain.schema import AIMessage
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, validator
 
 from marvin.bot.history import History, InMemoryHistory
 from marvin.models.threads import BaseMessage, Message
-from marvin.openai.tools.base import Tool
+from marvin.openai import Tool
 from marvin.utilities.llms import get_model
 from marvin.utilities.openai import call_llm_with_tools
 from marvin.utilities.strings import jinja_env
@@ -35,48 +36,68 @@ AI_APP_SYSTEM_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
     
     # Instructions
     
-    Your primary job is to maintain the application's `state` and `tasks`. You
-    do this autonomously; you do not need to inform the user of any changes you
-    make. Whenever you receive input from the user, you must perform the
-    following steps:
+    Your primary job is to maintain the application's `state` and your own
+    `ai_state`. Together, these two states fully parameterize the application,
+    making it resilient, serializable, and observable. You do this autonomously;
+    you do not need to inform the user of any changes you make. 
     
-    - call the `CreateApplicationTask` or `UpdateApplicationTask` functions to
-      create or update the application tasks. Tasks track goals, milestones,
-      in-progress work, and break problems down into all the discrete steps
-      needed to solve them. You should create a new task for any action you need
-      to take beyond directly updating the application's state. By looking at an
-      application's tasks, it should be easy to understand what the application
-      is doing and what it needs to do next. Parent tasks are optional and
-      indicate nested relationships: parent tasks are not completed until all
-      their children are complete. Upstream tasks are optional and indicate
-      dependencies: a task can not be completed until its upstream tasks are
-      completed.
+    # Actions
     
-    - call any other functions necessary to achieve the application's purpose.
-      Each function call should correspond to an in-progress task; use that to
-      help you create tasks and track progress.
-      
-    - call the `UpdateApplicationState` function to update the application's
-      `state`. The application is fully parameterized by its state and its
-      tasks.
-      
-    - update application tasks again, if necessary
-        
-    Finally, respond to the user with an informative message but do not explain
-    the internal steps you took above.
+    Each time the user runs the application by sending a message, you must take
+    the following steps:
+    
+    {% if app.ai_state_enabled -%}
+    - Call the `UpdateAIState` function to update your own state. Use your state
+      to track notes, objectives, in-progress work, and to break problems down
+      into solvable, possibly dependent parts. You state consists of a few
+      fields:
+        - `notes`: a list of notes you have taken. Notes are free-form text and
+          can be used to track anything you want to remember, such as
+          long-standing user instructions, or observations about how to behave
+          or operate the application. These are exclusively related to your role
+          as intermediary and you interact with the user and application. Do not
+          track application data or state here.
+        - `tasks`: a list of tasks you are working on. Tasks track goals,
+          milestones, in-progress work, and break problems down into all the
+          discrete steps needed to solve them. You should create a new task for
+          any work that will require a function call other than updating state,
+          or will require more than one state update to complete. You do not
+          need to create tasks for simple state updates. Use optional parent
+          tasks to indicate nested relationships; parent tasks are not completed
+          until all their children are complete. Use optional upstream tasks to
+          indicate dependencies; a task can not be completed until its upstream
+          tasks are completed.
+    {%- endif %}
 
+    - Call any functions necessary to achieve the application's purpose.
+    
+    {% if app.state_enabled -%}
+    - Call the `UpdateAppState` function to update the application's state. This
+      is where you should store any information relevant to the application
+      itself.
+    {%- endif %}
+
+    You can call these functions at any time, in any order, as necessary.
+    Finally, respond to the user with an informative message. Remember that the
+    user is probably uninterested in the internal steps you took, so respond
+    only in a manner appropriate to the application's purpose.
+
+    # Current details
+    
     This is the description of the application:
      
     {{ app.description }}
     
-    This is the application's current state:
+    This is the application's state:
      
     {{ app.state.json() }}
     
-    These are the application's current tasks:
-     
-    [{% for t in app.tasks -%} {{ t.json() }} {%- endfor %}]
+    {% if app.ai_state_enabled %}
+    This is your AI state:
     
+    {{ app.ai_state.json() }}
+    {% endif %}
+        
     Today's date is {{ dt() }}
     
     """))
@@ -100,6 +121,11 @@ class Task(BaseModel):
     state: TaskState = TaskState.IN_PROGRESS
 
 
+class AIState(BaseModel):
+    tasks: list[Task] = []
+    notes: list[str] = []
+
+
 class FreeformState(BaseModel):
     state: dict[str, Any] = {}
 
@@ -107,9 +133,17 @@ class FreeformState(BaseModel):
 class AIApplication(MarvinBaseModel, LoggerMixin):
     description: str
     state: BaseModel = Field(default_factory=FreeformState)
-    tasks: list[Task] = []
+    ai_state: AIState = Field(default_factory=AIState)
     tools: list[Tool] = []
     history: History = Field(default_factory=InMemoryHistory)
+
+    state_enabled: bool = True
+    ai_state_enabled: bool = True
+
+    @validator("tools", pre=True)
+    def validate_tools(cls, v):
+        v = [t.as_tool() if isinstance(t, AIApplication) else t for t in v]
+        return v
 
     async def run(self, input_text: str = None):
         messages = []
@@ -135,16 +169,18 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
             await self.history.add_message(input_message)
             messages.append(input_message)
 
+        # set up tools
+        tools = self.tools.copy()
+        if self.state_enabled:
+            tools.append(UpdateAppState(app=self))
+        if self.ai_state_enabled:
+            tools.append(UpdateAIState(app=self))
+
         llm = get_model()
         output = await call_llm_with_tools(
             llm,
             messages=messages,
-            tools=self.tools
-            + [
-                UpdateApplicationState(app=self),
-                CreateApplicationTask(app=self),
-                UpdateApplicationTask(app=self),
-            ],
+            tools=tools,
             message_processor=message_processor,
         )
 
@@ -176,6 +212,21 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
         server = uvicorn.Server(config=config)
         await server.serve()
 
+    def as_tool(self, name: str = None) -> Tool:
+        return AIApplicationTool(app=self, name=name)
+
+
+class AIApplicationTool(Tool):
+    app: "AIApplication"
+
+    def __init__(self, **kwargs):
+        if "name" not in kwargs:
+            kwargs["name"] = type(self.app).__name__
+        super().__init__(**kwargs)
+
+    def run(self, input_text: str) -> str:
+        return asyncio.run(self.app.run(input_text))
+
 
 class JSONPatchModel(BaseModel):
     op: str
@@ -187,7 +238,7 @@ class JSONPatchModel(BaseModel):
         allow_population_by_field_name = True
 
 
-class UpdateApplicationState(Tool):
+class UpdateAppState(Tool):
     """
     Updates state using JSON Patch documents.
     """
@@ -207,59 +258,27 @@ class UpdateApplicationState(Tool):
         patch = JsonPatch(patches)
         updated_state = patch.apply(self._app.state.dict())
         self._app.state = type(self._app.state)(**updated_state)
-        return f"State updated successfully! (payload was {patches})"
+        return f"Application state updated successfully! (payload was {patches})"
 
 
-class CreateApplicationTask(Tool):
+class UpdateAIState(Tool):
+    """
+    Updates state using JSON Patch documents.
+    """
+
     _app: "AIApplication" = PrivateAttr()
     description = """
-        Create a new application task.
+        Update the AI state by providing a list of JSON patch
+        documents. The state must always comply with this JSON schema: {{
+        TOOL._app.ai_state.schema() }}
         """
 
     def __init__(self, app: AIApplication, **kwargs):
         self._app = app
         super().__init__(**kwargs)
 
-    def run(self, task: Task):
-        self._app.tasks.append(Task(**task))
-        return f"Task {task} created successfully!"
-
-
-class UpdateApplicationTask(Tool):
-    _app: "AIApplication" = PrivateAttr()
-    description = """
-        Update the state of an application task.
-        """
-
-    def __init__(self, app: AIApplication, **kwargs):
-        self._app = app
-        super().__init__(**kwargs)
-
-    def run(self, task_id: int, state: TaskState):
-        task = next((t for t in self._app.tasks if t.id == task_id), None)
-        if task is None:
-            raise ValueError(f"Task with id {task_id} not found!")
-        task.state = state
-        return f"Task {task_id} updated to {state} successfully!"
-
-
-# class UpdateApplicationTasks(Tool):
-#     """
-#     Updates tasks using JSON Patch documents.
-#     """
-
-#     _app: "AIApplication" = PrivateAttr()
-#     description = f"""
-#         Update the application's tasks by providing a list of JSON patch
-#         documents. Each task has the following schema: { Task.schema() }.
-#         """
-
-#     def __init__(self, app: AIApplication, **kwargs):
-#         self._app = app
-#         super().__init__(**kwargs)
-
-#     def run(self, patches: list[JSONPatchModel]):
-#         patch = JsonPatch(patches)
-#         updated_tasks = patch.apply([t.dict() for t in self._app.tasks])
-#         self._app.tasks = parse_obj_as(list[Task], updated_tasks)
-#         return "Tasks updated successfully!"
+    def run(self, patches: list[JSONPatchModel]):
+        patch = JsonPatch(patches)
+        updated_state = patch.apply(self._app.ai_state.dict())
+        self._app.ai_state = type(self._app.ai_state)(**updated_state)
+        return f"AI state updated successfully! (payload was {patches})"
