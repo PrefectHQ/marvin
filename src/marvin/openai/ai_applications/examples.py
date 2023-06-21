@@ -23,10 +23,7 @@ class ToDoState(BaseModel):
 
 
 todo_app = AIApplication(
-    description=(
-        "A simple to-do tracker. Users will add, update, and complete tasks. Do not"
-        " create duplicate tasks."
-    ),
+    description="A simple to-do tracker. Users will add, update, and complete tasks.",
     state=ToDoState(),
 )
 
@@ -52,5 +49,42 @@ test_app = AIApplication(
         marvin.openai.tools.filesystem.WriteFiles(root_dir=ROOT_DIR),
         marvin.openai.tools.python.Python(),
         marvin.openai.tools.shell.Shell(),
+    ],
+)
+
+
+class GameState(BaseModel):
+    mission: str = None
+    notes: list[str] = []
+    environment: str = None
+
+
+game_app = AIApplication(
+    description=(
+        "A simple text-based RPG that guides the user through an interactive mission in"
+        " the Star Wars universe. Take any input from the user but do not ask any"
+        " questions, just begin a highly engrossing and cinematic story. Make sure to"
+        " move the story along to keep it interesting and engaging. Write"
+        " highly-detailed narratives that always keep the user engaged and moving"
+        " forward."
+    ),
+    state=GameState(),
+)
+
+
+nested_app = AIApplication(
+    description=(
+        "An application that can convert between different units of measurement."
+    ),
+    state_enabled=False,
+    tools=[
+        AIApplication(
+            description="An application that only converts feet to inches.",
+            state_enabled=False,
+        ),
+        AIApplication(
+            description="An application that only converts months to days.",
+            state_enabled=False,
+        ),
     ],
 )
