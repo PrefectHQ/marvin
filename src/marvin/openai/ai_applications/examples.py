@@ -8,7 +8,7 @@ import marvin.openai.tools
 from marvin.openai.ai_applications import AIApplication
 
 marvin.settings.log_level = "DEBUG"
-marvin.settings.llm_model = "gpt-3.5-turbo-0613"
+marvin.settings.llm_model = "gpt-4-0613"
 
 
 class ToDo(BaseModel):
