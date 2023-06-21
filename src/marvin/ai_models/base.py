@@ -101,7 +101,6 @@ def AIModel(
             )
         )
         args = output.additional_kwargs.get("function_call", {}).get("arguments", "")
-        print(args)
         parsed_output = cls.parse_raw(args)
         return parsed_output
 
