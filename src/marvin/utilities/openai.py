@@ -1,11 +1,9 @@
 import inspect
 import json
-import math
 from logging import Logger
 from typing import TYPE_CHECKING, Any, Callable, Union
 
 import openai
-from langchain.schema import AIMessage
 
 import marvin
 import marvin.utilities.llms
@@ -14,7 +12,7 @@ from marvin.utilities.logging import get_logger
 from marvin.utilities.types import MarvinBaseModel
 
 if TYPE_CHECKING:
-    from marvin.openai.tools import Tool
+    pass
 
 
 def prepare_messages(messages: list[Message]) -> list[dict[str, Any]]:
@@ -39,7 +37,7 @@ class OpenAIFunction(MarvinBaseModel):
     name: str
     description: str = None
     parameters: dict[str, Any] = {"type": "object", "properties": {}}
-    function: Callable = None
+    fn: Callable = None
 
     @classmethod
     def from_function(cls, fn: Callable, **kwargs):
@@ -49,12 +47,6 @@ class OpenAIFunction(MarvinBaseModel):
             parameters=marvin.utilities.types.function_to_schema(fn),
             function=fn,
         )
-
-
-class OpenAIFunctionCall(MarvinBaseModel):
-    name: str
-    arguments: dict[str, Any]
-    function: OpenAIFunction
 
 
 async def call_llm_chat(
@@ -67,7 +59,7 @@ async def call_llm_chat(
     function_call: Union[str, dict[str, str]] = None,
     logger: Logger = None,
     **kwargs,
-) -> Union[Message, OpenAIFunctionCall]:
+) -> Message:
     """Calls an OpenAI LLM with a list of messages and returns the response."""
 
     # ----------------------------------
@@ -113,6 +105,7 @@ async def call_llm_chat(
     # ----------------------------------
 
     response: openai.openai_object.OpenAIObject = await openai.ChatCompletion.acreate(
+        api_key=marvin.settings.openai_api_key.get_secret_value(),
         model=model,
         messages=openai_messages,
         temperature=temperature,
@@ -125,143 +118,55 @@ async def call_llm_chat(
 
     msg = response.choices[0].message.to_dict_recursive()
     if msg["role"] == "assistant":
+        # ----------------------------------
+        # Call functions
+        # ----------------------------------
         if fn_call := msg.get("function_call"):
+            fn_name = fn_call.get("name")
+            fn_args = json.loads(fn_call.get("arguments", "{}"))
             try:
                 # retrieve the function
-                function = next(f for f in functions if f.name == fn_call["name"])
-                arguments = json.loads(fn_call["arguments"])
+                function = next((f for f in functions if f.name == fn_name), None)
+                if function is None:
+                    raise ValueError(f'Function "{fn_call["name"]}" not found.')
 
-                if not isinstance(arguments, dict):
+                if not isinstance(fn_args, dict):
                     raise ValueError(
                         "Expected a dictionary of arguments, got a"
-                        f" {type(arguments).__name__}. Try calling the function again"
+                        f" {type(fn_args).__name__}. Try calling the function again"
                         " using the correct keyword names."
                     )
 
                 # call the function
-                if function.function is not None:
+                if function.fn is not None:
                     logger.debug(
-                        f"Running function '{function.name}' with payload {arguments}"
+                        f"Running function '{function.name}' with payload {fn_args}"
                     )
-                    fn_result = function.function(**arguments)
+                    fn_result = function.fn(**fn_args)
                     if inspect.isawaitable(fn_result):
                         fn_result = await fn_result
 
                 # if the function is undefined, return the arguments as its output
                 else:
-                    fn_result = arguments
+                    fn_result = fn_args
                 logger.debug(f"Result of function '{function.name}': {fn_result}")
 
             except Exception as exc:
-                logger.error(exc)
                 fn_result = (
-                    f"The function '{function.name}' encountered an error:"
-                    f" {str(exc)}\n\nThe payload you provided was: {arguments}\n\nYou"
-                    " can try calling the function again.'"
+                    f"The function '{fn_name}' encountered an error:"
+                    f" {str(exc)}\n\nThe payload you provided was:"
+                    f" {fn_args}\n\nYou can try calling the function"
+                    " again.'"
                 )
+                logger.error(fn_result)
 
             response = Message(
                 role="function",
-                name=function.name,
+                name=fn_name,
                 content=str(fn_result),
-                data=dict(arguments=arguments, result=fn_result),
+                data=dict(arguments=fn_args, result=fn_result),
             )
+
         else:
             response = Message(role="ai", content=msg["content"])
-    return response
-
-
-async def call_llm_with_tools(
-    llm,
-    messages: list[Message],
-    logger: Logger = None,
-    tools: list["Tool"] = None,
-    function_call="auto",
-    message_processor: Callable[[list[Message]], list[Message]] = None,
-    **kwargs,
-) -> Union[AIMessage, Any]:
-    """
-    Calls a compatible OpenAI LLM with a list of messages and a list of tools.
-    Uses the `functions` API to generate tool inputs and loops until the LLM
-    stops calling functions.
-
-    function_call: 'auto' (automatically decide whether to call a function),
-        'none' (do not call a function) or {'name': <a function name>} to call a
-        specific function.
-    """
-
-    if logger is None:
-        logger = get_logger("llm")
-
-    messages = messages.copy()
-
-    if not llm.model_name.endswith("-0613"):
-        raise ValueError("Tools are only compatible with the latest OpenAI models.")
-
-    functions = [t.as_function_schema() for t in tools]
-
-    if (max_iterations := marvin.settings.llm_max_tool_iterations) is None:
-        max_iterations = math.inf
-
-    i = 1
-    while i <= max_iterations:
-        response = openai.ChatCompletion.create
-
-        response = await marvin.utilities.llms.call_llm_messages(
-            llm,
-            messages,
-            logger,
-            functions=functions,
-            # force no function call if we're at  max iterations
-            function_call=(function_call if i < max_iterations else "none"),
-            **kwargs,
-        )
-
-        if function_payload := response.additional_kwargs.get("function_call", None):
-            tool_name = function_payload["name"]
-            tool = next((t for t in tools if t.name == tool_name), None)
-            if not tool:
-                break
-            try:
-                logger.debug(
-                    f"Running tool '{function_payload['name']}' with payload"
-                    f" {function_payload['arguments']}"
-                )
-                arguments = json.loads(function_payload["arguments"])
-                if not isinstance(arguments, dict):
-                    raise ValueError(
-                        "Expected a dictionary of arguments, got a"
-                        f" {type(arguments).__name__}. Try calling the function again"
-                        " using the correct keyword names."
-                    )
-                tool_output = tool.run(**arguments)
-                logger.debug(
-                    f"Received output from tool '{function_payload['name']}':"
-                    f" {tool_output}"
-                )
-                if tool.is_final:
-                    return tool_output
-            except Exception as exc:
-                logger.error(
-                    f'The function "{tool_name}" encountered an error. The payload'
-                    f' was {function_payload["arguments"]}\n\n{str(exc)}'
-                )
-                tool_output = (
-                    f"The function encountered an error: {str(exc)}\n\nThe payload you"
-                    f" provided was: '{function_payload['arguments']}\n\nPlease try"
-                    " calling the function again.'"
-                )
-
-            messages.append(
-                Message(role="function", name=tool_name, content=str(tool_output or ""))
-            )
-            i += 1
-
-            # optionally process messages
-            if message_processor:
-                messages = message_processor(messages)
-
-        else:
-            break
-
     return response

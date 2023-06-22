@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 import marvin
 from marvin.openai.tools import Tool
+from marvin.utilities.openai import OpenAIFunction
 from marvin.utilities.types import (
     genericalias_contains,
     safe_issubclass,
@@ -20,7 +21,6 @@ class FormatResponse(Tool):
     type_schema: dict[str, Any] = Field(
         ..., description="The OpenAPI schema for the type"
     )
-    is_final: bool = True
     description: str = (
         "You MUST always call this function before responding to the user to ensure"
         " that your final response is formatted correctly and complies with the output"
@@ -70,9 +70,10 @@ class FormatResponse(Tool):
             kwargs = kwargs["data"]
         return pydantic.parse_obj_as(type_, kwargs)
 
-    def as_function_schema(self) -> dict:
-        return dict(
+    def as_openai_function(self) -> OpenAIFunction:
+        return OpenAIFunction(
             name=self.__class__.__name__,
             description=self.description,
             parameters=self.type_schema,
+            fn=self,
         )
