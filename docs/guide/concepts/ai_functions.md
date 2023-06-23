@@ -30,6 +30,25 @@ list_fruits(n=3) # ["apple", "banana", "orange"]
 !!! tip
     AI functions work best with GPT-4, but results are still very good with GPT-3.5.
 
+... or another example, to classify GitHub issues:
+
+```python
+from typing_extensions import Literal
+from marvin import ai_fn
+
+IssueType = Literal['bug', 'docs', 'enhancement', 'feature']
+
+@ai_fn
+def issue_classifier(issue_body: str) -> list[IssueType]:
+    """ returns appropriate issue tags given an issue body """
+
+issue_classifier("""
+    yeah so i tried using the tui and it teleported me to another dimension.
+    also there's a typo on the ai_fn's page, you forgot the code
+""")
+# ['bug', 'docs']
+```
+
 ## When to use AI functions
 Because AI functions look and feel just like normal functions, they are the easiest way to add AI capabilities to your code -- just write the definition of the function you want to call, and use it anywhere! However, though they can feel like magic, it's important to understand that there are times you should prefer not to use AI functions.
 
