@@ -8,8 +8,7 @@ from pydantic import BaseModel
 
 from marvin.models.threads import Message
 from marvin.openai.tools.format_response import FormatResponse
-from marvin.utilities.llms import get_model
-from marvin.utilities.openai import call_llm_with_tools
+from marvin.utilities.openai import call_llm_chat
 from marvin.utilities.strings import jinja_env
 from marvin.utilities.types import safe_issubclass
 
@@ -124,16 +123,14 @@ class AIFunction:
             content=AI_FN_USER_MESSAGE.render(input_binds=bound_args.arguments),
         )
 
-        llm = get_model()
-        llm_call = call_llm_with_tools(
-            llm,
+        llm_call = call_llm_chat(
             messages=[system_message, user_message],
-            tools=[FormatResponse(type_=return_annotation)],
+            functions=[FormatResponse(type_=return_annotation).as_openai_function()],
             function_call={"name": "FormatResponse"},
         )
 
-        model = asyncio.run(llm_call)
-        return model
+        response = asyncio.run(llm_call)
+        return response.data["result"]
 
     def run(self, *args, **kwargs):
         """

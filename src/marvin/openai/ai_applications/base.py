@@ -1,19 +1,19 @@
 import asyncio
 import inspect
+import math
 from enum import Enum
 from typing import Any, Union
 
 import uvicorn
 from fastapi import Body, FastAPI
 from jsonpatch import JsonPatch
-from langchain.schema import AIMessage
 from pydantic import BaseModel, Field, PrivateAttr, validator
 
+import marvin
 from marvin.bot.history import History, InMemoryHistory
 from marvin.models.threads import BaseMessage, Message
 from marvin.openai import Tool
-from marvin.utilities.llms import get_model
-from marvin.utilities.openai import call_llm_with_tools
+from marvin.utilities.openai import call_llm_chat
 from marvin.utilities.strings import jinja_env
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
@@ -146,19 +146,8 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
         return v
 
     async def run(self, input_text: str = None):
-        messages = []
-
-        system_message = Message(
-            role="system", content=AI_APP_SYSTEM_MESSAGE.render(app=self)
-        )
-        messages.append(system_message)
-
-        def message_processor(messages: list[Message]) -> list[Message]:
-            # update the system message in case the state has changed
-            messages[0] = Message(
-                role="system", content=AI_APP_SYSTEM_MESSAGE.render(app=self)
-            )
-            return messages
+        # put a placeholder for the system message
+        messages = [None]
 
         historical_messages = await self.history.get_messages()
         messages.extend(historical_messages)
@@ -176,20 +165,30 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
         if self.ai_state_enabled:
             tools.append(UpdateAIState(app=self))
 
-        llm = get_model()
-        output = await call_llm_with_tools(
-            llm,
-            messages=messages,
-            tools=tools,
-            message_processor=message_processor,
-        )
-
-        if isinstance(output, AIMessage):
-            response = ApplicationResponse(role="ai", content=output.content)
-        else:
-            response = ApplicationResponse(
-                role="ai", content=str(output), parsed_content=output
+        i = 1
+        max_iterations = marvin.settings.llm_max_function_iterations or math.inf
+        while i <= max_iterations:
+            # always regenerate the system message before calling the LLM
+            # so that it will reflect any changes to state
+            messages[0] = Message(
+                role="system", content=AI_APP_SYSTEM_MESSAGE.render(app=self)
             )
+
+            response = await call_llm_chat(
+                messages=messages,
+                functions=[t.as_openai_function() for t in tools],
+                function_call="auto" if i < max_iterations else "none",
+            )
+
+            # if the result was a function call, then run the LLM again with the
+            # output
+            # TODO: find a good way to support short-circuiting execution
+            # e.g. raise a END exception
+            if response.role == "function":
+                messages.append(response)
+                i += 1
+            else:
+                break
 
         self.logger.debug_kv("AI response", response.content, key_style="blue")
         await self.history.add_message(response)

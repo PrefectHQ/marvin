@@ -6,8 +6,7 @@ import pydantic
 
 from marvin.models.threads import Message
 from marvin.openai.tools.format_response import FormatResponse
-from marvin.utilities.llms import get_model
-from marvin.utilities.openai import call_llm_with_tools
+from marvin.utilities.openai import call_llm_chat
 
 T = TypeVar("T")
 
@@ -15,9 +14,7 @@ T = TypeVar("T")
 class AIModel(pydantic.BaseModel):
     def __init__(self, text: str = None, **kwargs):
         if text:
-            llm = get_model()
-            llm_call = call_llm_with_tools(
-                llm,
+            llm_call = call_llm_chat(
                 messages=[
                     Message(
                         role="system",
@@ -33,12 +30,12 @@ class AIModel(pydantic.BaseModel):
                     ),
                     Message(role="user", content=f"Text to parse: {text}"),
                 ],
-                tools=[FormatResponse(type_=type(self))],
+                functions=[FormatResponse(type_=type(self)).as_openai_function()],
                 function_call={"name": "FormatResponse"},
             )
 
-            model = asyncio.run(llm_call)
-            llm_kwargs = model.dict()
+            response = asyncio.run(llm_call)
+            llm_kwargs = response.data["result"]
             # overwrite with any values provided by the user
             llm_kwargs.update(kwargs)
             kwargs = llm_kwargs
