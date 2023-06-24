@@ -30,6 +30,25 @@ list_fruits(n=3) # ["apple", "banana", "orange"]
 !!! tip
     AI functions work best with GPT-4, but results are still very good with GPT-3.5.
 
+... or another example, this time returning a finite set of `Literal` values to classify GitHub issues:
+
+```python
+from typing_extensions import Literal
+from marvin import ai_fn
+
+IssueTag = Literal['bug', 'docs', 'enhancement', 'feature']
+
+@ai_fn
+def issue_classifier(issue_body: str) -> list[IssueTag]:
+    """ returns appropriate issue tags given an issue body """
+
+issue_classifier("""
+    yeah so i tried using the tui and it teleported me to another dimension.
+    also there's a typo on the ai_fn's page, you forgot the code
+""")
+# ['bug', 'docs']
+```
+
 ## When to use AI functions
 Because AI functions look and feel just like normal functions, they are the easiest way to add AI capabilities to your code -- just write the definition of the function you want to call, and use it anywhere! However, though they can feel like magic, it's important to understand that there are times you should prefer not to use AI functions.
 
@@ -419,4 +438,25 @@ def rrule(text: str) -> str:
 
 rrule('every hour from 9-6 on thursdays')
 # "RRULE:FREQ=WEEKLY;BYDAY=TH;BYHOUR=9,10,11,12,13,14,15,16;BYMINUTE=0;BYSECOND=0"
+```
+
+### Get a datetime from a natural language description
+
+```python
+from datetime import datetime
+
+from marvin import ai_fn
+
+@ai_fn
+def make_datetime(description: str, tz: str = "BST") -> datetime:
+    """ generates a datetime from a description """
+
+# !date +"%Y-%m-%d %T %Z"
+# 2023-06-23 22:30:25 BST
+
+dt = make_datetime("5 mins from now")
+# datetime.datetime(2023, 6, 23, 22, 35, tzinfo=datetime.timezone(datetime.timedelta(seconds=3600)))
+
+dt.isoformat()
+# '2023-06-23T22:35:00+01:00'
 ```
