@@ -23,8 +23,10 @@ class ToDoState(BaseModel):
 
 
 todo_app = AIApplication(
+    name="ToDo app",
     description="A simple to-do tracker. Users will add, update, and complete tasks.",
     state=ToDoState(),
+    ai_state_enabled=False,
 )
 
 
@@ -36,6 +38,7 @@ class EngState(BaseModel):
 
 ROOT_DIR = "/Users/jeremiah/Desktop/marvin_test"
 test_app = AIApplication(
+    name="Eng app",
     description=(
         "An assistant software developer, expert in Python. Has access to any files at"
         f" {ROOT_DIR}. When generating or editing code, make sure to write it to the"
@@ -60,6 +63,7 @@ class GameState(BaseModel):
 
 
 game_app = AIApplication(
+    name="sw game",
     description=(
         "A simple text-based RPG that guides the user through an interactive mission in"
         " the Star Wars universe. Take any input from the user but do not ask any"
@@ -73,6 +77,7 @@ game_app = AIApplication(
 
 
 nested_app = AIApplication(
+    name="test app",
     description=(
         "An application that can convert between different units of measurement."
     ),
