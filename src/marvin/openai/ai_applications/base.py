@@ -4,8 +4,6 @@ import math
 from enum import Enum
 from typing import Any, Union
 
-import uvicorn
-from fastapi import Body, FastAPI
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr, validator
 
@@ -71,33 +69,44 @@ AI_APP_SYSTEM_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
 
     - Call any functions necessary to achieve the application's purpose.
     
-    {% if app.state_enabled -%}
     - Call the `UpdateAppState` function to update the application's state. This
       is where you should store any information relevant to the application
       itself.
-    {%- endif %}
 
     You can call these functions at any time, in any order, as necessary.
     Finally, respond to the user with an informative message. Remember that the
     user is probably uninterested in the internal steps you took, so respond
     only in a manner appropriate to the application's purpose.
 
-    # Current details
+    # Application details
     
-    This is the description of the application:
-     
+    ## Name
+    
+    {{ app.name }}
+    
+    ## Description
+    
     {{ app.description }}
     
-    This is the application's state:
-     
+    ## Application state
+    
     {{ app.state.json() }}
     
+    ### Application state schema
+    
+    {{ app.state.schema_json() }}
+    
     {% if app.ai_state_enabled %}
-    This is your AI state:
+    ## AI (your) state
     
     {{ app.ai_state.json() }}
+    
+    ### AI state schema
+    
+    {{ app.ai_state.schema_json() }}
     {% endif %}
-        
+    
+    ## Current details        
     Today's date is {{ dt() }}
     
     """))
@@ -132,17 +141,23 @@ class FreeformState(BaseModel):
 
 class AIApplication(MarvinBaseModel, LoggerMixin):
     description: str
+    name: str = None
     state: BaseModel = Field(default_factory=FreeformState)
     ai_state: AIState = Field(default_factory=AIState)
     tools: list[Tool] = []
     history: History = Field(default_factory=InMemoryHistory)
 
-    state_enabled: bool = True
     ai_state_enabled: bool = True
 
     @validator("tools", pre=True)
     def validate_tools(cls, v):
         v = [t.as_tool() if isinstance(t, AIApplication) else t for t in v]
+        return v
+
+    @validator("name", always=True)
+    def validate_name(cls, v):
+        if v is None:
+            v = cls.__name__
         return v
 
     async def run(self, input_text: str = None):
@@ -160,8 +175,7 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
 
         # set up tools
         tools = self.tools.copy()
-        if self.state_enabled:
-            tools.append(UpdateAppState(app=self))
+        tools.append(UpdateAppState(app=self))
         if self.ai_state_enabled:
             tools.append(UpdateAIState(app=self))
 
@@ -193,23 +207,6 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
         self.logger.debug_kv("AI response", response.content, key_style="blue")
         await self.history.add_message(response)
         return response
-
-    async def serve(self, host="127.0.0.1", port=8000):
-        app = FastAPI()
-
-        state_type = type(self.state)
-
-        @app.get("/state")
-        def get_state() -> state_type:
-            return self.state
-
-        @app.post("/run")
-        async def run(text: str = Body(embed=True)) -> ApplicationResponse:
-            return await self.run(text)
-
-        config = uvicorn.config.Config(app=app, host=host, port=port)
-        server = uvicorn.Server(config=config)
-        await server.serve()
 
     def as_tool(self, name: str = None) -> Tool:
         return AIApplicationTool(app=self, name=name)
@@ -245,8 +242,8 @@ class UpdateAppState(Tool):
     _app: "AIApplication" = PrivateAttr()
     description = """
         Update the application state by providing a list of JSON patch
-        documents. The state must always comply with this JSON schema: {{
-        TOOL._app.state.schema() }}
+        documents. The state must always comply with the application state's
+        JSON schema.
         """
 
     def __init__(self, app: AIApplication, **kwargs):
@@ -268,8 +265,7 @@ class UpdateAIState(Tool):
     _app: "AIApplication" = PrivateAttr()
     description = """
         Update the AI state by providing a list of JSON patch
-        documents. The state must always comply with this JSON schema: {{
-        TOOL._app.ai_state.schema() }}
+        documents. The state must always comply with the AI state's JSON schema.
         """
 
     def __init__(self, app: AIApplication, **kwargs):
