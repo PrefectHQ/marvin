@@ -18,13 +18,13 @@ class Message(BaseModel):
     name: str = None
     position: float = 1
     timestamp: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo("UTC")))
+    data: dict = {}
 
     def as_chat_message(self) -> dict[str, str]:
-        return {
-            "role": self.role.value.lower(),
-            "content": self.content,
-            "name": self.name,
-        }
+        msg = {"role": self.role.value.lower(), "content": self.content}
+        if self.name:
+            msg["name"] = self.name
+        return msg
 
     def as_prompt(self) -> str:
         return f"{self.role}: {self.content}"

@@ -24,12 +24,20 @@ def startproject(no_input: bool = False):
     shutil.copytree(
         source_path,
         os.path.join(os.getcwd(), project_name),
-        ignore=shutil.ignore_patterns('@*') # This will ignore all files/directories starting with @
+        ignore=shutil.ignore_patterns(
+            "@*"
+        ),  # This will ignore all files/directories starting with @
     )
-    with open(os.path.join(os.getcwd(), project_name, 'config/settings.py'), 'r') as file:
+    with open(
+        os.path.join(os.getcwd(), project_name, "config/settings.py"), "r"
+    ) as file:
         template = Template(file.read())
-        rendered = template.render(**default_settings, project_name=project_name, openai_api_key=openai_api_key)
-    with open(os.path.join(os.getcwd(), project_name, 'config/settings.py'), 'w') as rendered_file:
+        rendered = template.render(
+            **default_settings, project_name=project_name, openai_api_key=openai_api_key
+        )
+    with open(
+        os.path.join(os.getcwd(), project_name, "config/settings.py"), "w"
+    ) as rendered_file:
         rendered_file.write(rendered)
     create_env_file(
         os.path.join(os.getcwd(), project_name),
