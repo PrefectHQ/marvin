@@ -14,6 +14,14 @@ class Prompt(BaseModel, abc.ABC):
         pass
 
     def __or__(self, other):
+        """
+        Supports pipe syntax:
+        prompt = (
+            Prompt()
+            | Prompt()
+            | Prompt()
+        )
+        """
         # when the right operand is a Prompt object
         if isinstance(other, Prompt):
             return [self, other]
@@ -27,6 +35,14 @@ class Prompt(BaseModel, abc.ABC):
             )
 
     def __ror__(self, other):
+        """
+        Supports pipe syntax:
+        prompt = (
+            Prompt()
+            | Prompt()
+            | Prompt()
+        )
+        """
         # when the left operand is a Prompt object
         if isinstance(other, Prompt):
             return [other, self]
