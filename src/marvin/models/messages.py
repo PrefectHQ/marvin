@@ -19,9 +19,9 @@ class Message(BaseModel):
     position: float = 1
     timestamp: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo("UTC")))
 
-    def as_openai_chat_message(self) -> dict:
+    def as_openai_chat_message(self) -> dict[str, str]:
         return {
-            "role": self.role.lower(),
+            "role": self.role.value.lower(),
             "content": self.content,
             "name": self.name,
         }
