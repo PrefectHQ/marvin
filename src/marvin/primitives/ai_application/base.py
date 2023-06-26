@@ -1,34 +1,9 @@
 import abc
-import datetime
-from enum import Enum
-
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field, validator
 
 import marvin
-
-
-class Role(Enum):
-    USER = "USER"
-    SYSTEM = "SYSTEM"
-    ASSISTANT = "ASSISTANT"
-    FUNCTION = "FUNCTION"
-
-class Message(BaseModel):
-    role: Role
-    content: str = None
-    name: str = None
-    position: float = 1
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo("UTC")))
-
-    def as_openai_message(self) -> dict:
-        return {
-            "role": self.role,
-            "content": self.content,
-            "name": self.name,
-        }
+from marvin.models.messages import Message, Role
 
 
 class History(BaseModel):
@@ -111,14 +86,16 @@ class Model(BaseModel):
             p for p in self.prompts if p.position is not None and p.position < 0
         ]
 
-        # Sort the positive prompts in ascending order and negative prompts in descending order, but both with timestamp ascending
+        # Sort the positive prompts in ascending order and negative prompts in
+        # descending order, but both with timestamp ascending
         pos_prompts = sorted(pos_prompts, key=lambda c: c.position)
         neg_prompts = sorted(neg_prompts, key=lambda c: c.position, reverse=True)
 
         for prompt in pos_prompts + none_prompts + neg_prompts:
             messages.extend(prompt.generate())
 
-        # Combine all system messages into one and insert at the index of the first system message
+        # Combine all system messages into one and insert at the index of
+        # the first system message
         system_messages = [m for m in messages if m.role == Role.SYSTEM]
         if len(system_messages) > 1:
             system_message = Message(
