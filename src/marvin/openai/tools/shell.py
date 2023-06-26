@@ -39,11 +39,14 @@ class Shell(Tool):
 
             if result.returncode != 0:
                 return (
-                    f"Command failed with code {result.returncode} and error"
-                    f" {result.stderr.decode()}"
+                    f"Command failed with code {result.returncode} and error:"
+                    f" {result.stderr.decode() or '<No error>'}"
                 )
             else:
-                return f"Command succeeded with output {result.stdout.decode()}"
+                return (
+                    "Command succeeded with output:"
+                    f" { result.stdout.decode() or '<No output>' }"
+                )
 
         except Exception as e:
             return f"Execution failed: {str(e)}"

@@ -9,6 +9,26 @@ from marvin.utilities.strings import count_tokens
 from marvin.utilities.types import DiscriminatedUnionType
 
 
+def trim_messages(messages: list[Message], max_tokens: int) -> list[Message]:
+    # sort in reverse timestamp order
+    messages = sorted(messages, key=lambda m: m.timestamp, reverse=True)
+
+    if max_tokens is None:
+        final_messages = messages
+    else:
+        total_tokens = 0
+        final_messages = []
+        for msg in messages:
+            msg_tokens = count_tokens(msg.content)
+            if total_tokens + msg_tokens > max_tokens:
+                break
+            else:
+                final_messages.append(msg)
+                total_tokens += msg_tokens
+
+    return list(reversed(final_messages))
+
+
 class History(DiscriminatedUnionType, abc.ABC):
     @abc.abstractmethod
     async def add_message(self, message: Message):
@@ -22,24 +42,7 @@ class History(DiscriminatedUnionType, abc.ABC):
         self, n: int = None, max_tokens: int = None
     ) -> list[Message]:
         messages = await self._load_messages(n=n)
-
-        # sort in reverse timestamp order
-        messages = sorted(messages, key=lambda m: m.timestamp, reverse=True)
-
-        if max_tokens is None:
-            final_messages = messages
-        else:
-            total_tokens = 0
-            final_messages = []
-            for msg in messages:
-                msg_tokens = count_tokens(msg.content)
-                if total_tokens + msg_tokens > max_tokens:
-                    break
-                else:
-                    final_messages.append(msg)
-                    total_tokens += msg_tokens
-
-        return list(reversed(final_messages))
+        return trim_messages(messages, max_tokens=max_tokens)
 
     @abc.abstractmethod
     async def clear(self):

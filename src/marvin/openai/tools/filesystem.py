@@ -83,6 +83,8 @@ class WriteFiles(FileSystemTool):
         content = paths_and_content.values()
 
         for path, content in zip(paths, content):
+            # ensure the parent directory exists
+            path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, "w") as f:
                 f.write(content)
         return f"Files {paths} written successfully."

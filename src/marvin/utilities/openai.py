@@ -133,8 +133,7 @@ async def call_llm_chat(
                 if not isinstance(fn_args, dict):
                     raise ValueError(
                         "Expected a dictionary of arguments, got a"
-                        f" {type(fn_args).__name__}. Try calling the function again"
-                        " using the correct keyword names."
+                        f" {type(fn_args).__name__}."
                     )
 
                 # call the function
@@ -155,7 +154,7 @@ async def call_llm_chat(
                 fn_result = (
                     f"The function '{fn_name}' encountered an error:"
                     f" {str(exc)}\n\nThe payload you provided was:"
-                    f" {fn_args}\n\nYou can try calling the function"
+                    f" {fn_args}\n\nYou can try to fix the error and call the function"
                     " again.'"
                 )
                 logger.error(fn_result)
