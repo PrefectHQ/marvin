@@ -24,6 +24,7 @@ from . import utilities, models, infra, api, bot, plugins, ai_functions
 
 from marvin.plugins import Plugin, plugin
 from marvin.bot import Bot
+from marvin.ai_applications import AIApplication
 from marvin.ai_functions import ai_fn
 from marvin.ai_models import ai_model
 
