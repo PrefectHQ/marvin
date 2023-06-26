@@ -11,7 +11,7 @@ from marvin.cli.admin.scripts.create_secure_key import create_secure_key
 filename = Path(__file__).resolve()
 
 # Navigate two directories back from the current file
-source_path = filename.parent.parent.parent / "framework"
+source_path = filename.parent.parent.parent / "@framework"
 
 app = typer.Typer()
 
@@ -33,8 +33,6 @@ def startproject(no_input: bool = False):
         ('OPENAI_API_KEY', openai_api_key)
     ])
     
-
-
 @app.command()
 def startapp(no_input: bool = False):
     print('beep')
