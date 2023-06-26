@@ -10,5 +10,6 @@ def runserver():
     config = get_settings()
     subprocess.run(["uvicorn", f"{config.asgi}", "--reload"])
 
+
 if __name__ == "__main__":
     app()

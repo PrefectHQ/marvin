@@ -1,6 +1,4 @@
 import typer
-import subprocess
-import os 
 
 from .manage import app as manage
 from .admin import app as admin

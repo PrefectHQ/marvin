@@ -1,3 +1,1 @@
-from .base import AIApplication
-
-default = ''
+default = ""
