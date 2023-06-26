@@ -16,13 +16,12 @@ class Role(Enum):
     ASSISTANT = "ASSISTANT"
     FUNCTION = "FUNCTION"
 
-
 class Message(BaseModel):
     role: Role
     content: str = None
     name: str = None
     position: float = 1
-    timestamp: datetime.datetime = Field(default_factory=lambda: datetime.now(ZoneInfo("UTC")))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo("UTC")))
 
     def as_openai_message(self) -> dict:
         return {
