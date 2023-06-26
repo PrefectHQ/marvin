@@ -6,21 +6,18 @@ from pydantic import BaseModel
 
 from marvin.engines.language_models import ChatLLM
 from marvin.functions.prompts import render_prompts
-from marvin.prompts import System, User, misc
+from marvin.prompts import System, User
 from marvin.tools.format_response import FormatResponse
 
 T = TypeVar("T")
 
 ai_model_prompts = [
     System(content="""
-            The user will provide context through text that you need
-            to parse into a structured form that is compatible with the
-            FormatResponse function. Based on the text, extract or infer any
-            parameters needed by FormatResponse, including any missing data. You
-            must call FormatResponse to validate your answer before responding
-            to the user.
+            The user will provide context through text that you need to parse
+            into a structured form that is compatible with `FormatResponse`.
+            Based on the text, extract or infer any parameters needed by
+            `FormatResponse`, including any missing data.
             """),
-    misc.Now(),
     User(content="""The text to parse: {{ input_text }}"""),
 ]
 
@@ -33,6 +30,7 @@ class AIModel(BaseModel):
             messages = render_prompts(
                 ai_model_prompts, render_kwargs=dict(input_text=text)
             )
+            print(messages)
             llm_call = model.run(
                 messages=messages,
                 functions=[FormatResponse(type_=type(self)).as_openai_function()],
