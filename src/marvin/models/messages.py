@@ -21,7 +21,7 @@ class Message(BaseModel):
 
     def as_openai_chat_message(self) -> dict:
         return {
-            "role": self.role,
+            "role": self.role.lower(),
             "content": self.content,
             "name": self.name,
         }
