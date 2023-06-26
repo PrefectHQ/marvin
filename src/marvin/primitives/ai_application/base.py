@@ -2,7 +2,9 @@ import abc
 import datetime
 from enum import Enum
 
-import pendulum
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 from pydantic import BaseModel, Field, validator
 
 import marvin
@@ -20,7 +22,7 @@ class Message(BaseModel):
     content: str = None
     name: str = None
     position: float = 1
-    timestamp: datetime.datetime = Field(default_factory=lambda: pendulum.now("utc"))
+    timestamp: datetime.datetime = Field(default_factory=lambda: datetime.now(ZoneInfo("UTC")))
 
     def as_openai_message(self) -> dict:
         return {
