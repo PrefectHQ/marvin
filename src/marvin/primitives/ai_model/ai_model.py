@@ -18,6 +18,7 @@ ai_model_prompts = [
             Based on the text, extract or infer any parameters needed by
             `FormatResponse`, including any missing data.
             """),
+    # misc.Now(),
     User(content="""The text to parse: {{ input_text }}"""),
 ]
 
@@ -30,7 +31,6 @@ class AIModel(BaseModel):
             messages = render_prompts(
                 ai_model_prompts, render_kwargs=dict(input_text=text)
             )
-            print(messages)
             llm_call = model.run(
                 messages=messages,
                 functions=[FormatResponse(type_=type(self)).as_openai_function()],
