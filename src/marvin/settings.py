@@ -51,3 +51,6 @@ class Settings(BaseSettings):
 
         marvin.utilities.logging.setup_logging(level=v)
         return v
+
+
+settings = Settings()
