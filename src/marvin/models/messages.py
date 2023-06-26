@@ -4,6 +4,8 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, Field
 
+from marvin.utilities.strings import jinja_env
+
 
 class Role(Enum):
     USER = "USER"
@@ -28,3 +30,9 @@ class Message(BaseModel):
 
     def as_prompt(self) -> str:
         return f"{self.role}: {self.content}"
+
+    def render(self, **kwargs) -> "Message":
+        return Message(
+            content=jinja_env.from_string(self.content).render(**kwargs),
+            **self.dict(exclude={"content"}),
+        )

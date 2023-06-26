@@ -21,6 +21,5 @@ jinja_env = Environment(
 jinja_env.globals.update(
     zip=zip,
     arun=asyncio.run,
-    # Monday, 26 June 2023 at 09:00:00 PM UTC
-    dt=lambda: datetime.now(ZoneInfo("UTC")).strftime("%A, %d %B %Y at %I:%M:%S %p %Z"),
+    now=lambda: datetime.now(ZoneInfo("UTC")),
 )

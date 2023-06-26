@@ -1,6 +1,7 @@
 import inspect
 import logging
-from typing import Any, Callable
+from types import GenericAlias
+from typing import Any, Callable, _SpecialForm
 
 import pydantic
 from pydantic import BaseModel, PrivateAttr
@@ -57,3 +58,51 @@ def function_to_schema(function: Callable[..., Any], name: str = None) -> dict:
             raise
 
     return Model.schema()
+
+
+def safe_issubclass(type_, classes):
+    if isinstance(type_, type) and not isinstance(type_, GenericAlias):
+        return issubclass(type_, classes)
+    else:
+        return False
+
+
+def type_to_schema(type_, set_root_type: bool = True) -> dict:
+    if safe_issubclass(type_, pydantic.BaseModel):
+        return type_.schema()
+    elif set_root_type:
+
+        class Model(pydantic.BaseModel):
+            __root__: type_
+
+        return Model.schema()
+    else:
+
+        class Model(pydantic.BaseModel):
+            data: type_
+
+        return Model.schema()
+
+
+def genericalias_contains(genericalias, target_type):
+    """
+    Explore whether a type or generic alias contains a target type. The target
+    types can be a single type or a tuple of types.
+
+    Useful for seeing if a type contains a pydantic model, for example.
+    """
+    if isinstance(target_type, tuple):
+        return any(genericalias_contains(genericalias, t) for t in target_type)
+
+    if isinstance(genericalias, GenericAlias):
+        if safe_issubclass(genericalias.__origin__, target_type):
+            return True
+        for arg in genericalias.__args__:
+            if genericalias_contains(arg, target_type):
+                return True
+    elif isinstance(genericalias, _SpecialForm):
+        return False
+    else:
+        return safe_issubclass(genericalias, target_type)
+
+    return False

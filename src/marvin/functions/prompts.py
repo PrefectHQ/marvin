@@ -1,8 +1,8 @@
-from marvin.models import Message, Role
-from marvin.prompts.prompts import Prompt
+from marvin.models.messages import Message, Role
+from marvin.prompts import Prompt
 
 
-def render_prompts(prompts: list[Prompt]) -> list[Message]:
+def render_prompts(prompts: list[Prompt], render_kwargs: dict = None) -> list[Message]:
     messages = []
 
     # Separate prompts by positive, none and negative position
@@ -30,6 +30,9 @@ def render_prompts(prompts: list[Prompt]) -> list[Message]:
         system_message_index = messages.index(system_messages[0])
         messages = [m for m in messages if m.role != Role.SYSTEM]
         messages.insert(system_message_index, system_message)
+
+    # render all messages
+    messages = [m.render(**render_kwargs) for m in messages]
 
     # return all messages
     return messages

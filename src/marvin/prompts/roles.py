@@ -1,3 +1,4 @@
+import inspect
 from typing import Literal
 
 from marvin.models.messages import Message, Role
@@ -10,7 +11,11 @@ class MessagePrompt(Prompt):
     name: str = None
 
     def generate(self) -> list[Message]:
-        return [Message(role=self.role, content=self.content, name=self.name)]
+        return [
+            Message(
+                role=self.role, content=inspect.cleandoc(self.content), name=self.name
+            )
+        ]
 
 
 class System(MessagePrompt):
