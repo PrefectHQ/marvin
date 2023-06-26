@@ -36,6 +36,9 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+/sandbox/*
+!/sandbox/pyproject.toml
+
 # Unit test / coverage reports
 htmlcov/
 .tox/

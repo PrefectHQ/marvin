@@ -1,134 +1,49 @@
-# package metadata
-
-[project]
+[tool.poetry]
 name = "marvin"
-dynamic = ["version"]
-description = "A batteries-included library for building AI-powered software."
+version = "0.1.0"
+description = ""
+authors = []
 readme = "README.md"
-license = { file = "LICENSE" }
-classifiers = [
-    "Programming Language :: Python :: 3 :: Only",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-]
-keywords = ["ai", "chatbot", "llm"]
-requires-python = ">=3.9"
-dependencies = [
-    "aiofiles~=23.1",
-    "aiosqlite~=0.18",
-    "alembic~=1.10",
-    "asyncpg~=0.27",
-    "cloudpickle~=2.2",
-    "datamodel-code-generator~=0.17",
-    "fastapi~=0.89",
-    "httpx~=0.23",
-    "jinja2~=3.1",
-    "langchain~=0.0.208",
-    "nest_asyncio~=1.5",
-    "openai~=0.27",
-    "pendulum~=2.1",
-    "prefect",
-    "pydantic[dotenv]~=1.10",
-    "pyperclip~=1.8",
-    "python-multipart~=0.0.6",
-    "rich~=13.3",
-    "sqlalchemy[asyncio]~=1.4",
-    "sqlitedict~=2.1",
-    "sqlmodel~=0.0.8",
-    "textual~=0.18",
-    "tiktoken~=0.3",
-    "ulid-py~=1.1",
-    "uvicorn~=0.20",
-    "xxhash~=3.2",
-    "yake~=0.4",
-    "typer~=0.7",
 
-    # plugins requirements
-    "beautifulsoup4~=4.11",
-    "bleach~=6.0",
-    "duckduckgo_search~=3.8",
-    "fake-useragent~=1.1",
-    "google_api_python_client~=2.72",
-    "simpleeval~=0.9",
-    "trafilatura~=1.4",
-    "chardet~=5.1",
-    "wikipedia~=1.4",
-]
+[tool.poetry.dependencies]
+python = "^3.8"
+fastapi = "^0.98.0"
+typer = "^0.9.0"
+jinja2 = "^3.1.2"
+uvicorn = "^0.22.0"
+datamodel-code-generator = {version = "^0.20.0", optional = true}
+pydantic = "^1.10.9"
 
-[project.optional-dependencies]
+[tool.poetry.extras]
+generator = ["datamodel-code-generator"]
 
+[tool.poetry.scripts]
+marvin = "marvin.cli:app"
 
-dev = [
-    "black[jupyter]",
-    "ipython",
-    "mkdocs-autolinks-plugin~=0.7",
-    "mkdocs-awesome-pages-plugin~=2.8",
-    "mkdocs-material~=9.1",
-    "mkdocstrings[python]~=0.20",
-    "pandas>=2.0",
-    "pdbpp~=0.10",
-    "pre-commit>=2.21,<4.0",
-    "pytest-asyncio~=0.20",
-    "pytest-env~=0.8",
-    "pytest-sugar~=0.9",
-    "pytest~=7.2",
-    "ruff",
-]
-postgres = ["asyncpg~=0.27.0"]
-chromadb = ["chromadb~=0.3.25"]
-pdf = ["pypdf~=3.7.0"]
+[tool.poetry.dev-dependencies]
+ruff = "^0.0.274"
+jupyter = "^1.0.0"
+notebook = "^6.5.4"
 
-[project.urls]
-Code = "https://github.com/prefecthq/marvin"
-Documentation = "https://www.askmarvin.ai"
+[tool.poetry.group.framework.dependencies]
+prefect = "^2.10.17"
+sqlalchemy = "^2.0.17"
+bcrypt = "^4.0.1"
+alembic = "^1.11.1"
+aiosqlite = "^0.19.0"
+gunicorn = "^20.1.0"
 
-[project.scripts]
-marvin = "marvin.cli.cli:app"
+[tool.poetry.group.openai.dependencies]
+openai = "^0.27.8"
+tiktoken = "^0.4.0"
+
+[tool.poetry.group.lancedb.dependencies]
+lancedb = "^0.1.8"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = "^1.4.3"
 
 [build-system]
-requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
-[tool.setuptools_scm]
-
-# pytest configuration
-[tool.pytest.ini_options]
-markers = ["llm: indicates that a test calls an LLM (may be slow)."]
-
-testpaths = ["tests"]
-
-norecursedirs = [
-    "*.egg-info",
-    ".git",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".vscode",
-    "node_modules",
-]
-
-asyncio_mode = 'auto'
-
-filterwarnings = [
-    "ignore:'crypt' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
-]
-env = [
-    "MARVIN_TEST_MODE=1",
-    "D:MARVIN_DATABASE_CONNECTION_URL=sqlite+aiosqlite:////tmp/marvin/marvin-tests.sqlite",
-    "MARVIN_LOG_CONSOLE_WIDTH=120",
-    # use 3.5 for tests by default
-    'MARVIN_LLM_MODEL=gpt-3.5-turbo-0613',
-
-]
-
-# black configuration
-[tool.black]
-preview = true
-
-# ruff configuration
-[tool.ruff]
-extend-select = ["I"]
-
-[tool.ruff.per-file-ignores]
-"__init__.py" = ['I', 'F401', 'E402']
-"conftest.py" = ["F401", "F403"]
-'tests/fixtures/*.py' = ['F403']
