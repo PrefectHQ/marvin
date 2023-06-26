@@ -8,7 +8,7 @@ from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr, validator
 
 import marvin
-from marvin.bot.history import History, InMemoryHistory
+from marvin.bot.history import History, InMemoryHistory, trim_messages
 from marvin.models.threads import BaseMessage, Message
 from marvin.openai import Tool
 from marvin.utilities.openai import call_llm_chat
@@ -86,7 +86,13 @@ AI_APP_SYSTEM_MESSAGE = jinja_env.from_string(inspect.cleandoc("""
     
     ## Description
     
+    ```
+    {% if app.class_description -%}
+    {{ app.class_description }}
+    
+    {% endif -%}
     {{ app.description }}
+    ```
     
     ## Application state
     
@@ -140,13 +146,19 @@ class FreeformState(BaseModel):
 
 
 class AIApplication(MarvinBaseModel, LoggerMixin):
-    description: str
     name: str = None
+    description: str
     state: BaseModel = Field(default_factory=FreeformState)
     ai_state: AIState = Field(default_factory=AIState)
     tools: list[Tool] = []
     history: History = Field(default_factory=InMemoryHistory)
-
+    class_description: str = Field(
+        None,
+        description=(
+            "A description of the application class that can be used for specialized"
+            " documentation while still allowing users to overwrite `description`."
+        ),
+    )
     ai_state_enabled: bool = True
 
     @validator("tools", pre=True)
@@ -160,18 +172,16 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
             v = cls.__name__
         return v
 
-    async def run(self, input_text: str = None):
+    async def run(self, input_text: str = None, max_tokens: int = 4000):
         # put a placeholder for the system message
-        messages = [None]
-
-        historical_messages = await self.history.get_messages()
-        messages.extend(historical_messages)
+        historical_messages = await self.history.get_messages(max_tokens=4000)
 
         if input_text:
             self.logger.debug_kv("User input", input_text, key_style="green")
             input_message = Message(role="user", content=input_text)
             await self.history.add_message(input_message)
-            messages.append(input_message)
+        else:
+            input_message = None
 
         # set up tools
         tools = self.tools.copy()
@@ -184,9 +194,23 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
         while i <= max_iterations:
             # always regenerate the system message before calling the LLM
             # so that it will reflect any changes to state
-            messages[0] = Message(
-                role="system", content=AI_APP_SYSTEM_MESSAGE.render(app=self)
+            messages = [
+                Message(role="system", content=AI_APP_SYSTEM_MESSAGE.render(app=self))
+            ]
+            if input_message is not None:
+                messages.append(input_message)
+            tokens_used = marvin.utilities.strings.count_tokens(
+                "\n\n".join(m.content for m in messages)
             )
+            # trim historical messages + function messages to only include as
+            # much as we can without exceeding the token context
+            historical_messages = trim_messages(
+                historical_messages, max_tokens=max_tokens - tokens_used
+            )
+
+            messages.extend(historical_messages)
+            # ensure order: system, historical, user, functions
+            messages[1:] = sorted(messages[1:], key=lambda m: m.timestamp)
 
             response = await call_llm_chat(
                 messages=messages,
@@ -199,7 +223,7 @@ class AIApplication(MarvinBaseModel, LoggerMixin):
             # TODO: find a good way to support short-circuiting execution
             # e.g. raise a END exception
             if response.role == "function":
-                messages.append(response)
+                historical_messages.append(response)
                 i += 1
             else:
                 break
@@ -254,7 +278,7 @@ class UpdateAppState(Tool):
         patch = JsonPatch(patches)
         updated_state = patch.apply(self._app.state.dict())
         self._app.state = type(self._app.state)(**updated_state)
-        return f"Application state updated successfully! (payload was {patches})"
+        return "Application state updated successfully!"
 
 
 class UpdateAIState(Tool):
@@ -276,4 +300,4 @@ class UpdateAIState(Tool):
         patch = JsonPatch(patches)
         updated_state = patch.apply(self._app.ai_state.dict())
         self._app.ai_state = type(self._app.ai_state)(**updated_state)
-        return f"AI state updated successfully! (payload was {patches})"
+        return "AI state updated successfully!"
