@@ -7,6 +7,13 @@ import pytest
 from .fixtures import *
 
 
+# mark all tests in the llm_tests directory with the llm marker
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        if "llm_tests" in item.nodeid:
+            item.add_marker(pytest.mark.llm)
+
+
 @pytest.fixture(scope="session")
 def event_loop(request):
     """
