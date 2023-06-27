@@ -32,9 +32,9 @@ class OpenAIFunction(BaseModel):
 
 class ChatLLM(BaseModel):
     name: str = None
-    model: str = Field(default=marvin.settings.llm_model)
-    max_tokens: int = Field(default=marvin.settings.llm_max_tokens)
-    temperature: float = Field(default=marvin.settings.llm_temperature)
+    model: str = Field(default_factory=lambda: marvin.settings.llm_model)
+    max_tokens: int = Field(default_factory=lambda: marvin.settings.llm_max_tokens)
+    temperature: float = Field(default_factory=lambda: marvin.settings.llm_temperature)
     stream: bool = Field(default=False)
 
     _tokenizer: Optional[Callable] = None
