@@ -1,6 +1,6 @@
 from typing import Callable
 
-from fastapi import APIRouter
+from fastapi import FastAPI
 from fastapi.routing import APIRouter
 from marvin.engines.language_models import ChatLLM
 from marvin.prompts import Prompt
@@ -29,6 +29,7 @@ class Agent(
     prompts: list[Prompt] = []
     functions: list[Callable] = []
     
+    _app: FastAPI = FastAPI()
     _router: APIRouter = APIRouter()
     _function_registry: FunctionRegistry = FunctionRegistry()
         
@@ -37,16 +38,24 @@ class Agent(
         self._router.prefix = self.name
         self._function_registry.attach(functions = self.functions)
         
+    def __call__(self, path: str = '/', *args, **kwargs):
+        return(self._function_registry.routes)
+        
     @property
     def router(self):
         self._router.include_router(self._function_registry)
         return(self._router)
     
-    def register(self, *args, **route_kwargs):
+    @property
+    def app(self):
+        self._app.include_router(self.router)
+        return(self._app)
+    
+    def register(self, *args, **kwargs):
         def decorator(func):
             def wrapper(*tool):
                 return func(*tool) 
-            self._function_registry.attach(functions = [func], **route_kwargs)
+            self._function_registry.attach(functions = [func], **kwargs)
             self.functions = [route.endpoint for route in self._function_registry.routes]
             return wrapper
         return decorator
