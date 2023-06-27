@@ -1,10 +1,11 @@
 import inspect
 import json
 from logging import Logger
-from typing import Any, Callable, Union
+from typing import Any, Callable, List, Optional, Type, TypeVar, Union
 
 import openai
 import openai.openai_object
+import tiktoken
 from pydantic import BaseModel, Field, validator
 
 import marvin
@@ -36,11 +37,17 @@ class ChatLLM(BaseModel):
     temperature: float = Field(default=marvin.settings.llm_temperature)
     stream: bool = Field(default=False)
 
+    _tokenizer: Optional[Callable] = None
+
     @validator("name", always=True)
     def default_name(cls, v):
         if v is None:
             v = cls.__name__
         return v
+    
+    def get_tokens(self, text: str, **kwargs) -> list[int]:
+        enc = tiktoken.encoding_for_model(self.model)
+        return enc.encode(text)
 
     async def run(
         self,
