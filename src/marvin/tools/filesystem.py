@@ -1,6 +1,7 @@
 from pathlib import Path
+from typing import Literal
 
-from pydantic import Field
+from pydantic import BaseModel, Field, root_validator, validate_arguments
 
 from marvin.tools import Tool
 
@@ -47,8 +48,22 @@ class ListFiles(FileSystemTool):
         """List all files in `root_dir`, optionally including nested files."""
         [path] = self.validate_paths([path])
         if include_nested:
-            return [str(p) for p in path.rglob("*") if p.is_file()]
-        return [str(p) for p in path.glob("*") if p.is_file()]
+            files = [str(p) for p in path.rglob("*") if p.is_file()]
+        else:
+            files = [str(p) for p in path.glob("*") if p.is_file()]
+
+        # filter out certain files
+        files = [
+            file
+            for file in files
+            if not (
+                "__pycache__" in file
+                or "/.git/" in file
+                or file.endswith("/.gitignore")
+            )
+        ]
+
+        return files
 
 
 class ReadFiles(FileSystemTool):
@@ -57,34 +72,59 @@ class ReadFiles(FileSystemTool):
     root_dir }}. Provide '.' instead of '/' to read root.{%- endif %}}
     """
 
-    def run(self, paths: list[str]) -> list[str]:
-        """Load content of teach file into a list, prefixed with the file name."""
-        content = []
+    def run(self, paths: list[str]) -> dict[str, str]:
+        """Load content of each file into a dictionary of path: content."""
+        content = {}
         for path in self.validate_paths(paths):
             with open(path) as f:
-                content.append(f"# {path}\n\n{f.read()}")
+                content[path] = f.read()
         return content
+
+
+class WriteContent(BaseModel):
+    path: str
+    content: str
+    write_mode: Literal["overwrite", "append", "insert"] = "append"
+    insert_at_row: int = None
+
+    @root_validator
+    def check_insert_model(cls, values):
+        if values["insert_at_row"] is None and values["write_mode"] == "insert":
+            raise ValueError("Must provide `insert_at_row` when using `insert` mode.")
 
 
 class WriteFiles(FileSystemTool):
     description: str = """
-        Write content to files. The argument `paths_and_content` is a dictionary
-        that maps file paths to content: {"path/to/file": "file content"}
+        Write content to multiple files. Each `WriteContent` object in the
+        `contents` argument is an instruction to write to a specific file.
         
         {%if root_dir %} Paths must be relative to {{ root_dir }}.{% endif %}}
         
         {%if require_confirmation %} You MUST ask the user to confirm writes by
-        showing them the path and contents. {% endif %}
+        showing them details. {% endif %}
         """
     require_confirmation: bool = True
 
-    def run(self, paths_and_content: dict[str, str]) -> str:
-        paths = self.validate_paths(paths_and_content.keys())
-        content = paths_and_content.values()
+    @validate_arguments
+    def run(self, contents: list[WriteContent]) -> str:
+        for wc in contents:
+            [path] = self.validate_paths([wc.path])
 
-        for path, content in zip(paths, content):
             # ensure the parent directory exists
             path.parent.mkdir(parents=True, exist_ok=True)
-            with open(path, "w") as f:
-                f.write(content)
-        return f"Files {paths} written successfully."
+
+            if wc.write_mode == "overwrite":
+                with open(path, "w") as f:
+                    f.write(wc.content)
+            elif wc.write_mode == "append":
+                with open(path, "a") as f:
+                    f.write(wc.content)
+            elif wc.write_mode == "insert":
+                with open(path, "r") as f:
+                    contents = f.readlines()
+                contents[wc.insert_at_row] = wc.content
+
+                with open(path, "w") as f:
+                    f.writelines(contents)
+
+        return f"Files {[c.path for c in contents]} written successfully."
