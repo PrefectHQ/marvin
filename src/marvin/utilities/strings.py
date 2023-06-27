@@ -13,7 +13,6 @@ jinja_env = Environment(
     autoescape=select_autoescape(default_for_string=False),
     trim_blocks=True,
     lstrip_blocks=True,
-    enable_async=True,
     auto_reload=True,
     undefined=StrictUndefined,
 )
