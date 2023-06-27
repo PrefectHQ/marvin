@@ -11,13 +11,16 @@ R = TypeVar("R")
 # Comment from GitHub issue: https://github.com/tiangolo/typer/issues/88
 # User: https://github.com/macintacos
 
+
 class AsyncTyper(Typer):
     """Asyncronous Typer that derives from Typer.
 
-    Use this when you have an asynchronous command you want to build, otherwise, just use Typer.
+    Use this when you have an asynchronous command you want to build,
+    otherwise, just use Typer.
     """
 
-    def acommand(  # type: ignore # Because we're being generic in this decorator, 'Any' is fine for the args.
+    # Because we're being generic in this decorator, 'Any' is fine for the args.
+    def acommand(
         self,
         *args: Any,
         **kwargs: Any,
@@ -27,7 +30,7 @@ class AsyncTyper(Typer):
     ]:
         """An async decorator for Typer commands that are asynchronous."""
 
-        def decorator(  # type: ignore # Because we're being generic in this decorator, 'Any' is fine for the args.
+        def decorator(
             async_func: Callable[P, Coroutine[Any, Any, R]],
         ) -> Callable[P, Coroutine[Any, Any, R]]:
             @wraps(async_func)
@@ -37,7 +40,7 @@ class AsyncTyper(Typer):
             # Now use app.command as normal to register the synchronous function
             self.command(*args, **kwargs)(sync_func)
 
-            # We return the async function unmodified, so its library functionality is preserved.
+            # Return the async function unmodified, to preserved library functionality.
             return async_func
 
         return decorator

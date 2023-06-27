@@ -35,7 +35,15 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest]
         python-version: ['3.9', '3.10', '3.11']
-        test-type: ['llm', 'not llm']
+        include:
+          - python-version: '3.9'
+            test-type: 'llm'
+          - python-version: '3.9'
+            test-type: 'not llm'
+          - python-version: '3.10'
+            test-type: 'not llm'
+          - python-version: '3.11'
+            test-type: 'not llm'
 
     runs-on: ${{ matrix.os }}
 

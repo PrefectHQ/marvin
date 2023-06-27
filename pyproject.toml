@@ -27,6 +27,7 @@ generator = ["datamodel-code-generator"]
 marvin = "marvin.cli:app"
 
 [tool.poetry.dev-dependencies]
+pytest = "^7.2.2"
 ruff = "^0.0.274"
 jupyter = "^1.0.0"
 notebook = "^6.5.4"
