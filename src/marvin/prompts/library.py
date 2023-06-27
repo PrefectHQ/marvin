@@ -3,7 +3,7 @@ from typing import Callable, Literal
 
 from pydantic import Field
 
-from marvin.models.history import History
+from marvin.models.history import History, HistoryFilter
 from marvin.models.messages import Message, Role
 from marvin.prompts.base import Prompt
 
@@ -14,6 +14,7 @@ class MessagePrompt(Prompt):
         ..., description="The message content, which can be a Jinja2 template"
     )
     name: str = None
+    priority: int = 2
 
     def get_content(self) -> str:
         """
@@ -33,6 +34,7 @@ class MessagePrompt(Prompt):
 
 class System(MessagePrompt):
     position: int = 0
+    priority: int = 1
     role: Literal[Role.SYSTEM] = Role.SYSTEM
 
 
@@ -46,11 +48,12 @@ class User(MessagePrompt):
 
 class MessageHistory(Prompt):
     history: History
-    n_messages: int = 100
-    skip_messages: int = None
+    n: int = 100
+    skip: int = None
+    filter: HistoryFilter = None
 
     def generate(self, **kwargs) -> list[Message]:
-        return self.history.get_messages(n=self.n_messages)
+        return self.history.get_messages(n=self.n, skip=self.skip, filter=self.filter)
 
 
 class Tagged(MessagePrompt):

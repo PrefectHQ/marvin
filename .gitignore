@@ -162,3 +162,5 @@ cython_debug/
 
 # VS Code
 .vscode/
+
+local_examples/

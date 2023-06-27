@@ -5,8 +5,8 @@ from typing import Optional, Type, TypeVar
 from pydantic import BaseModel
 
 from marvin.engines.language_models import ChatLLM
-from marvin.functions.prompts import render_prompts
 from marvin.prompts import library as prompt_library
+from marvin.prompts import render_prompts
 from marvin.tools.format_response import FormatResponse
 
 T = TypeVar("T")

@@ -7,8 +7,8 @@ from typing import Callable, TypeVar
 from pydantic import BaseModel
 
 from marvin.engines.language_models import ChatLLM
-from marvin.functions.prompts import render_prompts
 from marvin.prompts import library as prompt_library
+from marvin.prompts import render_prompts
 from marvin.tools.format_response import FormatResponse
 from marvin.utilities.types import safe_issubclass
 

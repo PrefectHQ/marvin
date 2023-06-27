@@ -25,9 +25,17 @@ class Settings(BaseSettings):
 
     # LLMS
     llm_model: str = "gpt-3.5-turbo-0613"
-    llm_max_tokens: int = 1500
+    llm_max_tokens: int = Field(
+        1500, description="The max number of tokens for AI completions"
+    )
+    llm_max_context_tokens: int = Field(
+        3500, description="The max number of tokens to use for context"
+    )
     llm_temperature: float = 0.8
     llm_request_timeout_seconds: Union[float, list[float]] = 600.0
+
+    # AI APPLICATIONS
+    ai_application_max_iterations: int = None
 
     # OPENAI
     openai_api_key: SecretStr = Field(

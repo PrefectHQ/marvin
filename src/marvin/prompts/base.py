@@ -3,12 +3,32 @@ import inspect
 
 from pydantic import BaseModel, Field
 
-from marvin.models.messages import Message
-from marvin.utilities.strings import jinja_env
+import marvin
+from marvin.models.messages import Message, Role
+from marvin.utilities.strings import count_tokens, jinja_env
 
 
 class Prompt(BaseModel, abc.ABC):
-    position: int = Field(None, repr=False)
+    position: int = Field(
+        None,
+        repr=False,
+        description=(
+            "Position indicates the desired index for this prompt's messages. 0"
+            " indicates they should be first; 1 indicates they should be second; -1"
+            " indicates they should be last; None indicates they should be between any"
+            " prompts that do request a position."
+        ),
+    )
+    priority: float = Field(
+        10,
+        repr=False,
+        description=(
+            "Priority indicates the weight given when trimming messages to satisfy"
+            " context limitations. Lower numbers indicate higher priority e.g. the"
+            " highest priority is 0. The default is 10. Ties will be broken by message"
+            " timestamp and role."
+        ),
+    )
 
     @abc.abstractmethod
     def generate(self, **kwargs) -> list["Message"]:
@@ -63,3 +83,55 @@ class Prompt(BaseModel, abc.ABC):
                 f"unsupported operand type(s) for |: '{type(other).__name__}' and"
                 f" '{type(self).__name__}'"
             )
+
+
+def render_prompts(
+    prompts: list[Prompt], render_kwargs: dict = {}, max_tokens=None
+) -> list[Message]:
+    max_tokens = max_tokens or marvin.settings.llm_max_context_tokens
+
+    all_messages = []
+
+    # Separate prompts by positive, none and negative position
+    pos_prompts = [p for p in prompts if p.position is not None and p.position >= 0]
+    none_prompts = [p for p in prompts if p.position is None]
+    neg_prompts = [p for p in prompts if p.position is not None and p.position < 0]
+
+    # Sort the positive prompts in ascending order and negative prompts in
+    # descending order, but both with timestamp ascending
+    pos_prompts = sorted(pos_prompts, key=lambda c: c.position)
+    neg_prompts = sorted(neg_prompts, key=lambda c: c.position, reverse=True)
+
+    # generate messages from all prompts
+    for i, prompt in enumerate(pos_prompts + none_prompts + neg_prompts):
+        prompt_messages = prompt.generate(**render_kwargs) or []
+        all_messages.extend((prompt.priority, i, m) for m in prompt_messages)
+
+    # sort all messages by (priority asc, position desc)  and stop when the
+    # token limit is reached. This will prefer high-priority messages that are
+    # later in the message chain.
+    current_tokens = 0
+    allowed_messages = []
+    for _, position, msg in sorted(all_messages, key=lambda m: (m[0], -1 * m[1])):
+        if current_tokens >= max_tokens:
+            break
+        allowed_messages.append((position, msg))
+        current_tokens += count_tokens(msg.content)
+
+    # sort allowed messages by position to restore original order
+    messages = [msg for _, msg in sorted(allowed_messages, key=lambda m: m[0])]
+
+    # Combine all system messages into one and insert at the index of the first
+    # system message
+    system_messages = [m for m in messages if m.role == Role.SYSTEM]
+    if len(system_messages) > 1:
+        system_message = Message(
+            role=Role.SYSTEM,
+            content="\n\n".join([m.content for m in system_messages]),
+        )
+        system_message_index = messages.index(system_messages[0])
+        messages = [m for m in messages if m.role != Role.SYSTEM]
+        messages.insert(system_message_index, system_message)
+
+    # return all messages
+    return messages
