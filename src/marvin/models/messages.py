@@ -1,8 +1,9 @@
+import inspect
 from datetime import datetime
 from enum import Enum
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from marvin.utilities.strings import jinja_env
 
@@ -21,6 +22,11 @@ class Message(BaseModel):
     position: float = 1
     timestamp: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo("UTC")))
     data: dict = {}
+
+    @validator("content")
+    def clean_content(cls, v):
+        v = inspect.cleandoc(v)
+        return v
 
     def as_chat_message(self) -> dict[str, str]:
         msg = {"role": self.role.value.lower(), "content": self.content}
