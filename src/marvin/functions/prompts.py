@@ -17,7 +17,7 @@ def render_prompts(prompts: list[Prompt], render_kwargs: dict = {}) -> list[Mess
 
     # generate messages from all prompts
     for prompt in pos_prompts + none_prompts + neg_prompts:
-        messages.extend(prompt.generate())
+        messages.extend(prompt.generate(**render_kwargs) or [])
 
     # Combine all system messages into one and insert at the index of the first
     # system message
@@ -30,9 +30,6 @@ def render_prompts(prompts: list[Prompt], render_kwargs: dict = {}) -> list[Mess
         system_message_index = messages.index(system_messages[0])
         messages = [m for m in messages if m.role != Role.SYSTEM]
         messages.insert(system_message_index, system_message)
-
-    # render all messages
-    messages = [m.render(**render_kwargs) for m in messages]
 
     # return all messages
     return messages

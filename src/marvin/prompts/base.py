@@ -1,16 +1,26 @@
 import abc
+import inspect
 
 from pydantic import BaseModel, Field
 
 from marvin.models.messages import Message
+from marvin.utilities.strings import jinja_env
 
 
 class Prompt(BaseModel, abc.ABC):
     position: int = Field(None, repr=False)
 
     @abc.abstractmethod
-    def generate(self) -> list["Message"]:
+    def generate(self, **kwargs) -> list["Message"]:
         pass
+
+    def render(self, content, render_kwargs: dict = None):
+        """
+        Helper function for rendering any jinja2 template with runtime render kwargs
+        """
+        return jinja_env.from_string(inspect.cleandoc(content)).render(
+            **(render_kwargs or {})
+        )
 
     def __or__(self, other):
         """
