@@ -2,7 +2,7 @@ from marvin.models.messages import Message, Role
 from marvin.prompts import Prompt
 
 
-def render_prompts(prompts: list[Prompt], render_kwargs: dict = None) -> list[Message]:
+def render_prompts(prompts: list[Prompt], render_kwargs: dict = {}) -> list[Message]:
     messages = []
 
     # Separate prompts by positive, none and negative position
