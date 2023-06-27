@@ -58,9 +58,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip" # caching pip dependencies
           cache-dependency-path: "**/pyproject.toml"
-      - name: Install Marvin
+      - name: Install Poetry
         run: |
-          pip install ".[dev]"
+          curl -sSL https://install.python-poetry.org | python -
+      - name: Install dependencies
+        run: |
+          poetry install
       - name: Run ${{ matrix.test-type }} tests
         run: |
-          pytest -vv -m "${{ matrix.test-type }}"
+          poetry run pytest -vv -m "${{ matrix.test-type }}"
