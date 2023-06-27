@@ -1,7 +1,7 @@
 import inspect
 import json
 from logging import Logger
-from typing import Any, Callable, List, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Optional, Union
 
 import openai
 import openai.openai_object
@@ -18,7 +18,7 @@ class OpenAIFunction(BaseModel):
     name: str
     description: str = None
     parameters: dict[str, Any] = {"type": "object", "properties": {}}
-    fn: Callable = None
+    fn: Callable = Field(None, exclude=True)
 
     @classmethod
     def from_function(cls, fn: Callable, **kwargs):
@@ -44,7 +44,7 @@ class ChatLLM(BaseModel):
         if v is None:
             v = cls.__name__
         return v
-    
+
     def get_tokens(self, text: str, **kwargs) -> list[int]:
         enc = tiktoken.encoding_for_model(self.model)
         return enc.encode(text)
@@ -111,9 +111,12 @@ class ChatLLM(BaseModel):
             # Call functions if requested
             # ----------------------------------
 
+            response_data = {}
+
             if fn_call := msg.get("function_call"):
                 fn_name = fn_call.get("name")
                 fn_args = json.loads(fn_call.get("arguments", "{}"))
+                response_data.update(name=fn_name, arguments=fn_args)
                 try:
                     # retrieve the named function
                     openai_fn = next((f for f in functions if f.name == fn_name), None)
@@ -140,6 +143,7 @@ class ChatLLM(BaseModel):
                     else:
                         fn_result = fn_args
                     logger.debug(f"Result of function '{openai_fn.name}': {fn_result}")
+                    response_data["is_error"] = False
 
                 except Exception as exc:
                     fn_result = (
@@ -147,13 +151,16 @@ class ChatLLM(BaseModel):
                         f" {str(exc)}\n\nThe payload you provided was: {fn_args}\n\nYou"
                         " can try to fix the error and call the function again.'"
                     )
-                    logger.error(fn_result)
+                    logger.debug_kv("Error", fn_result, key_style="red")
+                    response_data["is_error"] = True
+
+                response_data["result"] = fn_result
 
                 response = Message(
                     role=Role.FUNCTION,
                     name=fn_name,
                     content=str(fn_result),
-                    data=dict(name=fn_name, arguments=fn_args, result=fn_result),
+                    data=response_data,
                 )
 
             # ----------------------------------
