@@ -30,6 +30,7 @@ permissions:
 
 jobs:
   run_tests:
+    name: Run ${{ matrix.test-type }} tests on Python ${{ matrix.python-version }} and ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       matrix:
@@ -63,7 +64,7 @@ jobs:
           curl -sSL https://install.python-poetry.org | python -
       - name: Install dependencies
         run: |
-          poetry install
+          poetry install --no-root
       - name: Run ${{ matrix.test-type }} tests
         run: |
           poetry run pytest -vv -m "${{ matrix.test-type }}"
