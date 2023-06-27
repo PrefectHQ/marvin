@@ -1,76 +1,56 @@
-[tool.poetry]
+[project]
 name = "marvin"
-version = "0.11.0"
-description = ""
-authors = []
+dynamic = ["version"]
+description = "A batteries-included library for building AI-powered software."
 readme = "README.md"
-repository = "https://github.com/prefecthq/marvin"
-homepage = "https://www.askmarvin.ai"
-documentation = "https://www.askmarvin.ai"
+license = { file = "LICENSE" }
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = ["ai", "chatbot", "llm"]
+requires-python = ">=3.9"
+dependencies = [
+  "fastapi>=0.98.0",
+  "jinja2>=3.1.2",
+  "pydantic[dotenv]>=1.10.9",
+  "rich>=12",
+  "typer>=0.9.0",
+  "uvicorn>=0.22.0"
+]
 
-[tool.poetry.dependencies]
-datamodel-code-generator = { version = "^0.20.0", optional = true }
-fastapi = "^0.98.0"
-jinja2 = "^3.1.2"
-openai = "^0.27.8"
-pydantic = { extras = ["dotenv"], version = "^1.10.9" }
-python = "^3.8"
-rich = "^12"
-tiktoken = "^0.4.0"
-typer = "^0.9.0"
-uvicorn = "^0.22.0"
+[project.optional-dependencies]
+generator = ["datamodel-code-generator>=0.20.0"]
+dev = [
+    "pytest>=7.2.2",
+    "ruff>=0.0.274",
+    "mkdocs>=1.4.3",
+]
+framework = [
+    "aiosqlite>=0.19.0",
+    "alembic>=1.11.1",
+    "bcrypt>=4.0.1",
+    "gunicorn>=20.1.0",
+    "prefect>=2.10.17",
+    "sqlalchemy>=2.0.17"
+]
+openai = ["openai>=0.27.8", "tiktoken>=0.4.0"]
+lancedb = ["lancedb>=0.1.8"]
 
-[tool.poetry.extras]
-generator = ["datamodel-code-generator"]
+[project.urls]
+Code = "https://github.com/prefecthq/marvin"
+Documentation = "https://www.askmarvin.ai"
 
-[tool.poetry.scripts]
+[project.scripts]
 marvin = "marvin.cli:app"
 
-[tool.poetry.dev-dependencies]
-pytest = "^7.2.2"
-ruff = "^0.0.274"
-jupyter = "^1.0.0"
-notebook = "^6.5.4"
-
-[tool.poetry.group.framework.dependencies]
-aiosqlite = "^0.19.0"
-alembic = "^1.11.1"
-bcrypt = "^4.0.1"
-gunicorn = "^20.1.0"
-prefect = "^2.10.17"
-sqlalchemy = "^2.0.17"
-
-[tool.poetry.group.openai.dependencies]
-openai = "^0.27.8"
-tiktoken = "^0.4.0"
-
-[tool.poetry.group.lancedb.dependencies]
-lancedb = "^0.1.8"
-
-[tool.poetry.group.docs.dependencies]
-mkdocs = "^1.4.3"
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
 
+[tool.setuptools_scm]
 
-# black configuration
-[tool.black]
-preview = true
-
-
-# ruff configuration
-[tool.ruff]
-extend-select = ["I"]
-
-
-[tool.ruff.per-file-ignores]
-"__init__.py" = ['I', 'F401', 'E402']
-"conftest.py" = ["F401", "F403"]
-'tests/fixtures/*.py' = ['F403']
-
-
+# pytest configuration
 [tool.pytest.ini_options]
 markers = ["llm: indicates that a test calls an LLM (may be slow)."]
 
@@ -93,10 +73,21 @@ filterwarnings = [
 ]
 env = [
     "MARVIN_TEST_MODE=1",
-    "MARVIN_LOG_LEVEL=DEBUG",
+    "D:MARVIN_DATABASE_CONNECTION_URL=sqlite+aiosqlite:////tmp/marvin/marvin-tests.sqlite",
     "MARVIN_LOG_CONSOLE_WIDTH=120",
     # use 3.5 for tests by default
-    "MARVIN_LLM_MODEL=gpt-3.5-turbo-0613",    
-    "MARVIN_LLM_MODEL_TEMPERATURE=0"
-
+    'MARVIN_LLM_MODEL=gpt-3.5-turbo-0613',
 ]
+
+# black configuration
+[tool.black]
+preview = true
+
+# ruff configuration
+[tool.ruff]
+extend-select = ["I"]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ['I', 'F401', 'E402']
+"conftest.py" = ["F401", "F403"]
+'tests/fixtures/*.py' = ['F403']
