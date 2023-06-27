@@ -1,20 +1,56 @@
 import inspect
-from typing import Callable
+from typing import Callable, Literal
 
 from pydantic import Field
 
 from marvin.models.history import History
 from marvin.models.messages import Message, Role
 from marvin.prompts.base import Prompt
-from marvin.prompts.messages import MessagePrompt, System
+
+
+class MessagePrompt(Prompt):
+    role: Role
+    content: str = Field(
+        ..., description="The message content, which can be a Jinja2 template"
+    )
+    name: str = None
+
+    def get_content(self) -> str:
+        """
+        Override this method to easily customize behavior
+        """
+        return self.content
+
+    def generate(self, **kwargs) -> list[Message]:
+        return [
+            Message(
+                role=self.role,
+                content=self.render(self.get_content(), render_kwargs=kwargs),
+                name=self.name,
+            )
+        ]
+
+
+class System(MessagePrompt):
+    position: int = 0
+    role: Literal[Role.SYSTEM] = Role.SYSTEM
+
+
+class Assistant(MessagePrompt):
+    role: Literal[Role.ASSISTANT] = Role.ASSISTANT
+
+
+class User(MessagePrompt):
+    role: Literal[Role.USER] = Role.USER
 
 
 class MessageHistory(Prompt):
     history: History
-    max_messages: int = 100
+    n_messages: int = 100
+    skip_messages: int = None
 
     def generate(self, **kwargs) -> list[Message]:
-        return self.history.get_messages(n=self.max_messages)
+        return self.history.get_messages(n=self.n_messages)
 
 
 class Tagged(MessagePrompt):

@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from marvin.engines.language_models import ChatLLM
 from marvin.functions.prompts import render_prompts
-from marvin.prompts.messages import System, User
+from marvin.prompts import library as prompt_library
 from marvin.tools.format_response import FormatResponse
 from marvin.utilities.types import safe_issubclass
 
@@ -16,7 +16,7 @@ T = TypeVar("T")
 A = TypeVar("A")
 
 prompts = [
-    System(content="""
+    prompt_library.System(content="""
         Your job is to generate likely outputs for a Python function with the
         following signature and docstring:
     
@@ -44,7 +44,7 @@ prompts = [
         the `data` parameter for validation.
         {% endif %}
         """),
-    User(content="""
+    prompt_library.User(content="""
         {% if input_binds %} 
         The function was called with the following inputs:
         
