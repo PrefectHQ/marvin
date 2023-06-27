@@ -1,6 +1,4 @@
-# Basic tests run on every PR and merges to main
-
-name: Run non-LLM tests
+name: Run Tests
 
 env:
   # enable colored output
@@ -20,7 +18,7 @@ on:
   pull_request:
     paths:
       - .github/workflows/run-tests.yml
-      - src/**
+      - src**
       - tests/**
       - pyproject.toml
       - setup.py
@@ -31,11 +29,13 @@ permissions:
   contents: read
 
 jobs:
-  run_basic_tests:
+  run_tests:
     timeout-minutes: 15
     strategy:
       matrix:
         os: [windows-latest, ubuntu-latest]
+        python-version: ['3.9', '3.10', '3.11']
+        test-type: ['llm', 'not llm']
 
     runs-on: ${{ matrix.os }}
 
@@ -44,15 +44,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python 3.9
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"
+          python-version: ${{ matrix.python-version }}
           cache: "pip" # caching pip dependencies
           cache-dependency-path: "**/pyproject.toml"
       - name: Install Marvin
         run: |
-          pip install ".[dev,chromadb]"
-      - name: Run tests that don't require LLMs
+          pip install ".[dev]"
+      - name: Run ${{ matrix.test-type }} tests
         run: |
-          pytest -v -m "not llm"
+          pytest -vv -m "${{ matrix.test-type }}"
