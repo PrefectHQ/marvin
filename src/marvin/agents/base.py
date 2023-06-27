@@ -18,11 +18,13 @@ class FunctionRegistry(APIRouter):
                 'endpoint': function
             })
         
-class Agent(BaseModel, 
+class Agent(
+    BaseModel, 
     allow_mutation = True, 
     extra = Extra.allow, 
     arbitrary_types_allowed = True
 ):
+    name: str
     engine: ChatLLM = ChatLLM()
     prompts: list[Prompt] = []
     functions: list[Callable] = []
@@ -32,6 +34,7 @@ class Agent(BaseModel,
         
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
+        self._router.prefix = self.name
         self._function_registry.attach(functions = self.functions)
         
     @property
@@ -47,3 +50,4 @@ class Agent(BaseModel,
             self.functions = [route.endpoint for route in self._function_registry.routes]
             return wrapper
         return decorator
+    
