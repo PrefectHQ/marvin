@@ -145,7 +145,7 @@ class AIApplication(LoggerMixin, BaseModel):
     description: str
     state: BaseModel = Field(default_factory=FreeformState)
     ai_state: AIState = Field(default_factory=AIState)
-    tools: list[Tool, Callable] = []
+    tools: list[Union[Tool, Callable]] = []
     history: History = Field(default_factory=History)
     additional_prompts: list[Prompt] = Field(
         [],
@@ -184,7 +184,7 @@ class AIApplication(LoggerMixin, BaseModel):
                 tools.append(tool)
             else:
                 raise ValueError(f"Tool {tool} is not a Tool or callable.")
-        return v
+        return tools
 
     @validator("name", always=True)
     def validate_name(cls, v):
