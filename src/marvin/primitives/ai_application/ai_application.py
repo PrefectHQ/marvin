@@ -195,6 +195,11 @@ class AIApplication(LoggerMixin, BaseModel):
     def __call__(self, *args, **kwargs):
         return asyncio.run(self.run(*args, **kwargs))
 
+    async def entrypoint(self, q: str): 
+        # Helper function for deployment stuff to hide the model bits from
+        # Tiangolo.
+        return await self.run(input_text=q)
+
     async def run(self, input_text: str = None, model: ChatLLM = None):
         start_time = datetime.datetime.now(ZoneInfo("UTC"))
         if model is None:
