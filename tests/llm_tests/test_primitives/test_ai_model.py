@@ -1,14 +1,14 @@
 from typing import List, Literal, Optional
 
-import pydantic
 import pytest
 from marvin import ai_model
+from pydantic import BaseModel
 
 
 class TestAIModels:
     def test_arithmetic(self):
         @ai_model
-        class Arithmetic(pydantic.BaseModel):
+        class Arithmetic(BaseModel):
             value: float
             is_odd: bool
 
@@ -18,7 +18,7 @@ class TestAIModels:
 
     def test_geospatial(self):
         @ai_model
-        class Location(pydantic.BaseModel):
+        class Location(BaseModel):
             latitude: float
             longitude: float
             city: str
@@ -36,19 +36,19 @@ class TestAIModels:
     def test_depth(self):
         from typing import List
 
-        class Country(pydantic.BaseModel):
+        class Country(BaseModel):
             name: str
 
-        class City(pydantic.BaseModel):
+        class City(BaseModel):
             name: str
             country: Country
 
-        class Neighborhood(pydantic.BaseModel):
+        class Neighborhood(BaseModel):
             name: str
             city: City
 
         @ai_model
-        class RentalHistory(pydantic.BaseModel):
+        class RentalHistory(BaseModel):
             neighborhood: List[Neighborhood]
 
         assert RentalHistory("""\
@@ -56,13 +56,13 @@ class TestAIModels:
         """)
 
     def test_resume(self):
-        class Experience(pydantic.BaseModel):
+        class Experience(BaseModel):
             technology: str
             years_of_experience: int
             supporting_phrase: Optional[str]
 
         @ai_model
-        class Resume(pydantic.BaseModel):
+        class Resume(BaseModel):
             """Details about a person's work experience."""
 
             greater_than_three_years_management_experience: bool
@@ -81,11 +81,11 @@ class TestAIModels:
         assert len(x.technologies) == 2
 
     def test_literal(self):
-        class Person(pydantic.BaseModel):
+        class Person(BaseModel):
             name: Literal["Adam", "Nate", "Jeremiah"]
 
         @ai_model
-        class Conversation(pydantic.BaseModel):
+        class Conversation(BaseModel):
             speakers: List[Person]
 
         x = Conversation("""\
@@ -101,18 +101,18 @@ class TestAIModels:
     def test_history(self):
         from typing import List
 
-        class Location(pydantic.BaseModel):
+        class Location(BaseModel):
             city: str
             state: str
 
-        class Candidate(pydantic.BaseModel):
+        class Candidate(BaseModel):
             name: str
             political_party: str
             campaign_slogan: str
             birthplace: Location
 
         @ai_model
-        class Election(pydantic.BaseModel):
+        class Election(BaseModel):
             candidates: List[Candidate]
             winner: Candidate
 
@@ -135,3 +135,21 @@ class TestAIModels:
                 ]
             )
         )
+
+
+class TestInstructions:
+    def test_follow_instructions(self):
+        @ai_model
+        class Test(BaseModel):
+            text: str
+
+        t1 = Test("Hello")
+        assert t1.text == "Hello"
+
+        # this model is identical except it has an instruction
+        @ai_model(instructions="Translate the text to French")
+        class Test(BaseModel):
+            text: str
+
+        t2 = Test("Hello")
+        assert t2.text == "Bonjour"
