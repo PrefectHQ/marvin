@@ -516,8 +516,8 @@ links = await fetch_links("https://docs.prefect.io/2.10.17")
 
 relevant_links = get_relevant_links(links, like="ones about tasks")
 """
-[{'task_arguments': 'https://docs.prefect.io/concepts/tasks/#task-arguments'},
- {'caching': 'https://docs.prefect.io/concepts/tasks/#caching'},
- {'task_runners': 'https://docs.prefect.io/concepts/task-runners/#task-runners'}]
+{'task arguments': AnyHttpUrl('https://docs.prefect.io/concepts/tasks/#task-arguments', ),
+ 'task caching': AnyHttpUrl('https://docs.prefect.io/concepts/tasks/#caching', ),
+ 'task runners': AnyHttpUrl('https://docs.prefect.io/concepts/task-runners/#task-runners', )}
 """
 ```
