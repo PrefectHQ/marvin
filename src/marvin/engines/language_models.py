@@ -1,5 +1,6 @@
 import inspect
 import json
+from ast import literal_eval
 from logging import Logger
 from typing import Any, Callable, Optional, Union
 
@@ -117,7 +118,7 @@ class ChatLLM(BaseModel):
                 fn_name = fn_call.get("name")
                 try:
                     fn_args = json.loads(fn_call.get("arguments", "{}"))
-                except:
+                except json.JSONDecodeError:
                     fn_args = literal_eval(fn_call.get("arguments", "{}"))
                 response_data.update(name=fn_name, arguments=fn_args)
                 try:
