@@ -1,6 +1,6 @@
 import jsonpatch
 import pytest
-from marvin.primitives.ai_application.base import (
+from marvin.primitives.ai_application.ai_application import (
     AIApplication,
     FreeformState,
     UpdateAppState,
