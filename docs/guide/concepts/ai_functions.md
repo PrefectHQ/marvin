@@ -460,3 +460,64 @@ dt = make_datetime("5 mins from now")
 dt.isoformat()
 # '2023-06-23T22:35:00+01:00'
 ```
+
+### Get relevant links
+
+```python
+import httpx
+import urllib.parse
+from bs4 import BeautifulSoup
+
+from pydantic import AnyHttpUrl
+from marvin import ai_fn
+
+async def fetch_links(url: str) -> list[str]:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, follow_redirects=True)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        links = [
+            a['href'] 
+            for a in soup.find_all('a', href=True)
+            if a['href'].startswith('/')
+         ]
+        return [urllib.parse.urljoin(url, link) for link in links]
+
+@ai_fn
+def get_relevant_links(links: list[str], like: str) -> dict[str, AnyHttpUrl]:
+    """
+    Return well-named `links` having a certain description of what they look `like`
+    
+    The keys of the returned dictionary are expected to be descriptive, human-readable names
+    for each of the `links`.'
+
+    For example, links `like` 'about tasks' might produce:
+      {"task caching": AnyHttpUrl("https://docs.prefect.io/concepts/tasks/#caching")}
+    """
+
+
+links = await fetch_links("https://docs.prefect.io/2.10.17")
+"""
+['https://docs.prefect.io/concepts/schedules',
+ 'https://docs.prefect.io/concepts/tasks/#task-arguments',
+ 'https://docs.prefect.io/concepts/logs/',
+ 'https://docs.prefect.io/concepts/tasks/#caching',
+ 'https://docs.prefect.io/concepts/task-runners/#task-runners',
+ 'https://docs.prefect.io/cloud/automations/',
+ 'https://docs.prefect.io/cloud/overview/',
+ 'https://docs.prefect.io/tutorial/',
+ 'https://docs.prefect.io/concepts/index/',
+ 'https://docs.prefect.io/concepts',
+ 'https://docs.prefect.io/tutorial/',
+ 'https://docs.prefect.io/getting-started/installation/',
+ 'https://docs.prefect.io/tutorial',
+ 'https://docs.prefect.io/guides',
+ 'https://docs.prefect.io/concepts']
+"""
+
+relevant_links = get_relevant_links(links, like="ones about tasks")
+"""
+[{'task_arguments': 'https://docs.prefect.io/concepts/tasks/#task-arguments'},
+ {'caching': 'https://docs.prefect.io/concepts/tasks/#caching'},
+ {'task_runners': 'https://docs.prefect.io/concepts/task-runners/#task-runners'}]
+"""
+```
