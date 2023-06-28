@@ -107,6 +107,14 @@ class AIFunction:
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
 
+        if inspect.isgeneratorfunction(self.fn):
+            generator = self.fn(*args, **kwargs)
+            try:
+                intermediate_result = next(generator)
+                bound_args.arguments["intermediate_result"] = intermediate_result
+            except StopIteration:
+                pass
+
         # build the message
         messages = render_prompts(
             prompts,
