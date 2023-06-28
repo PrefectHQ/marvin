@@ -84,7 +84,7 @@ APPLICATION_DETAILS_PROMPT = """
     
     ## Description
     
-    {{ app.description }}
+    {{ app.description | render }}
     
     ## Application state
     
@@ -141,6 +141,8 @@ class AIApplication(LoggerMixin, BaseModel):
 
     @validator("tools", pre=True)
     def validate_tools(cls, v):
+        if v is None:
+            v = []
         v = [t.as_tool() if isinstance(t, AIApplication) else t for t in v]
         return v
 
@@ -185,7 +187,7 @@ class AIApplication(LoggerMixin, BaseModel):
 
         # set up tools
         tools = self.tools.copy()
-        tools.extent([UpdateAppState(app=self), UpdateAIState(app=self)])
+        tools.extend([UpdateAppState(app=self), UpdateAIState(app=self)])
 
         i = 1
         max_iterations = marvin.settings.ai_application_max_iterations or math.inf
