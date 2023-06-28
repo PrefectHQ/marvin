@@ -15,8 +15,8 @@ A = TypeVar("A")
 ai_choice_prompts = [
     System(content="""
         {{ choice_context }}
-        The user will provide context through text, you will you your expertise 
-        to choose the best option below based on. 
+        The user will provide context through text, you will use your expertise 
+        to choose the best option below based on it. 
         {% for option in options %}
             {{ loop.index }}. {{ option }}
         {% endfor %}
@@ -72,7 +72,7 @@ class AIChoice:
 def ai_choice(fn: Callable[[A], T] = None) -> Callable[[A], T]:
     """
     @ai_choice
-    def get_choices(query:str, options: list) -> str:
+    def get_choices(query: str, options: list) -> str:
         '''You are classifying the opposite sentiment of incoming user test'''
 
     get_choices('I love twitter', ['happy', 'sad']) #happy
