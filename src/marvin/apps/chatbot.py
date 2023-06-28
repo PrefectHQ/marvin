@@ -35,3 +35,6 @@ class Bot(AIApplication):
             tools=tools,
             **kwargs,
         )
+
+
+__all__ = ["Bot"]

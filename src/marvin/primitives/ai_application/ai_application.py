@@ -3,7 +3,7 @@ import datetime
 import inspect
 import math
 from enum import Enum
-from typing import Any, Union
+from typing import Any, Callable, Union
 from zoneinfo import ZoneInfo
 
 from jsonpatch import JsonPatch
@@ -15,6 +15,7 @@ from marvin.models.history import History, HistoryFilter
 from marvin.models.messages import Message, Role
 from marvin.prompts import library as prompt_library
 from marvin.prompts import render_prompts
+from marvin.prompts.base import Prompt
 from marvin.tools import Tool
 from marvin.utilities.types import LoggerMixin
 
@@ -86,7 +87,7 @@ SYSTEM_PROMPT = """
     
     {{ app.description | render }}
     
-    {% if app.is_app_state_enabled %}
+    {% if app.app_state_enabled %}
 
     ## Application state
     
@@ -98,7 +99,7 @@ SYSTEM_PROMPT = """
     
     {% endif %}
     
-    {%- if app.is_ai_state_enabled %}
+    {%- if app.ai_state_enabled %}
     
     ## AI (your) state
     
@@ -138,26 +139,51 @@ class AIState(BaseModel):
 class FreeformState(BaseModel):
     state: dict[str, Any] = {}
 
+
 class AIApplication(LoggerMixin, BaseModel):
     name: str = None
     description: str
     state: BaseModel = Field(default_factory=FreeformState)
     ai_state: AIState = Field(default_factory=AIState)
-    tools: list[Tool] = []
+    tools: list[Tool, Callable] = []
     history: History = Field(default_factory=History)
+    additional_prompts: list[Prompt] = Field(
+        [],
+        description=(
+            "Additional prompts that will be added to the prompt stack for rendering."
+        ),
+    )
 
-    is_app_state_enabled: bool = True
-    is_ai_state_enabled: bool = True
+    app_state_enabled: bool = True
+    ai_state_enabled: bool = True
 
     @validator("description")
     def validate_description(cls, v):
         return inspect.cleandoc(v)
 
+    @validator("additional_prompts")
+    def validate_additional_prompts(cls, v):
+        if v is None:
+            v = []
+        return v
+
     @validator("tools", pre=True)
     def validate_tools(cls, v):
         if v is None:
             v = []
-        v = [t.as_tool() if isinstance(t, AIApplication) else t for t in v]
+
+        tools = []
+
+        # convert AI Applications and functions to tools
+        for tool in v:
+            if isinstance(tool, AIApplication):
+                tools.append(tool.as_tool())
+            elif callable(tool):
+                tools.append(Tool.from_function(tool))
+            elif isinstance(tool, Tool):
+                tools.append(tool)
+            else:
+                raise ValueError(f"Tool {tool} is not a Tool or callable.")
         return v
 
     @validator("name", always=True)
@@ -165,6 +191,9 @@ class AIApplication(LoggerMixin, BaseModel):
         if v is None:
             v = cls.__name__
         return v
+
+    def __call__(self, *args, **kwargs):
+        return asyncio.run(self.run(*args, **kwargs))
 
     async def run(self, input_text: str = None, model: ChatLLM = None):
         start_time = datetime.datetime.now(ZoneInfo("UTC"))
@@ -190,6 +219,7 @@ class AIApplication(LoggerMixin, BaseModel):
                 history=self.history,
                 filter=HistoryFilter(role_in=[Role.FUNCTION], timestamp_ge=start_time),
             ),
+            *self.additional_prompts,
         ]
 
         # get latest user input
@@ -200,9 +230,9 @@ class AIApplication(LoggerMixin, BaseModel):
 
         # set up tools
         tools = self.tools.copy()
-        if self.is_app_state_enabled:
+        if self.app_state_enabled:
             tools.append(UpdateAppState(app=self))
-        if self.is_ai_state_enabled:
+        if self.ai_state_enabled:
             tools.append(UpdateAIState(app=self))
 
         i = 1
