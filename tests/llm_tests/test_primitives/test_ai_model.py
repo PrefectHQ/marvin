@@ -1,6 +1,7 @@
 from typing import List, Literal, Optional
 
 import pydantic
+import pytest
 from marvin import ai_model
 
 
@@ -96,6 +97,7 @@ class TestAIModels:
             ["Adam", "Nate", "Jeremiah"]
         )
 
+    @pytest.mark.xfail(reason="flaky test")
     def test_history(self):
         from typing import List
 

@@ -23,20 +23,19 @@ ai_choice_prompts = [
         {% for option in options %}
             {{ loop.index }}. {{ option }}
         {% endfor %}
-        """
-    ),
-    User(content="""{{ input_text }}""")
+        """),
+    User(content="""{{ input_text }}"""),
 ]
 
-class AIChoice:
 
+class AIChoice:
     def __init__(self, *, fn: Callable = None):
         if fn is None:
             fn = self.run
         self.fn = fn
         self.choice_context = self.fn.__doc__
         super().__init__()
-    
+
     def __repr__(self):
         return f"<AIChoice {self.name}>"
 
@@ -50,28 +49,27 @@ class AIChoice:
     async def _call(self, query: str, options: list[str], **kwargs):
         if query and options:
             model = ChatLLM(
-                max_tokens = 1, # only return one token
-                temperature = 0 # only return the most likely token
+                max_tokens=1,  # only return one token
+                temperature=0,  # only return the most likely token
             )
-            
+
             messages = render_prompts(
-                ai_choice_prompts, render_kwargs=dict(
-                input_text=query, 
-                options=options,
-                choice_context = self.fn.__doc__
-                )
+                ai_choice_prompts,
+                render_kwargs=dict(
+                    input_text=query, options=options, choice_context=self.fn.__doc__
+                ),
             )
-            
+
             llm_call = model.run(
                 messages=messages,
-                logit_bias = { # bias the model to select an integer index
-                    next(iter(model.get_tokens(str(i)))): 100 
+                logit_bias={  # bias the model to select an integer index
+                    next(iter(model.get_tokens(str(i)))): 100
                     for i in range(1, len(options) + 1)
-                }
+                },
             )
             response = asyncio.run(llm_call)
             selected_route = int(response.content) - 1
-            return(options[selected_route])
+            return options[selected_route]
 
 
 def ai_choice(fn: Callable[[A], T] = None) -> Callable[[A], T]:
@@ -79,7 +77,7 @@ def ai_choice(fn: Callable[[A], T] = None) -> Callable[[A], T]:
     @ai_choice
     def get_choices(query:str, options: list) -> str:
         '''You are classifying the opposite sentiment of incoming user test'''
-        
+
     get_choices('I love twitter', ['happy', 'sad']) #happy
     """
     # this allows the decorator to be used with or without calling it

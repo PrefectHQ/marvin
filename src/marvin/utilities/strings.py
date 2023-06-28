@@ -37,3 +37,8 @@ def detokenize(tokens: list[int]) -> str:
 
 def count_tokens(text: str) -> int:
     return len(tokenize(text))
+
+
+def slice_tokens(text: str, n_tokens: int) -> str:
+    tokens = tokenize(text)
+    return detokenize(tokens[:n_tokens])
