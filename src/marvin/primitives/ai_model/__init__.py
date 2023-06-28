@@ -1,1 +1,1 @@
-from .ai_model import ai_model
+from .ai_model import ai_model, AIModel
