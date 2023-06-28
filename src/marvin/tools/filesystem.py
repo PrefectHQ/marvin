@@ -66,10 +66,36 @@ class ListFiles(FileSystemTool):
         return files
 
 
+class ReadFile(FileSystemTool):
+    description: str = """
+    Read the content of a specific file, optionally providing start and end
+    rows.{% if root_dir %} Paths must be relative to {{ root_dir }}. Provide '.'
+    instead of '/' to read root.{%- endif %}}
+    """
+
+    def run(self, path: str, start_row: int = 1, end_row: int = -1) -> str:
+        [path] = self.validate_paths([path])
+        with open(path, "r") as f:
+            content = f.readlines()
+
+        if start_row > 0:
+            start_row -= 1
+        if end_row < 0:
+            end_row += 1
+
+        if end_row == 0:
+            content = content[start_row - 1 :]
+        else:
+            content = content[start_row - 1 : end_row]
+
+        return "\n".join(content)
+
+
 class ReadFiles(FileSystemTool):
     description: str = """
-    Read the content of files.{% if root_dir %} Paths must be relative to {{
-    root_dir }}. Provide '.' instead of '/' to read root.{%- endif %}}
+    Read the entire content of multiple files at once.{% if root_dir %} Paths
+    must be relative to {{ root_dir }}. Provide '.' instead of '/' to read
+    root.{%- endif %}}
     """
 
     def run(self, paths: list[str]) -> dict[str, str]:
