@@ -138,7 +138,6 @@ class AIState(BaseModel):
 class FreeformState(BaseModel):
     state: dict[str, Any] = {}
 
-
 class AIApplication(LoggerMixin, BaseModel):
     name: str = None
     description: str
