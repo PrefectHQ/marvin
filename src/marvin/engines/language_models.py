@@ -115,7 +115,10 @@ class ChatLLM(BaseModel):
 
             if fn_call := msg.get("function_call"):
                 fn_name = fn_call.get("name")
-                fn_args = json.loads(fn_call.get("arguments", "{}"))
+                try:
+                    fn_args = json.loads(fn_call.get("arguments", "{}"))
+                except:
+                    fn_args = literal_eval(fn_call.get("arguments", "{}"))
                 response_data.update(name=fn_name, arguments=fn_args)
                 try:
                     # retrieve the named function
