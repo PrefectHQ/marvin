@@ -149,7 +149,7 @@ class ChatLLM(BaseModel):
                     fn_result = (
                         f"The function '{fn_name}' encountered an error:"
                         f" {str(exc)}\n\nThe payload you provided was: {fn_args}\n\nYou"
-                        " can try to fix the error and call the function again.'"
+                        " can try to fix the error and call the function again."
                     )
                     logger.debug_kv("Error", fn_result, key_style="red")
                     response_data["is_error"] = True
