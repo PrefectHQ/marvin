@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 
 class TestAIModels:
+    @pytest.mark.llm
     def test_arithmetic(self):
         @ai_model
         class Arithmetic(BaseModel):
@@ -16,6 +17,7 @@ class TestAIModels:
         assert x.value == 7
         assert x.is_odd
 
+    @pytest.mark.llm
     def test_geospatial(self):
         @ai_model
         class Location(BaseModel):
@@ -33,6 +35,7 @@ class TestAIModels:
         assert x.latitude // 1 == 40
         assert x.longitude // 1 == -97
 
+    @pytest.mark.llm
     def test_depth(self):
         from typing import List
 
@@ -55,6 +58,7 @@ class TestAIModels:
             I lived in Palms, then Mar Vista, then Pico Robertson.
         """)
 
+    @pytest.mark.llm
     def test_resume(self):
         class Experience(BaseModel):
             technology: str
@@ -80,6 +84,7 @@ class TestAIModels:
         assert not x.greater_than_ten_years_management_experience
         assert len(x.technologies) == 2
 
+    @pytest.mark.llm
     def test_literal(self):
         class Person(BaseModel):
             name: Literal["Adam", "Nate", "Jeremiah"]
@@ -97,6 +102,7 @@ class TestAIModels:
             ["Adam", "Nate", "Jeremiah"]
         )
 
+    @pytest.mark.llm
     @pytest.mark.xfail(reason="flaky test")
     def test_history(self):
         from typing import List
