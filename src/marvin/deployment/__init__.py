@@ -3,7 +3,9 @@ import uvicorn
 from pydantic import BaseModel, Extra
 from typing import TypeVar, Union, Optional
 import asyncio
-from marvin import AIApplication, AIModel, AIFunction
+from marvin import AIApplication, AIModel, AIFunction, ai_model
+import nest_asyncio
+nest_asyncio.apply()
 
 # Define the types
 A = TypeVar('A', bound='AIApplication')
@@ -39,25 +41,35 @@ class Deployment(BaseModel):
         """
         Mounts a router to the FastAPI app for each tool in the AI application.
         """
-        name = self._controller.name
-        base_path = f'/{name.lower()}'
-        self._router.get(base_path, tags=[name])(self._controller.entrypoint)
-        for tool in self._controller.tools:
-            if tool.fn:
-                tool_path = f'{base_path}/tools/{tool.name}'
-                self._router.post(tool_path, tags=[name])(tool.fn)
-        self._app.include_router(self._router)
-        self._app.tags.openapi_tags.append({
-            "name": name, 
-            "description": self._controller.description
-        })
+        
+        if issubclass(self._controller, AIApplication):
+            name = self._controller.name
+            base_path = f'/{name.lower()}'
+            self._router.get(base_path, tags=[name])(self._controller.entrypoint)
+            for tool in self._controller.tools:
+                if tool.fn:
+                    tool_path = f'{base_path}/tools/{tool.name}'
+                    self._router.post(tool_path, tags=[name])(tool.fn)
+            self._app.include_router(self._router)
+            self._app.openapi_tags = self._app.openapi_tags or []
+            self._app.openapi_tags.append({
+                "name": name, 
+                "description": self._controller.description
+            })
+            
+        if issubclass(self._controller, AIModel): 
+            raise NotImplementedError
+            
+        if issubclass(self._controller, AIFunction):
+            raise NotImplementedError
+            
 
     def serve(self):
         """
         Serves the FastAPI app.
         """
         try:
-            config = uvicorn.Config(app=self._app, **(self._uvicorn_kwargs or {}))
+            config = uvicorn.Config(**(self._uvicorn_kwargs or {}))
             server = uvicorn.Server(config)
             loop = asyncio.get_event_loop()
             loop.run_until_complete(server.serve())
