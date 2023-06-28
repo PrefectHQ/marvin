@@ -2,6 +2,7 @@ import asyncio
 import functools
 import inspect
 import re
+import sys
 from typing import Callable, TypeVar
 
 from pydantic import BaseModel
@@ -107,13 +108,26 @@ class AIFunction:
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
 
+        # handle generators
+        yield_value = None
         if inspect.isgeneratorfunction(self.fn):
-            generator = self.fn(*args, **kwargs)
+            gen = self.fn(*args, **kwargs)
             try:
-                intermediate_result = next(generator)
-                bound_args.arguments["intermediate_result"] = intermediate_result
+                yield_value = next(gen)
             except StopIteration:
                 pass
+        elif inspect.isasyncgenfunction(self.fn):
+            gen = self.fn(*args, **kwargs)
+            try:
+                if sys.version_info >= (3, 10):
+                    yield_value = await anext(gen)
+                else:
+                    yield_value = await gen.__anext__()
+            except StopAsyncIteration:
+                pass
+
+        if yield_value is not None:
+            bound_args.arguments["intermediate_result"] = yield_value
 
         # build the message
         messages = render_prompts(
