@@ -17,7 +17,6 @@ class Message(BaseModel):
     role: Role
     content: str = None
     name: str = None
-    position: float = 1
     timestamp: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo("UTC")))
     data: dict = {}
 
