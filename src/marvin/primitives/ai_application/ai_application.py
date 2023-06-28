@@ -41,35 +41,35 @@ SYSTEM_PROMPT = """
     Each time the user runs the application by sending a message, you must take
     the following steps:
     
-    {% if app.ai_state_enabled -%}
     - Call the `UpdateAIState` function to update your own state. Use your state
     to track notes, objectives, in-progress work, and to break problems down
-    into solvable, possibly dependent parts. You state consists of a few
-    fields:
+    into solvable, possibly dependent parts. You state consists of a few fields:
+    
         - `notes`: a list of notes you have taken. Notes are free-form text and
         can be used to track anything you want to remember, such as
-        long-standing user instructions, or observations about how to behave
-        or operate the application. These are exclusively related to your role
-        as intermediary and you interact with the user and application. Do not
-        track application data or state here.
+        long-standing user instructions, or observations about how to behave or
+        operate the application. Your notes should always impact your behavior.
+        These are exclusively related to your role as intermediary and you
+        interact with the user and application. Do not track application data or
+        state here.
+        
         - `tasks`: a list of tasks you are working on. Tasks track goals,
         milestones, in-progress work, and break problems down into all the
         discrete steps needed to solve them. You should create a new task for
-        any work that will require a function call other than updating state,
-        or will require more than one state update to complete. You do not
-        need to create tasks for simple state updates. Use optional parent
-        tasks to indicate nested relationships; parent tasks are not completed
-        until all their children are complete. Use optional upstream tasks to
-        indicate dependencies; a task can not be completed until its upstream
-        tasks are completed.
-    {%- endif %}
-
-    - Call any functions necessary to achieve the application's purpose.
+        any work that will require a function call other than updating state, or
+        will require more than one state update to complete. You do not need to
+        create tasks for simple state updates. Use optional parent tasks to
+        indicate nested relationships; parent tasks are not completed until all
+        their children are complete. Use optional upstream tasks to indicate
+        dependencies; a task can not be completed until its upstream tasks are
+        completed.
     
+    - Call any functions necessary to achieve the application's purpose.
+
     - Call the `UpdateAppState` function to update the application's state. This
     is where you should store any information relevant to the application
     itself.
-
+    
     You can call these functions at any time, in any order, as necessary.
     Finally, respond to the user with an informative message. Remember that the
     user is probably uninterested in the internal steps you took, so respond
@@ -84,13 +84,7 @@ APPLICATION_DETAILS_PROMPT = """
     
     ## Description
     
-    ```
-    {% if app.class_description -%}
-    {{ app.class_description }}
-    
-    {% endif -%}
     {{ app.description }}
-    ```
     
     ## Application state
     
@@ -100,7 +94,6 @@ APPLICATION_DETAILS_PROMPT = """
     
     {{ app.state.schema_json() }}
     
-    {% if app.ai_state_enabled %}
     ## AI (your) state
     
     {{ app.ai_state.json() }}
@@ -108,7 +101,6 @@ APPLICATION_DETAILS_PROMPT = """
     ### AI state schema
     
     {{ app.ai_state.schema_json() }}
-    {% endif %}
     """
 
 
@@ -146,14 +138,6 @@ class AIApplication(LoggerMixin, BaseModel):
     ai_state: AIState = Field(default_factory=AIState)
     tools: list[Tool] = []
     history: History = Field(default_factory=History)
-    class_description: str = Field(
-        None,
-        description=(
-            "A description of the application class that can be used for specialized"
-            " documentation while still allowing users to overwrite `description`."
-        ),
-    )
-    ai_state_enabled: bool = True
 
     @validator("tools", pre=True)
     def validate_tools(cls, v):
@@ -201,9 +185,7 @@ class AIApplication(LoggerMixin, BaseModel):
 
         # set up tools
         tools = self.tools.copy()
-        tools.append(UpdateAppState(app=self))
-        if self.ai_state_enabled:
-            tools.append(UpdateAIState(app=self))
+        tools.extent([UpdateAppState(app=self), UpdateAIState(app=self)])
 
         i = 1
         max_iterations = marvin.settings.ai_application_max_iterations or math.inf
