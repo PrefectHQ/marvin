@@ -1,1 +1,1 @@
-from .base import AIApplication as default
+from .ai_application import AIApplication
