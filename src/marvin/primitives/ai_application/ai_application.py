@@ -130,7 +130,6 @@ class AIState(BaseModel):
 class FreeformState(BaseModel):
     state: dict[str, Any] = {}
 
-
 class AIApplication(LoggerMixin, BaseModel):
     name: str = None
     description: str
@@ -185,7 +184,7 @@ class AIApplication(LoggerMixin, BaseModel):
 
         # set up tools
         tools = self.tools.copy()
-        tools.extent([UpdateAppState(app=self), UpdateAIState(app=self)])
+        tools.extend([UpdateAppState(app=self), UpdateAIState(app=self)])
 
         i = 1
         max_iterations = marvin.settings.ai_application_max_iterations or math.inf
