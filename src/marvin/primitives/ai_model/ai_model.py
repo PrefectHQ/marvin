@@ -14,7 +14,112 @@ from marvin.utilities.types import LoggerMixin
 T = TypeVar("T")
 
 
+extract_structured_data_prompts = [
+    prompt_library.System(content="""
+            The user will provide context as text that you need to
+            parse into a structured form. To validate your response,
+            you must call the `FormatResponse` function. Use the
+            provided text to extract or infer any parameters needed
+            by `FormatResponse`, including any missing data.
+            """),
+    prompt_library.Now(),
+    prompt_library.User(content="""The text to parse: {{ input_text }}"""),
+]
+
+generate_structured_data_prompts = [
+    prompt_library.System(content="""
+            The user may provide context as text that you need to
+            parse to generate synthetic data. To validate your response,
+            you must call the `FormatResponse` function. Use the
+            provided text to generate or hallucinate any parameters needed
+            by `FormatResponse`, including any missing data.
+            """),
+    prompt_library.Now(),
+    prompt_library.User(content="""The text to parse: {{ input_text }}"""),
+]
+
+
 class AIModel(LoggerMixin, BaseModel):
+
+    @classmethod
+    def extract(
+        cls,
+        text_: str = None,
+        *,
+        instructions_: str = None,
+        model_: ChatLLM = None,
+        **kwargs,
+    ):
+        """
+        Args:
+            text_ (str): The text to parse into a structured form. instructions_
+            (str): Additional instructions to assist the model. model_
+            (ChatLLM): The language model to use.
+        """
+        if model_ is None:
+            model_ = ChatLLM()
+        prompts = extract_structured_data_prompts
+        if instructions_:
+            prompts.append(prompt_library.System(content=instructions_))
+        messages = render_prompts(prompts, render_kwargs=dict(input_text=text_))
+        arguments = cls._call_format_response_with_retry(model_, messages)
+        return arguments
+    
+    @classmethod
+    def generate(
+        cls,
+        text_: str = None,
+        *,
+        instructions_: str = None,
+        model_: ChatLLM = None,
+        **kwargs,
+    ):
+        """
+        Args:
+            text_ (str): The text to parse into a structured form. instructions_
+            (str): Additional instructions to assist the model. model_
+            (ChatLLM): The language model to use.
+        """
+        if model_ is None:
+            model_ = ChatLLM()
+        prompts = generate_structured_data_prompts
+        if instructions_:
+            prompts.append(prompt_library.System(content=instructions_))
+        messages = render_prompts(prompts, render_kwargs=dict(input_text=text_))
+        arguments = cls._call_format_response_with_retry(model_, messages)
+        return arguments
+
+    @classmethod
+    def _call_format_response_with_retry(cls, model, messages):
+        logger = get_logger(cls.__name__)
+        retries = 0
+        while retries <= 2:
+            llm_call = model.run(
+                messages=messages,
+                functions=[FormatResponse(type_=cls).as_openai_function()],
+                function_call={"name": "FormatResponse"},
+            )
+            response = asyncio.run(llm_call)
+
+            # if the FormatResponse function errored, repeat the call to fix
+            # it up to 2 times
+            if response.data.get("is_error"):
+                retries += 1
+                if retries > 2:
+                    raise TypeError(
+                        "Could not build AI Model; most recent error was:"
+                        f" {response.content}"
+                    )
+                logger.debug(
+                    f"Error building AI Model, starting retry attempt {retries}."
+                    f" {response.content}"
+                )
+                messages.append(response)
+            else:
+                break
+
+        return response.data["arguments"]
+
     def __init__(
         self,
         text_: str = None,
@@ -30,62 +135,21 @@ class AIModel(LoggerMixin, BaseModel):
             (ChatLLM): The language model to use.
         """
         # the loggingmixin hasn't been instantiated yet
-        logger = get_logger(type(self).__name__)
 
         if text_:
             if model_ is None:
                 model_ = ChatLLM()
-
-            prompts = [
-                prompt_library.System(content="""
-                        The user will provide context as text that you need to
-                        parse into a structured form. To validate your response,
-                        you must call the `FormatResponse` function. Use the
-                        provided text to extract or infer any parameters needed
-                        by `FormatResponse`, including any missing data.
-                        """),
-                # prompt_library.Now(),
-                prompt_library.User(content="""The text to parse: {{ input_text }}"""),
-            ]
-
-            if instructions_:
-                prompts.append(prompt_library.System(content=instructions_))
-
-            messages = render_prompts(prompts, render_kwargs=dict(input_text=text_))
-
-            retries = 0
-            while retries <= 2:
-                llm_call = model_.run(
-                    messages=messages,
-                    functions=[FormatResponse(type_=type(self)).as_openai_function()],
-                    function_call={"name": "FormatResponse"},
-                )
-
-                response = asyncio.run(llm_call)
-
-                # if the FormatResponse function errored, repeat the call to fix
-                # it up to 2 times
-                if response.data.get("is_error"):
-                    retries += 1
-                    if retries > 2:
-                        raise TypeError(
-                            "Could not build AI Model; most recent error was:"
-                            f" {response.content}"
-                        )
-                    logger.debug(
-                        f"Error building AI Model, starting retry attempt {retries}."
-                        f" {response.content}"
-                    )
-                    messages.append(response)
-                else:
-                    break
-
-            arguments = response.data["arguments"]
+            arguments = self.__class__.extract(
+                text_=text_, 
+                instructions_=instructions_, 
+                model_=model_
+            )
             # overwrite with any values provided by the user
             arguments.update(kwargs)
             kwargs = arguments
         super().__init__(**kwargs)
 
+    
 
 def ai_model(
     cls: Optional[Type[T]] = None,
