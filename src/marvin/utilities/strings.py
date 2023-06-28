@@ -3,7 +3,14 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import tiktoken
-from jinja2 import ChoiceLoader, Environment, StrictUndefined, select_autoescape
+from jinja2 import (
+    ChoiceLoader,
+    Environment,
+    StrictUndefined,
+    pass_context,
+    select_autoescape,
+)
+from markupsafe import Markup
 
 jinja_env = Environment(
     loader=ChoiceLoader(
@@ -23,6 +30,22 @@ jinja_env.globals.update(
     arun=asyncio.run,
     now=lambda: datetime.now(ZoneInfo("UTC")),
 )
+
+
+@pass_context
+def render_filter(context, value):
+    """
+    Allows nested rendering of variables that may contain variables themselves
+    e.g. {{ description | render }}
+    """
+    _template = context.eval_ctx.environment.from_string(value)
+    result = _template.render(**context)
+    if context.eval_ctx.autoescape:
+        result = Markup(result)
+    return result
+
+
+jinja_env.filters["render"] = render_filter
 
 
 def tokenize(text: str) -> list[int]:

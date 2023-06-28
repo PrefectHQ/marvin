@@ -84,7 +84,7 @@ APPLICATION_DETAILS_PROMPT = """
     
     ## Description
     
-    {{ app.description }}
+    {{ app.description | render }}
     
     ## Application state
     
@@ -140,6 +140,8 @@ class AIApplication(LoggerMixin, BaseModel):
 
     @validator("tools", pre=True)
     def validate_tools(cls, v):
+        if v is None:
+            v = []
         v = [t.as_tool() if isinstance(t, AIApplication) else t for t in v]
         return v
 
