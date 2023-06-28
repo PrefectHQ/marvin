@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import inspect
 import math
 from enum import Enum
 from typing import Any, Union
@@ -74,8 +75,7 @@ SYSTEM_PROMPT = """
     Finally, respond to the user with an informative message. Remember that the
     user is probably uninterested in the internal steps you took, so respond
     only in a manner appropriate to the application's purpose.
-    """
-APPLICATION_DETAILS_PROMPT = """
+
     # Application details
     
     ## Name
@@ -86,6 +86,8 @@ APPLICATION_DETAILS_PROMPT = """
     
     {{ app.description | render }}
     
+    {% if app.is_app_state_enabled %}
+
     ## Application state
     
     {{ app.state.json() }}
@@ -94,6 +96,10 @@ APPLICATION_DETAILS_PROMPT = """
     
     {{ app.state.schema_json() }}
     
+    {% endif %}
+    
+    {%- if app.is_ai_state_enabled %}
+    
     ## AI (your) state
     
     {{ app.ai_state.json() }}
@@ -101,6 +107,8 @@ APPLICATION_DETAILS_PROMPT = """
     ### AI state schema
     
     {{ app.ai_state.schema_json() }}
+    
+    {%- endif %}
     """
 
 
@@ -139,6 +147,13 @@ class AIApplication(LoggerMixin, BaseModel):
     tools: list[Tool] = []
     history: History = Field(default_factory=History)
 
+    is_app_state_enabled: bool = True
+    is_ai_state_enabled: bool = True
+
+    @validator("description")
+    def validate_description(cls, v):
+        return inspect.cleandoc(v)
+
     @validator("tools", pre=True)
     def validate_tools(cls, v):
         if v is None:
@@ -161,7 +176,6 @@ class AIApplication(LoggerMixin, BaseModel):
         prompts = [
             # system prompts
             prompt_library.System(content=SYSTEM_PROMPT),
-            prompt_library.System(content=APPLICATION_DETAILS_PROMPT),
             # add current datetime
             prompt_library.Now(),
             # get the history of messages between user and assistant
@@ -187,7 +201,10 @@ class AIApplication(LoggerMixin, BaseModel):
 
         # set up tools
         tools = self.tools.copy()
-        tools.extend([UpdateAppState(app=self), UpdateAIState(app=self)])
+        if self.is_app_state_enabled:
+            tools.append(UpdateAppState(app=self))
+        if self.is_ai_state_enabled:
+            tools.append(UpdateAIState(app=self))
 
         i = 1
         max_iterations = marvin.settings.ai_application_max_iterations or math.inf
