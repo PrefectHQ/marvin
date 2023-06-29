@@ -49,8 +49,6 @@ async def generate_ai_response(payload: Dict) -> Message:
         history = CACHE.get(thread_ts, History())
         bot = Bot(history=history)
 
-        print(bot.history.get_messages())
-
         ai_message = await bot.run(input_text=message)
 
         CACHE[thread_ts] = bot.history
