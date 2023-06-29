@@ -15,7 +15,7 @@ def format_chatbot_response(response):
 async def chat():
     console.print("Welcome to the Chat CLI!\n")
     console.print("You can type 'quit' or 'exit' to end the conversation.\n")
-    from marvin.engines.language_models import ChatLLM
+    from marvin.engine.language_models import ChatLLM
     from marvin.models.messages import Message
 
     model = ChatLLM()

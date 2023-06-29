@@ -6,8 +6,8 @@ from typing import Any, Callable, Union
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr, validator
 
-from marvin.engines.executors import OpenAIExecutor
-from marvin.engines.language_models import ChatLLM
+from marvin.engine.executors import OpenAIExecutor
+from marvin.engine.language_models import ChatLLM
 from marvin.models.history import History, HistoryFilter
 from marvin.models.messages import Message, Role
 from marvin.prompts import library as prompt_library

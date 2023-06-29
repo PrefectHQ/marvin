@@ -6,7 +6,7 @@ from typing import Callable, TypeVar
 
 from pydantic import BaseModel
 
-from marvin.engines.executors import OpenAIExecutor
+from marvin.engine.executors import OpenAIExecutor
 from marvin.prompts import library as prompt_library
 from marvin.tools.format_response import FormatResponse
 from marvin.utilities.types import safe_issubclass

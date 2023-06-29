@@ -2,8 +2,8 @@ from typing import Callable
 
 from fastapi import FastAPI
 from fastapi.routing import APIRouter
-from marvin.engines.executors import Executor, OpenAIExecutor
-from marvin.engines.language_models import ChatLLM
+from marvin.engine.executors import Executor, OpenAIExecutor
+from marvin.engine.language_models import ChatLLM
 from marvin.functions.base import FunctionRegistry
 from marvin.prompts import Prompt
 from pydantic import BaseModel, Extra

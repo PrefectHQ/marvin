@@ -6,7 +6,7 @@ from typing import List, Optional, Union
 from pydantic import BaseModel, Field, PrivateAttr, root_validator, validator
 
 import marvin
-from marvin.engines.language_models import ChatLLM, OpenAIFunction
+from marvin.engine.language_models import ChatLLM, OpenAIFunction
 from marvin.models.messages import Message, Role
 from marvin.prompts.base import Prompt, render_prompts
 from marvin.utilities.types import LoggerMixin
@@ -44,6 +44,7 @@ class Executor(LoggerMixin, BaseModel):
         """
         Implements one step of the LLM loop
         """
+        messages = await self.process_messages(messages)
         llm_response = await self.engine.run(
             messages=messages,
             functions=self.functions,
@@ -51,12 +52,17 @@ class Executor(LoggerMixin, BaseModel):
         response = await self.process_response(llm_response)
         return response
 
+    async def process_messages(self, messages: list[Message]) -> list[Message]:
+        """Called prior to sending messages to the LLM"""
+        return messages
+
     async def stop_condition(
         self, messages: List[Message], responses: List[Message]
     ) -> bool:
         return True
 
     async def process_response(self, response: Message) -> Message:
+        """Called after receiving a response from the LLM"""
         return response
 
 

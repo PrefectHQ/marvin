@@ -5,7 +5,7 @@ from typing import Callable, TypeVar
 
 from pydantic import validate_arguments
 
-from marvin.engines.language_models import ChatLLM
+from marvin.engine.language_models import ChatLLM
 from marvin.prompts import render_prompts
 from marvin.prompts.library import System, User
 

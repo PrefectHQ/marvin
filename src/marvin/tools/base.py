@@ -4,7 +4,7 @@ from typing import Callable, Optional
 
 from pydantic import BaseModel, validator
 
-from marvin.engines.language_models import OpenAIFunction
+from marvin.engine.language_models import OpenAIFunction
 from marvin.utilities.strings import jinja_env
 from marvin.utilities.types import LoggerMixin, function_to_schema
 
