@@ -7,8 +7,37 @@ nav:
     - motivation/index.md
   - Tutorials:
     - tutorials/index.md
-  - How-To Guides:
+    - Natural Language Processing:
+      - tutorials/chatmod.md
+      - tutorials/tutor.md
+      - tutorials/assistant.md
+    - Conversational Applications:
+      - tutorials/chatbot.md
+      - tutorials/assistant.md
+      - tutorials/data.md
+    - Autonomous Applications:
+      - tutorials/smol.md
+      - tutorials/autogpt.md
+      - tutorials/workgpt.md
+    - Games:
+      - tutorials/startwars.md
+      - tutorials/twentyquestions.md
+      - tutorials/educational.md
+  - How-Tos:
     - guides/index.md
+    - Writing Prompts:
+      - guides/index.md
+    - Using Tools:
+      - guides/index.md
+    - Using Data:
+      - guides/index.md
+    - Deploying your Application:
+      - guides/index.md
+    - Orchestration:
+      - guides/index.md
+    - Observability:
+      - guides/index.md
+
   - Reference:
     - reference/index.md
     - Components:
@@ -71,6 +100,7 @@ plugins:
         fill: "#2d6df6"
   - awesome-pages
   - autolinks 
+  # - mkdocs-jupyter
   - mkdocstrings:
       handlers:
         python:
