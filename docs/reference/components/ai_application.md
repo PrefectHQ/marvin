@@ -1,5 +1,5 @@
 
-# Applications
+# Application
 on
 
 ## `ai_fn`

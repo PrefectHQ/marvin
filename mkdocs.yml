@@ -14,7 +14,7 @@ nav:
     - Components:
       - reference/components/ai_function.md
       - reference/components/ai_model.md
-      - reference/components/ai_model_factory.md
+      # - reference/components/ai_model_factory.md
       - reference/components/ai_classifier.md
       - reference/components/ai_application.md
     - Applications:
