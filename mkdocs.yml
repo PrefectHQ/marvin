@@ -4,36 +4,11 @@ site_description: A batteries-included library for building AI-powered software.
 nav:
   - Welcome: 
     - index.md
-  - Getting Started:
-    - Installation: getting_started/installation.md
-    - Chat: getting_started/chat_quickstart.md
-    - AI functions: getting_started/ai_functions_quickstart.md
-    - AI models: getting_started/ai_models_quickstart.md
-    - Bots: getting_started/bots_quickstart.md
   - The Guide:
-    - Introduction:
-      - Overview: guide/introduction/overview.md
-      - Configuration: guide/introduction/configuration.md
-      - CLI: guide/introduction/cli.md
-    - Concepts:
-      - AI functions: guide/concepts/ai_functions.md
-      - AI models: guide/concepts/ai_models.md
-      - Bots: guide/concepts/bots.md
-      - TUI: guide/concepts/tui.md
-      - Loaders: guide/concepts/loaders_and_documents.md
-      - Infrastructure: guide/concepts/infra.md
-      - Plugins: guide/concepts/plugins.md
-      - Mapping: guide/concepts/mapping.md
-    - AI Functions Library:
-      - Entity extraction: guide/ai_functions/entities.md
-      - Data: guide/ai_functions/data.md
-      - Strings: guide/ai_functions/strings.md
-    - Use Cases:
-      - Enforcing LLM output formats: guide/use_cases/enforcing_format.md
-      - Slackbot: guide/use_cases/slackbot.md
-    - Development:
-      - Setting up: development/development.md
-  - FAQ: faq.md
+    - AI Components:
+      - AI Models: guide/ai_components/ai_models.md
+  - Examples: 
+    - AI Models: examples/ai_models.md
   
 theme:
   name: material

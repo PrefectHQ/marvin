@@ -1,0 +1,29 @@
+:root > * {
+  --md-primary-fg-color: #2d6df6;
+  --md-primary-fg-color--light: #89d5ff;
+  --md-primary-fg-color--dark: #1537af;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #2d6df6;
+  --md-primary-fg-color--light: #89d5ff;
+  --md-primary-fg-color--dark: #1537af;
+}
+
+.md-typeset img {
+  max-width: 75%;
+
+  /* center on page */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.shadow {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+}
+
+/* add very slight shadow to code blocks */
+.md-typeset pre>code {
+  box-shadow: var(--md-shadow-z1);
+}
