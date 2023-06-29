@@ -10,6 +10,7 @@ nav:
       - AI Functions: guide/ai_components/ai_functions.md
   - Examples: 
     - AI Models: examples/ai_models.md
+    - AI Functions: examples/ai_functions.md
   
 theme:
   name: material
