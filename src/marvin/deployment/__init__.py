@@ -3,10 +3,7 @@ import uvicorn
 from pydantic import BaseModel, Extra
 from typing import TypeVar, Union, Optional
 import asyncio
-from marvin import AIApplication, AIModel, AIFunction, ai_model
-import nest_asyncio
-
-nest_asyncio.apply()
+from marvin import AIApplication, AIModel, AIFunction
 
 # Define the types
 A = TypeVar("A", bound="AIApplication")

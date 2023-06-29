@@ -15,7 +15,9 @@ SLACK_MENTION_REGEX = r"<@(\w+)>"
 CACHE = TTLCache(maxsize=1000, ttl=86400)
 
 
-async def post_message(message: str, channel: str) -> httpx.Response:
+async def post_message(
+    message: str, channel: str, thread_ts: str = None
+) -> httpx.Response:
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://slack.com/api/chat.postMessage",
@@ -24,7 +26,7 @@ async def post_message(message: str, channel: str) -> httpx.Response:
                     f"Bearer {marvin.settings.slack_api_token.get_secret_value()}"
                 )
             },
-            json={"channel": channel, "text": message},
+            json={"channel": channel, "text": message, "thread_ts": thread_ts},
         )
 
     response.raise_for_status()
@@ -52,7 +54,11 @@ async def generate_ai_response(payload: Dict) -> Message:
         ai_message = await bot.run(input_text=message)
 
         CACHE[thread_ts] = bot.history
-        await post_message(ai_message.content, channel=event.get("channel", ""))
+        await post_message(
+            message=ai_message.content,
+            channel=event.get("channel", ""),
+            thread_ts=thread_ts,
+        )
 
         return ai_message
 
