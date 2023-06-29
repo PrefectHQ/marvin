@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     openai_organization: str = Field(None)
     openai_api_base: str = None
 
+    # SLACK
+    slack_api_token: SecretStr = Field(
+        None,
+        description="The Slack API token to use for the Slack client",
+    )
+
     @root_validator
     def initial_setup(cls, values):
         # ensure the home directory exists
