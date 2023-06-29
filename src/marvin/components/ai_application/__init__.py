@@ -1,1 +1,1 @@
-from .ai_application import AIApplication
+from .base import AIApplication

@@ -1,1 +1,1 @@
-from .ai_function import ai_fn, AIFunction
+from .base import ai_fn, AIFunction
