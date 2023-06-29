@@ -6,8 +6,8 @@ class Agent(AIApplication):
 
     def __init__(self, **kwargs):
         super().__init__(
-            app_state_enabled=False,
-            ai_state_enabled=False,
+            state_enabled=False,
+            plan_enabled=False,
             **kwargs,
         )
 

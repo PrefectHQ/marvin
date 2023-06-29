@@ -22,7 +22,7 @@ class ToDoApp(AIApplication):
         A simple to-do tracker. Users will give instructions to add, remove, and
         update their to-dos.
         """
-    ai_state_enabled: bool = False
+    plan_enabled: bool = False
 
 
 __all__ = ["ToDoApp"]

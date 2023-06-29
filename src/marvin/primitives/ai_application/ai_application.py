@@ -30,7 +30,7 @@ SYSTEM_PROMPT = """
     # Instructions
     
     Your primary job is to maintain the application's `state` and your own
-    `ai_state`. Together, these two states fully parameterize the application,
+    `plan`. Together, these two states fully parameterize the application,
     making it resilient, serializable, and observable. You do this autonomously;
     you do not need to inform the user of any changes you make. 
     
@@ -39,9 +39,11 @@ SYSTEM_PROMPT = """
     Each time the user runs the application by sending a message, you must take
     the following steps:
     
-    - Call the `UpdateAIState` function to update your own state. Use your state
+    {% if app.plan_enabled %}
+
+    - Call the `UpdatePlan` function to update your plan. Use your plan
     to track notes, objectives, in-progress work, and to break problems down
-    into solvable, possibly dependent parts. You state consists of a few fields:
+    into solvable, possibly dependent parts. You plan consists of a few fields:
     
         - `notes`: a list of notes you have taken. Notes are free-form text and
         can be used to track anything you want to remember, such as
@@ -62,11 +64,17 @@ SYSTEM_PROMPT = """
         dependencies; a task can not be completed until its upstream tasks are
         completed.
     
+    {% endif %}
+    
     - Call any functions necessary to achieve the application's purpose.
 
-    - Call the `UpdateAppState` function to update the application's state. This
+    {% if app.state_enabled %}
+
+    - Call the `UpdateState` function to update the application's state. This
     is where you should store any information relevant to the application
     itself.
+    
+    {% endif %}
     
     You can call these functions at any time, in any order, as necessary.
     Finally, respond to the user with an informative message. Remember that the
@@ -83,7 +91,7 @@ SYSTEM_PROMPT = """
     
     {{ app.description | render }}
     
-    {% if app.app_state_enabled %}
+    {% if app.state_enabled %}
 
     ## Application state
     
@@ -95,15 +103,15 @@ SYSTEM_PROMPT = """
     
     {% endif %}
     
-    {%- if app.ai_state_enabled %}
+    {%- if app.plan_enabled %}
     
     ## AI (your) state
     
-    {{ app.ai_state.json() }}
+    {{ app.plan.json() }}
     
     ### AI state schema
     
-    {{ app.ai_state.schema_json() }}
+    {{ app.plan.schema_json() }}
     
     {%- endif %}
     """
@@ -127,7 +135,7 @@ class Task(BaseModel):
     state: TaskState = TaskState.IN_PROGRESS
 
 
-class AIState(BaseModel):
+class AppPlan(BaseModel):
     tasks: list[Task] = []
     notes: list[str] = []
 
@@ -140,7 +148,7 @@ class AIApplication(LoggerMixin, BaseModel):
     name: str = None
     description: str
     state: BaseModel = Field(default_factory=FreeformState)
-    ai_state: AIState = Field(default_factory=AIState)
+    plan: AppPlan = Field(default_factory=AppPlan)
     tools: list[Union[Tool, Callable]] = []
     history: History = Field(default_factory=History)
     additional_prompts: list[Prompt] = Field(
@@ -150,8 +158,8 @@ class AIApplication(LoggerMixin, BaseModel):
         ),
     )
 
-    app_state_enabled: bool = True
-    ai_state_enabled: bool = True
+    state_enabled: bool = True
+    plan_enabled: bool = True
 
     @validator("description")
     def validate_description(cls, v):
@@ -226,10 +234,9 @@ class AIApplication(LoggerMixin, BaseModel):
 
         # set up tools
         tools = self.tools.copy()
-        if self.app_state_enabled:
-            tools.append(UpdateAppState(app=self))
-        if self.ai_state_enabled:
-
+        if self.state_enabled:
+            tools.append(UpdateState(app=self))
+        if self.plan_enabled:
             tools.append(UpdatePlan(app=self))
 
         planner = OpenAIPlanner(functions=[t.as_openai_function() for t in tools])
@@ -271,7 +278,7 @@ class JSONPatchModel(BaseModel):
         allow_population_by_field_name = True
 
 
-class UpdateAppState(Tool):
+class UpdateState(Tool):
     """
     Updates state using JSON Patch documents.
     """
@@ -279,7 +286,7 @@ class UpdateAppState(Tool):
     _app: "AIApplication" = PrivateAttr()
     description = """
         Update the application state by providing a list of JSON patch
-        documents. The state must always comply with the application state's
+        documents. The state must always comply with the state's
         JSON schema.
         """
 
@@ -294,15 +301,15 @@ class UpdateAppState(Tool):
         return "Application state updated successfully!"
 
 
-class UpdateAIState(Tool):
+class UpdatePlan(Tool):
     """
     Updates state using JSON Patch documents.
     """
 
     _app: "AIApplication" = PrivateAttr()
     description = """
-        Update the AI state by providing a list of JSON patch
-        documents. The state must always comply with the AI state's JSON schema.
+        Update the application plan by providing a list of JSON patch
+        documents. The state must always comply with the plan's JSON schema.
         """
 
     def __init__(self, app: AIApplication, **kwargs):
@@ -311,6 +318,6 @@ class UpdateAIState(Tool):
 
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
-        updated_state = patch.apply(self._app.ai_state.dict())
-        self._app.ai_state = type(self._app.ai_state)(**updated_state)
-        return "AI state updated successfully!"
+        updated_state = patch.apply(self._app.plan.dict())
+        self._app.plan = type(self._app.plan)(**updated_state)
+        return "Application plan updated successfully!"

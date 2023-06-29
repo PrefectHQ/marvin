@@ -38,8 +38,8 @@ class Bot(AIApplication):
             instructions=instructions,
             description=description,
             tools=tools,
-            app_state_enabled=False,
-            ai_state_enabled=False,
+            state_enabled=False,
+            plan_enabled=False,
             **kwargs,
         )
 
