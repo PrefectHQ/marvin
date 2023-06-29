@@ -44,7 +44,8 @@ class Deployment(BaseModel):
         """
         Mounts a router to the FastAPI app for each tool in the AI application.
         """
-        if isinstance(self._controller, AIApplication):
+
+        if issubclass(self._controller.__class__, AIApplication):
             name = self._controller.name
             base_path = f"/{name.lower()}"
             self._router.get(base_path, tags=[name])(self._controller.entrypoint)
@@ -58,10 +59,10 @@ class Deployment(BaseModel):
                 {"name": name, "description": self._controller.description}
             )
 
-        if isinstance(self._controller, AIModel):
+        if issubclass(self._controller.__class__, AIModel):
             raise NotImplementedError
 
-        if isinstance(self._controller, AIFunction):
+        if issubclass(self._controller.__class__, AIFunction):
             raise NotImplementedError
 
     def serve(self):
