@@ -1,0 +1,87 @@
+{# This file was automatically generated - do not edit #}
+
+{% extends "main.html" %}
+
+{% block tabs %}
+  {{ super() }}
+  <style>
+    .md-header {
+      position: initial;
+    }
+
+    .md-main__inner {
+      margin: 0;
+    }
+
+    .md-content {
+      display: none;
+    }
+
+    @media screen and (min-width: 60em) {
+      .md-sidebar--secondary {
+        display: none;
+      }
+    }
+
+    @media screen and (min-width: 76.25em) {
+      .md-sidebar--primary {
+        display: none;
+      }
+    }
+    
+    .hero {
+      padding-top: 144px;
+    }
+    
+    .hero h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0rem;
+    }
+
+    .hero p {
+      margin-bottom: 2rem;
+    }
+    
+    .type-heading-md {
+      font-size: 1.875rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .lg\:type-heading-lg {
+      font-size: 2.5rem;
+    }
+    
+    .mb-6 {
+      margin-bottom: 1.5rem;
+    }
+    
+    .svelte-4civr7 {
+      /* Add your custom styles here */
+    }
+  </style>
+  <section class="mdx-container">
+    <div class="md-grid md-typeset">
+      <div class="mdx-hero hero">
+        <div class="mdx-hero__content">
+          <h1 class="hero-heading">Build with LLMs, in ambient mode.</h1>
+          <p>{{ config.site_description }}</p>
+          <a href="{{ page.next_page.url | url }}" title="{{ page.next_page.title | e }}" class="md-button md-button--primary">
+            Quick start
+          </a>
+          <a href="{{ 'insiders/' | url }}" title="Material for MkDocs Insiders" class="md-button">
+            Get Insiders
+          </a>
+        </div>
+        <div class="mdx-hero__framework">
+          <!-- Framework piece goes here -->
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block content %}
+{% endblock %}
+
+{% block sidebar %}
+{% endblock %}

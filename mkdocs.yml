@@ -1,19 +1,63 @@
 site_name: Marvin
 site_url: https://askmarvin.ai
+
 site_description: A batteries-included library for building AI-powered software.
 nav:
-  - Welcome: 
-    - index.md
-  - The Guide:
+  - Motivation:
+    - motivation/index.md
+  - Tutorials:
+    - tutorials/index.md
+    - Natural Language Processing:
+      - tutorials/chatmod.md
+      - tutorials/tutor.md
+      - tutorials/assistant.md
+    - Conversational Applications:
+      - tutorials/chatbot.md
+      - tutorials/assistant.md
+      - tutorials/data.md
+    - Autonomous Applications:
+      - tutorials/smol.md
+      - tutorials/autogpt.md
+      - tutorials/workgpt.md
+    - Games:
+      - tutorials/startwars.md
+      - tutorials/twentyquestions.md
+      - tutorials/educational.md
+  - How-Tos:
+    - guides/index.md
+    - Writing Prompts:
+      - guides/index.md
+    - Using Tools:
+      - guides/index.md
+    - Using Data:
+      - guides/index.md
+    - Deploying your Application:
+      - guides/index.md
+    - Orchestration:
+      - guides/index.md
+    - Observability:
+      - guides/index.md
+
+  - Reference:
+    - reference/index.md
     - Components:
-      - AI Models: guide/ai_components/ai_models.md
-      - AI Functions: guide/ai_components/ai_functions.md
-  - Examples: 
-    - AI Models: examples/ai_models.md
-    - AI Functions: examples/ai_functions.md
+      - reference/components/ai_function.md
+      - reference/components/ai_model.md
+      # - reference/components/ai_model_factory.md
+      - reference/components/ai_classifier.md
+      - reference/components/ai_application.md
+    - Applications:
+      - reference/applications/index.md
+    - Configuration:
+      - reference/configuration/index.md
+    - Deployment:
+      - reference/deployment/index.md
+  - Contributing:
+    - contributing/index.md
   
 theme:
   name: material
+  custom_dir: docs/overrides
   font: 
     text: Inter
     code: JetBrains Mono
@@ -25,8 +69,6 @@ theme:
     - navigation.tabs.sticky
     - navigation.sections
     - navigation.footer
-    - toc.follow
-    - toc.integrate 
     - content.action.edit
     - content.code.copy
     - content.code.annotate 
@@ -58,6 +100,7 @@ plugins:
         fill: "#2d6df6"
   - awesome-pages
   - autolinks 
+  # - mkdocs-jupyter
   - mkdocstrings:
       handlers:
         python:
@@ -91,6 +134,8 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+      title: On this page
+      
 repo_url: https://github.com/prefecthq/marvin
 edit_uri: edit/main/docs/
 extra:
@@ -105,4 +150,8 @@ extra:
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/askmarvinai
 extra_css:
-  - stylesheets/extra.css
+- static/css/termynal.css
+- static/css/custom.css
+extra_javascript:
+- static/js/termynal.js
+- static/js/custom.js
