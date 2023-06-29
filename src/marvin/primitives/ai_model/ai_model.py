@@ -16,11 +16,11 @@ T = TypeVar("T")
 
 extract_structured_data_prompts = [
     prompt_library.System(content="""
-            The user will provide context as text that you need to
-            parse into a structured form. To validate your response,
-            you must call the `FormatResponse` function. Use the
-            provided text to extract or infer any parameters needed
-            by `FormatResponse`, including any missing data.
+            The user will provide context as text that you need to parse into a
+            structured form. To validate your response, you must call the
+            `FormatResponse` function. Use the provided text to extract or infer
+            any parameters needed by `FormatResponse`, including any missing
+            data.
             """),
     prompt_library.Now(),
     prompt_library.User(content="""The text to parse: {{ input_text }}"""),
@@ -28,11 +28,11 @@ extract_structured_data_prompts = [
 
 generate_structured_data_prompts = [
     prompt_library.System(content="""
-            The user may provide context as text that you need to
-            parse to generate synthetic data. To validate your response,
-            you must call the `FormatResponse` function. Use the
-            provided text to generate or hallucinate any parameters needed
-            by `FormatResponse`, including any missing data.
+            The user may provide context as text that you need to parse to
+            generate synthetic data. To validate your response, you must call
+            the `FormatResponse` function. Use the provided text to generate or
+            invent any parameters needed by `FormatResponse`, including any
+            missing data. It is okay to make up representative data.
             """),
     prompt_library.Now(),
     prompt_library.User(content="""The text to parse: {{ input_text }}"""),
@@ -47,6 +47,7 @@ class AIModel(LoggerMixin, BaseModel):
         *,
         instructions_: str = None,
         model_: ChatLLM = None,
+        as_dict_: bool = False,
         **kwargs,
     ):
         """
@@ -62,7 +63,11 @@ class AIModel(LoggerMixin, BaseModel):
             prompts.append(prompt_library.System(content=instructions_))
         messages = render_prompts(prompts, render_kwargs=dict(input_text=text_))
         arguments = cls._call_format_response_with_retry(model_, messages)
-        return arguments
+        arguments.update(kwargs)
+        if as_dict_:
+            return arguments
+        else:
+            return cls(**arguments)
 
     @classmethod
     def generate(
@@ -86,7 +91,8 @@ class AIModel(LoggerMixin, BaseModel):
             prompts.append(prompt_library.System(content=instructions_))
         messages = render_prompts(prompts, render_kwargs=dict(input_text=text_))
         arguments = cls._call_format_response_with_retry(model_, messages)
-        return arguments
+        arguments.update(kwargs)
+        return cls(**arguments)
 
     @classmethod
     def _call_format_response_with_retry(cls, model, messages):
@@ -127,12 +133,15 @@ class AIModel(LoggerMixin, BaseModel):
         if text_:
             if model_ is None:
                 model_ = ChatLLM()
-            arguments = self.__class__.extract(
-                text_=text_, instructions_=instructions_, model_=model_
+
+            # use the extract constructor to build the class
+            kwargs = self.__class__.extract(
+                text_=text_,
+                instructions_=instructions_,
+                model_=model_,
+                as_dict_=True,
+                **kwargs,
             )
-            # overwrite with any values provided by the user
-            arguments.update(kwargs)
-            kwargs = arguments
         super().__init__(**kwargs)
 
 
