@@ -1,11 +1,12 @@
-from fastapi import FastAPI, APIRouter
-import uvicorn
-from pydantic import BaseModel, Extra
-from typing import TypeVar, Union, Optional
 import asyncio
+from typing import TypeVar, Union, Optional
+
+import uvicorn
+from fastapi import FastAPI, APIRouter
+from pydantic import BaseModel, Extra
+
 from marvin import AIApplication, AIModel, AIFunction
 
-# Define the types
 A = TypeVar("A", bound="AIApplication")
 B = TypeVar("B", bound="AIModel")
 C = TypeVar("C", bound="AIFunction")
@@ -42,7 +43,7 @@ class Deployment(BaseModel):
         Mounts a router to the FastAPI app for each tool in the AI application.
         """
 
-        if issubclass(self._controller.__class__, AIApplication):
+        if isinstance(self._controller, AIApplication):
             name = self._controller.name
             base_path = f"/{name.lower()}"
             self._router.get(base_path, tags=[name])(self._controller.entrypoint)
@@ -56,10 +57,10 @@ class Deployment(BaseModel):
                 {"name": name, "description": self._controller.description}
             )
 
-        if issubclass(self._controller.__class__, AIModel):
+        if isinstance(self._controller, AIModel):
             raise NotImplementedError
 
-        if issubclass(self._controller.__class__, AIFunction):
+        if isinstance(self._controller, AIFunction):
             raise NotImplementedError
 
     def serve(self):
