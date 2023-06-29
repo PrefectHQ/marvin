@@ -40,7 +40,6 @@ generate_structured_data_prompts = [
 
 
 class AIModel(LoggerMixin, BaseModel):
-
     @classmethod
     def extract(
         cls,
@@ -64,7 +63,7 @@ class AIModel(LoggerMixin, BaseModel):
         messages = render_prompts(prompts, render_kwargs=dict(input_text=text_))
         arguments = cls._call_format_response_with_retry(model_, messages)
         return arguments
-    
+
     @classmethod
     def generate(
         cls,
@@ -140,16 +139,13 @@ class AIModel(LoggerMixin, BaseModel):
             if model_ is None:
                 model_ = ChatLLM()
             arguments = self.__class__.extract(
-                text_=text_, 
-                instructions_=instructions_, 
-                model_=model_
+                text_=text_, instructions_=instructions_, model_=model_
             )
             # overwrite with any values provided by the user
             arguments.update(kwargs)
             kwargs = arguments
         super().__init__(**kwargs)
 
-    
 
 def ai_model(
     cls: Optional[Type[T]] = None,
