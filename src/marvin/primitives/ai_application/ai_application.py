@@ -1,9 +1,7 @@
 import asyncio
-import datetime
 import inspect
 from enum import Enum
 from typing import Any, Callable, Union
-from zoneinfo import ZoneInfo
 
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr, validator
@@ -199,7 +197,6 @@ class AIApplication(LoggerMixin, BaseModel):
         return response.content
 
     async def run(self, input_text: str = None, model: ChatLLM = None):
-        datetime.datetime.now(ZoneInfo("UTC"))
         if model is None:
             model = ChatLLM()
 
