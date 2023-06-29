@@ -1,15 +1,11 @@
 import asyncio
-from typing import TypeVar, Union, Optional
+from typing import Union, Optional
 
 import uvicorn
 from fastapi import FastAPI, APIRouter
 from pydantic import BaseModel, Extra
 
 from marvin import AIApplication, AIModel, AIFunction
-
-A = TypeVar("A", bound="AIApplication")
-B = TypeVar("B", bound="AIModel")
-C = TypeVar("C", bound="AIFunction")
 
 
 class Deployment(BaseModel):
@@ -19,7 +15,7 @@ class Deployment(BaseModel):
 
     def __init__(
         self,
-        component: Union[A, B, C],
+        component: Union[AIApplication, AIModel, AIFunction],
         *args,
         app_kwargs: Optional[dict] = None,
         router_kwargs: Optional[dict] = None,
