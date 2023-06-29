@@ -2,8 +2,8 @@ from typing import Callable
 
 from fastapi import FastAPI
 from fastapi.routing import APIRouter
-from marvin.engines.controller import Controller, OpenAIController
 from marvin.engines.language_models import ChatLLM
+from marvin.engines.planner import OpenAIPlanner, Planner
 from marvin.functions.base import FunctionRegistry
 from marvin.prompts import Prompt
 from pydantic import BaseModel, Extra
@@ -18,7 +18,7 @@ class Agent(
     functions: list[Callable] = []
 
     _app: FastAPI = FastAPI()
-    _flow: Controller = OpenAIController
+    _flow: Planner = OpenAIPlanner
     _router: APIRouter = APIRouter
     _function_registry: FunctionRegistry = FunctionRegistry
 

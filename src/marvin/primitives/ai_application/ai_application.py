@@ -233,11 +233,11 @@ class AIApplication(LoggerMixin, BaseModel):
         if self.ai_state_enabled:
             tools.append(UpdateAIState(app=self))
 
-        from marvin.engines.controller import OpenAIController
+        from marvin.engines.planner import OpenAIPlanner
 
-        controller = OpenAIController(functions=[t.as_openai_function() for t in tools])
+        planner = OpenAIPlanner(functions=[t.as_openai_function() for t in tools])
 
-        responses = await controller.start(
+        responses = await planner.start(
             prompts=prompts,
             prompt_render_kwargs=dict(app=self, input_text=input_text),
         )

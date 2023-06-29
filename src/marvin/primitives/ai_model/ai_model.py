@@ -4,8 +4,8 @@ from typing import Optional, Type, TypeVar
 
 from pydantic import BaseModel
 
-from marvin.engines.controller import OpenAIController
 from marvin.engines.language_models import ChatLLM
+from marvin.engines.planner import OpenAIPlanner
 from marvin.prompts import library as prompt_library
 from marvin.prompts import render_prompts
 from marvin.tools.format_response import FormatResponse
@@ -90,14 +90,14 @@ class AIModel(LoggerMixin, BaseModel):
 
     @classmethod
     def _call_format_response_with_retry(cls, model, messages):
-        controller = OpenAIController(
+        planner = OpenAIPlanner(
             engine=model,
             functions=[FormatResponse(type_=cls).as_openai_function()],
             function_call={"name": "FormatResponse"},
             max_iterations=3,
         )
 
-        llm_call = controller.start(prompts=messages)
+        llm_call = planner.start(prompts=messages)
         responses = asyncio.run(llm_call)
         response = responses[-1]
 
