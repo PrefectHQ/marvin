@@ -144,6 +144,7 @@ class TestAIModels:
 
 
 class TestInstructions:
+    @pytest.mark.llm
     def test_follow_instructions(self):
         @ai_model
         class Test(BaseModel):
