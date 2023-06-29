@@ -98,7 +98,7 @@ class MessageWrapper(Prompt):
 
 
 def render_prompts(
-    prompts: list[Union[Prompt, Message]], render_kwargs: dict = {}, max_tokens=None
+    prompts: list[Union[Prompt, Message]], render_kwargs: dict = None, max_tokens=None
 ) -> list[Message]:
     max_tokens = max_tokens or marvin.settings.llm_max_context_tokens
 
@@ -122,7 +122,7 @@ def render_prompts(
 
     # generate messages from all prompts
     for i, prompt in enumerate(pos_prompts + none_prompts + neg_prompts):
-        prompt_messages = prompt.generate(**render_kwargs) or []
+        prompt_messages = prompt.generate(**(render_kwargs or {})) or []
         all_messages.extend((prompt.priority, i, m) for m in prompt_messages)
 
     # sort all messages by (priority asc, position desc)  and stop when the
