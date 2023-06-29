@@ -1,6 +1,3 @@
-import inspect
-import json
-from ast import literal_eval
 from logging import Logger
 from typing import Any, Callable, Optional, Union
 
@@ -11,7 +8,7 @@ from pydantic import BaseModel, Field, validator
 
 import marvin
 import marvin.utilities.types
-from marvin.models.messages import Message, Role
+from marvin.models.messages import Message
 from marvin.utilities.logging import get_logger
 
 
@@ -107,71 +104,8 @@ class ChatLLM(BaseModel):
         )
 
         msg = response.choices[0].message.to_dict_recursive()
-        if msg["role"] == "assistant":
-            # ----------------------------------
-            # Call functions if requested
-            # ----------------------------------
-
-            response_data = {}
-
-            if fn_call := msg.get("function_call"):
-                fn_name = fn_call.get("name")
-                try:
-                    fn_args = json.loads(fn_call.get("arguments", "{}"))
-                except json.JSONDecodeError:
-                    fn_args = literal_eval(fn_call.get("arguments", "{}"))
-                response_data.update(name=fn_name, arguments=fn_args)
-                try:
-                    # retrieve the named function
-                    openai_fn = next((f for f in functions if f.name == fn_name), None)
-                    if openai_fn is None:
-                        raise ValueError(f'Function "{fn_call["name"]}" not found.')
-
-                    if not isinstance(fn_args, dict):
-                        raise ValueError(
-                            "Expected a dictionary of arguments, got a"
-                            f" {type(fn_args).__name__}."
-                        )
-
-                    # call the function
-                    if openai_fn.fn is not None:
-                        logger.debug(
-                            f"Running function '{openai_fn.name}' with payload"
-                            f" {fn_args}"
-                        )
-                        fn_result = openai_fn.fn(**fn_args)
-                        if inspect.isawaitable(fn_result):
-                            fn_result = await fn_result
-
-                    # if the function is undefined, return the arguments as its output
-                    else:
-                        fn_result = fn_args
-                    logger.debug(f"Result of function '{openai_fn.name}': {fn_result}")
-                    response_data["is_error"] = False
-
-                except Exception as exc:
-                    fn_result = (
-                        f"The function '{fn_name}' encountered an error:"
-                        f" {str(exc)}\n\nThe payload you provided was: {fn_args}\n\nYou"
-                        " can try to fix the error and call the function again."
-                    )
-                    logger.debug_kv("Error", fn_result, key_style="red")
-                    response_data["is_error"] = True
-
-                response_data["result"] = fn_result
-
-                response = Message(
-                    role=Role.FUNCTION,
-                    name=fn_name,
-                    content=str(fn_result),
-                    data=response_data,
-                )
-
-            # ----------------------------------
-            # Otherwise return AI response
-            # ----------------------------------
-
-            else:
-                response = Message(role=Role.ASSISTANT, content=msg["content"])
-
-        return response
+        return Message(
+            role=msg.pop("role").upper(),
+            content=msg.pop("content"),
+            data=msg,
+        )

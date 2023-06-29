@@ -1,5 +1,6 @@
 import abc
 import inspect
+from typing import Union
 
 from pydantic import BaseModel, Field
 
@@ -85,12 +86,29 @@ class Prompt(BaseModel, abc.ABC):
             )
 
 
+class MessageWrapper(Prompt):
+    """
+    A Prompt class that stores and returns a specific Message
+    """
+
+    message: Message
+
+    def generate(self, **kwargs) -> list[Message]:
+        return [self.message]
+
+
 def render_prompts(
-    prompts: list[Prompt], render_kwargs: dict = {}, max_tokens=None
+    prompts: list[Union[Prompt, Message]], render_kwargs: dict = {}, max_tokens=None
 ) -> list[Message]:
     max_tokens = max_tokens or marvin.settings.llm_max_context_tokens
 
     all_messages = []
+
+    # if the user supplied any messages, wrap them in a MessageWrapper so we can
+    # treat them as prompts for sorting and filtering
+    prompts = [
+        MessageWrapper(message=p) if isinstance(p, Message) else p for p in prompts
+    ]
 
     # Separate prompts by positive, none and negative position
     pos_prompts = [p for p in prompts if p.position is not None and p.position >= 0]
