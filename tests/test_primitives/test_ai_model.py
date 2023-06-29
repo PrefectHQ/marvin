@@ -10,11 +10,11 @@ class TestAIModels:
     def test_arithmetic(self):
         @ai_model
         class Arithmetic(BaseModel):
-            value: float
+            sum: float
             is_odd: bool
 
         x = Arithmetic("One plus six")
-        assert x.value == 7
+        assert x.sum == 7
         assert x.is_odd
 
     @pytest.mark.llm

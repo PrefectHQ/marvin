@@ -106,7 +106,7 @@ class AIModel(LoggerMixin, BaseModel):
                 f"Could not build AI Model; most recent error was: {response.content}"
             )
 
-        return response.data["arguments"]
+        return response.data.get("arguments", {})
 
     def __init__(
         self,
