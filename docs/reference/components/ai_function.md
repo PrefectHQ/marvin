@@ -7,8 +7,11 @@
 
 ```python
 @ai_fn
-def extract_products(text: str) -> list[str]:
-    """Returns a list of all products mentioned in a webpage"""
+def extract_contract_terms(text: str) -> list[str]:
+    """
+    Returns a list of all key terms, conditions, and clauses mentioned in a 
+    legal contract.
+    """
 ```
 
 ## Use Large Language Models *without prompts*.
@@ -29,11 +32,11 @@ AI functions are especially useful for activies that would be difficult, time-co
 
 ```python
 @ai_fn
-def extract_keywords(text:str, criteria:str=None) -> list[str]:
+def analyze_customer_sentiment(reviews: list[str]) -> dict:
     """
-    Extract important keywords from text, optionally only including 
-    those that meet the provided criteria (for example, "colors", 
-    "proper nouns", or "European capitals")
+    Returns an analysis of customer sentiment, including common 
+    complaints, praises, and suggestions, from a list of product 
+    reviews.
     """
 ```
 
@@ -49,10 +52,31 @@ Use hallucination as a literal feature. Generate data that would be impossible
 or prohibatively expensive to purchase as you rapidly protype NLP pipelines. 
 
 ```python
+
+class FinancialReport(pydantic.BaseModel):
+    ...
+
 @ai_fn
-def generate_synthetic_data(n: str, condition: str) -> list[Person]:
+def generate_financial_scenario(
+    n: int, market_conditions: str
+) -> list[FinancialReport]:
     """
-    Generates `n` synthetic patient and symptom profiles 
-    for `condition`.
+    Generates `n` synthetic financial reports based on specified 
+    `market_conditions` (e.g., 'recession', 'bull market', 'stagnant economy').
+    """
+```
+
+```python
+
+class IoTData(pydantic.BaseModel):
+    ...
+
+@ai_fn
+def generate_synthetic_IoT_data(
+    n: int, device_type: str
+) -> list[IoTData]:
+    """
+    Generates `n` synthetic data points mimicking those from a specified 
+    `device_type` in an IoT system.
     """
 ```
