@@ -1,8 +1,4 @@
 ---
-title: Welcome to Marvin
+template: home.html
+title: Material for MkDocs
 ---
-
-# Welcome to Marvin 🤖🏖️
-
-![](img/heroes/ai_model_windy_city_hero.png){ width="400" }
-

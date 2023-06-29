@@ -2,18 +2,20 @@ site_name: Marvin
 site_url: https://askmarvin.ai
 site_description: A batteries-included library for building AI-powered software.
 nav:
-  - Welcome: 
-    - index.md
-  - The Guide:
-    - Components:
-      - AI Models: guide/ai_components/ai_models.md
-      - AI Functions: guide/ai_components/ai_functions.md
-  - Examples: 
-    - AI Models: examples/ai_models.md
-    - AI Functions: examples/ai_functions.md
+  - Motivation:
+    - motivation/index.md
+  - Tutorials:
+    - tutorials/index.md
+  - How-To Guides:
+    - guides/index.md
+  - Reference:
+    - reference/index.md
+  - Contributing:
+    - contributing/index.md
   
 theme:
   name: material
+  custom_dir: docs/overrides
   font: 
     text: Inter
     code: JetBrains Mono
