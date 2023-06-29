@@ -5,8 +5,9 @@ nav:
   - Welcome: 
     - index.md
   - The Guide:
-    - AI Components:
+    - Components:
       - AI Models: guide/ai_components/ai_models.md
+      - AI Functions: guide/ai_components/ai_functions.md
   - Examples: 
     - AI Models: examples/ai_models.md
   
