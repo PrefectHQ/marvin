@@ -6,9 +6,8 @@ from typing import Callable, TypeVar
 
 from pydantic import BaseModel
 
-from marvin.engines.language_models import ChatLLM
+from marvin.engines.controller import OpenAIController
 from marvin.prompts import library as prompt_library
-from marvin.prompts import render_prompts
 from marvin.tools.format_response import FormatResponse
 from marvin.utilities.types import safe_issubclass
 
@@ -107,10 +106,13 @@ class AIFunction:
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
 
-        # build the message
-        messages = render_prompts(
-            prompts,
-            render_kwargs=dict(
+        controller = OpenAIController(
+            functions=[FormatResponse(type_=return_annotation).as_openai_function()],
+            function_call={"name": "FormatResponse"},
+        )
+        [response] = await controller.start(
+            prompts=prompts,
+            prompt_render_kwargs=dict(
                 function_def=function_def,
                 function_name=self.fn.__name__,
                 function_description=(
@@ -119,12 +121,6 @@ class AIFunction:
                 basemodel_response=safe_issubclass(return_annotation, BaseModel),
                 input_binds=bound_args.arguments,
             ),
-        )
-        model = ChatLLM()
-        response = await model.run(
-            messages=messages,
-            functions=[FormatResponse(type_=return_annotation).as_openai_function()],
-            function_call={"name": "FormatResponse"},
         )
 
         return response.data["result"]

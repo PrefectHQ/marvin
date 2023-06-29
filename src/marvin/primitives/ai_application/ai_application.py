@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import inspect
-import math
 from enum import Enum
 from typing import Any, Callable, Union
 from zoneinfo import ZoneInfo
@@ -9,12 +8,10 @@ from zoneinfo import ZoneInfo
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr, validator
 
-import marvin
 from marvin.engines.language_models import ChatLLM
 from marvin.models.history import History, HistoryFilter
 from marvin.models.messages import Message, Role
 from marvin.prompts import library as prompt_library
-from marvin.prompts import render_prompts
 from marvin.prompts.base import Prompt
 from marvin.tools import Tool
 from marvin.utilities.types import LoggerMixin
@@ -202,7 +199,7 @@ class AIApplication(LoggerMixin, BaseModel):
         return response.content
 
     async def run(self, input_text: str = None, model: ChatLLM = None):
-        start_time = datetime.datetime.now(ZoneInfo("UTC"))
+        datetime.datetime.now(ZoneInfo("UTC"))
         if model is None:
             model = ChatLLM()
 
@@ -220,11 +217,6 @@ class AIApplication(LoggerMixin, BaseModel):
             ),
             # get the user's latest input with higher priority the history
             prompt_library.User(content="{{ input_text }}"),
-            # get the history of function outputs for this specific call
-            prompt_library.MessageHistory(
-                history=self.history,
-                filter=HistoryFilter(role_in=[Role.FUNCTION], timestamp_ge=start_time),
-            ),
             *self.additional_prompts,
         ]
 
@@ -241,30 +233,20 @@ class AIApplication(LoggerMixin, BaseModel):
         if self.ai_state_enabled:
             tools.append(UpdateAIState(app=self))
 
-        i = 1
-        max_iterations = marvin.settings.ai_application_max_iterations or math.inf
-        while i <= max_iterations:
-            messages = render_prompts(
-                prompts, render_kwargs=dict(app=self, input_text=input_text)
-            )
+        from marvin.engines.controller import OpenAIController
 
-            response = await model.run(
-                messages=messages,
-                functions=[t.as_openai_function() for t in tools],
-                function_call="auto" if i < max_iterations else "none",
-            )
+        controller = OpenAIController(functions=[t.as_openai_function() for t in tools])
 
-            self.history.add_message(response)
-            i += 1
+        responses = await controller.start(
+            prompts=prompts,
+            prompt_render_kwargs=dict(app=self, input_text=input_text),
+        )
 
-            # if the result was a function call, then run the LLM again
-            # TODO: find a good way to support short-circuiting execution
-            # e.g. raise a END exception
-            if response.role != Role.FUNCTION:
-                break
+        for r in responses:
+            self.history.add_message(r)
 
-        self.logger.debug_kv("AI response", response.content, key_style="blue")
-        return response
+        self.logger.debug_kv("AI response", responses[-1].content, key_style="blue")
+        return responses[-1]
 
     def as_tool(self, name: str = None) -> Tool:
         return AIApplicationTool(app=self, name=name)

@@ -4,11 +4,11 @@ from typing import Optional, Type, TypeVar
 
 from pydantic import BaseModel
 
+from marvin.engines.controller import OpenAIController
 from marvin.engines.language_models import ChatLLM
 from marvin.prompts import library as prompt_library
 from marvin.prompts import render_prompts
 from marvin.tools.format_response import FormatResponse
-from marvin.utilities.logging import get_logger
 from marvin.utilities.types import LoggerMixin
 
 T = TypeVar("T")
@@ -40,7 +40,6 @@ generate_structured_data_prompts = [
 
 
 class AIModel(LoggerMixin, BaseModel):
-
     @classmethod
     def extract(
         cls,
@@ -64,7 +63,7 @@ class AIModel(LoggerMixin, BaseModel):
         messages = render_prompts(prompts, render_kwargs=dict(input_text=text_))
         arguments = cls._call_format_response_with_retry(model_, messages)
         return arguments
-    
+
     @classmethod
     def generate(
         cls,
@@ -91,32 +90,21 @@ class AIModel(LoggerMixin, BaseModel):
 
     @classmethod
     def _call_format_response_with_retry(cls, model, messages):
-        logger = get_logger(cls.__name__)
-        retries = 0
-        while retries <= 2:
-            llm_call = model.run(
-                messages=messages,
-                functions=[FormatResponse(type_=cls).as_openai_function()],
-                function_call={"name": "FormatResponse"},
-            )
-            response = asyncio.run(llm_call)
+        controller = OpenAIController(
+            engine=model,
+            functions=[FormatResponse(type_=cls).as_openai_function()],
+            function_call={"name": "FormatResponse"},
+            max_iterations=3,
+        )
 
-            # if the FormatResponse function errored, repeat the call to fix
-            # it up to 2 times
-            if response.data.get("is_error"):
-                retries += 1
-                if retries > 2:
-                    raise TypeError(
-                        "Could not build AI Model; most recent error was:"
-                        f" {response.content}"
-                    )
-                logger.debug(
-                    f"Error building AI Model, starting retry attempt {retries}."
-                    f" {response.content}"
-                )
-                messages.append(response)
-            else:
-                break
+        llm_call = controller.start(prompts=messages)
+        responses = asyncio.run(llm_call)
+        response = responses[-1]
+
+        if response.data.get("is_error"):
+            raise TypeError(
+                f"Could not build AI Model; most recent error was: {response.content}"
+            )
 
         return response.data["arguments"]
 
@@ -140,16 +128,13 @@ class AIModel(LoggerMixin, BaseModel):
             if model_ is None:
                 model_ = ChatLLM()
             arguments = self.__class__.extract(
-                text_=text_, 
-                instructions_=instructions_, 
-                model_=model_
+                text_=text_, instructions_=instructions_, model_=model_
             )
             # overwrite with any values provided by the user
             arguments.update(kwargs)
             kwargs = arguments
         super().__init__(**kwargs)
 
-    
 
 def ai_model(
     cls: Optional[Type[T]] = None,

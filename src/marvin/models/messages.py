@@ -22,7 +22,8 @@ class Message(BaseModel):
 
     @validator("content")
     def clean_content(cls, v):
-        v = inspect.cleandoc(v)
+        if v is not None:
+            v = inspect.cleandoc(v)
         return v
 
     def as_chat_message(self) -> dict[str, str]:
