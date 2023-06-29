@@ -81,7 +81,7 @@ if __name__ == "__main__":
     )
 
     deployment = Deployment(
-        primitive=slackbot,
+        component=slackbot,
         app_kwargs={
             "title": "Marvin Slackbot",
             "description": "A Slackbot powered by Marvin",

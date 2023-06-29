@@ -21,7 +21,7 @@ class Deployment(BaseModel):
 
     def __init__(
         self,
-        primitive: Union[A, B, C],
+        component: Union[A, B, C],
         *args,
         app_kwargs: Optional[dict] = None,
         router_kwargs: Optional[dict] = None,
@@ -31,7 +31,7 @@ class Deployment(BaseModel):
         super().__init__(**kwargs)
         self._app = FastAPI(**(app_kwargs or {}))
         self._router = APIRouter(**(router_kwargs or {}))
-        self._controller = primitive
+        self._controller = component
         self._mount_router()
         self._uvicorn_kwargs = {
             "app": self._app,

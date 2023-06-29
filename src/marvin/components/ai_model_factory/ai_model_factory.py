@@ -1,7 +1,7 @@
 from typing import TypeVar
 
+from marvin.components.ai_model.ai_model import ai_model
 from marvin.models.meta import DataSchema
-from marvin.primitives.ai_model.ai_model import ai_model
 
 T = TypeVar("T")
 

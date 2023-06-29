@@ -1,5 +1,5 @@
 from .settings import settings
-from .primitives import (
+from .components import (
     ai_fn,
     AIApplication,
     ai_model,
