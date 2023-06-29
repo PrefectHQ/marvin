@@ -2,6 +2,11 @@
   --md-primary-fg-color: #2d6df6;
   --md-primary-fg-color--light: #89d5ff;
   --md-primary-fg-color--dark: #1537af;
+
+  --md-code-bg-color: rgba(142, 187, 255, 0.05);
+  --md-code-border-color: rgba(52, 140, 255, 0.2);
+  --md-code-bg-color--hover: rgba(142, 187, 255, 0.15);
+  --md-code-border-color--hover: rgba(52, 140, 255, 0.5);
 }
 
 [data-md-color-scheme="slate"] {
@@ -20,10 +25,20 @@
 }
 
 .shadow {
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+  box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 
+.md-typeset code {
+  color: #006aff;
+  padding: 0.2em 0.5em;
+  border: 1px solid var(--md-code-border-color);
+  border-radius: 4px;
+}
+.md-typeset code:hover {
+  background-color: var(--md-code-bg-color--hover);
+  border-color: var(--md-code-border-color--hover);
+}
 /* add very slight shadow to code blocks */
-.md-typeset pre>code {
+.md-typeset pre > code {
   box-shadow: var(--md-shadow-z1);
 }
