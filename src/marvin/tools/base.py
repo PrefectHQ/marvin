@@ -37,7 +37,9 @@ class Tool(LoggerMixin, BaseModel):
         return self.run(*args, **kwargs)
 
     def argument_schema(self) -> dict:
-        return function_to_schema(self.fn or self.run)
+        schema = function_to_schema(self.fn or self.run)
+        schema.pop("title", None)
+        return schema
 
     def as_openai_function(self) -> OpenAIFunction:
         schema = self.argument_schema()
