@@ -7,6 +7,7 @@ from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr, validator
 
 from marvin.engines.language_models import ChatLLM
+from marvin.engines.planner import OpenAIPlanner
 from marvin.models.history import History, HistoryFilter
 from marvin.models.messages import Message, Role
 from marvin.prompts import library as prompt_library
@@ -228,9 +229,8 @@ class AIApplication(LoggerMixin, BaseModel):
         if self.app_state_enabled:
             tools.append(UpdateAppState(app=self))
         if self.ai_state_enabled:
-            tools.append(UpdateAIState(app=self))
 
-        from marvin.engines.planner import OpenAIPlanner
+            tools.append(UpdatePlan(app=self))
 
         planner = OpenAIPlanner(functions=[t.as_openai_function() for t in tools])
 
