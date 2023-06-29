@@ -6,8 +6,8 @@ from typing import Any, Callable, Union
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr, validator
 
+from marvin.engines.executors import OpenAIExecutor
 from marvin.engines.language_models import ChatLLM
-from marvin.engines.planner import OpenAIPlanner
 from marvin.models.history import History, HistoryFilter
 from marvin.models.messages import Message, Role
 from marvin.prompts import library as prompt_library
@@ -239,9 +239,9 @@ class AIApplication(LoggerMixin, BaseModel):
         if self.plan_enabled:
             tools.append(UpdatePlan(app=self))
 
-        planner = OpenAIPlanner(functions=[t.as_openai_function() for t in tools])
+        executor = OpenAIExecutor(functions=[t.as_openai_function() for t in tools])
 
-        responses = await planner.start(
+        responses = await executor.start(
             prompts=prompts,
             prompt_render_kwargs=dict(app=self, input_text=input_text),
         )

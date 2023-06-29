@@ -12,7 +12,7 @@ from marvin.prompts.base import Prompt, render_prompts
 from marvin.utilities.types import LoggerMixin
 
 
-class Planner(LoggerMixin, BaseModel):
+class Executor(LoggerMixin, BaseModel):
     engine: ChatLLM = Field(default_factory=ChatLLM)
     _should_stop: bool = PrivateAttr(False)
 
@@ -60,7 +60,7 @@ class Planner(LoggerMixin, BaseModel):
         return response
 
 
-class OpenAIPlanner(Planner):
+class OpenAIExecutor(Executor):
     functions: List[OpenAIFunction] = Field(default=[])
     function_call: Union[str, dict[str, str]] = Field(default=None)
     max_iterations: Optional[int] = Field(
