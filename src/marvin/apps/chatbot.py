@@ -1,9 +1,10 @@
 from typing import Callable, List, Union
 
 from marvin import AIApplication
+from marvin.prompts import Prompt
 from marvin.tools.base import Tool
 
-DEFAULT_NAME = "marvin_chatbot"
+DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A friendly AI assistant"
 DEFAULT_INSTRUCTIONS = "Engage the user in conversation."
 
@@ -12,14 +13,16 @@ class Bot(AIApplication):
     name: str = DEFAULT_NAME
     personality: str = DEFAULT_PERSONALITY
     instructions: str = DEFAULT_INSTRUCTIONS
-    tools: List[Union[Tool, Callable]] = []
+    tools: List[Union[Tool, Callable]] = ([],)
 
     def __init__(
         self,
         name: str = DEFAULT_NAME,
         personality: str = DEFAULT_PERSONALITY,
         instructions: str = DEFAULT_INSTRUCTIONS,
+        state=None,
         tools: list[Union[Tool, Callable]] = [],
+        additional_prompts: list[Prompt] = None,
         **kwargs,
     ):
         description = f"""
@@ -38,8 +41,9 @@ class Bot(AIApplication):
             instructions=instructions,
             description=description,
             tools=tools,
-            state_enabled=False,
+            state=state or {},
             plan_enabled=False,
+            additional_prompts=additional_prompts or [],
             **kwargs,
         )
 

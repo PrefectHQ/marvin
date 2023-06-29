@@ -53,6 +53,14 @@ class Settings(BaseSettings):
         description="The Slack API token to use for the Slack client",
     )
 
+    # TOOLS
+
+    # discourse
+    discourse_help_category_id: int = Field(None)
+    discourse_api_key: SecretStr = Field(None)
+    discourse_api_username: str = Field(None)
+    discourse_url: str = Field(None)
+
     @root_validator
     def initial_setup(cls, values):
         # ensure the home directory exists

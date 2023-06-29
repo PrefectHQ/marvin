@@ -1,4 +1,5 @@
 import asyncio
+import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -65,3 +66,16 @@ def count_tokens(text: str) -> int:
 def slice_tokens(text: str, n_tokens: int) -> str:
     tokens = tokenize(text)
     return detokenize(tokens[:n_tokens])
+
+
+def convert_md_links_to_slack(text):
+    md_link_pattern = r"\[(?P<text>[^\]]+)]\((?P<url>[^\)]+)\)"
+
+    # converting Markdown links to Slack-style links
+    def to_slack_link(match):
+        return f'<{match.group("url")}|{match.group("text")}>'
+
+    # Replace Markdown links with Slack-style links
+    slack_text = re.sub(md_link_pattern, to_slack_link, text)
+
+    return slack_text

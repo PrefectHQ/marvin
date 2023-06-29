@@ -182,10 +182,10 @@ class AIApplication(LoggerMixin, BaseModel):
         for tool in v:
             if isinstance(tool, AIApplication):
                 tools.append(tool.as_tool())
-            elif callable(tool):
-                tools.append(Tool.from_function(tool))
             elif isinstance(tool, Tool):
                 tools.append(tool)
+            elif callable(tool):
+                tools.append(Tool.from_function(tool))
             else:
                 raise ValueError(f"Tool {tool} is not a Tool or callable.")
         return tools
