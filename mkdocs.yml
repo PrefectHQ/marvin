@@ -1,5 +1,6 @@
 site_name: Marvin
 site_url: https://askmarvin.ai
+
 site_description: A batteries-included library for building AI-powered software.
 nav:
   - Motivation:
@@ -10,6 +11,18 @@ nav:
     - guides/index.md
   - Reference:
     - reference/index.md
+    - Components:
+      - reference/components/ai_function.md
+      - reference/components/ai_model.md
+      - reference/components/ai_model_factory.md
+      - reference/components/ai_classifier.md
+      - reference/components/ai_application.md
+    - Applications:
+      - reference/applications/index.md
+    - Configuration:
+      - reference/configuration/index.md
+    - Deployment:
+      - reference/deployment/index.md
   - Contributing:
     - contributing/index.md
   
@@ -27,8 +40,6 @@ theme:
     - navigation.tabs.sticky
     - navigation.sections
     - navigation.footer
-    - toc.follow
-    - toc.integrate 
     - content.action.edit
     - content.code.copy
     - content.code.annotate 
@@ -93,6 +104,8 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+      title: On this page
+      
 repo_url: https://github.com/prefecthq/marvin
 edit_uri: edit/main/docs/
 extra:
@@ -107,4 +120,8 @@ extra:
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/askmarvinai
 extra_css:
-  - stylesheets/extra.css
+- static/css/termynal.css
+- static/css/custom.css
+extra_javascript:
+- static/js/termynal.js
+- static/js/custom.js
