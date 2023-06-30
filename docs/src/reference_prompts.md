@@ -3,10 +3,9 @@
 Marvin offers a API for defining dynamic prompts with code. Instead of managing cumbersome template structures, you can define reusable and modular prompts with code.
 
 ```python
-from marvin.prompts import render_prompts
 from marvin.prompts.library import System, User, Now, ChainOfThought
 
-render_prompts(
+(
     System(content = "You're an expert at query planning.")
   | Now() # Give the LLM the current time
   | User( content = "I need to plan for an upcoming talk on plumbi.")
