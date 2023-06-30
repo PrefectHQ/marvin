@@ -26,7 +26,10 @@ class MessagePrompt(Prompt):
         return [
             Message(
                 role=self.role,
-                content=self.render(self.get_content(), render_kwargs=kwargs),
+                content=self.render(self.get_content(), render_kwargs={
+                    **self.dict(exclude = {'role', 'content', 'name', 'priority'}), 
+                    **kwargs
+                }),
                 name=self.name,
             )
         ]
