@@ -54,6 +54,7 @@ nav:
       - reference/deployment/index.md
   - Contributing:
     - contributing/index.md
+    - contributing/discuss.md
   
 theme:
   name: material
