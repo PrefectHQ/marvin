@@ -9,7 +9,8 @@ nav:
   - Tutorials:
     - tutorials.md
     - Natural Language Processing:
-      - tutorials_chatmod.md
+      - Extracting Structured Data:
+        - notebooks/scraping.ipynb
       - tutorials_tutor.md
       - tutorials_assistant.md
     - Conversational Applications:
@@ -67,8 +68,8 @@ theme:
   font: 
     text: Inter
     code: JetBrains Mono
-  logo: img/logos/askmarvin_mascot.jpeg
-  favicon: img/logos/askmarvin_mascot.jpeg
+  logo: ../img/logos/askmarvin_mascot.jpeg
+  favicon: ../img/logos/askmarvin_mascot.jpeg
   features:
     - navigation.instant
     - navigation.tabs
@@ -99,6 +100,7 @@ theme:
         name: Switch to light mode
 plugins:
   - search
+  - mkdocs-jupyter
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
       cards_font: Inter
