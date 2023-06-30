@@ -63,13 +63,13 @@
     <div class="md-grid md-typeset">
       <div class="mdx-hero hero">
         <div class="mdx-hero__content">
-          <h1 class="hero-heading">Build with LLMs, in ambient mode.</h1>
-          <p>{{ config.site_description }}</p>
-          <a href="{{ page.next_page.url | url }}" title="{{ page.next_page.title | e }}" class="md-button md-button--primary">
-            Quick start
+          <h1 class="hero-heading">{{ config.site_description }}</h1>
+          <p>{{ config.site_copy }}</p>
+          <a href="{{ page.next_page.url | url }}" style = "border-radius: 8px;" title="{{ page.next_page.title | e }}" class="md-button md-button--primary">
+            Get Started
           </a>
-          <a href="{{ 'insiders/' | url }}" title="Material for MkDocs Insiders" class="md-button">
-            Get Insiders
+          <a href="{{ config.repo_url }}" style = "border-radius: 8px;" title="Material for MkDocs Insiders" class="md-button">
+            Star us on Github
           </a>
         </div>
         <div class="mdx-hero__framework">

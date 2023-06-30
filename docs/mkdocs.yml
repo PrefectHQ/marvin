@@ -1,7 +1,8 @@
 site_name: Marvin
+site_description: 'Marvin: The AI Engineering Framework'
+site_copy: Marvin makes it easier to build AI-powered applications in a scalable, reliable, and secure way.
 site_url: https://askmarvin.ai
 docs_dir: src
-site_description: A batteries-included library for building AI-powered software.
 nav:
   - Motivation:
     - motivation.md
@@ -41,6 +42,7 @@ nav:
     - reference.md
     - Prompts: 
       - reference_prompts.md
+      - reference_prompts_execute.md
     - Components:
       - reference_ai_function.md
       - reference_ai_model.md
