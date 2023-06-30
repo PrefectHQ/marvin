@@ -1,0 +1,161 @@
+site_name: Marvin
+site_url: https://askmarvin.ai
+docs_dir: src
+site_description: A batteries-included library for building AI-powered software.
+nav:
+  - Motivation:
+    - motivation.md
+  - Tutorials:
+    - tutorials.md
+    - Natural Language Processing:
+      - tutorials_chatmod.md
+      - tutorials_tutor.md
+      - tutorials_assistant.md
+    - Conversational Applications:
+      - tutorials_chatbot.md
+      - tutorials_assistant.md
+      - tutorials_data.md
+    - Autonomous Applications:
+      - tutorials_smol.md
+      - tutorials_autogpt.md
+      - tutorials_workgpt.md
+    - Games:
+      - tutorials_startwars.md
+      - tutorials_twentyquestions.md
+      - tutorials_educational.md
+  - How-Tos:
+    - guides.md
+    - Writing Prompts:
+      - guides.md
+    - Using Tools:
+      - guides.md
+    - Using Data:
+      - guides.md
+    - Deploying your Application:
+      - guides.md
+    - Orchestration:
+      - guides.md
+    - Observability:
+      - guides.md
+  - Reference:
+    - reference.md
+    - Prompts: 
+      - reference_prompts.md
+    - Components:
+      - reference_ai_function.md
+      - reference_ai_model.md
+      - reference_ai_classifier.md
+      - reference_ai_application.md
+    - Applications:
+      - reference_index.md
+    - Engines: 
+      - reference_models.md
+      - reference_executors.md
+    - Configuration:
+      - reference_configuration.md
+    - Deployment:
+      - reference_deployment.md
+  - Community:
+    - community.md
+    - community_commit.md
+  
+theme:
+  name: material
+  custom_dir: overrides
+  font: 
+    text: Inter
+    code: JetBrains Mono
+  logo: img/logos/askmarvin_mascot.jpeg
+  favicon: img/logos/askmarvin_mascot.jpeg
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.footer
+    - content.action.edit
+    - content.code.copy
+    - content.code.annotate 
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil 
+    view: material/eye
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      # primary: green
+      # accent: light blue
+      toggle:
+        icon: material/weather-sunny 
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      # primary: blue
+      # accent: light blue
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+plugins:
+  - search
+  - social:
+      cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
+      cards_font: Inter
+      cards_color:
+        fill: "#2d6df6"
+  - awesome-pages
+  - autolinks 
+  # - mkdocs-jupyter
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+              show_source: False
+              show_root_heading: True
+              show_object_full_path: False
+              show_category_heading: False
+              show_bases: False
+              show_submodules: False
+              show_if_no_docstring: False
+              show_signature: False
+              heading_level: 2
+              filters: ["!^_"]
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - tables
+  - toc:
+      permalink: true
+      title: On this page
+      
+repo_url: https://github.com/prefecthq/marvin
+edit_uri: edit/main/docs/
+extra:
+  analytics:
+    provider: google
+    property: G-2MWKMDJ9CM
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/prefecthq/marvin
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/Kgw4HpcuYG
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/askmarvinai
+extra_css:
+- static/css/termynal.css
+- static/css/custom.css
+extra_javascript:
+- static/js/termynal.js
+- static/js/custom.js
