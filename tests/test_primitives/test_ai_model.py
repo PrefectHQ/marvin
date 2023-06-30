@@ -4,9 +4,11 @@ import pytest
 from marvin import ai_model
 from pydantic import BaseModel
 
+from tests.utils.mark import pytest_mark_class
 
+
+@pytest_mark_class("llm")
 class TestAIModels:
-    @pytest.mark.llm
     def test_arithmetic(self):
         @ai_model
         class Arithmetic(BaseModel):
@@ -17,7 +19,6 @@ class TestAIModels:
         assert x.sum == 7
         assert x.is_odd
 
-    @pytest.mark.llm
     def test_geospatial(self):
         @ai_model
         class Location(BaseModel):
@@ -35,7 +36,6 @@ class TestAIModels:
         assert x.latitude // 1 == 40
         assert x.longitude // 1 == -97
 
-    @pytest.mark.llm
     def test_depth(self):
         from typing import List
 
@@ -58,7 +58,6 @@ class TestAIModels:
             I lived in Palms, then Mar Vista, then Pico Robertson.
         """)
 
-    @pytest.mark.llm
     def test_resume(self):
         class Experience(BaseModel):
             technology: str
@@ -84,26 +83,25 @@ class TestAIModels:
         assert not x.greater_than_ten_years_management_experience
         assert len(x.technologies) == 2
 
-    @pytest.mark.llm
+    @pytest.mark.flaky(reruns=2)
     def test_literal(self):
-        class Person(BaseModel):
+        class CertainPerson(BaseModel):
             name: Literal["Adam", "Nate", "Jeremiah"]
 
         @ai_model
-        class Conversation(BaseModel):
-            speakers: List[Person]
+        class LLMConference(BaseModel):
+            speakers: List[CertainPerson]
 
-        x = Conversation("""\
-            The conference for best LLM framework will feature talks by\
-            Adam, Nate, Jeremiah, and Marvin.\
+        x = LLMConference("""
+            The conference for best LLM framework will feature talks by
+            Adam, Nate, Jeremiah, Marvin, and Billy Bob Thornton.
         """)
         assert len(set([speaker.name for speaker in x.speakers])) == 3
         assert set([speaker.name for speaker in x.speakers]) == set(
             ["Adam", "Nate", "Jeremiah"]
         )
 
-    @pytest.mark.llm
-    @pytest.mark.xfail(reason="flaky test")
+    @pytest.mark.flaky(reruns=2)
     def test_history(self):
         from typing import List
 
@@ -143,8 +141,8 @@ class TestAIModels:
         )
 
 
+@pytest_mark_class("llm")
 class TestInstructions:
-    @pytest.mark.llm
     def test_follow_instructions(self):
         @ai_model
         class Test(BaseModel):

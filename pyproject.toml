@@ -36,6 +36,7 @@ dev = [
     "pre-commit>=2.21,<4.0",
     "pytest-asyncio~=0.20",
     "pytest-env~=0.8",
+    "pytest-rerunfailures~=10.0",
     "pytest-sugar~=0.9",
     "pytest~=7.2",
     "ruff",
@@ -92,6 +93,7 @@ env = [
     "MARVIN_LOG_CONSOLE_WIDTH=120",
     # use 3.5 for tests by default
     'MARVIN_LLM_MODEL=gpt-3.5-turbo-0613',
+    'MARVIN_LLM_TEMPERATURE=0.0',
 ]
 
 # black configuration
