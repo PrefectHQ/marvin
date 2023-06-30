@@ -30,6 +30,16 @@ class MessagePrompt(Prompt):
                 name=self.name,
             )
         ]
+    
+    def __init__(self, content: str = None, *args, **kwargs):
+        content = kwargs.get('content', content)
+        super().__init__(
+            *args, 
+            **{
+                **kwargs, 
+                **({'content': content} if content else {})
+            }
+        )
 
 
 class System(MessagePrompt):
