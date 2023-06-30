@@ -1,5 +1,5 @@
 
-# Function
+# AI Function
 
 ## Use Large Language Models to *evaluate functions*.
 

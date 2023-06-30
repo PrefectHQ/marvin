@@ -7,7 +7,7 @@ import marvin
 import nest_asyncio
 from cachetools import TTLCache
 from fastapi import HTTPException
-from marvin.apps.chatbot import Bot
+from marvin.apps.chatbot import Chatbot
 from marvin.components.ai_model.examples import DiscoursePost
 from marvin.models.history import History
 from marvin.models.messages import Message
@@ -90,7 +90,7 @@ async def generate_ai_response(payload: Dict) -> Message:
         message = re.sub(SLACK_MENTION_REGEX, "", message).strip()
         history = CACHE.get(thread_ts, History())
 
-        bot = Bot(
+        bot = Chatbot(
             name="Marvin",
             personality=(
                 "mildly depressed, but helpful robot based on Marvin from Hitchhiker's"
@@ -131,7 +131,7 @@ async def handle_message(payload: Dict) -> Dict[str, str]:
 if __name__ == "__main__":
     from marvin.deployment import Deployment
 
-    slackbot = Bot(tools=[handle_message])
+    slackbot = Chatbot(tools=[handle_message])
 
     deployment = Deployment(
         component=slackbot,

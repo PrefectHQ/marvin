@@ -1,4 +1,4 @@
-# Model
+# AI Model
 
 ## Use Large Language Models to *structure data*.
 
@@ -32,7 +32,15 @@ class Location(BaseModel):
     latitude: float
     longitude: float
 
-Location("He says he's from the windy city") # Infers that it's Chicago
+Location("He says he's from the windy city")
+
+# Location(
+#   city='Chicago',
+#   state='Illinois',
+#   country='United States',
+#   latitude=41.8781,
+#   longitude=-87.6298
+# )
 
 ```
 
@@ -53,12 +61,12 @@ bring your company's data model to your data, extract and infer data that would 
 ## Examples
 
 ```python hl_lines="5"
-from marvin import ai_model
-import pydantic
 from typing import Optional
+from pydantic import BaseModel
+from marvin import ai_model
 
 @ai_model
-class Resume(pydantic.BaseModel):
+class Resume(BaseModel):
 	first_name: str
 	last_name: str
 	phone_number: Optional[str]
@@ -78,10 +86,10 @@ Resume('Ford Prefect • (555) 5124-5242 • ford@prefect.io').json(indent = 2)
 ### Structure conversational user input
 
 ```python
-from marvin import ai_model
-from typing import Optional, List
 import datetime
-import pydantic
+from typing import Optional, List
+from pydantic import BaseModel
+from marvin import ai_model
 
 class Destination(pydantic.BaseModel):
     start: datetime.date
@@ -98,9 +106,9 @@ class Trip(pydantic.BaseModel):
     destinations: List[Destination]
 
 Trip('''\
-I've got all of June off, so hoping to spend the first\
-half of June in London and the second half in Rabat. I love \
-good food and going to museums.
+    I've got all of June off, so hoping to spend the first\
+    half of June in London and the second half in Rabat. I love \
+    good food and going to museums.
 ''').json(indent = 2)
 
 # {
@@ -267,8 +275,10 @@ class DjangoLookup(BaseModel):
 
 @ai_model
 class DjangoQuery(BaseModel):
-    ''' A model represneting a Django ORM query'''
+    ''' A model representing a Django ORM query'''
+
     lookups: List[DjangoLookup]
+
     def to_q(self) -> Q:
         q = Q()
         for lookup in self.lookups:
@@ -294,7 +304,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 @ai_model
-class CapTable(pydantic.BaseModel):
+class CapTable(BaseModel):
     total_authorized_shares: int
     total_common_share: int
     total_common_shares_outstanding: Optional[int]
@@ -302,13 +312,13 @@ class CapTable(pydantic.BaseModel):
     conversion_price_multiple: int = 1
 
 CapTable('''\
-In the cap table for Charter, the total authorized shares amount to 13,250,000. 
-The total number of common shares stands at 10,000,000 as specified in Article Fourth, 
-clause (i) and Section 2.2(a)(i). The exact count of common shares outstanding is not 
-available at the moment. Furthermore, there are a total of 3,250,000 preferred shares mentioned 
-in Article Fourth, clause (ii) and Section 2.2(a)(ii). The dividend percentage for Charter is 
-set at 8.00%. Additionally, the mandatory conversion price multiple is 3x, which is 
-derived from the Term Sheet.\
+    In the cap table for Charter, the total authorized shares amount to 13,250,000. 
+    The total number of common shares stands at 10,000,000 as specified in Article Fourth, 
+    clause (i) and Section 2.2(a)(i). The exact count of common shares outstanding is not 
+    available at the moment. Furthermore, there are a total of 3,250,000 preferred shares mentioned 
+    in Article Fourth, clause (ii) and Section 2.2(a)(ii). The dividend percentage for Charter is 
+    set at 8.00%. Additionally, the mandatory conversion price multiple is 3x, which is 
+    derived from the Term Sheet.\
 ''').json(indent = 2)
 
 # {
@@ -323,31 +333,33 @@ derived from the Term Sheet.\
 
 ### Extract action items from meeting transcripts
 ```python
-from marvin import ai_model
 import datetime
-from typing import Literal, List
-import pydantic
+from typing import List
+from pydantic import BaseModel
+from typing_extensions import Literal
+from marvin import ai_model
 
-class ActionItem(pydantic.BaseModel):
+class ActionItem(BaseModel):
     responsible: str
     description: str
     deadline: Optional[datetime.datetime]
     time_sensitivity: Literal['low', 'medium', 'high']
 
 @ai_model
-class Conversation(pydantic.BaseModel):
-    '''A class representing a team converastion'''
+class Conversation(BaseModel):
+    '''A class representing a team conversation'''
+
     participants: List[str]
     action_items: List[ActionItem]
 
 
 Conversation('''
-Adam: Hey Jeremiah can you approve my PR? I requested you to review it.
-Jeremiah: Yeah sure, when do you need it done by?
-Adam: By this Friday at the latest, we need to ship it by end of week.
-Jeremiah: Oh shoot, I need to make sure that Nate and I have a chance to chat first.
-Nate: Jeremiah we can meet today to chat.
-Jeremiah: Okay, I'll book something for today.
+    Adam: Hey Jeremiah can you approve my PR? I requested you to review it.
+    Jeremiah: Yeah sure, when do you need it done by?
+    Adam: By this Friday at the latest, we need to ship it by end of week.
+    Jeremiah: Oh shoot, I need to make sure that Nate and I have a chance to chat first.
+    Nate: Jeremiah we can meet today to chat.
+    Jeremiah: Okay, I'll book something for today.
 ''').json(indent = 2)
 
 # {

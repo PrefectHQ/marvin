@@ -9,7 +9,7 @@ DEFAULT_PERSONALITY = "A friendly AI assistant"
 DEFAULT_INSTRUCTIONS = "Engage the user in conversation."
 
 
-class Bot(AIApplication):
+class Chatbot(AIApplication):
     name: str = DEFAULT_NAME
     personality: str = DEFAULT_PERSONALITY
     instructions: str = DEFAULT_INSTRUCTIONS
@@ -48,4 +48,4 @@ class Bot(AIApplication):
         )
 
 
-__all__ = ["Bot"]
+__all__ = ["Chatbot"]
