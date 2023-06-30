@@ -34,6 +34,12 @@ class MessagePrompt(Prompt):
             )
         ]
     
+    def read(self, **kwargs) -> str: 
+        return self.render(self.get_content(), render_kwargs={
+            **self.dict(exclude = {'role', 'content', 'name', 'priority'}), 
+            **kwargs
+        })
+    
     def __init__(self, content: str = None, *args, **kwargs):
         content = kwargs.get('content', content)
         super().__init__(
