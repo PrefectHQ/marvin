@@ -1,4 +1,4 @@
-# Apps
+# AI Application
 
 ## ToDo
 
