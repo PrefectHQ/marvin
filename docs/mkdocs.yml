@@ -42,7 +42,6 @@ nav:
     - Prompts: 
       - reference_prompts.md
     - Components:
-      - reference.md
       - reference_ai_function.md
       - reference_ai_model.md
       - reference_ai_classifier.md
