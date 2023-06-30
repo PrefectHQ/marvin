@@ -1,3 +1,4 @@
+import json
 from logging import Logger
 from typing import Any, Callable, Optional, Union
 
@@ -16,7 +17,8 @@ class OpenAIFunction(BaseModel):
     name: str
     description: str = None
     parameters: dict[str, Any] = {"type": "object", "properties": {}}
-    fn: Callable = Field(None, exclude=True)
+    fn: Callable = Field(None, exclude=True)    
+    args: Optional[dict] = None
 
     @classmethod
     def from_function(cls, fn: Callable, **kwargs):
@@ -24,8 +26,18 @@ class OpenAIFunction(BaseModel):
             name=kwargs.get("name", fn.__name__),
             description=kwargs.get("description", fn.__doc__),
             parameters=marvin.utilities.types.function_to_schema(fn),
-            function=fn,
+            fn=fn,
         )
+    
+    async def query(self, q: str, model: "ChatLLM" = None):
+        if not model:
+            model = ChatLLM()
+        self.args = json.loads((await ChatLLM().run(
+            messages = [ Message(role = 'USER', content=q) ],
+            functions = [ self ],
+            function_call = { 'name': self.name }
+        )).data.get('function_call').get('arguments'))
+        return(self)
 
 
 class ChatLLM(BaseModel):
