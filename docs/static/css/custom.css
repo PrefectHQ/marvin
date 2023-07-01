@@ -24,7 +24,8 @@
 
 /* code (inline and block)*/
 .md-typeset code {
-  color: #2d6df6;
+  color: var(--md-code-hl-keyword-color);
+}
   padding: 0.2em 0.5em;
   border: 1px solid var(--md-code-border-color);
   border-radius: 4px;
