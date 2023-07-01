@@ -11,20 +11,20 @@ nav:
     - Natural Language Processing:
       - Extracting Structured Data:
         - src/notebooks/scraping.ipynb
-      - src/tutorials_tutor.md
-      - src/tutorials_assistant.md
+      - src/tutorials/tutor.md
+      - src/tutorials/assistant.md
     - Conversational Applications:
-      - src/tutorials_chatbot.md
-      - src/tutorials_assistant.md
-      - src/tutorials_data.md
+      - src/tutorials/chatbot.md
+      - src/tutorials/assistant.md
+      - src/tutorials/data.md
     - Autonomous Applications:
-      - src/tutorials_smol.md
-      - src/tutorials_autogpt.md
-      - src/tutorials_workgpt.md
+      - src/tutorials/smol.md
+      - src/tutorials/autogpt.md
+      - src/tutorials/workgpt.md
     - Games:
-      - src/tutorials_startwars.md
-      - src/tutorials_twentyquestions.md
-      - src/tutorials_educational.md
+      - src/tutorials/startwars.md
+      - src/tutorials/twentyquestions.md
+      - src/tutorials/educational.md
   - How-Tos:
     - src/guides.md
     - Writing Prompts:
@@ -40,24 +40,24 @@ nav:
     - Observability:
       - src/guides.md
   - Reference:
-    - src/reference.md
+    - src/reference/index.md
     - Prompts: 
-      - src/reference_prompts.md
-      - src/reference_prompts_execute.md
+      - src/reference/prompts.md
+      - src/reference/prompts_execute.md
     - Components:
-      - src/reference_ai_function.md
-      - src/reference_ai_model.md
-      - src/reference_ai_classifier.md
-      - src/reference_ai_application.md
+      - src/reference/ai_function.md
+      - src/reference/ai_model.md
+      - src/reference/ai_classifier.md
+      - src/reference/ai_application.md
     - Applications:
-      - src/reference_index.md
+      - src/reference/applications.md
     - Engines: 
-      - src/reference_models.md
-      - src/reference_executors.md
+      - src/reference/models.md
+      - src/reference/executors.md
     - Configuration:
-      - src/reference_configuration.md
+      - src/reference/configuration.md
     - Deployment:
-      - src/reference_deployment.md
+      - src/reference/deployment.md
   - Community:
     - src/community.md
     - src/community_commit.md
