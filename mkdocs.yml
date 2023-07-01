@@ -22,8 +22,8 @@ nav:
       - src/tutorials/autogpt.md
       - src/tutorials/workgpt.md
     - Games:
-      - src/tutorials/startwars.md
-      - src/tutorials/twentyquestions.md
+      - src/tutorials/star_wars.md
+      - src/tutorials/twenty_questions.md
       - src/tutorials/educational.md
   - How-Tos:
     - src/guides.md
