@@ -31,7 +31,7 @@ dev = [
     "mkdocs-autolinks-plugin~=0.7",
     "mkdocs-awesome-pages-plugin~=2.8",
     "mkdocs-jupyter>=0.24.1",
-    "mkdocs-material^9.1",
+    "mkdocs-material>=9.1.17",
     "mkdocstrings[python]~=0.22",
     "pdbpp~=0.10",
     "pre-commit>=2.21,<4.0",
