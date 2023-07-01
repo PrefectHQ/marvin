@@ -1,0 +1,38 @@
+/* color themes */
+:root > * {
+  --md-primary-fg-color: #2d6df6;
+  --md-primary-fg-color--light: #89d5ff;
+  --md-primary-fg-color--dark: #1537af;
+  --md-code-bg-color: rgba(174, 186, 230, 0.075);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #2d6df6;
+  --md-primary-fg-color--light: #89d5ff;
+  --md-primary-fg-color--dark: #1537af;
+}
+
+
+/* Defaults for images */ 
+.md-typeset img {
+  max-width: 75%;
+  /*center on page */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* code (inline and block)*/
+.md-typeset code {
+  color: #2d6df6;
+  padding: 0.2em 0.5em;
+  border: 1px solid var(--md-code-border-color);
+  border-radius: 4px;
+}
+
+/* code (block) */
+.md-typeset pre > code {
+  /* add very slight shadow to code blocks */
+  /* box-shadow: var(--md-shadow-z1); */
+  border: none;
+}
