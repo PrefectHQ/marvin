@@ -4,10 +4,11 @@ Marvin introduces a API for defining dynamic prompts with code. Instead of manag
 
 ```python
 from marvin.prompts.library import System, User, Now, ChainOfThought
-(
+
+full_prompt = (
     System("You're an expert on python.")
-  | User("I need to know how to write a function in python.")
-  | ChainOfThought() # Tell the LLM to think step by step
+    | User("I need to know how to write a function in python.")
+    | ChainOfThought()  # Tell the LLM to think step by step
 )
 ```
 Marvin's optional templating engine makes it dead-simple to share context across prompts. Pass native Python
@@ -19,9 +20,10 @@ from marvin.prompts import render_prompts
 
 render_prompts(
     System("You're an expert on {{subject}}.")
-  | User("I need to know how to write a function in {{subject}}.")
-  | ChainOfThought() # Tell the LLM to think step by step,
-{'subject': 'rust'})
+    | User("I need to know how to write a function in {{subject}}.")
+    | ChainOfThought(),  # Tell the LLM to think step by step,
+    {"subject": "rust"},
+)
 ```
 
 
