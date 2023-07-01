@@ -1,4 +1,4 @@
 ---
+title: Marvin
 template: home.html
-title: Material for MkDocs
 ---

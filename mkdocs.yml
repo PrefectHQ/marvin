@@ -1,60 +1,66 @@
 site_name: Marvin
+site_description: 'Marvin: The AI Engineering Framework'
+site_copy: Marvin makes it easier to build AI-powered applications in a scalable, reliable, and secure way.
 site_url: https://askmarvin.ai
-
-site_description: A batteries-included library for building AI-powered software.
+docs_dir: docs
 nav:
   - Motivation:
-    - motivation/index.md
+    - src/motivation.md
   - Tutorials:
-    - tutorials/index.md
+    - src/tutorials.md
     - Natural Language Processing:
-      - tutorials/chatmod.md
-      - tutorials/tutor.md
-      - tutorials/assistant.md
+      - Extracting Structured Data:
+        - src/notebooks/scraping.ipynb
+      - src/tutorials_tutor.md
+      - src/tutorials_assistant.md
     - Conversational Applications:
-      - tutorials/chatbot.md
-      - tutorials/assistant.md
-      - tutorials/data.md
+      - src/tutorials_chatbot.md
+      - src/tutorials_assistant.md
+      - src/tutorials_data.md
     - Autonomous Applications:
-      - tutorials/smol.md
-      - tutorials/autogpt.md
-      - tutorials/workgpt.md
+      - src/tutorials_smol.md
+      - src/tutorials_autogpt.md
+      - src/tutorials_workgpt.md
     - Games:
-      - tutorials/startwars.md
-      - tutorials/twentyquestions.md
-      - tutorials/educational.md
+      - src/tutorials_startwars.md
+      - src/tutorials_twentyquestions.md
+      - src/tutorials_educational.md
   - How-Tos:
-    - guides/index.md
+    - src/guides.md
     - Writing Prompts:
-      - guides/index.md
+      - src/guides.md
     - Using Tools:
-      - guides/index.md
+      - src/guides.md
     - Using Data:
-      - guides/index.md
+      - src/guides.md
     - Deploying your Application:
-      - guides/index.md
+      - src/guides.md
     - Orchestration:
-      - guides/index.md
+      - src/guides.md
     - Observability:
-      - guides/index.md
-
+      - src/guides.md
   - Reference:
-    - reference/index.md
+    - src/reference.md
+    - Prompts: 
+      - src/reference_prompts.md
+      - src/reference_prompts_execute.md
     - Components:
-      - reference/components/ai_function.md
-      - reference/components/ai_model.md
-      # - reference/components/ai_model_factory.md
-      - reference/components/ai_classifier.md
-      - reference/components/ai_application.md
+      - src/reference_ai_function.md
+      - src/reference_ai_model.md
+      - src/reference_ai_classifier.md
+      - src/reference_ai_application.md
     - Applications:
-      - reference/applications/index.md
+      - src/reference_index.md
+    - Engines: 
+      - src/reference_models.md
+      - src/reference_executors.md
     - Configuration:
-      - reference/configuration/index.md
+      - src/reference_configuration.md
     - Deployment:
-      - reference/deployment/index.md
-  - Contributing:
-    - contributing/index.md
-    - contributing/discuss.md
+      - src/reference_deployment.md
+  - Community:
+    - src/community.md
+    - src/community_commit.md
   
 theme:
   name: material
@@ -94,6 +100,7 @@ theme:
         name: Switch to light mode
 plugins:
   - search
+  - mkdocs-jupyter
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
       cards_font: Inter
@@ -101,7 +108,6 @@ plugins:
         fill: "#2d6df6"
   - awesome-pages
   - autolinks 
-  # - mkdocs-jupyter
   - mkdocstrings:
       handlers:
         python:
@@ -122,9 +128,9 @@ markdown_extensions:
   - attr_list
   - md_in_html
   - pymdownx.details
-  # - pymdownx.emoji:
-  #     emoji_index: !!python/name:materialx.emoji.twemoji
-  #     emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
