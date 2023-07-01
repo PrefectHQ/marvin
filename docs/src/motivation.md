@@ -6,7 +6,7 @@
 
 ## Build Reusable Components.
 
-## Opinionated. Customisable.
+## Opinionated. Customizable.
 
 <div class="termy">
 
