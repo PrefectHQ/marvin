@@ -55,6 +55,7 @@ class AIChoice:
                 render_kwargs=dict(
                     input_text=query, options=options, choice_context=self.fn.__doc__
                 ),
+                max_tokens=model.context_size,
             )
 
             llm_call = model.run(

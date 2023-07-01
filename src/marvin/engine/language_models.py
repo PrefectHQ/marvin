@@ -12,12 +12,23 @@ import marvin.utilities.types
 from marvin.models.messages import Message
 from marvin.utilities.logging import get_logger
 
+CONTEXT_SIZES = {
+    "gpt-3.5-turbo": 4096,
+    "gpt-3.5-turbo-0613": 4096,
+    "gpt-3.5-turbo-16k": 16384,
+    "gpt-3.5-turbo-16k-0613": 16384,
+    "gpt-4": 8192,
+    "gpt-4-0613": 8192,
+    "gpt-4-32k": 32768,
+    "gpt-4-32k-0613": 32768,
+}
+
 
 class OpenAIFunction(BaseModel):
     name: str
     description: str = None
     parameters: dict[str, Any] = {"type": "object", "properties": {}}
-    fn: Callable = Field(None, exclude=True)    
+    fn: Callable = Field(None, exclude=True)
     args: Optional[dict] = None
 
     @classmethod
@@ -28,16 +39,22 @@ class OpenAIFunction(BaseModel):
             parameters=marvin.utilities.types.function_to_schema(fn),
             fn=fn,
         )
-    
+
     async def query(self, q: str, model: "ChatLLM" = None):
         if not model:
             model = ChatLLM()
-        self.args = json.loads((await ChatLLM().run(
-            messages = [ Message(role = 'USER', content=q) ],
-            functions = [ self ],
-            function_call = { 'name': self.name }
-        )).data.get('function_call').get('arguments'))
-        return(self)
+        self.args = json.loads(
+            (
+                await ChatLLM().run(
+                    messages=[Message(role="USER", content=q)],
+                    functions=[self],
+                    function_call={"name": self.name},
+                )
+            )
+            .data.get("function_call")
+            .get("arguments")
+        )
+        return self
 
 
 class ChatLLM(BaseModel):
@@ -54,6 +71,10 @@ class ChatLLM(BaseModel):
         if v is None:
             v = cls.__name__
         return v
+
+    @property
+    def context_size(self) -> int:
+        return CONTEXT_SIZES.get(self.model, 4096)
 
     def get_tokens(self, text: str, **kwargs) -> list[int]:
         enc = tiktoken.encoding_for_model(self.model)

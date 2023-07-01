@@ -33,6 +33,7 @@ class Executor(LoggerMixin, BaseModel):
             messages = render_prompts(
                 prompts + responses,
                 render_kwargs=prompt_render_kwargs,
+                max_tokens=self.engine.context_size,
             )
             response = await self.step(messages)
             responses.append(response)
