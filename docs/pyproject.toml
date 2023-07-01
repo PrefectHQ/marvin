@@ -6,7 +6,7 @@ authors = []
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 mkdocs = "^1.4.3"
 mkdocs-material = "^9.1.17"
 mkdocs-jupyter = "^0.24.1"
