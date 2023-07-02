@@ -68,6 +68,13 @@ def slice_tokens(text: str, n_tokens: int) -> str:
     return detokenize(tokens[:n_tokens])
 
 
+def split_tokens(text: str, n_tokens: int) -> list[str]:
+    tokens = tokenize(text)
+    return [
+        detokenize(tokens[i : i + n_tokens]) for i in range(0, len(tokens), n_tokens)
+    ]
+
+
 def convert_md_links_to_slack(text):
     md_link_pattern = r"\[(?P<text>[^\]]+)]\((?P<url>[^\)]+)\)"
 

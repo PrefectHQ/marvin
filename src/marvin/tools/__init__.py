@@ -1,2 +1,2 @@
-from .base import Tool
+from .base import Tool, tool
 from . import format_response
