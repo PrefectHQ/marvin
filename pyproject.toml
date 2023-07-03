@@ -27,7 +27,7 @@ dependencies = [
     "openai~=0.27",
     "pendulum~=2.1",
     "prefect",
-    "pydantic[dotenv]~=1.10",
+    "pydantic[dotenv]>=1.10,<3.0",
     "pyperclip~=1.8",
     "python-multipart~=0.0.6",
     "rich~=13.3",
