@@ -12,6 +12,14 @@ class Role(Enum):
     ASSISTANT = "ASSISTANT"
     FUNCTION = "FUNCTION"
 
+    @classmethod
+    def _missing_(cls, value):
+        value = value.lower()
+        for member in cls:
+            if member.value.lower() == value:
+                return member
+        return None
+
 
 class Message(BaseModel):
     role: Role
