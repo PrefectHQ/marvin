@@ -22,6 +22,14 @@
   margin-right: auto;
 }
 
+.md-typeset h1 {
+  margin-bottom: .75rem;
+}
+
+.md-typeset h3 {
+  margin-top: .75rem;
+}
+
 /* code (inline and block)*/
 .md-typeset code {
   color: var(--md-code-hl-keyword-color);

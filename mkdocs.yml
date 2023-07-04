@@ -6,54 +6,57 @@ docs_dir: docs
 nav:
   - Motivation:
     - src/motivation.md
-  - Tutorials:
-    - src/tutorials.md
-    - Natural Language Processing:
-      - Extracting Structured Data:
-        - src/notebooks/scraping.ipynb
-      - src/tutorials/tutor.md
-      - src/tutorials/assistant.md
-    - Conversational Applications:
-      - src/tutorials/chatbot.md
-      - src/tutorials/assistant.md
-      - src/tutorials/data.md
-    - Autonomous Applications:
-      - src/tutorials/smol.md
-      - src/tutorials/autogpt.md
-      - src/tutorials/workgpt.md
-    - Games:
-      - src/tutorials/star_wars.md
-      - src/tutorials/twenty_questions.md
-      - src/tutorials/educational.md
-  - How-Tos:
-    - src/guides.md
-    - Writing Prompts:
-      - src/guides.md
-    - Using Tools:
-      - src/guides.md
-    - Using Data:
-      - src/guides.md
-    - Deploying your Application:
-      - src/guides.md
-    - Orchestration:
-      - src/guides.md
-    - Observability:
-      - src/guides.md
+  # - Tutorials:
+  #   - src/tutorials.md
+  #   - Natural Language Processing:
+  #     - Extracting Structured Data:
+  #       - src/notebooks/scraping.ipynb
+  #     - src/tutorials/tutor.md
+  #     - src/tutorials/assistant.md
+  #   - Conversational Applications:
+  #     - src/tutorials/chatbot.md
+  #     - src/tutorials/assistant.md
+  #     - src/tutorials/data.md
+  #   - Autonomous Applications:
+  #     - src/tutorials/smol.md
+  #     - src/tutorials/autogpt.md
+  #     - src/tutorials/workgpt.md
+  #   - Games:
+  #     - src/tutorials/star_wars.md
+  #     - src/tutorials/twenty_questions.md
+  #     - src/tutorials/educational.md
+  # - How-Tos:
+  #   - src/guides.md
+  #   - Writing Prompts:
+  #     - src/guides.md
+  #   - Using Tools:
+  #     - src/guides.md
+  #   - Using Data:
+  #     - src/guides.md
+  #   - Deploying your Application:
+  #     - src/guides.md
+  #   - Orchestration:
+  #     - src/guides.md
+  #   - Observability:
+  #     - src/guides.md
   - Reference:
     - src/reference/index.md
     - Prompts: 
-      - src/reference/prompts.md
-      - src/reference/prompts_execute.md
+      - src/reference/prompts/writing.ipynb
+      - src/reference/prompts/executing.ipynb
+    - Utilities:
+      - OpenAI:
+        - src/reference/utilities/openai_functions.ipynb
     - Components:
       - src/reference/ai_function.md
       - src/reference/ai_model.md
       - src/reference/ai_classifier.md
       - src/reference/ai_application.md
-    - Applications:
-      - src/reference/applications.md
-    - Engines: 
-      - src/reference/models.md
-      - src/reference/executors.md
+    # - Applications:
+    #   - src/reference/applications.md
+    # - Engines: 
+    #   - src/reference/models.md
+    #   - src/reference/executors.md
     - Configuration:
       - src/reference/configuration.md
     - Deployment:
@@ -79,6 +82,8 @@ theme:
     - content.action.edit
     - content.code.copy
     - content.code.annotate 
+    - toc.follow
+    - toc.integrate 
   icon:
     repo: fontawesome/brands/github
     edit: material/pencil 
