@@ -109,6 +109,7 @@ class AIFunction:
         executor = OpenAIExecutor(
             functions=[FormatResponse(type_=return_annotation).as_openai_function()],
             function_call={"name": "FormatResponse"},
+            max_iterations=1,
         )
         [response] = await executor.start(
             prompts=prompts,
