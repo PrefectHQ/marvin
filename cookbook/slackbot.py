@@ -1,5 +1,6 @@
 import asyncio
 import re
+from copy import deepcopy
 from typing import Dict
 
 import httpx
@@ -117,7 +118,7 @@ async def generate_ai_response(payload: Dict) -> Message:
 
         ai_message = await bot.run(input_text=message)
 
-        CACHE[thread] = bot.history
+        CACHE[thread] = deepcopy(bot.history)
         await _post_message(
             message=ai_message.content,
             channel=event.get("channel", ""),
