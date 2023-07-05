@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -12,6 +13,9 @@ from jinja2 import (
     select_autoescape,
 )
 from markupsafe import Markup
+
+NEWLINES_REGEX = re.compile(r"(\s*\n\s*)")
+MD_LINK_REGEX = r"\[(?P<text>[^\]]+)]\((?P<url>[^\)]+)\)"
 
 jinja_env = Environment(
     loader=ChoiceLoader(
@@ -75,14 +79,41 @@ def split_tokens(text: str, n_tokens: int) -> list[str]:
     ]
 
 
-def convert_md_links_to_slack(text):
-    md_link_pattern = r"\[(?P<text>[^\]]+)]\((?P<url>[^\)]+)\)"
+def condense_newlines(text: str) -> str:
+    def replace_whitespace(match):
+        newlines_count = match.group().count("\n")
+        if newlines_count <= 1:
+            return " "
+        else:
+            return "\n" * newlines_count
 
+    text = inspect.cleandoc(text)
+    text = NEWLINES_REGEX.sub(replace_whitespace, text)
+    return text.strip()
+
+
+def html_to_content(html: str) -> str:
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Remove script and style elements
+    for script in soup(["script", "style"]):
+        script.extract()
+
+    # Get text
+    text = soup.get_text()
+
+    # Condense newlines
+    return condense_newlines(text)
+
+
+def convert_md_links_to_slack(text):
     # converting Markdown links to Slack-style links
     def to_slack_link(match):
         return f'<{match.group("url")}|{match.group("text")}>'
 
     # Replace Markdown links with Slack-style links
-    slack_text = re.sub(md_link_pattern, to_slack_link, text)
+    slack_text = re.sub(MD_LINK_REGEX, to_slack_link, text)
 
     return slack_text

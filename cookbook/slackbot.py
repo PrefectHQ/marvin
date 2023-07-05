@@ -12,6 +12,10 @@ from marvin.components.ai_model.examples import DiscoursePost
 from marvin.models.history import History
 from marvin.models.messages import Message
 from marvin.tools import Tool
+from marvin.tools.chroma import QueryChroma
+from marvin.tools.github import SearchGitHubIssues
+from marvin.tools.mathematics import WolframCalculator
+from marvin.tools.web import DuckDuckGoSearch, VisitUrl
 from marvin.utilities.logging import get_logger
 
 nest_asyncio.apply()
@@ -81,6 +85,8 @@ async def generate_ai_response(payload: Dict) -> Message:
     if match := re.search(SLACK_MENTION_REGEX, message):
         thread_ts = event.get("thread_ts", "")
         ts = event.get("ts", "")
+        thread = thread_ts or ts
+
         mentioned_user_id = match.group(1)
 
         if mentioned_user_id != bot_user_id:
@@ -88,7 +94,7 @@ async def generate_ai_response(payload: Dict) -> Message:
             return
 
         message = re.sub(SLACK_MENTION_REGEX, "", message).strip()
-        history = CACHE.get(thread_ts, History())
+        history = CACHE.get(thread, History())
 
         bot = Chatbot(
             name="Marvin",
@@ -99,16 +105,23 @@ async def generate_ai_response(payload: Dict) -> Message:
             ),
             instructions="Answer user questions in accordance with your personality.",
             history=history,
-            tools=[SlackThreadToDiscoursePost(payload=payload)],
+            tools=[
+                SlackThreadToDiscoursePost(payload=payload),
+                VisitUrl(),
+                DuckDuckGoSearch(),
+                SearchGitHubIssues(),
+                QueryChroma(),
+                WolframCalculator(),
+            ],
         )
 
         ai_message = await bot.run(input_text=message)
 
-        CACHE[thread_ts] = bot.history
+        CACHE[thread] = bot.history
         await _post_message(
             message=ai_message.content,
             channel=event.get("channel", ""),
-            thread_ts=thread_ts or ts,
+            thread_ts=thread,
         )
 
         return ai_message
