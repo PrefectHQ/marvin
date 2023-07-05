@@ -4,7 +4,7 @@ name: Build and publish marvin internal bot image
 on:
   push:
     branches:
-      - slackbot-tools
+      - main
     paths:
       - .github/workflows/image-build-and-push-internal.yaml
       - cookbook/slackbot/**
