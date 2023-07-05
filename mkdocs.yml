@@ -103,7 +103,8 @@ theme:
         name: Switch to light mode
 plugins:
   - search
-  - mkdocs-jupyter
+  - mkdocs-jupyter:
+      highlight_extra_classes: "jupyter-css"
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
       cards_font: Inter
