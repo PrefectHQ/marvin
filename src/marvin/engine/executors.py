@@ -46,12 +46,16 @@ class Executor(LoggerMixin, BaseModel):
         Implements one step of the LLM loop
         """
         messages = await self.process_messages(messages)
-        llm_response = await self.engine.run(
-            messages=messages,
-            functions=self.functions,
-        )
+        llm_response = await self.run_engine(messages=messages)
         response = await self.process_response(llm_response)
         return response
+
+    async def run_engine(self, messages: list[Message]) -> Message:
+        """
+        Implements one step of the LLM loop
+        """
+        llm_response = await self.engine.run(messages=messages)
+        return llm_response
 
     async def process_messages(self, messages: list[Message]) -> list[Message]:
         """Called prior to sending messages to the LLM"""
@@ -68,22 +72,26 @@ class Executor(LoggerMixin, BaseModel):
 
 
 class OpenAIExecutor(Executor):
-    functions: List[OpenAIFunction] = Field(default=[])
+    functions: List[OpenAIFunction] = Field(default=None)
     function_call: Union[str, dict[str, str]] = Field(default=None)
     max_iterations: Optional[int] = Field(
         default_factory=lambda: marvin.settings.ai_application_max_iterations
     )
 
-    @validator("functions", each_item=True, pre=True)
+    @validator("functions", pre=True)
     def validate_functions(cls, v):
-        if not isinstance(v, OpenAIFunction):
-            v = OpenAIFunction.from_function(v)
+        if v is None:
+            return None
+        v = [
+            OpenAIFunction.from_function(i) if not isinstance(i, OpenAIFunction) else i
+            for i in v
+        ]
         return v
 
     @root_validator
     def validate_function_call(cls, values):
         # validate function call
-        if values.get("function_call") is None:
+        if values["functions"] and values.get("function_call") is None:
             values["function_call"] = "auto"
         elif values["function_call"] not in (
             ["auto", "none"] + [{"name": f.name} for f in values["functions"]]
@@ -91,6 +99,20 @@ class OpenAIExecutor(Executor):
             raise ValueError(f'Invalid function_call: {values["function_call"]}')
 
         return values
+
+    async def run_engine(self, messages: list[Message]) -> Message:
+        """
+        Implements one step of the LLM loop
+        """
+
+        kwargs = {}
+
+        if self.functions:
+            kwargs["functions"] = self.functions
+            kwargs["function_call"] = self.function_call
+
+        llm_response = await self.engine.run(messages=messages, **kwargs)
+        return llm_response
 
     async def stop_condition(
         self, messages: List[Message], responses: List[Message]

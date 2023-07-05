@@ -30,6 +30,8 @@ def extract_contract_terms(text: str) -> list[str]:
 ### Write impossible code.
 AI functions are especially useful for activies that would be difficult, time-consuming, or impossible to code. They are particularly powerful for parsing and processing strings, but can be used with almost any data structure. 
 
+## Examples
+
 ```python
 @ai_fn
 def analyze_customer_sentiment(reviews: list[str]) -> dict:
