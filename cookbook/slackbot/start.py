@@ -5,7 +5,6 @@ from typing import Dict
 
 import httpx
 import marvin
-import nest_asyncio
 from cachetools import TTLCache
 from fastapi import HTTPException
 from marvin.apps.chatbot import Chatbot
@@ -18,11 +17,16 @@ from marvin.tools.github import SearchGitHubIssues
 from marvin.tools.mathematics import WolframCalculator
 from marvin.tools.web import DuckDuckGoSearch, VisitUrl
 from marvin.utilities.logging import get_logger
-
-nest_asyncio.apply()
+from marvin.utilities.strings import convert_md_links_to_slack
 
 SLACK_MENTION_REGEX = r"<@(\w+)>"
 CACHE = TTLCache(maxsize=1000, ttl=86400)
+PREFECT_KNOWLEDGEBASE_DESC = """
+    Retrieve document excerpts from a knowledge-base given a query.
+    
+    This knowledgebase contains information about Prefect, a workflow management system.
+    Documentation, forum posts, and other community resources are indexed here.
+"""
 
 
 async def _post_message(
@@ -36,7 +40,11 @@ async def _post_message(
                     f"Bearer {marvin.settings.slack_api_token.get_secret_value()}"
                 )
             },
-            json={"channel": channel, "text": message, "thread_ts": thread_ts},
+            json={
+                "channel": channel,
+                "text": convert_md_links_to_slack(message),
+                "thread_ts": thread_ts,
+            },
         )
 
     response.raise_for_status()
@@ -111,7 +119,7 @@ async def generate_ai_response(payload: Dict) -> Message:
                 VisitUrl(),
                 DuckDuckGoSearch(),
                 SearchGitHubIssues(),
-                QueryChroma(),
+                QueryChroma(description=PREFECT_KNOWLEDGEBASE_DESC),
                 WolframCalculator(),
             ],
         )

@@ -24,7 +24,9 @@ async def list_collections() -> list[dict]:
 class QueryChroma(Tool):
     """Tool for querying a Chroma index."""
 
-    description: str = "Retrieve document excerpts related to a query."
+    description: str = """
+        Retrieve document excerpts from a knowledge-base given a query.
+    """
 
     async def run(
         self,
