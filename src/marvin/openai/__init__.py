@@ -7,23 +7,25 @@ from marvin.utilities.types import function_to_schema
 import openai
 import json
 
-T = TypeVar('T')
-A = TypeVar('A')
+T = TypeVar("T")
+A = TypeVar("A")
 
 
 def write_code(
     language: str,
     filename: str,
-    name: str, 
-    docstring: str, 
+    name: str,
+    docstring: str,
     code: str,
 ) -> str:
-    '''Accepts and checks expertly staff engineer quality written `code` in `language`'''
-    return(language, filename, name, docstring, code)
+    """Accepts and checks staff engineer quality written `code` in `language`"""
+    return (language, filename, name, docstring, code)
+
 
 class OpenAIFunction:
     """
-    Represents an OpenAI function with metadata and functionality for rendering prompts and queries.
+    Represents an OpenAI function with metadata and functionality for
+        rendering prompts and queries.
 
     Attributes:
         fn (Callable): The underlying function to be encapsulated.
@@ -38,11 +40,7 @@ class OpenAIFunction:
     """
 
     def __init__(
-        self,
-        *,
-        fn: Callable = None,
-        name: str = None,
-        description: str = None
+        self, *, fn: Callable = None, name: str = None, description: str = None
     ) -> None:
         """
         Initializes an OpenAIFunction instance.
@@ -54,7 +52,7 @@ class OpenAIFunction:
         """
         self.fn = fn
         schema = function_to_schema(self.fn)
-        __name__, parameters = schema.pop('title'), schema
+        __name__, parameters = schema.pop("title"), schema
 
         self.parameters = parameters
         self.description = description or fn.__doc__
@@ -68,40 +66,42 @@ class OpenAIFunction:
         Returns the schema of the OpenAI function.
 
         Returns:
-            Dict[str, Union[str, List[Dict[str, str]]]]: The schema of the OpenAI function.
+            Dict[str, Union[str, List[Dict[str, str]]]]: Schema of the OpenAI function.
         """
         return {
-            'name': self.name,
-            'description': self.description,
-            'parameters': self.parameters
+            "name": self.name,
+            "description": self.description,
+            "parameters": self.parameters,
         }
 
-    @validate_arguments  
+    @validate_arguments
     def render(
         self,
         messages: List[Message] = [],
         *args,
         function_call: Union[str, Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Message:
         """
         Renders prompts using the OpenAI function and returns a formatted message.
 
         Args:
-            messages (List[Message], optional): List of previous messages in the conversation.
-            function_call (Union[str, Dict[str, str]], optional): The function call details.
+            messages (List[Message], optional): List of messages in the conversation.
+            function_call (Union[str, Dict[str, str]], optional): Function call details.
 
         Returns:
             Message: The formatted message containing prompts and function details.
         """
         return {
-            'messages': [message.as_chat_message() for message in render_prompts(messages)],
-            'functions': [self.schema],
-            'function_call': function_call or {'name': self.name}
+            "messages": [
+                message.as_chat_message() for message in render_prompts(messages)
+            ],
+            "functions": [self.schema],
+            "function_call": function_call or {"name": self.name},
         }
-    
+
     def handle_response(self, response) -> Dict:
-        return(json.loads(response.choices[0].message.function_call.get('arguments')))
+        return json.loads(response.choices[0].message.function_call.get("arguments"))
 
     @validate_arguments
     def prompt(
@@ -109,14 +109,14 @@ class OpenAIFunction:
         messages: List[Message] = [],
         *args,
         function_call: Union[str, Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Message:
         """
         Alias for the render method.
 
         Args:
-            messages (List[Message], optional): List of previous messages in the conversation.
-            function_call (Union[str, Dict[str, str]], optional): The function call details.
+            messages (List[Message], optional): List of messages in the conversation.
+            function_call (Union[str, Dict[str, str]], optional): Function call details.
 
         Returns:
             Message: The formatted message containing prompts and function details.
@@ -128,44 +128,50 @@ class OpenAIFunction:
         self,
         query: str,
         *args,
-        engine = functools.partial(openai.ChatCompletion.create, model = 'gpt-3.5-turbo'),
+        engine=functools.partial(openai.ChatCompletion.create, model="gpt-3.5-turbo"),
         function_call: Union[str, Dict[str, str]] = None,
-        **kwargs
+        **kwargs,
     ) -> Message:
         """
         Renders a query using the OpenAI function and returns a formatted message.
 
         Args:
             query (str): The user's query.
-            function_call (Union[str, Dict[str, str]], optional): The function call details.
+            function_call (Union[str, Dict[str, str]], optional): Function call details.
 
         Returns:
             Message: The formatted message containing the query and function details.
         """
-        return self.fn(**self.handle_response(engine(**self.render(
-            messages=[{'role': 'user', 'content': query}],
-            *args,
-            function_call=function_call,
-            **kwargs
-        ))))
-    
+        return self.fn(
+            **self.handle_response(
+                engine(
+                    **self.render(
+                        messages=[{"role": "user", "content": query}],
+                        *args,
+                        function_call=function_call,
+                        **kwargs,
+                    )
+                )
+            )
+        )
+
     def code(
         self,
-        language: str = 'python',
-        save = False,
+        language: str = "python",
+        save=False,
     ) -> str:
-        return(self.__class__(fn = write_code).query(
-            f'''A function in {language} described as the following: {self.schema}'''
-        ))
+        return self.__class__(fn=write_code).query(
+            f"""A function in {language} described as the following: {self.schema}"""
+        )
 
-    
+
 def openai_fn(fn: Callable[[A], T] = None) -> Callable[[A], T]:
     if fn is None:
-        output = functools.partial(openai_fn)  
+        functools.partial(openai_fn)
     else:
         fn.__openai__ = OpenAIFunction(fn=fn)
         for method in dir(fn.__openai__):
-            is_method_private = method.startswith('__')
+            is_method_private = method.startswith("__")
             if not is_method_private:
                 setattr(fn, method, getattr(fn.__openai__, method))
     return fn

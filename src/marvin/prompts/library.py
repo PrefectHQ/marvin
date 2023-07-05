@@ -26,28 +26,30 @@ class MessagePrompt(Prompt):
         return [
             Message(
                 role=self.role,
-                content=self.render(self.get_content(), render_kwargs={
-                    **self.dict(exclude = {'role', 'content', 'name', 'priority'}), 
-                    **kwargs
-                }),
+                content=self.render(
+                    self.get_content(),
+                    render_kwargs={
+                        **self.dict(exclude={"role", "content", "name", "priority"}),
+                        **kwargs,
+                    },
+                ),
                 name=self.name,
             )
         ]
-    
-    def read(self, **kwargs) -> str: 
-        return self.render(self.get_content(), render_kwargs={
-            **self.dict(exclude = {'role', 'content', 'name', 'priority'}), 
-            **kwargs
-        })
-    
+
+    def read(self, **kwargs) -> str:
+        return self.render(
+            self.get_content(),
+            render_kwargs={
+                **self.dict(exclude={"role", "content", "name", "priority"}),
+                **kwargs,
+            },
+        )
+
     def __init__(self, content: str = None, *args, **kwargs):
-        content = kwargs.get('content', content)
+        content = kwargs.get("content", content)
         super().__init__(
-            *args, 
-            **{
-                **kwargs, 
-                **({'content': content} if content else {})
-            }
+            *args, **{**kwargs, **({"content": content} if content else {})}
         )
 
 
