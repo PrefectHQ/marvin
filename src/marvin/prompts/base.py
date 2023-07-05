@@ -12,13 +12,13 @@ from marvin.utilities.strings import count_tokens, jinja_env
 class PromptList(list[Union["Prompt", Message]]):
     def __init__(self, prompts: list[Union["Prompt", Message]]):
         super().__init__(prompts)
-        
+
     def render(self, **kwargs):
-        return render_prompts(self, render_kwargs = kwargs)
-    
+        return render_prompts(self, render_kwargs=kwargs)
+
     def dict(self, **kwargs):
         return [message.as_chat_message() for message in self.render(**kwargs)]
-    
+
 
 class Prompt(BaseModel, abc.ABC):
     position: int = Field(
