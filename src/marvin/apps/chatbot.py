@@ -40,6 +40,7 @@ class Chatbot(AIApplication):
             description=description,
             tools=tools,
             state=state or {},
+            state_enabled=False if state is None else True,
             plan_enabled=False,
             additional_prompts=additional_prompts or [],
             **kwargs,

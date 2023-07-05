@@ -57,4 +57,4 @@ jobs:
       - name: Install Marvin
         run: pip install ".[dev]"
       - name: Run ${{ matrix.test-type }} tests
-        run: pytest -vv -m "${{ matrix.test-type }}"
+        run: pytest -m "${{ matrix.test-type }}"
