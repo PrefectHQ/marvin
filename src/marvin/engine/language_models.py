@@ -80,6 +80,9 @@ class ChatLLM(BaseModel):
         enc = tiktoken.encoding_for_model(self.model)
         return enc.encode(text)
 
+    async def __call__(self, messages, *args, **kwargs):
+        return await self.run(messages, *args, **kwargs)
+
     async def run(
         self,
         messages: list[Message],

@@ -39,7 +39,7 @@ nav:
   #     - src/guides.md
   #   - Observability:
   #     - src/guides.md
-  - Reference:
+  - Docs:
     - src/reference/index.md
     - Prompts: 
       - src/reference/prompts/writing.ipynb
