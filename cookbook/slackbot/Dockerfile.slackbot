@@ -8,6 +8,8 @@ RUN python -m venv venv
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
+RUN apt-get update && apt-get install -y git
+
 RUN pip install ".[slackbot]"
 
 CMD ["python", "cookbook/slackbot/start.py"]
