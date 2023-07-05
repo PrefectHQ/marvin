@@ -9,6 +9,17 @@ from marvin.models.messages import Message, Role
 from marvin.utilities.strings import count_tokens, jinja_env
 
 
+class PromptList(list[Union["Prompt", Message]]):
+    def __init__(self, prompts: list[Union["Prompt", Message]]):
+        super().__init__(prompts)
+        
+    def render(self, **kwargs):
+        return render_prompts(self, render_kwargs = kwargs)
+    
+    def dict(self, **kwargs):
+        return [message.as_chat_message() for message in self.render(**kwargs)]
+    
+
 class Prompt(BaseModel, abc.ABC):
     position: int = Field(
         None,
@@ -75,10 +86,10 @@ class Prompt(BaseModel, abc.ABC):
         """
         # when the left operand is a Prompt object
         if isinstance(other, Prompt):
-            return [other, self]
+            return PromptList([other, self])
         # when the left operand is a list
         elif isinstance(other, list):
-            return other + [self]
+            return PromptList(other + [self])
         else:
             raise TypeError(
                 f"unsupported operand type(s) for |: '{type(other).__name__}' and"
