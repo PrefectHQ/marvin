@@ -1,0 +1,17 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY . /app
+
+RUN python -m venv venv
+ENV VIRTUAL_ENV=/app/venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+RUN apt-get update && apt-get install -y git
+
+RUN pip install ".[slackbot,ddg]"
+
+EXPOSE 8000
+
+CMD ["python", "cookbook/slackbot/start.py"]

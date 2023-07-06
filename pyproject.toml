@@ -11,7 +11,9 @@ classifiers = [
 keywords = ["ai", "chatbot", "llm"]
 requires-python = ">=3.9"
 dependencies = [
+  "beautifulsoup4>=4.12.2",
   "fastapi>=0.98.0",
+  "httpx>=0.24.1",
   "jinja2>=3.1.2",
   "jsonpatch>=1.33",
   "openai>=0.27.8",
@@ -52,7 +54,8 @@ framework = [
 ]
 openai = ["openai>=0.27.8", "tiktoken>=0.4.0"]
 lancedb = ["lancedb>=0.1.8"]
-slackbot = ["httpx>=0.24.1", "cachetools>=5.3.1"]
+slackbot = ["cachetools>=5.3.1"]
+ddg = ["duckduckgo_search>=3.8.3"]
 
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"

@@ -19,9 +19,7 @@ def write_code(
     docstring: str,
     code: str,
 ) -> str:
-    """
-    Accepts and checks expertly staff engineer quality written `code` in `language`
-    """
+    """Accepts and checks staff engineer quality written `code` in `language`"""
     return (language, filename, name, docstring, code)
 
 
@@ -69,8 +67,7 @@ class OpenAIFunction:
         Returns the schema of the OpenAI function.
 
         Returns:
-            Dict[str, Union[str, List[Dict[str, str]]]]:
-            The schema of the OpenAI function.
+            Dict[str, Union[str, List[Dict[str, str]]]]: Schema of the OpenAI function.
         """
         return {
             "name": self.name,
@@ -90,8 +87,8 @@ class OpenAIFunction:
         Renders prompts using the OpenAI function and returns a formatted message.
 
         Args:
-        messages (List[Message], optional):List of previous messages in the conversation
-        function_call (Union[str, Dict[str, str]], optional): The function call details.
+            messages (List[Message], optional): List of messages in the conversation.
+            function_call (Union[str, Dict[str, str]], optional): Function call details.
 
         Returns:
             Message: The formatted message containing prompts and function details.
@@ -115,6 +112,16 @@ class OpenAIFunction:
         function_call: Union[str, Dict[str, str]] = None,
         **kwargs,
     ) -> Message:
+        """
+        Alias for the render method.
+
+        Args:
+            messages (List[Message], optional): List of messages in the conversation.
+            function_call (Union[str, Dict[str, str]], optional): Function call details.
+
+        Returns:
+            Message: The formatted message containing prompts and function details.
+        """
         return self.render(messages, *args, function_call=function_call, **kwargs)
 
     @validate_arguments

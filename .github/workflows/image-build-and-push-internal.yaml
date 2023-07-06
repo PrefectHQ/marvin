@@ -7,8 +7,7 @@ on:
       - main
     paths:
       - .github/workflows/image-build-and-push-internal.yaml
-      - examples/slackbot/community_bot/**
-      - src/marvin/api/slackbot/**
+      - cookbook/slackbot/**
   schedule:
     #  Schedule to run at 7:30PM every Sunday
     #        ┌───────────── minute (0 - 59)
@@ -70,7 +69,7 @@ jobs:
 
       - name: Build container image
         run: |
-          docker build ./examples/slackbot/community_bot \
+          docker build -f cookbook/slackbot/Dockerfile.slackbot . \
             --no-cache \
             --tag us-docker.pkg.dev/prefect-prd-internal-tools/marvin/marvin-internal-bot:latest \
             --tag us-docker.pkg.dev/prefect-prd-internal-tools/marvin/marvin-internal-bot:${SHORT_SHA} \

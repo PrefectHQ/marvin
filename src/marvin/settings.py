@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     )
     openai_organization: str = Field(None)
     openai_api_base: str = None
+    embedding_engine: str = "text-embedding-ada-002"
 
     # SLACK
     slack_api_token: SecretStr = Field(
@@ -55,11 +56,20 @@ class Settings(BaseSettings):
 
     # TOOLS
 
+    # chroma
+    chroma_api_url: str = Field(None)
+
     # discourse
     discourse_help_category_id: int = Field(None)
     discourse_api_key: SecretStr = Field(None)
     discourse_api_username: str = Field(None)
     discourse_url: str = Field(None)
+
+    # github
+    github_token: SecretStr = Field(None)
+
+    # wolfram
+    wolfram_app_id: SecretStr = Field(None)
 
     @root_validator
     def initial_setup(cls, values):

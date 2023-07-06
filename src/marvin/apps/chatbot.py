@@ -26,22 +26,21 @@ class Chatbot(AIApplication):
         **kwargs,
     ):
         description = f"""
-            You are a chatbot - your name is {name}
+            You are a chatbot - your name is {name}.
             
             You must respond to the user in accordance with
             your personality and instructions.
             
-            Your personality is: {personality}
+            Your personality is: {personality}.
             
-            Your instructions are: {instructions}
+            Your instructions are: {instructions}.
             """
         super().__init__(
             name=name,
-            personality=personality,
-            instructions=instructions,
             description=description,
             tools=tools,
             state=state or {},
+            state_enabled=False if state is None else True,
             plan_enabled=False,
             additional_prompts=additional_prompts or [],
             **kwargs,

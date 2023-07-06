@@ -101,7 +101,7 @@ class TestAIModels:
             ["Adam", "Nate", "Jeremiah"]
         )
 
-    @pytest.mark.flaky(reruns=2)
+    @pytest.mark.xfail(reason="regression in OpenAI function-using models")
     def test_history(self):
         from typing import List
 
