@@ -1,4 +1,4 @@
-# Marvin 🤖🏖️
+# Marvin 🤖🏖️ (original version)
 
 ![](docs/img/heroes/ai_model_windy_city_hero.png)
 
