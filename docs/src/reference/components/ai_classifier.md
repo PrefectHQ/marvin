@@ -3,6 +3,12 @@
 ## Use Large Language Models to *classify user input*.
 `ai_classifier` is a decorator that employs the power of Large Language Models to classify provided input into predefined categories. It enables a flexible way of classifying information based on context, surpassing conventional, rigid rule-based methods. It takes advantage of the deductive capability of Large Language Models to deduce labels from its internal context.
 
+!!! note
+
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla et euismod
+    nulla. Curabitur feugiat, tortor non consequat finibus, justo purus auctor
+    massa, nec semper lorem quam in massa.
+
 ```python
 @ai_classifier
 def classify_user_intent(

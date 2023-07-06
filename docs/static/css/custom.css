@@ -41,3 +41,12 @@
   /* box-shadow: var(--md-shadow-z1); */
   border: none;
 }
+
+.admonition {
+  margin-top: 0px !important;
+  margin-bottom: 0px !important;
+}
+
+.jp-InputPrompt, .jp-OutputPrompt {
+  display: none !important;
+}
