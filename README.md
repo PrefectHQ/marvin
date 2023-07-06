@@ -19,10 +19,10 @@ The last generation of software got a lot of things right. We're building the to
 ### What you can build with Marvin in 5 minutes. We're serious, time it.
 Our community is on a constant listening tour with developers, engineers, founders, and investors to surface the most valuable design patterns. We ship quickly, thoughtfully, and purposefully to enable others to build simply, quickly, and confidently. 
 
-#### :robot_face: Build your own custom chatbots with access to tools, data, and the internet.
-    - :heart_eyes: Build your own ChatGPT, or one your users will love.
-    - :mortar_board: Build your personal tutor, or one your customers will love.
-    - :speaking_head_in_silhouette: Build a `Language API` to your software, or one your investors will love.
+#### 🤖 Build your own custom chatbots with access to tools, data, and the internet.
+    - 😍 Build your own ChatGPT, or one your users will love.
+    - 🎓 Build your personal tutor, or one your customers will love.
+    - 🗣️ Build a `Language API` to your software, or one your investors will love.
     
 #### :muscle: Build, observe, and orchestrate bullet-proof APIs, Data Pipelines, and Agents that:
     - :saluting_face: Solve complex deductive and inferential tasks at scale with autonomous agents. 
