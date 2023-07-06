@@ -5,15 +5,13 @@
 
 ### *Marvin* is ergonomics-first.
 - We're obsessed with the accessibility, speed, reliability, and feel of building with LLMs. 
-- We've built Marvin with reusability and incremental adoption in mind:
-    - Nothing wild or unexpected behind the scenes happening in service of a small task. 
-    - Small footprint so you're not downloading the kitchen sink.
+- We're building with typesafety, observability, orchestration, and tracing as first class citizens.
 - We're looking for others who share our mission: join our Discord or open a PR. 
 
-### If you know *Python*, you know *Marvin*. 
-- If you want to use LLMs in `ambient mode` in the dialect you know best, use Marvin. 
-- If you want to build a full-fledged application, use Marvin.
-- If you want to use a utility without downloading the kitchen sink, use Marvin.
+### It's what you'd build, *if you had the time*. 
+- You know Python? You know Marvin.
+- You can use as much or as little as Marvin as you'd like, we've built it for incremental adoption. 
+- You can use LLMs in `ambient mode`, in the dialect you know best. 
 
 ### Quick Install
 `pip install marvin`
