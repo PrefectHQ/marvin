@@ -24,33 +24,32 @@ while getopts "a:" opt; do
 done
 shift $((OPTIND -1))
 
-# Build the package with Poetry
-poetry build
-
 # Create a temporary directory
 TMPDIR=$(mktemp -d)
 
-# Navigate to the temporary directory and create a new Poetry project
+# Navigate to the temporary directory and create a new venv
 cd $TMPDIR
-poetry init --no-interaction
+python3 -m venv venv
+source venv/bin/activate
 
 # If an additional package was specified, install it
 if [ -n "$ADD_PACKAGE" ]; then
-  poetry add $ADD_PACKAGE
+  pip install $ADD_PACKAGE
 fi
 
-# Install the package in the new project
-poetry add $OLDPWD/dist/${PACKAGE_NAME}*.whl
+# Install the package in the new venv
+pip install $OLDPWD
 
 # Calculate the size of the installed package
 echo "Size of the installed package and its dependencies:"
-du -sh $(poetry env info -p)
+du -sh $VIRTUAL_ENV
 
-# If an additional package was installed, remove it
+# If an additional package was installed, uninstall it
 if [ -n "$ADD_PACKAGE" ]; then
-  poetry remove $(basename $ADD_PACKAGE)
+  pip uninstall -y $(basename $ADD_PACKAGE)
 fi
 
-# Remove the temporary directory
+# Deactivate and remove the virtual environment
+deactivate
 cd $OLDPWD
 rm -rf $TMPDIR
