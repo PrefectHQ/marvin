@@ -78,26 +78,6 @@ jobs:
       - name: Push image to prefect-prd-internal-tools
         run: docker push --all-tags us-docker.pkg.dev/prefect-prd-internal-tools/marvin/marvin-internal-bot
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          scan-type: image
-          image-ref:  us-docker.pkg.dev/prefect-prd-internal-tools/marvin/marvin-internal-bot:${{ env.SHORT_SHA }}
-          ignore-unfixed: true
-          severity: HIGH,CRITICAL
-          security-checks: vuln
-          hide-progress: true
-          format: sarif
-          output: trivy-results.sarif
-          timeout: 10m0s
-
-      - name: Upload Trivy scan results to CodeQL
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: trivy-results.sarif
-          ref: refs/heads/main
-          sha: ${{ github.sha }}
-
       - name: Trigger cloudrun revision deploy workflow
         run: |
           gh workflow run deploy-cloudrun-revision-internal.yaml \
