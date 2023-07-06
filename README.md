@@ -22,7 +22,7 @@ Our community is on a constant listening tour with developers, engineers, founde
     - 🎓 Build your personal tutor, or one your customers will love.
     - 🗣️ Build a `Language API` to your software, or one your investors will love.
     
-#### :muscle: Build, observe, and orchestrate bullet-proof APIs, Data Pipelines, and Agents that:
+#### :muscle: Build, observe, orchestrate, and deploy bullet-proof APIs, Data Pipelines, and Agents that:
     - 🫡 Solve complex deductive and inferential tasks at scale with autonomous agents. 
     - 🔘 Build a classifier as quickly as you can describe the options.
     - 🧩 Extract structured data from unstructured text at scale
