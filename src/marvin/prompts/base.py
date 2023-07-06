@@ -19,6 +19,9 @@ class PromptList(list[Union["Prompt", Message]]):
     def dict(self, **kwargs):
         return [message.as_chat_message() for message in self.render(**kwargs)]
 
+    def __call__(self, **kwargs):
+        return self.render(**kwargs)
+
 
 class Prompt(BaseModel, abc.ABC):
     position: int = Field(

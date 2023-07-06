@@ -28,7 +28,7 @@ render_prompts(
 
 
 ###  Access, implement, test, and customize common LLM patterns. 
-Marvin's prompt as code let's you hot-swap reasoning patterns for rapid development.
+Marvin's prompt as code lets you hot-swap reasoning patterns for rapid development.
 
 ```python
 from marvin.prompts.library import System

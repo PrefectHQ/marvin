@@ -1,9 +1,10 @@
-from typing import Callable, Dict, List, Union, TypeVar
+from typing import Callable, Dict, List, Union, TypeVar, Type, Any, Optional, Set
 import functools
 from pydantic import BaseModel, validate_arguments
 from marvin.models.messages import Message
 from marvin.prompts import render_prompts
 from marvin.utilities.types import function_to_schema
+from fastapi import APIRouter
 import openai
 import json
 
@@ -24,8 +25,8 @@ def write_code(
 
 class OpenAIFunction:
     """
-    Represents an OpenAI function with metadata and functionality for
-        rendering prompts and queries.
+    Represents an OpenAI function with metadata and
+    functionality for rendering prompts and queries.
 
     Attributes:
         fn (Callable): The underlying function to be encapsulated.
@@ -132,16 +133,6 @@ class OpenAIFunction:
         function_call: Union[str, Dict[str, str]] = None,
         **kwargs,
     ) -> Message:
-        """
-        Renders a query using the OpenAI function and returns a formatted message.
-
-        Args:
-            query (str): The user's query.
-            function_call (Union[str, Dict[str, str]], optional): Function call details.
-
-        Returns:
-            Message: The formatted message containing the query and function details.
-        """
         return self.fn(
             **self.handle_response(
                 engine(
@@ -160,8 +151,16 @@ class OpenAIFunction:
         language: str = "python",
         save=False,
     ) -> str:
-        return self.__class__(fn=write_code).query(
-            f"""A function in {language} described as the following: {self.schema}"""
+        return self.__class__(fn=write_code).prompt(
+            [
+                {
+                    "role": "user",
+                    "content": (
+                        f"A function in {language} described as the following:"
+                        f" {self.schema}"
+                    ),
+                }
+            ]
         )
 
 
@@ -175,3 +174,67 @@ def openai_fn(fn: Callable[[A], T] = None) -> Callable[[A], T]:
             if not is_method_private:
                 setattr(fn, method, getattr(fn.__openai__, method))
     return fn
+
+
+class FunctionList(list):
+    @property
+    def schema(self):
+        return [fn.schema for fn in self]
+
+
+class OpenAIFunctionRegistry(APIRouter):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.registered_routers: Set[Type[APIRouter]] = set()
+
+    @property
+    def functions(self):
+        return FunctionList([route.endpoint for route in self.routes])
+
+    @property
+    def schema(self):
+        return {"functions": self.functions.schema, "function_call": "auto"}
+
+    def include(self, registry: "OpenAIFunctionRegistry", *args, **kwargs):
+        # Adds some 100-IQ idempotency.
+        if type(registry) not in self.registered_routers:
+            super().include_router(registry, *args, **kwargs)
+            self.registered_routers.add(type(registry))
+
+    @validate_arguments
+    def prompt(
+        self,
+        messages: List[Message] = [],
+        *args,
+        function_call: Union[str, Dict[str, str]] = None,
+        **kwargs,
+    ) -> Message:
+        return {
+            **self.functions[0].prompt(messages, *args, **kwargs),
+            **self.schema,
+            **({"function_call": function_call} if function_call else {}),
+        }
+
+    def register(self, fn: Optional[Callable] = None, **kwargs: Any) -> Callable:
+        def decorator(fn: Callable, *args) -> Callable:
+            fn = openai_fn(fn)
+            self.add_api_route(
+                **{
+                    **{
+                        "name": fn.name,
+                        "path": f"/{fn.name}",
+                        "endpoint": fn,
+                        "description": fn.description,
+                        "methods": ["POST"],
+                    },
+                    **kwargs,
+                }
+            )
+            return fn
+
+        if fn:
+            # if the decorator was called with parentheses
+            return decorator(fn)
+        else:
+            # else, return the decorator to be called later
+            return decorator

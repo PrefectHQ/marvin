@@ -39,7 +39,7 @@ nav:
   #     - src/guides.md
   #   - Observability:
   #     - src/guides.md
-  - Reference:
+  - Docs:
     - src/reference/index.md
     - Prompts: 
       - src/reference/prompts/writing.ipynb
@@ -48,10 +48,11 @@ nav:
       - OpenAI:
         - src/reference/utilities/openai_functions.ipynb
     - Components:
-      - src/reference/ai_function.ipynb
-      - src/reference/ai_model.ipynb
-      - src/reference/ai_classifier.md
-      - src/reference/ai_application.md
+      - Overview: src/reference/components/overview.md
+      - src/reference/components/ai_model.ipynb
+      - src/reference/components/ai_function.ipynb
+      - src/reference/components/ai_classifier.md
+      - src/reference/components/ai_application.md
     # - Applications:
     #   - src/reference/applications.md
     # - Engines: 
@@ -83,7 +84,7 @@ theme:
     - content.code.copy
     - content.code.annotate 
     - toc.follow
-    - toc.integrate 
+    # - toc.integrate 
   icon:
     repo: fontawesome/brands/github
     edit: material/pencil 
@@ -91,21 +92,20 @@ theme:
   palette:
     # Palette toggle for light mode
     - scheme: default
-      # primary: green
-      # accent: light blue
+      accent: blue
       toggle:
         icon: material/weather-sunny 
         name: Switch to dark mode
     # Palette toggle for dark mode
     - scheme: slate
-      # primary: blue
-      # accent: light blue
+      accent: blue
       toggle:
         icon: material/weather-night
         name: Switch to light mode
 plugins:
   - search
-  - mkdocs-jupyter
+  - mkdocs-jupyter:
+      highlight_extra_classes: "jupyter-css"
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
       cards_font: Inter
