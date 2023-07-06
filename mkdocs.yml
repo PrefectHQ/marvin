@@ -48,10 +48,10 @@ nav:
       - OpenAI:
         - src/reference/utilities/openai_functions.ipynb
     - Components:
-      - src/reference/ai_function.ipynb
-      - src/reference/ai_model.ipynb
-      - src/reference/ai_classifier.md
-      - src/reference/ai_application.md
+      - src/reference/components/ai_model.ipynb
+      - src/reference/components/ai_function.ipynb
+      - src/reference/components/ai_classifier.md
+      - src/reference/components/ai_application.md
     # - Applications:
     #   - src/reference/applications.md
     # - Engines: 
