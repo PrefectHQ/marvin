@@ -24,6 +24,7 @@ Our community is on a constant listening tour with developers, engineers, founde
     
 #### :muscle: Build, observe, and orchestrate bullet-proof APIs, Data Pipelines, and Agents that:
     - 🫡 Solve complex deductive and inferential tasks at scale with autonomous agents. 
+    - 🔘 Build a classifier as quickly as you can describe the options.
     - 🧩 Extract structured data from unstructured text at scale
         - 🔎 Scrape data from websites without building a custom scraper.
     - 🧪 Generate synthetic data for your applications at scale
