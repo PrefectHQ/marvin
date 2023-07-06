@@ -36,6 +36,9 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+/sandbox/*
+!/sandbox/pyproject.toml
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -159,3 +162,8 @@ cython_debug/
 
 # VS Code
 .vscode/
+
+local_examples/
+
+# Chroma
+.chroma/

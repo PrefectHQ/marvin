@@ -1,42 +1,74 @@
 site_name: Marvin
+site_description: 'Marvin: The AI Engineering Framework'
+site_copy: Marvin makes it easier to build AI-powered applications in a scalable, reliable, and secure way.
 site_url: https://askmarvin.ai
-site_description: A batteries-included library for building AI-powered software.
+docs_dir: docs
 nav:
-  - Welcome: 
-    - index.md
-  - Getting Started:
-    - Installation: getting_started/installation.md
-    - Chat: getting_started/chat_quickstart.md
-    - AI functions: getting_started/ai_functions_quickstart.md
-    - AI models: getting_started/ai_models_quickstart.md
-    - Bots: getting_started/bots_quickstart.md
-  - The Guide:
-    - Introduction:
-      - Overview: guide/introduction/overview.md
-      - Configuration: guide/introduction/configuration.md
-      - CLI: guide/introduction/cli.md
-    - Concepts:
-      - AI functions: guide/concepts/ai_functions.md
-      - AI models: guide/concepts/ai_models.md
-      - Bots: guide/concepts/bots.md
-      - TUI: guide/concepts/tui.md
-      - Loaders: guide/concepts/loaders_and_documents.md
-      - Infrastructure: guide/concepts/infra.md
-      - Plugins: guide/concepts/plugins.md
-      - Mapping: guide/concepts/mapping.md
-    - AI Functions Library:
-      - Entity extraction: guide/ai_functions/entities.md
-      - Data: guide/ai_functions/data.md
-      - Strings: guide/ai_functions/strings.md
-    - Use Cases:
-      - Enforcing LLM output formats: guide/use_cases/enforcing_format.md
-      - Slackbot: guide/use_cases/slackbot.md
-    - Development:
-      - Setting up: development/development.md
-  - FAQ: faq.md
+  - Motivation:
+    - src/motivation.md
+  # - Tutorials:
+  #   - src/tutorials.md
+  #   - Natural Language Processing:
+  #     - Extracting Structured Data:
+  #       - src/notebooks/scraping.ipynb
+  #     - src/tutorials/tutor.md
+  #     - src/tutorials/assistant.md
+  #   - Conversational Applications:
+  #     - src/tutorials/chatbot.md
+  #     - src/tutorials/assistant.md
+  #     - src/tutorials/data.md
+  #   - Autonomous Applications:
+  #     - src/tutorials/smol.md
+  #     - src/tutorials/autogpt.md
+  #     - src/tutorials/workgpt.md
+  #   - Games:
+  #     - src/tutorials/star_wars.md
+  #     - src/tutorials/twenty_questions.md
+  #     - src/tutorials/educational.md
+  # - How-Tos:
+  #   - src/guides.md
+  #   - Writing Prompts:
+  #     - src/guides.md
+  #   - Using Tools:
+  #     - src/guides.md
+  #   - Using Data:
+  #     - src/guides.md
+  #   - Deploying your Application:
+  #     - src/guides.md
+  #   - Orchestration:
+  #     - src/guides.md
+  #   - Observability:
+  #     - src/guides.md
+  - Docs:
+    - src/reference/index.md
+    - Prompts: 
+      - src/reference/prompts/writing.ipynb
+      - src/reference/prompts/executing.ipynb
+    - Utilities:
+      - OpenAI:
+        - src/reference/utilities/openai_functions.ipynb
+    - Components:
+      - Overview: src/reference/components/overview.md
+      - src/reference/components/ai_model.ipynb
+      - src/reference/components/ai_function.ipynb
+      - src/reference/components/ai_classifier.md
+      - src/reference/components/ai_application.md
+    # - Applications:
+    #   - src/reference/applications.md
+    # - Engines: 
+    #   - src/reference/models.md
+    #   - src/reference/executors.md
+    - Configuration:
+      - src/reference/configuration.md
+    - Deployment:
+      - src/reference/deployment.md
+  - Community:
+    - src/community.md
+    - src/community_commit.md
   
 theme:
   name: material
+  custom_dir: docs/overrides
   font: 
     text: Inter
     code: JetBrains Mono
@@ -48,11 +80,11 @@ theme:
     - navigation.tabs.sticky
     - navigation.sections
     - navigation.footer
-    - toc.follow
-    - toc.integrate 
     - content.action.edit
     - content.code.copy
     - content.code.annotate 
+    - toc.follow
+    # - toc.integrate 
   icon:
     repo: fontawesome/brands/github
     edit: material/pencil 
@@ -60,20 +92,20 @@ theme:
   palette:
     # Palette toggle for light mode
     - scheme: default
-      # primary: green
-      # accent: light blue
+      accent: blue
       toggle:
         icon: material/weather-sunny 
         name: Switch to dark mode
     # Palette toggle for dark mode
     - scheme: slate
-      # primary: blue
-      # accent: light blue
+      accent: blue
       toggle:
         icon: material/weather-night
         name: Switch to light mode
 plugins:
   - search
+  - mkdocs-jupyter:
+      highlight_extra_classes: "jupyter-css"
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
       cards_font: Inter
@@ -114,6 +146,8 @@ markdown_extensions:
   - tables
   - toc:
       permalink: true
+      title: On this page
+      
 repo_url: https://github.com/prefecthq/marvin
 edit_uri: edit/main/docs/
 extra:
@@ -128,4 +162,8 @@ extra:
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/askmarvinai
 extra_css:
-  - stylesheets/extra.css
+- static/css/termynal.css
+- static/css/custom.css
+extra_javascript:
+- static/js/termynal.js
+- static/js/custom.js

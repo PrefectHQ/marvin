@@ -1,10 +1,8 @@
 import logging
 from functools import lru_cache, partial
 
-from rich.console import Console
 from rich.logging import RichHandler
 from rich.markup import escape
-from rich.traceback import install as install_rich_tracebacks
 
 import marvin
 
@@ -27,15 +25,19 @@ def get_logger(name: str = None) -> logging.Logger:
     return logger
 
 
-def setup_logging():
+def setup_logging(level: str = None):
     logger = get_logger()
-    logger.setLevel(marvin.settings.log_level)
+
+    if level is not None:
+        logger.setLevel(level)
+    else:
+        logger.setLevel(marvin.settings.log_level)
 
     if not any(isinstance(h, RichHandler) for h in logger.handlers):
         handler = RichHandler(
             rich_tracebacks=True,
             markup=False,
-            console=Console(width=marvin.settings.log_console_width),
+            # console=Console(width=marvin.settings.log_console_width),
         )
         formatter = logging.Formatter("%(name)s: %(message)s")
         handler.setFormatter(formatter)
@@ -74,8 +76,3 @@ def add_logging_methods(logger):
     logger.warning_kv = partial(log_kv, logging.WARNING)
     logger.error_kv = partial(log_kv, logging.ERROR)
     logger.critical_kv = partial(log_kv, logging.CRITICAL)
-
-
-setup_logging()
-if marvin.settings.rich_tracebacks:
-    install_rich_tracebacks()

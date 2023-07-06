@@ -70,7 +70,7 @@ jobs:
 
       - name: Build container image
         run: |
-          docker build ./examples/slackbot/community_bot \
+          docker build -f cookbook/slackbot/Dockerfile.slackbot . \
             --no-cache \
             --tag us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:latest \
             --tag us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:${SHORT_SHA} \

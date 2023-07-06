@@ -1,0 +1,27 @@
+from pydantic import BaseSettings, Field
+from typing import Union
+# from marvin.models import LanguageModel
+
+from pydantic import BaseModel, Field
+
+class LanguageModel(BaseModel):
+    name : str
+    model : str
+    api_key : str
+    max_tokens : int = 4000
+    temperature : float = 0.8
+    top_p : float = 1.0
+    frequency_penalty : float = 0.0
+    presence_penalty : float = 0.0
+
+class Config(BaseSettings):
+    project_name: str = "{{project_name}}"
+    asgi: str = "main:app"
+    language_model: LanguageModel = LanguageModel(
+        path = "{{default_model_path}}",
+        model = "{{default_model_name}}",
+        api_key = Field(..., env="{{default_model_api_key_name}}"),
+        {% for key, value in default_model_params.items() %}
+        {{ key }} = Field(..., env="{{ value }}"),
+        {% endfor %}
+    )

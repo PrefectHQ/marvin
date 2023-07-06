@@ -2,6 +2,15 @@ name: Build Docs
 
 on:
   pull_request:
+    branches:
+      - main
+      - marvin-old
+    paths:
+      - 'docs/**'
+      - 'docs_old/**'
+      - 'mkdocs.yml'
+      - 'mkdocs.insiders.yml'
+
 
 env:
   MKDOCS_SOCIAL_CARDS: ${{ vars.MKDOCS_SOCIAL_CARDS }}
