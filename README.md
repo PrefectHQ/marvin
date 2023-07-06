@@ -29,5 +29,6 @@ Our community is on a constant listening tour with developers, engineers, founde
         - 🔎 Scrape data from websites without building a custom scraper.
     - 🧪 Generate synthetic data for your applications at scale
     
-#### 🔜 Build a full-fledged application from a description of it.
-    - Simply describe what you want to make, and get a stateful application that implements it.
+#### 🔜 Coming Soon
+    - Build a full-fledged application from a description of it.
+        - Simply describe what you want to make, and get a stateful application that implements it.
