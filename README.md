@@ -25,10 +25,10 @@ Our community is on a constant listening tour with developers, engineers, founde
     - 🗣️ Build a `Language API` to your software, or one your investors will love.
     
 #### :muscle: Build, observe, and orchestrate bullet-proof APIs, Data Pipelines, and Agents that:
-    - :saluting_face: Solve complex deductive and inferential tasks at scale with autonomous agents. 
-    - :jigsaw: Extract structured data from unstructured text at scale
-        - :mag_right: Scrape data from websites without building a custom scraper.
-    - :test_tube: Generate synthetic data for your applications at scale
+    - 🫡 Solve complex deductive and inferential tasks at scale with autonomous agents. 
+    - 🧩 Extract structured data from unstructured text at scale
+        - 🔎 Scrape data from websites without building a custom scraper.
+    - 🧪 Generate synthetic data for your applications at scale
     
-#### :soon: Build a full-fledged application from a description of it.
+#### 🔜 Build a full-fledged application from a description of it.
     - Simply describe what you want to make, and get a stateful application that implements it.
