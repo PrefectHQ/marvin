@@ -48,6 +48,7 @@ nav:
       - OpenAI:
         - src/reference/utilities/openai_functions.ipynb
     - Components:
+      - Overview: src/reference/components/overview.md
       - src/reference/components/ai_model.ipynb
       - src/reference/components/ai_function.ipynb
       - src/reference/components/ai_classifier.md
@@ -83,7 +84,7 @@ theme:
     - content.code.copy
     - content.code.annotate 
     - toc.follow
-    - toc.integrate 
+    # - toc.integrate 
   icon:
     repo: fontawesome/brands/github
     edit: material/pencil 
