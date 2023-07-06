@@ -2,7 +2,13 @@
 base = ""
 command = """
 pip install --upgrade pip \
-&& pip install --upgrade --upgrade-strategy eager  -e ".[docs]" \
+&& pip install \
+    mkdocs-autolinks-plugin~=0.7 \
+    mkdocs-awesome-pages-plugin~=2.8 \
+    mkdocs-markdownextradata-plugin~=0.2 \
+    mkdocs-jupyter>=0.24.1 \
+    mkdocs-material>=9.1.17 \
+    mkdocstrings[python]~=0.22 \
 && pip install git+https://oauth:${MKDOCS_MATERIAL_INSIDERS_REPO_RO}@github.com/PrefectHQ/mkdocs-material-insiders.git@master \
 && mkdocs build --config-file mkdocs.insiders.yml \
 """
