@@ -1,5 +1,5 @@
 ## *Marvin* is a library for integrating Large Language Model into your software. 
-- It's a framework for perfectionists, a module for tinkerers, and a place to copy/paste for purists.
+- It's a lightweight framework for perfectionists, a module for tinkerers, and a place to copy/paste for purists.
 - It's delightfully opinionated at every layer you choose to use it. 
 - It's customizable, ejectable, and most important fully open source.
 
