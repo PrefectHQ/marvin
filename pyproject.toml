@@ -40,7 +40,7 @@ dev = [
     "pre-commit>=2.21,<4.0",
     "pytest-asyncio~=0.20",
     "pytest-env~=0.8",
-    "pytest-rerunfailures~=10.0",
+    "pytest-rerunfailures>=10,<13",
     "pytest-sugar~=0.9",
     "pytest>=7.3.1,<7.5.0",
     "ruff",
