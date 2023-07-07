@@ -40,6 +40,38 @@ generate_structured_data_prompts = [
 
 
 class AIModel(LoggerMixin, BaseModel):
+    """Base class for AI models."""
+
+    def __init__(
+        self,
+        text_: str = None,
+        *,
+        instructions_: str = None,
+        model_: ChatLLM = None,
+        **kwargs,
+    ):
+        """
+        Args:
+            text_: The text to parse into a structured form.
+            instructions_: Additional instructions to assist the model.
+            model_: The language model to use.
+        """
+        # the loggingmixin hasn't been instantiated yet
+
+        if text_:
+            if model_ is None:
+                model_ = ChatLLM()
+
+            # use the extract constructor to build the class
+            kwargs = self.__class__.extract(
+                text_=text_,
+                instructions_=instructions_,
+                model_=model_,
+                as_dict_=True,
+                **kwargs,
+            )
+        super().__init__(**kwargs)
+
     @classmethod
     def extract(
         cls,
@@ -50,11 +82,15 @@ class AIModel(LoggerMixin, BaseModel):
         as_dict_: bool = False,
         **kwargs,
     ):
-        """
+        """Class method to extract structured data from text.
+
         Args:
-            text_ (str): The text to parse into a structured form. instructions_
-            (str): Additional instructions to assist the model. model_
-            (ChatLLM): The language model to use.
+            text_: The text to parse into a structured form.
+            instructions_: Additional string instructions to assist the model.
+            model_: The language model to use.
+            as_dict_: Whether to return the result as a dictionary or as an
+                instance of this class.
+            kwargs: Additional keyword arguments to pass to the constructor.
         """
         if model_ is None:
             model_ = ChatLLM()
@@ -78,11 +114,13 @@ class AIModel(LoggerMixin, BaseModel):
         model_: ChatLLM = None,
         **kwargs,
     ):
-        """
+        """Class method to generate structured data from text.
+
         Args:
-            text_ (str): The text to parse into a structured form. instructions_
-            (str): Additional instructions to assist the model. model_
-            (ChatLLM): The language model to use.
+            text_: The text to parse into a structured form.
+            instructions_: Additional instructions to assist the model.
+            model_: The language model to use.
+            kwargs: Additional keyword arguments to pass to the constructor.
         """
         if model_ is None:
             model_ = ChatLLM()
@@ -114,36 +152,6 @@ class AIModel(LoggerMixin, BaseModel):
 
         return response.data.get("arguments", {})
 
-    def __init__(
-        self,
-        text_: str = None,
-        *,
-        instructions_: str = None,
-        model_: ChatLLM = None,
-        **kwargs,
-    ):
-        """
-        Args:
-            text_ (str): The text to parse into a structured form. instructions_
-            (str): Additional instructions to assist the model. model_
-            (ChatLLM): The language model to use.
-        """
-        # the loggingmixin hasn't been instantiated yet
-
-        if text_:
-            if model_ is None:
-                model_ = ChatLLM()
-
-            # use the extract constructor to build the class
-            kwargs = self.__class__.extract(
-                text_=text_,
-                instructions_=instructions_,
-                model_=model_,
-                as_dict_=True,
-                **kwargs,
-            )
-        super().__init__(**kwargs)
-
 
 def ai_model(
     cls: Optional[Type[T]] = None,
@@ -151,10 +159,31 @@ def ai_model(
     instructions: str = None,
     model: ChatLLM = None,
 ) -> Type[T]:
-    """
-    This function allows the AIModel decorator to be used with or without
-    calling it. It's a wrapper around the AIModel decorator that adds some extra
-    flexibility.
+    """Decorator to add AI model functionality to a class.
+
+    Args:
+        cls: The class to decorate.
+        instructions: Additional instructions to assist the model.
+        model: The language model to use.
+
+    Example:
+        Hydrate a class schema from a natural language description:
+        ```python
+        from pydantic import BaseModel
+        from marvin import ai_model
+
+        @ai_model
+        class Location(BaseModel):
+            city: str
+            state: str
+            latitude: float
+            longitude: float
+
+        Location("no way, I also live in the windy city")
+        # Location(
+        #   city='Chicago', state='Illinois', latitude=41.8781, longitude=-87.6298
+        # )
+        ```
     """
     if cls is None:
         return functools.partial(ai_model, instructions=instructions, model=model)

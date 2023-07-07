@@ -118,6 +118,16 @@ SYSTEM_PROMPT = """
 
 
 class TaskState(Enum):
+    """The state of a task.
+
+    Attributes:
+        NOT_STARTED: The task has not started.
+        IN_PROGRESS: The task is in progress.
+        COMPLETED: The task is completed.
+        FAILED: The task failed.
+        SKIPPED: The task was skipped.
+    """
+
     NOT_STARTED = "NOT_STARTED"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
@@ -137,15 +147,59 @@ class Task(BaseModel):
 
 
 class AppPlan(BaseModel):
-    tasks: list[Task] = []
-    notes: list[str] = []
+    """The AI's plan in service of the application.
+
+    Attributes:
+        tasks: A list of tasks the AI is working on.
+        notes: A list of notes the AI has taken.
+    """
+
+    tasks: list[Task] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
 
 
 class FreeformState(BaseModel):
-    state: dict[str, Any] = {}
+    """A freeform state object that can be used to store any JSON-serializable data.
+
+    Attributes:
+        state: The state object.
+    """
+
+    state: dict[str, Any] = Field(default_factory=dict)
 
 
 class AIApplication(LoggerMixin, BaseModel):
+    """An AI application is a stateful, autonomous, natural language
+        interface to an application.
+
+    Attributes:
+        name: The name of the application.
+        description: A description of the application.
+        state: The application's state - this can be any JSON-serializable object.
+        plan: The AI's plan in service of the application - this can be any
+            JSON-serializable object.
+        tools: A list of tools that the AI can use to interact with
+            application or outside world.
+        history: A history of all messages sent and received by the AI.
+        additional_prompts: A list of additional prompts that will be
+            added to the prompt stack for rendering.
+
+    Example:
+        Create a simple todo app where AI manages its own state and plan.
+        ```python
+        from marvin import AIApplication
+
+        todo_app = AIApplication(
+            name="Todo App",
+            description="A simple todo app.",
+        )
+
+        todo_app("I need to go to the store.")
+
+        print(todo_app.state, todo_app.plan)
+        ```
+    """
+
     name: str = None
     description: str
     state: BaseModel = Field(default_factory=FreeformState)
@@ -270,6 +324,15 @@ class AIApplicationTool(Tool):
 
 
 class JSONPatchModel(BaseModel):
+    """A JSON Patch document.
+
+    Attributes:
+        op: The operation to perform.
+        path: The path to the value to update.
+        value: The value to update the path to.
+        from_: The path to the value to copy from.
+    """
+
     op: str
     path: str
     value: Union[str, float, int, bool, list, dict] = None
@@ -280,8 +343,34 @@ class JSONPatchModel(BaseModel):
 
 
 class UpdateState(Tool):
-    """
-    Updates state using JSON Patch documents.
+    """A `Tool` that updates the apps state using JSON Patch documents.
+
+    Example:
+        Manually update the state of an AI Application.
+        ```python
+        from marvin.components.ai_application import (
+            AIApplication,
+            FreeformState,
+            JSONPatchModel,
+            UpdateState,
+        )
+
+        destination_tracker = AIApplication(
+            name="Destination Tracker",
+            description="keeps track of where i've been",
+            state=FreeformState(state={"San Francisco": "not visited"}),
+        )
+
+        patch = JSONPatchModel(
+            op="replace", path="/state/San Francisco", value="visited"
+        )
+
+        UpdateState(app=destination_tracker).run([patch.dict()])
+
+        assert destination_tracker.state.dict() == {
+            "state": {"San Francisco": "visited"}
+        }
+        ```
     """
 
     _app: "AIApplication" = PrivateAttr()
@@ -304,7 +393,34 @@ class UpdateState(Tool):
 
 class UpdatePlan(Tool):
     """
-    Updates state using JSON Patch documents.
+    A `Tool` that updates the apps plan using JSON Patch documents.
+
+
+    Example:
+        Manually update task status in an AI Application's plan.
+        ```python
+        from marvin.components.ai_application import (
+            AIApplication,
+            AppPlan,
+            JSONPatchModel,
+            UpdatePlan,
+        )
+
+        todo_app = AIApplication(name="Todo App", description="A simple todo app")
+
+        todo_app("i need to buy milk")
+
+        # manually update the plan (usually done by the AI)
+        patch = JSONPatchModel(
+            op="replace",
+            path="/tasks/0/state",
+            value="COMPLETED"
+        )
+
+        UpdatePlan(app=todo_app).run([patch.dict()])
+
+        print(todo_app.plan)
+        ```
     """
 
     _app: "AIApplication" = PrivateAttr()
