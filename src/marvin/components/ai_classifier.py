@@ -71,12 +71,20 @@ class AIChoice:
 
 
 def ai_choice(fn: Callable[[A], T] = None) -> Callable[[A], T]:
-    """
-    @ai_choice
-    def get_choices(query: str, options: list) -> str:
-        '''You are classifying the opposite sentiment of incoming user test'''
+    """Decorator to produce a function that will can classify inputs via logit bias
 
-    get_choices('I love twitter', ['happy', 'sad']) #happy
+    Args:
+        fn: The source-less function to decorate
+
+    Example:
+        Classify sentiment of incoming user text
+        ```python
+        @ai_choice
+        def get_choices(query: str, options: list) -> str:
+            '''You are classifying the sentiment of incoming user text'''
+
+        get_choices('I love twitter', ['happy', 'sad']) # happy
+        ```
     """
     # this allows the decorator to be used with or without calling it
     if fn is None:

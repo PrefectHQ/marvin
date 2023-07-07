@@ -1,6 +1,6 @@
 import jsonpatch
 import pytest
-from marvin.components.ai_application.base import (
+from marvin.components.ai_application import (
     AIApplication,
     FreeformState,
     UpdateState,
