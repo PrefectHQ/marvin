@@ -3,6 +3,7 @@ base = ""
 command = """
 pip install --upgrade pip \
 && pip install \
+    jupyter \
     mkdocs-autolinks-plugin~=0.7 \
     mkdocs-awesome-pages-plugin~=2.8 \
     mkdocs-markdownextradata-plugin~=0.2 \

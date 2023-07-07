@@ -30,6 +30,7 @@ generator = ["datamodel-code-generator>=0.20.0"]
 dev = [
     "black[jupyter]",
     "ipython",
+    "jupyter",
     "mkdocs-autolinks-plugin~=0.7",
     "mkdocs-awesome-pages-plugin~=2.8",
     "mkdocs-markdownextradata-plugin~=0.2",
