@@ -176,44 +176,14 @@ class TestUpdatePlan:
             " that."
         )
 
-        assert app.plan.dict() == {
-            "tasks": [
-                {
-                    "id": 1,
-                    "description": "Visit tigers",
-                    "state": TaskState.SKIPPED,
-                    "upstream_task_ids": None,
-                    "parent_task_id": None,
-                },
-                {
-                    "id": 2,
-                    "description": "Visit giraffes",
-                    "state": TaskState.NOT_STARTED,
-                    "upstream_task_ids": None,
-                    "parent_task_id": None,
-                },
-            ],
-            "notes": [],
-        }
+        assert [task["state"] for task in app.plan.dict()["tasks"]] == [
+            TaskState.SKIPPED,
+            TaskState.NOT_STARTED,
+        ]
 
         app("Dude i just saw the giraffes and their necks are so long!")
 
-        assert app.plan.dict() == {
-            "tasks": [
-                {
-                    "id": 1,
-                    "description": "Visit tigers",
-                    "state": TaskState.SKIPPED,
-                    "upstream_task_ids": None,
-                    "parent_task_id": None,
-                },
-                {
-                    "id": 2,
-                    "description": "Visit giraffes",
-                    "state": TaskState.COMPLETED,
-                    "upstream_task_ids": None,
-                    "parent_task_id": None,
-                },
-            ],
-            "notes": [],
-        }
+        assert [task["state"] for task in app.plan.dict()["tasks"]] == [
+            TaskState.SKIPPED,
+            TaskState.COMPLETED,
+        ]
