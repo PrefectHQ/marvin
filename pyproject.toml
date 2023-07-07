@@ -30,6 +30,12 @@ generator = ["datamodel-code-generator>=0.20.0"]
 dev = [
     "black[jupyter]",
     "ipython",
+    "mkdocs-autolinks-plugin~=0.7",
+    "mkdocs-awesome-pages-plugin~=2.8",
+    "mkdocs-markdownextradata-plugin~=0.2",
+    "mkdocs-jupyter>=0.24.1",
+    "mkdocs-material>=9.1.17",
+    "mkdocstrings[python]~=0.22",
     "pdbpp~=0.10",
     "pre-commit>=2.21,<4.0",
     "pytest-asyncio~=0.20",
@@ -38,14 +44,6 @@ dev = [
     "pytest-sugar~=0.9",
     "pytest~=7.3.1",
     "ruff",
-]
-docs = [
-    "mkdocs-autolinks-plugin~=0.7",
-    "mkdocs-awesome-pages-plugin~=2.8",
-    "mkdocs-markdownextradata-plugin~=0.2",
-    "mkdocs-jupyter>=0.24.1",
-    "mkdocs-material>=9.1.17",
-    "mkdocstrings[python]~=0.22",
 ]
 framework = [
     "aiosqlite>=0.19.0",
