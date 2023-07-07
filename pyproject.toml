@@ -42,7 +42,7 @@ dev = [
     "pytest-env~=0.8",
     "pytest-rerunfailures~=10.0",
     "pytest-sugar~=0.9",
-    "pytest~=7.2",
+    "pytest~=7.3.1",
     "ruff",
 ]
 framework = [
