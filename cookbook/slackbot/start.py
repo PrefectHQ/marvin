@@ -8,7 +8,7 @@ import marvin
 from cachetools import TTLCache
 from fastapi import HTTPException
 from marvin.apps.chatbot import Chatbot
-from marvin.components.ai_model.examples import DiscoursePost
+from marvin.library.ai_models import DiscoursePost
 from marvin.models.history import History
 from marvin.models.messages import Message
 from marvin.tools import Tool
@@ -126,7 +126,9 @@ async def generate_ai_response(payload: Dict) -> Message:
 
         ai_message = await bot.run(input_text=message)
 
-        CACHE[thread] = deepcopy(bot.history)
+        CACHE[thread] = deepcopy(
+            bot.history
+        )  # make a copy so we don't cache a reference to the history object
         await _post_message(
             message=ai_message.content,
             channel=event.get("channel", ""),

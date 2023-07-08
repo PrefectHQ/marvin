@@ -2,9 +2,10 @@ import json
 from typing import Optional
 
 import httpx
-import marvin
 from pydantic import BaseModel, Field, validator
 from typing_extensions import Self
+
+import marvin
 
 
 @marvin.ai_model(instructions="Produce a comprehensive Discourse post from text.")
