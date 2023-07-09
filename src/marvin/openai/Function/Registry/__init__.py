@@ -11,21 +11,23 @@ class FunctionRegistry(APIRouter):
     def __init__(self, function_decorator=marvin_fn, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.function_decorator = function_decorator
-        self.registered_routers: Set[Type[APIRouter]] = set()
 
     @property
     def endpoints(self):
         return [route.endpoint for route in self.routes]
 
     @property
+    def schema(self):
+        return [fn.schema() for fn in self.endpoints]
+
+    @property
     def functions(self):
         return [fn.schema() for fn in self.endpoints]
 
     def include(self, registry: "FunctionRegistry", *args, **kwargs):
-        # Adds some 75-IQ idempotency.
-        if type(registry) not in self.registered_routers:
-            super().include_router(registry, *args, **kwargs)
-            self.registered_routers.add(type(registry))
+        super().include_router(registry, *args, **kwargs)
+        # Add some 50-IQ idempotency.
+        self.routes = list({x.name: x for x in self.routes}.values())
 
     def register(self, fn: Optional[Callable] = None, **kwargs: Any) -> Callable:
         def decorator(fn: Callable, *args) -> Callable:
