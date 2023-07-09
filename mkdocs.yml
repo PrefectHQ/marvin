@@ -12,8 +12,7 @@ nav:
       - src/reference/prompts/writing.ipynb
       - src/reference/prompts/executing.ipynb
     - Utilities:
-      - OpenAI:
-        - src/reference/utilities/openai_functions.ipynb
+      - OpenAI: src/reference/utilities/openai_functions.ipynb
     - Components:
       - Overview: src/reference/components/overview.md
       - src/reference/components/ai_model.ipynb
