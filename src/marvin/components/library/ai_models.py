@@ -25,7 +25,7 @@ class DiscoursePost(BaseModel):
             " explain any relevant concepts, and have a friendly, academic tone,"
             " and provide any links to relevant resources found in the thread."
             " This answer should be written in Markdown, with any code blocks"
-            " formatted as `code` or ```code```."
+            " formatted as `code` or ```<language_name>\n<the code block itself>```."
         ),
         example="You can install Prefect by running `pip install -U prefect`.",
     )
