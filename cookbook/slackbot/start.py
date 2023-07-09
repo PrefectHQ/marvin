@@ -8,7 +8,7 @@ import marvin
 from cachetools import TTLCache
 from fastapi import HTTPException
 from marvin.apps.chatbot import Chatbot
-from marvin.library.ai_models import DiscoursePost
+from marvin.components.library.ai_models import DiscoursePost
 from marvin.models.history import History
 from marvin.models.messages import Message
 from marvin.tools import Tool
