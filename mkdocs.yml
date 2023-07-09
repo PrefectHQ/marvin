@@ -6,39 +6,6 @@ docs_dir: docs
 nav:
   - Motivation:
     - src/motivation.md
-  # - Tutorials:
-  #   - src/tutorials.md
-  #   - Natural Language Processing:
-  #     - Extracting Structured Data:
-  #       - src/notebooks/scraping.ipynb
-  #     - src/tutorials/tutor.md
-  #     - src/tutorials/assistant.md
-  #   - Conversational Applications:
-  #     - src/tutorials/chatbot.md
-  #     - src/tutorials/assistant.md
-  #     - src/tutorials/data.md
-  #   - Autonomous Applications:
-  #     - src/tutorials/smol.md
-  #     - src/tutorials/autogpt.md
-  #     - src/tutorials/workgpt.md
-  #   - Games:
-  #     - src/tutorials/star_wars.md
-  #     - src/tutorials/twenty_questions.md
-  #     - src/tutorials/educational.md
-  # - How-Tos:
-  #   - src/guides.md
-  #   - Writing Prompts:
-  #     - src/guides.md
-  #   - Using Tools:
-  #     - src/guides.md
-  #   - Using Data:
-  #     - src/guides.md
-  #   - Deploying your Application:
-  #     - src/guides.md
-  #   - Orchestration:
-  #     - src/guides.md
-  #   - Observability:
-  #     - src/guides.md
   - Docs:
     - src/reference/index.md
     - Prompts: 
@@ -51,13 +18,8 @@ nav:
       - Overview: src/reference/components/overview.md
       - src/reference/components/ai_model.ipynb
       - src/reference/components/ai_function.ipynb
-      - src/reference/components/ai_choice.ipynb
-      # - src/reference/components/ai_application.md
-    # - Applications:
-    #   - src/reference/applications.md
-    # - Engines: 
-    #   - src/reference/models.md
-    #   - src/reference/executors.md
+      - src/reference/components/ai_classifier.md
+      - src/reference/components/ai_application.md
     - Configuration:
       - src/reference/configuration.md
     - Deployment:
@@ -133,9 +95,9 @@ markdown_extensions:
   - attr_list
   - md_in_html
   - pymdownx.details
-  - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
+  # - pymdownx.emoji:
+  #     emoji_index: !!python/name:materialx.emoji.twemoji
+  #     emoji_generator: !!python/name:materialx.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
