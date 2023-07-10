@@ -30,6 +30,7 @@ nav:
     - src/api_reference/index.md
   - Community:
     - src/community.md
+    - src/feedback.md
     - Development:
       - src/development_guide.md
   
