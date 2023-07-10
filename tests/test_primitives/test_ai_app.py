@@ -164,7 +164,7 @@ class TestUpdatePlan:
                     {
                         "id": 2,
                         "description": "Visit giraffes",
-                        "state": TaskState.NOT_STARTED,
+                        "state": TaskState.PENDING,
                     },
                 ]
             ),
@@ -178,7 +178,7 @@ class TestUpdatePlan:
 
         assert [task["state"] for task in app.plan.dict()["tasks"]] == [
             TaskState.SKIPPED,
-            TaskState.NOT_STARTED,
+            TaskState.PENDING,
         ]
 
         app("Dude i just saw the giraffes and their necks are so long!")
