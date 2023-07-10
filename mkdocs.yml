@@ -9,9 +9,10 @@ nav:
     - src/getting_started/installation.md
     - src/getting_started/quickstart.ipynb
   - Docs:
+    - Overview: src/reference/docs_overview.md
     - Configuration:
       - src/reference/configuration.md
-    - Low-Level APIs:
+    - Utilities:
       - OpenAI: src/reference/utilities/openai_functions.ipynb
       - Prompt Engineering: 
         - src/reference/prompts/writing.ipynb

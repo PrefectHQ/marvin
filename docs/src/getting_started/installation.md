@@ -2,14 +2,13 @@
 
 ## Basic Installation
 
-
-You can install Marvin with `pip`:
+You can install Marvin with `pip` (note that Marvin requires Python 3.9+):
 
 ```shell
 pip install marvin
 ``` 
 
-To verify your installation, run `marvin --help` in your terminal. Please note that Marvin requires Python 3.9+. 
+To verify your installation, run `marvin --help` in your terminal. 
 
 You can upgrade to the latest released version at any time:
 
@@ -18,7 +17,7 @@ pip install marvin -U
 ```
 
 !!! warning "Breaking changes in 1.0"
-    Please note that Marvin 1.0 introduces a number of breaking changes and is not compatible with code written for Marvin 0.X.
+    Please note that Marvin 1.0 introduces a number of breaking changes and is not compatible with Marvin 0.X.
 
 ## Configuring OpenAI
 
