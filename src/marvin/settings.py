@@ -57,7 +57,8 @@ class Settings(BaseSettings):
     # TOOLS
 
     # chroma
-    chroma_api_url: str = Field(None)
+    chroma_server_host: str = Field(None)
+    chroma_server_http_port: int = Field(None)
 
     # discourse
     discourse_help_category_id: int = Field(None)

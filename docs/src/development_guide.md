@@ -1,4 +1,4 @@
-# Contribute to Marvin
+# Development Guide
 
 ## Prerequisites
 Marvin requires [Python 3.9+](https://www.python.org/downloads/).
