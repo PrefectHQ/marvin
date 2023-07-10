@@ -1,4 +1,6 @@
-# Docs Overview
+# The Marvin Docs
+
+![](/img/heroes/life_the_universe_and_ai.png)
 
 Marvin is a collection of powerful building blocks that are designed to be incrementally adopted. This means that you should be able to use any piece of Marvin without needing to learn too much extra information: time-to-value is our key objective. 
 
