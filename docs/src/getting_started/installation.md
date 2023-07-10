@@ -43,4 +43,4 @@ pip install 'marvin[lancedb]'
 
 
 ## Installing for Development
-See the [contributing docs](/docs/src/community_commit.md) for instructions on installing Marvin for development.
+See the [contributing docs](/src/community_commit/) for instructions on installing Marvin for development.
