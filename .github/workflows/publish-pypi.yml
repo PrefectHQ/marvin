@@ -1,11 +1,9 @@
 name: Publish Marvin to PyPI
-
 on:
-  push:
-    branches: 
-      - main
-      - marvin-old
-
+  release:
+    types: [published]
+  workflow_dispatch:
+    
 jobs:
   publish-pypi-release:
     runs-on: ubuntu-latest
@@ -15,9 +13,7 @@ jobs:
         with:
           fetch-depth: 0
       - run: python3 -m pip install --upgrade build && python3 -m build
-
       - name: Publish package
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/marvin-old'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
