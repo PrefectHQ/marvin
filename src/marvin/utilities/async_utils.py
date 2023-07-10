@@ -28,7 +28,10 @@ def run_sync(coroutine: Awaitable[T]) -> T:
     """
     Runs a coroutine from a synchronous context, either in the current event
     loop or in a new one if there is no event loop running. The coroutine will
-    block until it is done.
+    block until it is done. A thread will be spawned to run the event loop if
+    necessary, which allows coroutines to run in environments like Jupyter
+    notebooks where the event loop runs on the main thread.
+
     """
     try:
         loop = asyncio.get_running_loop()
