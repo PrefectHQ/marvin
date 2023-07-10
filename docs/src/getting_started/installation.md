@@ -2,15 +2,19 @@
 
 ## Basic Installation
 
-
 You can install Marvin with `pip` (note that Marvin requires Python 3.9+):
 
 ```shell
-pip install -U marvin
+pip install marvin
 ``` 
 
 To verify your installation, run `marvin --help` in your terminal. 
 
+You can upgrade to the latest released version at any time:
+
+```shell
+pip install marvin -U
+```
 
 !!! warning "Breaking changes in 1.0"
     Please note that Marvin 1.0 introduces a number of breaking changes and is not compatible with Marvin 0.X.
@@ -30,19 +34,12 @@ Marvin's base install is designed to be as lightweight as possible, with minimal
 
 ```shell
 # dependencies for running Marvin as a slackbot
-pip install marvin[slackbot]
+pip install 'marvin[slackbot]'
 
 # dependencies for running Marvin with lancedb
-pip install marvin[lancedb]
+pip install 'marvin[lancedb]'
 ```
 
 
 ## Installing for Development
-
-To install Marvin for development, or to run against the most bleeding-edge version, clone the repo and create an editable installation including all development dependencies:
-
-```shell
-git clone https://github.com/prefecthq/marvin
-cd marvin
-pip install -e ".[dev]"
-```
+See the [contributing docs](/src/community_commit/) for instructions on installing Marvin for development.
