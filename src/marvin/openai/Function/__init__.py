@@ -1,8 +1,7 @@
-from typing import Any, Callable, Dict, List, Union, TypeVar, Type
-from marvin.utilities.types import function_to_model
-from openai.openai_object import OpenAIObject
-import functools
 import json
+from typing import TypeVar
+from openai.openai_object import OpenAIObject
+
 from pydantic import validate_arguments
 from marvin.functions import Function, FunctionDecoratorFactory
 

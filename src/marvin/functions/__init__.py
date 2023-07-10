@@ -1,15 +1,11 @@
-from typing import Callable, TypeVar, Optional, Any, Type
-from marvin.utilities.types import function_to_model
 import functools
-import json
-from pydantic import validate_arguments
-from fastapi.routing import APIRouter
-from marvin.models.messages import Message
-from marvin.openai.Function import marvin_fn, openai_fn
-from openai.openai_object import OpenAIObject
 import inspect
-from marvin.utilities.types import safe_issubclass
 import re
+from typing import Callable, TypeVar, Optional, Any, Type
+
+from fastapi.routing import APIRouter
+from marvin.openai.Function import marvin_fn
+from marvin.utilities.types import function_to_model
 
 
 T = TypeVar("T")
