@@ -3,25 +3,28 @@ site_description: 'Marvin: The AI Engineering Framework'
 site_url: https://askmarvin.ai
 docs_dir: docs
 nav:
-  - Motivation:
-    - src/motivation.md
+  - Getting Started:
+    - src/getting_started/motivation.md
+    - src/getting_started/installation.md
   - Docs:
-    - src/reference/index.md
+    - Configuration:
+      - src/reference/configuration.md
     - Prompts: 
       - src/reference/prompts/writing.ipynb
       - src/reference/prompts/executing.ipynb
     - Utilities:
       - OpenAI: src/reference/utilities/openai_functions.ipynb
-    - Components:
+    - AI Components:
       - Overview: src/reference/components/overview.md
       - src/reference/components/ai_model.ipynb
       - src/reference/components/ai_function.ipynb
       - src/reference/components/ai_choice.ipynb
       # - src/reference/components/ai_application.md
-    - Configuration:
-      - src/reference/configuration.md
     - Deployment:
       - src/reference/deployment.md
+
+  - API Reference:
+    - src/reference/index.md
   - Community:
     - src/community.md
     - src/community_commit.md
