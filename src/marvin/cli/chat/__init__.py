@@ -67,7 +67,6 @@ async def chat():
                 response = await model.run(messages=history + [user_message])
                 history.extend([user_message, response])
             console.print(
-                Panel(format_user_input(user_input), box=box.ROUNDED, expand=False),
                 Panel(
                     format_chatbot_response(response.content),
                     box=box.ROUNDED,
