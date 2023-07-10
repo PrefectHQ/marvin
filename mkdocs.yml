@@ -4,33 +4,29 @@ site_copy: Marvin makes it easier to build AI-powered applications in a scalable
 site_url: https://askmarvin.ai
 docs_dir: docs
 nav:
-  - Motivation:
-    - src/motivation.md
-  - Quickstart:
-    - src/getting_started.md
-    - src/hello_marvin.md
-  - Guides:
-    - src/guide_overview.md
-    - Slack bot:
-      - src/guides/slackbot.md
+  - Getting Started:
+    - src/getting_started/motivation.md
+    - src/getting_started/installation.md
+    - src/getting_started/quickstart.ipynb
   - Docs:
-    - Components:
-      - Overview: src/reference/components/overview.md
-      - src/reference/components/ai_model.ipynb
-      - src/reference/components/ai_function.ipynb
-      - src/reference/components/ai_choice.ipynb
-      # - src/reference/components/ai_application.md
-    - Prompts: 
-      - src/reference/prompts/writing.ipynb
-      - src/reference/prompts/executing.ipynb
-    - Utilities:
-      - OpenAI: src/reference/utilities/openai_functions.ipynb
-    - Reference:
-      - src/reference/index.md
     - Configuration:
       - src/reference/configuration.md
+    - Low-Level APIs:
+      - OpenAI: src/reference/utilities/openai_functions.ipynb
+      - Prompt Engineering: 
+        - src/reference/prompts/writing.ipynb
+        - src/reference/prompts/executing.ipynb
+    - AI Components:
+      - Overview: src/reference/components/overview.ipynb
+      - AI Model: src/reference/components/ai_model.ipynb
+      - AI Function: src/reference/components/ai_function.ipynb
+      - AI Choice: src/reference/components/ai_choice.ipynb
+      # - src/reference/components/ai_application.md
     - Deployment:
       - src/reference/deployment.md
+
+  - API Reference:
+    - src/api_reference/index.md
   - Community:
     - src/community.md
     - src/community_commit.md
@@ -75,6 +71,7 @@ plugins:
   - search
   - mkdocs-jupyter:
       highlight_extra_classes: "jupyter-css"
+      ignore_h1_titles: True
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
       cards_font: Inter
