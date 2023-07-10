@@ -5,6 +5,7 @@
 {% block tabs %}
   {{ super() }}
   <style>
+
     .md-header {
       position: initial;
     }
@@ -30,18 +31,19 @@
     }
     
     .hero {
-      padding-top: 144px;
+      padding-top: 72px; /* Reduce the padding-top */
       padding-left: 48px;
       padding-right: 48px;
+      text-align: center; /* Center the text */
     }
     
     .hero h1 {
       font-size: 2.5rem;
-      margin-bottom: 0rem;
+      margin-bottom: 0.5rem; /* Reduce the margin-bottom */
     }
 
     .hero p {
-      margin-bottom: 2rem;
+      margin-bottom: 1rem; /* Reduce the margin-bottom */
     }
     
     .type-heading-md {
@@ -56,14 +58,11 @@
     .mb-6 {
       margin-bottom: 1.5rem;
     }
-    
-    .svelte-4civr7 {
-      /* Add your custom styles here */
-    }
+
 
     .hero-img {
-      max-height: 375px;
-      width: 100%;
+      max-height: 250px; /* Reduce the max-height */
+      width: auto; /* Adjust the width */
       height: auto;
       margin-bottom: 2rem;
     }
