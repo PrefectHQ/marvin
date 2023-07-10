@@ -34,6 +34,36 @@ async def handle_message(payload: Dict) -> Dict[str, str]:
 Here, we define a simple python function to handle Slack events and return a response. We run our interesting logic in the background using `asyncio.create_task` to make sure we return `{"status": "ok"}` within 3 seconds, as required by Slack.
 
 ### Implement the AI response
+I like to start with this basic structure, knowing that one way or another...
+
+```python
+async def generate_ai_response(payload: Dict):
+    # somehow generate the ai responses
+    ...
+
+    # post the response to slack
+    _post_message(
+        messsage=some_message_ive_constructed,
+        channel=event.get("channel", ""),
+        thread_ts=thread_ts,
+    )
+```
+
+... I need to take in a Slack app mention payload, generate a response, and post it back to Slack.
+
+#### A couple considerations
+- do I want the bot to respond to users in a thread or in the channel?
+- do I want the bot to have memory of previous messages? how so?
+- what tools do I need to generate accurate responses for my users?
+
+In our case of the Prefect Community slackbot, we want:
+
+- the bot to respond in a thread
+- the bot to have memory of previous messages by slack thread
+- the bot to have access to the internet, GitHub, embedded docs, a calculator, and have the ability to immediately save useful slack threads to Discourse for future reference by the community
+
+#### Implementation of `generate_ai_response` for the Prefect Community Slackbot
+
 Here we invoke a worker `Chatbot` that has the `tools` needed to generate an accurate and helpful response.
 
 ```python
@@ -112,6 +142,9 @@ deployment = Deployment(
 
 deployment.serve()
 ```
+!!! tip "Deployments"
+    Learn more about deployments [here](/docs/src/reference/deployment.md).
+
 
 Run this file with something like:
 
@@ -148,3 +181,5 @@ EXPOSE 4200
 CMD ["python", "cookbook/slackbot/start.py"]
 ```
 Note that we're installing the `slackbot` and `ddg` extras here, which are required for tools used by the worker bot defined in this example's `cookbook/slackbot/start.py` file.
+
+## Find the whole example [here](https://github.com/PrefectHQ/marvin/tree/main/cookbook/slackbot).

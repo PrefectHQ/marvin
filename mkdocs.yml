@@ -25,7 +25,8 @@ nav:
       # - src/reference/components/ai_application.md
     - Deployment:
       - src/reference/deployment.ipynb
-
+    - Guides:
+      - Slackbot: src/guides/slackbot.md
   - API Reference:
     - src/api_reference/index.md
   - Community:
