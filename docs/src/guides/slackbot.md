@@ -143,7 +143,7 @@ deployment = Deployment(
 deployment.serve()
 ```
 !!! tip "Deployments"
-    Learn more about deployments [here](/docs/src/reference/deployment.md).
+    Learn more about deployments [here](/src/reference/deployment/).
 
 
 Run this file with something like:
