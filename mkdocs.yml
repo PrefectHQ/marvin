@@ -5,9 +5,9 @@ site_url: https://askmarvin.ai
 docs_dir: docs
 nav:
   - Getting Started:
-    - src/getting_started/motivation.md
     - src/getting_started/installation.md
     - src/getting_started/quickstart.ipynb
+    - src/getting_started/motivation.md
   - Docs:
     - Overview: src/reference/docs_overview.md
     - Configuration:
