@@ -1,4 +1,3 @@
-import asyncio
 import functools
 from typing import Optional, Type, TypeVar
 
@@ -9,6 +8,7 @@ from marvin.engine.language_models import ChatLLM
 from marvin.prompts import library as prompt_library
 from marvin.prompts import render_prompts
 from marvin.tools.format_response import FormatResponse
+from marvin.utilities.async_utils import run_sync
 from marvin.utilities.types import LoggerMixin
 
 T = TypeVar("T")
@@ -142,7 +142,7 @@ class AIModel(LoggerMixin, BaseModel):
         )
 
         llm_call = executor.start(prompts=messages)
-        responses = asyncio.run(llm_call)
+        responses = run_sync(llm_call)
         response = responses[-1]
 
         if response.data.get("is_error"):

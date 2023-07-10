@@ -1,4 +1,3 @@
-import asyncio
 import functools
 import inspect
 import re
@@ -9,6 +8,7 @@ from pydantic import BaseModel
 from marvin.engine.executors import OpenAIExecutor
 from marvin.prompts import library as prompt_library
 from marvin.tools.format_response import FormatResponse
+from marvin.utilities.async_utils import run_sync
 from marvin.utilities.types import safe_issubclass
 
 T = TypeVar("T")
@@ -81,7 +81,7 @@ class AIFunction:
 
         # if the provided fn is not async, run it immediately
         if not inspect.iscoroutinefunction(self.fn):
-            output = asyncio.run(output)
+            output = run_sync(output)
 
         return output
 
