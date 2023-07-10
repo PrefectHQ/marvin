@@ -31,4 +31,4 @@ export MARVIN_OPENAI_API_KEY=<your API key>
 This will set the key for the duration of your terminal session. To set it more permanently, configure your terminal or its respective env files.
 
 !!! tip "Using OpenAI standard API key locations"
-For convenience, Marvin will respect the `OPENAI_API_KEY` environment variable or a key manually set as `openai.api_key` as long as no Marvin-specific keys were also provided.
+    For convenience, Marvin will respect the `OPENAI_API_KEY` environment variable or a key manually set as `openai.api_key` as long as no Marvin-specific keys were also provided.

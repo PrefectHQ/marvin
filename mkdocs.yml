@@ -9,12 +9,12 @@ nav:
     - src/getting_started/quickstart.ipynb
     - src/getting_started/motivation.md
   - Docs:
-    - Overview: src/docs/docs_overview.md
+    - Overview: src/docs/index.md
     - Configuration:
       - src/docs/configuration/settings.md
       - src/docs/configuration/openai.md
     - Utilities:
-      - OpenAI: src/docs/utilities/openai.ipynb
+      - OpenAI API: src/docs/utilities/openai.ipynb
       - Prompt Engineering: 
         - src/docs/prompts/writing.ipynb
         - src/docs/prompts/executing.ipynb
