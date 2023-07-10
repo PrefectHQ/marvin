@@ -73,6 +73,13 @@ class AIModel(LoggerMixin, BaseModel):
         super().__init__(**kwargs)
 
     @classmethod
+    def route(cls):
+        def extract(q: str) -> cls:
+            return cls(q)
+
+        return extract
+
+    @classmethod
     def extract(
         cls,
         text_: str = None,
