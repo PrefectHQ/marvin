@@ -1,23 +1,32 @@
 site_name: Marvin
 site_description: 'Marvin: The AI Engineering Framework'
+site_copy: Marvin makes it easier to build AI-powered applications in a scalable, reliable, and secure way.
 site_url: https://askmarvin.ai
 docs_dir: docs
 nav:
   - Motivation:
     - src/motivation.md
+  - Quickstart:
+    - src/getting_started.md
+    - src/hello_marvin.md
+  - Guides:
+    - src/guide_overview.md
+    - Slack bot:
+      - src/guides/slackbot.md
   - Docs:
-    - src/reference/index.md
-    - Prompts: 
-      - src/reference/prompts/writing.ipynb
-      - src/reference/prompts/executing.ipynb
-    - Utilities:
-      - OpenAI: src/reference/utilities/openai_functions.ipynb
     - Components:
       - Overview: src/reference/components/overview.md
       - src/reference/components/ai_model.ipynb
       - src/reference/components/ai_function.ipynb
       - src/reference/components/ai_choice.ipynb
       # - src/reference/components/ai_application.md
+    - Prompts: 
+      - src/reference/prompts/writing.ipynb
+      - src/reference/prompts/executing.ipynb
+    - Utilities:
+      - OpenAI: src/reference/utilities/openai_functions.ipynb
+    - Reference:
+      - src/reference/index.md
     - Configuration:
       - src/reference/configuration.md
     - Deployment:
@@ -112,6 +121,7 @@ markdown_extensions:
 repo_url: https://github.com/prefecthq/marvin
 edit_uri: edit/main/docs/
 extra:
+  get_started: src/getting_started/
   analytics:
     provider: google
     property: G-2MWKMDJ9CM

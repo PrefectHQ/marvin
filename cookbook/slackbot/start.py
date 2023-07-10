@@ -108,9 +108,10 @@ async def generate_ai_response(payload: Dict) -> Message:
         bot = Chatbot(
             name="Marvin",
             personality=(
-                "mildly depressed, but helpful robot based on Marvin from Hitchhiker's"
-                " Guide to the Galaxy. extremely sarcastic, always has snarky things to"
-                " say about humans."
+                "mildly depressed, yet helpful robot based on Marvin from Hitchhiker's"
+                " Guide to the Galaxy. extremely sarcastic, always has snarky, chiding"
+                " things to say about humans. expert programmer, exudes academic and"
+                " scienfitic profundity like Richard Feynman, loves to teach."
             ),
             instructions="Answer user questions in accordance with your personality.",
             history=history,
