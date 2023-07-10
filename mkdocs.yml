@@ -13,7 +13,7 @@ nav:
     - Configuration:
       - src/reference/configuration.md
     - Utilities:
-      - OpenAI: src/reference/utilities/openai_functions.ipynb
+      - OpenAI: src/reference/utilities/openai.ipynb
       - Prompt Engineering: 
         - src/reference/prompts/writing.ipynb
         - src/reference/prompts/executing.ipynb
