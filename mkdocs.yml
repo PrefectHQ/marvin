@@ -9,9 +9,10 @@ nav:
     - src/getting_started/installation.md
     - src/getting_started/quickstart.ipynb
   - Docs:
+    - Overview: src/reference/docs_overview.md
     - Configuration:
       - src/reference/configuration.md
-    - Low-Level APIs:
+    - Utilities:
       - OpenAI: src/reference/utilities/openai_functions.ipynb
       - Prompt Engineering: 
         - src/reference/prompts/writing.ipynb
@@ -118,7 +119,7 @@ markdown_extensions:
 repo_url: https://github.com/prefecthq/marvin
 edit_uri: edit/main/docs/
 extra:
-  get_started: src/getting_started/
+  get_started: src/getting_started/motivation/
   analytics:
     provider: google
     property: G-2MWKMDJ9CM
