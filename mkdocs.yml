@@ -17,7 +17,7 @@ nav:
         - src/reference/prompts/writing.ipynb
         - src/reference/prompts/executing.ipynb
     - AI Components:
-      - Overview: src/reference/components/overview.md
+      - Overview: src/reference/components/overview.ipynb
       - src/reference/components/ai_model.ipynb
       - src/reference/components/ai_function.ipynb
       - src/reference/components/ai_choice.ipynb
@@ -26,7 +26,7 @@ nav:
       - src/reference/deployment.md
 
   - API Reference:
-    - src/reference/index.md
+    - src/api_reference/index.md
   - Community:
     - src/community.md
     - src/community_commit.md
