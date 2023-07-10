@@ -7,7 +7,7 @@ nav:
   - Getting Started:
     - src/getting_started/motivation.md
     - src/getting_started/installation.md
-    - src/getting_started/hello_marvin.md
+    - src/getting_started/quickstart.ipynb
   - Docs:
     - Configuration:
       - src/reference/configuration.md
