@@ -30,6 +30,7 @@ jobs:
           mkdocs-autolinks-plugin \
           mkdocs-awesome-pages-plugin \
           mkdocstrings[python] \
+          mkdocs-jupyter \
           pillow \
           cairosvg
       - name: Publish docs
