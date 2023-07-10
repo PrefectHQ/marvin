@@ -7,6 +7,7 @@ import marvin
 
 async def create_openai_embeddings(texts: List[str]) -> List[List[float]]:
     """Create OpenAI embeddings for a list of texts."""
+    openai.api_key = marvin.settings.openai_api_key.get_secret_value()
 
     embeddings = await openai.Embedding.acreate(
         input=[text.replace("\n", " ") for text in texts],
