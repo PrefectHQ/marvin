@@ -163,6 +163,9 @@ if __name__ == "__main__":
             "title": "Marvin Slackbot",
             "description": "A Slackbot powered by Marvin",
         },
+        uvicorn_kwargs={
+            "port": 4200,
+        },
     )
 
     deployment.serve()
