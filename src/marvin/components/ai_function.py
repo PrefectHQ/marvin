@@ -1,4 +1,3 @@
-import asyncio
 import functools
 import inspect
 import re
@@ -9,6 +8,7 @@ from pydantic import BaseModel
 from marvin.engine.executors import OpenAIExecutor
 from marvin.prompts import library as prompt_library
 from marvin.tools.format_response import FormatResponse
+from marvin.utilities.async_utils import run_sync
 from marvin.utilities.types import safe_issubclass
 
 T = TypeVar("T")
@@ -81,7 +81,7 @@ class AIFunction:
 
         # if the provided fn is not async, run it immediately
         if not inspect.iscoroutinefunction(self.fn):
-            output = asyncio.run(output)
+            output = run_sync(output)
 
         return output
 
@@ -139,7 +139,7 @@ def ai_fn(fn: Callable[[A], T] = None) -> Callable[[A], T]:
     Args:
         fn: The function to decorate - this function does not need source code
 
-    Examples:
+    Example:
         Returns a word that rhymes with the input word.
         ```python
         @ai_fn
@@ -148,26 +148,6 @@ def ai_fn(fn: Callable[[A], T] = None) -> Callable[[A], T]:
 
         rhyme("blue") # "glue"
         ```
-        Produce a list of `Person` objects from unstructured text.
-        ```python
-        from pydantic import BaseModel, Field
-        from marvin import ai_fn
-
-        class Person(BaseModel):
-            name: str
-            age: int = Field(description="Age in years (age of death if deceased)")
-
-        @ai_fn
-        def parse_people(text: str) -> list[Person]:
-            \"\"\" generates a list of people from some context \"\"\"
-
-        parse_people("inventors of the telephone and assembly line")
-        # [
-        #   Person(name="Alexander Graham Bell", age=75),
-        #   Person(name="Henry Ford", age=83)
-        # ]
-        ```
-
     """
     # this allows the decorator to be used with or without calling it
     if fn is None:

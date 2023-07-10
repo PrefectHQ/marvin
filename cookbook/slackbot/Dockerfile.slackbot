@@ -12,6 +12,6 @@ RUN apt-get update && apt-get install -y git
 
 RUN pip install ".[slackbot,ddg]"
 
-EXPOSE 8000
+EXPOSE 4200
 
 CMD ["python", "cookbook/slackbot/start.py"]

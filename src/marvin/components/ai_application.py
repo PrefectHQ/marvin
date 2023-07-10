@@ -1,4 +1,3 @@
-import asyncio
 import inspect
 from enum import Enum
 from typing import Any, Callable, Union
@@ -13,6 +12,7 @@ from marvin.models.messages import Message, Role
 from marvin.prompts import library as prompt_library
 from marvin.prompts.base import Prompt
 from marvin.tools import Tool
+from marvin.utilities.async_utils import run_sync
 from marvin.utilities.types import LoggerMixin
 
 SYSTEM_PROMPT = """
@@ -252,7 +252,7 @@ class AIApplication(LoggerMixin, BaseModel):
         return v
 
     def __call__(self, *args, **kwargs):
-        return asyncio.run(self.run(*args, **kwargs))
+        return run_sync(self.run(*args, **kwargs))
 
     async def entrypoint(self, q: str) -> str:
         # Helper function for deployment stuff to hide the model bits from
@@ -320,7 +320,7 @@ class AIApplicationTool(Tool):
         super().__init__(**kwargs)
 
     def run(self, input_text: str) -> str:
-        return asyncio.run(self.app.run(input_text))
+        return run_sync(self.app.run(input_text))
 
 
 class JSONPatchModel(BaseModel):

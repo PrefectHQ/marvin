@@ -6,7 +6,9 @@ Think of Marvin as that handy Swiss Army Knife in your development toolkit. Need
 
 ## What Makes Marvin Different?
 
-There's no shortage of tools and libraries out there for integrating Large Language Models (LLMs) into your software. So, what makes Marvin different?
+There's no shortage of tools and libraries out there for integrating Large Language Models (LLMs) into your software.
+
+So, what makes Marvin different?
 
 **1. User-Centric Design:** We built Marvin with you in mind. It's not just about what it does, but how it does it. Marvin is designed to be as user-friendly as possible, with a focus on an easy, intuitive experience. Whether you're a coding expert or just starting, Marvin works for you.
 
@@ -14,6 +16,6 @@ There's no shortage of tools and libraries out there for integrating Large Langu
 
 **3. Community Driven:** Marvin isn't just a tool, it's a community. We value feedback and collaboration from users like you. We're always learning, iterating, and improving based on what our community tells us.
 
-**4. Speed:** We're serious about speed. We believe that getting started should be quick and easy. That's why with Marvin, you can get up and running in no time. 
+**4. Velocity:** We believe that getting started should be quick and easy. That's why with Marvin, you can get up and running in no time. 
 
-**5. Open Source:** Marvin is fully open-source, which means it's not only free to use, but you're also free to modify and adapt it as you see fit. We believe in the power of collective intelligence, and we're excited to see what you can create.
+**5. Open-Source:** Marvin is fully open-source, which means it's not only free to use, but you're also free to modify and adapt it as you see fit. We believe in the power of collective intelligence, and we're excited to see what you can create.
