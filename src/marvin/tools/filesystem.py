@@ -1,7 +1,8 @@
+import json
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field, root_validator, validate_arguments
+from pydantic import BaseModel, Field, root_validator, validate_arguments, validator
 
 from marvin.tools import Tool
 
@@ -115,6 +116,15 @@ class WriteContent(BaseModel):
     content: str
     write_mode: Literal["overwrite", "append", "insert"] = "append"
     insert_at_row: int = None
+
+    @validator("content", pre=True)
+    def content_must_be_string(cls, v):
+        if v and not isinstance(v, str):
+            try:
+                v = json.dumps(v)
+            except json.JSONDecodeError:
+                raise ValueError("Content must be a string or JSON-serializable.")
+        return v
 
     @root_validator
     def check_insert_model(cls, values):
