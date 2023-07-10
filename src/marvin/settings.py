@@ -84,5 +84,13 @@ class Settings(BaseSettings):
         marvin.utilities.logging.setup_logging(level=v)
         return v
 
+    @validator("openai_api_key", always=True)
+    def set_openai_api_key(cls, v):
+        if v is not None:
+            import openai
+
+            openai.api_key = v
+        return v
+
 
 settings = Settings()
