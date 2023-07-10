@@ -70,6 +70,7 @@ class AIFunction:
 
         self.name = name or fn.__name__
         self.description = description or fn.__doc__
+        self.__signature__ = inspect.signature(fn)
 
         super().__init__()
 

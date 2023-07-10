@@ -89,7 +89,7 @@ class Settings(BaseSettings):
         if v is not None:
             import openai
 
-            openai.api_key = v
+            openai.api_key = v.get_secret_value()
         return v
 
 
