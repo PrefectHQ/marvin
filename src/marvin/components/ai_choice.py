@@ -39,7 +39,7 @@ def ai_choice(
             messages = render_prompts(
                 [
                     system(
-                        enum_class_docstring=enum_class.__doc__,
+                        enum_class_docstring=enum_class.__doc__ or "",
                         options=[value_getter(option) for option in enum_class],
                     ),
                     user(user_input=name),
