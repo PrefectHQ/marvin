@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     verbose: bool = False
 
     # LLMS
-    llm_model: str = "gpt-3.5-turbo-0613"
+    llm_model: str = "gpt-3.5-turbo"
     llm_max_tokens: int = Field(
         1500, description="The max number of tokens for AI completions"
     )

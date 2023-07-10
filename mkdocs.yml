@@ -9,22 +9,23 @@ nav:
     - src/getting_started/quickstart.ipynb
     - src/getting_started/motivation.md
   - Docs:
-    - Overview: src/reference/docs_overview.md
+    - Overview: src/docs/docs_overview.md
     - Configuration:
-      - src/reference/configuration.md
+      - src/docs/configuration/settings.md
+      - src/docs/configuration/openai.md
     - Utilities:
-      - OpenAI: src/reference/utilities/openai.ipynb
+      - OpenAI: src/docs/utilities/openai.ipynb
       - Prompt Engineering: 
-        - src/reference/prompts/writing.ipynb
-        - src/reference/prompts/executing.ipynb
+        - src/docs/prompts/writing.ipynb
+        - src/docs/prompts/executing.ipynb
     - AI Components:
-      - Overview: src/reference/components/overview.ipynb
-      - AI Model: src/reference/components/ai_model.ipynb
-      - AI Function: src/reference/components/ai_function.ipynb
-      - AI Choice: src/reference/components/ai_choice.ipynb
-      - AI Application: src/reference/components/ai_application.ipynb
+      - Overview: src/docs/components/overview.ipynb
+      - AI Model: src/docs/components/ai_model.ipynb
+      - AI Function: src/docs/components/ai_function.ipynb
+      - AI Choice: src/docs/components/ai_choice.ipynb
+      - AI Application: src/docs/components/ai_application.ipynb
     - Deployment:
-      - src/reference/deployment.ipynb
+      - src/docs/deployment.ipynb
     - Guides:
       - Slackbot: src/guides/slackbot.md
   - API Reference:
