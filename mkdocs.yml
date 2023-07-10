@@ -18,9 +18,9 @@ nav:
         - src/reference/prompts/executing.ipynb
     - AI Components:
       - Overview: src/reference/components/overview.ipynb
-      - src/reference/components/ai_model.ipynb
-      - src/reference/components/ai_function.ipynb
-      - src/reference/components/ai_choice.ipynb
+      - AI Model: src/reference/components/ai_model.ipynb
+      - AI Function: src/reference/components/ai_function.ipynb
+      - AI Choice: src/reference/components/ai_choice.ipynb
       # - src/reference/components/ai_application.md
     - Deployment:
       - src/reference/deployment.md
@@ -71,6 +71,7 @@ plugins:
   - search
   - mkdocs-jupyter:
       highlight_extra_classes: "jupyter-css"
+      ignore_h1_titles: True
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
       cards_font: Inter
