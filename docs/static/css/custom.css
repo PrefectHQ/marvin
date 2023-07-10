@@ -47,6 +47,14 @@
   margin-bottom: 0px !important;
 }
 
-.jp-InputPrompt, .jp-OutputPrompt {
+.jp-InputPrompt, .jp-OutputPrompt, .jp-Collapser {
   display: none !important;
 }
+
+.jp-Cell > .jp-Cell {
+  padding: 0px !important;
+}
+
+/* .jp-CodeCell {
+  padding: 0px !important;
+} */

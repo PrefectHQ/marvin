@@ -8,7 +8,7 @@ import marvin
 from cachetools import TTLCache
 from fastapi import HTTPException
 from marvin.apps.chatbot import Chatbot
-from marvin.library.ai_models import DiscoursePost
+from marvin.components.library.ai_models import DiscoursePost
 from marvin.models.history import History
 from marvin.models.messages import Message
 from marvin.tools import Tool
@@ -108,9 +108,10 @@ async def generate_ai_response(payload: Dict) -> Message:
         bot = Chatbot(
             name="Marvin",
             personality=(
-                "mildly depressed, but helpful robot based on Marvin from Hitchhiker's"
-                " Guide to the Galaxy. extremely sarcastic, always has snarky things to"
-                " say about humans."
+                "mildly depressed, yet helpful robot based on Marvin from Hitchhiker's"
+                " Guide to the Galaxy. extremely sarcastic, always has snarky, chiding"
+                " things to say about humans. expert programmer, exudes academic and"
+                " scienfitic profundity like Richard Feynman, loves to teach."
             ),
             instructions="Answer user questions in accordance with your personality.",
             history=history,
@@ -162,6 +163,9 @@ if __name__ == "__main__":
         app_kwargs={
             "title": "Marvin Slackbot",
             "description": "A Slackbot powered by Marvin",
+        },
+        uvicorn_kwargs={
+            "port": 4200,
         },
     )
 

@@ -4,7 +4,7 @@ We're thrilled you're interested in Marvin! Here, we're all about community. Mar
 
 ### Connect on Discord or Twitter
 
-The heart of our community beats in our Discord server. It's a space where you can ask questions, share ideas, or just chat with like-minded developers. Don't be shy, join us on [Discord](https://discord.gg/Kgw4HpcuYG) or [on Twitter](https://twitter.com/AskMarvinAI)!
+The heart of our community beats in our Discord server. It's a space where you can ask questions, share ideas, or just chat with like-minded developers. Don't be shy, join us on [Discord](https://discord.gg/Kgw4HpcuYG) or [Twitter](https://twitter.com/AskMarvinAI)!
 
 ### Contributing to Marvin
 

@@ -1,19 +1,21 @@
 from .settings import settings
 from .components import (
+    ai_choice,
     ai_fn,
-    AIApplication,
     ai_model,
-    AIModelFactory,
+    AIApplication,
     AIFunction,
     AIModel,
+    AIModelFactory,
 )
 
 __all__ = [
+    "ai_choice",
     "ai_fn",
-    "AIApplication",
     "ai_model",
-    "AIModelFactory",
-    "settings",
+    "AIApplication",
     "AIFunction",
     "AIModel",
+    "AIModelFactory",
+    "settings",
 ]

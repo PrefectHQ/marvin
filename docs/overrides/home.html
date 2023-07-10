@@ -31,6 +31,8 @@
     
     .hero {
       padding-top: 144px;
+      padding-left: 48px;
+      padding-right: 48px;
     }
     
     .hero h1 {
@@ -65,10 +67,10 @@
         <div class="mdx-hero__content">
           <h1 class="hero-heading">{{ config.site_description }}</h1>
           <p>{{ config.site_copy }}</p>
-          <a href="{{ page.next_page.url | url }}" style = "border-radius: 8px;" title="{{ page.next_page.title | e }}" class="md-button md-button--primary">
+          <a href="{{ config.extra.get_started | url }}" style = "border-radius: 8px;" title="{{ page.next_page.title | e }}" class="md-button md-button--primary">
             Get Started
           </a>
-          <a href="{{ config.repo_url }}" style = "border-radius: 8px;" title="Material for MkDocs Insiders" class="md-button">
+          <a href="{{ config.repo_url }}" style = "border-radius: 8px;" title="Star us on GitHub" class="md-button">
             Star us on GitHub
           </a>
         </div>
