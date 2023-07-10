@@ -13,8 +13,9 @@ QueryResultType = Literal["documents", "distances", "metadatas"]
 
 async def list_collections() -> list[dict]:
     async with httpx.AsyncClient() as client:
+        chroma_api_url = f"http://{marvin.settings.chroma_server_host}:{marvin.settings.chroma_server_http_port}"
         response = await client.get(
-            f"{marvin.settings.chroma_api_url}/api/v1/collections",
+            f"{chroma_api_url}/api/v1/collections",
         )
 
     response.raise_for_status()
@@ -49,8 +50,10 @@ class QueryChroma(Tool):
         collection_id = collection_ids[0]
 
         async with httpx.AsyncClient() as client:
+            chroma_api_url = f"http://{marvin.settings.chroma_server_host}:{marvin.settings.chroma_server_http_port}"
+
             response = await client.post(
-                f"{marvin.settings.chroma_api_url}/api/v1/collections/{collection_id}/query",
+                f"{chroma_api_url}/api/v1/collections/{collection_id}/query",
                 data=json.dumps(
                     {
                         "query_embeddings": [query_embedding],
