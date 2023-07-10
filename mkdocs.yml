@@ -24,7 +24,7 @@ nav:
       - AI Choice: src/reference/components/ai_choice.ipynb
       # - src/reference/components/ai_application.md
     - Deployment:
-      - src/reference/deployment.md
+      - src/reference/deployment.ipynb
 
   - API Reference:
     - src/api_reference/index.md
