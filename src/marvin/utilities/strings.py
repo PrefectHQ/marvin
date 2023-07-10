@@ -55,12 +55,12 @@ jinja_env.filters["render"] = render_filter
 
 
 def tokenize(text: str) -> list[int]:
-    tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo-0613")
+    tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo")
     return tokenizer.encode(text)
 
 
 def detokenize(tokens: list[int]) -> str:
-    tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo-0613")
+    tokenizer = tiktoken.encoding_for_model("gpt-3.5-turbo")
     return tokenizer.decode(tokens)
 
 

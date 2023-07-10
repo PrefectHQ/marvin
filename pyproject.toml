@@ -97,7 +97,7 @@ env = [
     "D:MARVIN_DATABASE_CONNECTION_URL=sqlite+aiosqlite:////tmp/marvin/marvin-tests.sqlite",
     "MARVIN_LOG_CONSOLE_WIDTH=120",
     # use 3.5 for tests by default
-    'MARVIN_LLM_MODEL=gpt-3.5-turbo-0613',
+    'MARVIN_LLM_MODEL=gpt-3.5-turbo',
     'MARVIN_LLM_TEMPERATURE=0.0',
 ]
 
