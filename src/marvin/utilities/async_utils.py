@@ -1,11 +1,16 @@
 import asyncio
 import functools
-from typing import TypeVar
+from concurrent.futures import ThreadPoolExecutor
+from typing import Awaitable, TypeVar
 
 T = TypeVar("T")
 
 
 async def run_async(func, *args, **kwargs) -> T:
+    """
+    Runs a synchronous function in an asynchronous manner.
+    """
+
     async def wrapper() -> T:
         try:
             return await loop.run_in_executor(
@@ -17,3 +22,21 @@ async def run_async(func, *args, **kwargs) -> T:
 
     loop = asyncio.get_event_loop()
     return await wrapper()
+
+
+def run_sync(coroutine: Awaitable[T]) -> T:
+    """
+    Runs a coroutine from a synchronous context, either in the current event
+    loop or in a new one if there is no event loop running. The coroutine will
+    block until it is done.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+        if loop.is_running():
+            with ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, coroutine)
+                return future.result()
+        else:
+            return asyncio.run(coroutine)
+    except RuntimeError:
+        return asyncio.run(coroutine)

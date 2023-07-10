@@ -1,9 +1,9 @@
-import asyncio
 from typing import Literal
 
 from marvin.engine.language_models import ChatLLM
 from marvin.prompts import render_prompts
 from marvin.prompts.library import System, User
+from marvin.utilities.async_utils import run_sync
 
 
 class ChoiceSystem(System):
@@ -46,7 +46,7 @@ def ai_choice(
                 ]
             )
 
-            response = asyncio.run(
+            response = run_sync(
                 model.run(
                     messages=messages,
                     logit_bias={
