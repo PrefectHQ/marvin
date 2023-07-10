@@ -22,7 +22,7 @@ nav:
       - AI Model: src/reference/components/ai_model.ipynb
       - AI Function: src/reference/components/ai_function.ipynb
       - AI Choice: src/reference/components/ai_choice.ipynb
-      # - src/reference/components/ai_application.md
+      - AI Application: src/reference/components/ai_application.ipynb
     - Deployment:
       - src/reference/deployment.ipynb
     - Guides:
