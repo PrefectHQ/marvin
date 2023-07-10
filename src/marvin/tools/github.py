@@ -24,8 +24,8 @@ class SearchGitHubIssues(Tool):
         """
         headers = {"Accept": "application/vnd.github.v3+json"}
 
-        if token := marvin.settings.github_token.get_secret_value():
-            headers["Authorization"] = f"Bearer {token}"
+        if token := marvin.settings.github_token:
+            headers["Authorization"] = f"Bearer {token.get_secret_value()}"
 
         async with httpx.AsyncClient() as client:
             response = await client.get(
