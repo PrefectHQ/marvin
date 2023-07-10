@@ -4,3 +4,4 @@ from .ai_model import ai_model
 from .ai_model_factory import AIModelFactory
 from .ai_model import AIModel
 from .ai_function import AIFunction
+from .ai_choice import ai_choice
