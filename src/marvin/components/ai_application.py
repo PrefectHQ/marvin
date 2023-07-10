@@ -121,12 +121,14 @@ class TaskState(Enum):
     """The state of a task.
 
     Attributes:
+        PENDING: The task is pending and has not yet started.
         IN_PROGRESS: The task is in progress.
         COMPLETED: The task is completed.
         FAILED: The task failed.
         SKIPPED: The task was skipped.
     """
 
+    PENDING = "PENDING"
     IN_PROGRESS = "IN_PROGRESS"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
