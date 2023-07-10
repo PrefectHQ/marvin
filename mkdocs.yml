@@ -9,11 +9,11 @@ nav:
   - Docs:
     - Configuration:
       - src/reference/configuration.md
-    - Prompts: 
-      - src/reference/prompts/writing.ipynb
-      - src/reference/prompts/executing.ipynb
-    - Utilities:
+    - Low-Level APIs:
       - OpenAI: src/reference/utilities/openai_functions.ipynb
+      - Prompt Engineering: 
+        - src/reference/prompts/writing.ipynb
+        - src/reference/prompts/executing.ipynb
     - AI Components:
       - Overview: src/reference/components/overview.md
       - src/reference/components/ai_model.ipynb
