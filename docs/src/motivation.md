@@ -1,10 +1,10 @@
-## What motivates Marvin.
+## Why Marvin?
 
 We created Marvin out of a simple, yet powerful belief: technology should work for you, not the other way around. Large Language Models (LLMs) are pretty cool, but let's face it, they can be a headache to integrate. So, we decided to take the fuss out of the process. Marvin is our answer to the challenge - a neat, flexible tool that works as hard as you do.
 
 Think of Marvin as that handy Swiss Army Knife in your development toolkit. Need to build a chatbot or an API? Marvin's got your back. Fancy some data scraping or building a classifier? Yep, Marvin can help with that too. And the best bit? You're in control. Marvin's as big or as small a part of your project as you want it to be. It's technology on your terms, and we can't wait to see what you'll create with it
 
-## What Makes Marvin Different.
+## What Makes Marvin Different?
 
 There's no shortage of tools and libraries out there for integrating Large Language Models (LLMs) into your software. So, what makes Marvin different?
 
