@@ -43,6 +43,8 @@ class SearchGitHubIssues(Tool):
 
         # enforce 1000 token limit per body
         for issue in issues_data:
+            if not issue["body"]:
+                continue
             issue["body"] = slice_tokens(issue["body"], 1000)
 
         issues = [GitHubIssue(**issue) for issue in issues_data]
