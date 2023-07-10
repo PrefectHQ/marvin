@@ -5,9 +5,10 @@ site_url: https://askmarvin.ai
 docs_dir: docs
 nav:
   - Getting Started:
+    - src/getting_started/what_is_marvin.md
+    - src/getting_started/why_marvin.md
     - src/getting_started/installation.md
     - src/getting_started/quickstart.ipynb
-    - src/getting_started/motivation.md
   - Docs:
     - Overview: src/docs/index.md
     - Configuration:
@@ -123,7 +124,7 @@ markdown_extensions:
 repo_url: https://github.com/prefecthq/marvin
 edit_uri: edit/main/docs/
 extra:
-  get_started: src/getting_started/installation/
+  get_started: src/getting_started/what_is_marvin/
   analytics:
     provider: google
     property: G-2MWKMDJ9CM
