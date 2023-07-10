@@ -1,5 +1,7 @@
 # Installation
 
+![](../../img/heroes/pip_install_marvin_hero.png)
+
 ## Basic Installation
 
 You can install Marvin with `pip` (note that Marvin requires Python 3.9+):

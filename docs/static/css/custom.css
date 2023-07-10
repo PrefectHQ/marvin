@@ -15,7 +15,7 @@
 
 /* Defaults for images */ 
 .md-typeset img {
-  max-width: 75%;
+  /* max-width: 75%; */
   /*center on page */
   display: block;
   margin-left: auto;
