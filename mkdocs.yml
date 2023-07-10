@@ -118,7 +118,7 @@ markdown_extensions:
 repo_url: https://github.com/prefecthq/marvin
 edit_uri: edit/main/docs/
 extra:
-  get_started: src/getting_started/
+  get_started: src/getting_started/installation/
   analytics:
     provider: google
     property: G-2MWKMDJ9CM

@@ -14,7 +14,7 @@ To verify your installation, run `marvin --help` in your terminal. Please note t
 You can upgrade to the latest released version at any time:
 
 ```shell
-pip install mavin -U
+pip install marvin -U
 ```
 
 !!! warning "Breaking changes in 1.0"
@@ -35,19 +35,12 @@ Marvin's base install is designed to be as lightweight as possible, with minimal
 
 ```shell
 # dependencies for running Marvin as a slackbot
-pip install marvin[slackbot]
+pip install 'marvin[slackbot]'
 
 # dependencies for running Marvin with lancedb
-pip install marvin[lancedb]
+pip install 'marvin[lancedb]'
 ```
 
 
 ## Installing for Development
-
-To install Marvin for development, or to run against the most bleeding-edge version, clone the repo and create an editable installation including all development dependencies:
-
-```shell
-git clone https://github.com/prefecthq/marvin
-cd marvin
-pip install -e ".[dev]"
-```
+See the [contributing docs](/docs/src/community_commit.md) for instructions on installing Marvin for development.
