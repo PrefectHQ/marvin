@@ -25,7 +25,9 @@ class LoggerMixin(BaseModel):
         return self._logger
 
 
-def function_to_schema(function: Callable[..., Any], name: str = None) -> dict:
+def function_to_model(
+    function: Callable[..., Any], name: str = None, description: str = None
+) -> dict:
     """
     Converts a function's arguments into an OpenAPI schema by parsing it into a
     Pydantic model. To work, all arguments must have valid type annotations.
@@ -56,6 +58,16 @@ def function_to_schema(function: Callable[..., Any], name: str = None) -> dict:
             )
         else:
             raise
+
+    return Model
+
+
+def function_to_schema(function: Callable[..., Any], name: str = None) -> dict:
+    """
+    Converts a function's arguments into an OpenAPI schema by parsing it into a
+    Pydantic model. To work, all arguments must have valid type annotations.
+    """
+    Model = function_to_model(function, name=name)
 
     return Model.schema()
 

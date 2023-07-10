@@ -1,6 +1,5 @@
 site_name: Marvin
 site_description: 'Marvin: The AI Engineering Framework'
-site_copy: Marvin makes it easier to build AI-powered applications in a scalable, reliable, and secure way.
 site_url: https://askmarvin.ai
 docs_dir: docs
 nav:
@@ -12,14 +11,13 @@ nav:
       - src/reference/prompts/writing.ipynb
       - src/reference/prompts/executing.ipynb
     - Utilities:
-      - OpenAI:
-        - src/reference/utilities/openai_functions.ipynb
+      - OpenAI: src/reference/utilities/openai_functions.ipynb
     - Components:
       - Overview: src/reference/components/overview.md
       - src/reference/components/ai_model.ipynb
       - src/reference/components/ai_function.ipynb
-      - src/reference/components/ai_classifier.md
-      - src/reference/components/ai_application.md
+      - src/reference/components/ai_choice.ipynb
+      # - src/reference/components/ai_application.md
     - Configuration:
       - src/reference/configuration.md
     - Deployment:
@@ -75,21 +73,7 @@ plugins:
         fill: "#2d6df6"
   - awesome-pages
   - autolinks 
-  - mkdocstrings:
-      handlers:
-        python:
-          paths: [src]
-          options:
-              show_source: False
-              show_root_heading: True
-              show_object_full_path: False
-              show_category_heading: False
-              show_bases: False
-              show_submodules: False
-              show_if_no_docstring: False
-              show_signature: False
-              heading_level: 2
-              filters: ["!^_"]
+
 markdown_extensions:
   - admonition
   - attr_list
