@@ -124,7 +124,7 @@ async def generate_ai_response(payload: Dict) -> Message:
 !!! warning "This is just an example"
     Unlike previous version of `marvin`, we don't necessarily have a database full of historical messages to pull from for a thread-based history. Instead, we'll cache the histories in memory for the duration of the app's runtime. Thread history can / should be implemented in a more robust way for specific use cases.
 
-### Attach our to a deployable `Chatbot`
+### Attach our handler to a deployable `Chatbot`
 ```python
 from marvin.apps.chatbot import Chatbot
 from marvin.depleyment import Deployment
