@@ -6,7 +6,6 @@ docs_dir: docs
 nav:
   - Getting Started:
     - src/getting_started/what_is_marvin.md
-    - src/getting_started/why_marvin.md
     - src/getting_started/installation.md
     - src/getting_started/quickstart.ipynb
   - Docs:
