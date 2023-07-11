@@ -1,12 +1,10 @@
-from typing import Literal
-
 from marvin.engine.language_models import ChatLLM
 from marvin.prompts import render_prompts
 from marvin.prompts.library import System, User
 from marvin.utilities.async_utils import run_sync
 
 
-class ChoiceSystem(System):
+class ClassifierSystem(System):
     content = """\
     {{ enum_class_docstring }}
     The user will provide context through text, you will use your expertise 
@@ -19,30 +17,47 @@ class ChoiceSystem(System):
     enum_class_docstring: str = ""
 
 
-class ChoiceUser(User):
+class ClassifierUser(User):
     content = """{{user_input}}"""
     user_input: str
 
 
-def ai_choice(
+def ai_classifier(
     cls=None,
-    system=ChoiceSystem,
-    user=ChoiceUser,
-    method: Literal["logit", "function"] = "logit",
-    value_getter=lambda x: x.name,
+    model: ChatLLM = None,
+    # system_prompt:Prompt=None,
+    # user_prompt:Prompt=None,
+    # method: Literal["logit", "function"] = "logit",
+    # value_getter:Callable=None,
 ):
-    def decorator(enum_class):
-        # Add a new __missing__ method to enum_class
-        def _missing_(name):
-            model = ChatLLM(max_tokens=1, temperature=0)
+    # placeholder until kwargs are exposed
+    system_prompt, user_prompt, value_getter = None, None, None
 
+    if model is None:
+        model = ChatLLM(max_tokens=1, temperature=0)
+    elif model.max_tokens != 1:
+        raise ValueError(
+            "The model must be configured with max_tokens=1 to use ai_classifier"
+        )
+    if system_prompt is None:
+        system_prompt = ClassifierSystem
+    if user_prompt is None:
+        user_prompt = ClassifierUser
+    if value_getter is None:
+
+        def value_getter(x):
+            return x.name
+
+    def decorator(enum_class):
+        # Add a new __missing__ method to enum_class to intercept NLP prompts
+        def _missing_(name):
             messages = render_prompts(
                 [
-                    system(
+                    system_prompt(
                         enum_class_docstring=enum_class.__doc__ or "",
                         options=[value_getter(option) for option in enum_class],
                     ),
-                    user(user_input=name),
+                    user_prompt(user_input=name),
                 ]
             )
 
@@ -64,21 +79,3 @@ def ai_choice(
         return decorator
     else:
         return decorator(cls)
-
-
-# from enum import Enum
-
-# @ai_choice
-# class CustomerIntent(Enum):
-#     '''Classifies the incoming users intent'''
-#     SALES = 1
-#     TECHNICAL_SUPPORT = 2
-#     BILLING_ACCOUNTS = 3
-#     PRODUCT_INFORMATION = 4
-#     RETURNS_REFUNDS = 5
-#     ORDER_STATUS = 6
-#     ACCOUNT_CANCELLATION = 7
-#     OPERATOR_CUSTOMER_SERVICE = 0
-
-
-# CustomerIntent("I got double charged, can you help me out?")

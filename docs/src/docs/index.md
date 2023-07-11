@@ -21,8 +21,9 @@ This section describes Marvin's lowest-level APIs. These are intended for users 
 Documentation for Marvin's "AI Building Blocks:" familiar, Pythonic interfaces to AI-powered functionality.
 
 - AI Model: a drop-in replacement for Pydantic's `BaseModel` that can be instantiated from unstructured text
+- AI Classifier: a drop-in replacement for Python's enum that uses an LLM to select the most appopriate value
 - AI Function: a function that uses an LLM to predict its output, making it ideal for NLP tasks
-- AI Choice: a drop-in replacement for Python's enum that uses an LLM to select the most appopriate value
+- AI Application: a stateful application intended for interactive use over multiple invocations
 
 ### Deployment
 Documentation for deploying Marvin as a framework.

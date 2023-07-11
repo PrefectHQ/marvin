@@ -100,18 +100,18 @@ sentiment("I love working with Marvin!") # 0.8
 sentiment("These examples could use some work...") # -0.2
 ```
 
-### AI Choice
+### AI Classifier
 
-AI Choice lets you build a multi-label classifier with no code and no training data. It enumerates your options, and uses a [clever logit_bias trick](https://twitter.com/AAAzzam/status/1669753721574633473) to force an LLM to deductively choose the index of the best option given your provided input. It then returns the choice associated to that index. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
+AI Classifiers let you build multi-label classifiers with no code and no training data. Given user input, each classifier uses a [clever logit bias trick](https://twitter.com/AAAzzam/status/1669753721574633473) to force an LLM to deductively choose the best option. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
 
-You can learn more about AI Choice [here](https://www.askmarvin.ai/src/docs/components/ai_choice/).
+You can learn more about AI Classifiers [here](https://www.askmarvin.ai/src/docs/components/ai_classifier/).
 
 ```python
-from marvin import ai_choice
+from marvin import ai_classifier
 from enum import Enum
 
 
-@ai_choice
+@ai_classifier
 class AppRoute(Enum):
     """Represents distinct routes command bar for a different application"""
 
