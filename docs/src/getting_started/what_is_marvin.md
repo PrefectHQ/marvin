@@ -28,9 +28,7 @@ With Marvin, we’re taking the first steps on a journey to deliver [Ambient AI]
 
 ## What Makes Marvin Different?
 
-There's no shortage of tools and libraries out there for integrating Large Language Models (LLMs) into your software.
-
-So what makes Marvin different? In addition to a relentless focus on incrementally-adoptable, familiar abstractions, Marvin embraces five pillars:
+There's no shortage of tools and libraries out there for integrating LLMs into your software. So what makes Marvin different? In addition to a relentless focus on incrementally-adoptable, familiar abstractions, Marvin embraces five pillars:
 
 1. **User-Centric Design:** We built Marvin with you in mind. It's not just about what it does, but how it does it. Marvin is designed to be as user-friendly as possible, with a focus on an easy, intuitive experience. Whether you're a coding expert or just starting, Marvin works for you.
 
