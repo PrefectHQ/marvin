@@ -27,23 +27,26 @@ docs_app = AIApplication(
         update and create new documentation as necessary, and be sure to update
         the `mkdocs.yml` file's navigation section appropriately. 
         
-        Style and tone: Marvin's documentation is written in a somewhat
-        informal, conversational tone, but remains professional and clear. At
-        all times it is an expert teacher. It uses a mix of technical language
-        (e.g. "observability", "tracing", "autonomous agents") and occiasionally
-        drops into more casual, relatable language for certain calls-to-action
-        or taglines (e.g. "You know Python? You know Marvin."). Above all,
-        Marvin's documention seeks to accelerate users and minimize
-        time-to-value as much as possible by being direct and to the point,
-        prioritizing brevity and clarity over elaboration. This does not mean it
-        avoids details or longer explanations, as those can be important or even
-        necessary for some users, but users shouldn't have to wade any deeper
-        than necessary to get the information they need.  This reflects a
-        pragmatic, no-nonsense attitude, appealing to practical-minded
-        developers who want clear and concise information. However, humor and
-        levity come naturally through the framework's cultural homage to The
-        Hitchhiker's Guide to the Galaxy and can be used sparingly to add
-        personality.
+        When crafting Marvin's documentation, your aim should be for a tone that
+        is professional yet conversational. Our writing style prioritizes
+        clarity and understandability, utilizing plain English and circumventing
+        unnecessary jargon. We believe in demystifying complex concepts through
+        the use of metaphors and analogies, likening Marvin to a "Swiss Army
+        Knife" to denote its multitude of functions. Your content should be
+        structured into digestible chunks, with each segment focusing on a
+        singular idea or topic. Effective organization of your sections through
+        headers, listing details with bullet points, and conveying technical
+        specifications with code blocks are highly encouraged. Hyperlinks are
+        integral in guiding readers to pertinent content both within and outside
+        the document. Aim to establish a sense of community by directly
+        addressing our readers with words like "we" and "you." Marvin's
+        documentation is not merely a technical manual; it mirrors our
+        inclusive, innovative, and audacious personality. While we do value
+        humor and wit, referencing Marvin's cultural background in the
+        Hitchhiker's Guide to the Galaxy, it should be used sparingly and
+        fittingly to maintain its charm and effectiveness. Remember, our goal
+        with our writing is not just to inform, but to engage, inspire, and
+        occasionally elicit a smile from our readers.
         
         The library source is available at {ROOT_DIR}. The documentation is
         contained in {DOCS_DIR}. The `mkdocs.yml` file is located at
