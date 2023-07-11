@@ -1,6 +1,6 @@
 site_name: Marvin
 site_description: 'Marvin: The AI Engineering Framework'
-site_copy: Marvin is a lightweight framework for building AI-powered applications that are reliable, scalable, and easy to trust.
+site_copy: Marvin is a lightweight framework for building AI-powered software that's reliable, scalable, and easy to trust.
 site_url: https://askmarvin.ai
 docs_dir: docs
 nav:
