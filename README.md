@@ -8,7 +8,7 @@ Marvin is a lightweight framework for building AI-powered software that's reliab
 
 Large Language Models (LLMs) are pretty cool, but let's face it, they can be a headache to integrate. So, we decided to take the fuss out of the process. Marvin is our answer to the challenge: a neat, flexible tool that works as hard as you do.
 
-Sometimes the most challenging part of working with AI is remembering that it's not magic; it's software. It's new, it's nondeterministic, and it's incredibly powerful, but it's still software: parameterized API calls that can trigger dependent actions (and just might talk like a pirate). Marvin's goal is to bring the best practices of building dependable, observable software to the frontier of generative AI. As the team behind [Prefect](https://github.com/prefecthq/prefect), which does something very similar for data engineers, we've poured years of experience and hard-won lessons into Marvin's design.
+Sometimes the most challenging part of working with generative AI is remembering that it's not magic; it's software. It's new, it's nondeterministic, and it's incredibly powerful, but it's still software: parameterized API calls that can trigger dependent actions (and just might talk like a pirate). Marvin's goal is to bring the best practices of building dependable, observable software to the frontier of generative AI. As the team behind [Prefect](https://github.com/prefecthq/prefect), which does something very similar for data engineers, we've poured years of experience and hard-won lessons into Marvin's design.
 
 ### Developer Experience
 

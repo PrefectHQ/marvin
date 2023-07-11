@@ -6,7 +6,7 @@ Marvin is a lightweight framework for building AI-powered software that's reliab
 
 Large Language Models (LLMs) are pretty cool, but let's face it, they can be a headache to integrate. So, we decided to take the fuss out of the process. Marvin is our answer to the challenge: a neat, flexible tool that works as hard as you do.
 
-Sometimes the most challenging part of working with AI is remembering that it's not magic; it's software. It's new, it's nondeterministic, and it's incredibly powerful, but it's still software: parameterized API calls that can trigger dependent actions (and just might talk like a pirate). Marvin's goal is to bring the best practices of building dependable, observable software to the frontier of generative AI. As the team behind [Prefect](https://github.com/prefecthq/prefect), which does something very similar for data engineers, we've poured years of experience and hard-won lessons into Marvin's design.
+Sometimes the most challenging part of working with generative AI is remembering that it's not magic; it's software. It's new, it's nondeterministic, and it's incredibly powerful, but it's still software: parameterized API calls that can trigger dependent actions (and just might talk like a pirate). Marvin's goal is to bring the best practices of building dependable, observable software to the frontier of generative AI. As the team behind [Prefect](https://github.com/prefecthq/prefect), which does something very similar for data engineers, we've poured years of experience and hard-won lessons into Marvin's design.
 
 ## Developer Experience
 
@@ -38,7 +38,7 @@ There's no shortage of tools and libraries out there for integrating LLMs into y
 
 1. **Velocity:** We believe that getting started should be quick and easy. That's why with Marvin, you can get up and running in no time. Marvin is not here to do everything for you, it's here to eliminate the the most cumbersome parts of working with AI in order to accelerate your ability to take advantage of it.
 
-1. **Open-Source:** Marvin is fully open-source, which means it's not only free to use, but you're also free to modify and adapt it as you see fit. We believe in the power of collective intelligence, and we're excited to see what you can create.
+1. **Open-Source:** Marvin is fully open-source, which means it's not only free to use, but you're also free to modify and adapt as you see fit. The [Prefect](https://www.prefect.io) team has years of open-source experience and is fully committed to supporting Marvin as an open-source product. We believe in the power of collective intelligence, and we're excited to see what you can create. 
 
 Marvin's 1.0 release reflects our confidence that its core abstractions are locked-in. And why wouldn't they be? They're the same interfaces you use every day: Python functions, classes, enums, and Pydantic models. Our next objectives are leveraging these primitives to build production deployment patterns and an observability platform.
 
