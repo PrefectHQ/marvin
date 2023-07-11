@@ -4,7 +4,7 @@ import re
 from typing import Callable, TypeVar, Optional, Any, Type
 
 from fastapi.routing import APIRouter
-from marvin.openai.Function import marvin_fn
+
 from marvin.utilities.types import function_to_model
 
 
@@ -78,6 +78,9 @@ def FunctionDecoratorFactory(
         return fn
 
     return decorator
+
+
+marvin_fn = FunctionDecoratorFactory(name="openai", func_class=Function)
 
 
 class FunctionRegistry(APIRouter):
