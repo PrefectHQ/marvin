@@ -35,7 +35,7 @@ To hit the ground running, please read Marvin's [getting started docs](https://w
 
 ## Things Marvin can build in 5 minutes (seriously) 
 
-### Scalable APIs, data pipelines, and agents
+#### Scalable APIs, data pipelines, and agents
 
 🏷️ Build bulletproof and lightning-fast classifiers
 
@@ -48,7 +48,7 @@ To hit the ground running, please read Marvin's [getting started docs](https://w
 🔎 Scrape web data without custom scrapers
 
 
-### Chatbots with access to tools, data, and the web
+#### Chatbots with access to tools, data, and the web
 😍 Customize ChatGPT with system prompts and tools
 
 🎓 Extract relevant insights from your data
@@ -57,7 +57,7 @@ To hit the ground running, please read Marvin's [getting started docs](https://w
 
 🗣️ Quickly add NLP to your app
 
-### Coming soon...
+#### Coming soon...
 📱 AI applications with persistent state
 
 🕵️ Autonomous agents with high-level planning
@@ -69,7 +69,7 @@ To hit the ground running, please read Marvin's [getting started docs](https://w
 
 Marvin's high-level abstractions are familiar Python interfaces that make it easy to leverage AI in your application. These interfaces aim to be simple and self-documenting, adding a touch of AI magic to everyday objects.
 
-### AI Models
+### 🧩 AI Models
 
 Marvin's most basic component is the AI Model, a drop-in replacement for Pydantic's `BaseModel`. AI Models can be instantiated from any string, making them ideal for structuring data, entity extraction, and synthetic data generation. 
 
@@ -90,7 +90,7 @@ Location("The Big Apple")
 # Location(city='New York', state='NY')
 ```
 
-### AI Classifiers
+### 🏷️ AI Classifiers
 
 AI Classifiers let you build multi-label classifiers with no code and no training data. Given user input, each classifier uses a [clever logit bias trick](https://twitter.com/AAAzzam/status/1669753721574633473) to force an LLM to deductively choose the best option. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
 
@@ -119,7 +119,7 @@ class AppRoute(Enum):
 AppRoute("update my name")
 # AppRoute.USER_PROFILE
 ```
-### AI Functions
+### 🪄 AI Functions
 
 AI Functions look like regular functions, but have no source code. Instead, an AI uses their description and inputs to generate their outputs, making them ideal for NLP applications like sentiment analysis. 
 
@@ -142,7 +142,7 @@ sentiment("I love working with Marvin!") # 0.8
 sentiment("These examples could use some work...") # -0.2
 ```
 
-### AI Applications
+### 🤝 AI Applications
 
 AI Applications permit interactive use cases and are designed to be invoked multiple times. They maintain three forms of state: the application's own `state`, the AI's `plan`, and a `history` of interactions. AI Applications can be used to implement many "classic" LLM use cases, such as chatbots, tool-using agents, developer assistants, and more. In addition, thanks to their persistent state and planning, they can implement applications that don't have a traditional chat UX, such as a ToDo app. Here's an example:
 
