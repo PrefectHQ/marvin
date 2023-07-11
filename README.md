@@ -102,7 +102,7 @@ sentiment("These examples could use some work...") # -0.2
 
 ### AI Choice
 
-AI Choice lets you build a multi-label classifier with no code and no training data. It enumerates your options, and use logit_bias to force an LLM to deductively choose the index of the best option given your provided input. It then returns the choice associated to that index. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
+AI Choice lets you build a multi-label classifier with no code and no training data. It enumerates your options, and uses a [clever logit_bias trick](https://twitter.com/AAAzzam/status/1669753721574633473) to force an LLM to deductively choose the index of the best option given your provided input. It then returns the choice associated to that index. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
 
 You can learn more about AI Choice [here](https://www.askmarvin.ai/src/docs/components/ai_choice/).
 
