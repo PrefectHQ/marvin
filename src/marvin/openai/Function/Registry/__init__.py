@@ -3,7 +3,7 @@ from fastapi.routing import APIRouter
 from pydantic import BaseModel, validate_arguments
 from marvin.utilities.types import function_to_model
 from marvin.models.messages import Message
-from marvin.openai.Function import marvin_fn, openai_fn
+from marvin.openai.Function import openai_fn
 from openai.openai_object import OpenAIObject
 from marvin.functions import FunctionRegistry
 
