@@ -27,7 +27,7 @@ await ChatLLM().run(
 ## Running a `chain`.
 
 If you've crafted a prompt that you want to run in a loop -- so that it can deduce
-it's next actions and take them -- we've got you covered. Import an Executor and hit start.
+its next actions and take them -- we've got you covered. Import an Executor and hit start.
 
 ```python
 from marvin.prompts.library import System, ChainOfThought, User
