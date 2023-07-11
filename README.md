@@ -9,7 +9,15 @@ Sometimes the most challenging part of working with AI is remembering that it's 
 
 That's why Marvin is focused on a rock-solid developer experience. It's ergonomic and opinionated at every layer, but also incrementally adoptable and you can use it as much or as little as you like. It’s a Swiss Army Knife, not a kitchen sink. It’s familiar. It feels like the library you’d write if you had the time: simple, accessible, portable LLM abstractions that you can quickly deploy in your application, whether you’re doing straightforward NLP or building a full-featured autonomous agent.
 
-Marvin prioritizes a developer experience focused on speed and reliability. It's built with type-safety and observability as first-class citizens. Its abstractions are Pythonic, simple, and self-documenting. These core primitives let us build surprisingly complex agentic software without sacrificing control.
+Marvin prioritizes a developer experience focused on speed and reliability. It's built with type-safety and observability as first-class citizens. Its abstractions are Pythonic, simple, and self-documenting. These core primitives let us build surprisingly complex agentic software without sacrificing control:
+
+🧩 **AI Models** for structuring text into type-safe schemas
+
+🏷️ **AI Classifiers** for bulletproof classification and routing
+
+🪄 **AI Functions** for complex business logic and transformations
+
+🤝 **AI Applications** for interactive use and persistent state
 
 We're constantly meeting with developers, engineers, founders, and investors to identify the best practices and design patterns that are having the most impact. AI engineering is a rapidly developing field. We ship thoughtfully, purposefully, and often so that you can build simply, quickly, and confidently. 
 
