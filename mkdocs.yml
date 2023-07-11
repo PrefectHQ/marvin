@@ -22,8 +22,8 @@ nav:
     - AI Components:
       - Overview: src/docs/components/overview.ipynb
       - AI Model: src/docs/components/ai_model.ipynb
+      - AI Classifier: src/docs/components/ai_classifier.ipynb
       - AI Function: src/docs/components/ai_function.ipynb
-      - AI Choice: src/docs/components/ai_choice.ipynb
       - AI Application: src/docs/components/ai_application.ipynb
     - Deployment:
       - src/docs/deployment.ipynb

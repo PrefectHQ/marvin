@@ -36,9 +36,9 @@ print(city.map_url)
 ### classify anything
 ```python
 from enum import Enum
-from marvin import ai_choice
+from marvin import ai_classifier
 
-@ai_choice
+@ai_classifier
 class ZodiacSign(Enum):
     ARIES = "Aries"
     TAURUS = "Taurus"

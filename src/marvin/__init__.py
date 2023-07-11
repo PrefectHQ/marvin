@@ -1,6 +1,6 @@
 from .settings import settings
 from .components import (
-    ai_choice,
+    ai_classifier,
     ai_fn,
     ai_model,
     AIApplication,
@@ -10,7 +10,7 @@ from .components import (
 )
 
 __all__ = [
-    "ai_choice",
+    "ai_classifier",
     "ai_fn",
     "ai_model",
     "AIApplication",
