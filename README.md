@@ -1,9 +1,10 @@
-# Marvin: the AI engineering framework
+# Marvin
 
+### The AI engineering framework
 
-Marvin is a lightweight framework for building AI-powered software. It's designed primarily for AI engineers: users who want to deploy cutting-edge AI to build powerful new features and applications.
+Marvin is a lightweight framework for building AI-powered software that's reliable, scalable, and easy to trust. It's designed primarily for AI engineers: users who want to deploy cutting-edge AI to build powerful new features and applications.
 
-Marvin is ergonomic and opinionated at every layer. Nonetheless, it’s incrementally adoptable and you can use it as much or as little as you like. It’s a Swiss Army Knife, not a kitchen sink. It’s familiar. It's feels like the library you’d write if you had the time: simple, accessible, portable LLM abstractions that you can quickly deploy in your application, whether you’re doing straightforward NLP or building a full-featured autonomous agent.
+Marvin is ergonomic and opinionated at every layer, but also incrementally adoptable so you can use it as much or as little as you like. It’s a Swiss Army Knife, not a kitchen sink. It’s familiar. It feels like the library you’d write if you had the time: simple, accessible, portable LLM abstractions that you can quickly deploy in your application, whether you’re doing straightforward NLP or building a full-featured autonomous agent.
 
 Marvin prioritizes a developer experience focused on speed and reliability. It's built with type-safety and observability as first-class citizens. Its abstractions are Pythonic, simple, and self-documenting.
 
@@ -11,23 +12,26 @@ We're constantly meeting with developers, engineers, founders, and investors to 
 
 To hit the ground running, please read Marvin's [getting started docs](https://www.askmarvin.ai/src/getting_started/what_is_marvin/).
 
+
 ## Things Marvin can build in 5 minutes (seriously) 
 
-### Reliable, scalable APIs, data pipelines, and agents
-🫡 Solve complex deductive and inferential tasks at scale
+### Scalable APIs, data pipelines, and agents
 
 🏷️ Build bulletproof and lightning-fast classifiers
 
 🧩 Extract structured data from unstructured text 
 
-🔎 Scrape data from without custom scrapers
-
 🧪 Generate synthetic data for your applications 
+
+🫡 Solve complex deductive and inferential tasks at scale
+
+🔎 Scrape web data without custom scrapers
+
 
 ### Chatbots with access to tools, data, and the web
 😍 Customize ChatGPT with system prompts and tools
 
-🎓 Extract insights from your data
+🎓 Extract relevant insights from your data
 
 🧑‍💻 Add a junior developer to your team
 
@@ -40,15 +44,16 @@ To hit the ground running, please read Marvin's [getting started docs](https://w
 
 💬 Text-to-application: generate stateful applications by describing them
 
+
 ## Core AI Components
 
-Marvin's high-level abstractions are familiar Python interfaces that make it easy to leverage AI in your application.
+Marvin's high-level abstractions are familiar Python interfaces that make it easy to leverage AI in your application. These interfaces aim to be simple and self-documenting, adding a touch of AI magic to everyday objects.
 
 ### AI Models
 
 Marvin's most basic component is the AI Model, a drop-in replacement for Pydantic's `BaseModel`. AI Models can be instantiated from any string, making them ideal for structuring data, entity extraction, and synthetic data generation. 
 
-Read more about AI models [here](https://www.askmarvin.ai/src/docs/components/ai_model/).
+You can learn more about AI models [here](https://www.askmarvin.ai/src/docs/components/ai_model/).
 
 ```python
 from marvin import ai_model
@@ -69,7 +74,7 @@ Location("The Big Apple")
 
 AI Functions look like regular functions, but have no source code. Instead, an AI uses their description and inputs to generate their outputs, making them ideal for NLP applications like sentiment analysis. 
 
-Read more about AI Functions [here](https://www.askmarvin.ai/src/docs/components/ai_function/).
+You can learn more about AI Functions [here](https://www.askmarvin.ai/src/docs/components/ai_function/).
 
 
 ```python
@@ -88,13 +93,11 @@ sentiment("I love working with Marvin!") # 0.8
 sentiment("These examples could use some work...") # -0.2
 ```
 
-
-
 ### AI Choice
 
 AI Choice lets you build a multi-label classifier with no code and no training data. It enumerates your options, and use logit_bias to force an LLM to deductively choose the index of the best option given your provided input. It then returns the choice associated to that index. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
 
-Read more about AI Choice [here](https://www.askmarvin.ai/src/docs/components/ai_choice/).
+You can learn more about AI Choice [here](https://www.askmarvin.ai/src/docs/components/ai_choice/).
 
 ```python
 from marvin import ai_choice
@@ -119,7 +122,6 @@ class AppRoute(Enum):
 AppRoute("update my name")
 # AppRoute.USER_PROFILE
 ```
-
 
 
 ## Installation
