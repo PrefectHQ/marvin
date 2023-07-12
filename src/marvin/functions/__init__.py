@@ -90,15 +90,18 @@ class FunctionRegistry(APIRouter):
 
     @property
     def endpoints(self):
+        # Returns literal functions.
         return [route.endpoint for route in self.routes]
 
     @property
     def schema(self):
-        return [fn.schema() for fn in self.endpoints]
+        # Returns JSON Schema of functions.
+        return [self.function_decorator(fn=fn).schema() for fn in self.endpoints]
 
     @property
     def functions(self):
-        return [fn.schema() for fn in self.endpoints]
+        # Returns function classes.
+        return [self.function_decorator(fn=fn) for fn in self.endpoints]
 
     def include(self, registry: "FunctionRegistry", *args, **kwargs):
         super().include_router(registry, *args, **kwargs)
@@ -107,14 +110,14 @@ class FunctionRegistry(APIRouter):
 
     def register(self, fn: Optional[Callable] = None, **kwargs: Any) -> Callable:
         def decorator(fn: Callable, *args) -> Callable:
-            fn = self.function_decorator(fn=fn, **kwargs)
+            fn_class = self.function_decorator(fn=fn, **kwargs)
             self.add_api_route(
                 **{
                     **{
-                        "name": fn.name,
-                        "path": f"/{fn.name}",
+                        "name": fn_class.name,
+                        "path": f"/{fn_class.name}",
                         "endpoint": fn,
-                        "description": fn.description,
+                        "description": fn_class.description,
                         "methods": ["POST"],
                     },
                     **kwargs,
