@@ -31,4 +31,4 @@ pip install 'marvin[slackbot]'
 
 
 ## Installing for Development
-See the [contributing docs](/src/community_commit/) for instructions on installing Marvin for development.
+See the [contributing docs](/src/development_guide/) for instructions on installing Marvin for development.
