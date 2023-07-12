@@ -1,4 +1,4 @@
-![](docs/img/heroes/ai_model_location.svg)
+![](docs/img/heroes/ai_model_location.png)
 
 # Marvin
 
