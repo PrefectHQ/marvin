@@ -9,10 +9,11 @@ from marvin.functions import FunctionRegistry
 
 
 class OpenAIFunctionRegistry(FunctionRegistry):
-    def __init__(self, *args, **kwargs):
-        super().__init__(function_decorator=openai_fn, *args, **kwargs)
+    def __init__(self, function_decorator=openai_fn, *args, **kwargs):
+        self.function_decorator = function_decorator
+        super().__init__(function_decorator=function_decorator, *args, **kwargs)
 
-    def from_openai_response(self, response: OpenAIObject) -> Any:
+    def from_response(self, response: OpenAIObject) -> Any:
         return next(
             iter(
                 [
@@ -25,4 +26,7 @@ class OpenAIFunctionRegistry(FunctionRegistry):
         )
 
     def dict_from_openai_response(self, response: OpenAIObject) -> Any:
-        return {fn.name: fn.from_openai_response(response) for fn in self.endpoints}
+        return {
+            fn.name: fn.from_response(response)
+            for fn in map(lambda fn: self.function_decorator(fn=fn), self.endpoints)
+        }
