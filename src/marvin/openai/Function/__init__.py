@@ -12,10 +12,10 @@ A = TypeVar("A")
 
 class OpenAIFunction(Function):
     def __call__(self, response: OpenAIObject) -> T:
-        return self.from_openai_response(response)
+        return self.from_response(response)
 
     @validate_arguments
-    def from_openai_response(self, response: OpenAIObject) -> T:
+    def from_response(self, response: OpenAIObject) -> T:
         relevant_calls = [
             choice.message.function_call
             for choice in response.choices
