@@ -8,12 +8,12 @@ from tests.utils.mark import pytest_mark_class
 
 @ai_fn
 def list_fruit(n: int = 2) -> list[str]:
-    """Returns a list of `n` fruits"""
+    """Returns a list of `n` fruit"""
 
 
 @ai_fn
 def list_fruit_color(n: int, color: str = None) -> list[str]:
-    """Returns a list of `n` fruits that all have the provided `color`"""
+    """Returns a list of `n` fruit that all have the provided `color`"""
 
 
 @pytest_mark_class("llm")
@@ -29,7 +29,7 @@ class TestAIFunctions:
     async def test_list_fruit_async(self):
         @ai_fn
         async def list_fruit(n: int) -> list[str]:
-            """Returns a list of `n` fruits"""
+            """Returns a list of `n` fruit"""
 
         coro = list_fruit(3)
         assert inspect.iscoroutine(coro)
@@ -39,36 +39,28 @@ class TestAIFunctions:
 
 @pytest_mark_class("llm")
 class TestAIFunctionsMap:
-    def test_map_items(self):
-        result = list_fruit.map([2, 3])
-        assert len(result) == 2
-        assert len(result[0]) == 2
-        assert len(result[1]) == 3
-
-    def test_map_args(self):
-        result = list_fruit.map(map_args=[(2,), (3,)])
+    def test_map(self):
+        result = list_fruit_color.map([2, 3])
         assert len(result) == 2
         assert len(result[0]) == 2
         assert len(result[1]) == 3
 
     def test_map_kwargs(self):
-        result = list_fruit_color.map(map_kwargs=[{"n": 2}, {"n": 3, "color": "red"}])
+        result = list_fruit_color.map(n=[2, 3])
         assert len(result) == 2
         assert len(result[0]) == 2
         assert len(result[1]) == 3
 
-    def test_map_items_and_args(self):
-        with pytest.raises(ValueError):
-            list_fruit.map([2, 3], map_args=[(2,), (3,)])
+    def test_map_kwargs_and_args(self):
+        result = list_fruit_color.map([2, 3], color=[None, "red"])
+        assert len(result) == 2
+        assert len(result[0]) == 2
+        assert len(result[1]) == 3
 
-    def test_map_items_and_kwargs(self):
-        with pytest.raises(ValueError):
-            list_fruit.map([2, 3], map_kwargs=[{"n": 2}, {"n": 3, "color": "red"}])
+    def test_invalid_args(self):
+        with pytest.raises(TypeError):
+            list_fruit_color.map(2, color=["orange", "red"])
 
-    def test_map_args_and_kwargs_different_lengths(self):
-        with pytest.raises(ValueError):
-            list_fruit.map(map_args=[(2,), (3,)], map_kwargs=[{"n": 2}])
-
-    def test_map_no_args(self):
-        with pytest.raises(ValueError):
-            list_fruit.map()
+    def test_invalid_kwargs(self):
+        with pytest.raises(TypeError):
+            list_fruit_color.map([2, 3], color=None)

@@ -102,65 +102,42 @@ class AIFunction:
 
         return output
 
-    def map(
-        self,
-        items: list = None,
-        map_args: list[tuple] = None,
-        map_kwargs: list[dict] = None,
-    ):
+    def map(self, *map_args: list, **map_kwargs: list):
         """
-        Map the AI function over an iterable of arguments. Runs concurrently.
+        Map the AI function over a sequence of arguments. Runs concurrently.
 
-        Users can provide either `items`, or a combination of `map_args` and
-        `map_kwargs`:
-            - if `items` is provided, the AI function is called on each item in
-                the list
-            - if `map_args` and/or `map_kwargs` are provided, they are zipped and
-                appropriately splatted into the AI function call as *args and
-            **kwargs
+        Arguments should be provided as if calling the function normally, but
+        each argument must be a list. The function is called once for each item
+        in the list, and the results are returned in a list.
 
-        For example:
+        For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
 
-        @ai_fn
-        def example(a, b=1):
-            ...
-
-        # calls example(1), example(2)
-        example.map([1, 2])
-
-        # calls example(1), example(2)
-        example.map(map_args=[(1,), (2,)]
-
-        # calls example(a=1), example(a=2)
-        example.map(map_kwargs=[{"a": 1}, {"a": 2}]
-
-        # calls example(a=1), example(a=2, b=100)
-        example.map(map_kwargs=[{"a": 1}, {"a": 2, "b":100}]
+        fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2,
+        x='b')].
         """
-        if (map_args or map_kwargs) and items:
-            raise ValueError("map_args and map_kwargs cannot be used with items")
-        elif not map_args and not map_kwargs and not items:
-            raise ValueError(
-                "At least one of items, map_args, or map_kwargs is required"
-            )
 
-        if items:
-            map_args = [(i,) for i in items]
-            map_kwargs = [{}] * len(items)
-        elif map_args is None:
-            map_args = [()] * len(map_kwargs)
-        elif map_kwargs is None:
-            map_kwargs = [{}] * len(map_args)
-        elif len(map_args) != len(map_kwargs):
-            raise ValueError("map_args and map_kwargs must be the same length")
+        coros = []
+
+        i = 0
+        while True:
+            call_args = []
+            call_kwargs = {}
+            try:
+                for arg in map_args:
+                    call_args.append(arg[i])
+                for k, v in map_kwargs.items():
+                    call_kwargs[k] = v[i]
+            except IndexError:
+                break
+            call_coro = self._call(*call_args, **call_kwargs)
+            coros.append(call_coro)
+            i += 1
 
         # gather returns a future, but run_sync requires a coroutine
-        async def gather_coro():
-            return await asyncio.gather(
-                *[self._call(*a, **k) for a, k in zip(map_args, map_kwargs)]
-            )
+        async def gather_coros():
+            return await asyncio.gather(*coros)
 
-        result = gather_coro()
+        result = gather_coros()
         if not self.is_async():
             result = run_sync(result)
         return result
