@@ -113,7 +113,7 @@ class FunctionRegistry(APIRouter):
                     **{
                         "name": fn.name,
                         "path": f"/{fn.name}",
-                        "endpoint": fn,
+                        "endpoint": fn.fn,
                         "description": fn.description,
                         "methods": ["POST"],
                     },
