@@ -1,3 +1,4 @@
+import asyncio
 import functools
 import inspect
 import re
@@ -64,27 +65,105 @@ class AIFunction:
     def __init__(
         self, *, fn: Callable = None, name: str = None, description: str = None
     ):
-        if fn is None:
-            fn = self.run
-        self.fn = fn
-
+        self._fn = fn
         self.name = name or fn.__name__
         self.description = description or fn.__doc__
         self.__signature__ = inspect.signature(fn)
 
         super().__init__()
 
+    @property
+    def fn(self):
+        """
+        Return's the `run` method if no function was provided, otherwise returns
+        the function provided at initialization.
+        """
+        if self._fn is None:
+            return self.run
+        else:
+            return self._fn
+
+    def is_async(self):
+        """
+        Returns whether self.fn is an async function.
+
+        This is used to determine whether to invoke the AI function on call, or
+        return an awaitable.
+        """
+        return inspect.iscoroutinefunction(self.fn)
+
     def __repr__(self):
         return f"<AIFunction {self.name}>"
 
     def __call__(self, *args, **kwargs):
         output = self._call(*args, **kwargs)
-
-        # if the provided fn is not async, run it immediately
-        if not inspect.iscoroutinefunction(self.fn):
+        if not self.is_async():
             output = run_sync(output)
 
         return output
+
+    def map(
+        self,
+        items: list = None,
+        map_args: list[tuple] = None,
+        map_kwargs: list[dict] = None,
+    ):
+        """
+        Map the AI function over an iterable of arguments. Runs concurrently.
+
+        Users can provide either `items`, or a combination of `map_args` and
+        `map_kwargs`:
+            - if `items` is provided, the AI function is called on each item in
+                the list
+            - if `map_args` and/or `map_kwargs` are provided, they are zipped and
+                appropriately splatted into the AI function call as *args and
+            **kwargs
+
+        For example:
+
+        @ai_fn
+        def example(a, b=1):
+            ...
+
+        # calls example(1), example(2)
+        example.map([1, 2])
+
+        # calls example(1), example(2)
+        example.map(map_args=[(1,), (2,)]
+
+        # calls example(a=1), example(a=2)
+        example.map(map_kwargs=[{"a": 1}, {"a": 2}]
+
+        # calls example(a=1), example(a=2, b=100)
+        example.map(map_kwargs=[{"a": 1}, {"a": 2, "b":100}]
+        """
+        if (map_args or map_kwargs) and items:
+            raise ValueError("map_args and map_kwargs cannot be used with items")
+        elif not map_args and not map_kwargs and not items:
+            raise ValueError(
+                "At least one of items, map_args, or map_kwargs is required"
+            )
+
+        if items:
+            map_args = [(i,) for i in items]
+            map_kwargs = [{}] * len(items)
+        elif map_args is None:
+            map_args = [()] * len(map_kwargs)
+        elif map_kwargs is None:
+            map_kwargs = [{}] * len(map_args)
+        elif len(map_args) != len(map_kwargs):
+            raise ValueError("map_args and map_kwargs must be the same length")
+
+        # gather returns a future, but run_sync requires a coroutine
+        async def gather_coro():
+            return await asyncio.gather(
+                *[self._call(*a, **k) for a, k in zip(map_args, map_kwargs)]
+            )
+
+        result = gather_coro()
+        if not self.is_async():
+            result = run_sync(result)
+        return result
 
     async def _call(self, *args, **kwargs):
         # Get function signature
