@@ -32,37 +32,21 @@ Marvin's 1.0 release reflects our confidence that its core abstractions are lock
 
 To hit the ground running, please read Marvin's [getting started docs](https://www.askmarvin.ai/src/getting_started/what_is_marvin/).
 
+## Quick Install
 
-## Things Marvin can build in 5 minutes (seriously) 
+Marvin can be installed with pip:
 
-#### Scalable APIs, data pipelines, and agents
+```bash
+pip install marvin
+```
 
-🏷️ Build bulletproof and lightning-fast classifiers
+For more information please see the [installation docs](https://www.askmarvin.ai/src/getting_started/installation/).
 
-🧩 Extract structured data from unstructured text 
+## Documentation
+Marvin's docs are available at [askmarvin.ai](https://www.askmarvin.ai), including concepts, tutorials, and an API reference.
 
-🧪 Generate synthetic data for your applications 
-
-🫡 Solve complex deductive and inferential tasks at scale
-
-🔎 Scrape web data without custom scrapers
-
-
-#### Chatbots with access to tools, data, and the web
-😍 Customize ChatGPT with system prompts and tools
-
-🎓 Extract relevant insights from your data
-
-🧑‍💻 Add a junior developer to your team
-
-🗣️ Quickly add NLP to your app
-
-#### Coming soon...
-📱 AI applications with persistent state
-
-🕵️ Autonomous agents with high-level planning
-
-💬 Text-to-application: generate stateful applications by describing them
+## Community
+The heart of our community beats in our Discord server. It's a space where you can ask questions, share ideas, or just chat with like-minded developers. Don't be shy, join us on [Discord](https://discord.gg/Kgw4HpcuYG) or [Twitter](https://twitter.com/AskMarvinAI)!
 
 
 ## Core AI Components
@@ -196,18 +180,34 @@ print(f"App state: {todo_app.state.json(indent=2)}")
 
 
 
-## Installation
 
-Marvin can be installed with pip:
+## Things Marvin can build in 5 minutes (seriously) 
 
-```bash
-pip install marvin
-```
+#### Scalable APIs, data pipelines, and agents
 
-For more information please see the [installation docs](https://www.askmarvin.ai/src/getting_started/installation/).
+🏷️ Build bulletproof and lightning-fast classifiers
 
-## Documentation
-Marvin's docs are available at [askmarvin.ai](https://www.askmarvin.ai), including concepts, tutorials, and an API reference.
+🧩 Extract structured data from unstructured text 
 
-## Community
-The heart of our community beats in our Discord server. It's a space where you can ask questions, share ideas, or just chat with like-minded developers. Don't be shy, join us on [Discord](https://discord.gg/Kgw4HpcuYG) or [Twitter](https://twitter.com/AskMarvinAI)!
+🧪 Generate synthetic data for your applications 
+
+🫡 Solve complex deductive and inferential tasks at scale
+
+🔎 Scrape web data without custom scrapers
+
+
+#### Chatbots with access to tools, data, and the web
+😍 Customize ChatGPT with system prompts and tools
+
+🎓 Extract relevant insights from your data
+
+🧑‍💻 Add a junior developer to your team
+
+🗣️ Quickly add NLP to your app
+
+#### Coming soon...
+📱 AI applications with persistent state
+
+🕵️ Autonomous agents with high-level planning
+
+💬 Text-to-application: generate stateful applications by describing them
