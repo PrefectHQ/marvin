@@ -2,7 +2,13 @@ import json
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field, root_validator, validate_arguments, validator
+from pydantic import (
+    BaseModel,
+    Field,
+    field_validator,
+    root_validator,
+    validate_arguments,
+)
 
 from marvin.tools import Tool
 
@@ -117,7 +123,8 @@ class WriteContent(BaseModel):
     write_mode: Literal["overwrite", "append", "insert"] = "append"
     insert_at_row: int = None
 
-    @validator("content", pre=True)
+    @field_validator("content", mode="before")
+    @classmethod
     def content_must_be_string(cls, v):
         if v and not isinstance(v, str):
             try:

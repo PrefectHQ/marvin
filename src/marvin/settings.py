@@ -1,20 +1,23 @@
 import os
 from pathlib import Path
-from typing import Literal, Union
+from typing import Literal, Optional, Union
 
-from pydantic import BaseSettings, Field, SecretStr, root_validator, validator
+from pydantic import Field, SecretStr, root_validator, validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Marvin settings"""
 
-    class Config:
-        env_file = (
+    model_config = SettingsConfigDict(
+        env_file=(
             ".env",
             str(Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()),
-        )
-        env_prefix = "MARVIN_"
-        validate_assignment = True
+        ),
+        env_prefix="MARVIN_",
+        validate_assignment=True,
+        extra="allow",
+    )
 
     home: Path = Path("~/.marvin").expanduser()
     test_mode: bool = False
@@ -35,17 +38,15 @@ class Settings(BaseSettings):
     llm_request_timeout_seconds: Union[float, list[float]] = 600.0
 
     # AI APPLICATIONS
-    ai_application_max_iterations: int = None
+    ai_application_max_iterations: Optional[int] = None
 
     # OPENAI
     openai_api_key: SecretStr = Field(
         None,
-        # for OpenAI convenience, we first check the Marvin-specific env var,
-        # then the generic one
-        env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"],
+        # validation_alias="MARVIN_OPENAI_API_KEY",
     )
-    openai_organization: str = Field(None)
-    openai_api_base: str = None
+    openai_organization: Optional[str] = Field(None)
+    openai_api_base: Optional[str] = Field(None)
     embedding_engine: str = "text-embedding-ada-002"
 
     # SLACK
@@ -72,12 +73,14 @@ class Settings(BaseSettings):
     # wolfram
     wolfram_app_id: SecretStr = Field(None)
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def initial_setup(cls, values):
         # ensure the home directory exists
         values["home"].mkdir(parents=True, exist_ok=True)
         return values
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually. # noqa: E501
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information. # noqa: E501
     @validator("log_level", always=True)
     def set_log_level(cls, v):
         import marvin.utilities.logging
@@ -85,12 +88,15 @@ class Settings(BaseSettings):
         marvin.utilities.logging.setup_logging(level=v)
         return v
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually. # noqa: E501
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information. # noqa: E501
     @validator("openai_api_key", always=True)
     def set_openai_api_key(cls, v):
         if v is not None:
             import openai
 
             openai.api_key = v.get_secret_value()
+            return v
         return v
 
 

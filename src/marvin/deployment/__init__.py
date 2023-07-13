@@ -3,7 +3,7 @@ from typing import Union, Optional
 
 import uvicorn
 from fastapi import FastAPI, APIRouter
-from pydantic import BaseModel, Extra
+from pydantic import ConfigDict, BaseModel
 
 from marvin import AIApplication, AIModel, AIFunction
 
@@ -71,5 +71,4 @@ class Deployment(BaseModel):
         except Exception as e:
             print(f"Error while serving the application: {e}")
 
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")

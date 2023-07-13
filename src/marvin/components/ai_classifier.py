@@ -5,7 +5,7 @@ from marvin.utilities.async_utils import run_sync
 
 
 class ClassifierSystem(System):
-    content = """\
+    content: str = """\
     {{ enum_class_docstring }}
     The user will provide context through text, you will use your expertise 
     to choose the best option below based on it. 
@@ -18,7 +18,7 @@ class ClassifierSystem(System):
 
 
 class ClassifierUser(User):
-    content = """{{user_input}}"""
+    content: str = """{{user_input}}"""
     user_input: str
 
 

@@ -10,7 +10,7 @@ from marvin.utilities.types import LoggerMixin, function_to_schema
 
 
 class Tool(LoggerMixin, BaseModel):
-    name: str = None
+    name: Optional[str] = None
     description: str = None
     fn: Optional[Callable] = None
 
@@ -21,6 +21,8 @@ class Tool(LoggerMixin, BaseModel):
         description = description or fn.__doc__
         return cls(name=name, description=description, fn=fn)
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually. # noqa
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information. # noqa
     @validator("name", always=True)
     def default_name_from_class_name(cls, v):
         if v is None:

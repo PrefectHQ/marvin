@@ -58,14 +58,16 @@ class OpenAIFunction(BaseModel):
 
 
 class ChatLLM(BaseModel):
-    name: str = None
     model: str = Field(default_factory=lambda: marvin.settings.llm_model)
+    name: Optional[str] = None
     max_tokens: int = Field(default_factory=lambda: marvin.settings.llm_max_tokens)
     temperature: float = Field(default_factory=lambda: marvin.settings.llm_temperature)
     stream: bool = Field(default=False)
 
     _tokenizer: Optional[Callable] = None
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually. # noqa
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information. # noqa
     @validator("name", always=True)
     def default_name(cls, v):
         if v is None:

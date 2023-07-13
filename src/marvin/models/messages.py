@@ -1,9 +1,10 @@
 import inspect
 from datetime import datetime
 from enum import Enum
+from typing import Optional
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class Role(Enum):
@@ -23,12 +24,13 @@ class Role(Enum):
 
 class Message(BaseModel):
     role: Role
-    content: str = None
-    name: str = None
+    content: Optional[str] = None
+    name: Optional[str] = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo("UTC")))
-    data: dict = {}
+    data: dict = Field(default_factory=dict)
 
-    @validator("content")
+    @field_validator("content")
+    @classmethod
     def clean_content(cls, v):
         if v is not None:
             v = inspect.cleandoc(v)

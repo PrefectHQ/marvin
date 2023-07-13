@@ -34,6 +34,8 @@ class GitHubIssue(BaseModel):
     labels: List[GitHubLabel] = Field(default_factory=GitHubLabel)
     user: GitHubUser = Field(default_factory=GitHubUser)
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually. # noqa
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information. # noqa
     @validator("body", always=True)
     def validate_body(cls, v):
         if not v:
