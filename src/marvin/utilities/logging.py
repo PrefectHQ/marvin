@@ -4,8 +4,6 @@ from functools import lru_cache, partial
 from rich.logging import RichHandler
 from rich.markup import escape
 
-import marvin
-
 
 @lru_cache()
 def get_logger(name: str = None) -> logging.Logger:
@@ -25,13 +23,9 @@ def get_logger(name: str = None) -> logging.Logger:
     return logger
 
 
-def setup_logging(level: str = None):
+def setup_logging(level: str):
     logger = get_logger()
-
-    if level is not None:
-        logger.setLevel(level)
-    else:
-        logger.setLevel(marvin.settings.log_level)
+    logger.setLevel(level)
 
     if not any(isinstance(h, RichHandler) for h in logger.handlers):
         handler = RichHandler(

@@ -49,29 +49,29 @@ class Settings(BaseSettings):
     openai_api_base: Optional[str] = Field(None)
     embedding_engine: str = "text-embedding-ada-002"
 
-    # SLACK
-    slack_api_token: SecretStr = Field(
+    # TOOLS
+
+    # slack
+    slack_api_token: Optional[SecretStr] = Field(
         None,
         description="The Slack API token to use for the Slack client",
     )
 
-    # TOOLS
-
     # chroma
-    chroma_server_host: str = Field(None)
-    chroma_server_http_port: int = Field(None)
+    chroma_server_host: Optional[str] = Field(None)
+    chroma_server_http_port: Optional[int] = Field(None)
 
     # discourse
-    discourse_help_category_id: int = Field(None)
-    discourse_api_key: SecretStr = Field(None)
-    discourse_api_username: str = Field(None)
-    discourse_url: str = Field(None)
+    discourse_help_category_id: Optional[int] = Field(None)
+    discourse_api_key: Optional[SecretStr] = Field(None)
+    discourse_api_username: Optional[str] = Field(None)
+    discourse_url: Optional[str] = Field(None)
 
     # github
-    github_token: SecretStr = Field(None)
+    github_token: Optional[SecretStr] = Field(None)
 
     # wolfram
-    wolfram_app_id: SecretStr = Field(None)
+    wolfram_app_id: Optional[SecretStr] = Field(None)
 
     @field_validator("home")
     def initialize_home(cls, v):
