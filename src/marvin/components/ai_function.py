@@ -164,8 +164,10 @@ class AIFunction:
         bound_args.apply_defaults()
 
         executor = OpenAIExecutor(
-            functions=[FormatResponse(type_=return_annotation).as_openai_function()],
-            function_call={"name": "FormatResponse"},
+            functions=[
+                fmt := FormatResponse(type_=return_annotation).as_openai_function()
+            ],
+            function_call={"name": fmt.name},
             max_iterations=1,
         )
         [response] = await executor.start(
