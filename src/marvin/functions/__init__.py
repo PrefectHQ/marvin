@@ -16,11 +16,17 @@ class Function:
     def __init__(
         self, *, fn: Callable[[A], T] = None, name: str = None, description: str = None
     ) -> None:
-        self.fn = fn
+        self.fn = fn or self.run
         self.name = name or self.fn.__name__
         self.description = description or self.fn.__doc__
-
         super().__init__()
+
+    def run(self, *args, **kwargs):
+        raise NotImplementedError()
+
+    @property
+    def is_async(self):
+        return inspect.iscoroutinefunction(self.fn)
 
     @property
     def model(self):
@@ -29,6 +35,10 @@ class Function:
     @property
     def signature(self):
         return inspect.signature(self.fn)
+
+    @property
+    def __signature__(self):
+        return self.signature
 
     @property
     def source_code(self):
@@ -51,6 +61,14 @@ class Function:
 
     def schema(self, *args, name: str = None, description: str = None, **kwargs):
         schema = self.model.schema(*args, **kwargs)
+        return {
+            "name": name or schema.pop("title"),
+            "description": description or self.fn.__doc__,
+            "parameters": schema,
+        }
+
+    def dict(self, *args, name: str = None, description: str = None, **kwargs):
+        schema = self.model.schema()
         return {
             "name": name or schema.pop("title"),
             "description": description or self.fn.__doc__,

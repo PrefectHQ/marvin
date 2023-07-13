@@ -1,13 +1,14 @@
 import asyncio
 import functools
-import inspect
-import re
-from typing import Callable, TypeVar
+from typing import Callable, TypeVar, Union
 
 from pydantic import BaseModel
 
 from marvin.engine.executors import OpenAIExecutor
-from marvin.prompts import library as prompt_library
+from marvin.engine.language_models import ChatLLM
+from marvin.functions import Function
+from marvin.prompts import Prompt, render_prompts
+from marvin.prompts.library import System, User
 from marvin.tools.format_response import FormatResponse
 from marvin.utilities.async_utils import run_sync
 from marvin.utilities.types import safe_issubclass
@@ -15,91 +16,70 @@ from marvin.utilities.types import safe_issubclass
 T = TypeVar("T")
 A = TypeVar("A")
 
-prompts = [
-    prompt_library.System(content="""
+
+class FunctionSystem(System):
+    content = """\
+        {% if prefix %}
+        {{prefix}}
+        
+        {% endif %}
+        {% if source_code %}
         Your job is to generate likely outputs for a Python function with the
         following signature and docstring:
-    
-        {{ function_def }}        
-        
-        The user will provide function inputs (if any) and you must respond with
-        the most likely result. 
-        
-        {% if function_description %}
-        The following function description was also provided:
 
-        {{ function_description }}
+        {{ source_code }}    
+        
         {% endif %}
+        The user will provide function inputs (if any) and you must respond with
+        the most likely result.\
+        {% if description %}
         
-        ## Response Format
         
-        Your response must match the function's return signature. To validate your
-        response, you must pass its values to the FormatResponse function before
-        responding to the user. 
+        The following function description was also provided:
         
-        {% if basemodel_response -%}
-        `FormatResponse` has the same signature as the function.
-        {% else -%}
-        `FormatResponse` requires keyword arguments, so pass your response under
-        the `data` parameter for validation.
-        {% endif %}
-        """),
-    prompt_library.User(content="""
-        {% if input_binds %} 
+        {{ description }}
+        {% endif %}\
+    """
+    description: str = ""
+    source_code: str = ""
+    prefix: str = ""
+
+
+class FunctionUser(User):
+    content = """
+        {% if arguments %} 
         The function was called with the following inputs:
         
-        {%for (arg, value) in input_binds.items()%}
+        {%for (arg, value) in arguments.items()%}
         - {{ arg }}: {{ value }}
-        
         {% endfor %}
         {% else %}
         The function was called without inputs.
         {% endif -%}
-        
         What is its output?
-        """),
-]
+    """
+    arguments: dict = {}
 
 
-class AIFunction:
+class AIFunction(Function):
     def __init__(
-        self, *, fn: Callable = None, name: str = None, description: str = None
+        self,
+        fn,
+        *args,
+        system: Union[str, Prompt] = None,
+        user: Union[str, Prompt] = FunctionUser,
+        model: ChatLLM = None,
+        **kwargs,
     ):
-        self._fn = fn
-        self.name = name or fn.__name__
-        self.description = description or fn.__doc__
-        self.__signature__ = inspect.signature(fn)
-
-        super().__init__()
-
-    @property
-    def fn(self):
-        """
-        Return's the `run` method if no function was provided, otherwise returns
-        the function provided at initialization.
-        """
-        if self._fn is None:
-            return self.run
-        else:
-            return self._fn
-
-    def is_async(self):
-        """
-        Returns whether self.fn is an async function.
-
-        This is used to determine whether to invoke the AI function on call, or
-        return an awaitable.
-        """
-        return inspect.iscoroutinefunction(self.fn)
-
-    def __repr__(self):
-        return f"<AIFunction {self.name}>"
+        self.system = system
+        self.user = user
+        self.fn = fn
+        super().__init__(*args, fn=fn, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        output = self._call(*args, **kwargs)
-        if not self.is_async():
+        output = self._call_(*args, **kwargs)
+        if not self.is_async:
             output = run_sync(output)
-
         return output
 
     def map(self, *map_args: list, **map_kwargs: list):
@@ -129,7 +109,7 @@ class AIFunction:
                     call_kwargs[k] = v[i]
             except IndexError:
                 break
-            call_coro = self._call(*call_args, **call_kwargs)
+            call_coro = self._call_(*call_args, **call_kwargs)
             coros.append(call_coro)
             i += 1
 
@@ -138,58 +118,55 @@ class AIFunction:
             return await asyncio.gather(*coros)
 
         result = gather_coros()
-        if not self.is_async():
+        if not self.is_async:
             result = run_sync(result)
         return result
 
-    async def _call(self, *args, **kwargs):
-        # Get function signature
-        sig = inspect.signature(self.fn)
-
-        # get return annotation
-        if sig.return_annotation is inspect._empty:
-            return_annotation = str
-        else:
-            return_annotation = sig.return_annotation
-
-        # get the function source code - it might include the @ai_fn decorator,
-        # which can confuse the AI, so we use regex to only get the function
-        # that is being decorated
-        function_def = inspect.cleandoc(inspect.getsource(self.fn))
-        if match := re.search(re.compile(r"(\bdef\b.*)", re.DOTALL), function_def):
-            function_def = match.group(0)
-
-        # Bind the provided arguments to the function signature
-        bound_args = sig.bind(*args, **kwargs)
-        bound_args.apply_defaults()
-
+    async def _call_(self, *args, **kwargs):
         executor = OpenAIExecutor(
-            functions=[FormatResponse(type_=return_annotation).as_openai_function()],
+            functions=[
+                FormatResponse(type_=self.return_annotation).as_openai_function()
+            ],
             function_call={"name": "FormatResponse"},
             max_iterations=1,
         )
+
         [response] = await executor.start(
-            prompts=prompts,
-            prompt_render_kwargs=dict(
-                function_def=function_def,
-                function_name=self.fn.__name__,
-                function_description=(
-                    self.description if self.description != self.fn.__doc__ else None
+            prompts=self.__prompts__,
+            prompt_render_kwargs={
+                "source_code": self.source_code,
+                "description": self.description,
+                "arguments": self.arguments(*args, **kwargs),
+                "basemodel_response": safe_issubclass(
+                    self.return_annotation, BaseModel
                 ),
-                basemodel_response=safe_issubclass(return_annotation, BaseModel),
-                input_binds=bound_args.arguments,
-            ),
+                **({"prefix": self.system} if type(self.system) == str else {}),
+            },
+        )
+        return response.data.get("arguments").get("data")
+
+    @property
+    def __prompts__(self):
+        if safe_issubclass(type(self.system), Prompt):
+            return [self.system, self.user]
+        else:
+            return [FunctionSystem(), self.user()]
+
+    def __messages__(self, *args, **kwargs):
+        return render_prompts(
+            self.__prompts__,
+            render_kwargs={
+                "source_code": self.source_code,
+                "description": self.description,
+                "arguments": self.arguments(*args, **kwargs),
+                **({"prefix": self.system} if type(self.system) == str else {}),
+            },
         )
 
-        return response.data["result"]
 
-    def run(self, *args, **kwargs):
-        # Override this to create the AI function as an instance method instead of
-        # a passed function
-        raise NotImplementedError()
-
-
-def ai_fn(fn: Callable[[A], T] = None) -> Callable[[A], T]:
+def ai_fn(
+    fn: Callable[[A], T] = None, *args, system=None, **kwargs
+) -> Callable[[A], T]:
     """Decorator that transforms a Python function with a signature and docstring
     into a prompt for an AI to predict the function's output.
 
@@ -208,5 +185,5 @@ def ai_fn(fn: Callable[[A], T] = None) -> Callable[[A], T]:
     """
     # this allows the decorator to be used with or without calling it
     if fn is None:
-        return functools.partial(ai_fn)  # , **kwargs)
-    return AIFunction(fn=fn)
+        return functools.partial(ai_fn, system=system, **kwargs)
+    return AIFunction(fn=fn, system=system)
