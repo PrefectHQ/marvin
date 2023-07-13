@@ -1,7 +1,7 @@
 import inspect
 import json
 from logging import Logger
-from typing import Any, Callable, Generator, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import openai
 import openai.openai_object
@@ -66,7 +66,7 @@ class StreamHandler(MarvinBaseModel):
     async def handle_streaming_response(
         self,
         openai_response: openai.openai_object.OpenAIObject,
-    ) -> Generator[Message, None, None]:
+    ) -> Message:
         """
         Accumulate chunk deltas into a full response. Returns the full message.
         Passes partial messages to the callback, if provided.
@@ -139,7 +139,7 @@ class ChatLLM(MarvinBaseModel):
         logger: Logger = None,
         stream_handler: Callable[[Message], None] = False,
         **kwargs,
-    ) -> Message | Generator[Message, None, None]:
+    ) -> Message:
         """Calls an OpenAI LLM with a list of messages and returns the response."""
 
         # ----------------------------------
