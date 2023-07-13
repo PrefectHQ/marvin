@@ -32,7 +32,6 @@ class DiscoursePost(BaseModel):
     topic_url: Optional[str] = Field(None)
 
     @field_validator("title", "question", "answer")
-    @classmethod
     def non_empty_string(cls, value):
         if not value:
             raise ValueError("this field cannot be empty")
