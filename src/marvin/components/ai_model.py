@@ -143,8 +143,8 @@ class AIModel(LoggerMixin, BaseModel):
     def _call_format_response_with_retry(cls, model, messages):
         executor = OpenAIExecutor(
             engine=model,
-            functions=[FormatResponse(type_=cls).as_openai_function()],
-            function_call={"name": "FormatResponse"},
+            functions=[fmt := FormatResponse(type_=cls).as_openai_function()],
+            function_call={"name": fmt.name},
             max_iterations=3,
         )
 

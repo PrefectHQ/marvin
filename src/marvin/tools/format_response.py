@@ -2,8 +2,7 @@ import warnings
 from types import GenericAlias
 from typing import Any, Union
 
-import pydantic
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, TypeAdapter
 
 import marvin
 import marvin.utilities.types
@@ -17,6 +16,7 @@ SENTINEL = "__SENTINEL__"
 
 
 class FormatResponse(Tool):
+    name: str = "format_response"
     _cached_type: Union[type, GenericAlias] = PrivateAttr(SENTINEL)
     type_schema: dict[str, Any] = Field(
         ..., description="The OpenAPI schema for the type"
@@ -67,7 +67,7 @@ class FormatResponse(Tool):
         type_ = self.get_type()
         if not safe_issubclass(type_, BaseModel):
             kwargs = kwargs["data"]
-        return pydantic.parse_obj_as(type_, kwargs)
+        return TypeAdapter(type_).validate_python(kwargs)
 
     def argument_schema(self) -> dict:
         return self.type_schema
