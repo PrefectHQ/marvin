@@ -30,7 +30,6 @@ class Message(BaseModel):
     data: dict = Field(default_factory=dict)
 
     @field_validator("content")
-    @classmethod
     def clean_content(cls, v):
         if v is not None:
             v = inspect.cleandoc(v)

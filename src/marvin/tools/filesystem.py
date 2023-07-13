@@ -124,7 +124,6 @@ class WriteContent(BaseModel):
     insert_at_row: int = None
 
     @field_validator("content", mode="before")
-    @classmethod
     def content_must_be_string(cls, v):
         if v and not isinstance(v, str):
             try:

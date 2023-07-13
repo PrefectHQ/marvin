@@ -1,9 +1,9 @@
 import inspect
 import json
 from ast import literal_eval
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
-from pydantic import BaseModel, Field, PrivateAttr, field_validator, root_validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator
 
 import marvin
 from marvin.engine.language_models import ChatLLM, OpenAIFunction
@@ -72,24 +72,22 @@ class Executor(LoggerMixin, BaseModel):
 
 
 class OpenAIExecutor(Executor):
-    functions: List[OpenAIFunction] = Field(default=None)
-    function_call: Optional[Union[str, dict[str, str]]] = Field(default=None)
+    functions: Optional[List[OpenAIFunction]] = Field(default=None)
+    function_call: Optional[Union[str, dict[str, Any]]] = Field(default=None)
     max_iterations: Optional[int] = Field(
         default_factory=lambda: marvin.settings.ai_application_max_iterations
     )
 
     @field_validator("functions", mode="before")
-    @classmethod
     def validate_functions(cls, v):
         if v is None:
             return None
-        v = [
+        return [
             OpenAIFunction.from_function(i) if not isinstance(i, OpenAIFunction) else i
             for i in v
         ]
-        return v
 
-    @root_validator(skip_on_failure=True)
+    @model_validator(mode="before")
     def validate_function_call(cls, values):
         # validate function call
         if values["functions"] and values.get("function_call") is None:

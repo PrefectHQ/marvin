@@ -81,19 +81,19 @@ def safe_issubclass(type_, classes):
 
 def type_to_schema(type_, set_root_type: bool = True) -> dict:
     if safe_issubclass(type_, pydantic.BaseModel):
-        return type_.schema()
+        return type_.model_json_schema()
     elif set_root_type:
 
         class Model(pydantic.BaseModel):
             __root__: type_
 
-        return Model.schema()
+        return Model.model_json_schema()
     else:
 
         class Model(pydantic.BaseModel):
             data: type_
 
-        return Model.schema()
+        return Model.model_json_schema()
 
 
 def genericalias_contains(genericalias, target_type):
