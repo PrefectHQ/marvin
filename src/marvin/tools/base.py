@@ -2,7 +2,7 @@ import inspect
 from functools import partial
 from typing import Callable, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from marvin.engine.language_models import OpenAIFunction
 from marvin.utilities.strings import jinja_env
@@ -21,9 +21,7 @@ class Tool(LoggerMixin, BaseModel):
         description = description or fn.__doc__
         return cls(name=name, description=description, fn=fn)
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually. # noqa
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information. # noqa
-    @validator("name", always=True)
+    @field_validator("name")
     def default_name_from_class_name(cls, v):
         if v is None:
             v = cls.__name__
@@ -46,7 +44,7 @@ class Tool(LoggerMixin, BaseModel):
     def as_openai_function(self) -> OpenAIFunction:
         schema = self.argument_schema()
         description = jinja_env.from_string(inspect.cleandoc(self.description or ""))
-        description = description.render(**self.dict(), TOOL=self)
+        description = description.render(**self.model_dump(), TOOL=self)
 
         return OpenAIFunction(
             name=self.name,

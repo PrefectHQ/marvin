@@ -29,7 +29,9 @@ class MessagePrompt(Prompt):
                 content=self.render(
                     self.get_content(),
                     render_kwargs={
-                        **self.dict(exclude={"role", "content", "name", "priority"}),
+                        **self.model_dump(
+                            exclude={"role", "content", "name", "priority"}
+                        ),
                         **kwargs,
                     },
                 ),

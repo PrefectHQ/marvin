@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Literal, Optional, Union
 
-from pydantic import Field, SecretStr, root_validator, validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -73,24 +73,19 @@ class Settings(BaseSettings):
     # wolfram
     wolfram_app_id: SecretStr = Field(None)
 
-    @root_validator(skip_on_failure=True)
-    def initial_setup(cls, values):
-        # ensure the home directory exists
-        values["home"].mkdir(parents=True, exist_ok=True)
-        return values
+    @field_validator("home")
+    def initialize_home(cls, v):
+        v.mkdir(parents=True, exist_ok=True)
+        return v
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually. # noqa: E501
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information. # noqa: E501
-    @validator("log_level", always=True)
+    @field_validator("log_level")
     def set_log_level(cls, v):
         import marvin.utilities.logging
 
         marvin.utilities.logging.setup_logging(level=v)
         return v
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually. # noqa: E501
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information. # noqa: E501
-    @validator("openai_api_key", always=True)
+    @field_validator("openai_api_key")
     def set_openai_api_key(cls, v):
         if v is not None:
             import openai

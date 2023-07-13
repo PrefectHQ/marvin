@@ -5,7 +5,7 @@ from typing import Any, Callable, Optional, Union
 import openai
 import openai.openai_object
 import tiktoken
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 import marvin
 import marvin.utilities.types
@@ -25,9 +25,11 @@ CONTEXT_SIZES = {
 
 
 class OpenAIFunction(BaseModel):
-    name: str
-    description: str = None
-    parameters: dict[str, Any] = {"type": "object", "properties": {}}
+    name: Optional[str] = None
+    description: Optional[str] = None
+    parameters: dict[str, Any] = Field(
+        default_factory=lambda: {"type": "object", "properties": {}}
+    )
     fn: Callable = Field(None, exclude=True)
     args: Optional[dict] = None
 
@@ -39,6 +41,12 @@ class OpenAIFunction(BaseModel):
             parameters=marvin.utilities.types.function_to_schema(fn),
             fn=fn,
         )
+
+    @field_validator("name")
+    def default_name_from_class_name(cls, v):
+        if v is None:
+            v = cls.__name__
+        return v
 
     async def query(self, q: str, model: "ChatLLM" = None):
         if not model:
@@ -66,9 +74,7 @@ class ChatLLM(BaseModel):
 
     _tokenizer: Optional[Callable] = None
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually. # noqa
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information. # noqa
-    @validator("name", always=True)
+    @field_validator("name")
     def default_name(cls, v):
         if v is None:
             v = cls.__name__
@@ -117,7 +123,7 @@ class ChatLLM(BaseModel):
 
         openai_messages = [m.as_chat_message() for m in messages]
         openai_functions = [
-            f.dict(exclude={"fn"}, exclude_none=True) for f in functions
+            f.model_dump(exclude={"fn"}, exclude_none=True) for f in functions
         ]
 
         # only add to kwargs if supplied, because empty parameters are not

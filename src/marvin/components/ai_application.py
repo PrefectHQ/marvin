@@ -9,7 +9,6 @@ from pydantic import (
     Field,
     PrivateAttr,
     field_validator,
-    validator,
 )
 
 from marvin.engine.executors import OpenAIExecutor
@@ -147,8 +146,8 @@ class Task(BaseModel):
 
     id: int
     description: str
-    upstream_task_ids: list[int] = None
-    parent_task_id: int = None
+    upstream_task_ids: Optional[list[int]] = None
+    parent_task_id: Optional[int] = None
     state: TaskState = TaskState.IN_PROGRESS
 
 
@@ -223,19 +222,16 @@ class AIApplication(LoggerMixin, BaseModel):
     plan_enabled: bool = True
 
     @field_validator("description")
-    @classmethod
     def validate_description(cls, v):
         return inspect.cleandoc(v)
 
     @field_validator("additional_prompts")
-    @classmethod
     def validate_additional_prompts(cls, v):
         if v is None:
             v = []
         return v
 
     @field_validator("tools", mode="before")
-    @classmethod
     def validate_tools(cls, v):
         if v is None:
             v = []
@@ -254,9 +250,7 @@ class AIApplication(LoggerMixin, BaseModel):
                 raise ValueError(f"Tool {tool} is not a Tool or callable.")
         return tools
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually. # noqa: 501
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information. # noqa: 501
-    @validator("name", always=True)
+    @field_validator("name")
     def validate_name(cls, v):
         if v is None:
             v = cls.__name__
@@ -374,9 +368,9 @@ class UpdateState(Tool):
             op="replace", path="/state/San Francisco", value="visited"
         )
 
-        UpdateState(app=destination_tracker).run([patch.dict()])
+        UpdateState(app=destination_tracker).run([patch.model_dump()])
 
-        assert destination_tracker.state.dict() == {
+        assert destination_tracker.state.model_dump() == {
             "state": {"San Francisco": "visited"}
         }
         ```
@@ -395,7 +389,7 @@ class UpdateState(Tool):
 
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
-        updated_state = patch.apply(self._app.state.dict())
+        updated_state = patch.apply(self._app.state.model_dump())
         self._app.state = type(self._app.state)(**updated_state)
         return "Application state updated successfully!"
 
@@ -426,7 +420,7 @@ class UpdatePlan(Tool):
             value="COMPLETED"
         )
 
-        UpdatePlan(app=todo_app).run([patch.dict()])
+        UpdatePlan(app=todo_app).run([patch.model_dump()])
 
         print(todo_app.plan)
         ```
@@ -439,11 +433,11 @@ class UpdatePlan(Tool):
         """
 
     def __init__(self, app: AIApplication, **kwargs):
-        self._app = app
         super().__init__(**kwargs)
+        self._app = app
 
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
-        updated_state = patch.apply(self._app.plan.dict())
+        updated_state = patch.apply(self._app.plan.model_dump())
         self._app.plan = type(self._app.plan)(**updated_state)
         return "Application plan updated successfully!"

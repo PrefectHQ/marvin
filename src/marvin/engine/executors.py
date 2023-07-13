@@ -73,7 +73,7 @@ class Executor(LoggerMixin, BaseModel):
 
 class OpenAIExecutor(Executor):
     functions: List[OpenAIFunction] = Field(default=None)
-    function_call: Union[str, dict[str, str]] = Field(default=None)
+    function_call: Optional[Union[str, dict[str, str]]] = Field(default=None)
     max_iterations: Optional[int] = Field(
         default_factory=lambda: marvin.settings.ai_application_max_iterations
     )

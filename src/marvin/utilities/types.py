@@ -69,7 +69,7 @@ def function_to_schema(function: Callable[..., Any], name: str = None) -> dict:
     """
     Model = function_to_model(function, name=name)
 
-    return Model.schema()
+    return Model.model_json_schema()
 
 
 def safe_issubclass(type_, classes):
