@@ -1,6 +1,6 @@
 import inspect
 from enum import Enum
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 from jsonpatch import JsonPatch
 from pydantic import (
@@ -206,7 +206,7 @@ class AIApplication(LoggerMixin, BaseModel):
         ```
     """
 
-    name: str = None
+    name: Optional[str] = None
     description: str
     state: BaseModel = Field(default_factory=FreeformState)
     plan: AppPlan = Field(default_factory=AppPlan)
@@ -390,8 +390,8 @@ class UpdateState(Tool):
         """
 
     def __init__(self, app: AIApplication, **kwargs):
-        self._app = app
         super().__init__(**kwargs)
+        self._app = app
 
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
