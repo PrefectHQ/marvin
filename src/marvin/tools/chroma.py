@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import Optional
 
@@ -108,8 +109,8 @@ class MultiQueryChroma(Tool):
         include: Optional[list[QueryResultType]] = None,
         max_characters: int = 2000,
     ) -> str:
-        results = [
-            await query_chroma(
+        coros = [
+            query_chroma(
                 query,
                 collection,
                 n_results,
@@ -120,4 +121,6 @@ class MultiQueryChroma(Tool):
             )
             for query in queries
         ]
-        return "\n\n".join(results)[:max_characters]
+        return "\n\n".join(await asyncio.gather(*coros, return_exceptions=True))[
+            :max_characters
+        ]
