@@ -134,6 +134,7 @@ extra:
       link: https://discord.gg/Kgw4HpcuYG
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/askmarvinai
+  generator: false
 extra_css:
 - static/css/termynal.css
 - static/css/custom.css
