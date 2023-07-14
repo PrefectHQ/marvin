@@ -189,7 +189,6 @@ class ChatLLM(MarvinBaseModel):
             return msg
 
         else:
-            breakpoint()
             llm_response = response.to_dict_recursive()
             msg = llm_response["choices"][0]["message"]
             msg = Message(
