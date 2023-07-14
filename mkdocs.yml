@@ -39,7 +39,8 @@ nav:
     - LLM Engines:
       - marvin.engine: src/api_reference/engine.md
     - Data Models:
-      - marvin.models: src/api_reference/models.md
+      - marvin.models.history: src/api_reference/models/history.md
+      - marvin.models.messages: src/api_reference/models/messages.md
     - Prompts:
       - marvin.prompts.base: src/api_reference/prompts/base.md
       - marvin.prompts.library: src/api_reference/prompts/library.md
