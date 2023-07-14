@@ -1,3 +1,4 @@
+import inspect
 import json
 from logging import Logger
 from typing import Any, Callable, Optional, Union
@@ -5,12 +6,14 @@ from typing import Any, Callable, Optional, Union
 import openai
 import openai.openai_object
 import tiktoken
-from pydantic import BaseModel, Field, validator
+from pydantic import Field, validator
 
 import marvin
 import marvin.utilities.types
 from marvin.models.messages import Message
+from marvin.utilities.async_utils import create_task
 from marvin.utilities.logging import get_logger
+from marvin.utilities.types import MarvinBaseModel
 
 CONTEXT_SIZES = {
     "gpt-3.5-turbo": 4096,
@@ -24,7 +27,7 @@ CONTEXT_SIZES = {
 }
 
 
-class OpenAIFunction(BaseModel):
+class OpenAIFunction(MarvinBaseModel):
     name: str
     description: str = None
     parameters: dict[str, Any] = {"type": "object", "properties": {}}
@@ -35,7 +38,7 @@ class OpenAIFunction(BaseModel):
     def from_function(cls, fn: Callable, **kwargs):
         return cls(
             name=kwargs.get("name", fn.__name__),
-            description=kwargs.get("description", fn.__doc__),
+            description=kwargs.get("description", fn.__doc__ or ""),
             parameters=marvin.utilities.types.function_to_schema(fn),
             fn=fn,
         )
@@ -57,12 +60,56 @@ class OpenAIFunction(BaseModel):
         return self
 
 
-class ChatLLM(BaseModel):
+class StreamHandler(MarvinBaseModel):
+    callback: Callable[[Message], None] = None
+
+    async def handle_streaming_response(
+        self,
+        openai_response: openai.openai_object.OpenAIObject,
+    ) -> Message:
+        """
+        Accumulate chunk deltas into a full response. Returns the full message.
+        Passes partial messages to the callback, if provided.
+        """
+        response = {"role": None, "content": "", "data": {}}
+
+        async for r in openai_response:
+            delta = r.choices[0].delta
+
+            # streaming deltas are stored in the 'data' field during streaming
+            response["data"]["streaming_delta"] = delta.to_dict_recursive()
+
+            if "role" in delta:
+                response["role"] = delta.role
+
+            if fn_call := delta.get("function_call"):
+                if "function_call" not in response["data"]:
+                    response["data"]["function_call"] = {"name": None, "arguments": ""}
+                if "name" in fn_call:
+                    response["data"]["function_call"]["name"] = fn_call.name
+                if "arguments" in fn_call:
+                    response["data"]["function_call"]["arguments"] += (
+                        fn_call.arguments or ""
+                    )
+
+            if "content" in delta:
+                response["content"] += delta.content or ""
+
+            if self.callback:
+                callback_result = self.callback(Message(**response))
+                if inspect.isawaitable(callback_result):
+                    create_task(callback_result(Message(**response)))
+
+        # remove the streaming delta from the response data
+        response["data"].pop("streaming_delta", None)
+        return Message(**response)
+
+
+class ChatLLM(MarvinBaseModel):
     name: str = None
     model: str = Field(default_factory=lambda: marvin.settings.llm_model)
     max_tokens: int = Field(default_factory=lambda: marvin.settings.llm_max_tokens)
     temperature: float = Field(default_factory=lambda: marvin.settings.llm_temperature)
-    stream: bool = Field(default=False)
 
     _tokenizer: Optional[Callable] = None
 
@@ -90,6 +137,7 @@ class ChatLLM(BaseModel):
         functions: list[OpenAIFunction] = None,
         function_call: Union[str, dict[str, str]] = None,
         logger: Logger = None,
+        stream_handler: Callable[[Message], None] = False,
         **kwargs,
     ) -> Message:
         """Calls an OpenAI LLM with a list of messages and returns the response."""
@@ -128,20 +176,25 @@ class ChatLLM(BaseModel):
         # Call OpenAI LLM
         # ----------------------------------
 
-        response: openai.openai_object.OpenAIObject = (
-            await openai.ChatCompletion.acreate(
-                api_key=marvin.settings.openai_api_key.get_secret_value(),
-                model=self.model,
-                messages=openai_messages,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                **kwargs,
-            )
+        response = await openai.ChatCompletion.acreate(
+            api_key=marvin.settings.openai_api_key.get_secret_value(),
+            model=self.model,
+            messages=openai_messages,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            stream=True if stream_handler else False,
+            **kwargs,
         )
 
-        msg = response.choices[0].message.to_dict_recursive()
-        return Message(
-            role=msg.pop("role").upper(),
-            content=msg.pop("content"),
-            data=msg,
-        )
+        if stream_handler:
+            handler = StreamHandler(callback=stream_handler)
+            msg = await handler.handle_streaming_response(response)
+            return msg
+
+        else:
+            msg = response.choices[0].message.to_dict_recursive()
+            return Message(
+                role=msg.pop("role").upper(),
+                content=msg.pop("content"),
+                data=msg,
+            )
