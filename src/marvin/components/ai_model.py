@@ -2,10 +2,10 @@ import functools
 from typing import Optional, Type, TypeVar
 
 from pydantic import BaseModel, PrivateAttr
-from zmq import Message
 
 from marvin.engine.executors import OpenAIExecutor
 from marvin.engine.language_models import ChatLLM
+from marvin.models.messages import Message
 from marvin.prompts import library as prompt_library
 from marvin.prompts import render_prompts
 from marvin.prompts.base import Prompt
@@ -60,8 +60,6 @@ class AIModel(LoggerMixin, BaseModel):
             instructions_: Additional instructions to assist the model.
             model_: The language model to use.
         """
-        # the loggingmixin hasn't been instantiated yet
-
         if text_:
             # use the extract constructor to build the class
             kwargs = self.__class__.extract(
@@ -71,8 +69,10 @@ class AIModel(LoggerMixin, BaseModel):
                 as_dict_=True,
                 **kwargs,
             )
+        message = kwargs.pop("_message", None)
         super().__init__(**kwargs)
-        self._message = kwargs.pop("_message", None)
+        # set private attr after init
+        self._message = message
 
     @classmethod
     def route(cls):
