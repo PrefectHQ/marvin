@@ -1,12 +1,14 @@
 import functools
 from typing import Optional, Type, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, PrivateAttr
+from zmq import Message
 
 from marvin.engine.executors import OpenAIExecutor
 from marvin.engine.language_models import ChatLLM
 from marvin.prompts import library as prompt_library
 from marvin.prompts import render_prompts
+from marvin.prompts.base import Prompt
 from marvin.tools.format_response import FormatResponse
 from marvin.utilities.async_utils import run_sync
 from marvin.utilities.types import LoggerMixin
@@ -42,6 +44,8 @@ generate_structured_data_prompts = [
 class AIModel(LoggerMixin, BaseModel):
     """Base class for AI models."""
 
+    _message: Message = PrivateAttr(None)
+
     def __init__(
         self,
         text_: str = None,
@@ -59,9 +63,6 @@ class AIModel(LoggerMixin, BaseModel):
         # the loggingmixin hasn't been instantiated yet
 
         if text_:
-            if model_ is None:
-                model_ = ChatLLM()
-
             # use the extract constructor to build the class
             kwargs = self.__class__.extract(
                 text_=text_,
@@ -71,6 +72,7 @@ class AIModel(LoggerMixin, BaseModel):
                 **kwargs,
             )
         super().__init__(**kwargs)
+        self._message = kwargs.pop("_message", None)
 
     @classmethod
     def route(cls):
@@ -89,7 +91,8 @@ class AIModel(LoggerMixin, BaseModel):
         as_dict_: bool = False,
         **kwargs,
     ):
-        """Class method to extract structured data from text.
+        """
+        Class method to extract structured data from text.
 
         Args:
             text_: The text to parse into a structured form.
@@ -99,13 +102,12 @@ class AIModel(LoggerMixin, BaseModel):
                 instance of this class.
             kwargs: Additional keyword arguments to pass to the constructor.
         """
-        if model_ is None:
-            model_ = ChatLLM()
         prompts = extract_structured_data_prompts
         if instructions_:
             prompts.append(prompt_library.System(content=instructions_))
-        messages = render_prompts(prompts, render_kwargs=dict(input_text=text_))
-        arguments = cls._call_format_response_with_retry(model_, messages)
+        arguments = cls._get_arguments(
+            model=model_, prompts=prompts, render_kwargs=dict(input_text=text_)
+        )
         arguments.update(kwargs)
         if as_dict_:
             return arguments
@@ -129,18 +131,22 @@ class AIModel(LoggerMixin, BaseModel):
             model_: The language model to use.
             kwargs: Additional keyword arguments to pass to the constructor.
         """
-        if model_ is None:
-            model_ = ChatLLM()
         prompts = generate_structured_data_prompts
         if instructions_:
             prompts.append(prompt_library.System(content=instructions_))
-        messages = render_prompts(prompts, render_kwargs=dict(input_text=text_))
-        arguments = cls._call_format_response_with_retry(model_, messages)
+        arguments = cls._get_arguments(
+            model=model_, prompts=prompts, render_kwargs=dict(input_text=text_)
+        )
         arguments.update(kwargs)
         return cls(**arguments)
 
     @classmethod
-    def _call_format_response_with_retry(cls, model, messages):
+    def _get_arguments(
+        cls, model: ChatLLM, prompts: list[Prompt], render_kwargs: dict = None
+    ) -> Message:
+        if model is None:
+            model = ChatLLM()
+        messages = render_prompts(prompts, render_kwargs=render_kwargs)
         executor = OpenAIExecutor(
             engine=model,
             functions=[FormatResponse(type_=cls).as_openai_function()],
@@ -149,15 +155,17 @@ class AIModel(LoggerMixin, BaseModel):
         )
 
         llm_call = executor.start(prompts=messages)
-        responses = run_sync(llm_call)
-        response = responses[-1]
+        messages = run_sync(llm_call)
+        message = messages[-1]
 
-        if response.data.get("is_error"):
+        if message.data.get("is_error"):
             raise TypeError(
-                f"Could not build AI Model; most recent error was: {response.content}"
+                f"Could not build AI Model; most recent error was: {message.content}"
             )
 
-        return response.data.get("arguments", {})
+        arguments = message.data.get("arguments", {}).copy()
+        arguments["_message"] = message
+        return arguments
 
 
 def ai_model(
