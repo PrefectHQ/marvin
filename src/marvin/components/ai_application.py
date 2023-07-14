@@ -95,7 +95,7 @@ SYSTEM_PROMPT = """
     
     ## Description
     
-    {{ app.description | render }}
+    {{ app.description or '' | render }}
     
     {% if app.state_enabled %}
 
@@ -217,7 +217,7 @@ class AIApplication(LoggerMixin, BaseModel):
             "Additional prompts that will be added to the prompt stack for rendering."
         ),
     )
-
+    stream_handler: Optional[Callable] = None
     state_enabled: bool = True
     plan_enabled: bool = True
 
@@ -256,8 +256,8 @@ class AIApplication(LoggerMixin, BaseModel):
             v = cls.__name__
         return v
 
-    def __call__(self, *args, **kwargs):
-        return run_sync(self.run(*args, **kwargs))
+    def __call__(self, input_text: str = None, model: ChatLLM = None):
+        return run_sync(self.run(input_text=input_text, model=model))
 
     async def entrypoint(self, q: str) -> str:
         # Helper function for deployment stuff to hide the model bits from
@@ -299,7 +299,10 @@ class AIApplication(LoggerMixin, BaseModel):
         if self.plan_enabled:
             tools.append(UpdatePlan(app=self))
 
-        executor = OpenAIExecutor(functions=[t.as_openai_function() for t in tools])
+        executor = OpenAIExecutor(
+            functions=[t.as_openai_function() for t in tools],
+            stream_handler=self.stream_handler,
+        )
 
         responses = await executor.start(
             prompts=prompts,

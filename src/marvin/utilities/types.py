@@ -9,6 +9,11 @@ from pydantic import BaseModel, PrivateAttr
 from marvin.utilities.logging import get_logger
 
 
+class MarvinBaseModel(BaseModel):
+    class Config:
+        extra = "forbid"
+
+
 class LoggerMixin(BaseModel):
     """
     BaseModel mixin that adds a private `logger` attribute

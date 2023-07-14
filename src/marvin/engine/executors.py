@@ -1,18 +1,18 @@
 import inspect
 import json
 from ast import literal_eval
-from typing import Any, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
-from pydantic import BaseModel, Field, PrivateAttr, field_validator, model_validator
+from pydantic import Field, PrivateAttr, field_validator, model_validator
 
 import marvin
 from marvin.engine.language_models import ChatLLM, OpenAIFunction
 from marvin.models.messages import Message, Role
 from marvin.prompts.base import Prompt, render_prompts
-from marvin.utilities.types import LoggerMixin
+from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 
-class Executor(LoggerMixin, BaseModel):
+class Executor(LoggerMixin, MarvinBaseModel):
     engine: ChatLLM = Field(default_factory=ChatLLM)
     _should_stop: bool = PrivateAttr(False)
 
@@ -77,6 +77,7 @@ class OpenAIExecutor(Executor):
     max_iterations: Optional[int] = Field(
         default_factory=lambda: marvin.settings.ai_application_max_iterations
     )
+    stream_handler: Optional[Callable[[Message], None]] = Field(default=None)
 
     @field_validator("functions", mode="before")
     def validate_functions(cls, v):
@@ -110,7 +111,11 @@ class OpenAIExecutor(Executor):
             kwargs["functions"] = self.functions
             kwargs["function_call"] = self.function_call
 
-        llm_response = await self.engine.run(messages=messages, **kwargs)
+        llm_response = await self.engine.run(
+            messages=messages,
+            stream_handler=self.stream_handler,
+            **kwargs,
+        )
         return llm_response
 
     async def stop_condition(
