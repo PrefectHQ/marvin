@@ -2,6 +2,7 @@ from typing import List, Literal, Optional
 
 import pytest
 from marvin import ai_model
+from marvin.models.messages import Message, Role
 from pydantic import BaseModel
 
 from tests.utils.mark import pytest_mark_class
@@ -139,6 +140,19 @@ class TestAIModels:
                 ]
             )
         )
+
+
+@pytest_mark_class("llm")
+class TestAIModelsMessage:
+    def test_arithmetic_message(self):
+        @ai_model
+        class Arithmetic(BaseModel):
+            sum: float
+
+        x = Arithmetic("One plus six")
+        assert x.sum == 7
+        assert isinstance(x._message, Message)
+        assert x._message.role == Role.FUNCTION
 
 
 @pytest_mark_class("llm")

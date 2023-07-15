@@ -71,13 +71,12 @@ class StreamHandler(MarvinBaseModel):
         Accumulate chunk deltas into a full response. Returns the full message.
         Passes partial messages to the callback, if provided.
         """
-        response = {"role": None, "content": "", "data": {}}
+        response = {"role": None, "content": "", "data": {}, "llm_response": None}
 
         async for r in openai_response:
-            delta = r.choices[0].delta
+            response["data"]["llm_response"] = r.to_dict_recursive()
 
-            # streaming deltas are stored in the 'data' field during streaming
-            response["data"]["streaming_delta"] = delta.to_dict_recursive()
+            delta = r.choices[0].delta
 
             if "role" in delta:
                 response["role"] = delta.role
@@ -100,8 +99,6 @@ class StreamHandler(MarvinBaseModel):
                 if inspect.isawaitable(callback_result):
                     create_task(callback_result(Message(**response)))
 
-        # remove the streaming delta from the response data
-        response["data"].pop("streaming_delta", None)
         return Message(**response)
 
 
@@ -192,9 +189,12 @@ class ChatLLM(MarvinBaseModel):
             return msg
 
         else:
-            msg = response.choices[0].message.to_dict_recursive()
-            return Message(
+            llm_response = response.to_dict_recursive()
+            msg = llm_response["choices"][0]["message"]
+            msg = Message(
                 role=msg.pop("role").upper(),
                 content=msg.pop("content"),
                 data=msg,
+                llm_response=llm_response,
             )
+            return msg
