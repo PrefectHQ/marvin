@@ -33,6 +33,16 @@ class OpenAIFunction(MarvinBaseModel):
     parameters: dict[str, Any] = {"type": "object", "properties": {}}
     fn: Callable = Field(None, exclude=True)
     args: Optional[dict] = None
+    """
+    Base class for representing a function that can be called by the OpenAI API.
+
+    Args:
+        name (str): The name of the function.
+        description (str): The description of the function.
+        parameters (dict): The parameters of the function.
+        fn (Callable): The function to be called.
+        args (dict): The arguments to be passed to the function.
+    """
 
     @classmethod
     def from_function(cls, fn: Callable, **kwargs):

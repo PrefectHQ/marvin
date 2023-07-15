@@ -24,6 +24,10 @@ class PromptList(list[Union["Prompt", Message]]):
 
 
 class Prompt(BaseModel, abc.ABC):
+    """
+    Base class for prompt templates.
+    """
+
     position: int = Field(
         None,
         repr=False,
@@ -47,6 +51,9 @@ class Prompt(BaseModel, abc.ABC):
 
     @abc.abstractmethod
     def generate(self, **kwargs) -> list["Message"]:
+        """
+        Abstract method that generates a list of messages from the prompt template
+        """
         pass
 
     def render(self, content, render_kwargs: dict = None):
