@@ -3,7 +3,9 @@ from datetime import datetime
 from enum import Enum
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field, validator
+from pydantic import Field, validator
+
+from marvin.utilities.types import MarvinBaseModel
 
 
 class Role(Enum):
@@ -21,12 +23,13 @@ class Role(Enum):
         return None
 
 
-class Message(BaseModel):
+class Message(MarvinBaseModel):
     role: Role
     content: str = None
     name: str = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo("UTC")))
     data: dict = {}
+    llm_response: dict = Field(None, description="The raw LLM response", repr=False)
 
     @validator("content")
     def clean_content(cls, v):

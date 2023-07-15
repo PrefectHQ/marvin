@@ -33,6 +33,16 @@ class OpenAIFunction(MarvinBaseModel):
     parameters: dict[str, Any] = {"type": "object", "properties": {}}
     fn: Callable = Field(None, exclude=True)
     args: Optional[dict] = None
+    """
+    Base class for representing a function that can be called by the OpenAI API.
+
+    Args:
+        name (str): The name of the function.
+        description (str): The description of the function.
+        parameters (dict): The parameters of the function.
+        fn (Callable): The function to be called.
+        args (dict): The arguments to be passed to the function.
+    """
 
     @classmethod
     def from_function(cls, fn: Callable, **kwargs):
@@ -71,13 +81,12 @@ class StreamHandler(MarvinBaseModel):
         Accumulate chunk deltas into a full response. Returns the full message.
         Passes partial messages to the callback, if provided.
         """
-        response = {"role": None, "content": "", "data": {}}
+        response = {"role": None, "content": "", "data": {}, "llm_response": None}
 
         async for r in openai_response:
-            delta = r.choices[0].delta
+            response["llm_response"] = r.to_dict_recursive()
 
-            # streaming deltas are stored in the 'data' field during streaming
-            response["data"]["streaming_delta"] = delta.to_dict_recursive()
+            delta = r.choices[0].delta
 
             if "role" in delta:
                 response["role"] = delta.role
@@ -98,10 +107,8 @@ class StreamHandler(MarvinBaseModel):
             if self.callback:
                 callback_result = self.callback(Message(**response))
                 if inspect.isawaitable(callback_result):
-                    create_task(callback_result(Message(**response)))
+                    create_task(callback_result)
 
-        # remove the streaming delta from the response data
-        response["data"].pop("streaming_delta", None)
         return Message(**response)
 
 
@@ -192,9 +199,12 @@ class ChatLLM(MarvinBaseModel):
             return msg
 
         else:
-            msg = response.choices[0].message.to_dict_recursive()
-            return Message(
+            llm_response = response.to_dict_recursive()
+            msg = llm_response["choices"][0]["message"]
+            msg = Message(
                 role=msg.pop("role").upper(),
                 content=msg.pop("content"),
                 data=msg,
+                llm_response=llm_response,
             )
+            return msg

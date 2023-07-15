@@ -203,4 +203,5 @@ class OpenAIExecutor(Executor):
             name=fn_name,
             content=str(fn_result),
             data=response_data,
+            llm_response=response.llm_response,
         )

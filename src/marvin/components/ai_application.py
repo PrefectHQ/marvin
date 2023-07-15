@@ -13,7 +13,7 @@ from marvin.prompts import library as prompt_library
 from marvin.prompts.base import Prompt
 from marvin.tools import Tool
 from marvin.utilities.async_utils import run_sync
-from marvin.utilities.types import LoggerMixin
+from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 SYSTEM_PROMPT = """
     # Overview
@@ -168,7 +168,7 @@ class FreeformState(BaseModel):
     state: dict[str, Any] = Field(default_factory=dict)
 
 
-class AIApplication(LoggerMixin, BaseModel):
+class AIApplication(LoggerMixin, MarvinBaseModel):
     """An AI application is a stateful, autonomous, natural language
         interface to an application.
 
