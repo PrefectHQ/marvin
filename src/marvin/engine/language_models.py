@@ -84,7 +84,7 @@ class StreamHandler(MarvinBaseModel):
         response = {"role": None, "content": "", "data": {}, "llm_response": None}
 
         async for r in openai_response:
-            response["data"]["llm_response"] = r.to_dict_recursive()
+            response["llm_response"] = r.to_dict_recursive()
 
             delta = r.choices[0].delta
 
@@ -107,7 +107,7 @@ class StreamHandler(MarvinBaseModel):
             if self.callback:
                 callback_result = self.callback(Message(**response))
                 if inspect.isawaitable(callback_result):
-                    create_task(callback_result(Message(**response)))
+                    create_task(callback_result)
 
         return Message(**response)
 
