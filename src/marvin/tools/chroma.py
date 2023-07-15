@@ -121,6 +121,4 @@ class MultiQueryChroma(Tool):
             )
             for query in queries
         ]
-        return "\n\n".join(await asyncio.gather(*coros, return_exceptions=True))[
-            :max_characters
-        ]
+        return "\n\n".join(await asyncio.gather(*coros, return_exceptions=True))
