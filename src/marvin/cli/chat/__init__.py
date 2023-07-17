@@ -47,12 +47,12 @@ async def chat():
     console.print(
         Panel("You can type 'quit' or 'exit' to end the conversation.", expand=False)
     )
-    from marvin.engine.language_models import ChatLLM
+    from marvin.engine.language_models import chat_llm
     from marvin.models.messages import Message
 
     global history
     history = []
-    model = ChatLLM()
+    model = chat_llm()
     try:
         while True:
             user_input = Prompt.ask("❯ ")

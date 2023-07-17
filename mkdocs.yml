@@ -12,7 +12,8 @@ nav:
     - Overview: src/docs/index.md
     - Configuration:
       - src/docs/configuration/settings.md
-      - src/docs/configuration/openai.md
+      - OpenAI Provider: src/docs/configuration/openai.md
+      - Anthropic Provider: src/docs/configuration/anthropic.md
     - Utilities:
       - OpenAI API: src/docs/utilities/openai.ipynb
       - Prompt Engineering: 

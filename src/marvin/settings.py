@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     openai_api_base: str = None
     embedding_engine: str = "text-embedding-ada-002"
 
+    # ANTHROPIC
+    anthropic_api_key: SecretStr = Field(None)
+
     # SLACK
     slack_api_token: SecretStr = Field(
         None,

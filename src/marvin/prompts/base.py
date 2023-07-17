@@ -17,7 +17,7 @@ class PromptList(list[Union["Prompt", Message]]):
         return render_prompts(self, render_kwargs=kwargs)
 
     def dict(self, **kwargs):
-        return [message.as_chat_message() for message in self.render(**kwargs)]
+        return [message.dict() for message in self.render(**kwargs)]
 
     def __call__(self, **kwargs):
         return self.render(**kwargs)

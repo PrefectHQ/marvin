@@ -2,23 +2,23 @@ from typing import Callable
 
 from fastapi import FastAPI
 from fastapi.routing import APIRouter
-from marvin.engine.executors import Executor, OpenAIExecutor
-from marvin.engine.language_models import ChatLLM
+from marvin.engine.executors import Executor, OpenAIFunctionsExecutor
+from marvin.engine.language_models import ChatLLM, chat_llm
 from marvin.functions.base import FunctionRegistry
 from marvin.prompts import Prompt
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, Extra, Field
 
 
 class Agent(
     BaseModel, allow_mutation=True, extra=Extra.allow, arbitrary_types_allowed=True
 ):
     name: str
-    engine: ChatLLM = ChatLLM()
+    engine: ChatLLM = Field(default_factory=chat_llm)
     prompts: list[Prompt] = []
     functions: list[Callable] = []
 
     _app: FastAPI = FastAPI()
-    _flow: Executor = OpenAIExecutor
+    _flow: Executor = OpenAIFunctionsExecutor
     _router: APIRouter = APIRouter
     _function_registry: FunctionRegistry = FunctionRegistry
 

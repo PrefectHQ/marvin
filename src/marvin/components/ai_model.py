@@ -3,8 +3,8 @@ from typing import Optional, Type, TypeVar
 
 from pydantic import BaseModel, PrivateAttr
 
-from marvin.engine.executors import OpenAIExecutor
-from marvin.engine.language_models import ChatLLM
+from marvin.engine.executors import OpenAIFunctionsExecutor
+from marvin.engine.language_models import ChatLLM, chat_llm
 from marvin.models.messages import Message
 from marvin.prompts import library as prompt_library
 from marvin.prompts import render_prompts
@@ -145,11 +145,11 @@ class AIModel(LoggerMixin, BaseModel):
         cls, model: ChatLLM, prompts: list[Prompt], render_kwargs: dict = None
     ) -> Message:
         if model is None:
-            model = ChatLLM()
+            model = chat_llm()
         messages = render_prompts(prompts, render_kwargs=render_kwargs)
-        executor = OpenAIExecutor(
-            engine=model,
-            functions=[FormatResponse(type_=cls).as_openai_function()],
+        executor = OpenAIFunctionsExecutor(
+            model=model,
+            functions=[FormatResponse(type_=cls).as_llm_function()],
             function_call={"name": "FormatResponse"},
             max_iterations=3,
         )

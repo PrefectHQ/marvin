@@ -10,10 +10,10 @@ simply import a language model and hit run.
 
 ```python
 from marvin.prompts.library import System, ChainOfThought, User
-from marvin.engine.language_models import ChatLLM
+from marvin.engine.language_models import chat_llm
 from marvin.prompts import render_prompts
 
-await ChatLLM().run(
+await chat_llm().run(
     messages=render_prompts(
         System(content="You're an expert on {{subject}}.")
         | User(content="I need to know how to write a function in {{subject}}.")
@@ -31,10 +31,9 @@ its next actions and take them -- we've got you covered. Import an Executor and 
 
 ```python
 from marvin.prompts.library import System, ChainOfThought, User
-from marvin.engine.executors import OpenAIExecutor
 from marvin.prompts import render_prompts
 
-await ChatLLM().run(
+await chat_llm().run(
     messages=render_prompts(
         System(content="You're an expert on {{subject}}.")
         | User(content="I need to know how to write a function in {{subject}}.")

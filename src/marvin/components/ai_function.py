@@ -6,7 +6,7 @@ from typing import Callable, TypeVar
 
 from pydantic import BaseModel
 
-from marvin.engine.executors import OpenAIExecutor
+from marvin.engine.executors import OpenAIFunctionsExecutor
 from marvin.prompts import library as prompt_library
 from marvin.tools.format_response import FormatResponse
 from marvin.utilities.async_utils import run_sync
@@ -163,8 +163,8 @@ class AIFunction:
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
 
-        executor = OpenAIExecutor(
-            functions=[FormatResponse(type_=return_annotation).as_openai_function()],
+        executor = OpenAIFunctionsExecutor(
+            functions=[FormatResponse(type_=return_annotation).as_llm_function()],
             function_call={"name": "FormatResponse"},
             max_iterations=1,
         )
