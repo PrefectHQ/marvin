@@ -9,17 +9,7 @@ on:
       - .github/workflows/image-build-and-push-community.yaml
       - examples/slackbot/community_bot/**
       - src/marvin/api/slackbot/**
-  # schedule:
-    #  Schedule to run at 7:30PM every Sunday
-    #        ┌───────────── minute (0 - 59)
-    #        │  ┌───────────── hour (0 - 23)
-    #        │  │  ┌───────────── day of the month (1 - 31)
-    #        │  │  │ ┌───────────── month (1 - 12 or JAN-DEC)
-    #        │  │  │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
-    #        │  │  │ │ │
-    #        │  │  │ │ │
-    #        │  │  │ │ │
-    # - cron: 30 19 * * 0
+
   workflow_dispatch: {}
 
 # Limit concurrency by workflow/branch combination.
