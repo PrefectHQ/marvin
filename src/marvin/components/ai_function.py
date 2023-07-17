@@ -17,6 +17,10 @@ A = TypeVar("A")
 
 prompts = [
     prompt_library.System(content="""
+        {% if instructions %}
+        {{ instructions }}
+        
+        {% endif %}
         Your job is to generate likely outputs for a Python function with the
         following signature and docstring:
     
@@ -63,11 +67,17 @@ prompts = [
 
 class AIFunction:
     def __init__(
-        self, *, fn: Callable = None, name: str = None, description: str = None
+        self,
+        *,
+        fn: Callable = None,
+        name: str = None,
+        description: str = None,
+        instructions: str = None,
     ):
         self._fn = fn
         self.name = name or fn.__name__
         self.description = description or fn.__doc__
+        self.instructions = instructions
         self.__signature__ = inspect.signature(fn)
 
         super().__init__()
@@ -178,6 +188,7 @@ class AIFunction:
                 ),
                 basemodel_response=safe_issubclass(return_annotation, BaseModel),
                 input_binds=bound_args.arguments,
+                instructions=self.instructions,
             ),
         )
 
@@ -189,7 +200,7 @@ class AIFunction:
         raise NotImplementedError()
 
 
-def ai_fn(fn: Callable[[A], T] = None) -> Callable[[A], T]:
+def ai_fn(fn: Callable[[A], T] = None, instructions: str = None) -> Callable[[A], T]:
     """Decorator that transforms a Python function with a signature and docstring
     into a prompt for an AI to predict the function's output.
 
@@ -208,5 +219,5 @@ def ai_fn(fn: Callable[[A], T] = None) -> Callable[[A], T]:
     """
     # this allows the decorator to be used with or without calling it
     if fn is None:
-        return functools.partial(ai_fn)  # , **kwargs)
-    return AIFunction(fn=fn)
+        return functools.partial(ai_fn, instructions=instructions)  # , **kwargs)
+    return AIFunction(fn=fn, instructions=instructions)
