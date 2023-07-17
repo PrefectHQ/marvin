@@ -20,7 +20,7 @@ class StreamHandler(MarvinBaseModel, abc.ABC):
         raise NotImplementedError()
 
 
-class LLMFunction(MarvinBaseModel):
+class OpenAIFunction(MarvinBaseModel):
     name: str
     description: str = None
     parameters: dict[str, Any] = {"type": "object", "properties": {}}
@@ -97,7 +97,7 @@ class ChatLLM(MarvinBaseModel, abc.ABC):
     async def run(
         self,
         messages: list[Message],
-        functions: list[LLMFunction] = None,
+        functions: list[OpenAIFunction] = None,
         *,
         logger: Logger = None,
         stream_handler: Callable[[Message], None] = False,

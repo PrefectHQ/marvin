@@ -6,7 +6,7 @@ from typing import Callable, List, Optional, Union
 from pydantic import Field, root_validator, validator
 
 import marvin
-from marvin.engine.language_models import LLMFunction
+from marvin.engine.language_models import OpenAIFunction
 from marvin.models.messages import Message, Role
 
 from .base import Executor
@@ -20,7 +20,7 @@ class OpenAIFunctionsExecutor(Executor):
     Functions API, so provider LLMs must be compatible.
     """
 
-    functions: List[LLMFunction] = Field(default=None)
+    functions: List[OpenAIFunction] = Field(default=None)
     function_call: Union[str, dict[str, str]] = Field(default=None)
     max_iterations: Optional[int] = Field(
         default_factory=lambda: marvin.settings.ai_application_max_iterations
@@ -32,7 +32,7 @@ class OpenAIFunctionsExecutor(Executor):
         if v is None:
             return None
         v = [
-            LLMFunction.from_function(i) if not isinstance(i, LLMFunction) else i
+            OpenAIFunction.from_function(i) if not isinstance(i, OpenAIFunction) else i
             for i in v
         ]
         return v

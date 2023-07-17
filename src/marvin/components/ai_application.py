@@ -295,7 +295,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             tools.append(UpdatePlan(app=self))
 
         executor = OpenAIFunctionsExecutor(
-            functions=[t.as_llm_function() for t in tools],
+            functions=[t.as_openai_function() for t in tools],
             stream_handler=self.stream_handler,
         )
 

@@ -1,1 +1,1 @@
-from .base import ChatLLM, LLMFunction, StreamHandler, chat_llm
+from .base import ChatLLM, OpenAIFunction, StreamHandler, chat_llm

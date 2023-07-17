@@ -164,7 +164,7 @@ class AIFunction:
         bound_args.apply_defaults()
 
         executor = OpenAIFunctionsExecutor(
-            functions=[FormatResponse(type_=return_annotation).as_llm_function()],
+            functions=[FormatResponse(type_=return_annotation).as_openai_function()],
             function_call={"name": "FormatResponse"},
             max_iterations=1,
         )

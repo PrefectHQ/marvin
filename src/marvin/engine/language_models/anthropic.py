@@ -11,7 +11,7 @@ import openai.openai_object
 import marvin
 import marvin.utilities.types
 from marvin.engine.language_models import ChatLLM, StreamHandler
-from marvin.engine.language_models.base import LLMFunction
+from marvin.engine.language_models.base import OpenAIFunction
 from marvin.models.messages import Message, Role
 from marvin.utilities.async_utils import create_task
 from marvin.utilities.logging import get_logger
@@ -96,7 +96,7 @@ class AnthropicChatLLM(ChatLLM):
         self,
         messages: list[Message],
         *,
-        functions: list[LLMFunction] = None,
+        functions: list[OpenAIFunction] = None,
         function_call: Union[str, dict[str, str]] = None,
         logger: Logger = None,
         stream_handler: Callable[[Message], None] = False,
@@ -213,6 +213,7 @@ Your have access to the following functions:
 {% for function in functions %} 
 
 ## {{ function.name }} 
+
 - Name: {{ function.name }}
 - Description: {{ function.description }}
 - Parameters: {{ function.parameters }}

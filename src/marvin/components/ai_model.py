@@ -149,7 +149,7 @@ class AIModel(LoggerMixin, BaseModel):
         messages = render_prompts(prompts, render_kwargs=render_kwargs)
         executor = OpenAIFunctionsExecutor(
             model=model,
-            functions=[FormatResponse(type_=cls).as_llm_function()],
+            functions=[FormatResponse(type_=cls).as_openai_function()],
             function_call={"name": "FormatResponse"},
             max_iterations=3,
         )

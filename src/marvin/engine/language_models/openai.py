@@ -11,7 +11,7 @@ from marvin.models.messages import Message, Role
 from marvin.utilities.async_utils import create_task
 from marvin.utilities.logging import get_logger
 
-from .base import ChatLLM, LLMFunction, StreamHandler
+from .base import ChatLLM, OpenAIFunction, StreamHandler
 
 CONTEXT_SIZES = {
     "gpt-3.5-turbo": 4096,
@@ -96,7 +96,7 @@ class OpenAIChatLLM(ChatLLM):
         self,
         messages: list[Message],
         *,
-        functions: list[LLMFunction] = None,
+        functions: list[OpenAIFunction] = None,
         function_call: Union[str, dict[str, str]] = None,
         logger: Logger = None,
         stream_handler: Callable[[Message], None] = False,
