@@ -22,11 +22,10 @@ pip install marvin -U
     Please note that Marvin 1.0 introduces a number of breaking changes and is not compatible with Marvin 0.X.
 
 ## Adding Optional Dependencies
-Marvin's base install is designed to be as lightweight as possible, with minimal dependencies. To use functionality that interacts with other services, install Marvin with any required optional dependencies. For example:
+Marvin's base install is designed to be as lightweight as possible, with minimal dependencies. To use functionality that interacts with other services, install Marvin with any required optional dependencies. For example, to use Anthropic models, install Marvin with the optional Anthropic provider:
 
 ```shell
-# dependencies for running Marvin as a slackbot
-pip install 'marvin[slackbot]'
+pip install 'marvin[anthropic]'
 ```
 
 

@@ -54,6 +54,7 @@ framework = [
     "sqlalchemy>=2.0.17"
 ]
 openai = ["openai>=0.27.8", "tiktoken>=0.4.0"]
+anthropic = ["anthropic>=0.3"]
 lancedb = ["lancedb>=0.1.8"]
 slackbot = ["cachetools>=5.3.1", "numpy>=1.21.2"]
 ddg = ["duckduckgo_search>=3.8.3"]

@@ -7,8 +7,6 @@ global-exclude __pycache__/**
 # Top-level Config
 include LICENSE
 include MANIFEST.in
-include setup.cfg
-include requirements.txt
 
 # Prompt templates
 graft src/marvin/programs

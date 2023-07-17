@@ -2,6 +2,8 @@
 
 Marvin supports Anthropic's Claude 1 and Claude 2 models. In order to use the Anthropic API, you must provide an API key.
 
+!!! tip "Installing the Anthropic provider"
+    To use the Anthropic provider, you must have the `anthropic` Python client installed. You can do this by installing Marvin as `pip install "marvin[anthropic]"`
 
 
 ## Getting an API key
