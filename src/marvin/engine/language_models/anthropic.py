@@ -18,7 +18,7 @@ from marvin.utilities.logging import get_logger
 from marvin.utilities.strings import jinja_env
 
 FUNCTION_CALL_REGEX = re.compile(
-    r'{\s*"mode":\s*"functions"\s*(.*)}',
+    r'{\s*"mode":\s*"function_call"\s*(.*)}',
     re.DOTALL,
 )
 FUNCTION_CALL_NAME = re.compile(r'"name":\s*"(.*)"')
@@ -66,9 +66,9 @@ class AnthropicStreamHandler(StreamHandler):
 
         async for msg in api_response:
             response["llm_response"] = msg.dict()
-            response["content"] += msg["completion"]
+            response["content"] += msg.completion
 
-            if function_call := extract_function_call(msg):
+            if function_call := extract_function_call(response["content"]):
                 response["role"] = Role.FUNCTION_REQUEST
                 response["data"]["function_call"] = function_call
 
@@ -111,10 +111,9 @@ class AnthropicChatLLM(ChatLLM):
         # Prepare functions
         # ----------------------------------
         if functions:
-            function_message = jinja_env.from_string(
-                FUNCTIONS_INSTRUCTIONS
-                # Functions
-            ).render(functions=functions, function_call=function_call)
+            function_message = jinja_env.from_string(FUNCTIONS_INSTRUCTIONS).render(
+                functions=functions, function_call=function_call
+            )
             system_message = Message(role=Role.SYSTEM, content=function_message)
             messages = [system_message] + messages
 
@@ -168,78 +167,68 @@ class AnthropicChatLLM(ChatLLM):
 FUNCTIONS_INSTRUCTIONS = """
 # Functions
 
-You can call functions to perform tasks that are beyond your base abilities.
+You can call various functions to perform tasks.
 
-The user may provide a `function_call` instruction which could be:
-    - "auto": you may decide to call a function on your own (this is the
-      default)
-    - "none": do not call any function
-    - {"name": "<function-name>"}: you MUST call the function with the given
-      name
+Whenever you receive a message from the user, check to see if any of your
+functions would help you respond. For example, you might use a function to look
+up information, interact with a filesystem, call an API, or validate data. You
+might write code, update state, or cause a side effect. After indicating that
+you want to call a function, the user will execute the function and tell you its
+result so that you can use the information in your final response. Therefore,
+you must use your functions whenever they would be helpful.
 
-If `function_call` is "auto", decide whether to call a function by first
-determining if the user's query requires information or services that are beyond
-your base knowledge or capabilities. If you're not sure, then you should call a
-function. Next, match the user's query to the appropriate function(s) based on
-functionality and the type of information or service requested.
+The user may also provide a `function_call` instruction which could be:
 
-If you decide to call a function: 
+- "auto": you may decide to call a function on your own (this is the
+    default)
+- "none": do not call any function
+- {"name": "<function-name>"}: you MUST call the function with the given
+    name
+
+To call a function:
 
 - Your response must include a JSON payload with the below format, including the
-  `"mode": "functions"` key-value pair. The presence of this key-value pair will
-  indicate to the user that you have called a function.
-- Do not put any additional information in your response. The function payload
-  will be extracted, and the user will run the function and return the result to
-  you. Neither you nor the user will remember calling the function, you will
-  only see the result.
-- Do not include or speculate about the function output after generating a
-  payload.
-
-Examples:
-    - functions could interact with external services (send_email(to: string,
-      body: string), get_current_weather(location: string, unit: 'celsius' |
-      'fahrenheit'))
-    - functions could validate data (validate_data(x: int, y: str) or
-      validate_data(data: object))
-    - functions could manage state (update_state(key:str, value: object))
-    - functions could convert language to API calls ("Who are my top customers?"
-      becomes get_customers(min_revenue: int, created_before: string, limit:
-      int))
-
+  {"mode": "function_call"} key.
+- Do not put any other text in your response beside the JSON payload.
+- Do not describe your plan to call the function to the user; they will not see
+  it. 
+- Do not include more than one payload in your response.
+- Do not include function output or results in your response.
+    
 # Available Functions
 
-Your have access to the following functions:
+Your have access to the following functions. Each has a name (which must be part
+of your response), a description (which you should use to decide to call the
+function), and a parameter spec (which is a JSON Schema description of the
+arguments you should pass in your response)
 
-{% for function in functions %} 
+{% for function in functions -%} 
 
 ## {{ function.name }} 
 
-- Name: {{ function.name }}
-- Description: {{ function.description }}
+- Name: {{ function.name }} 
+- Description: {{ function.description }} 
 - Parameters: {{ function.parameters }}
 
 {% endfor %}
 
 # Calling a Function
 
-To call a function, your response must include a JSON document with the
+To call a function, your response MUST include a JSON document with the
 following structure: 
 
 {
-    "mode": "functions",
+    "mode": "function_call", 
     
-    "function_call": {
-        "name": "<the name of the function, must be one of the above names>",
-        "arguments": "<a JSON string with the arguments to the function as valid
-        JSON>"
-    }
+    "name": "<the name of the function, must be one of the above names>", 
+    
+    "arguments": "<a JSON string with the arguments to the function as valid
+    JSON>"
 }
 
-Include ONLY this JSON object in your response. If this object is present, the
-rest of your response will be ignored. The user will execute the function and
-respond with its result verbatim.
+The user will execute the function and respond with its result verbatim.
 
-# Function Call instruction
+# function_call instruction
 
 The user provided the following `function_call` instruction: {{ function_call }}
 """
