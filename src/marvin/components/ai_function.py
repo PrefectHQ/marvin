@@ -207,6 +207,9 @@ def ai_fn(fn: Callable[[A], T] = None, instructions: str = None) -> Callable[[A]
     Args:
         fn: The function to decorate - this function does not need source code
 
+    Keyword Args:
+        instructions: Added context for the AI to help it predict the function's output.
+
     Example:
         Returns a word that rhymes with the input word.
         ```python
