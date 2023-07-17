@@ -152,7 +152,7 @@ class TestAIModelsMessage:
         x = Arithmetic("One plus six")
         assert x.sum == 7
         assert isinstance(x._message, Message)
-        assert x._message.role == Role.FUNCTION
+        assert x._message.role == Role.FUNCTION_RESPONSE
 
 
 @pytest_mark_class("llm")
