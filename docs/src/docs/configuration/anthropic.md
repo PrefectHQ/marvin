@@ -6,6 +6,9 @@ Marvin supports Anthropic's Claude 1 and Claude 2 models. In order to use the An
     To use the Anthropic provider, you must have the `anthropic` Python client installed. You can do this by installing Marvin as `pip install "marvin[anthropic]"`
 
 
+!!! warning "Anthropic is not optimized for calling functions"
+    Anthropic's models are not fine-tuned for calling functions or generating structured outputs. Therefore, Marvin adds a significant number of additional instructions to get Anthropic models to mimic this behavior. Empirically, this works very well for most Marvin components, including functions, models, and classifiers. However, it may not perform as well for more complex AI Applications.
+
 ## Getting an API key
 
 To obtain an Anthropic API key, follow these steps:
