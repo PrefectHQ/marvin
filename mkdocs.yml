@@ -164,6 +164,7 @@ extra_css:
 - static/css/termynal.css
 - static/css/custom.css
 - static/css/mkdocstrings.css
+- static/css/badges.css
 extra_javascript:
 - static/js/termynal.js
 - static/js/custom.js
