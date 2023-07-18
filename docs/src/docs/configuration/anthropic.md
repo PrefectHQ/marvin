@@ -1,5 +1,7 @@
 # Anthropic
 
+!!! abstract "Available in Marvin 1.1"
+
 Marvin supports Anthropic's Claude 1 and Claude 2 models. In order to use the Anthropic API, you must provide an API key.
 
 !!! tip "Installing the Anthropic provider"
