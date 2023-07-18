@@ -37,10 +37,16 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.9', '3.10', '3.11']
         test-type: ['not llm']
+
         include:
           - python-version: '3.9'
             os: 'ubuntu-latest'
             test-type: 'llm'
+            llm_model: 'openai/gpt-3.5-turbo'
+          - python-version: '3.9'
+            os: 'ubuntu-latest'
+            test-type: 'llm'
+            llm_model: 'anthropic/claude-1'
 
     runs-on: ${{ matrix.os }}
 
@@ -55,6 +61,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
       - name: Install Marvin
-        run: pip install ".[dev]"
-      - name: Run ${{ matrix.test-type }} tests
+        run: pip install ".[tests]"
+      - name: Run ${{ matrix.test-type }} tests (${{ matrix.llm_model }})
         run: pytest -vv -m "${{ matrix.test-type }}"
+        env:
+          MARVIN_LLM_MODEL: ${{ matrix.llm_model }}
