@@ -33,26 +33,27 @@ nav:
   - API Reference:
     # - src/api_reference/index.md
     - AI Components:
-      - marvin.components.ai_application: src/api_reference/components/ai_application.md
-      - marvin.components.ai_classifier: src/api_reference/components/ai_classifier.md
-      - marvin.components.ai_function: src/api_reference/components/ai_function.md
-      - marvin.components.ai_model: src/api_reference/components/ai_model.md
+      - ai_application: src/api_reference/components/ai_application.md
+      - ai_classifier: src/api_reference/components/ai_classifier.md
+      - ai_function: src/api_reference/components/ai_function.md
+      - ai_model: src/api_reference/components/ai_model.md
     - LLM Engines:
-      - marvin.engine: src/api_reference/engine.md
-    - Data Models:
-      - marvin.models.history: src/api_reference/models/history.md
-      - marvin.models.messages: src/api_reference/models/messages.md
+      - base: src/api_reference/engine/language_models/base.md
+      - openai: src/api_reference/engine/language_models/openai.md
+      - anthropic: src/api_reference/engine/language_models/anthropic.md
     - Prompts:
-      - marvin.prompts.base: src/api_reference/prompts/base.md
-      - marvin.prompts.library: src/api_reference/prompts/library.md
+      - base: src/api_reference/prompts/base.md
+      - library: src/api_reference/prompts/library.md
     - Settings:
-      - marvin.settings: src/api_reference/settings.md
+      - settings: src/api_reference/settings.md
     - Utilities:
-      - marvin.utilities.async_utils: src/api_reference/utilities/async_utils.md
-      - marvin.utilities.embeddings: src/api_reference/utilities/embeddings.md
-      - marvin.utilities.logging: src/api_reference/utilities/logging.md
-      - marvin.utilities.strings: src/api_reference/utilities/strings.md
-      - marvin.utilities.types: src/api_reference/utilities/types.md
+      - async_utils: src/api_reference/utilities/async_utils.md
+      - embeddings: src/api_reference/utilities/embeddings.md
+      - history: src/api_reference/utilities/history.md
+      - logging: src/api_reference/utilities/logging.md
+      - messages: src/api_reference/utilities/messages.md
+      - strings: src/api_reference/utilities/strings.md
+      - types: src/api_reference/utilities/types.md
 
   - Community:
     - src/community.md
