@@ -12,7 +12,8 @@ class Role(Enum):
     USER = "USER"
     SYSTEM = "SYSTEM"
     ASSISTANT = "ASSISTANT"
-    FUNCTION = "FUNCTION"
+    FUNCTION_REQUEST = "FUNCTION_REQUEST"
+    FUNCTION_RESPONSE = "FUNCTION_RESPONSE"
 
     @classmethod
     def _missing_(cls, value):
@@ -36,12 +37,3 @@ class Message(MarvinBaseModel):
         if v is not None:
             v = inspect.cleandoc(v)
         return v
-
-    def as_chat_message(self) -> dict[str, str]:
-        msg = {"role": self.role.value.lower(), "content": self.content}
-        if self.name:
-            msg["name"] = self.name
-        return msg
-
-    def as_prompt(self) -> str:
-        return f"{self.role}: {self.content}"

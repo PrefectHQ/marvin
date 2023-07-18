@@ -1,4 +1,4 @@
-from marvin.engine.language_models import ChatLLM
+from marvin.engine.language_models import ChatLLM, chat_llm
 from marvin.prompts import render_prompts
 from marvin.prompts.library import System, User
 from marvin.utilities.async_utils import run_sync
@@ -34,7 +34,7 @@ def ai_classifier(
     system_prompt, user_prompt, value_getter = None, None, None
 
     if model is None:
-        model = ChatLLM(max_tokens=1, temperature=0)
+        model = chat_llm(max_tokens=1, temperature=0)
     elif model.max_tokens != 1:
         raise ValueError(
             "The model must be configured with max_tokens=1 to use ai_classifier"

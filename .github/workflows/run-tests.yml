@@ -37,15 +37,19 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.9', '3.10', '3.11']
         test-type: ['not llm']
+        llm_model: ['openai/gpt-3.5-turbo']
+
         include:
           - python-version: '3.9'
             os: 'ubuntu-latest'
             test-type: 'llm'
+            llm_model: 'openai/gpt-3.5-turbo'
 
     runs-on: ${{ matrix.os }}
 
     env:
-      MARVIN_OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      MARVIN_OPENAI_API_KEY: ${{ secrets.MARVIN_OPENAI_API_KEY }}
+      MARVIN_ANTHROPIC_API_KEY: ${{ secrets.MARVIN_ANTHROPIC_API_KEY }}
 
     steps:
       - uses: actions/checkout@v3
@@ -55,6 +59,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
       - name: Install Marvin
-        run: pip install ".[dev]"
-      - name: Run ${{ matrix.test-type }} tests
+        run: pip install ".[tests]"
+      - name: Run ${{ matrix.test-type }} tests (${{ matrix.llm_model }})
         run: pytest -vv -m "${{ matrix.test-type }}"
+        env:
+          MARVIN_LLM_MODEL: ${{ matrix.llm_model }}

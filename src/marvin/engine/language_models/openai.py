@@ -1,19 +1,17 @@
 import inspect
-import json
 from logging import Logger
-from typing import Any, Callable, Optional, Union
+from typing import Callable, Union
 
 import openai
 import openai.openai_object
-import tiktoken
-from pydantic import Field, validator
 
 import marvin
 import marvin.utilities.types
-from marvin.models.messages import Message
+from marvin.models.messages import Message, Role
 from marvin.utilities.async_utils import create_task
 from marvin.utilities.logging import get_logger
-from marvin.utilities.types import MarvinBaseModel
+
+from .base import ChatLLM, OpenAIFunction, StreamHandler
 
 CONTEXT_SIZES = {
     "gpt-3.5-turbo": 4096,
@@ -27,55 +25,19 @@ CONTEXT_SIZES = {
 }
 
 
-class OpenAIFunction(MarvinBaseModel):
-    name: str
-    description: str = None
-    parameters: dict[str, Any] = {"type": "object", "properties": {}}
-    fn: Callable = Field(None, exclude=True)
-    args: Optional[dict] = None
-    """
-    Base class for representing a function that can be called by the OpenAI API.
-
-    Args:
-        name (str): The name of the function.
-        description (str): The description of the function.
-        parameters (dict): The parameters of the function.
-        fn (Callable): The function to be called.
-        args (dict): The arguments to be passed to the function.
-    """
-
-    @classmethod
-    def from_function(cls, fn: Callable, **kwargs):
-        return cls(
-            name=kwargs.get("name", fn.__name__),
-            description=kwargs.get("description", fn.__doc__ or ""),
-            parameters=marvin.utilities.types.function_to_schema(fn),
-            fn=fn,
-        )
-
-    async def query(self, q: str, model: "ChatLLM" = None):
-        if not model:
-            model = ChatLLM()
-        self.args = json.loads(
-            (
-                await ChatLLM().run(
-                    messages=[Message(role="USER", content=q)],
-                    functions=[self],
-                    function_call={"name": self.name},
-                )
-            )
-            .data.get("function_call")
-            .get("arguments")
-        )
-        return self
+def openai_role_map(marvin_role: Role) -> str:
+    if marvin_role == Role.FUNCTION_RESPONSE:
+        return "function"
+    elif marvin_role == Role.FUNCTION_REQUEST:
+        return "assistant"
+    else:
+        return marvin_role.value.lower()
 
 
-class StreamHandler(MarvinBaseModel):
-    callback: Callable[[Message], None] = None
-
+class OpenAIStreamHandler(StreamHandler):
     async def handle_streaming_response(
         self,
-        openai_response: openai.openai_object.OpenAIObject,
+        api_response: openai.openai_object.OpenAIObject,
     ) -> Message:
         """
         Accumulate chunk deltas into a full response. Returns the full message.
@@ -83,7 +45,7 @@ class StreamHandler(MarvinBaseModel):
         """
         response = {"role": None, "content": "", "data": {}, "llm_response": None}
 
-        async for r in openai_response:
+        async for r in api_response:
             response["llm_response"] = r.to_dict_recursive()
 
             delta = r.choices[0].delta
@@ -112,30 +74,23 @@ class StreamHandler(MarvinBaseModel):
         return Message(**response)
 
 
-class ChatLLM(MarvinBaseModel):
-    name: str = None
-    model: str = Field(default_factory=lambda: marvin.settings.llm_model)
-    max_tokens: int = Field(default_factory=lambda: marvin.settings.llm_max_tokens)
-    temperature: float = Field(default_factory=lambda: marvin.settings.llm_temperature)
-
-    _tokenizer: Optional[Callable] = None
-
-    @validator("name", always=True)
-    def default_name(cls, v):
-        if v is None:
-            v = cls.__name__
-        return v
-
+class OpenAIChatLLM(ChatLLM):
     @property
     def context_size(self) -> int:
         return CONTEXT_SIZES.get(self.model, 4096)
 
-    def get_tokens(self, text: str, **kwargs) -> list[int]:
-        enc = tiktoken.encoding_for_model(self.model)
-        return enc.encode(text)
-
-    async def __call__(self, messages, *args, **kwargs):
-        return await self.run(messages, *args, **kwargs)
+    def format_messages(
+        self, messages: list[Message]
+    ) -> Union[str, dict, list[Union[str, dict]]]:
+        """Format Marvin message objects into a prompt compatible with the LLM model"""
+        formatted_messages = []
+        for m in messages:
+            role = openai_role_map(m.role)
+            fmt = {"role": role, "content": m.content}
+            if m.name:
+                fmt["name"] = m.name
+            formatted_messages.append(fmt)
+        return formatted_messages
 
     async def run(
         self,
@@ -168,25 +123,28 @@ class ChatLLM(MarvinBaseModel):
         # Form OpenAI-specific arguments
         # ----------------------------------
 
-        openai_messages = [m.as_chat_message() for m in messages]
-        openai_functions = [
-            f.dict(exclude={"fn"}, exclude_none=True) for f in functions
-        ]
+        prompt = self.format_messages(messages)
+        llm_functions = [f.dict(exclude={"fn"}, exclude_none=True) for f in functions]
 
         # only add to kwargs if supplied, because empty parameters are not
         # allowed by OpenAI
         if functions:
-            kwargs["functions"] = openai_functions
+            kwargs["functions"] = llm_functions
             kwargs["function_call"] = function_call
 
         # ----------------------------------
         # Call OpenAI LLM
         # ----------------------------------
 
+        if not marvin.settings.openai_api_key:
+            raise ValueError(
+                "OpenAI API key not set. Please set it or use the MARVIN_OPENAI_API_KEY"
+                " environment variable."
+            )
         response = await openai.ChatCompletion.acreate(
             api_key=marvin.settings.openai_api_key.get_secret_value(),
             model=self.model,
-            messages=openai_messages,
+            messages=prompt,
             temperature=self.temperature,
             max_tokens=self.max_tokens,
             stream=True if stream_handler else False,
@@ -194,15 +152,18 @@ class ChatLLM(MarvinBaseModel):
         )
 
         if stream_handler:
-            handler = StreamHandler(callback=stream_handler)
+            handler = OpenAIStreamHandler(callback=stream_handler)
             msg = await handler.handle_streaming_response(response)
             return msg
 
         else:
             llm_response = response.to_dict_recursive()
-            msg = llm_response["choices"][0]["message"]
+            msg = llm_response["choices"][0]["message"].copy()
+            role = msg.pop("role").upper()
+            if role == "ASSISTANT" and isinstance(msg.get("function_call"), dict):
+                role = Role.FUNCTION_REQUEST
             msg = Message(
-                role=msg.pop("role").upper(),
+                role=role,
                 content=msg.pop("content"),
                 data=msg,
                 llm_response=llm_response,

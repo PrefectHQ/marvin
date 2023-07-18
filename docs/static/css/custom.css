@@ -42,9 +42,10 @@
   border: none;
 }
 
-.admonition {
-  margin-top: 0px !important;
-  margin-bottom: 0px !important;
+/* In a notebook, don't add extra padding to admonitions */
+.jupyter-wrapper .admonition {
+  /* margin-top: 1em !important; */
+  /* margin-bottom: 0px !important; */
 }
 
 .jp-InputPrompt, .jp-OutputPrompt, .jp-Collapser, .celltag_hide_cell {

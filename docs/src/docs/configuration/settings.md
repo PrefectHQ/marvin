@@ -28,3 +28,21 @@ marvin.settings.llm_model
 # 'gpt-3.5-turbo'
 ```
 
+## LLM Providers
+
+Marvin supports multiple LLM providers, including [OpenAI](/src/docs/configuration/openai) and [Anthropic]((/src/docs/configuration/anthropic)). After configuring your credentials appropriately, you can use any supported model by setting `marvin.settings.llm_model` appropriately. 
+
+Valid `llm_model` settings are strings with the form `"{provider_key}/{model_name}"`. For example, `"openai/gpt-3.5-turbo"`. 
+
+For well-known models, you may provide the model name without a provider key. These models include:
+
+- the `gpt-3.5-*` family from OpenAI
+- the `gpt-4*` family from OpenAI
+- the `claude-*` family from Anthropic
+
+
+
+| Provider | Provider Key | Models | Notes |
+| --- | --- | --- | --- |
+| OpenAI | `openai` | `gpt-3.5-turbo` (default), `gpt-4`, or any other [compatible model](https://platform.openai.com/docs/models/) | Marvin is generally tested and optimized with this provider. |
+| Anthropic | `anthropic` | `claude-2`, `claude-instant-1` or any other [compatible model](https://docs.anthropic.com/claude/reference/selecting-a-model) | |

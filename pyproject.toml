@@ -28,6 +28,7 @@ dependencies = [
 [project.optional-dependencies]
 generator = ["datamodel-code-generator>=0.20.0"]
 dev = [
+    "marvin[tests]",
     "black[jupyter]",
     "ipython",
     "mkdocs-autolinks-plugin~=0.7",
@@ -38,12 +39,15 @@ dev = [
     "mkdocstrings[python]~=0.22",
     "pdbpp~=0.10",
     "pre-commit>=2.21,<4.0",
+    "ruff",
+]
+tests = [
+    "marvin[openai,anthropic]",
     "pytest-asyncio~=0.20",
     "pytest-env~=0.8",
     "pytest-rerunfailures>=10,<13",
     "pytest-sugar~=0.9",
     "pytest~=7.3.1",
-    "ruff",
 ]
 framework = [
     "aiosqlite>=0.19.0",
@@ -54,6 +58,7 @@ framework = [
     "sqlalchemy>=2.0.17"
 ]
 openai = ["openai>=0.27.8", "tiktoken>=0.4.0"]
+anthropic = ["anthropic>=0.3"]
 lancedb = ["lancedb>=0.1.8"]
 slackbot = ["cachetools>=5.3.1", "numpy>=1.21.2"]
 ddg = ["duckduckgo_search>=3.8.3"]
@@ -96,7 +101,7 @@ env = [
     "MARVIN_TEST_MODE=1",
     "MARVIN_LOG_CONSOLE_WIDTH=120",
     # use 3.5 for tests by default
-    'MARVIN_LLM_MODEL=gpt-3.5-turbo',
+    'D:MARVIN_LLM_MODEL=gpt-3.5-turbo',
     'MARVIN_LLM_TEMPERATURE=0.0',
 ]
 

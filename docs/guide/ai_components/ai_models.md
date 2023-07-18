@@ -99,9 +99,9 @@ To customize models for your entire application, use Marvin's global settings ob
 
 ```python
 from marvin import ai_model
-from mavin.engine.language_models import ChatLLM
+from marvin.engine.language_models import chat_llm
 
-@ai_model(model=ChatLLM(temperature=0.2, model='gpt-3.5-turbo'))
+@ai_model(model=chat_llm(temperature=0.2, model='gpt-3.5-turbo'))
 class MyModel(BaseModel):
     ...
 ```
