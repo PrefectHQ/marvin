@@ -172,3 +172,38 @@ class TestInstructions:
 
         t2 = Test("Hello")
         assert t2.text == "Bonjour"
+
+
+@pytest_mark_class("llm")
+class TestAIModelMapping:
+    def test_arithmetic(self):
+        @ai_model
+        class Arithmetic(BaseModel):
+            sum: float
+
+        x = Arithmetic.map(["One plus six", "Two plus 100 minus one"])
+        assert len(x) == 2
+        assert x[0].sum == 7
+        assert x[1].sum == 101
+
+    def test_location(self):
+        @ai_model
+        class City(BaseModel):
+            name: str
+
+        result = City.map(["the windy city", "CHI", "chicago"])
+        assert len(result) == 3
+        expected = City(name="Chicago")
+        assert result[0] == expected
+        assert result[1] == expected
+        assert result[2] == expected
+
+    def test_instructions(self):
+        @ai_model
+        class Translate(BaseModel):
+            text: str
+
+        result = Translate.map(["Hello", "Goodbye"], instructions="Translate to French")
+        assert len(result) == 2
+        assert result[0].text == "Bonjour"
+        assert result[1].text == "Au revoir"
