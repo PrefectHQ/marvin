@@ -123,14 +123,14 @@ class AnthropicChatLLM(ChatLLM):
         # Call OpenAI LLM
         # ----------------------------------
 
-        if not marvin.settings.anthropic_api_key:
+        if not marvin.settings.anthropic.api_key:
             raise ValueError(
                 "Anthropic API key not found in settings. Please set it or use the"
                 " MARVIN_ANTHROPIC_API_KEY environment variable."
             )
 
         client = anthropic.AsyncAnthropic(
-            api_key=marvin.settings.anthropic_api_key.get_secret_value(),
+            api_key=marvin.settings.anthropic.api_key.get_secret_value(),
         )
 
         response = await client.completions.create(
