@@ -37,16 +37,13 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.9', '3.10', '3.11']
         test-type: ['not llm']
+        llm_model: ['openai/gpt-3.5-turbo']
 
         include:
           - python-version: '3.9'
             os: 'ubuntu-latest'
             test-type: 'llm'
             llm_model: 'openai/gpt-3.5-turbo'
-          - python-version: '3.9'
-            os: 'ubuntu-latest'
-            test-type: 'llm'
-            llm_model: 'anthropic/claude-1'
 
     runs-on: ${{ matrix.os }}
 
