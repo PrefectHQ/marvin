@@ -2,7 +2,7 @@ from typing import List, Literal, Optional
 
 import pytest
 from marvin import ai_model
-from marvin.models.messages import Message, Role
+from marvin.utilities.messages import Message, Role
 from pydantic import BaseModel
 
 from tests.utils.mark import pytest_mark_class

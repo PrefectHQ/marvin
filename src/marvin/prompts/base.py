@@ -5,7 +5,7 @@ from typing import Union
 from pydantic import BaseModel, Field
 
 import marvin
-from marvin.models.messages import Message, Role
+from marvin.utilities.messages import Message, Role
 from marvin.utilities.strings import count_tokens, jinja_env
 
 

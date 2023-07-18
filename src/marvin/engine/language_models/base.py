@@ -8,7 +8,7 @@ from pydantic import Field, validator
 
 import marvin
 import marvin.utilities.types
-from marvin.models.messages import Message
+from marvin.utilities.messages import Message
 from marvin.utilities.types import MarvinBaseModel
 
 

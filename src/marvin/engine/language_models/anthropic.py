@@ -12,9 +12,9 @@ import marvin
 import marvin.utilities.types
 from marvin.engine.language_models import ChatLLM, StreamHandler
 from marvin.engine.language_models.base import OpenAIFunction
-from marvin.models.messages import Message, Role
 from marvin.utilities.async_utils import create_task
 from marvin.utilities.logging import get_logger
+from marvin.utilities.messages import Message, Role
 from marvin.utilities.strings import jinja_env
 
 FUNCTION_CALL_REGEX = re.compile(

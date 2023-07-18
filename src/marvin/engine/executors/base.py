@@ -3,8 +3,8 @@ from typing import List, Union
 from pydantic import Field, PrivateAttr
 
 from marvin.engine.language_models import ChatLLM, chat_llm
-from marvin.models.messages import Message
 from marvin.prompts.base import Prompt, render_prompts
+from marvin.utilities.messages import Message
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 

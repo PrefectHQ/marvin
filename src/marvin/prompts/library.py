@@ -3,9 +3,9 @@ from typing import Callable, Literal
 
 from pydantic import Field
 
-from marvin.models.history import History, HistoryFilter
-from marvin.models.messages import Message, Role
 from marvin.prompts.base import Prompt
+from marvin.utilities.history import History, HistoryFilter
+from marvin.utilities.messages import Message, Role
 
 
 class MessagePrompt(Prompt):

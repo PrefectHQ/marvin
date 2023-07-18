@@ -9,14 +9,14 @@ from cachetools import TTLCache
 from fastapi import HTTPException
 from marvin.apps.chatbot import Chatbot
 from marvin.components.library.ai_models import DiscoursePost
-from marvin.models.history import History
-from marvin.models.messages import Message
 from marvin.tools import Tool
 from marvin.tools.chroma import QueryChroma
 from marvin.tools.github import SearchGitHubIssues
 from marvin.tools.mathematics import WolframCalculator
 from marvin.tools.web import DuckDuckGoSearch, VisitUrl
+from marvin.utilities.history import History
 from marvin.utilities.logging import get_logger
+from marvin.utilities.messages import Message
 from marvin.utilities.strings import convert_md_links_to_slack
 
 SLACK_MENTION_REGEX = r"<@(\w+)>"
