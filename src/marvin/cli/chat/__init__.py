@@ -48,7 +48,7 @@ async def chat():
         Panel("You can type 'quit' or 'exit' to end the conversation.", expand=False)
     )
     from marvin.engine.language_models import chat_llm
-    from marvin.models.messages import Message
+    from marvin.utilities.messages import Message
 
     global history
     history = []

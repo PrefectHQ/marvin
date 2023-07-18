@@ -2,7 +2,7 @@ import datetime
 
 from pydantic import BaseModel, Field, validate_arguments
 
-from marvin.models.messages import Message, Role
+from marvin.utilities.messages import Message, Role
 
 
 class HistoryFilter(BaseModel):

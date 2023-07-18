@@ -7,7 +7,7 @@ from pydantic import Field, root_validator, validator
 
 import marvin
 from marvin.engine.language_models import OpenAIFunction
-from marvin.models.messages import Message, Role
+from marvin.utilities.messages import Message, Role
 
 from .base import Executor
 

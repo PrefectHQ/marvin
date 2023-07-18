@@ -7,9 +7,9 @@ import openai.openai_object
 
 import marvin
 import marvin.utilities.types
-from marvin.models.messages import Message, Role
 from marvin.utilities.async_utils import create_task
 from marvin.utilities.logging import get_logger
+from marvin.utilities.messages import Message, Role
 
 from .base import ChatLLM, OpenAIFunction, StreamHandler
 

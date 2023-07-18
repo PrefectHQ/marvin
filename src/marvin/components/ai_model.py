@@ -5,12 +5,12 @@ from pydantic import BaseModel, PrivateAttr
 
 from marvin.engine.executors import OpenAIFunctionsExecutor
 from marvin.engine.language_models import ChatLLM, chat_llm
-from marvin.models.messages import Message
 from marvin.prompts import library as prompt_library
 from marvin.prompts import render_prompts
 from marvin.prompts.base import Prompt
 from marvin.tools.format_response import FormatResponse
 from marvin.utilities.async_utils import run_sync
+from marvin.utilities.messages import Message
 from marvin.utilities.types import LoggerMixin
 
 T = TypeVar("T")
