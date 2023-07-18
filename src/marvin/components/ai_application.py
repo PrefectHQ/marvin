@@ -7,12 +7,12 @@ from pydantic import BaseModel, Field, PrivateAttr, validator
 
 from marvin.engine.executors import OpenAIFunctionsExecutor
 from marvin.engine.language_models import ChatLLM, chat_llm
-from marvin.models.history import History, HistoryFilter
 from marvin.models.messages import Message, Role
 from marvin.prompts import library as prompt_library
 from marvin.prompts.base import Prompt
 from marvin.tools import Tool
 from marvin.utilities.async_utils import run_sync
+from marvin.utilities.history import History, HistoryFilter
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 SYSTEM_PROMPT = """
