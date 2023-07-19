@@ -112,5 +112,34 @@ class Settings(MarvinBaseSettings):
         marvin.utilities.logging.setup_logging(level=v)
         return v
 
+    # --- deprecated settings
+
+    @property
+    def openai_api_key(self):
+        import marvin.utilities.logging
+
+        logger = marvin.utilities.logging.get_logger("Settings")
+        logger.warn(
+            "`settings.openai_api_key` is deprecated. Use the provider-specific"
+            " `settings.openai.api_key` instead."
+        )
+        return self.openai.api_key
+
+    def __setattr__(self, name, value):
+        # handle deprecated setting and forward to correct location
+        # this should be a property setter but Pydantic doesn't support it
+        if name == "openai_api_key":
+            import marvin.utilities.logging
+
+            logger = marvin.utilities.logging.get_logger("Settings")
+            logger.warn(
+                "`settings.openai_api_key` is deprecated. Use the provider-specific"
+                " `settings.openai.api_key` instead."
+            )
+            # assign to correct location
+            self.openai.api_key = value
+        else:
+            super().__setattr__(name, value)
+
 
 settings = Settings()
