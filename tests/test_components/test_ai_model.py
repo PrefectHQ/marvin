@@ -191,12 +191,15 @@ class TestAIModelMapping:
         class City(BaseModel):
             name: str
 
-        result = City.map(["the windy city", "CHI", "chicago"])
-        assert len(result) == 3
+        result = City.map(
+            ["the windy city", "chicago IL", "chicago", "Chicago, Illinois, USA"]
+        )
+        assert len(result) == 4
         expected = City(name="Chicago")
         assert result[0] == expected
         assert result[1] == expected
         assert result[2] == expected
+        assert result[3] == expected
 
     def test_instructions(self):
         @ai_model
