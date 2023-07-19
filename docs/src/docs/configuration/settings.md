@@ -32,7 +32,7 @@ marvin.settings.llm_model
 
 Marvin supports multiple LLM providers, including [OpenAI](/src/docs/configuration/openai) and [Anthropic]((/src/docs/configuration/anthropic)). After configuring your credentials appropriately, you can use any supported model by setting `marvin.settings.llm_model` appropriately. 
 
-Valid `llm_model` settings are strings with the form `"{provider_key}/{model_name}"`. For example, `"openai/gpt-3.5-turbo"`. 
+Valid `llm_model` settings are strings with the form `"{provider_key}/{model_name}"`. For example, `"openai/gpt-3.5-turbo"`, `anthropic/claude-2`, or `azure_openai/gpt-4`.
 
 For well-known models, you may provide the model name without a provider key. These models include:
 
@@ -45,4 +45,16 @@ For well-known models, you may provide the model name without a provider key. Th
 | Provider | Provider Key | Models | Notes |
 | --- | --- | --- | --- |
 | OpenAI | `openai` | `gpt-3.5-turbo` (default), `gpt-4`, or any other [compatible model](https://platform.openai.com/docs/models/) | Marvin is generally tested and optimized with this provider. |
-| Anthropic | `anthropic` | `claude-2`, `claude-instant-1` or any other [compatible model](https://docs.anthropic.com/claude/reference/selecting-a-model) | |
+| Anthropic | `anthropic` | `claude-2`, `claude-instant-1` or any other [compatible model](https://docs.anthropic.com/claude/reference/selecting-a-model) | Available in Marvin 1.1|
+| Azure OpenAI Service | `azure_openai` | `gpt-35-turbo`, `gpt-4`, or any other [compatible model](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) | The Azure OpenAI Service shares all the same configuration options as the OpenAI models, as well as a few additional ones. Available in Marvin 1.1.  | 
+
+## LLM Configuration
+
+To configure LLM models globally, you can adjust the following settings. Note that these become the default settings for all models, but you can always set these on a per-model or per-component basis.
+
+| Setting | Env Variable | Runtime Variable | Default | Notes |
+| --- | --- | --- |  :---: | --- |
+| LLM model | `MARVIN_LLM_MODEL` | `marvin.settings.llm_model` | `openai/gpt-3.5-turbo` | Set the model as `{provider}/{model}`. Defaults to OpenAI's GPT-3.5 model. |
+| Temperature | `MARVIN_LLM_TEMPERATURE` | `marvin.settings.llm_temperature` | 0.8 | |
+| Max tokens | `MARVIN_LLM_MAX_TOKENS` | `marvin.settings.llm_max_tokens` | 1500 | The maximum number of tokens in a model completion |
+| Timeout | `MARVIN_LLM_REQUEST_TIMEOUT_SECONDS` | `marvin.settings.llm_request_timeout_seconds` | 600.0 ||

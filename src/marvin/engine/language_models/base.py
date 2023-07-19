@@ -128,5 +128,9 @@ def chat_llm(model: str = None, **kwargs) -> ChatLLM:
         from .anthropic import AnthropicChatLLM
 
         return AnthropicChatLLM(model=model_name, **kwargs)
+    elif provider == "azure_openai":
+        from .azure_openai import AzureOpenAIChatLLM
+
+        return AzureOpenAIChatLLM(model=model_name, **kwargs)
     else:
         raise ValueError(f"Unknown provider / model: {model}")
