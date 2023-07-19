@@ -3,7 +3,7 @@ from typing import List, Literal, Optional
 import pytest
 from marvin import ai_model
 from marvin.utilities.messages import Message, Role
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from tests.utils.mark import pytest_mark_class
 
@@ -189,17 +189,21 @@ class TestAIModelMapping:
     def test_location(self):
         @ai_model
         class City(BaseModel):
-            name: str
+            name: str = Field("The proper name of the city")
 
         result = City.map(
-            ["the windy city", "chicago IL", "chicago", "Chicago, Illinois, USA"]
+            [
+                "the windy city",
+                "chicago IL",
+                "Chicago",
+                "Chcago",
+                "chicago, Illinois, USA",
+                "chi-town",
+            ]
         )
-        assert len(result) == 4
+        assert len(result) == 6
         expected = City(name="Chicago")
-        assert result[0] == expected
-        assert result[1] == expected
-        assert result[2] == expected
-        assert result[3] == expected
+        assert all(r == expected for r in result)
 
     def test_instructions(self):
         @ai_model
