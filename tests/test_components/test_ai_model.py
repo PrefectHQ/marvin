@@ -157,6 +157,18 @@ class TestAIModelsMessage:
 
 @pytest_mark_class("llm")
 class TestInstructions:
+    def test_instructions_error(self):
+        @ai_model
+        class Test(BaseModel):
+            text: str
+
+        with pytest.raises(
+            ValueError, match="(Received `instructions` but this model)"
+        ):
+            Test("Hello!", instructions="Translate to French")
+        with pytest.raises(ValueError, match="(Received `model` but this model)"):
+            Test("Hello!", model=None)
+
     def test_follow_instructions(self):
         @ai_model
         class Test(BaseModel):
@@ -172,3 +184,38 @@ class TestInstructions:
 
         t2 = Test("Hello")
         assert t2.text == "Bonjour"
+
+    def test_follow_instance_instructions(self):
+        @ai_model
+        class Test(BaseModel):
+            text: str
+
+        t1 = Test("Hello")
+        assert t1.text == "Hello"
+
+        # this model is identical except it has an instruction
+        @ai_model
+        class Test(BaseModel):
+            text: str
+
+        t2 = Test("Hello", instructions_="Translate the text to French")
+        assert t2.text == "Bonjour"
+
+    def test_follow_multiple_instructions(self):
+        # ensure that instructions don't bleed to other invocations
+        @ai_model
+        class Translation(BaseModel):
+            """Translates from one language to another language"""
+
+            original_text: str
+            translated_text: str
+
+        t1 = Translation("Hello, world!", instructions_="Translate to French")
+        t2 = Translation("Hello, world!", instructions_="Translate to German")
+
+        assert t1 == Translation(
+            original_text="Hello, world!", translated_text="Bonjour, monde!"
+        )
+        assert t2 == Translation(
+            original_text="Hello, world!", translated_text="Hallo, Welt!"
+        )

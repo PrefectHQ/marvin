@@ -60,6 +60,21 @@ class AIModel(LoggerMixin, BaseModel):
             instructions_: Additional instructions to assist the model.
             model_: The language model to use.
         """
+
+        # check if the user passed `instructions` but there isn't a
+        # corresponding Pydantic field
+        if "instructions" in kwargs and "instructions" not in self.__fields__:
+            raise ValueError(
+                "Received `instructions` but this model does not have a `instructions`"
+                " field. Did you mean to provide `instructions_` to the AI Model?"
+            )
+        # check model
+        if "model" in kwargs and "model" not in self.__fields__:
+            raise ValueError(
+                "Received `model` but this model does not have a `model` field. Did you"
+                " mean to provide a `model_` for LLM configuration?"
+            )
+
         if text_:
             # use the extract constructor to build the class
             kwargs = self.__class__.extract(
@@ -69,6 +84,7 @@ class AIModel(LoggerMixin, BaseModel):
                 as_dict_=True,
                 **kwargs,
             )
+
         message = kwargs.pop("_message", None)
         super().__init__(**kwargs)
         # set private attr after init
@@ -102,9 +118,15 @@ class AIModel(LoggerMixin, BaseModel):
                 instance of this class.
             kwargs: Additional keyword arguments to pass to the constructor.
         """
-        prompts = extract_structured_data_prompts
+        prompts = extract_structured_data_prompts.copy()
         if instructions_:
-            prompts.append(prompt_library.System(content=instructions_))
+            prompts.append(
+                prompt_library.System(
+                    content=(instructions_)
+                    #     f"You received these additional instructions: {instructions_}"
+                    # )
+                )
+            )
         arguments = cls._get_arguments(
             model=model_, prompts=prompts, render_kwargs=dict(input_text=text_)
         )
