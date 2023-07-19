@@ -17,7 +17,7 @@ You can set your API key at runtime like this:
 ```python
 import marvin
 
-marvin.settings.openai.api_key = YOUR_API_KEY
+marvin.settings.openai_api_key = YOUR_API_KEY
 ```
 
 However, it is preferable to pass sensitive settings as an environment variable: `MARVIN_OPENAI_API_KEY`. 
