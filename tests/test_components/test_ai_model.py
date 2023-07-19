@@ -169,7 +169,7 @@ class TestInstructions:
         with pytest.raises(ValueError, match="(Received `model` but this model)"):
             Test("Hello!", model=None)
 
-    def test_follow_instructions(self):
+    def test_follow_global_instructions(self):
         @ai_model
         class Test(BaseModel):
             text: str
@@ -200,6 +200,27 @@ class TestInstructions:
 
         t2 = Test("Hello", instructions_="Translate the text to French")
         assert t2.text == "Bonjour"
+
+    def test_follow_global_and_instance_instructions(self):
+        @ai_model(instructions="Always set color_1 to 'red'")
+        class Test(BaseModel):
+            color_1: str
+            color_2: str
+
+        t1 = Test("Hello", instructions_="Always set color_2 to 'blue'")
+        assert t1 == Test(color_1="red", color_2="blue")
+
+    def test_follow_docstring_and_global_and_instance_instructions(self):
+        @ai_model(instructions="Always set color_1 to 'red'")
+        class Test(BaseModel):
+            """Always set color_3 to 'orange'"""
+
+            color_1: str
+            color_2: str
+            color_3: str
+
+        t1 = Test("Hello", instructions_="Always set color_2 to 'blue'")
+        assert t1 == Test(color_1="red", color_2="blue", color_3="orange")
 
     def test_follow_multiple_instructions(self):
         # ensure that instructions don't bleed to other invocations

@@ -50,7 +50,11 @@ class FormatResponse(Tool):
             )
             type_schema.pop("title", None)
             kwargs["type_schema"] = type_schema
+
         super().__init__(**kwargs)
+        if type_ is not SENTINEL:
+            if type_schema.get("description"):
+                self.description += f"\n\n {type_schema['description']}"
 
         if type_ is not SENTINEL:
             self._cached_type = type_

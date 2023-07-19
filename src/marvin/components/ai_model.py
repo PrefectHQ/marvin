@@ -226,7 +226,13 @@ def ai_model(
         return functools.partial(ai_model, instructions=instructions, model=model)
 
     # create a new class that subclasses AIModel and the original class
-    ai_model_class = type(cls.__name__, (AIModel, cls), {})
+    ai_model_class = type(cls.__name__, (cls, AIModel), {})
+
+    # add global instructions to the class docstring
+    if instructions:
+        if cls.__doc__:
+            instructions = f"{cls.__doc__}\n\n{instructions}"
+        ai_model_class.__doc__ = instructions
 
     # Use setattr() to add the original class's methods and class variables to
     # the new class do not attempt to copy dunder methods
@@ -234,8 +240,27 @@ def ai_model(
         if not name.startswith("__"):
             setattr(ai_model_class, name, attr)
 
-    ai_model_class.__init__ = functools.partialmethod(
-        ai_model_class.__init__, instructions_=instructions, model_=model
-    )
+    original_init = ai_model_class.__init__
+
+    # create a wrapper that intercepts kwargs and uses the @ai_model global ones
+    # to populate defaults
+    def init_wrapper(
+        self, *args, instructions_: str = None, model_: ChatLLM = None, **kwargs
+    ):
+        # append instance instructions to global instructions, if available
+        if instructions_:
+            instructions_ = f"{instructions}\n\n{instructions_}"
+        else:
+            instructions_ = instructions
+
+        # use global model
+        if model_ is None:
+            model_ = model
+
+        return original_init(
+            self, *args, instructions_=instructions_, model_=model_, **kwargs
+        )
+
+    ai_model_class.__init__ = init_wrapper
 
     return ai_model_class
