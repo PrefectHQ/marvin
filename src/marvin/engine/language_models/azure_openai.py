@@ -28,6 +28,4 @@ class AzureOpenAIChatLLM(OpenAIChatLLM):
             openai_kwargs["api_base"] = marvin.settings.azure_openai.api_base
         if marvin.settings.azure_openai.api_version:
             openai_kwargs["api_version"] = marvin.settings.azure_openai.api_version
-        if marvin.settings.azure_openai.organization:
-            openai_kwargs["organization"] = marvin.settings.azure_openai.organization
         return openai_kwargs
