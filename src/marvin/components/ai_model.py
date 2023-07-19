@@ -60,6 +60,21 @@ class AIModel(LoggerMixin, BaseModel):
             instructions_: Additional instructions to assist the model.
             model_: The language model to use.
         """
+
+        # check if the user passed `instructions` but there isn't a
+        # corresponding Pydantic field
+        if "instructions" in kwargs and "instructions" not in self.__fields__:
+            raise ValueError(
+                "Received `instructions` but this model does not have a `instructions`"
+                " field. Did you mean to provide `instructions_` to the AI Model?"
+            )
+        # check model
+        if "model" in kwargs and "model" not in self.__fields__:
+            raise ValueError(
+                "Received `model` but this model does not have a `model` field. Did you"
+                " mean to provide a `model_` for LLM configuration?"
+            )
+
         if text_:
             # use the extract constructor to build the class
             kwargs = self.__class__.extract(
@@ -69,6 +84,7 @@ class AIModel(LoggerMixin, BaseModel):
                 as_dict_=True,
                 **kwargs,
             )
+
         message = kwargs.pop("_message", None)
         super().__init__(**kwargs)
         # set private attr after init
@@ -102,9 +118,15 @@ class AIModel(LoggerMixin, BaseModel):
                 instance of this class.
             kwargs: Additional keyword arguments to pass to the constructor.
         """
-        prompts = extract_structured_data_prompts
+        prompts = extract_structured_data_prompts.copy()
         if instructions_:
-            prompts.append(prompt_library.System(content=instructions_))
+            prompts.append(
+                prompt_library.System(
+                    content=(instructions_)
+                    #     f"You received these additional instructions: {instructions_}"
+                    # )
+                )
+            )
         arguments = cls._get_arguments(
             model=model_, prompts=prompts, render_kwargs=dict(input_text=text_)
         )
@@ -178,8 +200,11 @@ def ai_model(
 
     Args:
         cls: The class to decorate.
-        instructions: Additional instructions to assist the model.
-        model: The language model to use.
+        instructions: Instructions to guide the model's behavior. This can also
+            be set on a per-call basis, in which the per-call instructions are
+            appended to these instructions.
+        model: The language model to use. This can also be set on a per-call
+            basis, in which case the per-call model overwrites this model.
 
     Example:
         Hydrate a class schema from a natural language description:
@@ -204,7 +229,13 @@ def ai_model(
         return functools.partial(ai_model, instructions=instructions, model=model)
 
     # create a new class that subclasses AIModel and the original class
-    ai_model_class = type(cls.__name__, (AIModel, cls), {})
+    ai_model_class = type(cls.__name__, (cls, AIModel), {})
+
+    # add global instructions to the class docstring
+    if instructions:
+        if cls.__doc__:
+            instructions = f"{cls.__doc__}\n\n{instructions}"
+        ai_model_class.__doc__ = instructions
 
     # Use setattr() to add the original class's methods and class variables to
     # the new class do not attempt to copy dunder methods
@@ -212,8 +243,32 @@ def ai_model(
         if not name.startswith("__"):
             setattr(ai_model_class, name, attr)
 
+    original_init = ai_model_class.__init__
+
+    # create a wrapper that intercepts kwargs and uses the the global
+    # instructions/models variables that were passed to the @ai_model
+    # constructor (if available) This allows setting the instructions and model
+    # at the class level and then expanding them (in the case of instructions)
+    # or overwriting them (in the case of model) on a per-instance basis
+    def init_wrapper(
+        *args, instructions_: str = None, model_: ChatLLM = None, **kwargs
+    ):
+        if class_instructions := kwargs.pop("class_instructions_", None):
+            if instructions_:
+                instructions_ = f"{class_instructions}\n\n{instructions_}"
+            else:
+                instructions_ = class_instructions
+
+        if class_model := kwargs.pop("class_model_", None):
+            if model_ is None:
+                model_ = class_model
+
+        return original_init(
+            *args, instructions_=instructions_, model_=model_, **kwargs
+        )
+
     ai_model_class.__init__ = functools.partialmethod(
-        ai_model_class.__init__, instructions_=instructions, model_=model
+        init_wrapper, class_instructions_=instructions, class_model_=model
     )
 
     return ai_model_class
