@@ -31,14 +31,6 @@ class OpenAISettings(MarvinBaseSettings):
     api_base: str = None
     embedding_engine: str = "text-embedding-ada-002"
 
-    @validator("api_key", always=True)
-    def set_api_key(cls, v):
-        if v is not None:
-            import openai
-
-            openai.api_key = v.get_secret_value()
-        return v
-
 
 class AnthropicSettings(MarvinBaseSettings):
     class Config:
