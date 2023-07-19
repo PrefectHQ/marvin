@@ -49,12 +49,7 @@ class AnthropicSettings(MarvinBaseSettings):
     api_key: SecretStr = None
 
 
-class AzureOpenAI(OpenAISettings):
-    """
-    The Azure OpenAI service inherits all the same settings from the OpenAI
-    configuration, but does not reuse their values. They must be set here.
-    """
-
+class AzureOpenAI(MarvinBaseSettings):
     class Config:
         env_prefix = "MARVIN_AZURE_OPENAI_"
 
