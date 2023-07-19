@@ -200,8 +200,11 @@ def ai_model(
 
     Args:
         cls: The class to decorate.
-        instructions: Additional instructions to assist the model.
-        model: The language model to use.
+        instructions: Instructions to guide the model's behavior. This can also
+            be set on a per-call basis, in which the per-call instructions are
+            appended to these instructions.
+        model: The language model to use. This can also be set on a per-call
+            basis, in which case the per-call model overwrites this model.
 
     Example:
         Hydrate a class schema from a natural language description:
@@ -242,25 +245,30 @@ def ai_model(
 
     original_init = ai_model_class.__init__
 
-    # create a wrapper that intercepts kwargs and uses the @ai_model global ones
-    # to populate defaults
+    # create a wrapper that intercepts kwargs and uses the the global
+    # instructions/models variables that were passed to the @ai_model
+    # constructor (if available) This allows setting the instructions and model
+    # at the class level and then expanding them (in the case of instructions)
+    # or overwriting them (in the case of model) on a per-instance basis
     def init_wrapper(
-        self, *args, instructions_: str = None, model_: ChatLLM = None, **kwargs
+        *args, instructions_: str = None, model_: ChatLLM = None, **kwargs
     ):
-        # append instance instructions to global instructions, if available
-        if instructions_:
-            instructions_ = f"{instructions}\n\n{instructions_}"
-        else:
-            instructions_ = instructions
+        if class_instructions := kwargs.pop("class_instructions_", None):
+            if instructions_:
+                instructions_ = f"{class_instructions}\n\n{instructions_}"
+            else:
+                instructions_ = class_instructions
 
-        # use global model
-        if model_ is None:
-            model_ = model
+        if class_model := kwargs.pop("class_model_", None):
+            if model_ is None:
+                model_ = class_model
 
         return original_init(
-            self, *args, instructions_=instructions_, model_=model_, **kwargs
+            *args, instructions_=instructions_, model_=model_, **kwargs
         )
 
-    ai_model_class.__init__ = init_wrapper
+    ai_model_class.__init__ = functools.partialmethod(
+        init_wrapper, class_instructions_=instructions, class_model_=model
+    )
 
     return ai_model_class
