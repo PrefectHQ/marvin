@@ -136,13 +136,13 @@ class OpenAIChatLLM(ChatLLM):
         # Call OpenAI LLM
         # ----------------------------------
 
-        if not marvin.settings.openai_api_key:
+        if not marvin.settings.openai.api_key:
             raise ValueError(
                 "OpenAI API key not set. Please set it or use the MARVIN_OPENAI_API_KEY"
                 " environment variable."
             )
         response = await openai.ChatCompletion.acreate(
-            api_key=marvin.settings.openai_api_key.get_secret_value(),
+            api_key=marvin.settings.openai.api_key.get_secret_value(),
             model=self.model,
             messages=prompt,
             temperature=self.temperature,

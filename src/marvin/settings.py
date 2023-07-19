@@ -5,9 +5,7 @@ from typing import Literal, Union
 from pydantic import BaseSettings, Field, SecretStr, root_validator, validator
 
 
-class Settings(BaseSettings):
-    """Marvin settings"""
-
+class MarvinBaseSettings(BaseSettings):
     class Config:
         env_file = (
             ".env",
@@ -15,6 +13,42 @@ class Settings(BaseSettings):
         )
         env_prefix = "MARVIN_"
         validate_assignment = True
+
+
+class OpenAISettings(MarvinBaseSettings):
+    """Provider-specific settings. Only some of these will be relevant to users."""
+
+    class Config:
+        env_prefix = "MARVIN_OPENAI_"
+
+    api_key: SecretStr = Field(
+        None,
+        # for OpenAI convenience, we first check the Marvin-specific env var,
+        # then the generic one
+        env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"],
+    )
+    organization: str = Field(None)
+    api_base: str = None
+    embedding_engine: str = "text-embedding-ada-002"
+
+    @validator("api_key", always=True)
+    def set_api_key(cls, v):
+        if v is not None:
+            import openai
+
+            openai.api_key = v.get_secret_value()
+        return v
+
+
+class AnthropicSettings(MarvinBaseSettings):
+    class Config:
+        env_prefix = "MARVIN_ANTHROPIC_"
+
+    api_key: SecretStr = None
+
+
+class Settings(MarvinBaseSettings):
+    """Marvin settings"""
 
     home: Path = Path("~/.marvin").expanduser()
     test_mode: bool = False
@@ -37,19 +71,9 @@ class Settings(BaseSettings):
     # AI APPLICATIONS
     ai_application_max_iterations: int = None
 
-    # OPENAI
-    openai_api_key: SecretStr = Field(
-        None,
-        # for OpenAI convenience, we first check the Marvin-specific env var,
-        # then the generic one
-        env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"],
-    )
-    openai_organization: str = Field(None)
-    openai_api_base: str = None
-    embedding_engine: str = "text-embedding-ada-002"
-
-    # ANTHROPIC
-    anthropic_api_key: SecretStr = Field(None)
+    # providers
+    openai: OpenAISettings = Field(default_factory=OpenAISettings)
+    anthropic: AnthropicSettings = Field(default_factory=AnthropicSettings)
 
     # SLACK
     slack_api_token: SecretStr = Field(
@@ -86,14 +110,6 @@ class Settings(BaseSettings):
         import marvin.utilities.logging
 
         marvin.utilities.logging.setup_logging(level=v)
-        return v
-
-    @validator("openai_api_key", always=True)
-    def set_openai_api_key(cls, v):
-        if v is not None:
-            import openai
-
-            openai.api_key = v.get_secret_value()
         return v
 
 
