@@ -14,6 +14,7 @@ nav:
       - src/docs/configuration/settings.md
       - OpenAI Provider: src/docs/configuration/openai.md
       - Anthropic Provider: src/docs/configuration/anthropic.md
+      - Azure OpenAI Provider: src/docs/configuration/azure_openai.md
     - Utilities:
       - OpenAI API: src/docs/utilities/openai.ipynb
       - Prompt Engineering: 
