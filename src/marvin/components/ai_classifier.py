@@ -10,15 +10,17 @@ from marvin.utilities.async_utils import run_sync
 
 class ClassifierSystem(System):
     content = """\
-    You are an expert classifier that always choose correctly.
+    You are an expert classifier that always chooses correctly.
+    
+    Your classification task is: {{ enum_class_docstring }}
     
     {% if instructions %}
-    {{ instructions }}
+    Your instructions are: {{ instructions }}
 
     {% endif %}
-    {{ enum_class_docstring }}
     The user will provide context through text, you will use your expertise 
-    to choose the best option below based on it. 
+    to choose the best option below based on it:
+    
     {% for option in options %}
         {{ loop.index }}. {{ option }}
     {% endfor %}\
@@ -29,7 +31,7 @@ class ClassifierSystem(System):
 
 
 class ClassifierUser(User):
-    content = """{{user_input}}"""
+    content = r"""{{ user_input }}"""
     user_input: str
 
 
@@ -63,6 +65,7 @@ class AIEnumMeta(EnumMeta):
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 value_getter=value_getter,
+                model=model,
                 **kwargs,
             )
         else:
@@ -76,6 +79,9 @@ class AIEnumMeta(EnumMeta):
                 type=type,
                 start=start,
             )
+
+            if model is None:
+                model = chat_llm(max_tokens=1, temperature=0)
 
             # Set additional attributes for the AI classifier
             setattr(enum, "__system_prompt__", system_prompt)
@@ -145,7 +151,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         """
 
         if model is None:
-            model = chat_llm(max_tokens=1, temperature=0)
+            model = cls.__model__
 
         if not isinstance(model, OpenAIChatLLM):
             raise ValueError(
@@ -198,6 +204,7 @@ def ai_classifier(
         ai_enum_class = AIEnum(
             enum_class.__name__,
             {member.name: member.value for member in enum_class},
+            model=model,
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             value_getter=value_getter,
