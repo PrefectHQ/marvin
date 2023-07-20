@@ -182,7 +182,7 @@ class OpenAIChatLLM(ChatLLM):
                 role = Role.FUNCTION_REQUEST
             msg = Message(
                 role=role,
-                content=msg.pop("content"),
+                content=msg.pop("content", None),
                 data=msg,
                 llm_response=llm_response,
             )
