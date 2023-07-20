@@ -35,14 +35,15 @@ def ai_classifier(
 
     if model is None:
         model = chat_llm(max_tokens=1, temperature=0)
-    elif model.max_tokens != 1:
-        raise ValueError(
-            "The model must be configured with max_tokens=1 to use ai_classifier"
-        )
-    elif not model.name.startswith("gpt-"):
+
+    if not model.model.startswith("gpt-"):
         raise ValueError(
             "At this time, AI Classifiers rely on a tokenized approach that is only"
             " compatible with OpenAI models."
+        )
+    elif model.max_tokens != 1:
+        raise ValueError(
+            "The model must be configured with max_tokens=1 to use ai_classifier"
         )
     if system_prompt is None:
         system_prompt = ClassifierSystem
