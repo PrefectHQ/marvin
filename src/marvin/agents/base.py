@@ -45,6 +45,7 @@ class Agent(
 
     async def call(self, q: str) -> str:
         response = await self._flow(
+            model=chat_llm(),
             engine=self.engine,
             functions=[route.endpoint for route in self._function_registry.routes],
         ).start(q)

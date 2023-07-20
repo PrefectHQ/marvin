@@ -7,6 +7,7 @@ from typing import Callable, TypeVar
 from pydantic import BaseModel
 
 from marvin.engine.executors import OpenAIFunctionsExecutor
+from marvin.engine.language_models.base import ChatLLM, chat_llm
 from marvin.prompts import library as prompt_library
 from marvin.tools.format_response import FormatResponse
 from marvin.utilities.async_utils import run_sync
@@ -72,9 +73,11 @@ class AIFunction:
         fn: Callable = None,
         name: str = None,
         description: str = None,
+        model: ChatLLM = None,
         instructions: str = None,
     ):
         self._fn = fn
+        self.model = model
         self.name = name or fn.__name__
         self.description = description or fn.__doc__
         self.instructions = instructions
@@ -173,7 +176,13 @@ class AIFunction:
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
 
+        if self.model is None:
+            model = chat_llm()
+        else:
+            model = self.model
+
         executor = OpenAIFunctionsExecutor(
+            model=model,
             functions=[FormatResponse(type_=return_annotation).as_openai_function()],
             function_call={"name": "FormatResponse"},
             max_iterations=1,
@@ -200,7 +209,9 @@ class AIFunction:
         raise NotImplementedError()
 
 
-def ai_fn(fn: Callable[[A], T] = None, instructions: str = None) -> Callable[[A], T]:
+def ai_fn(
+    fn: Callable[[A], T] = None, instructions: str = None, model: ChatLLM = None
+) -> Callable[[A], T]:
     """Decorator that transforms a Python function with a signature and docstring
     into a prompt for an AI to predict the function's output.
 
@@ -222,5 +233,7 @@ def ai_fn(fn: Callable[[A], T] = None, instructions: str = None) -> Callable[[A]
     """
     # this allows the decorator to be used with or without calling it
     if fn is None:
-        return functools.partial(ai_fn, instructions=instructions)  # , **kwargs)
-    return AIFunction(fn=fn, instructions=instructions)
+        return functools.partial(
+            ai_fn, instructions=instructions, model=model
+        )  # , **kwargs)
+    return AIFunction(fn=fn, instructions=instructions, model=model)
