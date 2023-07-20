@@ -85,7 +85,7 @@ class AIEnumMeta(EnumMeta):
             )
 
             if model is None:
-                model = chat_llm(max_tokens=1, temperature=0)
+                model = chat_llm(temperature=0)
 
             # Set additional attributes for the AI classifier
             setattr(enum, "__system_prompt__", system_prompt)
@@ -189,10 +189,6 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
                 "At this time, AI Classifiers rely on a tokenized approach that is only"
                 " compatible with OpenAI models."
             )
-        elif model.max_tokens != 1:
-            raise ValueError(
-                "The model must be configured with max_tokens=1 to use ai_classifier"
-            )
 
         messages = cls.__messages__(
             value=value,
@@ -210,6 +206,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
                 next(iter(model.get_tokens(str(i)))): 100
                 for i in range(1, len(cls) + 1)
             },
+            max_tokens=1,
         )
 
         # Return the enum member corresponding to the predicted class

@@ -1,15 +1,15 @@
 from typing import List, Union
 
-from pydantic import Field, PrivateAttr
+from pydantic import PrivateAttr
 
-from marvin.engine.language_models import ChatLLM, chat_llm
+from marvin.engine.language_models import ChatLLM
 from marvin.prompts.base import Prompt, render_prompts
 from marvin.utilities.messages import Message
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 
 class Executor(LoggerMixin, MarvinBaseModel):
-    model: ChatLLM = Field(default_factory=chat_llm)
+    model: ChatLLM
     _should_stop: bool = PrivateAttr(False)
 
     async def start(

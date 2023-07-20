@@ -161,11 +161,12 @@ class OpenAIChatLLM(ChatLLM):
         # Call OpenAI LLM
         # ----------------------------------
 
+        kwargs.setdefault("temperature", self.temperature)
+        kwargs.setdefault("max_tokens", self.max_tokens)
+
         response = await openai.ChatCompletion.acreate(
             model=self.model,
             messages=prompt,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
             stream=True if stream_handler else False,
             request_timeout=marvin.settings.llm_request_timeout_seconds,
             **kwargs,

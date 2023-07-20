@@ -133,14 +133,15 @@ class AnthropicChatLLM(ChatLLM):
 
         client = anthropic.AsyncAnthropic(
             api_key=marvin.settings.anthropic.api_key.get_secret_value(),
-            default_request_timeout=marvin.settings.llm_request_timeout_seconds,
+            timeout=marvin.settings.llm_request_timeout_seconds,
         )
+
+        kwargs.setdefault("temperature", self.temperature)
+        kwargs.setdefault("max_tokens_to_sample", self.max_tokens)
 
         response = await client.completions.create(
             model=self.model,
             prompt=prompt,
-            max_tokens_to_sample=self.max_tokens,
-            temperature=self.temperature,
             stream=True if stream_handler else False,
             **kwargs,
         )
