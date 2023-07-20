@@ -62,7 +62,7 @@ class AzureOpenAI(MarvinBaseSettings):
             " https://YOUR_RESOURCE_NAME.openai.azure.com"
         ),
     )
-    api_version: str = Field("2023-05-15", description="The API version")
+    api_version: str = Field("2023-07-01-preview", description="The API version")
     deployment_name: str = Field(
         None,
         description=(
