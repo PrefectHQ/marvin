@@ -10,7 +10,7 @@ simply import a language model and hit run.
 
 ```python
 from marvin.prompts.library import System, ChainOfThought, User
-from marvin.llms.providers import chat_llm
+from marvin.llms import chat_llm
 from marvin.prompts import render_prompts
 
 await chat_llm().run(
