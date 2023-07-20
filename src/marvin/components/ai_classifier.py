@@ -50,8 +50,8 @@ class AIEnumMeta(EnumMeta):
         qualname=None,
         type=None,
         start=1,
-        system: System = ClassifierSystem,
-        user: User = ClassifierUser,
+        system_prompt: System = ClassifierSystem,
+        user_prompt: User = ClassifierUser,
         value_getter: Callable = lambda x: x.name,
         model: ChatLLM = None,
         **kwargs,
@@ -59,7 +59,11 @@ class AIEnumMeta(EnumMeta):
         # If kwargs are provided, handle the missing case
         if kwargs:
             return cls._missing_(
-                value, system=system, user=user, value_getter=value_getter, **kwargs
+                value,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                value_getter=value_getter,
+                **kwargs,
             )
         else:
             # Call the parent class's __call__ method to create the enum
@@ -74,8 +78,8 @@ class AIEnumMeta(EnumMeta):
             )
 
             # Set additional attributes for the AI classifier
-            setattr(enum, "__system__", system)
-            setattr(enum, "__user__", user)
+            setattr(enum, "__system_prompt__", system_prompt)
+            setattr(enum, "__user_prompt__", user_prompt)
             setattr(enum, "__model__", model)
             setattr(enum, "__value_getter__", value_getter)
             return enum
@@ -93,8 +97,8 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
     def __messages__(
         cls,
         value,
-        system: System = ClassifierSystem,
-        user: User = ClassifierUser,
+        system_prompt: System = ClassifierSystem,
+        user_prompt: User = ClassifierUser,
         value_getter: Callable = lambda x: x.name,
         as_dict: bool = True,
         **kwargs,
@@ -106,11 +110,11 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
 
         messages = render_prompts(
             [
-                system(
+                system_prompt(
                     enum_class_docstring=cls.__doc__ or "",
                     options=[value_getter(option) for option in cls],
                 ),
-                user(user_input=value),
+                user_prompt(user_input=value),
             ],
             render_kwargs=kwargs or {},
         )
@@ -126,8 +130,9 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
     def _missing_(
         cls,
         value,
-        system: System = None,
-        user: User = None,
+        instructions: str = None,
+        system_prompt: System = None,
+        user_prompt: User = None,
         value_getter: Callable = None,
         model: ChatLLM = None,
         **kwargs,
@@ -153,8 +158,8 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
 
         messages = cls.__messages__(
             value=value,
-            system=system or cls.__system__,
-            user=user or cls.__user__,
+            system_prompt=system_prompt or cls.__system_prompt__,
+            user_prompt=user_prompt or cls.__user_prompt__,
             value_getter=value_getter or cls.__value_getter__,
             as_dict=False,
             **kwargs,
@@ -177,8 +182,8 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
 def ai_classifier(
     cls=None,
     model: ChatLLM = None,
-    system: System = ClassifierSystem,
-    user: User = ClassifierUser,
+    system_prompt: System = ClassifierSystem,
+    user_prompt: User = ClassifierUser,
     value_getter: Callable = lambda x: x.name,
 ):
     """
@@ -191,8 +196,8 @@ def ai_classifier(
         ai_enum_class = AIEnum(
             enum_class.__name__,
             {member.name: member.value for member in enum_class},
-            system=system,
-            user=user,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
             value_getter=value_getter,
         )
 
