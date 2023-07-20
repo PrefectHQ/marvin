@@ -28,16 +28,10 @@ class OpenAISettings(MarvinBaseSettings):
         env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"],
     )
     organization: str = Field(None)
-    api_base: str = None
     embedding_engine: str = "text-embedding-ada-002"
-
-    @validator("api_key", always=True)
-    def set_api_key(cls, v):
-        if v is not None:
-            import openai
-
-            openai.api_key = v.get_secret_value()
-        return v
+    api_type: str = None
+    api_base: str = Field(None, description="The endpoint the OpenAI API.")
+    api_version: str = Field(None, description="The API version")
 
 
 class AnthropicSettings(MarvinBaseSettings):
@@ -45,6 +39,29 @@ class AnthropicSettings(MarvinBaseSettings):
         env_prefix = "MARVIN_ANTHROPIC_"
 
     api_key: SecretStr = None
+
+
+class AzureOpenAI(MarvinBaseSettings):
+    class Config:
+        env_prefix = "MARVIN_AZURE_OPENAI_"
+
+    api_key: SecretStr = None
+    api_type: Literal["azure", "azure_ad"] = "azure"
+    api_base: str = Field(
+        None,
+        description=(
+            "The endpoint of the Azure OpenAI API. This should have the form"
+            " https://YOUR_RESOURCE_NAME.openai.azure.com"
+        ),
+    )
+    api_version: str = Field("2023-07-01-preview", description="The API version")
+    deployment_name: str = Field(
+        None,
+        description=(
+            "This will correspond to the custom name you chose for your deployment when"
+            " you deployed a model."
+        ),
+    )
 
 
 class Settings(MarvinBaseSettings):
@@ -58,7 +75,7 @@ class Settings(MarvinBaseSettings):
     verbose: bool = False
 
     # LLMS
-    llm_model: str = "gpt-3.5-turbo"
+    llm_model: str = "openai/gpt-3.5-turbo"
     llm_max_tokens: int = Field(
         1500, description="The max number of tokens for AI completions"
     )
@@ -74,6 +91,7 @@ class Settings(MarvinBaseSettings):
     # providers
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
     anthropic: AnthropicSettings = Field(default_factory=AnthropicSettings)
+    azure_openai: AzureOpenAI = Field(default_factory=AzureOpenAI)
 
     # SLACK
     slack_api_token: SecretStr = Field(
@@ -111,6 +129,35 @@ class Settings(MarvinBaseSettings):
 
         marvin.utilities.logging.setup_logging(level=v)
         return v
+
+    # --- deprecated settings
+
+    @property
+    def openai_api_key(self):
+        import marvin.utilities.logging
+
+        logger = marvin.utilities.logging.get_logger("Settings")
+        logger.warn(
+            "`settings.openai_api_key` is deprecated. Use the provider-specific"
+            " `settings.openai.api_key` instead."
+        )
+        return self.openai.api_key
+
+    def __setattr__(self, name, value):
+        # handle deprecated setting and forward to correct location
+        # this should be a property setter but Pydantic doesn't support it
+        if name == "openai_api_key":
+            import marvin.utilities.logging
+
+            logger = marvin.utilities.logging.get_logger("Settings")
+            logger.warn(
+                "`settings.openai_api_key` is deprecated. Use the provider-specific"
+                " `settings.openai.api_key` instead."
+            )
+            # assign to correct location
+            self.openai.api_key = value
+        else:
+            super().__setattr__(name, value)
 
 
 settings = Settings()
