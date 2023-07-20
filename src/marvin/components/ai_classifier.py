@@ -12,8 +12,11 @@ from marvin.utilities.async_utils import run_sync
 class ClassifierSystem(System):
     content = """\
     You are an expert classifier that always chooses correctly.
-    
+
+    {% if enum_class_docstring %}    
     Your classification task is: {{ enum_class_docstring }}
+    
+    {% endif %}
     
     {% if instructions %}
     Your instructions are: {{ instructions }}
@@ -28,7 +31,7 @@ class ClassifierSystem(System):
     """
     instructions: str = None
     options: list = []
-    enum_class_docstring: str = ""
+    enum_class_docstring: str = None
 
 
 class ClassifierUser(User):
@@ -116,10 +119,15 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         are created based on the system and user templates provided.
         """
 
+        # don't pass the generic enum docstring through
+        docstring = None
+        if cls.__doc__ != "An enumeration.":
+            docstring = cls.__doc__
+
         messages = render_prompts(
             [
                 system_prompt(
-                    enum_class_docstring=cls.__doc__ or "",
+                    enum_class_docstring=docstring,
                     options=[value_getter(option) for option in cls],
                 ),
                 user_prompt(user_input=value),
