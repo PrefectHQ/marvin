@@ -36,10 +36,10 @@ class AzureOpenAIChatLLM(OpenAIChatLLM):
 
     @validator("model", always=True)
     def validate_model(cls, v):
-        if not v.startswith("azure"):
+        if not v.startswith("azure_openai"):
             raise ValueError(
                 "Azure OpenAI models must have the form"
-                f" 'azure/<MODEL NAME>'. Received {v}."
+                f" 'azure_openai/<MODEL NAME>'. Received {v}."
                 " You can set the default model via `marvin.settings.llm_model`"
                 " as a runtime setting, set the `MARVIN_LLM_MODEL` env var"
                 " or pass a `model` kwarg to `AzureOpenAIChatLLM`"
