@@ -50,7 +50,6 @@ class AIEnumMeta(EnumMeta):
         qualname=None,
         type=None,
         start=1,
-        boundary=None,
         system: System = ClassifierSystem,
         user: User = ClassifierUser,
         value_getter: Callable = lambda x: x.name,
@@ -72,7 +71,6 @@ class AIEnumMeta(EnumMeta):
                 qualname=qualname,
                 type=type,
                 start=start,
-                boundary=boundary,
             )
 
             # Set additional attributes for the AI classifier
