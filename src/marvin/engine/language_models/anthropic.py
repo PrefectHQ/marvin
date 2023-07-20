@@ -82,6 +82,8 @@ class AnthropicStreamHandler(StreamHandler):
 
 
 class AnthropicChatLLM(ChatLLM):
+    model: str = "claude-2"
+
     def format_messages(
         self, messages: list[Message]
     ) -> Union[str, dict, list[Union[str, dict]]]:
