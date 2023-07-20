@@ -45,6 +45,7 @@ class AzureOpenAI(MarvinBaseSettings):
     class Config:
         env_prefix = "MARVIN_AZURE_OPENAI_"
 
+    llm_model: str = "azure/gpt-35-turbo-0613"
     api_key: SecretStr = None
     api_type: Literal["azure", "azure_ad"] = "azure"
     api_base: str = Field(
