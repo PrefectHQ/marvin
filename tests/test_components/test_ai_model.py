@@ -3,7 +3,7 @@ from typing import List, Literal, Optional
 import pytest
 from marvin import ai_model
 from marvin.utilities.messages import Message, Role
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from tests.utils.mark import pytest_mark_class
 
@@ -157,7 +157,19 @@ class TestAIModelsMessage:
 
 @pytest_mark_class("llm")
 class TestInstructions:
-    def test_follow_instructions(self):
+    def test_instructions_error(self):
+        @ai_model
+        class Test(BaseModel):
+            text: str
+
+        with pytest.raises(
+            ValueError, match="(Received `instructions` but this model)"
+        ):
+            Test("Hello!", instructions="Translate to French")
+        with pytest.raises(ValueError, match="(Received `model` but this model)"):
+            Test("Hello!", model=None)
+
+    def test_instructions(self):
         @ai_model
         class Test(BaseModel):
             text: str
@@ -172,3 +184,101 @@ class TestInstructions:
 
         t2 = Test("Hello")
         assert t2.text == "Bonjour"
+
+    def test_follow_instance_instructions(self):
+        @ai_model
+        class Test(BaseModel):
+            text: str
+
+        t1 = Test("Hello")
+        assert t1.text == "Hello"
+
+        # this model is identical except it has an instruction
+        @ai_model
+        class Test(BaseModel):
+            text: str
+
+        t2 = Test("Hello", instructions_="Translate the text to French")
+        assert t2.text == "Bonjour"
+
+    def test_follow_global_and_instance_instructions(self):
+        @ai_model(instructions="Always set color_1 to 'red'")
+        class Test(BaseModel):
+            color_1: str
+            color_2: str
+
+        t1 = Test("Hello", instructions_="Always set color_2 to 'blue'")
+        assert t1 == Test(color_1="red", color_2="blue")
+
+    def test_follow_docstring_and_global_and_instance_instructions(self):
+        @ai_model(instructions="Always set color_1 to 'red'")
+        class Test(BaseModel):
+            """Always set color_3 to 'orange'"""
+
+            color_1: str
+            color_2: str
+            color_3: str
+
+        t1 = Test("Hello", instructions_="Always set color_2 to 'blue'")
+        assert t1 == Test(color_1="red", color_2="blue", color_3="orange")
+
+    def test_follow_multiple_instructions(self):
+        # ensure that instructions don't bleed to other invocations
+        @ai_model
+        class Translation(BaseModel):
+            """Translates from one language to another language"""
+
+            original_text: str
+            translated_text: str
+
+        t1 = Translation("Hello, world!", instructions_="Translate to French")
+        t2 = Translation("Hello, world!", instructions_="Translate to German")
+
+        assert t1 == Translation(
+            original_text="Hello, world!", translated_text="Bonjour, monde!"
+        )
+        assert t2 == Translation(
+            original_text="Hello, world!", translated_text="Hallo, Welt!"
+        )
+
+
+@pytest_mark_class("llm")
+class TestAIModelMapping:
+    def test_arithmetic(self):
+        @ai_model
+        class Arithmetic(BaseModel):
+            sum: float
+
+        x = Arithmetic.map(["One plus six", "Two plus 100 minus one"])
+        assert len(x) == 2
+        assert x[0].sum == 7
+        assert x[1].sum == 101
+
+    def test_location(self):
+        @ai_model
+        class City(BaseModel):
+            name: str = Field("The proper name of the city")
+
+        result = City.map(
+            [
+                "the windy city",
+                "chicago IL",
+                "Chicago",
+                "Chcago",
+                "chicago, Illinois, USA",
+                "chi-town",
+            ]
+        )
+        assert len(result) == 6
+        expected = City(name="Chicago")
+        assert all(r == expected for r in result)
+
+    def test_instructions(self):
+        @ai_model
+        class Translate(BaseModel):
+            text: str
+
+        result = Translate.map(["Hello", "Goodbye"], instructions="Translate to French")
+        assert len(result) == 2
+        assert result[0].text == "Bonjour"
+        assert result[1].text == "Au revoir"

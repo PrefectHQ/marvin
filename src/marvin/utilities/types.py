@@ -86,7 +86,12 @@ def safe_issubclass(type_, classes):
 
 def type_to_schema(type_, set_root_type: bool = True) -> dict:
     if safe_issubclass(type_, pydantic.BaseModel):
-        return type_.schema()
+        schema = type_.schema()
+        # if the docstring was updated at runtime, make it the description
+        if type_.__doc__ and type_.__doc__ != schema.get("description"):
+            schema["description"] = type_.__doc__
+        return schema
+
     elif set_root_type:
 
         class Model(pydantic.BaseModel):

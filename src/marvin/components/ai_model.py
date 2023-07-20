@@ -1,3 +1,4 @@
+import asyncio
 import functools
 from typing import Optional, Type, TypeVar
 
@@ -60,6 +61,21 @@ class AIModel(LoggerMixin, BaseModel):
             instructions_: Additional instructions to assist the model.
             model_: The language model to use.
         """
+
+        # check if the user passed `instructions` but there isn't a
+        # corresponding Pydantic field
+        if "instructions" in kwargs and "instructions" not in self.__fields__:
+            raise ValueError(
+                "Received `instructions` but this model does not have a `instructions`"
+                " field. Did you mean to provide `instructions_` to the AI Model?"
+            )
+        # check model
+        if "model" in kwargs and "model" not in self.__fields__:
+            raise ValueError(
+                "Received `model` but this model does not have a `model` field. Did you"
+                " mean to provide a `model_` for LLM configuration?"
+            )
+
         if text_:
             # use the extract constructor to build the class
             kwargs = self.__class__.extract(
@@ -69,6 +85,7 @@ class AIModel(LoggerMixin, BaseModel):
                 as_dict_=True,
                 **kwargs,
             )
+
         message = kwargs.pop("_message", None)
         super().__init__(**kwargs)
         # set private attr after init
@@ -91,6 +108,26 @@ class AIModel(LoggerMixin, BaseModel):
         as_dict_: bool = False,
         **kwargs,
     ):
+        return run_sync(
+            cls._extract_async(
+                text_=text_,
+                instructions_=instructions_,
+                model_=model_,
+                as_dict_=as_dict_,
+                **kwargs,
+            )
+        )
+
+    @classmethod
+    async def _extract_async(
+        cls,
+        text_: str = None,
+        *,
+        instructions_: str = None,
+        model_: ChatLLM = None,
+        as_dict_: bool = False,
+        **kwargs,
+    ):
         """
         Class method to extract structured data from text.
 
@@ -102,10 +139,10 @@ class AIModel(LoggerMixin, BaseModel):
                 instance of this class.
             kwargs: Additional keyword arguments to pass to the constructor.
         """
-        prompts = extract_structured_data_prompts
+        prompts = extract_structured_data_prompts.copy()
         if instructions_:
             prompts.append(prompt_library.System(content=instructions_))
-        arguments = cls._get_arguments(
+        arguments = await cls._get_arguments(
             model=model_, prompts=prompts, render_kwargs=dict(input_text=text_)
         )
         arguments.update(kwargs)
@@ -141,7 +178,42 @@ class AIModel(LoggerMixin, BaseModel):
         return cls(**arguments)
 
     @classmethod
-    def _get_arguments(
+    def map(
+        cls, texts: list[str], instructions: str = None, model: ChatLLM = None
+    ) -> list["AIModel"]:
+        """
+        Map the AI function over a sequence of arguments. Runs concurrently.
+
+        Arguments should be provided as if calling the function normally, but
+        each argument must be a list. The function is called once for each item
+        in the list, and the results are returned in a list.
+
+        For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
+
+        fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2,
+        x='b')].
+        """
+
+        coros = [
+            cls._extract_async(
+                t,
+                instructions_=instructions,
+                model_=model,
+                as_dict_=True,
+            )
+            for t in texts
+        ]
+
+        # gather returns a future, but run_sync requires a coroutine
+        async def gather_coros():
+            return await asyncio.gather(*coros)
+
+        result = run_sync(gather_coros())
+
+        return [cls(**r) for r in result]
+
+    @classmethod
+    async def _get_arguments(
         cls, model: ChatLLM, prompts: list[Prompt], render_kwargs: dict = None
     ) -> Message:
         if model is None:
@@ -154,8 +226,7 @@ class AIModel(LoggerMixin, BaseModel):
             max_iterations=3,
         )
 
-        llm_call = executor.start(prompts=messages)
-        messages = run_sync(llm_call)
+        messages = await executor.start(prompts=messages)
         message = messages[-1]
 
         if message.data.get("is_error"):
@@ -178,8 +249,11 @@ def ai_model(
 
     Args:
         cls: The class to decorate.
-        instructions: Additional instructions to assist the model.
-        model: The language model to use.
+        instructions: Instructions to guide the model's behavior. This can also
+            be set on a per-call basis, in which the per-call instructions are
+            appended to these instructions.
+        model: The language model to use. This can also be set on a per-call
+            basis, in which case the per-call model overwrites this model.
 
     Example:
         Hydrate a class schema from a natural language description:
@@ -204,7 +278,13 @@ def ai_model(
         return functools.partial(ai_model, instructions=instructions, model=model)
 
     # create a new class that subclasses AIModel and the original class
-    ai_model_class = type(cls.__name__, (AIModel, cls), {})
+    ai_model_class = type(cls.__name__, (cls, AIModel), {})
+
+    # add global instructions to the class docstring
+    if instructions:
+        if cls.__doc__:
+            instructions = f"{cls.__doc__}\n\n{instructions}"
+        ai_model_class.__doc__ = instructions
 
     # Use setattr() to add the original class's methods and class variables to
     # the new class do not attempt to copy dunder methods
@@ -212,8 +292,32 @@ def ai_model(
         if not name.startswith("__"):
             setattr(ai_model_class, name, attr)
 
+    original_init = ai_model_class.__init__
+
+    # create a wrapper that intercepts kwargs and uses the the global
+    # instructions/models variables that were passed to the @ai_model
+    # constructor (if available) This allows setting the instructions and model
+    # at the class level and then expanding them (in the case of instructions)
+    # or overwriting them (in the case of model) on a per-instance basis
+    def init_wrapper(
+        *args, instructions_: str = None, model_: ChatLLM = None, **kwargs
+    ):
+        if class_instructions := kwargs.pop("class_instructions_", None):
+            if instructions_:
+                instructions_ = f"{class_instructions}\n\n{instructions_}"
+            else:
+                instructions_ = class_instructions
+
+        if class_model := kwargs.pop("class_model_", None):
+            if model_ is None:
+                model_ = class_model
+
+        return original_init(
+            *args, instructions_=instructions_, model_=model_, **kwargs
+        )
+
     ai_model_class.__init__ = functools.partialmethod(
-        ai_model_class.__init__, instructions_=instructions, model_=model
+        init_wrapper, class_instructions_=instructions, class_model_=model
     )
 
     return ai_model_class
