@@ -103,6 +103,7 @@ env = [
     # use 3.5 for tests by default
     'D:MARVIN_LLM_MODEL=gpt-3.5-turbo',
     'MARVIN_LLM_TEMPERATURE=0.0',
+    'MARVIN_LLM_REQUEST_TIMEOUT_SECONDS=5'
 ]
 
 # black configuration

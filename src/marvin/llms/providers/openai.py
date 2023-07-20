@@ -2,16 +2,14 @@ import inspect
 from logging import Logger
 from typing import Callable, Union
 
-import openai
-import openai.openai_object
-
 import marvin
 import marvin.utilities.types
+import openai
+import openai.openai_object
+from marvin.llms.base import ChatLLM, OpenAIFunction, StreamHandler
 from marvin.utilities.async_utils import create_task
 from marvin.utilities.logging import get_logger
 from marvin.utilities.messages import Message, Role
-
-from .base import ChatLLM, OpenAIFunction, StreamHandler
 
 CONTEXT_SIZES = {
     "gpt-3.5-turbo": 4096,

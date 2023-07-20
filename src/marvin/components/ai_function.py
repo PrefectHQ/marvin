@@ -6,9 +6,9 @@ from typing import Callable, TypeVar
 
 from pydantic import BaseModel
 
-from marvin.engine.executors import OpenAIFunctionsExecutor
-from marvin.engine.language_models.base import ChatLLM, chat_llm
+from marvin.llms import ChatLLM, chat_llm
 from marvin.prompts import library as prompt_library
+from marvin.prompts.base import render_prompts
 from marvin.tools.format_response import FormatResponse
 from marvin.utilities.async_utils import run_sync
 from marvin.utilities.types import safe_issubclass
@@ -181,15 +181,9 @@ class AIFunction:
         else:
             model = self.model
 
-        executor = OpenAIFunctionsExecutor(
-            model=model,
-            functions=[FormatResponse(type_=return_annotation).as_openai_function()],
-            function_call={"name": "FormatResponse"},
-            max_iterations=1,
-        )
-        [response] = await executor.start(
-            prompts=prompts,
-            prompt_render_kwargs=dict(
+        messages = render_prompts(
+            prompts,
+            render_kwargs=dict(
                 function_def=function_def,
                 function_name=self.fn.__name__,
                 function_description=(
@@ -199,7 +193,20 @@ class AIFunction:
                 input_binds=bound_args.arguments,
                 instructions=self.instructions,
             ),
+            max_tokens=model.context_size,
         )
+
+        functions = [FormatResponse(type_=return_annotation).as_openai_function()]
+
+        # run the model and tell it to use the FormatResponse function
+        response = await model.run(
+            messages=messages,
+            functions=functions,
+            function_call={"name": "FormatResponse"},
+        )
+
+        # process the function call
+        response = await model.process_function_call(response, functions=functions)
 
         return response.data["result"]
 

@@ -4,8 +4,7 @@ from typing import Optional, Type, TypeVar
 
 from pydantic import BaseModel, PrivateAttr
 
-from marvin.engine.executors import OpenAIFunctionsExecutor
-from marvin.engine.language_models import ChatLLM, chat_llm
+from marvin.llms import ChatLLM, chat_llm
 from marvin.prompts import library as prompt_library
 from marvin.prompts import render_prompts
 from marvin.prompts.base import Prompt
@@ -218,24 +217,33 @@ class AIModel(LoggerMixin, BaseModel):
     ) -> Message:
         if model is None:
             model = chat_llm()
-        messages = render_prompts(prompts, render_kwargs=render_kwargs)
-        executor = OpenAIFunctionsExecutor(
-            model=model,
-            functions=[FormatResponse(type_=cls).as_openai_function()],
-            function_call={"name": "FormatResponse"},
-            max_iterations=3,
+        messages = render_prompts(
+            prompts, render_kwargs=render_kwargs, max_tokens=model.context_size
         )
 
-        messages = await executor.start(prompts=messages)
-        message = messages[-1]
-
-        if message.data.get("is_error"):
-            raise TypeError(
-                f"Could not build AI Model; most recent error was: {message.content}"
+        functions = [FormatResponse(type_=cls).as_openai_function()]
+        response: Message = None
+        i = 0
+        while i < 3 and (not response or response.data.get("is_error")):
+            # run the model and tell it to use the FormatResponse function
+            response = await model.run(
+                messages=messages,
+                functions=functions,
+                function_call={"name": "FormatResponse"},
             )
 
-        arguments = message.data.get("arguments", {}).copy()
-        arguments["_message"] = message
+            # process the function call
+            response = await model.process_function_call(response, functions=functions)
+
+            i += 1
+
+        if response.data.get("is_error"):
+            raise TypeError(
+                f"Could not build AI Model; most recent error was: {response.content}"
+            )
+
+        arguments = response.data.get("arguments", {}).copy()
+        arguments["_message"] = response
         return arguments
 
 

@@ -1,4 +1,6 @@
 import abc
+import ast
+import inspect
 import json
 from logging import Logger
 from typing import Any, Callable, Union
@@ -8,8 +10,8 @@ from pydantic import Field, validator
 
 import marvin
 import marvin.utilities.types
-from marvin.utilities.messages import Message
-from marvin.utilities.types import MarvinBaseModel
+from marvin.utilities.messages import Message, Role
+from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 
 class StreamHandler(MarvinBaseModel, abc.ABC):
@@ -63,7 +65,7 @@ class OpenAIFunction(MarvinBaseModel):
         return self
 
 
-class ChatLLM(MarvinBaseModel, abc.ABC):
+class ChatLLM(LoggerMixin, MarvinBaseModel, abc.ABC):
     name: str = None
     model: str
     max_tokens: int = Field(default_factory=lambda: marvin.settings.llm_max_tokens)
@@ -111,6 +113,76 @@ class ChatLLM(MarvinBaseModel, abc.ABC):
         """Run the LLM model on a list of messages and optional list of functions"""
         raise NotImplementedError()
 
+    async def process_function_call(
+        self, message: Message, functions: list[OpenAIFunction]
+    ) -> Message:
+        """
+        Given a message from the LLM that has role FUNCTION_REQUEST, processes
+        the function call and returns the message as a FUNCTION_RESPONSE
+        message.
+        """
+
+        if message.role != Role.FUNCTION_REQUEST:
+            return message
+
+        response_data = {}
+
+        function_call = message.data["function_call"]
+        fn_name = function_call.get("name")
+        fn_args = function_call.get("arguments")
+        response_data["name"] = fn_name
+        try:
+            try:
+                fn_args = json.loads(function_call.get("arguments", "{}"))
+            except json.JSONDecodeError:
+                fn_args = ast.literal_eval(function_call.get("arguments", "{}"))
+            response_data["arguments"] = fn_args
+
+            # retrieve the named function
+            openai_fn = next((f for f in functions if f.name == fn_name), None)
+            if openai_fn is None:
+                raise ValueError(f'Function "{function_call["name"]}" not found.')
+
+            if not isinstance(fn_args, dict):
+                raise ValueError(
+                    "Expected a dictionary of arguments, got a"
+                    f" {type(fn_args).__name__}."
+                )
+
+            # call the function
+            if openai_fn.fn is not None:
+                self.logger.debug(
+                    f"Running function '{openai_fn.name}' with payload {fn_args}"
+                )
+                fn_result = openai_fn.fn(**fn_args)
+                if inspect.isawaitable(fn_result):
+                    fn_result = await fn_result
+
+            # if the function is undefined, return the arguments as its output
+            else:
+                fn_result = fn_args
+            self.logger.debug(f"Result of function '{openai_fn.name}': {fn_result}")
+            response_data["is_error"] = False
+
+        except Exception as exc:
+            fn_result = (
+                f"The function '{fn_name}' encountered an error:"
+                f" {str(exc)}\n\nThe payload you provided was: {fn_args}\n\nYou"
+                " can try to fix the error and call the function again."
+            )
+            self.logger.debug_kv("Error", fn_result, key_style="red")
+            response_data["is_error"] = True
+
+        response_data["result"] = fn_result
+
+        return Message(
+            role=Role.FUNCTION_RESPONSE,
+            name=fn_name,
+            content=str(fn_result),
+            data=response_data,
+            llm_response=message.llm_response,
+        )
+
 
 def chat_llm(model: str = None, **kwargs) -> ChatLLM:
     if model is None:
@@ -126,15 +198,15 @@ def chat_llm(model: str = None, **kwargs) -> ChatLLM:
     provider, model_name = model.split("/", 1)
 
     if provider == "openai":
-        from .openai import OpenAIChatLLM
+        from .providers.openai import OpenAIChatLLM
 
         return OpenAIChatLLM(model=model_name, **kwargs)
     elif provider == "anthropic":
-        from .anthropic import AnthropicChatLLM
+        from .providers.anthropic import AnthropicChatLLM
 
         return AnthropicChatLLM(model=model_name, **kwargs)
     elif provider == "azure_openai":
-        from .azure_openai import AzureOpenAIChatLLM
+        from .providers.azure_openai import AzureOpenAIChatLLM
 
         return AzureOpenAIChatLLM(model=model_name, **kwargs)
     else:

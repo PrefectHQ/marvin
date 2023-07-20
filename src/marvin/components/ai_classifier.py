@@ -2,8 +2,8 @@ import asyncio
 from enum import Enum, EnumMeta
 from typing import Callable
 
-from marvin.engine.language_models import ChatLLM, chat_llm
-from marvin.engine.language_models.openai import OpenAIChatLLM
+from marvin.llms import ChatLLM, chat_llm
+from marvin.llms.providers.openai import OpenAIChatLLM
 from marvin.prompts import render_prompts
 from marvin.prompts.library import System, User
 from marvin.utilities.async_utils import run_sync

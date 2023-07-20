@@ -1,1 +1,1 @@
-::: marvin.engine.language_models.openai
+::: marvin.llms.providers.openai

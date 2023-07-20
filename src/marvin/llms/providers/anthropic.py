@@ -5,13 +5,11 @@ from logging import Logger
 from typing import Callable, Union
 
 import anthropic
-import openai
-import openai.openai_object
-
 import marvin
 import marvin.utilities.types
-from marvin.engine.language_models import ChatLLM, StreamHandler
-from marvin.engine.language_models.base import OpenAIFunction
+import openai
+import openai.openai_object
+from marvin.llms.base import ChatLLM, OpenAIFunction, StreamHandler
 from marvin.utilities.async_utils import create_task
 from marvin.utilities.logging import get_logger
 from marvin.utilities.messages import Message, Role

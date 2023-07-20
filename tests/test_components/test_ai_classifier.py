@@ -2,7 +2,7 @@ from enum import Enum
 
 import pytest
 from marvin import ai_classifier
-from marvin.engine.language_models import chat_llm
+from marvin.llms.providers import chat_llm
 
 from tests.utils.mark import pytest_mark_class
 

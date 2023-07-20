@@ -5,10 +5,10 @@ from typing import Any, Callable, Union
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr, validator
 
-from marvin.engine.executors import OpenAIFunctionsExecutor
-from marvin.engine.language_models import ChatLLM, chat_llm
+import marvin
+from marvin.llms import ChatLLM, chat_llm
 from marvin.prompts import library as prompt_library
-from marvin.prompts.base import Prompt
+from marvin.prompts.base import Prompt, render_prompts
 from marvin.tools import Tool
 from marvin.utilities.async_utils import run_sync
 from marvin.utilities.history import History, HistoryFilter
@@ -294,22 +294,48 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         if self.plan_enabled:
             tools.append(UpdatePlan(app=self))
 
-        executor = OpenAIFunctionsExecutor(
-            model=model,
-            functions=[t.as_openai_function() for t in tools],
-            stream_handler=self.stream_handler,
-        )
+        openai_functions = [t.as_openai_function() for t in tools]
 
-        responses = await executor.start(
-            prompts=prompts,
-            prompt_render_kwargs=dict(app=self, input_text=input_text),
-        )
+        # render prompts into messages
 
-        for r in responses:
-            self.history.add_message(r)
+        # run the model until it produces a response
+        response: Message = None
+        counter = 0
 
-        self.logger.debug_kv("AI response", responses[-1].content, key_style="blue")
-        return responses[-1]
+        # repeat until the model responds to the user
+        while not response or response.role != Role.ASSISTANT:
+            counter += 1
+            max_iterations = marvin.settings.ai_application_max_iterations
+            if max_iterations is not None and counter > max_iterations:
+                function_call = "none"
+            else:
+                function_call = "auto"
+
+            # render messages
+            messages = render_prompts(
+                prompts,
+                render_kwargs=dict(app=self, input_text=input_text),
+                max_tokens=model.context_size,
+            )
+
+            # call the model
+            response = await model.run(
+                messages=messages,
+                functions=openai_functions,
+                stream_handler=self.stream_handler,
+                function_call=function_call,
+            )
+
+            # process functions
+            response = await model.process_function_call(
+                message=response, functions=openai_functions
+            )
+
+            # record history
+            self.history.add_message(response)
+
+        self.logger.debug_kv("AI response", response.content, key_style="blue")
+        return response
 
     def as_tool(self, name: str = None) -> Tool:
         return AIApplicationTool(app=self, name=name)
