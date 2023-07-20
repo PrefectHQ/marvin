@@ -65,7 +65,7 @@ class OpenAIFunction(MarvinBaseModel):
 
 class ChatLLM(MarvinBaseModel, abc.ABC):
     name: str = None
-    model: str = Field(default_factory=lambda: marvin.settings.llm_model)
+    model: str
     max_tokens: int = Field(default_factory=lambda: marvin.settings.llm_max_tokens)
     temperature: float = Field(default_factory=lambda: marvin.settings.llm_temperature)
 
@@ -133,4 +133,4 @@ def chat_llm(model: str = None, **kwargs) -> ChatLLM:
 
         return AzureOpenAIChatLLM(model=model_name, **kwargs)
     else:
-        raise ValueError(f"Unknown provider / model: {model}")
+        raise ValueError(f"Unknown provider/model: {model}")
