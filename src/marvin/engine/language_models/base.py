@@ -80,7 +80,12 @@ class ChatLLM(MarvinBaseModel, abc.ABC):
         return 4096
 
     def get_tokens(self, text: str, **kwargs) -> list[int]:
-        enc = tiktoken.encoding_for_model(self.model)
+        try:
+            enc = tiktoken.encoding_for_model(self.model)
+        # fallback to the gpt-3.5-turbo tokenizer if the model is not found
+        # note this will give the wrong answer for non-OpenAI models
+        except KeyError:
+            enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
         return enc.encode(text)
 
     async def __call__(self, messages, *args, **kwargs):
