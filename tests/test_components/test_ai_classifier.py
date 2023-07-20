@@ -80,3 +80,34 @@ class TestAIClassifiers:
         assert (
             Sentiment("Great!", instructions="It's opposite day") == Sentiment.NEGATIVE
         )
+
+    def test_recover_complex_values(self):
+        @ai_classifier
+        class Sentiment(Enum):
+            POSITIVE = {"value": "Positive"}
+            NEGATIVE = {"value": "Negative"}
+
+        result = Sentiment("Great!")
+
+        assert result.value["value"] == "Positive"
+
+
+@pytest_mark_class("llm")
+class TestMapping:
+    def test_mapping(self):
+        @ai_classifier
+        class Sentiment(Enum):
+            POSITIVE = "Positive"
+            NEGATIVE = "Negative"
+
+        result = Sentiment.map(["good", "bad"])
+        assert result == [Sentiment.POSITIVE, Sentiment.NEGATIVE]
+
+    def test_mapping_with_instructions(self):
+        @ai_classifier
+        class Sentiment(Enum):
+            POSITIVE = "Positive"
+            NEGATIVE = "Negative"
+
+        result = Sentiment.map(["good", "bad"], instructions="It's opposite day")
+        assert result == [Sentiment.NEGATIVE, Sentiment.POSITIVE]

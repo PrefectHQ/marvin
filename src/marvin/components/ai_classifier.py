@@ -1,3 +1,4 @@
+import asyncio
 from enum import Enum, EnumMeta
 from typing import Callable
 
@@ -144,6 +145,28 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         model: ChatLLM = None,
         **kwargs,
     ):
+        coro = cls.__missing_async__(
+            value,
+            instructions=instructions,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            value_getter=value_getter,
+            model=model,
+            **kwargs,
+        )
+        return run_sync(coro)
+
+    @classmethod
+    async def __missing_async__(
+        cls,
+        value,
+        instructions: str = None,
+        system_prompt: System = None,
+        user_prompt: User = None,
+        value_getter: Callable = None,
+        model: ChatLLM = None,
+        **kwargs,
+    ):
         """
         Handle the case where a value is not found in the enum. This method is a part
         of Python's Enum API and is called when an attempt is made to access an enum
@@ -173,18 +196,30 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
             **kwargs,
         )
 
-        response = run_sync(
-            model.run(
-                messages=messages,
-                logit_bias={
-                    next(iter(model.get_tokens(str(i)))): 100
-                    for i in range(1, len(cls) + 1)
-                },
-            )
+        response = await model.run(
+            messages=messages,
+            logit_bias={
+                next(iter(model.get_tokens(str(i)))): 100
+                for i in range(1, len(cls) + 1)
+            },
         )
 
         # Return the enum member corresponding to the predicted class
         return list(cls)[int(response.content) - 1]
+
+    @classmethod
+    def map(cls, items: list[str], **kwargs):
+        """
+        Map the classifier over a list of items.
+        """
+        coros = [cls.__missing_async__(item, **kwargs) for item in items]
+
+        # gather returns a future, but run_sync requires a coroutine
+        async def gather_coros():
+            return await asyncio.gather(*coros)
+
+        result = run_sync(gather_coros())
+        return result
 
 
 def ai_classifier(
