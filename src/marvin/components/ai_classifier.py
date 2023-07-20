@@ -1,7 +1,9 @@
+import asyncio
 from enum import Enum, EnumMeta
 from typing import Callable
 
 from marvin.engine.language_models import ChatLLM, chat_llm
+from marvin.engine.language_models.openai import OpenAIChatLLM
 from marvin.prompts import render_prompts
 from marvin.prompts.library import System, User
 from marvin.utilities.async_utils import run_sync
@@ -9,26 +11,31 @@ from marvin.utilities.async_utils import run_sync
 
 class ClassifierSystem(System):
     content = """\
-    You are an expert classifier that always choose correctly.
+    You are an expert classifier that always chooses correctly.
+
+    {% if enum_class_docstring %}    
+    Your classification task is: {{ enum_class_docstring }}
+    
+    {% endif %}
     
     {% if instructions %}
-    {{ instructions }}
+    Your instructions are: {{ instructions }}
 
     {% endif %}
-    {{ enum_class_docstring }}
     The user will provide context through text, you will use your expertise 
-    to choose the best option below based on it. 
+    to choose the best option below based on it:
+    
     {% for option in options %}
         {{ loop.index }}. {{ option }}
     {% endfor %}\
     """
     instructions: str = None
     options: list = []
-    enum_class_docstring: str = ""
+    enum_class_docstring: str = None
 
 
 class ClassifierUser(User):
-    content = """{{user_input}}"""
+    content = r"""{{ user_input }}"""
     user_input: str
 
 
@@ -49,9 +56,8 @@ class AIEnumMeta(EnumMeta):
         qualname=None,
         type=None,
         start=1,
-        boundary=None,
-        system: System = ClassifierSystem,
-        user: User = ClassifierUser,
+        system_prompt: System = ClassifierSystem,
+        user_prompt: User = ClassifierUser,
         value_getter: Callable = lambda x: x.name,
         model: ChatLLM = None,
         **kwargs,
@@ -59,7 +65,12 @@ class AIEnumMeta(EnumMeta):
         # If kwargs are provided, handle the missing case
         if kwargs:
             return cls._missing_(
-                value, system=system, user=user, value_getter=value_getter, **kwargs
+                value,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                value_getter=value_getter,
+                model=model,
+                **kwargs,
             )
         else:
             # Call the parent class's __call__ method to create the enum
@@ -71,12 +82,14 @@ class AIEnumMeta(EnumMeta):
                 qualname=qualname,
                 type=type,
                 start=start,
-                boundary=boundary,
             )
 
+            if model is None:
+                model = chat_llm(max_tokens=1, temperature=0)
+
             # Set additional attributes for the AI classifier
-            setattr(enum, "__system__", system)
-            setattr(enum, "__user__", user)
+            setattr(enum, "__system_prompt__", system_prompt)
+            setattr(enum, "__user_prompt__", user_prompt)
             setattr(enum, "__model__", model)
             setattr(enum, "__value_getter__", value_getter)
             return enum
@@ -94,10 +107,11 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
     def __messages__(
         cls,
         value,
-        system: System = ClassifierSystem,
-        user: User = ClassifierUser,
+        system_prompt: System = ClassifierSystem,
+        user_prompt: User = ClassifierUser,
         value_getter: Callable = lambda x: x.name,
         as_dict: bool = True,
+        instructions: str = None,
         **kwargs,
     ):
         """
@@ -105,15 +119,20 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         are created based on the system and user templates provided.
         """
 
+        # don't pass the generic enum docstring through
+        docstring = None
+        if cls.__doc__ != "An enumeration.":
+            docstring = cls.__doc__
+
         messages = render_prompts(
             [
-                system(
-                    enum_class_docstring=cls.__doc__ or "",
+                system_prompt(
+                    enum_class_docstring=docstring,
                     options=[value_getter(option) for option in cls],
                 ),
-                user(user_input=value),
+                user_prompt(user_input=value),
             ],
-            render_kwargs=kwargs or {},
+            render_kwargs={"instructions": instructions, **kwargs},
         )
 
         if as_dict:
@@ -127,8 +146,31 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
     def _missing_(
         cls,
         value,
-        system: System = None,
-        user: User = None,
+        instructions: str = None,
+        system_prompt: System = None,
+        user_prompt: User = None,
+        value_getter: Callable = None,
+        model: ChatLLM = None,
+        **kwargs,
+    ):
+        coro = cls.__missing_async__(
+            value,
+            instructions=instructions,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            value_getter=value_getter,
+            model=model,
+            **kwargs,
+        )
+        return run_sync(coro)
+
+    @classmethod
+    async def __missing_async__(
+        cls,
+        value,
+        instructions: str = None,
+        system_prompt: System = None,
+        user_prompt: User = None,
         value_getter: Callable = None,
         model: ChatLLM = None,
         **kwargs,
@@ -140,7 +182,13 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         """
 
         if model is None:
-            model = chat_llm(max_tokens=1, temperature=0)
+            model = cls.__model__
+
+        if not isinstance(model, OpenAIChatLLM):
+            raise ValueError(
+                "At this time, AI Classifiers rely on a tokenized approach that is only"
+                " compatible with OpenAI models."
+            )
         elif model.max_tokens != 1:
             raise ValueError(
                 "The model must be configured with max_tokens=1 to use ai_classifier"
@@ -148,32 +196,45 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
 
         messages = cls.__messages__(
             value=value,
-            system=system or cls.__system__,
-            user=user or cls.__user__,
+            system_prompt=system_prompt or cls.__system_prompt__,
+            user_prompt=user_prompt or cls.__user_prompt__,
             value_getter=value_getter or cls.__value_getter__,
             as_dict=False,
+            instructions=instructions,
             **kwargs,
         )
 
-        response = run_sync(
-            model.run(
-                messages=messages,
-                logit_bias={
-                    next(iter(model.get_tokens(str(i)))): 100
-                    for i in range(1, len(cls) + 1)
-                },
-            )
+        response = await model.run(
+            messages=messages,
+            logit_bias={
+                next(iter(model.get_tokens(str(i)))): 100
+                for i in range(1, len(cls) + 1)
+            },
         )
 
         # Return the enum member corresponding to the predicted class
         return list(cls)[int(response.content) - 1]
 
+    @classmethod
+    def map(cls, items: list[str], **kwargs):
+        """
+        Map the classifier over a list of items.
+        """
+        coros = [cls.__missing_async__(item, **kwargs) for item in items]
+
+        # gather returns a future, but run_sync requires a coroutine
+        async def gather_coros():
+            return await asyncio.gather(*coros)
+
+        result = run_sync(gather_coros())
+        return result
+
 
 def ai_classifier(
     cls=None,
     model: ChatLLM = None,
-    system: System = ClassifierSystem,
-    user: User = ClassifierUser,
+    system_prompt: System = ClassifierSystem,
+    user_prompt: User = ClassifierUser,
     value_getter: Callable = lambda x: x.name,
 ):
     """
@@ -186,8 +247,9 @@ def ai_classifier(
         ai_enum_class = AIEnum(
             enum_class.__name__,
             {member.name: member.value for member in enum_class},
-            system=system,
-            user=user,
+            model=model,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
             value_getter=value_getter,
         )
 
