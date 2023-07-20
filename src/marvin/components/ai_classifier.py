@@ -101,6 +101,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         user_prompt: User = ClassifierUser,
         value_getter: Callable = lambda x: x.name,
         as_dict: bool = True,
+        instructions: str = None,
         **kwargs,
     ):
         """
@@ -116,7 +117,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
                 ),
                 user_prompt(user_input=value),
             ],
-            render_kwargs=kwargs or {},
+            render_kwargs={"instructions": instructions, **kwargs},
         )
 
         if as_dict:
@@ -162,6 +163,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
             user_prompt=user_prompt or cls.__user_prompt__,
             value_getter=value_getter or cls.__value_getter__,
             as_dict=False,
+            instructions=instructions,
             **kwargs,
         )
 
