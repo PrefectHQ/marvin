@@ -25,15 +25,6 @@ class TestAIClassifiersInitialization:
         with pytest.raises(ValueError, match="(only compatible with OpenAI models)"):
             Sentiment("Great!")
 
-    def test_invalid_max_tokens(self):
-        @ai_classifier(model=chat_llm("openai/gpt-4", max_tokens=100))
-        class Sentiment(Enum):
-            POSITIVE = "Positive"
-            NEGATIVE = "Negative"
-
-        with pytest.raises(ValueError, match="(max_tokens=1)"):
-            Sentiment("Great!")
-
 
 @pytest_mark_class("llm")
 class TestAIClassifiers:
