@@ -2,6 +2,16 @@
 
 Marvin supports OpenAI's GPT-3.5 and GPT-4 models, and uses the `gpt-3.5-turbo` model by default. In order to use the OpenAI API, you must provide an API key.
 
+## Configuration
+
+To use OpenAI models, you can set the following configuration options:
+
+| Setting | Env Variable | Runtime Variable | Required? | Notes |
+| --- | --- | --- |  :---: | --- |
+| API key | `MARVIN_OPENAI_API_KEY` | `marvin.settings.openai.api_key` | ✅ | |
+
+!!! tip "Using the Azure OpenAI Service"
+    To use the Azure OpenAI Service, configure it [explicitly](/src/docs/configuration/azure_openai).
 ## Getting an API key
 
 To obtain an OpenAI API key, follow these steps:
