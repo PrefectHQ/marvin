@@ -39,6 +39,11 @@ def ai_classifier(
         raise ValueError(
             "The model must be configured with max_tokens=1 to use ai_classifier"
         )
+    elif not model.name.startswith("gpt-"):
+        raise ValueError(
+            "At this time, AI Classifiers rely on a tokenized approach that is only"
+            " compatible with OpenAI models."
+        )
     if system_prompt is None:
         system_prompt = ClassifierSystem
     if user_prompt is None:
