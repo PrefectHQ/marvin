@@ -1,3 +1,4 @@
+import asyncio
 import functools
 from typing import Optional, Type, TypeVar
 
@@ -107,6 +108,26 @@ class AIModel(LoggerMixin, BaseModel):
         as_dict_: bool = False,
         **kwargs,
     ):
+        return run_sync(
+            cls._extract_async(
+                text_=text_,
+                instructions_=instructions_,
+                model_=model_,
+                as_dict_=as_dict_,
+                **kwargs,
+            )
+        )
+
+    @classmethod
+    async def _extract_async(
+        cls,
+        text_: str = None,
+        *,
+        instructions_: str = None,
+        model_: ChatLLM = None,
+        as_dict_: bool = False,
+        **kwargs,
+    ):
         """
         Class method to extract structured data from text.
 
@@ -120,14 +141,8 @@ class AIModel(LoggerMixin, BaseModel):
         """
         prompts = extract_structured_data_prompts.copy()
         if instructions_:
-            prompts.append(
-                prompt_library.System(
-                    content=(instructions_)
-                    #     f"You received these additional instructions: {instructions_}"
-                    # )
-                )
-            )
-        arguments = cls._get_arguments(
+            prompts.append(prompt_library.System(content=instructions_))
+        arguments = await cls._get_arguments(
             model=model_, prompts=prompts, render_kwargs=dict(input_text=text_)
         )
         arguments.update(kwargs)
@@ -163,7 +178,42 @@ class AIModel(LoggerMixin, BaseModel):
         return cls(**arguments)
 
     @classmethod
-    def _get_arguments(
+    def map(
+        cls, texts: list[str], instructions: str = None, model: ChatLLM = None
+    ) -> list["AIModel"]:
+        """
+        Map the AI function over a sequence of arguments. Runs concurrently.
+
+        Arguments should be provided as if calling the function normally, but
+        each argument must be a list. The function is called once for each item
+        in the list, and the results are returned in a list.
+
+        For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
+
+        fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2,
+        x='b')].
+        """
+
+        coros = [
+            cls._extract_async(
+                t,
+                instructions_=instructions,
+                model_=model,
+                as_dict_=True,
+            )
+            for t in texts
+        ]
+
+        # gather returns a future, but run_sync requires a coroutine
+        async def gather_coros():
+            return await asyncio.gather(*coros)
+
+        result = run_sync(gather_coros())
+
+        return [cls(**r) for r in result]
+
+    @classmethod
+    async def _get_arguments(
         cls, model: ChatLLM, prompts: list[Prompt], render_kwargs: dict = None
     ) -> Message:
         if model is None:
@@ -176,8 +226,7 @@ class AIModel(LoggerMixin, BaseModel):
             max_iterations=3,
         )
 
-        llm_call = executor.start(prompts=messages)
-        messages = run_sync(llm_call)
+        messages = await executor.start(prompts=messages)
         message = messages[-1]
 
         if message.data.get("is_error"):

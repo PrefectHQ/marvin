@@ -3,7 +3,7 @@ from typing import List, Literal, Optional
 import pytest
 from marvin import ai_model
 from marvin.utilities.messages import Message, Role
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from tests.utils.mark import pytest_mark_class
 
@@ -169,7 +169,7 @@ class TestInstructions:
         with pytest.raises(ValueError, match="(Received `model` but this model)"):
             Test("Hello!", model=None)
 
-    def test_follow_global_instructions(self):
+    def test_instructions(self):
         @ai_model
         class Test(BaseModel):
             text: str
@@ -240,3 +240,45 @@ class TestInstructions:
         assert t2 == Translation(
             original_text="Hello, world!", translated_text="Hallo, Welt!"
         )
+
+
+@pytest_mark_class("llm")
+class TestAIModelMapping:
+    def test_arithmetic(self):
+        @ai_model
+        class Arithmetic(BaseModel):
+            sum: float
+
+        x = Arithmetic.map(["One plus six", "Two plus 100 minus one"])
+        assert len(x) == 2
+        assert x[0].sum == 7
+        assert x[1].sum == 101
+
+    def test_location(self):
+        @ai_model
+        class City(BaseModel):
+            name: str = Field("The proper name of the city")
+
+        result = City.map(
+            [
+                "the windy city",
+                "chicago IL",
+                "Chicago",
+                "Chcago",
+                "chicago, Illinois, USA",
+                "chi-town",
+            ]
+        )
+        assert len(result) == 6
+        expected = City(name="Chicago")
+        assert all(r == expected for r in result)
+
+    def test_instructions(self):
+        @ai_model
+        class Translate(BaseModel):
+            text: str
+
+        result = Translate.map(["Hello", "Goodbye"], instructions="Translate to French")
+        assert len(result) == 2
+        assert result[0].text == "Bonjour"
+        assert result[1].text == "Au revoir"
