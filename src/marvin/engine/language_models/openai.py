@@ -75,6 +75,8 @@ class OpenAIStreamHandler(StreamHandler):
 
 
 class OpenAIChatLLM(ChatLLM):
+    model: str = "gpt-3.5-turbo"
+
     @property
     def context_size(self) -> int:
         return CONTEXT_SIZES.get(self.model, 4096)

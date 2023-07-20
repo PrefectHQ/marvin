@@ -4,6 +4,8 @@ from .openai import OpenAIChatLLM
 
 
 class AzureOpenAIChatLLM(OpenAIChatLLM):
+    model: str = "gpt-35-turbo-0613"
+
     def _get_openai_settings(self) -> dict:
         # do not load the base openai settings; any azure settings must be set
         # explicitly
