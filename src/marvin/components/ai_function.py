@@ -3,6 +3,7 @@ import functools
 import inspect
 import re
 from typing import Callable, TypeVar
+from typing_extensions import ParamSpec
 
 from pydantic import BaseModel
 
@@ -14,7 +15,7 @@ from marvin.utilities.async_utils import run_sync
 from marvin.utilities.types import safe_issubclass
 
 T = TypeVar("T")
-A = TypeVar("A")
+P = ParamSpec("P")
 
 prompts = [
     prompt_library.System(content="""
@@ -209,9 +210,10 @@ class AIFunction:
         raise NotImplementedError()
 
 
+
 def ai_fn(
-    fn: Callable[[A], T] = None, instructions: str = None, model: ChatLLM = None
-) -> Callable[[A], T]:
+    fn: Callable[P, T] = None, instructions: str = None, model: ChatLLM = None
+) -> Callable[P, T]:
     """Decorator that transforms a Python function with a signature and docstring
     into a prompt for an AI to predict the function's output.
 
