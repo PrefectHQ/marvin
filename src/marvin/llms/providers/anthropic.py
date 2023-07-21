@@ -15,6 +15,11 @@ from marvin.utilities.logging import get_logger
 from marvin.utilities.messages import Message, Role
 from marvin.utilities.strings import jinja_env
 
+CONTEXT_SIZES = {
+    "claude-instant": 100_000,
+    "claude-2": 100_000,
+}
+
 FUNCTION_CALL_REGEX = re.compile(
     r'{\s*"mode":\s*"function_call"\s*(.*)}',
     re.DOTALL,
@@ -81,6 +86,16 @@ class AnthropicStreamHandler(StreamHandler):
 
 class AnthropicChatLLM(ChatLLM):
     model: str = "claude-2"
+
+    @property
+    def context_size(self) -> int:
+        if self.model in CONTEXT_SIZES:
+            return CONTEXT_SIZES[self.model]
+        else:
+            for model_prefix, context in CONTEXT_SIZES:
+                if self.model.startswith(model_prefix):
+                    return context
+        return 100_000
 
     def format_messages(
         self, messages: list[Message]

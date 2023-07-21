@@ -12,14 +12,14 @@ from marvin.utilities.logging import get_logger
 from marvin.utilities.messages import Message, Role
 
 CONTEXT_SIZES = {
-    "gpt-3.5-turbo": 4096,
-    "gpt-3.5-turbo-0613": 4096,
-    "gpt-3.5-turbo-16k": 16384,
     "gpt-3.5-turbo-16k-0613": 16384,
-    "gpt-4": 8192,
-    "gpt-4-0613": 8192,
-    "gpt-4-32k": 32768,
+    "gpt-3.5-turbo-16k": 16384,
+    "gpt-3.5-turbo-0613": 4096,
+    "gpt-3.5-turbo": 4096,
     "gpt-4-32k-0613": 32768,
+    "gpt-4-32k": 32768,
+    "gpt-4-0613": 8192,
+    "gpt-4": 8192,
 }
 
 
@@ -77,7 +77,13 @@ class OpenAIChatLLM(ChatLLM):
 
     @property
     def context_size(self) -> int:
-        return CONTEXT_SIZES.get(self.model, 4096)
+        if self.model in CONTEXT_SIZES:
+            return CONTEXT_SIZES[self.model]
+        else:
+            for model_prefix, context in CONTEXT_SIZES:
+                if self.model.startswith(model_prefix):
+                    return context
+        return 4096
 
     def _get_openai_settings(self) -> dict:
         openai_kwargs = {}
