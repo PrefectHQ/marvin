@@ -2,7 +2,7 @@
 ![](../../img/heroes/it_hates_me_hero.png)
 
 
-Marvin is a lightweight AI engineering framework building natural language interfaces that are reliable, scalable, and easy to trust.
+Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.
 
 Large Language Models (LLMs) are pretty cool, but let's face it, they can be a headache to integrate. So, we decided to take the fuss out of the process. Marvin is our answer to the challenge: a neat, flexible tool that works as hard as you do.
 
