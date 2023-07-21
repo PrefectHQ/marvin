@@ -3,9 +3,9 @@ import functools
 import inspect
 import re
 from typing import Callable, TypeVar
-from typing_extensions import ParamSpec
 
 from pydantic import BaseModel
+from typing_extensions import ParamSpec
 
 from marvin.engine.executors import OpenAIFunctionsExecutor
 from marvin.engine.language_models.base import ChatLLM, chat_llm
@@ -208,7 +208,6 @@ class AIFunction:
         # Override this to create the AI function as an instance method instead of
         # a passed function
         raise NotImplementedError()
-
 
 
 def ai_fn(
