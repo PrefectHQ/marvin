@@ -113,14 +113,13 @@ class ChatLLM(MarvinBaseModel, abc.ABC):
 
 
 def chat_llm(model: str = None, **kwargs) -> ChatLLM:
+    """Dispatches to all supported LLM providers"""
     if model is None:
         model = marvin.settings.llm_model
 
-    # automatically detect well-known model providers
+    # automatically detect gpt-3.5 and gpt-4 for backwards compatibility
     if model.startswith("gpt-3.5-turbo") or model.startswith("gpt-4"):
         model = f"openai/{model}"
-    elif model.startswith("claude-"):
-        model = f"anthropic/{model}"
 
     # extract the provider and model name
     provider, model_name = model.split("/", 1)
