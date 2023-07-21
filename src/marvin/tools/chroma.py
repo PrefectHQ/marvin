@@ -108,7 +108,12 @@ class MultiQueryChroma(Tool):
         where_document: Optional[dict] = None,
         include: Optional[list[QueryResultType]] = None,
         max_characters: int = 2000,
+        max_queries: int = 5,
     ) -> str:
+        if len(queries) > max_queries:
+            # make sure excerpts are not too short
+            queries = queries[:max_queries]
+
         coros = [
             query_chroma(
                 query,
