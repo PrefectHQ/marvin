@@ -2,9 +2,30 @@ import marvin
 
 from .openai import OpenAIChatLLM
 
+CONTEXT_SIZES = {
+    "gpt-35-turbo": 4096,
+    "gpt-35-turbo-0613": 4096,
+    "gpt-35-turbo-16k": 16384,
+    "gpt-35-turbo-16k-0613": 16384,
+    "gpt-4": 8192,
+    "gpt-4-0613": 8192,
+    "gpt-4-32k": 32768,
+    "gpt-4-32k-0613": 32768,
+}
+
 
 class AzureOpenAIChatLLM(OpenAIChatLLM):
     model: str = "gpt-35-turbo-0613"
+
+    @property
+    def context_size(self) -> int:
+        if self.model in CONTEXT_SIZES:
+            return CONTEXT_SIZES[self.model]
+        else:
+            for model_prefix, context in CONTEXT_SIZES:
+                if self.model.startswith(model_prefix):
+                    return context
+        return 4096
 
     def _get_openai_settings(self) -> dict:
         # do not load the base openai settings; any azure settings must be set
