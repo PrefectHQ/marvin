@@ -1,7 +1,7 @@
 import functools
 
 import openai
-from pydantic import BaseSettings, Field, validator
+from pydantic import BaseSettings, Field
 
 import marvin
 
