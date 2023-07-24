@@ -1,7 +1,7 @@
 import functools
 
 import openai
-from pydantic import BaseSettings, Field
+from pydantic import BaseSettings, Field, SecretStr
 
 import marvin
 
@@ -12,8 +12,11 @@ class ChatCompletionConfig(BaseSettings):
     functions: list = []
     messages: list = []
     api_key: str = Field(
-        default_factory=lambda: marvin.settings.openai.api_key.get_secret_value() or "",
-        env="OPENAI_API_KEY",
+        default_factory=lambda: (
+            marvin.settings.openai.api_key.get_secret_value()
+            if isinstance(marvin.settings.openai.api_key, SecretStr)
+            else ""
+        )
     )
 
     def merge(self, *args, **kwargs):
@@ -28,6 +31,7 @@ class ChatCompletionConfig(BaseSettings):
 
 class ChatCompletion(openai.ChatCompletion):
     def __new__(cls, *args, **kwargs):
+        print(ChatCompletionConfig(**kwargs))
         subclass = type(
             "ChatCompletion",
             (ChatCompletion,),
