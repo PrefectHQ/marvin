@@ -57,4 +57,3 @@ def multi_glob(directory=None, keep_globs=None, drop_globs=None) -> list[Path]:
     matching_files = files_from_globs(keep_globs) - files_from_globs(drop_globs)
 
     return [file.relative_to(directory_path) for file in matching_files]
-
