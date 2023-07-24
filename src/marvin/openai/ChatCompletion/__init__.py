@@ -1,23 +1,32 @@
-import openai
-import pydantic
 import functools
 
+import openai
+from pydantic import BaseSettings, Field
 
-class ChatCompletionConfig(pydantic.BaseSettings):
+import marvin
+
+
+class ChatCompletionConfig(BaseSettings):
     model: str = "gpt-3.5-turbo"
     temperature: float = 0
-    functions: list = []
-    messages: list = []
-    api_key: str = pydantic.Field(default="", env="OPENAI_API_KEY")
+    functions: list = Field(default_factory=list)
+    messages: list = Field(default_factory=list)
+    api_key: str = Field(
+        default_factory=lambda: (
+            marvin.settings.openai.api_key.get_secret_value()
+            if marvin.settings.openai.api_key is not None
+            else None
+        ),
+        env="OPENAI_API_KEY",
+    )
 
     def merge(self, *args, **kwargs):
-        _dict = self.dict(exclude_unset=True)
         for key, value in kwargs.items():
             if type(value) == list:
-                _dict[key] = _dict.get(key, []) + value
+                setattr(self, key, getattr(self, key, []) + value)
             else:
-                _dict[key] = value
-        return _dict
+                setattr(self, key, value)
+        return {k: v for k, v in self.__dict__.items() if v != []}
 
 
 class ChatCompletion(openai.ChatCompletion):
