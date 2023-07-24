@@ -64,4 +64,4 @@ jobs:
         run: pytest -vv -m "${{ matrix.test-type }}"
         env:
           MARVIN_LLM_MODEL: ${{ matrix.llm_model }}
-        if: ${{ !github.event.pull_request.head.repo.fork || matrix.test-type != 'llm' }}
+        if: ${{ !(github.event.pull_request.head.repo.fork && matrix.test-type == 'llm') }}
