@@ -181,7 +181,19 @@ class OpenAIChatLLM(ChatLLM):
         if stream_handler:
             handler = OpenAIStreamHandler(callback=stream_handler)
             msg = await handler.handle_streaming_response(response)
-            return msg
+            role = msg.role
+
+            if role == Role.ASSISTANT and isinstance(
+                msg.data.get("function_call"), dict
+            ):
+                role = Role.FUNCTION_REQUEST
+
+            return Message(
+                role=role,
+                content=msg.content,
+                data=msg.data,
+                llm_response=msg.llm_response,
+            )
 
         else:
             llm_response = response.to_dict_recursive()

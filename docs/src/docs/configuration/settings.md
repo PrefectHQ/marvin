@@ -8,7 +8,7 @@ All settings are configurable via environment variables like `MARVIN_<setting na
 For example, in an `.env` file or in your shell config file you might have:
 ```shell
 MARVIN_LOG_LEVEL=DEBUG
-MARVIN_LLM_MODEL=gpt-4
+MARVIN_LLM_MODEL=openai/gpt-4
 MARVIN_LLM_TEMPERATURE=0
 ```
 
@@ -20,12 +20,12 @@ For example, to access or change the LLM model used by Marvin at runtime:
 import marvin
 
 marvin.settings.llm_model
-# 'gpt-4'
+# 'openai/gpt-4'
 
-marvin.settings.llm_model = 'gpt-3.5-turbo'
+marvin.settings.llm_model = 'openai/gpt-3.5-turbo'
 
 marvin.settings.llm_model
-# 'gpt-3.5-turbo'
+# 'openai/gpt-3.5-turbo'
 ```
 
 ## LLM Providers
@@ -34,17 +34,10 @@ Marvin supports multiple LLM providers, including [OpenAI](/src/docs/configurati
 
 Valid `llm_model` settings are strings with the form `"{provider_key}/{model_name}"`. For example, `"openai/gpt-3.5-turbo"`, `anthropic/claude-2`, or `azure_openai/gpt-4`.
 
-For well-known models, you may provide the model name without a provider key. These models include:
-
-- the `gpt-3.5-*` family from OpenAI
-- the `gpt-4*` family from OpenAI
-- the `claude-*` family from Anthropic
-
-
 
 | Provider | Provider Key | Models | Notes |
 | --- | --- | --- | --- |
-| OpenAI | `openai` | `gpt-3.5-turbo` (default), `gpt-4`, or any other [compatible model](https://platform.openai.com/docs/models/) | Marvin is generally tested and optimized with this provider. |
+| OpenAI | `openai` | `gpt-3.5-turbo`, `gpt-4` (default), or any other [compatible model](https://platform.openai.com/docs/models/) | Marvin is generally tested and optimized with this provider. |
 | Anthropic | `anthropic` | `claude-2`, `claude-instant-1` or any other [compatible model](https://docs.anthropic.com/claude/reference/selecting-a-model) | Available in Marvin 1.1|
 | Azure OpenAI Service | `azure_openai` | `gpt-35-turbo`, `gpt-4`, or any other [compatible model](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) | The Azure OpenAI Service shares all the same configuration options as the OpenAI models, as well as a few additional ones. Available in Marvin 1.1.  | 
 
