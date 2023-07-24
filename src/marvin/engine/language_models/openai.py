@@ -170,6 +170,9 @@ class OpenAIChatLLM(ChatLLM):
         kwargs.setdefault("temperature", self.temperature)
         kwargs.setdefault("max_tokens", self.max_tokens)
 
+        if kwargs["max_tokens"] == -1:
+            del kwargs["max_tokens"]
+
         response = await openai.ChatCompletion.acreate(
             model=self.model,
             messages=prompt,

@@ -58,3 +58,5 @@ To configure LLM models globally, you can adjust the following settings. Note th
 | Temperature | `MARVIN_LLM_TEMPERATURE` | `marvin.settings.llm_temperature` | 0.8 | |
 | Max tokens | `MARVIN_LLM_MAX_TOKENS` | `marvin.settings.llm_max_tokens` | 1500 | The maximum number of tokens in a model completion |
 | Timeout | `MARVIN_LLM_REQUEST_TIMEOUT_SECONDS` | `marvin.settings.llm_request_timeout_seconds` | 600.0 ||
+
+For OpenAI models, you can also set `Max tokens` to -1 to indicate no limit for model completion.
