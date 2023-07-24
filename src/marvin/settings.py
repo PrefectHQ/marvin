@@ -75,7 +75,7 @@ class Settings(MarvinBaseSettings):
     verbose: bool = False
 
     # LLMS
-    llm_model: str = "openai/gpt-3.5-turbo"
+    llm_model: str = "openai/gpt-4"
     llm_max_tokens: int = Field(
         1500, description="The max number of tokens for AI completions"
     )
