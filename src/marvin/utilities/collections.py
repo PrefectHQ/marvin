@@ -41,8 +41,7 @@ def multi_glob(directory=None, keep_globs=None, drop_globs=None) -> list[Path]:
     keep_globs = keep_globs or ["**/*"]
     drop_globs = drop_globs or [".git/**/*"]
 
-    if directory is None:
-        directory_path = Path.cwd()
+    directory_path = Path(directory) if directory else Path.cwd()
 
     if not directory_path.is_dir():
         raise ValueError(f"'{directory}' is not a directory.")
@@ -58,3 +57,4 @@ def multi_glob(directory=None, keep_globs=None, drop_globs=None) -> list[Path]:
     matching_files = files_from_globs(keep_globs) - files_from_globs(drop_globs)
 
     return [file.relative_to(directory_path) for file in matching_files]
+
