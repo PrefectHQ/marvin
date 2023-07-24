@@ -1,15 +1,19 @@
 import functools
 
 import openai
-from pydantic import BaseSettings, Field
+from pydantic import BaseSettings, Field, BaseModel
 
 import marvin
+import warnings
+
+from typing import Type, Optional, Union, Literal
 
 
 class ChatCompletionConfig(BaseSettings):
     model: str = "gpt-3.5-turbo"
     temperature: float = 0
     functions: list = Field(default_factory=list)
+    function_call: Optional[Union[dict[Literal["name"], str], Literal["auto"]]] = None
     messages: list = Field(default_factory=list)
     api_key: str = Field(
         default_factory=lambda: (
@@ -29,6 +33,13 @@ class ChatCompletionConfig(BaseSettings):
         return {k: v for k, v in self.__dict__.items() if v != []}
 
 
+def process_list(lst):
+    if len(lst) == 1:
+        return lst[0]
+    else:
+        return lst
+
+
 class ChatCompletion(openai.ChatCompletion):
     def __new__(cls, *args, **kwargs):
         subclass = type(
@@ -39,16 +50,74 @@ class ChatCompletion(openai.ChatCompletion):
         return subclass
 
     @classmethod
-    def create(cls, *args, **kwargs):
+    def create(cls, *args, response_model: Optional[Type[BaseModel]] = None, **kwargs):
         config = getattr(cls, "__config__", ChatCompletionConfig())
+        if response_model is not None:
+            if kwargs.get("functions"):
+                warnings.warn("Use of response_model with functions is not supported")
+            else:
+                kwargs["functions"] = [
+                    {
+                        "name": "format_response",
+                        "description": "Format the response",
+                        "parameters": response_model.schema(),
+                    }
+                ]
+                kwargs["function_call"] = {
+                    "name": "format_response",
+                }
         payload = config.merge(**kwargs)
-        return cls.observer(super(ChatCompletion, cls).create)(*args, **payload)
+        response = cls.observer(super(ChatCompletion, cls).create)(*args, **payload)
+        response.to_model = lambda: (
+            process_list(
+                list(
+                    map(
+                        lambda x: response_model.parse_raw(
+                            x.message.function_call.arguments
+                        ),
+                        response.choices,
+                    )
+                )
+            )
+        )
+        return response
 
     @classmethod
-    async def acreate(cls, *args, **kwargs):
+    async def acreate(
+        cls, *args, response_model: Optional[Type[BaseModel]] = None, **kwargs
+    ):
         config = getattr(cls, "__config__", ChatCompletionConfig())
+        if response_model is not None:
+            if kwargs.get("functions"):
+                warnings.warn("Use of response_model with functions is not supported")
+            else:
+                kwargs["functions"] = [
+                    {
+                        "name": "format_response",
+                        "description": "Format the response",
+                        "parameters": response_model.schema(),
+                    }
+                ]
+                kwargs["function_call"] = {
+                    "name": "format_response",
+                }
         payload = config.merge(**kwargs)
-        return await cls.observer(super(ChatCompletion, cls).acreate)(*args, **payload)
+        response = await cls.observer(super(ChatCompletion, cls).acreate)(
+            *args, **payload
+        )
+        response.to_model = lambda: (
+            process_list(
+                list(
+                    map(
+                        lambda x: response_model.parse_raw(
+                            x.message.function_call.arguments
+                        ),
+                        response.choices,
+                    )
+                )
+            )
+        )
+        return response
 
     @staticmethod
     def observer(func):
