@@ -8,9 +8,11 @@ RUN python -m venv venv
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN apt-get update && apt-get install -y git
+RUN apt-get update && apt-get install -y git build-essential gcc
 
 RUN pip install ".[slackbot,ddg]"
+
+RUN pip install 'git+https://github.com/PrefectHQ/marvin-recipes.git@main#egg=marvin_recipes[all]'
 
 EXPOSE 4200
 
