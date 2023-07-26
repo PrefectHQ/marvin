@@ -6,16 +6,19 @@ from pydantic import BaseSettings, Field, BaseModel
 import marvin
 import warnings
 
-from typing import Type, Optional, Union, Literal
-from pydantic import Extra
+from typing import Type, Optional, Union, Literal, Callable
+from pydantic import Extra, validator
+from marvin.types import Function
+from functools import partial
 
 
 class ChatCompletionConfig(BaseSettings, extra=Extra.allow):
     model: str = "gpt-3.5-turbo"
     temperature: float = 0
-    functions: list = Field(default_factory=list)
+    functions: Optional[list[Union[dict, Callable]]] = Field(default_factory=list)
     function_call: Optional[Union[dict[Literal["name"], str], Literal["auto"]]] = None
     messages: list = Field(default_factory=list)
+
     api_key: str = Field(
         default_factory=lambda: (
             marvin.settings.openai.api_key.get_secret_value()
@@ -25,13 +28,55 @@ class ChatCompletionConfig(BaseSettings, extra=Extra.allow):
         env="OPENAI_API_KEY",
     )
 
+    @validator("functions")
+    def validate_function(cls, functions):
+        functions = [
+            Function(fn) if isinstance(fn, Callable) else fn for fn in functions or []
+        ]
+        return functions
+
     def merge(self, *args, **kwargs):
-        for key, value in kwargs.items():
-            if type(value) == list:
-                setattr(self, key, getattr(self, key, []) + value)
-            else:
-                setattr(self, key, value)
-        return {k: v for k, v in self.__dict__.items() if v}
+        # We take the dict of default params.
+        default = self.dict(exclude_none=True)
+
+        # We take the dict of given params.
+
+        _passed = self.__class__(**kwargs).dict(exclude_unset=True)
+
+        # We let _passed overwrite default params for all types,
+        # except lists, where we concatenate them.
+        for key, value in _passed.items():
+            # if the value is a list, we merge
+            if isinstance(value, list):
+                _passed[key] = default.get(key, []) + value
+
+        response = {**default, **_passed}
+
+        # If there are functions, we convert callables to their schemas.
+
+        if response.get("functions"):
+            response["functions"] = [
+                fn.schema() if isinstance(fn, Callable) else fn
+                for fn in response.get("functions")
+            ]
+
+        return {k: v for k, v in response.items() if v}
+
+
+def get_function_call(response):
+    try:
+        return list(map(lambda x: x.message.function_call, response.choices))
+    except AttributeError:
+        return None
+
+
+def get_preval(function_call, functions):
+    return [
+        {fn.__name__: fn for fn in functions if isinstance(fn, Callable)}.get(
+            function_call.name
+        ),
+        function_call.arguments,
+    ]
 
 
 def process_list(lst):
@@ -53,6 +98,10 @@ class ChatCompletion(openai.ChatCompletion):
     @classmethod
     def create(cls, *args, response_model: Optional[Type[BaseModel]] = None, **kwargs):
         config = getattr(cls, "__config__", ChatCompletionConfig())
+        passed_config = ChatCompletionConfig(**kwargs)
+
+        functions = [*config.functions, *passed_config.functions]
+
         if response_model is not None:
             if kwargs.get("functions"):
                 warnings.warn("Use of response_model with functions is not supported")
@@ -69,26 +118,55 @@ class ChatCompletion(openai.ChatCompletion):
                 }
         payload = config.merge(**kwargs)
         response = cls.observer(super(ChatCompletion, cls).create)(*args, **payload)
-        if response_model is not None:
-            response.to_model = lambda: (
-                process_list(
-                    list(
-                        map(
-                            lambda x: response_model.parse_raw(
-                                x.message.function_call.arguments
-                            ),
-                            response.choices,
-                        )
-                    )
+
+        response = type(
+            response.__class__.__name__,
+            (response.__class__,),
+            {
+                "evaluate": partial(
+                    cls.evaluate, response=response, functions=functions
+                ),
+                "to_model": partial(
+                    cls.to_model, response=response, response_model=response_model
+                ),
+            },
+        )(response.to_dict_recursive())
+
+        return response
+
+    @classmethod
+    def evaluate(cls, response, functions):
+        function_call = get_function_call(response) or []
+        return process_list(
+            [
+                fn.evaluate_raw(args, fn=fn) if isinstance(fn, Callable) else fn
+                for fn, args in [get_preval(call, functions) for call in function_call]
+            ]
+        )
+
+    @classmethod
+    def to_model(cls, response, response_model):
+        return process_list(
+            list(
+                map(
+                    response_model.parse_raw,
+                    [
+                        function_call.arguments
+                        for function_call in get_function_call(response)
+                    ],
                 )
             )
-        return response
+        )
 
     @classmethod
     async def acreate(
         cls, *args, response_model: Optional[Type[BaseModel]] = None, **kwargs
     ):
         config = getattr(cls, "__config__", ChatCompletionConfig())
+        passed_config = ChatCompletionConfig(**kwargs)
+
+        functions = [*config.functions, *passed_config.functions]
+
         if response_model is not None:
             if kwargs.get("functions"):
                 warnings.warn("Use of response_model with functions is not supported")
@@ -107,19 +185,20 @@ class ChatCompletion(openai.ChatCompletion):
         response = await cls.observer(super(ChatCompletion, cls).acreate)(
             *args, **payload
         )
-        if response_model is not None:
-            response.to_model = lambda: (
-                process_list(
-                    list(
-                        map(
-                            lambda x: response_model.parse_raw(
-                                x.message.function_call.arguments
-                            ),
-                            response.choices,
-                        )
-                    )
-                )
-            )
+
+        response = type(
+            response.__class__.__name__,
+            (response.__class__,),
+            {
+                "evaluate": partial(
+                    cls.evaluate, response=response, functions=functions
+                ),
+                "to_model": partial(
+                    cls.to_model, response=response, response_model=response_model
+                ),
+            },
+        )(response.to_dict_recursive())
+
         return response
 
     @staticmethod
