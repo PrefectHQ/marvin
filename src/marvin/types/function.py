@@ -1,6 +1,6 @@
 import copy
 from functools import partial
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 from pydantic import BaseModel, validate_arguments
 from pydantic.decorator import (
@@ -57,9 +57,26 @@ class FunctionConfig(BaseModel):
 
 class Function:
     def __new__(cls, fn: Callable, **kwargs):
-        instance = validate_arguments(fn, config=FunctionConfig(fn, **kwargs).dict())
+        config = FunctionConfig(fn, **kwargs)
+        instance = validate_arguments(fn, config=config.dict())
         instance.schema = instance.model.schema
         instance.evaluate_raw = partial(cls.evaluate_raw, fn=instance)
+        instance.__name__ = config.name
+        instance.__doc__ = config.description
+        return instance
+
+    @classmethod
+    def from_model(cls, model: Type[BaseModel], **kwargs):
+        instance = cls.__new__(
+            cls,
+            model,
+            **{
+                "name": "format_response",
+                "description": "Format the response",
+                **kwargs,
+            },
+        )
+        instance.__signature__ = model.__signature__
         return instance
 
     @classmethod
