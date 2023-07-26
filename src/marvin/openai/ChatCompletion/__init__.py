@@ -6,61 +6,59 @@ from pydantic import BaseSettings, Field, BaseModel
 import marvin
 import warnings
 
-from typing import Type, Optional, Union, Literal, Callable
+from typing import Type, Optional, Union, Literal, Callable, List
 from pydantic import Extra, validator
 from marvin.types import Function
 from functools import partial
+from marvin import settings
 
 
 class ChatCompletionConfig(BaseSettings, extra=Extra.allow):
     model: str = "gpt-3.5-turbo"
-    temperature: float = 0
-    functions: Optional[list[Union[dict, Callable]]] = Field(default_factory=list)
+    temperature: float = 0.8
+    api_key: str = Field(default_factory=settings.openai.api_key.get_secret_value)
+    messages: Optional[List[dict[str, str]]] = None
+    functions: List[Union[dict, Callable]] = None
     function_call: Optional[Union[dict[Literal["name"], str], Literal["auto"]]] = None
-    messages: list = Field(default_factory=list)
 
-    api_key: str = Field(
-        default_factory=lambda: (
-            marvin.settings.openai.api_key.get_secret_value()
-            if marvin.settings.openai.api_key is not None
-            else None
-        ),
-        env="OPENAI_API_KEY",
-    )
-
-    @validator("functions")
-    def validate_function(cls, functions):
-        functions = [
-            Function(fn) if isinstance(fn, Callable) else fn for fn in functions or []
-        ]
-        return functions
-
-    def merge(self, *args, **kwargs):
-        # We take the dict of default params.
-        default = self.dict(exclude_none=True)
-
-        # We take the dict of given params.
-
-        _passed = self.__class__(**kwargs).dict(exclude_unset=True)
-
-        # We let _passed overwrite default params for all types,
-        # except lists, where we concatenate them.
-        for key, value in _passed.items():
-            # if the value is a list, we merge
-            if isinstance(value, list):
-                _passed[key] = default.get(key, []) + value
-
-        response = {**default, **_passed}
-
-        # If there are functions, we convert callables to their schemas.
-
+    def dict(self, *args, exclude_none=True, **kwargs):
+        response = super().dict(*args, exclude_none=exclude_none, **kwargs)
+        # Cast functions to list of dicts
         if response.get("functions"):
             response["functions"] = [
-                fn.schema() if isinstance(fn, Callable) else fn
-                for fn in response.get("functions")
+                x.model.schema() if isinstance(x, Callable) else x
+                for x in response["functions"]
             ]
+        return response
 
-        return {k: v for k, v in response.items() if v}
+    @validator("functions", each_item=True)
+    def validate_function(cls, fn):
+        if isinstance(fn, Callable):
+            fn = Function(fn)
+        return fn
+
+    def __call__(self, **kwargs):
+        """
+        Takes in new config kwargs and
+        - Overwrites attrs with new passed kwargs, with exception:
+        - Concatenates attrs that are lists
+        """
+        # We'll validate the passed kwargs.
+        passed = self.__class__(**kwargs)
+
+        if self.functions or passed.functions:
+            passed.functions = (self.functions or []) + (passed.functions or [])
+        if self.messages or passed.messages:
+            passed.messages = (self.messages or []) + (passed.messages or [])
+
+        return self.__class__(
+            **{
+                **self.dict(),
+                **passed.dict(exclude_unset=True),
+                "functions": passed.functions,
+                "messages": passed.messages,
+            }
+        )
 
 
 def get_function_call(response):
