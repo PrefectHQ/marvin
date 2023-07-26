@@ -1,219 +1,235 @@
-import functools
+from pydantic import BaseModel, Field, validator, Extra, BaseSettings, root_validator
+from pydantic.main import ModelMetaclass
 
-import openai
-from pydantic import BaseSettings, Field, BaseModel
-
-import marvin
+from typing import Any, Callable, List, Optional, Type, Union, Literal
+from marvin import settings
+from marvin.types import Function
+from operator import itemgetter
+from marvin.utilities.module_loading import import_string
 import warnings
 
-from typing import Type, Optional, Union, Literal, Callable, List
-from pydantic import Extra, validator
-from marvin.types import Function
-from functools import partial
-from marvin import settings
 
+class Request(BaseSettings):
+    """
+    This is a class for creating Request objects to interact with the GPT-3 API.
+    The class contains several configurations and validation functions to ensure
+    the correct data is sent to the API.
 
-class ChatCompletionConfig(BaseSettings, extra=Extra.allow):
-    model: str = "gpt-3.5-turbo"
-    temperature: float = 0.8
+    """
+
+    model: str = "gpt-3.5-turbo"  # the model used by the GPT-3 API
+    temperature: float = 0.8  # the temperature parameter used by the GPT-3 API
     api_key: str = Field(default_factory=settings.openai.api_key.get_secret_value)
-    messages: Optional[List[dict[str, str]]] = None
-    functions: List[Union[dict, Callable]] = None
+    messages: Optional[List[dict[str, str]]] = None  # messages to send to the API
+    functions: List[Union[dict, Callable]] = None  # functions to be used in the request
     function_call: Optional[Union[dict[Literal["name"], str], Literal["auto"]]] = None
+    response_model: Optional[Type[BaseModel]] = Field(default=None, exclude=True)
 
-    def dict(self, *args, exclude_none=True, **kwargs):
-        response = super().dict(*args, exclude_none=exclude_none, **kwargs)
-        # Cast functions to list of dicts
-        if response.get("functions"):
-            response["functions"] = [
-                x.model.schema() if isinstance(x, Callable) else x
-                for x in response["functions"]
-            ]
-        return response
+    class Config:
+        exclude = {"response_model"}
+        exclude_none = True
+        extra = Extra.allow
+
+    @root_validator(pre=True)
+    def handle_response_model(cls, values):
+        """
+        This function validates and handles the response_model attribute.
+        If a response_model is provided, it creates a function from the model
+        and sets it as the function to call.
+        """
+        response_model = values.get("response_model")
+        if response_model:
+            fn = Function.from_model(response_model)
+            values["functions"] = [fn]
+            values["function_call"] = {"name": fn.__name__}
+        return values
 
     @validator("functions", each_item=True)
     def validate_function(cls, fn):
+        """
+        This function validates the functions attribute.
+        If a Callable is provided, it wraps it with the Function class.
+        """
         if isinstance(fn, Callable):
             fn = Function(fn)
         return fn
 
-    def __call__(self, **kwargs):
+    def __or__(self, config):
         """
-        Takes in new config kwargs and
-        - Overwrites attrs with new passed kwargs, with exception:
-        - Concatenates attrs that are lists
+        This method is used to merge two Request objects.
+        If the attribute is a list, the lists are concatenated.
+        Otherwise, the attribute from the provided config is used.
         """
-        # We'll validate the passed kwargs.
-        passed = self.__class__(**kwargs)
+        for field in self.__fields__:
+            if isinstance(getattr(self, field), list):
+                merged = getattr(self, field, []) + getattr(config, field, [])
+                setattr(self, field, merged)
+            else:
+                setattr(self, field, getattr(config, field))
+        return self
 
-        if self.functions or passed.functions:
-            passed.functions = (self.functions or []) + (passed.functions or [])
-        if self.messages or passed.messages:
-            passed.messages = (self.messages or []) + (passed.messages or [])
+    def functions_schema(self, *args, **kwargs):
+        """
+        This method generates a list of schemas for all functions in the request.
+        If a function is callable, its model's schema is returned.
+        Otherwise, the function itself is returned.
+        """
+        return [
+            fn.model.schema() if isinstance(fn, Callable) else fn
+            for fn in self.functions or []
+        ]
 
-        return self.__class__(
-            **{
-                **self.dict(),
-                **passed.dict(exclude_unset=True),
-                "functions": passed.functions,
-                "messages": passed.messages,
-            }
-        )
-
-
-def get_function_call(response):
-    try:
-        return list(map(lambda x: x.message.function_call, response.choices))
-    except AttributeError:
-        return None
-
-
-def get_preval(function_call, functions):
-    return [
-        {fn.__name__: fn for fn in functions if isinstance(fn, Callable)}.get(
-            function_call.name
-        ),
-        function_call.arguments,
-    ]
+    def dict(self, *args, serialize_functions=True, **kwargs):
+        """
+        This method returns a dictionary representation of the Request.
+        If the functions attribute is present and serialize_functions is True,
+        the functions' schemas are also included.
+        """
+        response = super().dict(*args, **kwargs)
+        if response.get("functions") and serialize_functions:
+            response.update({"functions": self.functions_schema()})
+        return response
 
 
-def process_list(lst):
-    if len(lst) == 1:
-        return lst[0]
-    else:
-        return lst
+class Response(BaseModel):
+    """
+    This class is used to handle the response from the API.
+    It includes several utility functions and properties to extract useful information
+    from the raw response.
+    """
+
+    raw: dict  # the raw response from the API
+    request: Any  # the request that generated the response
+
+    def __init__(self, response, *args, request, **kwargs):
+        super().__init__(raw=response, request=request)
+
+    def __getattr__(self, name):
+        """
+        This method attempts to get the attribute from the raw response.
+        If it doesn't exist, it falls back to the standard attribute access.
+        """
+        try:
+            return self.raw.__getattr__(name)
+        except AttributeError:
+            return self.__getattribute__(name)
+
+    @property
+    def message(self):
+        """
+        This property extracts the message from the raw response.
+        If there is only one choice, it returns the message from that choice.
+        Otherwise, it returns a list of messages from all choices.
+        """
+        if len(self.raw.choices) == 1:
+            return next(iter(self.raw.choices)).message
+        return [x.message for x in self.raw.choices]
+
+    @property
+    def function_call(self):
+        """
+        This property extracts the function call from the message.
+        If the message is a list, it returns a list of function calls from all messages.
+        Otherwise, it returns the function call from the message.
+        """
+        if isinstance(self.message, list):
+            return [x.function_call for x in self.message]
+        return self.message.function_call
+
+    @property
+    def callables(self):
+        """
+        This property returns a list of all callable functions from the request.
+        """
+        return [x for x in self.request.functions if isinstance(x, Callable)]
+
+    @property
+    def callable_registry(self):
+        """
+        This property returns a dictionary mapping function names to functions for all
+        callable functions from the request.
+        """
+        return {fn.__name__: fn for fn in self.callables}
+
+    def evaluate(self, as_message=False):
+        """
+        This method evaluates the function call in the response and returns the result.
+        If as_message is True, it returns the result as a function message.
+        Otherwise, it returns the result directly.
+        """
+        name, raw_arguments = itemgetter("name", "arguments")(self.function_call)
+        function = self.callable_registry.get(name)
+        arguments = function.model.parse_raw(raw_arguments)
+        value = function(**arguments.dict(exclude_none=True))
+        if as_message:
+            return {"role": "function", "name": name, "content": value}
+        else:
+            return value
+
+    def to_model(self):
+        """
+        This method parses the function call arguments into the response model and
+        returns the result.
+        """
+        return self.request.response_model.parse_raw(self.function_call.arguments)
+
+    def __repr__(self, *args, **kwargs):
+        """
+        This method returns a string representation of the raw response.
+        """
+        return self.raw.__repr__(*args, **kwargs)
 
 
-class ChatCompletion(openai.ChatCompletion):
+class ChatCompletionMeta(ModelMetaclass):
+    @classmethod
     def __new__(cls, *args, **kwargs):
-        subclass = type(
-            "ChatCompletion",
-            (ChatCompletion,),
-            {"__config__": ChatCompletionConfig(**kwargs)},
-        )
-        return subclass
+        instance = super().__new__(*args, **kwargs)
+        return instance()
 
-    @classmethod
-    def create(cls, *args, response_model: Optional[Type[BaseModel]] = None, **kwargs):
-        config = getattr(cls, "__config__", ChatCompletionConfig())
-        passed_config = ChatCompletionConfig(**kwargs)
 
-        functions = [*config.functions, *passed_config.functions]
+class ChatCompletion(BaseModel, metaclass=ChatCompletionMeta):
+    """
+    This class is used to create and handle chat completions from the API.
+    It provides several utility functions to create the request, send it to the API,
+    and handle the response.
+    """
 
-        if response_model is not None:
-            if kwargs.get("functions"):
-                warnings.warn("Use of response_model with functions is not supported")
-            else:
-                kwargs["functions"] = [
-                    {
-                        "name": "format_response",
-                        "description": "Format the response",
-                        "parameters": response_model.schema(),
-                    }
-                ]
-                kwargs["function_call"] = {
-                    "name": "format_response",
-                }
-        payload = config.merge(**kwargs)
-        response = cls.observer(super(ChatCompletion, cls).create)(*args, **payload)
+    _module: str = "openai.ChatCompletion"  # the module used to interact with the API
+    _config: str = (  # the config class used to create the request
+        "marvin.openai.Request"
+    )
 
-        response = type(
-            response.__class__.__name__,
-            (response.__class__,),
-            {
-                "evaluate": partial(
-                    cls.evaluate, response=response, functions=functions
-                ),
-                "to_model": partial(
-                    cls.to_model, response=response, response_model=response_model
-                ),
-            },
-        )(response.to_dict_recursive())
+    @property
+    def model(self):
+        """
+        This property imports and returns the API model.
+        """
+        return import_string(self._module)
 
-        return response
+    def config(self, *args, **kwargs):
+        """
+        This method imports and returns a configuration object.
+        """
+        return import_string(self._config)(*args, **kwargs)
 
-    @classmethod
-    def evaluate(cls, response, functions):
-        function_call = get_function_call(response) or []
-        return process_list(
-            [
-                fn.evaluate_raw(args, fn=fn) if isinstance(fn, Callable) else fn
-                for fn, args in [get_preval(call, functions) for call in function_call]
-            ]
-        )
+    def create(self, *args, **kwargs):
+        """
+        This method creates a request and sends it to the API.
+        It returns a Response object with the raw response and the request.
+        """
+        request = self.config() | self.config(**kwargs)
+        payload = request.dict(exclude_none=True, exclude_unset=True)
+        return Response(self.model.create(**payload), request=request)
 
-    @classmethod
-    def to_model(cls, response, response_model):
-        return process_list(
-            list(
-                map(
-                    response_model.parse_raw,
-                    [
-                        function_call.arguments
-                        for function_call in get_function_call(response)
-                    ],
-                )
-            )
-        )
+    async def acreate(self, *args, **kwargs):
+        """
+        This method is an asynchronous version of the create method.
+        It creates a request and sends it to the API asynchronously.
+        It returns a Response object with the raw response and the request.
+        """
+        request = self.config() | self.config(**kwargs)
+        payload = request.dict(exclude_none=True, exclude_unset=True)
+        return Response(await self.model.acreate(**payload), request=request)
 
-    @classmethod
-    async def acreate(
-        cls, *args, response_model: Optional[Type[BaseModel]] = None, **kwargs
-    ):
-        config = getattr(cls, "__config__", ChatCompletionConfig())
-        passed_config = ChatCompletionConfig(**kwargs)
-
-        functions = [*config.functions, *passed_config.functions]
-
-        if response_model is not None:
-            if kwargs.get("functions"):
-                warnings.warn("Use of response_model with functions is not supported")
-            else:
-                kwargs["functions"] = [
-                    {
-                        "name": "format_response",
-                        "description": "Format the response",
-                        "parameters": response_model.schema(),
-                    }
-                ]
-                kwargs["function_call"] = {
-                    "name": "format_response",
-                }
-        payload = config.merge(**kwargs)
-        response = await cls.observer(super(ChatCompletion, cls).acreate)(
-            *args, **payload
-        )
-
-        response = type(
-            response.__class__.__name__,
-            (response.__class__,),
-            {
-                "evaluate": partial(
-                    cls.evaluate, response=response, functions=functions
-                ),
-                "to_model": partial(
-                    cls.to_model, response=response, response_model=response_model
-                ),
-            },
-        )(response.to_dict_recursive())
-
-        return response
-
-    @staticmethod
-    def observer(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            ChatCompletion.on_send(*args, **kwargs)
-            response = func(*args, **kwargs)
-            response = ChatCompletion.on_receive(response, *args, **kwargs)
-            return response
-
-        return wrapper
-
-    @classmethod
-    def on_send(cls, *args, **kwargs):
-        pass
-
-    @classmethod
-    def on_receive(cls, result, *args, **kwargs):
-        return result
+    def __call__(self, *args, **kwargs):
+        return self
