@@ -168,7 +168,7 @@ class Response(BaseModel):
         """
         return {fn.__name__: fn for fn in self.callables}
 
-    def call_function(self, as_message=False):
+    def call_function(self, as_message=True):
         """
         This method evaluates the function call in the response and returns the result.
         If as_message is True, it returns the result as a function message.
