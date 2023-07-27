@@ -68,6 +68,12 @@ class Request(BaseSettings):
                 setattr(self, field, getattr(config, field))
         return self
 
+    def merge(self, **kwargs):
+        warnings.warn(
+            "This is deprecated. Use the | operator instead.", DeprecationWarning
+        )
+        return self | self.__class__(**kwargs)
+
     def functions_schema(self, *args, **kwargs):
         """
         This method generates a list of schemas for all functions in the request.
@@ -196,7 +202,7 @@ class ChatCompletion(BaseModel, metaclass=ChatCompletionMeta):
 
     _module: str = "openai.ChatCompletion"  # the module used to interact with the API
     _config: str = (  # the config class used to create the request
-        "marvin.openai.Request"
+        "marvin.openai.ChatCompletion.Request"
     )
 
     @property
@@ -233,3 +239,8 @@ class ChatCompletion(BaseModel, metaclass=ChatCompletionMeta):
 
     def __call__(self, *args, **kwargs):
         return self
+
+
+# This is a legacy class that is used to create a ChatCompletion object.
+# It is deprecated and will be removed in a future release.
+ChatCompletionConfig = Request
