@@ -197,7 +197,7 @@ class Response(BaseModel):
         return self.raw.__repr__(*args, **kwargs)
 
 
-class ChatCompletion(BaseModel):
+class ChatCompletionBase(BaseModel):
     """
     This class is used to create and handle chat completions from the API.
     It provides several utility functions to create the request, send it to the API,
@@ -245,7 +245,7 @@ class ChatCompletion(BaseModel):
         request = self.config() | self.config(**kwargs)
         payload = request.dict(exclude_none=True, exclude_unset=True)
         response = Response(await self.model.acreate(**payload), request=request)
-        if self.config.evaluate_function_call and response.function_call:
+        if request.evaluate_function_call and response.function_call:
             return response.call_function(as_message=True)
         return response
 
@@ -257,7 +257,7 @@ class ChatCompletion(BaseModel):
         return self
 
 
-ChatCompletion = ChatCompletion()
+ChatCompletion = ChatCompletionBase()
 
 # This is a legacy class that is used to create a ChatCompletion object.
 # It is deprecated and will be removed in a future release.
