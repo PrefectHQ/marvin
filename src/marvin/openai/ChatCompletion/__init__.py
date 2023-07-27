@@ -26,7 +26,7 @@ class Request(BaseSettings):
     function_call: Optional[Union[dict[Literal["name"], str], Literal["auto"]]] = None
 
     # Internal Marvin Attributes to be excluded from the data sent to the API
-    response_model: Optional[Type[BaseModel]] = Field(default=None, exclude=True)
+    response_model: Optional[Type[BaseModel]] = Field(default=None)
     evaluate_function_call: bool = Field(default=False)
 
     class Config:
@@ -101,6 +101,7 @@ class Request(BaseSettings):
         exclude = exclude or {}
         if serialize_functions:
             exclude["evaluate_function_call"] = True
+            exclude["response_model"] = True
         response = super().dict(*args, **kwargs, exclude=exclude)
         if response.get("functions") and serialize_functions:
             response.update({"functions": self.functions_schema()})
