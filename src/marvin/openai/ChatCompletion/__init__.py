@@ -7,6 +7,7 @@ from marvin.types import Function
 from operator import itemgetter
 from marvin.utilities.module_loading import import_string
 import warnings
+import copy
 
 
 class Request(BaseSettings):
@@ -248,11 +249,14 @@ class ChatCompletion(BaseModel):
         return response
 
     def __call__(self, *args, **kwargs):
+        self = copy.deepcopy(self)
         config = self.config()
         passed = self.__class__(**kwargs).config()
         self.defaults = (config | passed).dict(serialize_functions=False)
         return self
 
+
+ChatCompletion = ChatCompletion()
 
 # This is a legacy class that is used to create a ChatCompletion object.
 # It is deprecated and will be removed in a future release.
