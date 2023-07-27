@@ -64,15 +64,24 @@ class Request(BaseSettings):
         If the attribute is a list, the lists are concatenated.
         Otherwise, the attribute from the provided config is used.
         """
-        for field in self.__fields__:
-            if isinstance(getattr(self, field), list):
+
+        touched = config.dict(exclude_unset=True, serialize_functions=False)
+
+        fields = [
+            # We exclude none fields from defaults.
+            *self.dict(exclude_none=True, serialize_functions=False).keys(),
+            # We exclude unset fields from the provided config.
+            *config.dict(exclude_unset=True, serialize_functions=False).keys(),
+        ]
+
+        for field in fields:
+            if isinstance(getattr(self, field, None), list):
                 merged = (getattr(self, field, []) or []) + (
                     getattr(config, field, []) or []
                 )
                 setattr(self, field, merged)
             else:
-                touched = config.dict(exclude_unset=True, serialize_functions=False)
-                setattr(self, field, touched.get(field, getattr(self, field)))
+                setattr(self, field, touched.get(field, getattr(self, field, None)))
         return self
 
     def merge(self, **kwargs):
@@ -115,11 +124,17 @@ class Response(BaseModel):
     from the raw response.
     """
 
-    raw: dict  # the raw response from the API
+    raw: Any  # the raw response from the API
     request: Any  # the request that generated the response
 
     def __init__(self, response, *args, request, **kwargs):
         super().__init__(raw=response, request=request)
+
+    def __iter__(self):
+        return self.raw.__iter__()
+
+    def __next__(self):
+        return self.raw.__next__()
 
     def __getattr__(self, name):
         """
