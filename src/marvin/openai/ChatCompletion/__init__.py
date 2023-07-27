@@ -67,12 +67,16 @@ class Request(BaseSettings):
 
         touched = config.dict(exclude_unset=True, serialize_functions=False)
 
-        fields = [
-            # We exclude none fields from defaults.
-            *self.dict(exclude_none=True, serialize_functions=False).keys(),
-            # We exclude unset fields from the provided config.
-            *config.dict(exclude_unset=True, serialize_functions=False).keys(),
-        ]
+        fields = list(
+            set(
+                [
+                    # We exclude none fields from defaults.
+                    *self.dict(exclude_none=True, serialize_functions=False).keys(),
+                    # We exclude unset fields from the provided config.
+                    *config.dict(exclude_unset=True, serialize_functions=False).keys(),
+                ]
+            )
+        )
 
         for field in fields:
             if isinstance(getattr(self, field, None), list):
