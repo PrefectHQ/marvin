@@ -16,7 +16,7 @@ class TestRegressions:
         try:
             api_key = openai.ChatCompletion().__config__.api_key
         except AttributeError:
-            api_key = openai.ChatCompletion().config().api_key
+            api_key = openai.ChatCompletion().request().api_key
         assert settings.openai.api_key.get_secret_value() == api_key
 
     def test_merge(self):

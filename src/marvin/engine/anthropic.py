@@ -1,15 +1,15 @@
-from pydantic import BaseModel, Field, validator, Extra, BaseSettings, root_validator
-from pydantic.main import ModelMetaclass
-
-from typing import Any, Callable, List, Optional, Type, Union, Literal
-from marvin import settings
-from marvin.types import Function
 from operator import itemgetter
-from marvin.utilities.module_loading import import_string
-import warnings
-import copy
-from marvin.types.request import Request as BaseRequest
+from typing import Any, Callable, Optional
+
+from anthropic import AI_PROMPT, HUMAN_PROMPT
+from jinja2 import Template
+from pydantic import BaseModel, Extra, Field, root_validator
+
+from marvin import settings
 from marvin.engine import ChatCompletionBase
+from marvin.engine.language_models.anthropic import AnthropicFunctionCall
+from marvin.types.request import Request as BaseRequest
+from marvin.utilities.module_loading import import_string
 
 
 class Request(BaseRequest):
@@ -20,16 +20,32 @@ class Request(BaseRequest):
 
     """
 
-    model: str = "gpt-3.5-turbo"  # the model used by the GPT-3 API
-    temperature: float = 0.8  # the temperature parameter used by the GPT-3 API
-    api_key: str = Field(default_factory=settings.openai.api_key.get_secret_value)
+    model: str = "claude-2"  # the model used by the GPT-3 API
+    # temperature: float = 0.8  # the temperature parameter used by the GPT-3 API
+    api_key: str = Field(default_factory=settings.anthropic.api_key.get_secret_value)
+    max_tokens_to_sample: int = Field(default=1000)
+    prompt: str = Field(default="")
 
     class Config:
-        exclude = {"response_model"}
+        exclude = {"response_model", "messages"}
         exclude_none = True
         extra = Extra.allow
+        functions_prompt = (
+            "marvin.engine.language_models.anthropic.FUNCTIONS_INSTRUCTIONS"
+        )
 
-    def dict(self, *args, serialize_functions=True, exclude=None, **kwargs):
+    @root_validator(pre=True)
+    def to_anthropic(cls, values):
+        values["prompt"] = ""
+        for message in values.get("messages", []):
+            if message.get("role") == "user":
+                values["prompt"] += f'{HUMAN_PROMPT} {message.get("content")}'
+            else:
+                values["prompt"] += f'{AI_PROMPT} {message.get("content")}'
+        values["prompt"] += f"{AI_PROMPT} "
+        return values
+
+    def dict(self, *args, serialize_functions=True, **kwargs):
         """
         This method returns a dictionary representation of the Request.
         If the functions attribute is present and serialize_functions is True,
@@ -38,9 +54,7 @@ class Request(BaseRequest):
 
         # This identity function is here for no reason except to show
         # readers that custom adapters need only override the dict method.
-        return super().dict(
-            *args, serialize_functions=serialize_functions, exclude=exclude, **kwargs
-        )
+        return super().dict(*args, serialize_functions=serialize_functions, **kwargs)
 
 
 class Response(BaseModel):
@@ -79,9 +93,7 @@ class Response(BaseModel):
         If there is only one choice, it returns the message from that choice.
         Otherwise, it returns a list of messages from all choices.
         """
-        if len(self.raw.choices) == 1:
-            return next(iter(self.raw.choices)).message
-        return [x.message for x in self.raw.choices]
+        return self.raw.completion
 
     @property
     def function_call(self):
@@ -90,9 +102,10 @@ class Response(BaseModel):
         If the message is a list, it returns a list of function calls from all messages.
         Otherwise, it returns the function call from the message.
         """
-        if isinstance(self.message, list):
-            return [x.function_call for x in self.message]
-        return self.message.function_call
+
+        return AnthropicFunctionCall.parse_raw(self.message).dict(
+            exclude={"function_call"}
+        )
 
     @property
     def callables(self):
@@ -138,20 +151,44 @@ class Response(BaseModel):
         return self.raw.__repr__(*args, **kwargs)
 
 
-class OpenAIChatCompletion(ChatCompletionBase):
+class AnthropicChatCompletion(ChatCompletionBase):
     """
     This class is used to create and handle chat completions from the API.
     It provides several utility functions to create the request, send it to the API,
     and handle the response.
     """
 
-    _module: str = "openai.ChatCompletion"  # the module used to interact with the API
-    _request: str = "marvin.openai.ChatCompletion.Request"
-    _response: str = "marvin.openai.ChatCompletion.Response"
+    _module: str = "anthropic.Anthropic"  # the module used to interact with the API
+    _request: str = "marvin.engine.anthropic.Request"
+    _response: str = "marvin.engine.anthropic.Response"
     defaults: Optional[dict] = Field(None, repr=False)  # default configuration values
 
+    @property
+    def model(self):
+        """
+        This property imports and returns the API model.
+        """
+        return self.module(
+            api_key=self.request().api_key,
+        ).completions
 
-ChatCompletion = OpenAIChatCompletion()
+    def prepare_request(self, *args, **kwargs):
+        request, payload = super().prepare_request(*args, **kwargs)
+        payload.pop("messages", None)
+        payload.pop("api_key", None)
+        if payload.get("functions", None):
+            functions_prompt = Template(
+                import_string(request.Config.functions_prompt)
+            ).render(
+                functions=payload.get("functions"),
+                function_call=payload.get("function_call"),
+            )
+            payload["prompt"] = f"{HUMAN_PROMPT} {functions_prompt}" + payload["prompt"]
+            payload.pop("functions", None)
+        return request, payload
+
+
+ChatCompletion = AnthropicChatCompletion()
 
 # This is a legacy class that is used to create a ChatCompletion object.
 # It is deprecated and will be removed in a future release.
