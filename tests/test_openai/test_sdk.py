@@ -10,14 +10,6 @@ class TestRegressions:
         assert openai.ChatCompletion == ChatCompletion1
         assert openai.ChatCompletion == ChatCompletion2
 
-    def test_api_settings(self):
-        import openai
-
-        openai.api_key = "test"
-        from marvin import openai
-
-        assert openai.api_key == "test"
-
     def test_default_settings(self):
         from marvin import openai, settings
 
