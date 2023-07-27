@@ -23,7 +23,10 @@ class Request(BaseSettings):
     messages: Optional[List[dict[str, str]]] = None  # messages to send to the API
     functions: List[Union[dict, Callable]] = None  # functions to be used in the request
     function_call: Optional[Union[dict[Literal["name"], str], Literal["auto"]]] = None
+
+    # Internal Marvin Attributes to be excluded from the data sent to the API
     response_model: Optional[Type[BaseModel]] = Field(default=None, exclude=True)
+    evaluate_function_call: bool = Field(default=False)
 
     class Config:
         exclude = {"response_model"}
@@ -62,10 +65,13 @@ class Request(BaseSettings):
         """
         for field in self.__fields__:
             if isinstance(getattr(self, field), list):
-                merged = getattr(self, field, []) + getattr(config, field, [])
+                merged = (getattr(self, field, []) or []) + (
+                    getattr(config, field, []) or []
+                )
                 setattr(self, field, merged)
             else:
-                setattr(self, field, getattr(config, field))
+                touched = config.dict(exclude_unset=True, serialize_functions=False)
+                setattr(self, field, touched.get(field, getattr(self, field)))
         return self
 
     def merge(self, **kwargs):
@@ -85,13 +91,16 @@ class Request(BaseSettings):
             for fn in self.functions or []
         ]
 
-    def dict(self, *args, serialize_functions=True, **kwargs):
+    def dict(self, *args, serialize_functions=True, exclude=None, **kwargs):
         """
         This method returns a dictionary representation of the Request.
         If the functions attribute is present and serialize_functions is True,
         the functions' schemas are also included.
         """
-        response = super().dict(*args, **kwargs)
+        exclude = exclude or {}
+        if serialize_functions:
+            exclude["evaluate_function_call"] = True
+        response = super().dict(*args, **kwargs, exclude=exclude)
         if response.get("functions") and serialize_functions:
             response.update({"functions": self.functions_schema()})
         return response
@@ -157,7 +166,7 @@ class Response(BaseModel):
         """
         return {fn.__name__: fn for fn in self.callables}
 
-    def evaluate(self, as_message=False):
+    def call_function(self, as_message=False):
         """
         This method evaluates the function call in the response and returns the result.
         If as_message is True, it returns the result as a function message.
@@ -186,14 +195,7 @@ class Response(BaseModel):
         return self.raw.__repr__(*args, **kwargs)
 
 
-class ChatCompletionMeta(ModelMetaclass):
-    @classmethod
-    def __new__(cls, *args, **kwargs):
-        instance = super().__new__(*args, **kwargs)
-        return instance()
-
-
-class ChatCompletion(BaseModel, metaclass=ChatCompletionMeta):
+class ChatCompletion(BaseModel):
     """
     This class is used to create and handle chat completions from the API.
     It provides several utility functions to create the request, send it to the API,
@@ -201,9 +203,11 @@ class ChatCompletion(BaseModel, metaclass=ChatCompletionMeta):
     """
 
     _module: str = "openai.ChatCompletion"  # the module used to interact with the API
-    _config: str = (  # the config class used to create the request
-        "marvin.openai.ChatCompletion.Request"
-    )
+    _config: str = "marvin.openai.ChatCompletion.Request"
+    defaults: Optional[dict] = Field(None, repr=False)  # default configuration values
+
+    def __init__(self, module_path: str = None, config_path: str = None, **kwargs):
+        super().__init__(_module=module_path, _config=config_path, defaults=kwargs)
 
     @property
     def model(self):
@@ -212,20 +216,23 @@ class ChatCompletion(BaseModel, metaclass=ChatCompletionMeta):
         """
         return import_string(self._module)
 
-    def config(self, *args, **kwargs):
+    def config(self, *args, **kwargs) -> Request:
         """
         This method imports and returns a configuration object.
         """
-        return import_string(self._config)(*args, **kwargs)
+        return import_string(self._config)(*args, **(kwargs or self.defaults or {}))
 
-    def create(self, *args, **kwargs):
+    def create(self=None, *args, **kwargs):
         """
         This method creates a request and sends it to the API.
         It returns a Response object with the raw response and the request.
         """
         request = self.config() | self.config(**kwargs)
         payload = request.dict(exclude_none=True, exclude_unset=True)
-        return Response(self.model.create(**payload), request=request)
+        response = Response(self.model.create(**payload), request=request)
+        if request.evaluate_function_call and response.function_call:
+            return response.call_function(as_message=True)
+        return response
 
     async def acreate(self, *args, **kwargs):
         """
@@ -235,9 +242,15 @@ class ChatCompletion(BaseModel, metaclass=ChatCompletionMeta):
         """
         request = self.config() | self.config(**kwargs)
         payload = request.dict(exclude_none=True, exclude_unset=True)
-        return Response(await self.model.acreate(**payload), request=request)
+        response = Response(await self.model.acreate(**payload), request=request)
+        if self.config.evaluate_function_call and response.function_call:
+            return response.call_function(as_message=True)
+        return response
 
     def __call__(self, *args, **kwargs):
+        config = self.config()
+        passed = self.__class__(**kwargs).config()
+        self.defaults = (config | passed).dict(serialize_functions=False)
         return self
 
 
