@@ -15,8 +15,12 @@ from .abstract import (
     AbstractChatCompletionSettings,
     AbstractChatRequest,
     AbstractChatResponse,
-    AbstractChatCompletionFunctionCall,
+    AbstractConversationState,
 )
+
+
+class BaseConversationState(AbstractConversationState):
+    pass
 
 
 class BaseChatCompletionSettings(BaseSettings, AbstractChatCompletionSettings):
@@ -158,6 +162,8 @@ class BaseChatCompletion(BaseModel, AbstractChatCompletion):
 
     _request_class: BaseChatRequest
     _response_class: BaseChatResponse
+    _state_class: BaseConversationState
+
     _defaults: dict[str, Any] = None
 
     @property
@@ -181,21 +187,22 @@ class BaseChatCompletion(BaseModel, AbstractChatCompletion):
         ).merge(**kwargs)
 
     def create(self, *args, **kwargs):
-        request = self.prepare_request(**kwargs)
-        request_dict = request.schema()
-        create = getattr(self.model(request), self._create)
-
-        return self.response(raw=create(*args, **request_dict), request=request)
+        with BaseConversationState(self):
+            request = self.prepare_request(**kwargs)
+            request_dict = request.schema()
+            create = getattr(self.model(request), self._create)
+            return self.response(raw=create(*args, **request_dict), request=request)
 
     async def acreate(self, *args, **kwargs):
-        request = self.prepare_request(**kwargs)
-        request_dict = request.schema()
-        acreate = getattr(self.model(request), self._acreate)
+        with BaseConversationState(self):
+            request = self.prepare_request(**kwargs)
+            request_dict = request.schema()
+            acreate = getattr(self.model(request), self._acreate)
 
-        return self.response(
-            raw=await acreate(*args, **request_dict),
-            request=request,
-        )
+            return self.response(
+                raw=await acreate(*args, **request_dict),
+                request=request,
+            )
 
     class Config:
         keep_untouched = (cached_property,)
