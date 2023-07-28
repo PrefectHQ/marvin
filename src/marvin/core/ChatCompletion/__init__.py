@@ -1,20 +1,34 @@
-from marvin.pydantic import validate_arguments
+from marvin.pydantic import validate_arguments, BaseModel
 from typing import Literal
 from marvin.utilities.module_loading import import_string
 
-models = {
-    "gpt-3.5-turbo": ("marvin.core.ChatCompletion.providers.openai", "gpt-3.5-turbo"),
-    "gpt-4": (
-        "marvin.core.ChatCompletion.providers.openai",
-        "gpt-4",
-    ),
-    "claude-1": ("marvin.core.ChatCompletion.providers.anthropic", "claude-1"),
-    "claude-2": ("marvin.core.ChatCompletion.providers.anthropic", "claude-2"),
-}
+
+class Model(BaseModel):
+    model: str
+    path: str
+
+    def module(self):
+        return import_string(f"{self.path}.ChatCompletion")
+
+    def chat_completion(self, **kwargs):
+        return self.module()(_defaults={**self.dict(), **kwargs})
+
+    def dict(self, **kwargs):
+        return super().dict(**kwargs, exclude={"path"})
+
+
+models = [
+    Model(model="gpt-3.5-turbo", path="marvin.core.ChatCompletion.providers.openai"),
+    Model(model="gpt-4", path="marvin.core.ChatCompletion.providers.openai"),
+    Model(model="claude-1", path="marvin.core.ChatCompletion.providers.anthropic"),
+    Model(model="claude-2", path="marvin.core.ChatCompletion.providers.anthropic"),
+]
+
+registry = {model.model: model for model in models}
+keys = [model.model for model in models]
 
 
 @validate_arguments
-def ChatCompletion(model: Literal[*models.keys()], **kwargs):
-    path, model = models.get(model, None)
-    module = import_string(f"{path}.ChatCompletion")
-    return module(_defaults={"model": model, **kwargs})
+def ChatCompletion(model: Literal[*keys], **kwargs):
+    model = registry[model]
+    return model.chat_completion(**kwargs)
