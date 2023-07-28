@@ -157,6 +157,7 @@ class BaseChatCompletion(BaseModel, AbstractChatCompletion):
     _response_class: str
     _create: str
     _acreate: str
+    _defaults: dict = None
 
     @property
     def module(self):
@@ -174,7 +175,9 @@ class BaseChatCompletion(BaseModel, AbstractChatCompletion):
         return import_string(self._response_class)
 
     def prepare_request(self, **kwargs):
-        return self.request(**self.dict()).merge(**kwargs)
+        return self.request(**self._defaults, **self.dict(exclude={"_defaults"})).merge(
+            **kwargs
+        )
 
     def create(self, *args, **kwargs):
         request = self.prepare_request(**kwargs)
@@ -193,9 +196,5 @@ class BaseChatCompletion(BaseModel, AbstractChatCompletion):
 
     class Config:
         keep_untouched = (cached_property,)
+        exclude = {"_defaults"}
         extra = Extra.allow
-
-
-class BaseChatCompletionFunctionCall(BaseModel, AbstractChatCompletionFunctionCall):
-    functions: list[dict]
-    function_call: Optional[Union[Literal["auto"], dict[Literal["name"], str]]] = None

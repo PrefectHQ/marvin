@@ -3,7 +3,15 @@ from pydantic.version import VERSION as PYDANTIC_VERSION
 PYDANTIC_V2 = PYDANTIC_VERSION.startswith("2.")
 
 if not PYDANTIC_V2:
-    from pydantic import BaseModel, BaseSettings, Extra, Field, PrivateAttr, SecretStr
+    from pydantic import (
+        BaseModel,
+        BaseSettings,
+        Extra,
+        Field,
+        PrivateAttr,
+        SecretStr,
+        validate_arguments,
+    )
 
     BaseModel = BaseModel
     BaseSettings = BaseSettings
@@ -11,3 +19,4 @@ if not PYDANTIC_V2:
     SecretStr = SecretStr
     Extra = Extra
     PrivateAttr = PrivateAttr
+    validate_arguments = validate_arguments
