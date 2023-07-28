@@ -158,7 +158,7 @@ class BaseChatCompletion(BaseModel, AbstractChatCompletion):
 
     _request_class: BaseChatRequest
     _response_class: BaseChatResponse
-    _defaults: dict[str, Any]
+    _defaults: dict[str, Any] = None
 
     @property
     def module(self):
@@ -176,9 +176,9 @@ class BaseChatCompletion(BaseModel, AbstractChatCompletion):
         return self._response_class
 
     def prepare_request(self, **kwargs):
-        return self.request(**self._defaults, **self.dict(exclude={"_defaults"})).merge(
-            **kwargs
-        )
+        return self.request(
+            **(self._defaults or {}), **self.dict(exclude={"_defaults"})
+        ).merge(**kwargs)
 
     def create(self, *args, **kwargs):
         request = self.prepare_request(**kwargs)
