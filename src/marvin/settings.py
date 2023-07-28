@@ -4,6 +4,8 @@ from typing import Literal, Union
 
 from pydantic import BaseSettings, Field, SecretStr, root_validator, validator
 
+ENV_PATH = Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()
+
 
 class MarvinBaseSettings(BaseSettings):
     class Config:
