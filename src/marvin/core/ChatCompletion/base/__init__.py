@@ -153,11 +153,12 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
 
 class BaseChatCompletion(BaseModel, AbstractChatCompletion):
     _module: str
-    _request_class: str
-    _response_class: str
     _create: str
     _acreate: str
-    _defaults: dict = None
+
+    _request_class: BaseChatRequest
+    _response_class: BaseChatResponse
+    _defaults: dict[str, Any]
 
     @property
     def module(self):
@@ -168,11 +169,11 @@ class BaseChatCompletion(BaseModel, AbstractChatCompletion):
 
     @property
     def request(self):
-        return import_string(self._request_class)
+        return self._request_class
 
     @property
     def response(self):
-        return import_string(self._response_class)
+        return self._response_class
 
     def prepare_request(self, **kwargs):
         return self.request(**self._defaults, **self.dict(exclude={"_defaults"})).merge(
@@ -182,15 +183,17 @@ class BaseChatCompletion(BaseModel, AbstractChatCompletion):
     def create(self, *args, **kwargs):
         request = self.prepare_request(**kwargs)
         request_dict = request.schema()
-        return self.response(
-            raw=self.model(request).create(*args, **request_dict), request=request
-        )
+        create = getattr(self.model(request), self._create)
+
+        return self.response(raw=create(*args, **request_dict), request=request)
 
     async def acreate(self, *args, **kwargs):
         request = self.prepare_request(**kwargs)
         request_dict = request.schema()
+        acreate = getattr(self.model(request), self._acreate)
+
         return self.response(
-            raw=await self.model(request).acreate(*args, **request_dict),
+            raw=await acreate(*args, **request_dict),
             request=request,
         )
 

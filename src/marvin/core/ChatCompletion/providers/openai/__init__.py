@@ -55,10 +55,11 @@ class ChatResponse(BaseChatResponse):
 
 class ChatCompletion(BaseChatCompletion):
     _module: str = "openai.ChatCompletion"
-    _request_class: str = f"{__name__}.ChatRequest"
-    _response_class: str = f"{__name__}.ChatResponse"
     _create: str = "create"
     _acreate: str = "acreate"
+
+    _request_class: ChatRequest = ChatRequest
+    _response_class: ChatResponse = ChatResponse
 
     def prepare_request(self, **kwargs):
         """
