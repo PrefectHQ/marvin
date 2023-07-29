@@ -19,8 +19,19 @@ from .abstract import (
 )
 
 
-class BaseConversationState(AbstractConversationState):
-    pass
+class BaseConversationState(BaseModel, AbstractConversationState):
+    """
+    Placeholder for conversation state.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(**kwargs)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        pass
 
 
 class BaseChatCompletionSettings(BaseSettings, AbstractChatCompletionSettings):
@@ -113,7 +124,7 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         If it doesn't exist, it falls back to the standard attribute access.
         """
         try:
-            return self.raw.__getattr__(name)
+            return getattr(self.raw, name)
         except AttributeError:
             return self.__getattribute__(name)
 

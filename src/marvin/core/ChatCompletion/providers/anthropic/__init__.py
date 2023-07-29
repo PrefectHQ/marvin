@@ -36,7 +36,7 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
 
 class ChatRequest(BaseChatRequest):
     prompt: Optional[str] = Field(default=None)
-    _config = ChatCompletionSettings()
+    _config: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
 
     class Config(BaseChatRequest.Config):
         exclude = BaseChatRequest.Config.exclude.union(

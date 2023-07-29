@@ -9,16 +9,14 @@ def cached_import(module_path, class_name):
     """
 
     # Check if the module is already imported
-    module = sys.modules.get(module_path, None)
-    module_already_loaded = (
-        module
-        and getattr(sys.modules[module_path], "__spec__", False)
-        and getattr(sys.modules[module_path].__spec__, "_initializing", False) is False
-    )
-    if not module_already_loaded:
+
+    if not (
+        (module := sys.modules.get(module_path))
+        and (spec := getattr(module, "__spec__", None))
+        and getattr(spec, "_initializing", False) is False
+    ):
         module = import_module(module_path)
-    else:
-        return getattr(sys.modules[module], class_name)
+    return getattr(module, class_name)
 
 
 def import_string(path: str):

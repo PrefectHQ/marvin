@@ -17,5 +17,5 @@ class AbstractChatCompletion(ABC):
     pass
 
 
-class AbstractChatCompletionFunctionCall(ABC):
+class AbstractConversationState(ABC):
     pass
