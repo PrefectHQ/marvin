@@ -25,10 +25,17 @@ models = [
 ]
 
 registry = {model.model: model for model in models}
-keys = [model.model for model in models]
 
 
 @validate_arguments
-def ChatCompletion(model: Literal[*keys], **kwargs):
+def ChatCompletion(
+    model: Literal[
+        "gpt-3.5-turbo",
+        "gpt-4",
+        "claude-1",
+        "claude-2",
+    ],
+    **kwargs,
+):
     model = registry[model]
     return model.chat_completion(**kwargs)
