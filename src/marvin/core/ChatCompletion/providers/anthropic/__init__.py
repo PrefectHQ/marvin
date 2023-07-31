@@ -1,4 +1,4 @@
-from marvin.pydantic import Field, SecretStr, BaseModel
+from marvin.pydantic import Field, SecretStr, BaseModel, PrivateAttr
 import re
 from marvin.utilities.module_loading import import_string
 from typing import Optional
@@ -20,7 +20,9 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
     """
 
     model: str = "claude-2"
-    api_key: SecretStr = Field(env=["MARVIN_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"])
+    api_key: SecretStr = Field(
+        None, env=["MARVIN_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"]
+    )
     _function_call_prompt: str = f"{__name__}.FunctionCallPrompt"
     max_tokens_to_sample: int = 1000
 
@@ -29,14 +31,15 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
         return import_string(self._function_call_prompt)
 
     class Config(BaseChatCompletionSettings.Config):
-        env_prefix = "MARVIN_ANTHROPIC_"
         exclude_none = True
         exclude = {"api_key"}
 
 
 class ChatRequest(BaseChatRequest):
     prompt: Optional[str] = Field(default=None)
-    _config: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
+    _config: ChatCompletionSettings = PrivateAttr(
+        default_factory=ChatCompletionSettings
+    )
 
     class Config(BaseChatRequest.Config):
         exclude = BaseChatRequest.Config.exclude.union(
@@ -45,6 +48,29 @@ class ChatRequest(BaseChatRequest):
 
 
 class ChatResponse(BaseChatResponse):
+    @property
+    def choices(self):
+        # TODO: This is a hack, should use native classes
+        class AttrDict(dict):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                self.__dict__ = self
+
+        return [
+            AttrDict(
+                **{
+                    "index": 0,
+                    "message": AttrDict(
+                        **{
+                            "role": "assistant",
+                            "content": self.raw.completion,
+                        }
+                    ),
+                    "finish_reason": "stop",
+                }
+            )
+        ]
+
     @property
     def message(self):
         """
@@ -96,7 +122,10 @@ class ChatCompletion(BaseChatCompletion):
         It sets the prompt to the messages in the request.
         """
         request = super().prepare_request(**kwargs)
-        request.prompt = " ".join(
+        request.prompt = ""
+        if next(iter(request.messages), {}).get("content", None) != "user":
+            request.prompt += HUMAN_PROMPT
+        request.prompt += " ".join(
             [
                 "{prompt} {content}".format(
                     prompt={"user": HUMAN_PROMPT}.get(message.get("role"), AI_PROMPT),
@@ -109,9 +138,7 @@ class ChatCompletion(BaseChatCompletion):
             request.prompt += (
                 AI_PROMPT
                 + " "
-                + jinja_env.from_string(
-                    self.request._config.function_call_prompt
-                ).render(
+                + jinja_env.from_string(request._config.function_call_prompt).render(
                     functions=request.schema(exclude=set()).get("functions"),
                     function_call=request.function_call,
                 )

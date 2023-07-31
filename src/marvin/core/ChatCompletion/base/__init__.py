@@ -1,10 +1,17 @@
-from marvin.pydantic import BaseModel, BaseSettings, Extra, Field, SecretStr
+from marvin.pydantic import (
+    BaseModel,
+    BaseSettings,
+    Extra,
+    Field,
+    SecretStr,
+    ModelMetaclass,
+)
 from marvin.settings import ENV_PATH
 from typing import Callable, Literal, Optional, Union, Type, Any
 import os
 from pathlib import Path
 from marvin.types import Function
-from functools import cached_property
+from functools import cached_property, singledispatch
 from marvin.utilities.module_loading import import_string
 from operator import itemgetter
 
@@ -166,7 +173,16 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         return self.request._response_model.parse_raw(self.function_call.arguments)
 
 
-class BaseChatCompletion(BaseModel, AbstractChatCompletion):
+class MetaChatCompletion(ModelMetaclass):
+    def __getattribute__(cls, name):
+        if name in ["create", "acreate"]:
+            return cls().__getattribute__(name)
+        return super().__getattribute__(name)
+
+
+class BaseChatCompletion(
+    BaseModel, AbstractChatCompletion, metaclass=MetaChatCompletion
+):
     _module: str
     _create: str
     _acreate: str
@@ -214,6 +230,9 @@ class BaseChatCompletion(BaseModel, AbstractChatCompletion):
                 raw=await acreate(*args, **request_dict),
                 request=request,
             )
+
+    def __call__(self, *args, **kwargs):
+        return self
 
     class Config:
         keep_untouched = (cached_property,)

@@ -12,7 +12,9 @@ if not PYDANTIC_V2:
         SecretStr,
         validate_arguments,
     )
+    from pydantic.main import ModelMetaclass
 
+    ModelMetaclass = ModelMetaclass
     BaseModel = BaseModel
     BaseSettings = BaseSettings
     Field = Field

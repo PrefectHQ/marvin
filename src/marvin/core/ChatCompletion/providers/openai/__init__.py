@@ -1,4 +1,4 @@
-from marvin.pydantic import Field, SecretStr
+from marvin.pydantic import Field, SecretStr, PrivateAttr
 from marvin.utilities.module_loading import import_string
 from marvin.core.ChatCompletion.base import (
     BaseChatCompletion,
@@ -26,7 +26,9 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
 
 
 class ChatRequest(BaseChatRequest):
-    _config = ChatCompletionSettings()
+    _config: ChatCompletionSettings = PrivateAttr(
+        default_factory=ChatCompletionSettings
+    )
 
 
 class ChatResponse(BaseChatResponse):
@@ -67,3 +69,6 @@ class ChatCompletion(BaseChatCompletion):
         off of the OpenAI API.
         """
         return super().prepare_request(**kwargs)
+
+
+OpenAIChatCompletion = ChatCompletion()
