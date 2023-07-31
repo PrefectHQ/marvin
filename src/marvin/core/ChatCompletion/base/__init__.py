@@ -175,7 +175,7 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
 
 class MetaChatCompletion(ModelMetaclass):
     def __getattribute__(cls, name):
-        if name in ["create", "acreate"]:
+        if name in ["create", "acreate", "prepare_request"]:
             return cls().__getattribute__(name)
         return super().__getattribute__(name)
 

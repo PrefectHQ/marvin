@@ -20,6 +20,14 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
     api_base: str = Field(None, description="The endpoint the OpenAI API.")
     api_version: str = Field(None, description="The API version")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.api_type is None:
+            from marvin import openai
+
+            if openai.api_key:
+                self.api_key = openai.api_key
+
     class Config(BaseChatCompletionSettings.Config):
         env_prefix = "MARVIN_OPENAI_"
         exclude_none = True
