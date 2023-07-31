@@ -108,6 +108,17 @@ class AIModel(LoggerMixin, BaseModel):
         as_dict_: bool = False,
         **kwargs,
     ):
+        """
+        Class method to extract structured data from text.
+
+        Args:
+            text_: The text to parse into a structured form.
+            instructions_: Additional string instructions to assist the model.
+            model_: The language model to use.
+            as_dict_: Whether to return the result as a dictionary or as an
+                instance of this class.
+            kwargs: Additional keyword arguments to pass to the constructor.
+        """
         return run_sync(
             cls._extract_async(
                 text_=text_,
@@ -128,17 +139,6 @@ class AIModel(LoggerMixin, BaseModel):
         as_dict_: bool = False,
         **kwargs,
     ):
-        """
-        Class method to extract structured data from text.
-
-        Args:
-            text_: The text to parse into a structured form.
-            instructions_: Additional string instructions to assist the model.
-            model_: The language model to use.
-            as_dict_: Whether to return the result as a dictionary or as an
-                instance of this class.
-            kwargs: Additional keyword arguments to pass to the constructor.
-        """
         prompts = extract_structured_data_prompts.copy()
         if instructions_:
             prompts.append(prompt_library.System(content=instructions_))
@@ -158,6 +158,7 @@ class AIModel(LoggerMixin, BaseModel):
         *,
         instructions_: str = None,
         model_: ChatLLM = None,
+        as_dict_: bool = False,
         **kwargs,
     ):
         """Class method to generate structured data from text.
@@ -166,16 +167,41 @@ class AIModel(LoggerMixin, BaseModel):
             text_: The text to parse into a structured form.
             instructions_: Additional instructions to assist the model.
             model_: The language model to use.
+            as_dict_: Whether to return the result as a dictionary or as an
+                instance of this class.
             kwargs: Additional keyword arguments to pass to the constructor.
         """
+        return run_sync(
+            cls._generate_async(
+                text_=text_,
+                instructions_=instructions_,
+                model_=model_,
+                as_dict_=as_dict_,
+                **kwargs,
+            )
+        )
+
+    @classmethod
+    async def _generate_async(
+        cls,
+        text_: str = None,
+        *,
+        instructions_: str = None,
+        model_: ChatLLM = None,
+        as_dict_: bool = False,
+        **kwargs,
+    ):
         prompts = generate_structured_data_prompts
         if instructions_:
             prompts.append(prompt_library.System(content=instructions_))
-        arguments = cls._get_arguments(
+        arguments = await cls._get_arguments(
             model=model_, prompts=prompts, render_kwargs=dict(input_text=text_)
         )
         arguments.update(kwargs)
-        return cls(**arguments)
+        if as_dict_:
+            return arguments
+        else:
+            return cls(**arguments)
 
     @classmethod
     def map(
