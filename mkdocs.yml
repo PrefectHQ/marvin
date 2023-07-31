@@ -6,9 +6,12 @@ docs_dir: docs
 repo_url: https://github.com/prefecthq/marvin
 
 nav:
-  - Welcome:
-    - welcome.md
+  - Getting Started:
+    - welcome/what_is_marvin.md
+    - welcome/installation.md
+    - welcome/quickstart.md
   - Docs:
+    - Overview: welcome/overview.md
     - Configuration: 
       - Settings: configuration/settings.md
       - Providers: configuration/providers.md
@@ -16,10 +19,18 @@ nav:
       - ChatCompletion: utilities/chat_completion.md
       - Prompt: utilities/prompt.md
     - Components: 
+      - Overview: components/overview.md
       - AI Function: components/ai_function.md
       - AI Model: components/ai_model.md
       - AI Classifier: components/ai_classifier.md
       - AI Application: components/ai_application.md
+    - Deployment: 
+      - FastAPI: 
+        - deployment/index.md
+  - Community:
+    - community/index.md
+    - Feedback 💙: community/feedback.md
+    - Contributing: community/development_guide.md
 
 
 theme:
