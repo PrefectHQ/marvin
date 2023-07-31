@@ -1,8 +1,7 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
-
 from marvin import AIApplication
+from pydantic import BaseModel, Field
 
 
 class ToDo(BaseModel):

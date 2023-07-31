@@ -1,7 +1,7 @@
 [project]
 name = "marvin"
 dynamic = ["version"]
-description = "A lightweight framework for building AI-powered software that's reliable, scalable, and easy to trust."
+description = "A lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust."
 readme = "README.md"
 license = { file = "LICENSE" }
 classifiers = [

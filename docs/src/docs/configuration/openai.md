@@ -1,7 +1,17 @@
 # OpenAI
 
-Marvin supports OpenAI's GPT-3.5 and GPT-4 models, and uses the `gpt-3.5-turbo` model by default. In order to use the OpenAI API, you must provide an API key.
+Marvin supports OpenAI's GPT-3.5 and GPT-4 models, and uses the `openai/gpt-4` model by default. In order to use the OpenAI API, you must provide an API key.
 
+## Configuration
+
+To use OpenAI models, you can set the following configuration options:
+
+| Setting | Env Variable | Runtime Variable | Required? | Notes |
+| --- | --- | --- |  :---: | --- |
+| API key | `MARVIN_OPENAI_API_KEY` | `marvin.settings.openai.api_key` | ✅ | |
+
+!!! tip "Using the Azure OpenAI Service"
+    To use the Azure OpenAI Service, configure it [explicitly](/src/docs/configuration/azure_openai).
 ## Getting an API key
 
 To obtain an OpenAI API key, follow these steps:
@@ -17,7 +27,11 @@ You can set your API key at runtime like this:
 ```python
 import marvin
 
+# Marvin 1.1+
 marvin.settings.openai.api_key = YOUR_API_KEY
+
+# Marvin 1.0
+marvin.settings.openai_api_key = YOUR_API_KEY
 ```
 
 However, it is preferable to pass sensitive settings as an environment variable: `MARVIN_OPENAI_API_KEY`. 
@@ -39,7 +53,5 @@ Once your API key is set, you can use any valid OpenAI model by providing it as 
 ```python
 import marvin
 
-marvin.settings.llm_model = 'gpt-4-0613'
+marvin.settings.llm_model = 'openai/gpt-4-0613'
 ```
-
-Marvin will automatically recognize that the `gpt-3.5*` and `gpt-4*` families of models use the OpenAI provider. To indicate a provider explicitly, prefix the model name with `openai/`. For example: `marvin.settings.llm_model = 'openai/gpt-4'`.

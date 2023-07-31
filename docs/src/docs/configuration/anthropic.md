@@ -11,6 +11,14 @@ Marvin supports Anthropic's Claude 1 and Claude 2 models. In order to use the An
 !!! warning "Anthropic is not optimized for calling functions"
     Anthropic's models are not fine-tuned for calling functions or generating structured outputs. Therefore, Marvin adds a significant number of additional instructions to get Anthropic models to mimic this behavior. Empirically, this works very well for most Marvin components, including functions, models, and classifiers. However, it may not perform as well for more complex AI Applications.
 
+## Configuration
+
+To use Anthropic models, you can set the following configuration options:
+
+| Setting | Env Variable | Runtime Variable | Required? | Notes |
+| --- | --- | --- |  :---: | --- |
+| API key | `MARVIN_ANTHROPIC_API_KEY` | `marvin.settings.anthropic.api_key` | ✅ | |
+
 ## Getting an API key
 
 To obtain an Anthropic API key, follow these steps:

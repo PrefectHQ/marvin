@@ -18,7 +18,7 @@ async def create_openai_embeddings(texts: List[str]) -> List[List[float]]:
 
     embeddings = await openai.Embedding.acreate(
         input=[text.replace("\n", " ") for text in texts],
-        engine=marvin.settings.embedding_engine,
+        engine=marvin.settings.openai.embedding_engine,
     )
 
     return [

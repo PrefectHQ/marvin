@@ -65,7 +65,7 @@ class OpenAIFunction(MarvinBaseModel):
 
 class ChatLLM(MarvinBaseModel, abc.ABC):
     name: str = None
-    model: str = Field(default_factory=lambda: marvin.settings.llm_model)
+    model: str
     max_tokens: int = Field(default_factory=lambda: marvin.settings.llm_max_tokens)
     temperature: float = Field(default_factory=lambda: marvin.settings.llm_temperature)
 
@@ -80,7 +80,12 @@ class ChatLLM(MarvinBaseModel, abc.ABC):
         return 4096
 
     def get_tokens(self, text: str, **kwargs) -> list[int]:
-        enc = tiktoken.encoding_for_model(self.model)
+        try:
+            enc = tiktoken.encoding_for_model(self.model)
+        # fallback to the gpt-3.5-turbo tokenizer if the model is not found
+        # note this will give the wrong answer for non-OpenAI models
+        except KeyError:
+            enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
         return enc.encode(text)
 
     async def __call__(self, messages, *args, **kwargs):
@@ -108,14 +113,13 @@ class ChatLLM(MarvinBaseModel, abc.ABC):
 
 
 def chat_llm(model: str = None, **kwargs) -> ChatLLM:
+    """Dispatches to all supported LLM providers"""
     if model is None:
         model = marvin.settings.llm_model
 
-    # automatically detect well-known model providers
+    # automatically detect gpt-3.5 and gpt-4 for backwards compatibility
     if model.startswith("gpt-3.5-turbo") or model.startswith("gpt-4"):
         model = f"openai/{model}"
-    elif model.startswith("claude-"):
-        model = f"anthropic/{model}"
 
     # extract the provider and model name
     provider, model_name = model.split("/", 1)
@@ -128,5 +132,9 @@ def chat_llm(model: str = None, **kwargs) -> ChatLLM:
         from .anthropic import AnthropicChatLLM
 
         return AnthropicChatLLM(model=model_name, **kwargs)
+    elif provider == "azure_openai":
+        from .azure_openai import AzureOpenAIChatLLM
+
+        return AzureOpenAIChatLLM(model=model_name, **kwargs)
     else:
-        raise ValueError(f"Unknown provider / model: {model}")
+        raise ValueError(f"Unknown provider/model: {model}")

@@ -33,7 +33,10 @@ class FormatResponse(Tool):
                 raise ValueError(f"Expected a type or GenericAlias, got {type_}")
 
             # warn if the type is a set or tuple with GPT 3.5
-            if marvin.settings.llm_model.startswith("gpt-3.5"):
+            if (
+                "gpt-3.5" in marvin.settings.llm_model
+                or "gpt-35" in marvin.settings.llm_model
+            ):
                 if safe_issubclass(type_, (set, tuple)) or genericalias_contains(
                     type_, (set, tuple)
                 ):
@@ -50,7 +53,11 @@ class FormatResponse(Tool):
             )
             type_schema.pop("title", None)
             kwargs["type_schema"] = type_schema
+
         super().__init__(**kwargs)
+        if type_ is not SENTINEL:
+            if type_schema.get("description"):
+                self.description += f"\n\n {type_schema['description']}"
 
         if type_ is not SENTINEL:
             self._cached_type = type_

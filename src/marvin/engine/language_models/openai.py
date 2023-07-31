@@ -14,14 +14,14 @@ from marvin.utilities.messages import Message, Role
 from .base import ChatLLM, OpenAIFunction, StreamHandler
 
 CONTEXT_SIZES = {
-    "gpt-3.5-turbo": 4096,
-    "gpt-3.5-turbo-0613": 4096,
-    "gpt-3.5-turbo-16k": 16384,
     "gpt-3.5-turbo-16k-0613": 16384,
-    "gpt-4": 8192,
-    "gpt-4-0613": 8192,
-    "gpt-4-32k": 32768,
+    "gpt-3.5-turbo-16k": 16384,
+    "gpt-3.5-turbo-0613": 4096,
+    "gpt-3.5-turbo": 4096,
     "gpt-4-32k-0613": 32768,
+    "gpt-4-32k": 32768,
+    "gpt-4-0613": 8192,
+    "gpt-4": 8192,
 }
 
 
@@ -75,9 +75,37 @@ class OpenAIStreamHandler(StreamHandler):
 
 
 class OpenAIChatLLM(ChatLLM):
+    model: str = "gpt-3.5-turbo"
+
     @property
     def context_size(self) -> int:
-        return CONTEXT_SIZES.get(self.model, 4096)
+        if self.model in CONTEXT_SIZES:
+            return CONTEXT_SIZES[self.model]
+        else:
+            for model_prefix, context in CONTEXT_SIZES:
+                if self.model.startswith(model_prefix):
+                    return context
+        return 4096
+
+    def _get_openai_settings(self) -> dict:
+        openai_kwargs = {}
+        if marvin.settings.openai.api_key:
+            openai_kwargs["api_key"] = marvin.settings.openai.api_key.get_secret_value()
+        else:
+            raise ValueError(
+                "OpenAI API key not set. Please set it or use the"
+                " MARVIN_OPENAI_API_KEY environment variable."
+            )
+
+        if marvin.settings.openai.api_type:
+            openai_kwargs["api_type"] = marvin.settings.openai.api_type
+        if marvin.settings.openai.api_base:
+            openai_kwargs["api_base"] = marvin.settings.openai.api_base
+        if marvin.settings.openai.api_version:
+            openai_kwargs["api_version"] = marvin.settings.openai.api_version
+        if marvin.settings.openai.organization:
+            openai_kwargs["organization"] = marvin.settings.openai.organization
+        return openai_kwargs
 
     def format_messages(
         self, messages: list[Message]
@@ -123,6 +151,9 @@ class OpenAIChatLLM(ChatLLM):
         # Form OpenAI-specific arguments
         # ----------------------------------
 
+        openai_kwargs = self._get_openai_settings()
+        kwargs.update(openai_kwargs)
+
         prompt = self.format_messages(messages)
         llm_functions = [f.dict(exclude={"fn"}, exclude_none=True) for f in functions]
 
@@ -136,25 +167,33 @@ class OpenAIChatLLM(ChatLLM):
         # Call OpenAI LLM
         # ----------------------------------
 
-        if not marvin.settings.openai.api_key:
-            raise ValueError(
-                "OpenAI API key not set. Please set it or use the MARVIN_OPENAI_API_KEY"
-                " environment variable."
-            )
+        kwargs.setdefault("temperature", self.temperature)
+        kwargs.setdefault("max_tokens", self.max_tokens)
+
         response = await openai.ChatCompletion.acreate(
-            api_key=marvin.settings.openai.api_key.get_secret_value(),
             model=self.model,
             messages=prompt,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
             stream=True if stream_handler else False,
+            request_timeout=marvin.settings.llm_request_timeout_seconds,
             **kwargs,
         )
 
         if stream_handler:
             handler = OpenAIStreamHandler(callback=stream_handler)
             msg = await handler.handle_streaming_response(response)
-            return msg
+            role = msg.role
+
+            if role == Role.ASSISTANT and isinstance(
+                msg.data.get("function_call"), dict
+            ):
+                role = Role.FUNCTION_REQUEST
+
+            return Message(
+                role=role,
+                content=msg.content,
+                data=msg.data,
+                llm_response=msg.llm_response,
+            )
 
         else:
             llm_response = response.to_dict_recursive()
@@ -164,7 +203,7 @@ class OpenAIChatLLM(ChatLLM):
                 role = Role.FUNCTION_REQUEST
             msg = Message(
                 role=role,
-                content=msg.pop("content"),
+                content=msg.pop("content", None),
                 data=msg,
                 llm_response=llm_response,
             )
