@@ -17,7 +17,6 @@ nav:
       - Providers: configuration/providers.md
     - Utilities: 
       - ChatCompletion: utilities/chat_completion.md
-      - Function Registry: utilities/function_registry.md
       - Prompt: utilities/prompt.md
     - Components: 
       - Overview: components/overview.md
