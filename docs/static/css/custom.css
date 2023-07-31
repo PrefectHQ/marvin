@@ -1,0 +1,50 @@
+/* color themes */
+
+
+/* Defaults for images */ 
+.md-typeset img {
+  /* max-width: 75%; */
+  /*center on page */
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.md-typeset h1, h2, h3 {
+  margin-bottom: .75em !important;
+  margin-top: .75em !important;
+}
+
+/* code (inline and block)*/
+.md-typeset code {
+  color: var(--md-code-hl-keyword-color);
+  padding: 0.2em 0.5em;
+  border: 1px solid var(--md-code-border-color);
+  border-radius: 4px;
+}
+
+/* code (block) */
+.md-typeset pre > code {
+  /* add very slight shadow to code blocks */
+  /* box-shadow: var(--md-shadow-z1); */
+  border: none;
+}
+
+/* In a notebook, don't add extra padding to admonitions */
+.jupyter-wrapper .admonition {
+  /* margin-top: 1em !important; */
+  /* margin-bottom: 0px !important; */
+}
+
+.jp-InputPrompt, .jp-OutputPrompt, .jp-Collapser, .celltag_hide_cell {
+  display: none !important;
+}
+
+.jp-Cell > .jp-Cell {
+  padding: 0px !important;
+}
+
+
+/* .jp-CodeCell {
+  padding: 0px !important;
+} */

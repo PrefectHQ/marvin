@@ -27,6 +27,32 @@ nav:
     - Deployment: 
       - FastAPI: 
         - deployment/index.md
+    - Examples:
+      - Slackbot: examples/slackbot.md
+  - API Reference:
+    # - src/api_reference/index.md
+    - AI Components:
+      - ai_application: api_reference/components/ai_application.md
+      - ai_classifier: api_reference/components/ai_classifier.md
+      - ai_function: api_reference/components/ai_function.md
+      - ai_model: api_reference/components/ai_model.md
+    - LLM Engines:
+      - base: api_reference/engine/language_models/base.md
+      - openai: api_reference/engine/language_models/openai.md
+      - anthropic: api_reference/engine/language_models/anthropic.md
+    - Prompts:
+      - base: api_reference/prompts/base.md
+      - library: api_reference/prompts/library.md
+    - Settings:
+      - settings: api_reference/settings.md
+    - Utilities:
+      - async_utils: api_reference/utilities/async_utils.md
+      - embeddings: api_reference/utilities/embeddings.md
+      - history: api_reference/utilities/history.md
+      - logging: api_reference/utilities/logging.md
+      - messages: api_reference/utilities/messages.md
+      - strings: api_reference/utilities/strings.md
+      - types: api_reference/utilities/types.md
   - Community:
     - community/index.md
     - Feedback 💙: community/feedback.md
@@ -35,7 +61,6 @@ nav:
 
 theme:
   features:
-    - header.autohide
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.sections
@@ -56,6 +81,28 @@ theme:
 plugins:
   - search
   - markdownextradata
+  - social:
+      cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
+      cards_font: Inter
+      cards_color:
+        fill: "#2d6df6"
+  - awesome-pages
+  - autolinks 
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: False
+            show_root_heading: True
+            show_object_full_path: False
+            show_category_heading: False
+            show_bases: False
+            show_submodules: False
+            show_if_no_docstring: False
+            show_signature: False
+            heading_level: 2
+            filters: ["!^_"]
 
 hooks:
   - docs/hooks.py
@@ -78,7 +125,7 @@ markdown_extensions:
       title: On this page
 
 extra:
-  get_started: src/getting_started/what_is_marvin/
+  get_started: welcome/what_is_marvin
   hero:
     title: 'The AI Engineering Framework'
     description: 'Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.'
@@ -99,3 +146,5 @@ extra:
 
 extra_css:
   - /static/css/global.css
+  - /static/css/badges.css
+  - /static/css/custom.css

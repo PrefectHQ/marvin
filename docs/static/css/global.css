@@ -8,10 +8,6 @@
     --md-primary-fg-color: var(--marvin-blue);
   }
 
-  body {
-    height: 100vh;
-    overflow-y: scroll;
-}
 
 p {
     margin-bottom: 15px !important;
