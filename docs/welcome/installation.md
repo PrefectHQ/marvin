@@ -30,4 +30,4 @@ pip install 'marvin[anthropic]'
 
 
 ## Installing for Development
-See the [contributing docs](/src/development_guide/) for instructions on installing Marvin for development.
+See the [contributing docs](../../community/development_guide) for instructions on installing Marvin for development.

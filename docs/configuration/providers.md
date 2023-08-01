@@ -11,7 +11,7 @@ To use OpenAI models, you can set the following configuration options:
 | API key | `MARVIN_OPENAI_API_KEY` | `marvin.settings.openai.api_key` | ✅ | |
 
 !!! tip "Using the Azure OpenAI Service"
-    To use the Azure OpenAI Service, configure it [explicitly](/src/docs/configuration/azure_openai).
+    To use the Azure OpenAI Service, configure it [explicitly](#azure-openai-service).
 ### Getting an API key
 
 To obtain an OpenAI API key, follow these steps:

@@ -2,7 +2,7 @@
 
 ![](/img/heroes/dont_panic.png)
 
-After [installing Marvin](/src/getting_started/installation), the fastest way to get started is by using one of Marvin's high-level [AI components](/src/docs/components/overview). These components are designed to integrate AI into abstractions you already know well, creating the best possible opt-in developer experience.
+After [installing Marvin](../installation), the fastest way to get started is by using one of Marvin's high-level [AI components](../../components/overview). These components are designed to integrate AI into abstractions you already know well, creating the best possible opt-in developer experience.
 
 ## Configure LLM Provider
 
@@ -18,7 +18,7 @@ import marvin
 marvin.settings.openai.api_key = YOUR_API_KEY
 ```
 
-To use another provider or model, please see the [configuration docs](/src/docs/configuration/settings/#llm-providers).
+To use another provider or model, please see the [configuration docs](../../configuration/settings/#llm-providers).
 
 ## AI Models
 

@@ -30,7 +30,7 @@ marvin.settings.llm_model
 
 ## LLM Providers
 
-Marvin supports multiple LLM providers, including [OpenAI](/src/docs/configuration/openai) and [Anthropic]((/src/docs/configuration/anthropic)). After configuring your credentials appropriately, you can use any supported model by setting `marvin.settings.llm_model` appropriately. 
+Marvin supports multiple LLM providers, including [OpenAI](../providers#openai) and [Anthropic](../providers#anthropic). After configuring your credentials appropriately, you can use any supported model by setting `marvin.settings.llm_model` appropriately. 
 
 Valid `llm_model` settings are strings with the form `"{provider_key}/{model_name}"`. For example, `"openai/gpt-3.5-turbo"`, `anthropic/claude-2`, or `azure_openai/gpt-4`.
 

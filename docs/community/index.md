@@ -1,7 +1,7 @@
 
 # The Marvin Community
 
-![](/img/heroes/sort_of_thing_you_enjoy.png)
+![](../img/heroes/sort_of_thing_you_enjoy.png)
 
 We're thrilled you're interested in Marvin! Here, we're all about community. Marvin isn't just a tool, it's a platform for developers to collaborate, learn, and grow. We're driven by a shared passion for making Large Language Models (LLMs) more accessible and easier to use.
 

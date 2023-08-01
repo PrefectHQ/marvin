@@ -8,6 +8,9 @@
     --md-primary-fg-color: var(--marvin-blue);
   }
 
+article a {
+    text-decoration: underline !important;
+}
 
 p {
     margin-bottom: 15px !important;

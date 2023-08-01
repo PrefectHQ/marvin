@@ -43,4 +43,4 @@ There's no shortage of tools and libraries out there for integrating LLMs into y
 Marvin's 1.0 release reflects our confidence that its core abstractions are locked-in. And why wouldn't they be? They're the same interfaces you use every day: Python functions, classes, enums, and Pydantic models. Our next objectives are leveraging these primitives to build production deployment patterns and an observability platform.
 
 
-If our mission is exciting to you and you’d like to build Marvin with us, [join our community](/src/community)!
+If our mission is exciting to you and you’d like to build Marvin with us, [join our community](../../community)!
