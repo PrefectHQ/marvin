@@ -75,10 +75,10 @@ class Prompt(BaseModel, abc.ABC):
         """
         # when the right operand is a Prompt object
         if isinstance(other, Prompt):
-            return [self, other]
+            return PromptList([self, other])
         # when the right operand is a list
         elif isinstance(other, list):
-            return [self] + other
+            return PromptList([self] + other)
         else:
             raise TypeError(
                 f"unsupported operand type(s) for |: '{type(self).__name__}' and"
