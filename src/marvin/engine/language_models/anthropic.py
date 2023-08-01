@@ -7,6 +7,7 @@ from typing import Callable, Union
 import anthropic
 import openai
 import openai.openai_object
+from pydantic import BaseModel
 
 import marvin
 import marvin.utilities.types
@@ -51,6 +52,16 @@ def anthropic_role_map(marvin_role: Role):
         return anthropic.HUMAN_PROMPT
     else:
         return anthropic.AI_PROMPT
+
+
+class AnthropicFunctionCall(BaseModel):
+    mode: str
+    name: str
+    arguments: str
+
+    @classmethod
+    def parse_raw(cls, raw: str):
+        return super().parse_raw(re.sub("^[^{]*|[^}]*$", "", raw))
 
 
 class AnthropicStreamHandler(StreamHandler):

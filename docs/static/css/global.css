@@ -1,16 +1,15 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
+.admonition-title { 
+    margin-bottom: 15px
+}
 
 :root {
     --marvin-blue: rgba(24, 21, 68);
     --md-primary-fg-color: var(--marvin-blue);
   }
 
-body {
-    height: 100vh;
-    overflow-y: auto;
-    overflow-x: hidden;
+article a {
+    text-decoration: underline !important;
 }
 
 p {

@@ -1,16 +1,4 @@
 /* color themes */
-:root > * {
-  --md-primary-fg-color: #2d6df6;
-  --md-primary-fg-color--light: #89d5ff;
-  --md-primary-fg-color--dark: #1537af;
-  --md-code-bg-color: rgba(174, 186, 230, 0.075);
-}
-
-[data-md-color-scheme="slate"] {
-  --md-primary-fg-color: #2d6df6;
-  --md-primary-fg-color--light: #89d5ff;
-  --md-primary-fg-color--dark: #1537af;
-}
 
 
 /* Defaults for images */ 

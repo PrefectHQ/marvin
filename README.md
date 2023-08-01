@@ -57,7 +57,7 @@ Marvin's high-level abstractions are familiar Python interfaces that make it eas
 
 Marvin's most basic component is the AI Model, a drop-in replacement for Pydantic's `BaseModel`. AI Models can be instantiated from any string, making them ideal for structuring data, entity extraction, and synthetic data generation. 
 
-You can learn more about AI models [here](https://www.askmarvin.ai/src/docs/components/ai_model/).
+You can learn more about AI models [here](https://www.askmarvin.ai/components/ai_model/).
 
 ```python
 from marvin import ai_model
@@ -78,7 +78,7 @@ Location("The Big Apple")
 
 AI Classifiers let you build multi-label classifiers with no code and no training data. Given user input, each classifier uses a [clever logit bias trick](https://twitter.com/AAAzzam/status/1669753721574633473) to force an LLM to deductively choose the best option. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
 
-You can learn more about AI Classifiers [here](https://www.askmarvin.ai/src/docs/components/ai_classifier/).
+You can learn more about AI Classifiers [here](https://www.askmarvin.ai/components/ai_classifier/).
 
 ```python
 from marvin import ai_classifier
@@ -107,7 +107,7 @@ AppRoute("update my name")
 
 AI Functions look like regular functions, but have no source code. Instead, an AI uses their description and inputs to generate their outputs, making them ideal for NLP applications like sentiment analysis. 
 
-You can learn more about AI Functions [here](https://www.askmarvin.ai/src/docs/components/ai_function/).
+You can learn more about AI Functions [here](https://www.askmarvin.ai/components/ai_function/).
 
 
 ```python

@@ -1,108 +1,86 @@
 site_name: Marvin
-site_description: 'Marvin: The AI Engineering Framework'
+site_description: 'The AI Engineering Framework'
 site_copy: Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.
 site_url: https://askmarvin.ai
 docs_dir: docs
+repo_url: https://github.com/prefecthq/marvin
+
 nav:
   - Getting Started:
-    - src/getting_started/what_is_marvin.md
-    - src/getting_started/installation.md
-    - src/getting_started/quickstart.ipynb
+    - welcome/what_is_marvin.md
+    - welcome/installation.md
+    - welcome/quickstart.md
   - Docs:
-    - Overview: src/docs/index.md
-    - Configuration:
-      - src/docs/configuration/settings.md
-      - OpenAI Provider: src/docs/configuration/openai.md
-      - Anthropic Provider: src/docs/configuration/anthropic.md
-      - Azure OpenAI Provider: src/docs/configuration/azure_openai.md
-    - Utilities:
-      - OpenAI API: src/docs/utilities/openai.ipynb
-      - Prompt Engineering: 
-        - src/docs/prompts/writing.ipynb
-        - src/docs/prompts/executing.ipynb
-    - AI Components:
-      - Overview: src/docs/components/overview.ipynb
-      - AI Model: src/docs/components/ai_model.ipynb
-      - AI Classifier: src/docs/components/ai_classifier.ipynb
-      - AI Function: src/docs/components/ai_function.ipynb
-      - AI Application: src/docs/components/ai_application.ipynb
-    - Deployment:
-      - src/docs/deployment.ipynb
-    - Guides:
-      - Slackbot: src/guides/slackbot.md
-
+    - Overview: welcome/overview.md
+    - Configuration: 
+      - Settings: configuration/settings.md
+      - Providers: configuration/providers.md
+    - Utilities: 
+      - ChatCompletion: utilities/chat_completion.md
+      - Prompt: utilities/prompt.md
+    - Components: 
+      - Overview: components/overview.md
+      - AI Function: components/ai_function.md
+      - AI Model: components/ai_model.md
+      - AI Classifier: components/ai_classifier.md
+      - AI Application: components/ai_application.md
+    - Deployment: 
+      - FastAPI: 
+        - deployment/index.md
+    - Examples:
+      - Slackbot: examples/slackbot.md
   - API Reference:
     # - src/api_reference/index.md
     - AI Components:
-      - ai_application: src/api_reference/components/ai_application.md
-      - ai_classifier: src/api_reference/components/ai_classifier.md
-      - ai_function: src/api_reference/components/ai_function.md
-      - ai_model: src/api_reference/components/ai_model.md
+      - ai_application: api_reference/components/ai_application.md
+      - ai_classifier: api_reference/components/ai_classifier.md
+      - ai_function: api_reference/components/ai_function.md
+      - ai_model: api_reference/components/ai_model.md
     - LLM Engines:
-      - base: src/api_reference/engine/language_models/base.md
-      - openai: src/api_reference/engine/language_models/openai.md
-      - anthropic: src/api_reference/engine/language_models/anthropic.md
+      - base: api_reference/engine/language_models/base.md
+      - openai: api_reference/engine/language_models/openai.md
+      - anthropic: api_reference/engine/language_models/anthropic.md
     - Prompts:
-      - base: src/api_reference/prompts/base.md
-      - library: src/api_reference/prompts/library.md
+      - base: api_reference/prompts/base.md
+      - library: api_reference/prompts/library.md
     - Settings:
-      - settings: src/api_reference/settings.md
+      - settings: api_reference/settings.md
     - Utilities:
-      - async_utils: src/api_reference/utilities/async_utils.md
-      - embeddings: src/api_reference/utilities/embeddings.md
-      - history: src/api_reference/utilities/history.md
-      - logging: src/api_reference/utilities/logging.md
-      - messages: src/api_reference/utilities/messages.md
-      - strings: src/api_reference/utilities/strings.md
-      - types: src/api_reference/utilities/types.md
-
+      - async_utils: api_reference/utilities/async_utils.md
+      - embeddings: api_reference/utilities/embeddings.md
+      - history: api_reference/utilities/history.md
+      - logging: api_reference/utilities/logging.md
+      - messages: api_reference/utilities/messages.md
+      - strings: api_reference/utilities/strings.md
+      - types: api_reference/utilities/types.md
   - Community:
-    - src/community.md
-    - src/feedback.md
-    - Development:
-      - src/development_guide.md
-  
+    - community/index.md
+    - Feedback 💙: community/feedback.md
+    - Contributing: community/development_guide.md
+
+
 theme:
-  name: material
-  custom_dir: docs/overrides
-  font: 
-    text: Inter
-    code: JetBrains Mono
-  logo: img/logos/askmarvin_mascot.jpeg
-  favicon: img/logos/askmarvin_mascot.jpeg
   features:
-    - navigation.instant
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.sections
-    - navigation.footer
-    - content.action.edit
-    - content.code.copy
-    - content.code.annotate 
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
     - toc.follow
-    # - toc.integrate 
-  icon:
-    repo: fontawesome/brands/github
-    edit: material/pencil 
-    view: material/eye
+    - content.code.copy
+    - content.code.select
+    - content.code.annotate
   palette:
-    # Palette toggle for light mode
-    - scheme: default
-      accent: blue
-      toggle:
-        icon: material/weather-sunny 
-        name: Switch to dark mode
-    # Palette toggle for dark mode
-    - scheme: slate
-      accent: blue
-      toggle:
-        icon: material/weather-night
-        name: Switch to light mode
+    primary: custom
+  name: material
+  custom_dir: docs/overrides
+  logo: img/logos/askmarvin_mascot.jpeg
+  favicon: img/logos/askmarvin_mascot.jpeg
+
 plugins:
   - search
-  - mkdocs-jupyter:
-      highlight_extra_classes: "jupyter-css"
-      ignore_h1_titles: True
+  - markdownextradata
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
       cards_font: Inter
@@ -126,30 +104,34 @@ plugins:
             heading_level: 2
             filters: ["!^_"]
 
+hooks:
+  - docs/hooks.py
+
 markdown_extensions:
-  - admonition
   - attr_list
   - md_in_html
+  - pymdownx.superfences
+  - admonition
   - pymdownx.details
-  # - pymdownx.emoji:
-  #     emoji_index: !!python/name:materialx.emoji.twemoji
-  #     emoji_generator: !!python/name:materialx.emoji.to_svg
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
-  - pymdownx.superfences
   - tables
   - toc:
       permalink: true
       title: On this page
-      
-repo_url: https://github.com/prefecthq/marvin
-edit_uri: edit/main/docs/
+
 extra:
-  get_started: src/getting_started/what_is_marvin/
+  get_started: welcome/what_is_marvin
+  hero:
+    title: 'The AI Engineering Framework'
+    description: 'Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.'
+  announcement:
+    title: 'Marvin 1.1: Anthropic, Azure, mapping, and instructions!'
+    url: https://www.factsmachine.ai/p/marvin-11-more-ways-to-play
   analytics:
     provider: google
     property: G-2MWKMDJ9CM
@@ -160,12 +142,9 @@ extra:
       link: https://discord.gg/Kgw4HpcuYG
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/askmarvinai
-  generator: false
+
+
 extra_css:
-- static/css/termynal.css
-- static/css/custom.css
-- static/css/mkdocstrings.css
-- static/css/badges.css
-extra_javascript:
-- static/js/termynal.js
-- static/js/custom.js
+  - /static/css/global.css
+  - /static/css/badges.css
+  - /static/css/custom.css
