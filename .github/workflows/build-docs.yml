@@ -36,6 +36,7 @@ jobs:
           git+https://oauth:${MKDOCS_MATERIAL_INSIDERS_REPO_RO}@github.com/PrefectHQ/mkdocs-material-insiders.git \
           mkdocs-autolinks-plugin \
           mkdocs-awesome-pages-plugin \
+          mkdocs-markdownextradata-plugin \
           mkdocstrings[python] \
           pillow \
           cairosvg
