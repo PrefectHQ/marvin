@@ -54,8 +54,7 @@ class ChatResponse(BaseChatResponse):
             return next(iter(self.raw.choices)).message
         return [x.message for x in self.raw.choices]
 
-    @property
-    def function_call(self):
+    def function_call(self, *args, **kwargs):
         """
         This property extracts the function call from the message.
         If the message is a list, it returns a list of function calls from all messages.
@@ -63,7 +62,7 @@ class ChatResponse(BaseChatResponse):
         """
         if isinstance(self.message, list):
             return [x.function_call for x in self.message]
-        return self.message.function_call
+        return getattr(self.message, "function_call", None)
 
 
 class ChatCompletion(BaseChatCompletion):
