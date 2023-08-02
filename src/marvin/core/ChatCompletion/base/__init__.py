@@ -249,20 +249,23 @@ class BaseChatCompletion(
     def response(self):
         return self._response_class
 
+    def state(self, *args, **kwargs):
+        return BaseConversationState(self, *args, **kwargs)
+
     def prepare_request(self, **kwargs):
         return self.request(
             **(self._defaults or {}), **self.dict(exclude={"_defaults"})
         ).merge(**kwargs)
 
     def create(self, *args, **kwargs):
-        with BaseConversationState(self):
+        with self.state():
             request = self.prepare_request(**kwargs)
             request_dict = request.schema()
             create = getattr(self.model(request), self._create)
             return self.response(raw=create(*args, **request_dict), request=request)
 
     async def acreate(self, *args, **kwargs):
-        with BaseConversationState(self):
+        with self.state():
             request = self.prepare_request(**kwargs)
             request_dict = request.schema()
             acreate = getattr(self.model(request), self._acreate)
