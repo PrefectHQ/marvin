@@ -15,6 +15,7 @@ from functools import cached_property, singledispatch
 from marvin.utilities.module_loading import import_string
 from operator import itemgetter
 from abc import ABC, abstractmethod
+import copy
 
 import json
 
@@ -31,17 +32,11 @@ class BaseConversationState(BaseModel, ABC):
     Placeholder for conversation state.
     """
 
-    model: Type[AbstractChatCompletion] = Field(..., exclude=True)
+    model: Any = Field(..., exclude=True)
     turns: list[AbstractChatResponse] = Field(default_factory=list)
 
     def __init__(self, model, *args, **kwargs):
-        super().__init__(__model__=model, **kwargs)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args, **kwargs):
-        pass
+        super().__init__(model=model, **kwargs)
 
     @property
     def last_response(self):
@@ -61,18 +56,26 @@ class BaseConversationState(BaseModel, ABC):
         self.turns.append(response)
         return response
 
-    def push(self, *args, **kwargs):
+    def send(self, *args, **kwargs):
         if self.turns:
             kwargs["messages"] = [
                 *self.turns[-1].request.messages,
-                self.turns[-1].raw.choices[0].message,
+                self.turns[-1].raw.choices[0].message.to_dict(),
                 *kwargs.get("messages", []),
             ]
+
         response = self.model.create(*args, **kwargs)
         self.turns.append(response)
         return response
 
-    async def apush(self, *args, **kwargs):
+    async def asend(self, *args, **kwargs):
+        if self.turns:
+            kwargs["messages"] = [
+                *self.turns[-1].request.messages,
+                self.turns[-1].raw.choices[0].message.to_dict(),
+                *kwargs.get("messages", []),
+            ]
+
         response = await self.model.acreate(*args, **kwargs)
         self.turns.append(response)
         return response
@@ -100,7 +103,7 @@ class BaseChatCompletionSettings(BaseSettings, AbstractChatCompletionSettings):
 
 class BaseChatRequest(BaseModel, AbstractChatRequest):
     _config: Type[BaseChatCompletionSettings]
-    messages: list[dict[str, str]] = []
+    messages: list = []
     functions: Optional[list[Callable, dict[str, str]]] = None
     function_call: Optional[Union[Literal["auto"], dict[Literal["name"], str]]] = None
 
@@ -197,7 +200,7 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         If as_message is True, it returns the result as a function message.
         Otherwise, it returns the result directly.
         """
-        name, raw_arguments = itemgetter("name", "arguments")(self.function_call)
+        name, raw_arguments = itemgetter("name", "arguments")(self.function_call())
         function = self.callable_registry.get(name)
         arguments = function.model.parse_raw(raw_arguments)
         value = function(**arguments.dict(exclude_none=True))
@@ -211,7 +214,7 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         This method parses the function call arguments into the response model and
         returns the result.
         """
-        return self.request._response_model.parse_raw(self.function_call.arguments)
+        return self.request._response_model.parse_raw(self.function_call().arguments)
 
 
 class MetaChatCompletion(ModelMetaclass):
@@ -258,14 +261,14 @@ class BaseChatCompletion(
         ).merge(**kwargs)
 
     def create(self, *args, **kwargs):
-        with self.state():
+        with self:
             request = self.prepare_request(**kwargs)
             request_dict = request.schema()
             create = getattr(self.model(request), self._create)
             return self.response(raw=create(*args, **request_dict), request=request)
 
     async def acreate(self, *args, **kwargs):
-        with self.state():
+        with self:
             request = self.prepare_request(**kwargs)
             request_dict = request.schema()
             acreate = getattr(self.model(request), self._acreate)
@@ -276,7 +279,15 @@ class BaseChatCompletion(
             )
 
     def __call__(self, *args, **kwargs):
+        self = copy.deepcopy(self)
+        self._defaults = kwargs
         return self
+
+    def __enter__(self):
+        return self.state(self)
+
+    def __exit__(self, *args, **kwargs):
+        pass
 
     class Config:
         keep_untouched = (cached_property,)
