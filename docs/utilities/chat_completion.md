@@ -182,7 +182,7 @@ Let's consider two examples.
 
 ### Function Calling
 
-OpenAI's ChatCompletion API enables you to pass a list of functions for it to optionally call in service of a query. If it chooses to execute a function, either by choice or your instruction, it will return the function's name along with its formatted parameters for you to evaluate. The OpenAI schema accepts a JSON Schema representation of your functions.  
+ChatCompletion enables you to pass a list of functions for it to optionally call in service of a query. If it chooses to execute a function, either by choice or your instruction, it will return the function's name along with its formatted parameters for you to evaluate. 
   
 *Marvin* lets you pass your choice of JSON Schema or Python functions directly to ChatCompletion. It does the right thing.
 
@@ -303,4 +303,96 @@ In the case where several functions are passed. It does the right thing.
 
     response.call_function()
     # {'role': 'function', 'name': 'annuity_present_value', 'content': 2247.75}
+    ```
+
+### Chaining 
+
+Above we saw how ChatCompletion enables you to pass a list of functions for it to optionally call in service of a query. If it chooses to execute a function, either by choice or your instruction, it will return the function's name along with its formatted parameters for you to evaluate.
+
+Often we want to take the output of a function call and pass it back to an LLM so that it can either call a new function
+or summarize the results of what we've computed for it. This *agentic* pattern is easily enabled with *Marvin*. 
+
+Rather than write while- and for- loops for you, we've made ChatCompletion a *context manager*. This lets you maintain
+a state of a conversation that you can send and receive messages from. You have complete control over the internal logic.
+
+!!! note "In plain English."
+
+    You can have a conversation with an LLM, exposing functions for it to use in service of your request. 
+    *Marvin* maintains state to make it easier to maintain and observe this conversation.
+
+
+Let's consider an example.
+
+!!! example "Example: Chaining"
+
+    Let's build a simple arithmetic bot. We'll empower with arithmetic operations, like
+    `add` and `divide`. We'll seed it with an arithmetic question.
+
+    ```python
+
+    def divide(x: float, y: float) -> str:
+        '''Divides x and y'''
+        return str(x/y)
+
+    def add(x: int, y: int) -> str:
+        '''Adds x and y'''
+        return str(x+y)
+
+    with openai.ChatCompletion(functions = [add, divide]) as Conversation:
+        
+        # Start off with an external question / prompt. 
+        prompt = 'What is 4124124 + 424242 divided by 48124?'
+        
+        # Initialize the conversation with a prompt from the user. 
+        Conversation.send(messages = [{'role': 'user', 'content': prompt}])
+        
+        # While the most recent turn has a function call, evaluate it. 
+        while Conversation.last_response.function_call():
+            
+            # Send the most recent function call to the conversation. 
+            Conversation.send(messages = [
+                Conversation.last_response.call_function() 
+            ])
+
+    ```
+    The context manager, which we've called *Conversation* (you can call it whatever you want),
+    holds every turn of the conversation which we can inspect. 
+
+    ```python
+    
+    Conversation.last_response.choices[0].message.content
+
+    # The result of adding 4124124 and 424242 is 4548366. When this result is divided by 48124, 
+    # the answer is approximately 94.51346521486161.
+
+    ```
+
+    If we want to see the entire state, every `[request, response]` pair is held in the Conversation's 
+    `turns`.
+    ```python
+    [response.choices[0].message for response in Conversation.turns]
+
+    # [<OpenAIObject at 0x120667c50> JSON: {
+    # "role": "assistant",
+    # "content": null,
+    # "function_call": {
+    #     "name": "add",
+    #     "arguments": "{\n  \"x\": 4124124,\n  \"y\": 424242\n}"
+    # }
+    # },
+    # <OpenAIObject at 0x1206f4830> JSON: {
+    # "role": "assistant",
+    # "content": null,
+    # "function_call": {
+    #     "name": "divide",
+    #     "arguments": "{\n  \"x\": 4548366,\n  \"y\": 48124\n}"
+    # }
+    # },
+    # <OpenAIObject at 0x1206f4b90> JSON: {
+    # "role": "assistant",
+    # "content": "The result of adding 4124124 and 424242 is 4548366. 
+    #             When this result is divided by 48124, the answer is 
+    #             approximately 94.51346521486161."
+    # }]
+
     ```
