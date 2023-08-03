@@ -200,7 +200,7 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         arguments = function.model.parse_raw(raw_arguments)
         value = function(**arguments.dict(exclude_none=True))
         if as_message:
-            return {"role": "function", "name": name, "content": value}
+            return {"role": "function", "name": name, "content": str(value)}
         else:
             return value
 
