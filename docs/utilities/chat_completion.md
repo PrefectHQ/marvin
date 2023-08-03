@@ -330,6 +330,9 @@ Let's consider an example.
 
     ```python
 
+    from marvin import openai
+    openai.api_key = 'secret_key'
+
     def divide(x: float, y: float) -> str:
         '''Divides x and y'''
         return str(x/y)
@@ -338,39 +341,39 @@ Let's consider an example.
         '''Adds x and y'''
         return str(x+y)
 
-    with openai.ChatCompletion(functions = [add, divide]) as Conversation:
-        
+    with openai.ChatCompletion(functions = [add, divide]) as conversation:
+
         # Start off with an external question / prompt. 
         prompt = 'What is 4124124 + 424242 divided by 48124?'
-        
+
         # Initialize the conversation with a prompt from the user. 
-        Conversation.send(messages = [{'role': 'user', 'content': prompt}])
-        
+        conversation.send(messages = [{'role': 'user', 'content': prompt}])
+
         # While the most recent turn has a function call, evaluate it. 
-        while Conversation.last_response.function_call():
-            
+        while conversation.last_response.has_function_call():
+
             # Send the most recent function call to the conversation. 
-            Conversation.send(messages = [
-                Conversation.last_response.call_function() 
+            conversation.send(messages = [
+                conversation.last_response.call_function() 
             ])
 
     ```
-    The context manager, which we've called *Conversation* (you can call it whatever you want),
+    The context manager, which we've called *conversation* (you can call it whatever you want),
     holds every turn of the conversation which we can inspect. 
 
     ```python
     
-    Conversation.last_response.choices[0].message.content
+    conversation.last_response.choices[0].message.content
 
     # The result of adding 4124124 and 424242 is 4548366. When this result is divided by 48124, 
     # the answer is approximately 94.51346521486161.
 
     ```
 
-    If we want to see the entire state, every `[request, response]` pair is held in the Conversation's 
+    If we want to see the entire state, every `[request, response]` pair is held in the conversation's 
     `turns`.
     ```python
-    [response.choices[0].message for response in Conversation.turns]
+    [response.choices[0].message for response in conversation.turns]
 
     # [<OpenAIObject at 0x120667c50> JSON: {
     # "role": "assistant",

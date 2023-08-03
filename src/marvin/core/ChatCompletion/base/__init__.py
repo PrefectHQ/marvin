@@ -189,6 +189,12 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         """
         return {fn.__name__: fn for fn in self.callables}
 
+    def has_function_call(self) -> bool:
+        """
+        This method returns True if the response has a function call.
+        """
+        return self.function_call() is not None
+
     def call_function(self, as_message=True):
         """
         This method evaluates the function call in the response and returns the result.
