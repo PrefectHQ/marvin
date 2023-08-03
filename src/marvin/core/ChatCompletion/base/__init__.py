@@ -15,7 +15,6 @@ from functools import cached_property, singledispatch
 from marvin.utilities.module_loading import import_string
 from operator import itemgetter
 from abc import ABC, abstractmethod
-import copy
 
 import json
 
@@ -40,11 +39,7 @@ class BaseConversationState(BaseModel, ABC):
 
     @property
     def last_response(self):
-        return next(iter(self.turns[::-1]), None)
-
-    @property
-    def last_response(self):
-        return next(iter(self.turns[::-1]), None)
+        return self.turns[-1] if self.turns else None
 
     def create(self, *args, **kwargs):
         response = self.model.create(*args, **kwargs)
@@ -261,25 +256,23 @@ class BaseChatCompletion(
         ).merge(**kwargs)
 
     def create(self, *args, **kwargs):
-        with self:
-            request = self.prepare_request(**kwargs)
-            request_dict = request.schema()
-            create = getattr(self.model(request), self._create)
-            return self.response(raw=create(*args, **request_dict), request=request)
+        request = self.prepare_request(**kwargs)
+        request_dict = request.schema()
+        create = getattr(self.model(request), self._create)
+        return self.response(raw=create(*args, **request_dict), request=request)
 
     async def acreate(self, *args, **kwargs):
-        with self:
-            request = self.prepare_request(**kwargs)
-            request_dict = request.schema()
-            acreate = getattr(self.model(request), self._acreate)
+        request = self.prepare_request(**kwargs)
+        request_dict = request.schema()
+        acreate = getattr(self.model(request), self._acreate)
 
-            return self.response(
-                raw=await acreate(*args, **request_dict),
-                request=request,
-            )
+        return self.response(
+            raw=await acreate(*args, **request_dict),
+            request=request,
+        )
 
     def __call__(self, *args, **kwargs):
-        self = copy.deepcopy(self)
+        self = self.copy()
         self._defaults = kwargs
         return self
 
