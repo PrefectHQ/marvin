@@ -130,8 +130,8 @@ extra:
     title: 'The AI Engineering Framework'
     description: 'Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.'
   announcement:
-    title: 'Marvin 1.1: Anthropic, Azure, mapping, and instructions!'
-    url: https://www.factsmachine.ai/p/marvin-11-more-ways-to-play
+    title: "Marvin 1.3 makes agents easy to debug"
+    url: https://github.com/PrefectHQ/marvin/releases/tag/v1.3.0
   analytics:
     provider: google
     property: G-2MWKMDJ9CM
