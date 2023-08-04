@@ -5,6 +5,7 @@ from typing import Any, Callable, Union
 
 import tiktoken
 from pydantic import Field, validator
+import litellm 
 
 import marvin
 import marvin.utilities.types
@@ -136,5 +137,8 @@ def chat_llm(model: str = None, **kwargs) -> ChatLLM:
         from .azure_openai import AzureOpenAIChatLLM
 
         return AzureOpenAIChatLLM(model=model_name, **kwargs)
+    elif model_name in litellm.model_list:
+        from .litellm import LiteLLM
+        return OpenAIChatLLM(model=model_name, **kwargs)
     else:
         raise ValueError(f"Unknown provider/model: {model}")
