@@ -96,7 +96,7 @@ class ChatResponse(BaseChatResponse):
             def parse_raw(cls, raw: str):
                 return super().parse_raw(re.sub("^[^{]*|[^}]*$", "", raw))
 
-        return AnthropicFunctionCall.parse_raw(self.message)
+        return AnthropicFunctionCall.parse_raw(self.message).dict()
 
 
 class ChatCompletion(BaseChatCompletion):
