@@ -1,8 +1,9 @@
-from chatbot import Chatbot, handle_message
+from chatbot import handle_message
+from marvin import AIApplication
 from marvin.deployment import Deployment
 
 deployment = Deployment(
-    component=Chatbot(tools=[handle_message]),
+    component=AIApplication(tools=[handle_message]),
     app_kwargs={
         "title": "Marvin Slackbot",
         "description": "A Slackbot powered by Marvin",
