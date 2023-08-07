@@ -1,6 +1,5 @@
 import os
 from contextlib import contextmanager
-from copy import deepcopy
 from pathlib import Path
 from typing import Literal, Union
 
@@ -169,19 +168,42 @@ settings = Settings()
 
 @contextmanager
 def temporary_settings(**kwargs):
-    old_settings = deepcopy(settings.__dict__)
+    """
+    Temporarily override Marvin setting values. This will _not_ mutate values that have
+    been already been accessed at module load time.
 
-    for key, value in kwargs.items():
-        parts = key.split(".")
-        if len(parts) > 1:
-            sub_object = getattr(settings, parts[0], None)
-            if sub_object:
-                setattr(sub_object, parts[1], value)
-        else:
-            setattr(settings, key, value)
+    This function should only be used for testing.
+
+    Example:
+        >>> from marvin.settings import settings
+        >>> with temporary_settings(MARVIN_LLM_MAX_TOKENS=100):
+        >>>    assert settings.llm_max_tokens == 100
+        >>> assert settings.llm_max_tokens == 1500
+    """
+    old_env = os.environ.copy()
+    old_settings = settings.copy()
 
     try:
-        yield
+        for setting in kwargs:
+            value = kwargs.get(setting)
+            if value is not None:
+                os.environ[setting] = str(value)
+            else:
+                os.environ.pop(setting, None)
+
+        new_settings = Settings()
+
+        for field in settings.__fields__:
+            object.__setattr__(settings, field, getattr(new_settings, field))
+
+        yield settings
     finally:
-        settings.__dict__.clear()
-        settings.__dict__.update(old_settings)
+        for setting in kwargs:
+            value = old_env.get(setting)
+            if value is not None:
+                os.environ[setting] = value
+            else:
+                os.environ.pop(setting, None)
+
+        for field in settings.__fields__:
+            object.__setattr__(settings, field, getattr(old_settings, field))
