@@ -62,6 +62,7 @@ anthropic = ["anthropic>=0.3"]
 lancedb = ["lancedb>=0.1.8"]
 slackbot = ["cachetools>=5.3.1", "numpy>=1.21.2"]
 ddg = ["duckduckgo_search>=3.8.3"]
+serpapi = ["google-search-results>=2.4.2"]
 
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"

@@ -2,6 +2,20 @@
 
 Marvin introduces a number of components that can become the building blocks of AI-powered software.
 
+!!! tip "Selecting a backing LLM"
+    When using any of Marvin's components, the LLM used will default to the value of `MARVIN_LLM_MODEL`.
+    To override this on a per-call basis, pass the `model` argument to the component's decorator.
+
+    For example, to use `openai/gpt-3.5-turbo-16k` for an `ai_fn` call, you would do the following:
+
+    
+    ```python
+    from marvin.engine.language_models.openai import OpenAIChatLLM
+
+    @ai_fn(model=OpenAIChatLLM(model="openai/gpt-3.5-turbo-16k"))
+    def my_ai_fn():
+        """..."""
+    ```
 
 ## AI Models
 
