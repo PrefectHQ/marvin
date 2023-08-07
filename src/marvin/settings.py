@@ -1,4 +1,6 @@
 import os
+from contextlib import contextmanager
+from copy import deepcopy
 from pathlib import Path
 from typing import Literal, Union
 
@@ -163,3 +165,23 @@ class Settings(MarvinBaseSettings):
 
 
 settings = Settings()
+
+
+@contextmanager
+def temporary_settings(**kwargs):
+    old_settings = deepcopy(settings.__dict__)
+
+    for key, value in kwargs.items():
+        parts = key.split(".")
+        if len(parts) > 1:
+            sub_object = getattr(settings, parts[0], None)
+            if sub_object:
+                setattr(sub_object, parts[1], value)
+        else:
+            setattr(settings, key, value)
+
+    try:
+        yield
+    finally:
+        settings.__dict__.clear()
+        settings.__dict__.update(old_settings)
