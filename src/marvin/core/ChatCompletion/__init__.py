@@ -1,41 +1,38 @@
-from marvin.pydantic import validate_arguments, BaseModel
-from typing import Literal
-from marvin.utilities.module_loading import import_string
+import marvin
+
+_provider_shortcuts = {
+    "gpt-3.5-turbo": "openai",
+    "gpt-4": "openai",
+    "claude-1": "anthropic",
+    "claude-2": "anthropic",
+}
 
 
-class Model(BaseModel):
-    model: str
-    path: str
+def ChatCompletion(model: str = None, **kwargs):
+    if model is None:
+        model = marvin.settings.llm_model
 
-    def module(self):
-        return import_string(f"{self.path}.ChatCompletion")
+    if model in _provider_shortcuts:
+        provider, model = _provider_shortcuts[model], model
+    else:
+        provider, model = model.split("/", 1)
 
-    def chat_completion(self, **kwargs):
-        return self.module()(_defaults={**self.dict(), **kwargs})
+    if provider == "openai":
+        from marvin.core.ChatCompletion.providers.openai import (
+            ChatCompletion as completion_cls,
+        )
 
-    def dict(self, **kwargs):
-        return super().dict(**kwargs, exclude={"path"})
+    elif provider == "anthropic":
+        from marvin.core.ChatCompletion.providers.anthropic import (
+            ChatCompletion as completion_cls,
+        )
 
+    elif provider == "azure_openai":
+        from marvin.core.ChatCompletion.providers.azure.openai import (
+            ChatCompletion as completion_cls,
+        )
 
-models = [
-    Model(model="gpt-3.5-turbo", path="marvin.core.ChatCompletion.providers.openai"),
-    Model(model="gpt-4", path="marvin.core.ChatCompletion.providers.openai"),
-    Model(model="claude-1", path="marvin.core.ChatCompletion.providers.anthropic"),
-    Model(model="claude-2", path="marvin.core.ChatCompletion.providers.anthropic"),
-]
+    else:
+        raise ValueError(f"Unknown provider: {provider}")
 
-registry = {model.model: model for model in models}
-
-
-@validate_arguments
-def ChatCompletion(
-    model: Literal[
-        "gpt-3.5-turbo",
-        "gpt-4",
-        "claude-1",
-        "claude-2",
-    ],
-    **kwargs,
-):
-    model = registry[model]
-    return model.chat_completion(**kwargs)
+    return completion_cls(**kwargs)

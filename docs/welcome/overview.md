@@ -9,13 +9,10 @@ For most users, this means they'll dive in with the highest-level abstractions, 
 ## Organization
 
 ### Configuration
-This section describes how to set up Marvin and configure various aspects of its behavior.
+Details on setting up Marvin and configuring various aspects of its behavior, including LLM providers.
 
-### Utilities
-This section describes Marvin's lowest-level APIs. These are intended for users who want a specific behavior (like working directly with the OpenAI API, or building custom prompts).
-
-- OpenAI: Marvin provides a drop-in replacement for the `openai` library, adding useful features and configuration (like logging and retries) without changing the API.
-- Prompt Engineering: documentation of Marvin's prompt API, which uses Pythonic objects instead of templates munging.
+### LLMS
+Marvin exposes a simple API for building prompts and calling LLMs, designed to be a drop-in replacement for OpenAI's Python SDK (but with support for other providers).
 
 ### AI Components
 Documentation for Marvin's "AI Building Blocks:" familiar, Pythonic interfaces to AI-powered functionality.

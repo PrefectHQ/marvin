@@ -80,8 +80,7 @@ class ChatResponse(BaseChatResponse):
         """
         return self.raw.completion
 
-    @property
-    def function_call(self):
+    def function_call(self, *args, **kwargs):
         """
         This property extracts the function call from the message.
         If the message is a list, it returns a list of function calls from all messages.
@@ -97,7 +96,7 @@ class ChatResponse(BaseChatResponse):
             def parse_raw(cls, raw: str):
                 return super().parse_raw(re.sub("^[^{]*|[^}]*$", "", raw))
 
-        return AnthropicFunctionCall.parse_raw(self.message)
+        return AnthropicFunctionCall.parse_raw(self.message).dict()
 
 
 class ChatCompletion(BaseChatCompletion):

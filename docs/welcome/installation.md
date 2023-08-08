@@ -1,6 +1,6 @@
 # Installation
 
-![](../../img/heroes/pip_install_marvin_hero.png)
+![](../img/heroes/pip_install_marvin_hero.png)
 
 ## Basic Installation
 
