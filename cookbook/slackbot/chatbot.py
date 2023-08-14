@@ -1,7 +1,7 @@
 import asyncio
 import re
 from copy import deepcopy
-from typing import Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Union
 
 import httpx
 import marvin_recipes
@@ -174,7 +174,7 @@ def choose_bot(payload: Dict, history: History) -> Chatbot:
     )
 
 
-async def emit_any_prefect_event(payload: Dict) -> Optional[Event]:
+async def emit_any_prefect_event(payload: Dict) -> Event | None:
     event_type = payload.get("event", {}).get("type", "")
 
     channel = await get_channel_name(payload.get("event", {}).get("channel", ""))
@@ -190,6 +190,9 @@ async def emit_any_prefect_event(payload: Dict) -> Optional[Event]:
 
 async def generate_ai_response(payload: Dict) -> Message:
     event = payload.get("event", {})
+    channel_id = event.get("channel", "")
+    await get_channel_name(channel_id)
+    await get_user_name(event.get("user", ""))
     message = event.get("text", "")
 
     bot_user_id = payload.get("authorizations", [{}])[0].get("user_id", "")
@@ -220,17 +223,8 @@ async def generate_ai_response(payload: Dict) -> Message:
 
         await post_slack_message(
             message=message_content,
-            channel=event.get("channel", ""),
+            channel=channel_id,
             thread_ts=thread,
-        )
-
-        channel = await get_channel_name(event.get("channel", ""))
-        user = await get_user_name(event.get("user", ""))
-
-        emit_event(
-            event=f"slack {payload.get('api_app_id')} ai response",
-            resource={"prefect.resource.id": f"slack.{channel}.{user}.{ts}"},
-            payload=payload,
         )
 
         return ai_message
@@ -239,12 +233,12 @@ async def generate_ai_response(payload: Dict) -> Message:
 async def handle_message(payload: Dict) -> Dict[str, str]:
     event_type = payload.get("type", "")
 
-    await emit_any_prefect_event(payload=payload)
-
     if event_type == "url_verification":
         return {"challenge": payload.get("challenge", "")}
     elif event_type != "event_callback":
         raise HTTPException(status_code=400, detail="Invalid event type")
+
+    await emit_any_prefect_event(payload=payload)
 
     asyncio.create_task(generate_ai_response(payload))
 
