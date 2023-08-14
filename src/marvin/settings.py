@@ -1,4 +1,5 @@
 import os
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal, Union
 
@@ -163,3 +164,46 @@ class Settings(MarvinBaseSettings):
 
 
 settings = Settings()
+
+
+@contextmanager
+def temporary_settings(**kwargs):
+    """
+    Temporarily override Marvin setting values. This will _not_ mutate values that have
+    been already been accessed at module load time.
+
+    This function should only be used for testing.
+
+    Example:
+        >>> from marvin.settings import settings
+        >>> with temporary_settings(MARVIN_LLM_MAX_TOKENS=100):
+        >>>    assert settings.llm_max_tokens == 100
+        >>> assert settings.llm_max_tokens == 1500
+    """
+    old_env = os.environ.copy()
+    old_settings = settings.copy()
+
+    try:
+        for setting in kwargs:
+            value = kwargs.get(setting)
+            if value is not None:
+                os.environ[setting] = str(value)
+            else:
+                os.environ.pop(setting, None)
+
+        new_settings = Settings()
+
+        for field in settings.__fields__:
+            object.__setattr__(settings, field, getattr(new_settings, field))
+
+        yield settings
+    finally:
+        for setting in kwargs:
+            value = old_env.get(setting)
+            if value is not None:
+                os.environ[setting] = value
+            else:
+                os.environ.pop(setting, None)
+
+        for field in settings.__fields__:
+            object.__setattr__(settings, field, getattr(old_settings, field))
