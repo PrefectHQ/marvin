@@ -15,9 +15,9 @@ nav:
     - Configuration: 
       - Settings: configuration/settings.md
       - Providers: configuration/providers.md
-    - Utilities: 
-      - ChatCompletion: utilities/chat_completion.md
-      - Prompt: utilities/prompt.md
+    - LLMs: 
+      - Calling LLMs: llms/llms.md
+      - Building Prompts: llms/prompt.md
     - Components: 
       - Overview: components/overview.md
       - AI Function: components/ai_function.md
@@ -83,9 +83,9 @@ plugins:
   - markdownextradata
   - social:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
-      cards_font: Inter
-      cards_color:
-        fill: "#2d6df6"
+      cards_layout_options:
+        font_family: Inter
+        background_color: "#2d6df6"
   - awesome-pages
   - autolinks 
   - mkdocstrings:
@@ -130,8 +130,8 @@ extra:
     title: 'The AI Engineering Framework'
     description: 'Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.'
   announcement:
-    title: 'Marvin 1.1: Anthropic, Azure, mapping, and instructions!'
-    url: https://www.factsmachine.ai/p/marvin-11-more-ways-to-play
+    title: "Marvin 1.3 makes agents easy to debug"
+    url: https://github.com/PrefectHQ/marvin/releases/tag/v1.3.0
   analytics:
     provider: google
     property: G-2MWKMDJ9CM

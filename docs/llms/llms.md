@@ -1,7 +1,5 @@
 
-In *Marvin*, each supported Large Language Model can be accessed with one common API. This means that 
-you can easily switch between providers without having to change your code. We have anchored our API 
-to mirror that of OpenAI's Python SDK. 
+Marvin has a simple API for working with LLMs that can be used with all supported LLM providers. The LLM API is designed to be a drop-in replacement for OpenAI's Python SDK, with additional functionality to improve user experience.
 
 !!! note "In plain English."
 
@@ -12,7 +10,7 @@ to mirror that of OpenAI's Python SDK.
 
 Using a single interface to multiple models helps reduce boilerplate code and translation. In 
 the current era of building with different LLM providers, developers often need to rewrite their code
-just to use a new model. With *Marvin* you can simply import ChatCompletion and 
+just to use a new model. With Marvin you can simply import ChatCompletion and 
 specify a model name.
 
 !!! example "Example: Specifying a Model"
@@ -101,12 +99,12 @@ keyword arguments passed to ChatCompletion will be persisted and passed to subse
 
 ### Response Model
 
-With *Marvin*, you can get structured outputs from model providers by passing a response type. This lets developers
+With Marvin, you can get structured outputs from model providers by passing a response type. This lets developers
 write prompts with Python objects, which are easier to develop, version, and test than language.
 
 !!! note "In plain English."
 
-    You can specify a type, struct, or data model to ChatCompletion, and *Marvin*
+    You can specify a type, struct, or data model to ChatCompletion, and Marvin
     will ensure the model's response adheres to that type.
 
 Let's consider two examples.
@@ -184,11 +182,11 @@ Let's consider two examples.
 
 ChatCompletion enables you to pass a list of functions for it to optionally call in service of a query. If it chooses to execute a function, either by choice or your instruction, it will return the function's name along with its formatted parameters for you to evaluate. 
   
-*Marvin* lets you pass your choice of JSON Schema or Python functions directly to ChatCompletion. It does the right thing.
+Marvin lets you pass your choice of JSON Schema or Python functions directly to ChatCompletion. It does the right thing.
 
 !!! note "In plain English."
 
-    You can pass regular Python functions to ChatCompletion, and *Marvin* will take care of serialization of that function using `Pydantic` in a way you can customize.
+    You can pass regular Python functions to ChatCompletion, and Marvin will take care of serialization of that function using `Pydantic` in a way you can customize.
 
 
 Let's consider an example.
@@ -310,7 +308,7 @@ In the case where several functions are passed. It does the right thing.
 Above we saw how ChatCompletion enables you to pass a list of functions for it to optionally call in service of a query. If it chooses to execute a function, either by choice or your instruction, it will return the function's name along with its formatted parameters for you to evaluate.
 
 Often we want to take the output of a function call and pass it back to an LLM so that it can either call a new function
-or summarize the results of what we've computed for it. This *agentic* pattern is easily enabled with *Marvin*. 
+or summarize the results of what we've computed for it. This *agentic* pattern is easily enabled with Marvin. 
 
 Rather than write while- and for- loops for you, we've made ChatCompletion a *context manager*. This lets you maintain
 a state of a conversation that you can send and receive messages from. You have complete control over the internal logic.
@@ -318,7 +316,7 @@ a state of a conversation that you can send and receive messages from. You have 
 !!! note "In plain English."
 
     You can have a conversation with an LLM, exposing functions for it to use in service of your request. 
-    *Marvin* maintains state to make it easier to maintain and observe this conversation.
+    Marvin maintains state to make it easier to maintain and observe this conversation.
 
 
 Let's consider an example.

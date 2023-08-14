@@ -1,5 +1,5 @@
 # Hello, Marvin!
-![](../../img/heroes/it_hates_me_hero.png)
+![](../img/heroes/it_hates_me_hero.png)
 
 
 Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.

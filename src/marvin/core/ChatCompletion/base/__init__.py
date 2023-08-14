@@ -14,6 +14,7 @@ from marvin.types import Function
 from functools import cached_property, singledispatch
 from marvin.utilities.module_loading import import_string
 from operator import itemgetter
+from abc import ABC, abstractmethod
 
 import json
 
@@ -22,23 +23,61 @@ from .abstract import (
     AbstractChatCompletionSettings,
     AbstractChatRequest,
     AbstractChatResponse,
-    AbstractConversationState,
 )
 
 
-class BaseConversationState(BaseModel, AbstractConversationState):
+class BaseConversationState(BaseModel, ABC):
     """
     Placeholder for conversation state.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(**kwargs)
+    model: Any = Field(..., exclude=True)
+    turns: list[AbstractChatResponse] = Field(default_factory=list)
 
-    def __enter__(self):
-        return self
+    def __init__(self, model, *args, **kwargs):
+        super().__init__(model=model, **kwargs)
 
-    def __exit__(self, *args, **kwargs):
-        pass
+    @property
+    def last_response(self):
+        return self.turns[-1] if self.turns else None
+
+    def create(self, *args, **kwargs):
+        response = self.model.create(*args, **kwargs)
+        self.turns.append(response)
+        return response
+
+    async def acreate(self, *args, **kwargs):
+        response = await self.model.acreate(*args, **kwargs)
+        self.turns.append(response)
+        return response
+
+    def send(self, *args, **kwargs):
+        if self.turns:
+            kwargs["messages"] = [
+                *self.turns[-1].request.messages,
+                self.turns[-1].raw.choices[0].message.to_dict(),
+                *kwargs.get("messages", []),
+            ]
+
+        response = self.model.create(*args, **kwargs)
+        self.turns.append(response)
+        return response
+
+    async def asend(self, *args, **kwargs):
+        if self.turns:
+            kwargs["messages"] = [
+                *self.turns[-1].request.messages,
+                self.turns[-1].raw.choices[0].message.to_dict(),
+                *kwargs.get("messages", []),
+            ]
+
+        response = await self.model.acreate(*args, **kwargs)
+        self.turns.append(response)
+        return response
+
+    class Config:
+        extra = Extra.allow
+        arbitrary_types_allowed = True
 
 
 class BaseChatCompletionSettings(BaseSettings, AbstractChatCompletionSettings):
@@ -59,7 +98,7 @@ class BaseChatCompletionSettings(BaseSettings, AbstractChatCompletionSettings):
 
 class BaseChatRequest(BaseModel, AbstractChatRequest):
     _config: Type[BaseChatCompletionSettings]
-    messages: list[dict[str, str]] = []
+    messages: list = []
     functions: Optional[list[Callable, dict[str, str]]] = None
     function_call: Optional[Union[Literal["auto"], dict[Literal["name"], str]]] = None
 
@@ -150,18 +189,24 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         """
         return {fn.__name__: fn for fn in self.callables}
 
+    def has_function_call(self) -> bool:
+        """
+        This method returns True if the response has a function call.
+        """
+        return self.function_call() is not None
+
     def call_function(self, as_message=True):
         """
         This method evaluates the function call in the response and returns the result.
         If as_message is True, it returns the result as a function message.
         Otherwise, it returns the result directly.
         """
-        name, raw_arguments = itemgetter("name", "arguments")(self.function_call)
+        name, raw_arguments = itemgetter("name", "arguments")(self.function_call())
         function = self.callable_registry.get(name)
         arguments = function.model.parse_raw(raw_arguments)
         value = function(**arguments.dict(exclude_none=True))
         if as_message:
-            return {"role": "function", "name": name, "content": value}
+            return {"role": "function", "name": name, "content": str(value)}
         else:
             return value
 
@@ -170,7 +215,7 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         This method parses the function call arguments into the response model and
         returns the result.
         """
-        return self.request._response_model.parse_raw(self.function_call.arguments)
+        return self.request._response_model.parse_raw(self.function_call().arguments)
 
 
 class MetaChatCompletion(ModelMetaclass):
@@ -208,31 +253,40 @@ class BaseChatCompletion(
     def response(self):
         return self._response_class
 
+    def state(self, *args, **kwargs):
+        return BaseConversationState(self, *args, **kwargs)
+
     def prepare_request(self, **kwargs):
         return self.request(
             **(self._defaults or {}), **self.dict(exclude={"_defaults"})
         ).merge(**kwargs)
 
     def create(self, *args, **kwargs):
-        with BaseConversationState(self):
-            request = self.prepare_request(**kwargs)
-            request_dict = request.schema()
-            create = getattr(self.model(request), self._create)
-            return self.response(raw=create(*args, **request_dict), request=request)
+        request = self.prepare_request(**kwargs)
+        request_dict = request.schema()
+        create = getattr(self.model(request), self._create)
+        return self.response(raw=create(*args, **request_dict), request=request)
 
     async def acreate(self, *args, **kwargs):
-        with BaseConversationState(self):
-            request = self.prepare_request(**kwargs)
-            request_dict = request.schema()
-            acreate = getattr(self.model(request), self._acreate)
+        request = self.prepare_request(**kwargs)
+        request_dict = request.schema()
+        acreate = getattr(self.model(request), self._acreate)
 
-            return self.response(
-                raw=await acreate(*args, **request_dict),
-                request=request,
-            )
+        return self.response(
+            raw=await acreate(*args, **request_dict),
+            request=request,
+        )
 
     def __call__(self, *args, **kwargs):
+        self = self.copy()
+        self._defaults = kwargs
         return self
+
+    def __enter__(self):
+        return self.state(self)
+
+    def __exit__(self, *args, **kwargs):
+        pass
 
     class Config:
         keep_untouched = (cached_property,)

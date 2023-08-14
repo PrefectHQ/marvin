@@ -45,14 +45,14 @@ def get_openai_function_schema(schema, model):
 
 class FunctionConfig(BaseModel):
     fn: Callable
-    name: Optional[str]
-    description: Optional[str]
+    name: str
+    description: str = ""
     schema_extra: Optional[Callable] = get_openai_function_schema
 
     def __init__(self, fn, **kwargs):
-        super().__init__(
-            fn=fn, **{"name": fn.__name__, "description": fn.__doc__, **kwargs}
-        )
+        kwargs.setdefault("name", fn.__name__ or "")
+        kwargs.setdefault("description", fn.__doc__ or "")
+        super().__init__(fn=fn, **kwargs)
 
 
 class Function:
