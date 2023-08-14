@@ -126,7 +126,11 @@ class MemeGenerator(Tool):
             {
                 "q": query,
                 "tbm": "isch",
-                "api_key": marvin_recipes.settings.google_api_key.get_secret_value(),
+                "api_key": (
+                    marvin_recipes.settings.google_api_key.get_secret_value()
+                    if marvin_recipes.settings.google_api_key
+                    else None
+                ),
             }
         ).get_dict()
 
