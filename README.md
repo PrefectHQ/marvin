@@ -30,7 +30,7 @@ With Marvin, we’re taking the first steps on a journey to deliver [Ambient AI]
 
 Marvin's 1.0 release reflects our confidence that its core abstractions are locked-in. And why wouldn't they be? They're the same interfaces you use every day: Python functions, classes, enums, and Pydantic models. Our next objectives are leveraging these primitives to build production deployment patterns and an observability platform.
 
-To hit the ground running, please read Marvin's [getting started docs](https://www.askmarvin.ai/src/getting_started/what_is_marvin/).
+To hit the ground running, please read Marvin's [getting started docs](https://www.askmarvin.ai/welcome/what_is_marvin/). 
 
 ## Quick Install
 
