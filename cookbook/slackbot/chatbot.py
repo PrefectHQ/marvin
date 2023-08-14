@@ -177,9 +177,6 @@ def choose_bot(payload: Dict, history: History) -> Chatbot:
 async def emit_any_prefect_event(payload: Dict) -> Optional[Event]:
     event_type = payload.get("event", {}).get("type", "")
 
-    if event_type in ["url_verification"]:
-        return None
-
     channel = await get_channel_name(payload.get("event", {}).get("channel", ""))
     user = await get_user_name(payload.get("event", {}).get("user", ""))
     ts = payload.get("event", {}).get("ts", "")
