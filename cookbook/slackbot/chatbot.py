@@ -24,7 +24,6 @@ from marvin_recipes.utilities.slack import (
     get_user_name,
     post_slack_message,
 )
-from prefect.events import Event, emit_event
 
 DEFAULT_NAME = "Marvin"
 DEFAULT_PERSONALITY = "A friendly AI assistant"
@@ -178,20 +177,6 @@ def choose_bot(payload: Dict, history: History) -> Chatbot:
     )
 
 
-async def emit_any_prefect_event(payload: Dict) -> Event | None:
-    event_type = payload.get("event", {}).get("type", "")
-
-    channel = await get_channel_name(payload.get("event", {}).get("channel", ""))
-    user = await get_user_name(payload.get("event", {}).get("user", ""))
-    ts = payload.get("event", {}).get("ts", "")
-
-    return emit_event(
-        event=f"slack {payload.get('api_app_id')} {event_type}",
-        resource={"prefect.resource.id": f"slack.{channel}.{user}.{ts}"},
-        payload=payload,
-    )
-
-
 async def generate_ai_response(payload: Dict) -> Message:
     event = payload.get("event", {})
     channel_id = event.get("channel", "")
@@ -241,8 +226,6 @@ async def handle_message(payload: Dict) -> Dict[str, str]:
         return {"challenge": payload.get("challenge", "")}
     elif event_type != "event_callback":
         raise HTTPException(status_code=400, detail="Invalid event type")
-
-    await emit_any_prefect_event(payload=payload)
 
     asyncio.create_task(generate_ai_response(payload))
 
