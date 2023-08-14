@@ -1,73 +1,22 @@
-import asyncio
 import json
+from itertools import islice
+from typing import Dict
 
 import httpx
+from pydantic import Field, SecretStr
+from typing_extensions import Literal
 
+from marvin.settings import MarvinBaseSettings
 from marvin.tools import Tool
-from marvin.utilities.async_utils import run_async
 from marvin.utilities.strings import html_to_content, slice_tokens
 
 
-async def safe_get(client, url):
-    try:
-        return await client.get(url)
-    except httpx.ReadTimeout:
-        pass
-
-
-async def search_ddg(query: str, n: int = 5) -> str:
-    try:
-        from duckduckgo_search import DDGS
-    except ImportError:
-        raise ImportError(
-            "Please install the DDG extra to use this tool: `pip install 'marvin[ddg]'`"
-        )
-
-    def ddg_answer_search(keywords: str):
-        results = []
-        for r in DDGS().answers(keywords=keywords):
-            results.append(r)
-            if len(results) >= 1:
-                break
-        return results
-
-    def ddg_text_search(keywords: str, max_results: int = None, page: int = None):
-        results = []
-        for r in DDGS().text(keywords=keywords):
-            results.append(r)
-            if (max_results and len(results) >= max_results) or (
-                page and len(results) >= 20
-            ):
-                break
-        return results
-
-    answers, search_results = await asyncio.gather(
-        *[
-            run_async(ddg_answer_search, query),
-            run_async(ddg_text_search, query, max_results=n),
-        ]
-    )
-
-    async with httpx.AsyncClient(timeout=0.5) as client:
-        responses = await asyncio.gather(
-            *[safe_get(client, s["href"]) for s in search_results]
-        )
-        for i, r in enumerate(responses):
-            if r is None:
-                continue
-            search_results[i]["content"] = slice_tokens(html_to_content(r.text), 400)
-
-    result = "\n\n".join(
-        f"{s['title']} ({s['href']}): {s.get('content', s['body'])}"
-        for s in search_results
-    )
-    if answers:
-        result = "\n\n".join([answers[0]["text"], result])
-    return result
+class SerpApiSettings(MarvinBaseSettings):
+    api_key: SecretStr = Field(None, env="MARVIN_SERPAPI_API_KEY")
 
 
 class VisitUrl(Tool):
-    """Tool for visiting a URL."""
+    """Tool for visiting a URL - only to be used in special cases."""
 
     description: str = "Visit a valid URL and return its contents."
 
@@ -97,6 +46,54 @@ class DuckDuckGoSearch(Tool):
     """Tool for searching the web with DuckDuckGo."""
 
     description: str = "Search the web with DuckDuckGo."
+    backend: Literal["api", "html", "lite"] = "lite"
 
-    async def run(self, query: str) -> str:
-        return await search_ddg(query)
+    async def run(self, query: str, n_results: int = 3) -> str:
+        try:
+            from duckduckgo_search import DDGS
+        except ImportError:
+            raise RuntimeError(
+                "You must install the duckduckgo-search library to use this tool. "
+                "You can do so by running `pip install 'marvin[ddg]'`."
+            )
+
+        with DDGS() as ddgs:
+            return [
+                r for r in islice(ddgs.text(query, backend=self.backend), n_results)
+            ]
+
+
+class GoogleSearch(Tool):
+    description: str = """
+        For performing a Google search and retrieving the results.
+        
+        Provide the search query to get answers.
+    """
+
+    async def run(self, query: str, n_results: int = 3) -> Dict:
+        try:
+            from serpapi import GoogleSearch as google_search
+        except ImportError:
+            raise RuntimeError(
+                "You must install the serpapi library to use this tool. "
+                "You can do so by running `pip install 'marvin[serpapi]'`."
+            )
+
+        if (api_key := SerpApiSettings().api_key) is None:
+            raise RuntimeError(
+                "You must provide a SerpApi API key to use this tool. You can do so by"
+                " setting the MARVIN_SERPAPI_API_KEY environment variable."
+            )
+
+        search_params = {
+            "q": query,
+            "api_key": api_key.get_secret_value(),
+        }
+        results = google_search(search_params).get_dict()
+
+        if "error" in results:
+            raise RuntimeError(results["error"])
+        return [
+            {"title": r.get("title"), "href": r.get("link"), "body": r.get("snippet")}
+            for r in results.get("organic_results", [])[:n_results]
+        ]
