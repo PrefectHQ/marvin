@@ -137,6 +137,7 @@ sentiment_list(
 ## AI Applications
 
 AI Applications are the base class for interactive use cases. They are designed to be invoked one or more times, and automatically maintain three forms of state:
+
 - `state`: a structured application state
 - `plan`: high-level planning for the AI assistant to keep the application "on-track" across multiple invocations
 - `history`: a history of all LLM interactions
