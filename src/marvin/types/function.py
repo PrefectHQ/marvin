@@ -1,4 +1,6 @@
 import copy
+import inspect
+import re
 from functools import partial
 from typing import Callable, Optional, Type
 
@@ -54,13 +56,47 @@ class FunctionConfig(BaseModel):
         kwargs.setdefault("description", fn.__doc__ or "")
         super().__init__(fn=fn, **kwargs)
 
+    def getsource(self):
+        return re.search("def.*", inspect.getsource(self.fn), re.DOTALL).group()
+
+    def bind_arguments(self, *args, **kwargs):
+        bound_arguments = inspect.signature(self.fn).bind_partial(*args, **kwargs)
+        bound_arguments.apply_defaults()
+        return bound_arguments.arguments
+
+    def response_model(self, *args, **kwargs):
+        def format_final_response(data: inspect.signature(self.fn).return_annotation):
+            """Function to format the final response to the user"""
+            return None
+
+        format_final_response.__name__ = kwargs.get(
+            "name", format_final_response.__name__
+        )
+        format_final_response.__doc__ = kwargs.get(
+            "description", format_final_response.__doc__
+        )
+        response_model = Function(format_final_response).model
+        response_model.__signature__ = inspect.signature(format_final_response)
+        return response_model
+
 
 class Function:
+    """
+    A wrapper class to add additional functionality to a function,
+    such as a schema, response model, and more.
+    """
+
     def __new__(cls, fn: Callable, **kwargs):
         config = FunctionConfig(fn, **kwargs)
+
         instance = validate_arguments(fn, config=config.dict())
         instance.schema = instance.model.schema
         instance.evaluate_raw = partial(cls.evaluate_raw, fn=instance)
+
+        instance.response_model = config.response_model
+        instance.bind_arguments = config.bind_arguments
+        instance.getsource = config.getsource
+
         instance.__name__ = config.name
         instance.__doc__ = config.description
         return instance
@@ -80,5 +116,23 @@ class Function:
         return instance
 
     @classmethod
+    def from_return_annotation(
+        cls, fn: Callable, *args, name: str = None, description: str = None
+    ):
+        def format_final_response(data: inspect.signature(fn).return_annotation):
+            """Function to format the final response to the user"""
+            return None
+
+        format_final_response.__name__ = name or format_final_response.__name__
+        format_final_response.__doc__ = description or format_final_response.__doc__
+        response_model = cls(format_final_response)
+        return response_model
+
+    @classmethod
     def evaluate_raw(cls, args: str, /, *, fn: Callable, **kwargs):
         return fn(**fn.model.parse_raw(args).dict(exclude_none=True))
+
+
+class FunctionRegistry(list[Function]):
+    def schema(self, *args, **kwargs):
+        return [fn.schema(*args, **kwargs) for fn in self]
