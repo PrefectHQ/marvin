@@ -1,14 +1,15 @@
 import copy
-from functools import partial
 from typing import Callable, Optional, Type
 
-from pydantic import BaseModel, validate_arguments
+from pydantic import BaseModel
 from pydantic.decorator import (
     ALT_V_ARGS,
     ALT_V_KWARGS,
     V_DUPLICATE_KWARGS,
     V_POSITIONAL_ONLY_NAME,
 )
+
+from marvin.utilities.types import function_to_model
 
 extraneous_fields = [
     "args",
@@ -56,14 +57,20 @@ class FunctionConfig(BaseModel):
 
 
 class Function:
-    def __new__(cls, fn: Callable, **kwargs):
-        config = FunctionConfig(fn, **kwargs)
-        instance = validate_arguments(fn, config=config.dict())
-        instance.schema = instance.model.schema
-        instance.evaluate_raw = partial(cls.evaluate_raw, fn=instance)
-        instance.__name__ = config.name
-        instance.__doc__ = config.description
-        return instance
+    def __init__(self, fn: Callable, **kwargs):
+        self.fn = fn
+        self.name = kwargs.get("name", fn.__name__)
+        self.description = kwargs.get("description", fn.__doc__ or "")
+        self.model = function_to_model(self.fn)
+        self.schema = self.model.schema()
+        self.signature = self.model.__signature__
+
+    def evaluate_raw(self, args: str, **kwargs):
+        validated_args = self.fn.model.parse_raw(args)
+        return self.fn(**validated_args.dict(exclude_none=True))
+
+    def __call__(self, *args, **kwargs):
+        return self.fn(*args, **kwargs)
 
     @classmethod
     def from_model(cls, model: Type[BaseModel], **kwargs):
@@ -78,7 +85,3 @@ class Function:
         )
         instance.__signature__ = model.__signature__
         return instance
-
-    @classmethod
-    def evaluate_raw(cls, args: str, /, *, fn: Callable, **kwargs):
-        return fn(**fn.model.parse_raw(args).dict(exclude_none=True))

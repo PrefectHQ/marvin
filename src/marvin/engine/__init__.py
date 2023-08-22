@@ -1,14 +1,13 @@
 """
 The engine module is the interface to external LLM providers.
 """
-from pydantic import BaseModel, BaseSettings, Extra, Field, root_validator, validator
-from typing import Any, Callable, List, Optional, Type, Union, Literal
-from marvin import settings
-from marvin.types import Function
-from operator import itemgetter
-from marvin.utilities.module_loading import import_string
-import warnings
 import copy
+from typing import Optional
+
+from marvin import openai
+from marvin.prompts.base import render_prompts
+from marvin.utilities.module_loading import import_string
+from pydantic import BaseModel, Field
 
 
 class ChatCompletionBase(BaseModel):
@@ -96,3 +95,30 @@ class ChatCompletionBase(BaseModel):
         passed = self.__class__(**kwargs).request()
         self.defaults = (request | passed).dict(serialize_functions=False)
         return self
+
+
+async def execute_prompts(
+    model, prompts, prompt_render_kwargs=None, functions=None, max_iterations=None
+):
+    with openai.ChatCompletion(functions=functions) as conversation:
+        responses = []
+        iterations = 0
+        while True:
+            messages = render_prompts(
+                prompts + responses,
+                render_kwargs=prompt_render_kwargs,
+                max_tokens=model.context_size,
+            )
+            await conversation.asend(messages=messages)
+
+            if fn_call := conversation.last_response.has_function_call():
+                await conversation.asend(messages=[fn_call])
+
+            responses.append(conversation.last_response)
+
+            if max_iterations is not None and iterations >= max_iterations:
+                break
+
+            iterations += 1
+
+        return responses

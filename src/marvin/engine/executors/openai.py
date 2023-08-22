@@ -3,7 +3,7 @@ import json
 from ast import literal_eval
 from typing import Callable, List, Optional, Union
 
-from pydantic import Field, root_validator, validator
+from pydantic import Field, validator
 
 import marvin
 from marvin.engine.language_models import OpenAIFunction
@@ -36,18 +36,6 @@ class OpenAIFunctionsExecutor(Executor):
             for i in v
         ]
         return v
-
-    @root_validator
-    def validate_function_call(cls, values):
-        # validate function call
-        if values["functions"] and values.get("function_call") is None:
-            values["function_call"] = "auto"
-        elif values["function_call"] not in (
-            ["auto", "none"] + [{"name": f.name} for f in values["functions"]]
-        ):
-            raise ValueError(f'Invalid function_call: {values["function_call"]}')
-
-        return values
 
     async def run_engine(self, messages: list[Message]) -> Message:
         """

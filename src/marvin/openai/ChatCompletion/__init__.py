@@ -1,13 +1,9 @@
-from pydantic import BaseModel, Field, validator, Extra, BaseSettings, root_validator
-from pydantic.main import ModelMetaclass
-
-from typing import Any, Callable, List, Optional, Type, Union, Literal
-from marvin import settings
-from marvin.types import Function
 from operator import itemgetter
-from marvin.utilities.module_loading import import_string
-import warnings
-import copy
+from typing import Any, Callable, Optional
+
+from pydantic import BaseModel, Field, Extra
+
+from marvin import settings
 from marvin.types.request import Request as BaseRequest
 from marvin.engine import ChatCompletionBase
 

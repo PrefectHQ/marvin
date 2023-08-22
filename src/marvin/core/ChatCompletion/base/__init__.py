@@ -8,13 +8,12 @@ from marvin.pydantic import (
 )
 from marvin.settings import ENV_PATH
 from typing import Callable, Literal, Optional, Union, Type, Any
-import os
-from pathlib import Path
+
 from marvin.types import Function
-from functools import cached_property, singledispatch
+from functools import cached_property
 from marvin.utilities.module_loading import import_string
 from operator import itemgetter
-from abc import ABC, abstractmethod
+from abc import ABC
 
 import json
 
