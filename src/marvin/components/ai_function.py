@@ -76,7 +76,7 @@ class AIFunction(BaseModel):
     ) -> Callable[P, T]:
         if not fn:
             return functools.partial(
-                cls.ai_fn,
+                cls.as_decorator,
                 name=name,
                 description=description,
                 instructions=instructions,
@@ -145,7 +145,7 @@ class AIFunction(BaseModel):
 
     def call(self, *args, **kwargs):
         completion = self.create(*args, **kwargs)
-        return completion.call_function(as_message=False).data
+        return completion
 
     async def map(self, *map_args: list, **map_kwargs: list):
         """
