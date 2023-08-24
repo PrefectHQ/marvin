@@ -73,7 +73,6 @@ class AIFunction(BaseModel):
         system: str = system_prompt,
         user: str = user_prompt,
         instructions: Optional[str] = None,
-        ChatCompletion: Any = ChatCompletion,
         functions: Optional[list[Callable]] = None,
         model: str = None,
         **model_kwargs,
@@ -86,7 +85,7 @@ class AIFunction(BaseModel):
                 system=system,
                 user=user,
                 instructions=instructions,
-                ChatCompletion=ChatCompletion(model=model, **model_kwargs),
+                model=model,
                 functions=functions or [],
             )
 
@@ -97,7 +96,7 @@ class AIFunction(BaseModel):
             system=system,
             user=user,
             instructions=instructions,
-            ChatCompletion=ChatCompletion(model=model, **model_kwargs),
+            model=ChatCompletion(model=model, **model_kwargs),
             functions=functions or [],
         )
 
@@ -148,7 +147,7 @@ class AIFunction(BaseModel):
         return {"name": self._functions(*args, **kwargs)[0].__name__}
 
     def to_chat_completion(self, *args, __schema__=False, **kwargs):
-        return ChatCompletion(**self.__call__(*args, __schema__=__schema__, **kwargs))
+        return self.model(**self.__call__(*args, __schema__=__schema__, **kwargs))
 
     def create(self, *args, **kwargs):
         return self.to_chat_completion(*args, **kwargs).create()
