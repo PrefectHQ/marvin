@@ -1,12 +1,12 @@
 import inspect
 from enum import Enum
+from functools import wraps
 from typing import Any, Callable, Union
 
 from jsonpatch import JsonPatch
-from pydantic import BaseModel, Field, PrivateAttr, validator
+from pydantic import BaseModel, Field, validator
 
-from marvin.engine.executors import OpenAIFunctionsExecutor
-from marvin.engine.language_models import ChatLLM, chat_llm
+from marvin.openai import ChatCompletion
 from marvin.prompts import library as prompt_library
 from marvin.prompts.base import Prompt
 from marvin.tools import Tool
@@ -14,6 +14,15 @@ from marvin.utilities.async_utils import run_sync
 from marvin.utilities.history import History, HistoryFilter
 from marvin.utilities.messages import Message, Role
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
+
+
+def bind_kwargs(func, **kwargs):
+    @wraps(func)
+    def wrapper(*args, **inner_kwargs):
+        return func(*args, **{**kwargs, **inner_kwargs})
+
+    return wrapper
+
 
 SYSTEM_PROMPT = """
     # Overview
@@ -226,24 +235,24 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             v = []
         return v
 
-    @validator("tools", pre=True)
-    def validate_tools(cls, v):
-        if v is None:
-            v = []
+    # @validator("tools", pre=True)
+    # def validate_tools(cls, v):
+    #     if v is None:
+    #         v = []
 
-        tools = []
+    #     tools = []
 
-        # convert AI Applications and functions to tools
-        for tool in v:
-            if isinstance(tool, AIApplication):
-                tools.append(tool.as_tool())
-            elif isinstance(tool, Tool):
-                tools.append(tool)
-            elif callable(tool):
-                tools.append(Tool.from_function(tool))
-            else:
-                raise ValueError(f"Tool {tool} is not a Tool or callable.")
-        return tools
+    #     # convert AI Applications and functions to tools
+    #     for tool in v:
+    #         if isinstance(tool, AIApplication):
+    #             tools.append(tool.as_tool())
+    #         elif isinstance(tool, Tool):
+    #             tools.append(tool)
+    #         elif callable(tool):
+    #             tools.append(Tool.from_function(tool))
+    #         else:
+    #             raise ValueError(f"Tool {tool} is not a Tool or callable.")
+    #     return tools
 
     @validator("name", always=True)
     def validate_name(cls, v):
@@ -251,7 +260,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             v = cls.__name__
         return v
 
-    def __call__(self, input_text: str = None, model: ChatLLM = None):
+    def __call__(self, input_text: str = None, model: str = None):
         return run_sync(self.run(input_text=input_text, model=model))
 
     async def entrypoint(self, q: str) -> str:
@@ -260,12 +269,12 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         response = await self.run(input_text=q)
         return response.content
 
-    async def run(self, input_text: str = None, model: ChatLLM = None):
+    async def run(self, input_text: str = None, model: str = None) -> Message:
         if model is None:
-            model = chat_llm()
+            model = "gpt-3.5-turbo"
 
         # set up prompts
-        prompts = [
+        [
             # system prompts
             prompt_library.System(content=SYSTEM_PROMPT),
             # add current datetime
@@ -290,26 +299,19 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         # set up tools
         tools = self.tools.copy()
         if self.state_enabled:
-            tools.append(UpdateState(app=self))
+            tools.append(bind_kwargs(update_state, app=self))
         if self.plan_enabled:
-            tools.append(UpdatePlan(app=self))
+            tools.append(bind_kwargs(update_plan, app=self))
 
-        executor = OpenAIFunctionsExecutor(
-            model=model,
-            functions=[t.as_openai_function() for t in tools],
-            stream_handler=self.stream_handler,
+        conversation = await ChatCompletion(functions=tools, model=model).achain(
+            messages=[{"content": input_text, "role": str(Role.USER.value).lower()}],
         )
 
-        responses = await executor.start(
-            prompts=prompts,
-            prompt_render_kwargs=dict(app=self, input_text=input_text),
-        )
+        for msg in (messages := Message.from_conversation(conversation)):
+            self.history.add_message(msg)
 
-        for r in responses:
-            self.history.add_message(r)
-
-        self.logger.debug_kv("AI response", responses[-1].content, key_style="blue")
-        return responses[-1]
+        self.logger.debug_kv("AI response", messages[-1].content, key_style="blue")
+        return messages[-1]
 
     def as_tool(self, name: str = None) -> Tool:
         return AIApplicationTool(app=self, name=name)
@@ -346,99 +348,24 @@ class JSONPatchModel(BaseModel):
         allow_population_by_field_name = True
 
 
-class UpdateState(Tool):
-    """A `Tool` that updates the apps state using JSON Patch documents.
-
-    Example:
-        Manually update the state of an AI Application.
-        ```python
-        from marvin.components.ai_application import (
-            AIApplication,
-            FreeformState,
-            JSONPatchModel,
-            UpdateState,
-        )
-
-        destination_tracker = AIApplication(
-            name="Destination Tracker",
-            description="keeps track of where i've been",
-            state=FreeformState(state={"San Francisco": "not visited"}),
-        )
-
-        patch = JSONPatchModel(
-            op="replace", path="/state/San Francisco", value="visited"
-        )
-
-        UpdateState(app=destination_tracker).run([patch.dict()])
-
-        assert destination_tracker.state.dict() == {
-            "state": {"San Francisco": "visited"}
-        }
-        ```
+def update_state(app: "AIApplication", patches: list[JSONPatchModel]) -> str:
     """
-
-    _app: "AIApplication" = PrivateAttr()
-    description = """
-        Update the application state by providing a list of JSON patch
-        documents. The state must always comply with the state's
-        JSON schema.
-        """
-
-    def __init__(self, app: AIApplication, **kwargs):
-        self._app = app
-        super().__init__(**kwargs)
-
-    def run(self, patches: list[JSONPatchModel]):
-        patch = JsonPatch(patches)
-        updated_state = patch.apply(self._app.state.dict())
-        self._app.state = type(self._app.state)(**updated_state)
-        return "Application state updated successfully!"
-
-
-class UpdatePlan(Tool):
+    Update the application state by providing a list of JSON patch
+    documents. The state must always comply with the state's
+    JSON schema.
     """
-    A `Tool` that updates the apps plan using JSON Patch documents.
+    patch = JsonPatch(patches)
+    updated_state = patch.apply(app.state.dict())
+    app.state = type(app.state)(**updated_state)
+    return "Application state updated successfully!"
 
 
-    Example:
-        Manually update task status in an AI Application's plan.
-        ```python
-        from marvin.components.ai_application import (
-            AIApplication,
-            AppPlan,
-            JSONPatchModel,
-            UpdatePlan,
-        )
-
-        todo_app = AIApplication(name="Todo App", description="A simple todo app")
-
-        todo_app("i need to buy milk")
-
-        # manually update the plan (usually done by the AI)
-        patch = JSONPatchModel(
-            op="replace",
-            path="/tasks/0/state",
-            value="COMPLETED"
-        )
-
-        UpdatePlan(app=todo_app).run([patch.dict()])
-
-        print(todo_app.plan)
-        ```
+def update_plan(app: "AIApplication", patches: list[JSONPatchModel]) -> str:
     """
-
-    _app: "AIApplication" = PrivateAttr()
-    description = """
-        Update the application plan by providing a list of JSON patch
-        documents. The state must always comply with the plan's JSON schema.
-        """
-
-    def __init__(self, app: AIApplication, **kwargs):
-        self._app = app
-        super().__init__(**kwargs)
-
-    def run(self, patches: list[JSONPatchModel]):
-        patch = JsonPatch(patches)
-        updated_state = patch.apply(self._app.plan.dict())
-        self._app.plan = type(self._app.plan)(**updated_state)
-        return "Application plan updated successfully!"
+    Update the application plan by providing a list of JSON patch
+    documents. The state must always comply with the plan's JSON schema.
+    """
+    patch = JsonPatch(patches)
+    updated_state = patch.apply(app.plan.dict())
+    app.plan = type(app.plan)(**updated_state)
+    return "Application plan updated successfully!"

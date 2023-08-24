@@ -1,6 +1,7 @@
 import inspect
 from datetime import datetime
 from enum import Enum
+from typing import Self, Type
 from zoneinfo import ZoneInfo
 
 from pydantic import Field, validator
@@ -37,3 +38,24 @@ class Message(MarvinBaseModel):
         if v is not None:
             v = inspect.cleandoc(v)
         return v
+
+    @classmethod
+    def from_conversation(cls: Type[Self], conversation) -> list[Type[Self]]:
+        messages = []
+        for turn in conversation.turns:
+            choice = turn.raw.get("choices", [{}])[0]
+            created_at = datetime.fromtimestamp(turn.raw.get("created"))
+            message_data = choice.get("message", {})
+            role = message_data.get("role")
+            content = message_data.get("content")
+
+            message = cls(
+                role=role,
+                content=content,
+                name=message_data.get("name"),
+                timestamp=created_at,
+                data=turn.raw,
+            )
+            messages.append(message)
+
+        return messages

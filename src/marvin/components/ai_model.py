@@ -4,12 +4,10 @@ from typing import Optional, Type, TypeVar
 
 from pydantic import BaseModel, PrivateAttr
 
-from marvin.engine.executors import OpenAIFunctionsExecutor
 from marvin.engine.language_models import ChatLLM, chat_llm
 from marvin.prompts import library as prompt_library
 from marvin.prompts import render_prompts
 from marvin.prompts.base import Prompt
-from marvin.tools.format_response import FormatResponse
 from marvin.utilities.async_utils import run_sync
 from marvin.utilities.messages import Message
 from marvin.utilities.types import LoggerMixin
@@ -245,14 +243,14 @@ class AIModel(LoggerMixin, BaseModel):
         if model is None:
             model = chat_llm()
         messages = render_prompts(prompts, render_kwargs=render_kwargs)
-        executor = OpenAIFunctionsExecutor(
-            model=model,
-            functions=[FormatResponse(type_=cls).as_openai_function()],
-            function_call={"name": "FormatResponse"},
-            max_iterations=3,
-        )
+        # executor = OpenAIFunctionsExecutor(
+        #     model=model,
+        #     functions=[FormatResponse(type_=cls).as_openai_function()],
+        #     function_call={"name": "FormatResponse"},
+        #     max_iterations=3,
+        # )
 
-        messages = await executor.start(prompts=messages)
+        # messages = await executor.start(prompts=messages)
         message = messages[-1]
 
         if message.data.get("is_error"):

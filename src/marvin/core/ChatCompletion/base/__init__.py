@@ -1,3 +1,10 @@
+import asyncio
+import json
+from abc import ABC
+from functools import cached_property
+from operator import itemgetter
+from typing import Callable, Literal, Optional, Union, Type, TypeVar, Any
+
 from marvin.pydantic import (
     BaseModel,
     BaseSettings,
@@ -7,16 +14,8 @@ from marvin.pydantic import (
     ModelMetaclass,
 )
 from marvin.settings import ENV_PATH
-from typing import Callable, Literal, Optional, Union, Type, Any
-import os
-from pathlib import Path
 from marvin.types import Function
-from functools import cached_property, singledispatch
 from marvin.utilities.module_loading import import_string
-from operator import itemgetter
-from abc import ABC, abstractmethod
-
-import json
 
 from .abstract import (
     AbstractChatCompletion,
@@ -225,6 +224,9 @@ class MetaChatCompletion(ModelMetaclass):
         return super().__getattribute__(name)
 
 
+T = TypeVar("T", bound="BaseChatCompletion")
+
+
 class BaseChatCompletion(
     BaseModel, AbstractChatCompletion, metaclass=MetaChatCompletion
 ):
@@ -266,6 +268,22 @@ class BaseChatCompletion(
         request_dict = request.schema()
         create = getattr(self.model(request), self._create)
         return self.response(raw=create(*args, **request_dict), request=request)
+
+    async def achain(
+        self, *args, until: Callable[[T], bool] = lambda _: False, **kwargs
+    ):
+        with self as conversation:
+            await conversation.asend(*args, **kwargs)
+            while conversation.last_response.has_function_call() and not until(
+                conversation
+            ):  # noqa
+                await conversation.asend(
+                    messages=[conversation.last_response.call_function()]
+                )
+            return conversation
+
+    def chain(self, *args, until: Callable[[T], bool] = lambda _: False, **kwargs):
+        return asyncio.run(self.achain(*args, until=until, **kwargs))
 
     async def acreate(self, *args, **kwargs):
         request = self.prepare_request(**kwargs)

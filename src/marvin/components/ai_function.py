@@ -4,15 +4,11 @@ import inspect
 import re
 from typing import Callable, TypeVar
 
-from pydantic import BaseModel
 from typing_extensions import ParamSpec
 
-from marvin.engine.executors import OpenAIFunctionsExecutor
 from marvin.engine.language_models.base import ChatLLM, chat_llm
 from marvin.prompts import library as prompt_library
-from marvin.tools.format_response import FormatResponse
 from marvin.utilities.async_utils import run_sync
-from marvin.utilities.types import safe_issubclass
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -162,9 +158,9 @@ class AIFunction:
 
         # get return annotation
         if sig.return_annotation is inspect._empty:
-            return_annotation = str
+            pass
         else:
-            return_annotation = sig.return_annotation
+            pass
 
         # get the function source code - it might include the @ai_fn decorator,
         # which can confuse the AI, so we use regex to only get the function
@@ -178,31 +174,31 @@ class AIFunction:
         bound_args.apply_defaults()
 
         if self.model is None:
-            model = chat_llm()
+            chat_llm()
         else:
-            model = self.model
+            pass
 
-        executor = OpenAIFunctionsExecutor(
-            model=model,
-            functions=[FormatResponse(type_=return_annotation).as_openai_function()],
-            function_call={"name": "FormatResponse"},
-            max_iterations=1,
-        )
-        [response] = await executor.start(
-            prompts=prompts,
-            prompt_render_kwargs=dict(
-                function_def=function_def,
-                function_name=self.fn.__name__,
-                function_description=(
-                    self.description if self.description != self.fn.__doc__ else None
-                ),
-                basemodel_response=safe_issubclass(return_annotation, BaseModel),
-                input_binds=bound_args.arguments,
-                instructions=self.instructions,
-            ),
-        )
+        # executor = OpenAIFunctionsExecutor(
+        #     model=model,
+        #     functions=[FormatResponse(type_=return_annotation).as_openai_function()],
+        #     function_call={"name": "FormatResponse"},
+        #     max_iterations=1,
+        # )
+        # [response] = await executor.start(
+        #     prompts=prompts,
+        #     prompt_render_kwargs=dict(
+        #         function_def=function_def,
+        #         function_name=self.fn.__name__,
+        #         function_description=(
+        #             self.description if self.description != self.fn.__doc__ else None
+        #         ),
+        #         basemodel_response=safe_issubclass(return_annotation, BaseModel),
+        #         input_binds=bound_args.arguments,
+        #         instructions=self.instructions,
+        #     ),
+        # )
 
-        return response.data["result"]
+        # return response.data["result"]
 
     def run(self, *args, **kwargs):
         # Override this to create the AI function as an instance method instead of
