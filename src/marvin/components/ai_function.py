@@ -11,6 +11,8 @@ from marvin.pydantic import BaseModel, Field
 from marvin.types import Function, FunctionRegistry
 
 T = TypeVar("T")
+
+
 P = ParamSpec("P")
 
 system_prompt = inspect.cleandoc("""
@@ -68,6 +70,8 @@ class AIFunction(BaseModel):
         fn: Optional[Callable[P, T]] = None,
         name: Optional[str] = None,
         description: Optional[str] = None,
+        system: str = system_prompt,
+        user: str = user_prompt,
         instructions: Optional[str] = None,
         ChatCompletion: Any = ChatCompletion,
         functions: Optional[list[Callable]] = None,
@@ -79,8 +83,10 @@ class AIFunction(BaseModel):
                 cls.as_decorator,
                 name=name,
                 description=description,
+                system=system,
+                user=user,
                 instructions=instructions,
-                ChatCompletion=ChatCompletion,
+                ChatCompletion=ChatCompletion(model=model, **model_kwargs),
                 functions=functions or [],
             )
 
@@ -88,6 +94,8 @@ class AIFunction(BaseModel):
             fn=Function(fn),
             name=name,
             description=description,
+            system=system,
+            user=user,
             instructions=instructions,
             ChatCompletion=ChatCompletion(model=model, **model_kwargs),
             functions=functions or [],
@@ -109,7 +117,9 @@ class AIFunction(BaseModel):
         response = {}
         response["messages"] = self._messages(*args, **kwargs)
         response["functions"] = self._functions(*args, **kwargs)
-        response["function_call"] = self._function_call(*args, **kwargs)
+        response["function_call"] = self._function_call(
+            *args, __schema__=__schema__, **kwargs
+        )
         if __schema__:
             response["functions"] = response["functions"].schema()
         return response
@@ -132,10 +142,10 @@ class AIFunction(BaseModel):
         functions.extend([Function(fn) for fn in self.functions])
         return FunctionRegistry(functions)
 
-    def _function_call(self, *args, **kwargs):
-        if self.functions:
-            return "auto"
-        return {"name": self.fn.response_model().__name__}
+    def _function_call(self, *args, __schema__=True, **kwargs):
+        if __schema__:
+            return {"name": self._functions(*args, **kwargs).schema()[0].get("name")}
+        return {"name": self._functions(*args, **kwargs)[0].__name__}
 
     def to_chat_completion(self, *args, __schema__=False, **kwargs):
         return ChatCompletion(**self.__call__(*args, __schema__=__schema__, **kwargs))
@@ -145,7 +155,7 @@ class AIFunction(BaseModel):
 
     def call(self, *args, **kwargs):
         completion = self.create(*args, **kwargs)
-        return completion
+        return completion.call_function(as_message=False).data
 
     async def map(self, *map_args: list, **map_kwargs: list):
         """

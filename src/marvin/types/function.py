@@ -57,7 +57,10 @@ class FunctionConfig(BaseModel):
         super().__init__(fn=fn, **kwargs)
 
     def getsource(self):
-        return re.search("def.*", inspect.getsource(self.fn), re.DOTALL).group()
+        try:
+            return re.search("def.*", inspect.getsource(self.fn), re.DOTALL).group()
+        except Exception:
+            return None
 
     def bind_arguments(self, *args, **kwargs):
         bound_arguments = inspect.signature(self.fn).bind_partial(*args, **kwargs)
@@ -65,18 +68,14 @@ class FunctionConfig(BaseModel):
         return bound_arguments.arguments
 
     def response_model(self, *args, **kwargs):
-        def format_final_response(data: inspect.signature(self.fn).return_annotation):
+        def format_response(data: inspect.signature(self.fn).return_annotation):
             """Function to format the final response to the user"""
             return None
 
-        format_final_response.__name__ = kwargs.get(
-            "name", format_final_response.__name__
-        )
-        format_final_response.__doc__ = kwargs.get(
-            "description", format_final_response.__doc__
-        )
-        response_model = Function(format_final_response).model
-        response_model.__signature__ = inspect.signature(format_final_response)
+        format_response.__name__ = kwargs.get("name", format_response.__name__)
+        format_response.__doc__ = kwargs.get("description", format_response.__doc__)
+        response_model = Function(format_response).model
+        response_model.__signature__ = inspect.signature(format_response)
         return response_model
 
 
@@ -103,6 +102,10 @@ class Function:
 
     @classmethod
     def from_model(cls, model: Type[BaseModel], **kwargs):
+        model.__signature__ = inspect.Signature(
+            list(model.__signature__.parameters.values()), return_annotation=model
+        )
+
         instance = cls.__new__(
             cls,
             model,
@@ -112,7 +115,7 @@ class Function:
                 **kwargs,
             },
         )
-        instance.__signature__ = model.__signature__
+
         return instance
 
     @classmethod
