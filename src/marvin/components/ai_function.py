@@ -174,6 +174,8 @@ class AIFunction(BaseModel):
         each argument must be a list. The function is called once for each item
         in the list, and the results are returned in a list.
 
+        This method can be called synchronously or asynchronously.
+
         For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
 
         fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2, x='b')].
@@ -187,12 +189,20 @@ class AIFunction(BaseModel):
 
     async def amap(self, *map_args: list, **map_kwargs: list):
         tasks = []
-        for i in range(max(len(v) for v in map_kwargs.values())):
+        if map_args:
+            max_length = max(len(arg) for arg in map_args)
+        else:
+            max_length = max(len(v) for v in map_kwargs.values())
+
+        for i in range(max_length):
             call_args = [arg[i] if i < len(arg) else None for arg in map_args]
-            call_kwargs = {
-                k: v[i] if i < len(v) else None for k, v in map_kwargs.items()
-            }
+            call_kwargs = (
+                {k: v[i] if i < len(v) else None for k, v in map_kwargs.items()}
+                if map_kwargs
+                else {}
+            )
             tasks.append(self.acall(*call_args, **call_kwargs))
+
         return await asyncio.gather(*tasks)
 
     async def acreate(self, *args, **kwargs):
