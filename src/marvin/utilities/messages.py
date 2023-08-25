@@ -1,7 +1,7 @@
 import inspect
 from datetime import datetime
 from enum import Enum
-from typing import Self, Type
+from typing import Optional, Self, Type
 from zoneinfo import ZoneInfo
 
 from pydantic import Field, validator
@@ -28,7 +28,7 @@ class Role(Enum):
 class Message(MarvinBaseModel):
     role: Role
     content: str = None
-    name: str = None
+    name: Optional[str] = None
     timestamp: datetime = Field(default_factory=lambda: datetime.now(ZoneInfo("UTC")))
     data: dict = {}
     llm_response: dict = Field(None, description="The raw LLM response", repr=False)
@@ -38,6 +38,19 @@ class Message(MarvinBaseModel):
         if v is not None:
             v = inspect.cleandoc(v)
         return v
+
+    def dict(self, *args, serialize: bool = True, **kwargs):
+        if serialize:
+            d = super().dict(
+                *args, **kwargs, exclude={"llm_response", "data", "timestamp"}
+            )
+            if isinstance(self.role, Role):
+                d["role"] = self.role.value.lower()
+            if "name" in d and d["name"] is None:
+                del d["name"]
+
+            return d
+        return super().dict(*args, **kwargs)
 
     @classmethod
     def from_conversation(cls: Type[Self], conversation) -> list[Type[Self]]:

@@ -5,6 +5,7 @@ from functools import cached_property
 from operator import itemgetter
 from typing import Callable, Literal, Optional, Union, Type, TypeVar, Any
 
+
 from marvin.pydantic import (
     BaseModel,
     BaseSettings,
@@ -15,6 +16,7 @@ from marvin.pydantic import (
 )
 from marvin.settings import ENV_PATH
 from marvin.types import Function
+from marvin.utilities.logging import get_logger
 from marvin.utilities.module_loading import import_string
 
 from .abstract import (
@@ -272,11 +274,15 @@ class BaseChatCompletion(
     async def achain(
         self, *args, until: Callable[[T], bool] = lambda _: False, **kwargs
     ):
+        logger = get_logger()
         with self as conversation:
             await conversation.asend(*args, **kwargs)
             while conversation.last_response.has_function_call() and not until(
                 conversation
-            ):  # noqa
+            ):
+                logger.debug(
+                    f"Running function: {conversation.last_response.raw.get('choices')}"
+                )
                 await conversation.asend(
                     messages=[conversation.last_response.call_function()]
                 )
