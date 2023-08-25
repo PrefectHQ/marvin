@@ -24,9 +24,9 @@ system_prompt = inspect.cleandoc("""\
     {% for option in options %}
         {{ loop.index }}. {{ value_getter(option) }}
     {% endfor %}
-    {% if get_context %}
+    {% if context_fn %}
     You have been provided the following context to perform your task:\n
-    {%for (arg, value) in get_context(value).items()%}
+    {%for (arg, value) in context_fn(value).items()%}
         - {{ arg }}: {{ value }}\n
     {% endfor %}
     {% endif %}\
@@ -55,7 +55,7 @@ class AIEnumMeta(EnumMeta):
         system_prompt=system_prompt,
         user_prompt=user_prompt,
         value_getter: Callable = lambda x: x.name,
-        get_context: Optional[Callable] = None,
+        context_fn: Optional[Callable] = None,
         instructions: Optional[str] = None,
         method: Literal["logit_bias", "function"] = "logit_bias",
         model: ChatCompletion = None,
@@ -68,7 +68,7 @@ class AIEnumMeta(EnumMeta):
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 value_getter=value_getter,
-                get_context=get_context,
+                context_fn=context_fn,
                 instructions=instructions,
                 method=method,
                 model=model,
@@ -91,7 +91,7 @@ class AIEnumMeta(EnumMeta):
             setattr(enum, "__user_prompt__", user_prompt)
             setattr(enum, "__model__", model)
             setattr(enum, "__value_getter__", value_getter)
-            setattr(enum, "__get_context__", get_context)
+            setattr(enum, "__context_fn__", context_fn)
             setattr(enum, "__instructions__", instructions)
             setattr(enum, "__method__", method)
             return enum
@@ -161,7 +161,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         value_getter: Callable = None,
         instructions: Optional[str] = None,
         method: Literal["logit_bias", "function"] = "logit_bias",
-        get_context: Optional[Callable] = None,
+        context_fn: Optional[Callable] = None,
         **kwargs,
     ):
         """
@@ -176,7 +176,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         system_prompt = system_prompt or cls.__system_prompt__
         user_prompt = user_prompt or cls.__user_prompt__
         value_getter = value_getter or cls.__value_getter__
-        get_context = get_context or cls.__get_context__
+        context_fn = context_fn or cls.__context_fn__
         method = method or cls.__method__
         return [
             {
@@ -188,7 +188,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
                         instructions=instructions,
                         options=cls,
                         value_getter=value_getter,
-                        get_context=get_context,
+                        context_fn=context_fn,
                     )
                     .strip()
                 ),
@@ -200,7 +200,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
                     .render(
                         value=value,
                         value_getter=value_getter,
-                        get_context=get_context,
+                        context_fn=context_fn,
                     )
                     .strip()
                 ),
@@ -271,7 +271,7 @@ def ai_classifier(
     system_prompt: str = system_prompt,
     user_prompt: str = user_prompt,
     value_getter: Callable = lambda x: x.name,
-    get_context: Optional[Callable] = None,
+    context_fn: Optional[Callable] = None,
     instructions: Optional[str] = None,
     method: Literal["logit_bias", "function"] = "logit_bias",
     **model_kwargs,
@@ -290,7 +290,7 @@ def ai_classifier(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             value_getter=value_getter,
-            get_context=get_context,
+            context_fn=context_fn,
             instructions=instructions,
             method=method,
         )
