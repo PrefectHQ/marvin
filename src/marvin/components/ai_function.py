@@ -101,8 +101,18 @@ class AIFunction(BaseModel):
         )
 
         @functools.wraps(fn)
-        def wrapper_function(*args: Any, **kwargs: Any) -> Any:
+        async def async_wrapper_function(*args: Any, **kwargs: Any) -> Any:
+            return await model.acall(*args, **kwargs)
+
+        @functools.wraps(fn)
+        def sync_wrapper_function(*args: Any, **kwargs: Any) -> Any:
             return model.call(*args, **kwargs)
+
+        wrapper_function = (
+            async_wrapper_function
+            if asyncio.iscoroutinefunction(fn)
+            else sync_wrapper_function
+        )
 
         wrapper_function.prompt = model
         wrapper_function.to_chat_completion = model.to_chat_completion
@@ -156,7 +166,7 @@ class AIFunction(BaseModel):
         completion = self.create(*args, **kwargs)
         return completion.call_function(as_message=False).data
 
-    async def map(self, *map_args: list, **map_kwargs: list):
+    def map(self, *map_args: list, **map_kwargs: list):
         """
         Map the AI function over a sequence of arguments. Runs concurrently.
 
@@ -164,18 +174,35 @@ class AIFunction(BaseModel):
         each argument must be a list. The function is called once for each item
         in the list, and the results are returned in a list.
 
+        This method can be called synchronously or asynchronously.
+
         For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
 
         fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2, x='b')].
         """
-
-        if not map_kwargs:
-            tasks = [self.acall(*a) for a in zip(*map_args)]
+        if asyncio.get_event_loop().is_running():
+            return self.amap(*map_args, **map_kwargs)
         else:
-            tasks = [
-                self.acall(*a, **{k: v for k, v in zip(map_kwargs.keys(), kw)})
-                for a, kw in zip(zip(*map_args), zip(*map_kwargs.values()))
-            ]
+            return asyncio.get_event_loop().run_until_complete(
+                self.amap(*map_args, **map_kwargs)
+            )
+
+    async def amap(self, *map_args: list, **map_kwargs: list):
+        tasks = []
+        if map_args:
+            max_length = max(len(arg) for arg in map_args)
+        else:
+            max_length = max(len(v) for v in map_kwargs.values())
+
+        for i in range(max_length):
+            call_args = [arg[i] if i < len(arg) else None for arg in map_args]
+            call_kwargs = (
+                {k: v[i] if i < len(v) else None for k, v in map_kwargs.items()}
+                if map_kwargs
+                else {}
+            )
+            tasks.append(self.acall(*call_args, **call_kwargs))
+
         return await asyncio.gather(*tasks)
 
     async def acreate(self, *args, **kwargs):
