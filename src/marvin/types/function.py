@@ -63,7 +63,7 @@ class FunctionConfig(BaseModel):
             return None
 
     def bind_arguments(self, *args, **kwargs):
-        bound_arguments = inspect.signature(self.fn).bind_partial(*args, **kwargs)
+        bound_arguments = inspect.signature(self.fn).bind(*args, **kwargs)
         bound_arguments.apply_defaults()
         return bound_arguments.arguments
 
