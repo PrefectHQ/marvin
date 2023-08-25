@@ -101,8 +101,18 @@ class AIFunction(BaseModel):
         )
 
         @functools.wraps(fn)
-        def wrapper_function(*args: Any, **kwargs: Any) -> Any:
+        async def async_wrapper_function(*args: Any, **kwargs: Any) -> Any:
+            return await model.acall(*args, **kwargs)
+
+        @functools.wraps(fn)
+        def sync_wrapper_function(*args: Any, **kwargs: Any) -> Any:
             return model.call(*args, **kwargs)
+
+        wrapper_function = (
+            async_wrapper_function
+            if asyncio.iscoroutinefunction(fn)
+            else sync_wrapper_function
+        )
 
         wrapper_function.prompt = model
         wrapper_function.to_chat_completion = model.to_chat_completion
