@@ -27,8 +27,8 @@ system_extract_prompt = inspect.cleandoc(
     " form.\n    - To validate your response, you must call the"
     " `{{functions[0].__name__}}` function. \n    - Use the provided text to extract or"
     " infer any parameters needed by `{{functions[0].__name__}}`, including any missing"
-    " data. \n{% if get_context %}You have been provided the following context to"
-    " perform your task:\n{%for (arg, value) in get_context(text).items()%}    - {{ arg"
+    " data. \n{% if context_fn %}You have been provided the following context to"
+    " perform your task:\n{%for (arg, value) in context_fn(text).items()%}    - {{ arg"
     " }}: {{ value }}\n{% endfor %}{% endif %}"
 )
 
@@ -41,9 +41,9 @@ system_generate_prompt = inspect.cleandoc(
     "    - Use the provided text to generate or invent any parameters needed "
     "by `{{functions[0].__name__}}`, including any missing data.\n"
     "    - It is okay to make up representative data.\n"
-    "{% if get_context %}"
+    "{% if context_fn %}"
     "You have been provided the following context to perform your task:\n"
-    "{%for (arg, value) in get_context(text).items()%}"
+    "{%for (arg, value) in context_fn(text).items()%}"
     "    - {{ arg }}: {{ value }}\n"
     "{% endfor %}"
     "{% endif %}"
@@ -109,7 +109,7 @@ class AIModel(BaseModel):
         instructions: str = None,
         system: str = None,
         user: str = user_prompt,
-        get_context: Optional[Callable[[str], dict]] = default_context,
+        context_fn: Optional[Callable[[str], dict]] = default_context,
         mode: Literal["extract", "generate"] = "extract",
         model: Any = None,
         **model_kwargs,
@@ -126,7 +126,7 @@ class AIModel(BaseModel):
                 ),
                 user=user or user_prompt,
                 model=model,
-                get_context=get_context,
+                context_fn=context_fn,
                 **model_kwargs,
             )
         return type(
@@ -144,7 +144,7 @@ class AIModel(BaseModel):
                         else system_generate_prompt
                     ),
                     user=user or user_prompt,
-                    get_context=get_context,
+                    context_fn=context_fn,
                 ),
             },
         )
