@@ -122,7 +122,7 @@ class AIFunction(BaseModel):
         wrapper_function.map = model.map
         return wrapper_function
 
-    def __call__(self, *args, __schema__=True, **kwargs):
+    def _call(self, *args, __schema__=True, **kwargs):
         response = {}
         response["messages"] = self._messages(*args, **kwargs)
         response["functions"] = self._functions(*args, **kwargs)
@@ -157,7 +157,7 @@ class AIFunction(BaseModel):
         return {"name": self._functions(*args, **kwargs)[0].__name__}
 
     def to_chat_completion(self, *args, __schema__=False, **kwargs):
-        return self.model(**self.__call__(*args, __schema__=__schema__, **kwargs))
+        return self.model(**self._call(*args, __schema__=__schema__, **kwargs))
 
     def create(self, *args, **kwargs):
         return self.to_chat_completion(*args, **kwargs).create()
