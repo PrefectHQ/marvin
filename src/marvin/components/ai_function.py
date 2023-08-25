@@ -186,13 +186,13 @@ class AIFunction(BaseModel):
             )
 
     async def amap(self, *map_args: list, **map_kwargs: list):
-        if not map_kwargs:
-            tasks = [self.acall(*a) for a in zip(*map_args)]
-        else:
-            tasks = [
-                self.acall(*a, **{k: v for k, v in zip(map_kwargs.keys(), kw)})
-                for a, kw in zip(zip(*map_args), zip(*map_kwargs.values()))
-            ]
+        tasks = []
+        for i in range(max(len(v) for v in map_kwargs.values())):
+            call_args = [arg[i] if i < len(arg) else None for arg in map_args]
+            call_kwargs = {
+                k: v[i] if i < len(v) else None for k, v in map_kwargs.items()
+            }
+            tasks.append(self.acall(*call_args, **call_kwargs))
         return await asyncio.gather(*tasks)
 
     async def acreate(self, *args, **kwargs):
