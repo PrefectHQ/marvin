@@ -156,19 +156,15 @@ class AIFunction(BaseModel):
         completion = self.create(*args, **kwargs)
         return completion.call_function(as_message=False).data
 
-    async def map(self, *map_args: list, **map_kwargs: list):
-        """
-        Map the AI function over a sequence of arguments. Runs concurrently.
+    def map(self, *map_args: list, **map_kwargs: list):
+        if asyncio.get_event_loop().is_running():
+            return self.amap(*map_args, **map_kwargs)
+        else:
+            return asyncio.get_event_loop().run_until_complete(
+                self.amap(*map_args, **map_kwargs)
+            )
 
-        Arguments should be provided as if calling the function normally, but
-        each argument must be a list. The function is called once for each item
-        in the list, and the results are returned in a list.
-
-        For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
-
-        fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2, x='b')].
-        """
-
+    async def amap(self, *map_args: list, **map_kwargs: list):
         if not map_kwargs:
             tasks = [self.acall(*a) for a in zip(*map_args)]
         else:
