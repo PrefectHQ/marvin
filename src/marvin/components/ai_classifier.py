@@ -1,42 +1,38 @@
 import asyncio
+import inspect
 from enum import Enum, EnumMeta
-from typing import Callable
+from typing import Callable, Literal, Optional
 
-from marvin.engine.language_models import ChatLLM, chat_llm
-from marvin.engine.language_models.openai import OpenAIChatLLM
-from marvin.prompts import render_prompts
-from marvin.prompts.library import System, User
+from jinja2 import Template
+from pydantic import create_model
+from pydantic.fields import FieldInfo
+
+from marvin.core.ChatCompletion import ChatCompletion
+from marvin.types import Function, FunctionRegistry
 from marvin.utilities.async_utils import run_sync
 
-
-class ClassifierSystem(System):
-    content = """\
+system_prompt = inspect.cleandoc("""\
     You are an expert classifier that always chooses correctly.
-
     {% if enum_class_docstring %}    
     Your classification task is: {{ enum_class_docstring }}
-    
     {% endif %}
-    
     {% if instructions %}
     Your instructions are: {{ instructions }}
-
     {% endif %}
     The user will provide context through text, you will use your expertise 
     to choose the best option below based on it:
-    
     {% for option in options %}
-        {{ loop.index }}. {{ option }}
-    {% endfor %}\
-    """
-    instructions: str = None
-    options: list = []
-    enum_class_docstring: str = None
+        {{ loop.index }}. {{ value_getter(option) }}
+    {% endfor %}
+    {% if get_context %}
+    You have been provided the following context to perform your task:\n
+    {%for (arg, value) in get_context(value).items()%}
+        - {{ arg }}: {{ value }}\n
+    {% endfor %}
+    {% endif %}\
+    """)
 
-
-class ClassifierUser(User):
-    content = r"""{{ user_input }}"""
-    user_input: str
+user_prompt = inspect.cleandoc("""{{ value }}""")
 
 
 class AIEnumMeta(EnumMeta):
@@ -56,10 +52,13 @@ class AIEnumMeta(EnumMeta):
         qualname=None,
         type=None,
         start=1,
-        system_prompt: System = ClassifierSystem,
-        user_prompt: User = ClassifierUser,
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
         value_getter: Callable = lambda x: x.name,
-        model: ChatLLM = None,
+        get_context: Optional[Callable] = None,
+        instructions: Optional[str] = None,
+        method: Literal["logit_bias", "function"] = "logit_bias",
+        model: ChatCompletion = None,
         **kwargs,
     ):
         # If kwargs are provided, handle the missing case
@@ -69,6 +68,9 @@ class AIEnumMeta(EnumMeta):
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
                 value_getter=value_getter,
+                get_context=get_context,
+                instructions=instructions,
+                method=method,
                 model=model,
                 **kwargs,
             )
@@ -84,14 +86,14 @@ class AIEnumMeta(EnumMeta):
                 start=start,
             )
 
-            if model is None:
-                model = chat_llm(temperature=0)
-
             # Set additional attributes for the AI classifier
             setattr(enum, "__system_prompt__", system_prompt)
             setattr(enum, "__user_prompt__", user_prompt)
             setattr(enum, "__model__", model)
             setattr(enum, "__value_getter__", value_getter)
+            setattr(enum, "__get_context__", get_context)
+            setattr(enum, "__instructions__", instructions)
+            setattr(enum, "__method__", method)
             return enum
 
 
@@ -104,113 +106,149 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
     """
 
     @classmethod
-    def __messages__(
+    def prompt(
+        cls,
+        *args,
+        method: Literal["logit_bias", "function"] = "logit_bias",
+        __schema__: bool = True,
+        **kwargs,
+    ):
+        response = {}
+        response["messages"] = cls._messages(*args, method=method, **kwargs)
+        if method == "logit_bias":
+            response.update({"logit_bias": cls._logit_bias(*args, **kwargs)})
+            response.update({"max_tokens": 1})
+        else:
+            response.update({"functions": cls._functions(*args, **kwargs)})
+            response.update(
+                {
+                    "function_call": cls._function_call(
+                        *args, __schema__=__schema__, **kwargs
+                    )
+                }
+            )
+            if __schema__:
+                response["functions"] = response["functions"].schema()
+        return response
+
+    @classmethod
+    def _logit_bias(cls, *args, **kwargs):
+        return {
+            next(iter(cls.__model__.get_tokens(str(i)))): 100
+            for i in range(1, len(cls) + 1)
+        }
+
+    @classmethod
+    def _functions(cls, *args, **kwargs):
+        model = create_model(
+            "Index", **{"index": (int, FieldInfo(min=1, max=len(cls)))}
+        )
+        model.__doc__ = cls.__doc__ or "A enumeration of choices."
+        return FunctionRegistry([Function.from_model(model)])
+
+    @classmethod
+    def _function_call(cls, *args, __schema__=True, **kwargs):
+        if __schema__:
+            return {"name": cls._functions(*args, **kwargs).schema()[0].get("name")}
+        return {"name": cls._functions(*args, **kwargs)[0].__name__}
+
+    @classmethod
+    def _messages(
         cls,
         value,
-        system_prompt: System = ClassifierSystem,
-        user_prompt: User = ClassifierUser,
-        value_getter: Callable = lambda x: x.name,
-        as_dict: bool = True,
-        instructions: str = None,
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        value_getter: Callable = None,
+        instructions: Optional[str] = None,
+        method: Literal["logit_bias", "function"] = "logit_bias",
+        get_context: Optional[Callable] = None,
         **kwargs,
     ):
         """
         Generate the messages to be used as prompts for the AI classifier. The messages
         are created based on the system and user templates provided.
         """
-
         # don't pass the generic enum docstring through
-        docstring = None
         if cls.__doc__ != "An enumeration.":
-            docstring = cls.__doc__
+            pass
 
-        messages = render_prompts(
-            [
-                system_prompt(
-                    enum_class_docstring=docstring,
-                    options=[value_getter(option) for option in cls],
+        instructions = instructions or cls.__instructions__
+        system_prompt = system_prompt or cls.__system_prompt__
+        user_prompt = user_prompt or cls.__user_prompt__
+        value_getter = value_getter or cls.__value_getter__
+        get_context = get_context or cls.__get_context__
+        method = method or cls.__method__
+        return [
+            {
+                "role": "system",
+                "content": (
+                    Template(system_prompt)
+                    .render(
+                        value=value,
+                        instructions=instructions,
+                        options=cls,
+                        value_getter=value_getter,
+                        get_context=get_context,
+                    )
+                    .strip()
                 ),
-                user_prompt(user_input=value),
-            ],
-            render_kwargs={"instructions": instructions, **kwargs},
-        )
-
-        if as_dict:
-            return [
-                {"role": message.role.value.lower(), "content": message.content}
-                for message in messages
-            ]
-        return messages
-
-    @classmethod
-    def _missing_(
-        cls,
-        value,
-        instructions: str = None,
-        system_prompt: System = None,
-        user_prompt: User = None,
-        value_getter: Callable = None,
-        model: ChatLLM = None,
-        **kwargs,
-    ):
-        coro = cls.__missing_async__(
-            value,
-            instructions=instructions,
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            value_getter=value_getter,
-            model=model,
-            **kwargs,
-        )
-        return run_sync(coro)
+            },
+            {
+                "role": "user",
+                "content": (
+                    Template(user_prompt)
+                    .render(
+                        value=value,
+                        value_getter=value_getter,
+                        get_context=get_context,
+                    )
+                    .strip()
+                ),
+            },
+        ]
 
     @classmethod
-    async def __missing_async__(
-        cls,
-        value,
-        instructions: str = None,
-        system_prompt: System = None,
-        user_prompt: User = None,
-        value_getter: Callable = None,
-        model: ChatLLM = None,
-        **kwargs,
-    ):
+    def _missing_(cls, *args, **kwargs):
+        return run_sync(cls.__missing_async__(*args, **kwargs))
+
+    @classmethod
+    def to_chat_completion(cls, *args, __schema__=False, **kwargs):
+        return cls.__model__(**cls.prompt(*args, __schema__=__schema__, **kwargs))
+
+    @classmethod
+    def create(cls, *args, **kwargs):
+        return cls.to_chat_completion(*args, **kwargs).create()
+
+    @classmethod
+    def call(cls, *args, **kwargs):
+        completion = cls.create(*args, **kwargs)
+        if completion.has_function_call():
+            index = completion.call_function(as_message=False).index
+        else:
+            index = completion.choices[0].message.content
+        return list(cls)[int(index) - 1]
+
+    @classmethod
+    async def acreate(cls, *args, **kwargs):
+        return await cls.to_chat_completion(*args, **kwargs).acreate()
+
+    @classmethod
+    async def acall(cls, *args, **kwargs):
+        completion = await cls.acreate(*args, **kwargs)
+        if completion.has_function_call():
+            index = completion.call_function(as_message=False).index
+        else:
+            index = completion.choices[0].message.content
+        return list(cls)[int(index) - 1]
+
+    @classmethod
+    async def __missing_async__(cls, *args, **kwargs):
         """
         Handle the case where a value is not found in the enum. This method is a part
         of Python's Enum API and is called when an attempt is made to access an enum
         member that does not exist.
         """
-
-        if model is None:
-            model = cls.__model__
-
-        if not isinstance(model, OpenAIChatLLM):
-            raise ValueError(
-                "At this time, AI Classifiers rely on a tokenized approach that is only"
-                " compatible with OpenAI models."
-            )
-
-        messages = cls.__messages__(
-            value=value,
-            system_prompt=system_prompt or cls.__system_prompt__,
-            user_prompt=user_prompt or cls.__user_prompt__,
-            value_getter=value_getter or cls.__value_getter__,
-            as_dict=False,
-            instructions=instructions,
-            **kwargs,
-        )
-
-        response = await model.run(
-            messages=messages,
-            logit_bias={
-                next(iter(model.get_tokens(str(i)))): 100
-                for i in range(1, len(cls) + 1)
-            },
-            max_tokens=1,
-        )
-
-        # Return the enum member corresponding to the predicted class
-        return list(cls)[int(response.content) - 1]
+        return await cls.acall(*args, **kwargs)
 
     @classmethod
     def map(cls, items: list[str], **kwargs):
@@ -229,10 +267,14 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
 
 def ai_classifier(
     cls=None,
-    model: ChatLLM = None,
-    system_prompt: System = ClassifierSystem,
-    user_prompt: User = ClassifierUser,
+    model: ChatCompletion = ChatCompletion,
+    system_prompt: str = system_prompt,
+    user_prompt: str = user_prompt,
     value_getter: Callable = lambda x: x.name,
+    get_context: Optional[Callable] = None,
+    instructions: Optional[str] = None,
+    method: Literal["logit_bias", "function"] = "logit_bias",
+    **model_kwargs,
 ):
     """
     A decorator that transforms a regular Enum class into an AIEnum class. It adds
@@ -244,10 +286,13 @@ def ai_classifier(
         ai_enum_class = AIEnum(
             enum_class.__name__,
             {member.name: member.value for member in enum_class},
-            model=model,
+            model=model(**model_kwargs),
             system_prompt=system_prompt,
             user_prompt=user_prompt,
             value_getter=value_getter,
+            get_context=get_context,
+            instructions=instructions,
+            method=method,
         )
 
         # Preserve the original class's docstring
