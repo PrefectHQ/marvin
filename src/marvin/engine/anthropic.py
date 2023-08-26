@@ -3,7 +3,7 @@ from typing import Any, Callable, Optional
 
 from anthropic import AI_PROMPT, HUMAN_PROMPT
 from jinja2 import Template
-from pydantic import BaseModel, Extra, Field, root_validator
+from pydantic import model_validator, ConfigDict, BaseModel, Field
 
 from marvin import settings
 from marvin.engine import ChatCompletionBase
@@ -25,16 +25,12 @@ class Request(BaseRequest):
     api_key: str = Field(default_factory=settings.anthropic.api_key.get_secret_value)
     max_tokens_to_sample: int = Field(default=1000)
     prompt: str = Field(default="")
+    model_config = ConfigDict(exclude={"response_model", "messages"}, exclude_none=True, extra="allow", functions_prompt=(
+        "marvin.engine.language_models.anthropic.FUNCTIONS_INSTRUCTIONS"
+    ))
 
-    class Config:
-        exclude = {"response_model", "messages"}
-        exclude_none = True
-        extra = Extra.allow
-        functions_prompt = (
-            "marvin.engine.language_models.anthropic.FUNCTIONS_INSTRUCTIONS"
-        )
-
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def to_anthropic(cls, values):
         values["prompt"] = ""
         for message in values.get("messages", []):
@@ -64,8 +60,8 @@ class Response(BaseModel):
     from the raw response.
     """
 
-    raw: Any  # the raw response from the API
-    request: Any  # the request that generated the response
+    raw: Any = None  # the raw response from the API
+    request: Any = None  # the request that generated the response
 
     def __init__(self, response, *args, request, **kwargs):
         super().__init__(raw=response, request=request)

@@ -3,7 +3,7 @@ import json
 from ast import literal_eval
 from typing import Callable, List, Optional, Union
 
-from pydantic import Field, root_validator, validator
+from pydantic import field_validator, Field, root_validator
 
 import marvin
 from marvin.engine.language_models import OpenAIFunction
@@ -27,7 +27,8 @@ class OpenAIFunctionsExecutor(Executor):
     )
     stream_handler: Callable[[Message], None] = Field(default=None)
 
-    @validator("functions", pre=True)
+    @field_validator("functions", mode="before")
+    @classmethod
     def validate_functions(cls, v):
         if v is None:
             return None

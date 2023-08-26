@@ -69,6 +69,8 @@ class ChatLLM(MarvinBaseModel, abc.ABC):
     max_tokens: int = Field(default_factory=lambda: marvin.settings.llm_max_tokens)
     temperature: float = Field(default_factory=lambda: marvin.settings.llm_temperature)
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("name", always=True)
     def default_name(cls, v):
         if v is None:

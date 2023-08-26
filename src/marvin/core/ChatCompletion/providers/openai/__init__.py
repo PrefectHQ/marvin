@@ -28,6 +28,8 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
             if openai.api_key:
                 self.api_key = openai.api_key
 
+    # TODO[pydantic]: The `Config` class inherits from another class, please create the `model_config` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
     class Config(BaseChatCompletionSettings.Config):
         env_prefix = "MARVIN_OPENAI_"
         exclude_none = True

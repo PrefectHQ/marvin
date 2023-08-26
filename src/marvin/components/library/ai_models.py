@@ -2,7 +2,7 @@ import json
 from typing import Optional
 
 import httpx
-from pydantic import BaseModel, Field, validator
+from pydantic import field_validator, BaseModel, Field
 from typing_extensions import Self
 
 import marvin
@@ -31,7 +31,8 @@ class DiscoursePost(BaseModel):
 
     topic_url: Optional[str] = Field(None)
 
-    @validator("title", "question", "answer")
+    @field_validator("title", "question", "answer")
+    @classmethod
     def non_empty_string(cls, value):
         if not value:
             raise ValueError("this field cannot be empty")

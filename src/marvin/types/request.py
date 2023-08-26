@@ -1,9 +1,10 @@
 import warnings
 from typing import Callable, List, Literal, Optional, Type, Union
 
-from pydantic import BaseModel, BaseSettings, Extra, Field, root_validator, validator
+from pydantic import model_validator, BaseModel, Field, validator
 
 from marvin.types import Function
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Request(BaseSettings):
@@ -21,13 +22,10 @@ class Request(BaseSettings):
     # Internal Marvin Attributes to be excluded from the data sent to the API
     response_model: Optional[Type[BaseModel]] = Field(default=None)
     evaluate_function_call: bool = Field(default=False)
+    model_config = SettingsConfigDict(exclude={"response_model"}, exclude_none=True, extra="allow")
 
-    class Config:
-        exclude = {"response_model"}
-        exclude_none = True
-        extra = Extra.allow
-
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def handle_response_model(cls, values):
         """
         This function validates and handles the response_model attribute.
@@ -41,6 +39,8 @@ class Request(BaseSettings):
             values["function_call"] = {"name": fn.__name__}
         return values
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("functions", each_item=True)
     def validate_function(cls, fn):
         """

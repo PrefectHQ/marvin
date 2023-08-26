@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Any, Callable, Union
 
 from jsonpatch import JsonPatch
-from pydantic import BaseModel, Field, PrivateAttr, validator
+from pydantic import field_validator, ConfigDict, BaseModel, Field, PrivateAttr, validator
 
 from marvin.engine.executors import OpenAIFunctionsExecutor
 from marvin.engine.language_models import ChatLLM, chat_llm
@@ -136,8 +136,7 @@ class TaskState(Enum):
 
 
 class Task(BaseModel):
-    class Config:
-        validate_assignment = True
+    model_config = ConfigDict(validate_assignment=True)
 
     id: int
     description: str
@@ -216,17 +215,20 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
     state_enabled: bool = True
     plan_enabled: bool = True
 
-    @validator("description")
+    @field_validator("description")
+    @classmethod
     def validate_description(cls, v):
         return inspect.cleandoc(v)
 
-    @validator("additional_prompts")
+    @field_validator("additional_prompts")
+    @classmethod
     def validate_additional_prompts(cls, v):
         if v is None:
             v = []
         return v
 
-    @validator("tools", pre=True)
+    @field_validator("tools", mode="before")
+    @classmethod
     def validate_tools(cls, v):
         if v is None:
             v = []
@@ -245,6 +247,8 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
                 raise ValueError(f"Tool {tool} is not a Tool or callable.")
         return tools
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("name", always=True)
     def validate_name(cls, v):
         if v is None:
@@ -341,9 +345,7 @@ class JSONPatchModel(BaseModel):
     path: str
     value: Union[str, float, int, bool, list, dict] = None
     from_: str = Field(None, alias="from")
-
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class UpdateState(Tool):

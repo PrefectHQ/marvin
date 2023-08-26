@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import Enum
 from zoneinfo import ZoneInfo
 
-from pydantic import Field, validator
+from pydantic import field_validator, Field
 
 from marvin.utilities.types import MarvinBaseModel
 
@@ -32,7 +32,8 @@ class Message(MarvinBaseModel):
     data: dict = {}
     llm_response: dict = Field(None, description="The raw LLM response", repr=False)
 
-    @validator("content")
+    @field_validator("content")
+    @classmethod
     def clean_content(cls, v):
         if v is not None:
             v = inspect.cleandoc(v)

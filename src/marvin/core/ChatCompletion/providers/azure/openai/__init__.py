@@ -33,6 +33,8 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
         ),
     )
 
+    # TODO[pydantic]: The `Config` class inherits from another class, please create the `model_config` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
     class Config(BaseChatCompletionSettings.Config):
         env_prefix = "MARVIN_AZURE_OPENAI_"
         exclude_none = True

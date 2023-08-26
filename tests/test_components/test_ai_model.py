@@ -63,7 +63,7 @@ class TestAIModels:
         class Experience(BaseModel):
             technology: str
             years_of_experience: int
-            supporting_phrase: Optional[str]
+            supporting_phrase: Optional[str] = None
 
         @ai_model
         class Resume(BaseModel):

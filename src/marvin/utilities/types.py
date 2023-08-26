@@ -4,14 +4,13 @@ from types import GenericAlias
 from typing import Any, Callable, _SpecialForm
 
 import pydantic
-from pydantic import BaseModel, PrivateAttr
+from pydantic import ConfigDict, BaseModel, PrivateAttr
 
 from marvin.utilities.logging import get_logger
 
 
 class MarvinBaseModel(BaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class LoggerMixin(BaseModel):

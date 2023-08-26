@@ -21,6 +21,8 @@ class Tool(LoggerMixin, BaseModel):
         description = description or fn.__doc__
         return cls(name=name, description=description, fn=fn)
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("name", always=True)
     def default_name_from_class_name(cls, v):
         if v is None:

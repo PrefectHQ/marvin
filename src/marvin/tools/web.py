@@ -12,7 +12,7 @@ from marvin.utilities.strings import html_to_content, slice_tokens
 
 
 class SerpApiSettings(MarvinBaseSettings):
-    api_key: SecretStr = Field(None, env="MARVIN_SERPAPI_API_KEY")
+    api_key: SecretStr = Field(None, validation_alias="MARVIN_SERPAPI_API_KEY")
 
 
 class VisitUrl(Tool):

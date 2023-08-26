@@ -24,6 +24,8 @@ from .abstract import (
     AbstractChatRequest,
     AbstractChatResponse,
 )
+from pydantic import ConfigDict
+from pydantic_settings import SettingsConfigDict
 
 
 class BaseConversationState(BaseModel, ABC):
@@ -74,17 +76,11 @@ class BaseConversationState(BaseModel, ABC):
         response = await self.model.acreate(*args, **kwargs)
         self.turns.append(response)
         return response
-
-    class Config:
-        extra = Extra.allow
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
 
 
 class BaseChatCompletionSettings(BaseSettings, AbstractChatCompletionSettings):
-    class Config:
-        env_file = (".env", ENV_PATH)
-        env_prefix = "MARVIN_"
-        validate_assignment = True
+    model_config = SettingsConfigDict(env_file=(".env", ENV_PATH), env_prefix="MARVIN_", validate_assignment=True)
 
     def dict(self, exclude_none=True, evaluate_secrets=True, exclude=None, **kwargs):
         exclude = (exclude or set()).union(getattr(self.Config, "exclude", set()))
@@ -104,11 +100,7 @@ class BaseChatRequest(BaseModel, AbstractChatRequest):
 
     _response_model: Optional[Type[BaseModel]] = Field(None, alias="response_model")
     _evaluate_function_call: bool = Field(False, alias="evaluate_function_call")
-
-    class Config:
-        extra = Extra.allow
-        exclude = {"_response_model", "_evaluate_function_call"}
-        merge = {"functions", "messages"}
+    model_config = ConfigDict(extra="allow", exclude={"_response_model", "_evaluate_function_call"}, merge={"functions", "messages"})
 
     def __init__(self, *args, **kwargs):
         if "response_model" in kwargs:
@@ -287,8 +279,4 @@ class BaseChatCompletion(
 
     def __exit__(self, *args, **kwargs):
         pass
-
-    class Config:
-        keep_untouched = (cached_property,)
-        exclude = {"_defaults"}
-        extra = Extra.allow
+    model_config = ConfigDict(ignored_types=(cached_property,), exclude={"_defaults"}, extra="allow")

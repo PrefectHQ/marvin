@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator, Extra, BaseSettings, root_validator
+from pydantic import ConfigDict, BaseModel, Field, validator, root_validator
 from pydantic.main import ModelMetaclass
 
 from typing import Any, Callable, List, Optional, Type, Union, Literal
@@ -10,6 +10,7 @@ import warnings
 import copy
 from marvin.types.request import Request as BaseRequest
 from marvin.engine import ChatCompletionBase
+from pydantic_settings import BaseSettings
 
 
 class Request(BaseRequest):
@@ -23,11 +24,7 @@ class Request(BaseRequest):
     model: str = "gpt-3.5-turbo"  # the model used by the GPT-3 API
     temperature: float = 0.8  # the temperature parameter used by the GPT-3 API
     api_key: str = Field(default_factory=settings.openai.api_key.get_secret_value)
-
-    class Config:
-        exclude = {"response_model"}
-        exclude_none = True
-        extra = Extra.allow
+    model_config = ConfigDict(exclude={"response_model"}, exclude_none=True, extra="allow")
 
     def dict(self, *args, serialize_functions=True, exclude=None, **kwargs):
         """
@@ -50,8 +47,8 @@ class Response(BaseModel):
     from the raw response.
     """
 
-    raw: Any  # the raw response from the API
-    request: Any  # the request that generated the response
+    raw: Any = None  # the raw response from the API
+    request: Any = None  # the request that generated the response
 
     def __init__(self, response, *args, request, **kwargs):
         super().__init__(raw=response, request=request)

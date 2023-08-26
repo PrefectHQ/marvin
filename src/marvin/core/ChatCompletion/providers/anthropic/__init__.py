@@ -30,6 +30,8 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
     def function_call_prompt(self):
         return import_string(self._function_call_prompt)
 
+    # TODO[pydantic]: The `Config` class inherits from another class, please create the `model_config` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
     class Config(BaseChatCompletionSettings.Config):
         exclude_none = True
         exclude = {"api_key"}
@@ -41,6 +43,8 @@ class ChatRequest(BaseChatRequest):
         default_factory=ChatCompletionSettings
     )
 
+    # TODO[pydantic]: The `Config` class inherits from another class, please create the `model_config` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
     class Config(BaseChatRequest.Config):
         exclude = BaseChatRequest.Config.exclude.union(
             {"messages", "api_key", "functions", "function_call"}

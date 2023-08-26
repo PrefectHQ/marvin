@@ -1,7 +1,7 @@
 """
 The engine module is the interface to external LLM providers.
 """
-from pydantic import BaseModel, BaseSettings, Extra, Field, root_validator, validator
+from pydantic import BaseModel, Extra, Field, root_validator, validator
 from typing import Any, Callable, List, Optional, Type, Union, Literal
 from marvin import settings
 from marvin.types import Function
@@ -9,6 +9,7 @@ from operator import itemgetter
 from marvin.utilities.module_loading import import_string
 import warnings
 import copy
+from pydantic_settings import BaseSettings
 
 
 class ChatCompletionBase(BaseModel):
