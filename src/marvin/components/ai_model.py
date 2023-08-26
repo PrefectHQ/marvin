@@ -249,7 +249,7 @@ class AIModel(LoggerMixin, BaseModel):
             # ]
             ```
         """
-        return asyncio.run(cls.amap(texts, instructions=instructions, model=model))
+        return run_sync(cls.amap(texts, instructions=instructions, model=model))
 
     @classmethod
     async def _get_arguments(
