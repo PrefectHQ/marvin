@@ -10,7 +10,7 @@ from marvin.utilities.async_utils import run_sync
 
 
 class ClassifierSystem(System):
-    content = """\
+    content: str = """\
     You are an expert classifier that always chooses correctly.
 
     {% if enum_class_docstring %}    
@@ -35,7 +35,7 @@ class ClassifierSystem(System):
 
 
 class ClassifierUser(User):
-    content = r"""{{ user_input }}"""
+    content: str = r"""{{ user_input }}"""
     user_input: str
 
 

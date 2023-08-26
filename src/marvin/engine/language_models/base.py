@@ -4,7 +4,7 @@ from logging import Logger
 from typing import Any, Callable, Union
 
 import tiktoken
-from pydantic import Field, validator
+from pydantic import Field, validator, model_validator
 
 import marvin
 import marvin.utilities.types
@@ -71,11 +71,12 @@ class ChatLLM(MarvinBaseModel, abc.ABC):
 
     # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
     # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("name", always=True)
-    def default_name(cls, v):
-        if v is None:
-            v = cls.__name__
-        return v
+    @model_validator(mode="before")
+    @classmethod
+    def default_name(cls, values):
+        if not values.get('name'):
+            values['name'] = cls.__name__
+        return values
 
     @property
     def context_size(self) -> int:

@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal, Union
 
-from pydantic import ConfigDict, Field, SecretStr, root_validator, validator
+from pydantic import ConfigDict, Field, SecretStr, validator, AliasChoices, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_PATH = Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()
@@ -20,31 +20,31 @@ class OpenAISettings(MarvinBaseSettings):
     """Provider-specific settings. Only some of these will be relevant to users."""
     model_config = ConfigDict(env_prefix="MARVIN_OPENAI_")
 
-    api_key: SecretStr = Field(
+    api_key: SecretStr | None = Field(
         None,
         # for OpenAI convenience, we first check the Marvin-specific env var,
         # then the generic one
-        validation_alias=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"],
+        validation_alias=AliasChoices("MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"),
     )
-    organization: str = Field(None)
+    organization: str | None = None
     embedding_engine: str = "text-embedding-ada-002"
-    api_type: str = None
-    api_base: str = Field(None, description="The endpoint the OpenAI API.")
-    api_version: str = Field(None, description="The API version")
+    api_type: str | None = None
+    api_base: str | None = Field(None, description="The endpoint the OpenAI API.")
+    api_version: str | None = Field(None, description="The API version")
 
 
 class AnthropicSettings(MarvinBaseSettings):
     model_config = ConfigDict(env_prefix="MARVIN_ANTHROPIC_")
 
-    api_key: SecretStr = None
+    api_key: SecretStr | None = None
 
 
 class AzureOpenAI(MarvinBaseSettings):
     model_config = ConfigDict(env_prefix="MARVIN_AZURE_OPENAI_")
 
-    api_key: SecretStr = None
+    api_key: SecretStr | None = None
     api_type: Literal["azure", "azure_ad"] = "azure"
-    api_base: str = Field(
+    api_base: str | None = Field(
         None,
         description=(
             "The endpoint of the Azure OpenAI API. This should have the form"
@@ -52,7 +52,7 @@ class AzureOpenAI(MarvinBaseSettings):
         ),
     )
     api_version: str = Field("2023-07-01-preview", description="The API version")
-    deployment_name: str = Field(
+    deployment_name: str | None = Field(
         None,
         description=(
             "This will correspond to the custom name you chose for your deployment when"
@@ -83,7 +83,7 @@ class Settings(MarvinBaseSettings):
     llm_request_timeout_seconds: Union[float, list[float]] = 600.0
 
     # AI APPLICATIONS
-    ai_application_max_iterations: int = None
+    ai_application_max_iterations: int | None = None
 
     # providers
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
@@ -91,7 +91,7 @@ class Settings(MarvinBaseSettings):
     azure_openai: AzureOpenAI = Field(default_factory=AzureOpenAI)
 
     # SLACK
-    slack_api_token: SecretStr = Field(
+    slack_api_token: SecretStr | None = Field(
         None,
         description="The Slack API token to use for the Slack client",
     )
@@ -99,26 +99,28 @@ class Settings(MarvinBaseSettings):
     # TOOLS
 
     # chroma
-    chroma_server_host: str = Field(None)
-    chroma_server_http_port: int = Field(None)
+    chroma_server_host: str | None = None
+    chroma_server_http_port: int | None = None
 
     # discourse
-    discourse_help_category_id: int = Field(None)
-    discourse_api_key: SecretStr = Field(None)
-    discourse_api_username: str = Field(None)
-    discourse_url: str = Field(None)
+    discourse_help_category_id: int | None = None
+    discourse_api_key: SecretStr | None = None
+    discourse_api_username: str | None = None
+    discourse_url: str | None = None
 
     # github
-    github_token: SecretStr = Field(None)
+    github_token: SecretStr | None = None
 
     # wolfram
-    wolfram_app_id: SecretStr = Field(None)
+    wolfram_app_id: SecretStr | None = None
 
-    @root_validator
-    def initial_setup(cls, values):
+    @model_validator(mode='after')
+    def initial_setup(self):
+        # print(values)
         # ensure the home directory exists
-        values["home"].mkdir(parents=True, exist_ok=True)
-        return values
+        # print(values)
+        self.home.mkdir(parents=True, exist_ok=True)
+        return self
 
     # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
     # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.

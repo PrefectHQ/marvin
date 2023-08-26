@@ -380,11 +380,11 @@ class UpdateState(Tool):
     """
 
     _app: "AIApplication" = PrivateAttr()
-    description = """
+    description: str = Field("""
         Update the application state by providing a list of JSON patch
         documents. The state must always comply with the state's
         JSON schema.
-        """
+        """)
 
     def __init__(self, app: AIApplication, **kwargs):
         self._app = app
@@ -430,7 +430,7 @@ class UpdatePlan(Tool):
     """
 
     _app: "AIApplication" = PrivateAttr()
-    description = """
+    description: str = """
         Update the application plan by providing a list of JSON patch
         documents. The state must always comply with the plan's JSON schema.
         """

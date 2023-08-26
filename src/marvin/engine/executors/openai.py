@@ -3,7 +3,7 @@ import json
 from ast import literal_eval
 from typing import Callable, List, Optional, Union
 
-from pydantic import field_validator, Field, root_validator
+from pydantic import field_validator, Field, model_validator
 
 import marvin
 from marvin.engine.language_models import OpenAIFunction
@@ -38,7 +38,8 @@ class OpenAIFunctionsExecutor(Executor):
         ]
         return v
 
-    @root_validator
+    @model_validator(mode="before")
+    @classmethod
     def validate_function_call(cls, values):
         # validate function call
         if values["functions"] and values.get("function_call") is None:
