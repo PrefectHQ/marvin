@@ -148,7 +148,7 @@ class AnthropicChatLLM(ChatLLM):
         prompt = self.format_messages(messages)
 
         # ----------------------------------
-        # Call OpenAI LLM
+        # Call Anthropic LLM
         # ----------------------------------
 
         if not marvin.settings.anthropic.api_key:
