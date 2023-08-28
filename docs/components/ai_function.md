@@ -9,7 +9,6 @@ AI Functions are a high-level component, or building block, of Marvin. Like all 
   </p>
 </div>
 
-
 ```python
 from marvin import ai_fn
 
@@ -48,7 +47,6 @@ AI Functions can be mapped over sequences of arguments. Mapped functions run con
 
 To see how mapping works, consider this AI Function:
 
-
 ```python
 @ai_fn
 def list_fruit(n: int, color: str = None) -> list[str]:
@@ -59,37 +57,25 @@ def list_fruit(n: int, color: str = None) -> list[str]:
 
 Mapping is invoked by using the AI Function's `.map()` method. When mapping, you call the function as you normally would, except that each argument should be a list of items. The function will be called on each set of items (e.g. first with each argument's first item, then with each argument's second item, etc.). For example, this is the same as calling `list_fruit(2)` and `list_fruit(3)` concurrently:
 
-
 ```python
 list_fruit.map([2, 3])
 ```
 
-
-
-
     [['apple', 'banana'], ['apple', 'banana', 'orange']]
 
-
-
 And this is the same as calling `list_fruit(2, color='orange')` and `list_fruit(3, color='red')` concurrently:
-
 
 ```python
 list_fruit.map([2, 3], color=["orange", "red"])
 ```
 
-
-
-
     [['orange', 'orange'], ['apple', 'strawberry', 'cherry']]
 
-
-
 ## Features
+
 #### ⚙️ Type Safe
 
 `ai_fn` is fully type-safe. It works out of the box with Pydantic models in your function's parameters or return type.
-
 
 ```python
 from pydantic import BaseModel
@@ -121,17 +107,15 @@ customers = generate_synthetic_customer_data(
 
 Marvin exposes an API to prompt an `ai_fn` with natural language. This lets you create a Language API for any function you can write down.
 
-
 ```python
-generate_synthetic_customer_data.prompt(
+generate_synthetic_customer_data.to_prompt(
     "I need 10 profiles from rural US cities making between 3 and 7 purchases"
 )
 ```
 
 🧪 Code Generation
 
-By default, no code is generated or executed when you call an `ai_fn`. For those who wish to author code, Marvin exposes an experimental API for code generation. Simply call `.code()` on an ai_fn, and Marvin will generate the code for you. By default, Marvin will write python code. You can pass a language keyword to generate code in other languages, i.e. `.code(language = 'rust')`. For best performance give your function a good name, with descriptive docstring, and a signature with type-hints. Provided code will be interpreted as pseudocode. 
-
+By default, no code is generated or executed when you call an `ai_fn`. For those who wish to author code, Marvin exposes an experimental API for code generation. Simply call `.code()` on an ai_fn, and Marvin will generate the code for you. By default, Marvin will write python code. You can pass a language keyword to generate code in other languages, i.e. `.code(language = 'rust')`. For best performance give your function a good name, with descriptive docstring, and a signature with type-hints. Provided code will be interpreted as pseudocode.
 
 ```python
 from marvin import ai_fn
@@ -159,8 +143,6 @@ fibonacci.code(language="rust")
   </p>
 </div>
 
-
-
 ```python
 @ai_fn
 def analyze_customer_sentiment(reviews: list[str]) -> dict:
@@ -185,7 +167,6 @@ def analyze_customer_sentiment(reviews: list[str]) -> dict:
   </p>
 </div>
 
-
 ```python
 class FinancialReport(pydantic.BaseModel):
     ...
@@ -198,7 +179,6 @@ def create_drip_email(n: int, market_conditions: str) -> list[FinancialReport]:
     `market_conditions` (e.g., 'recession', 'bull market', 'stagnant economy').
     """
 ```
-
 
 ```python
 class IoTData(pydantic.BaseModel):

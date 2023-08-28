@@ -121,10 +121,10 @@ class ChatCompletion(BaseChatCompletion):
         It sets the prompt to the messages in the request.
         """
         request = super().prepare_request(**kwargs)
-        request.prompt = ""
+        request.to_prompt = ""
         if next(iter(request.messages), {}).get("content", None) != "user":
-            request.prompt += HUMAN_PROMPT
-        request.prompt += " ".join(
+            request.to_prompt += HUMAN_PROMPT
+        request.to_prompt += " ".join(
             [
                 "{prompt} {content}".format(
                     prompt={"user": HUMAN_PROMPT}.get(message.get("role"), AI_PROMPT),
@@ -134,7 +134,7 @@ class ChatCompletion(BaseChatCompletion):
             ]
         )
         if request.functions:
-            request.prompt += (
+            request.to_prompt += (
                 AI_PROMPT
                 + " "
                 + jinja_env.from_string(request._config.function_call_prompt).render(
@@ -142,5 +142,5 @@ class ChatCompletion(BaseChatCompletion):
                     function_call=request.function_call,
                 )
             )
-        request.prompt += AI_PROMPT
+        request.to_prompt += AI_PROMPT
         return request

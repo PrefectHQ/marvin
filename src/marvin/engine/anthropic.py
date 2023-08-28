@@ -183,7 +183,9 @@ class AnthropicChatCompletion(ChatCompletionBase):
                 functions=payload.get("functions"),
                 function_call=payload.get("function_call"),
             )
-            payload["prompt"] = f"{HUMAN_PROMPT} {functions_prompt}" + payload["prompt"]
+            payload["to_prompt"] = (
+                f"{HUMAN_PROMPT} {functions_prompt}" + payload["to_prompt"]
+            )
             payload.pop("functions", None)
         return request, payload
 
