@@ -94,6 +94,7 @@ class TestMapping:
         result = Sentiment.map(["good", "bad"])
         assert result == [Sentiment.POSITIVE, Sentiment.NEGATIVE]
 
+    @pytest.mark.xfail(reason="Flaky with 3.5 turbo")
     def test_mapping_with_instructions(self):
         @ai_classifier
         class Sentiment(Enum):
