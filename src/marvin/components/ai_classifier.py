@@ -109,7 +109,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
     def prompt(
         cls,
         *args,
-        method: Literal["logit_bias", "function"] = "logit_bias",
+        method: Literal["logit_bias", "function"] = None,
         __schema__: bool = True,
         **kwargs,
     ):
@@ -160,7 +160,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         user_prompt=user_prompt,
         value_getter: Callable = None,
         instructions: Optional[str] = None,
-        method: Literal["logit_bias", "function"] = "logit_bias",
+        method: Literal["logit_bias", "function"] = None,
         context_fn: Optional[Callable] = None,
         **kwargs,
     ):
