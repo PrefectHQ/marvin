@@ -115,7 +115,7 @@ class AIFunction(BaseModel):
             else sync_wrapper_function
         )
 
-        wrapper_function.prompt = model
+        wrapper_function.prompt = model._call
         wrapper_function.to_chat_completion = model.to_chat_completion
         wrapper_function.create = model.create
         wrapper_function.acreate = model.acreate
