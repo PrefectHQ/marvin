@@ -9,6 +9,7 @@ if not PYDANTIC_V2:
         Extra,
         Field,
         PrivateAttr,
+        PyObject,
         SecretStr,
         validate_arguments,
     )
@@ -20,5 +21,6 @@ if not PYDANTIC_V2:
     Field = Field
     SecretStr = SecretStr
     Extra = Extra
+    ImportString = PyObject
     PrivateAttr = PrivateAttr
     validate_arguments = validate_arguments

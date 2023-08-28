@@ -45,6 +45,12 @@ class TestAIFunctionsMap:
         assert len(result[0]) == 2
         assert len(result[1]) == 3
 
+    async def test_amap(self):
+        result = await list_fruit_color.amap([2, 3])
+        assert len(result) == 2
+        assert len(result[0]) == 2
+        assert len(result[1]) == 3
+
     def test_map_kwargs(self):
         result = list_fruit_color.map(n=[2, 3])
         assert len(result) == 2
@@ -64,3 +70,7 @@ class TestAIFunctionsMap:
     def test_invalid_kwargs(self):
         with pytest.raises(TypeError):
             list_fruit_color.map([2, 3], color=None)
+
+    async def test_invalid_async_map(self):
+        with pytest.raises(TypeError, match="can't be used in 'await' expression"):
+            await list_fruit_color.map(n=[2], color=["orange", "red"])
