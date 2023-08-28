@@ -109,12 +109,12 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
     def prompt(
         cls,
         *args,
-        method: Literal["logit_bias", "function"] = None,
         __schema__: bool = True,
         **kwargs,
     ):
         response = {}
-        response["messages"] = cls._messages(*args, method=method, **kwargs)
+        response["messages"] = cls._messages(*args, **kwargs)
+        method = kwargs.get("method", cls.__method__)
         if method == "logit_bias":
             response.update({"logit_bias": cls._logit_bias(*args, **kwargs)})
             response.update({"max_tokens": 1})
@@ -171,13 +171,13 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         # don't pass the generic enum docstring through
         if cls.__doc__ != "An enumeration.":
             pass
-
         instructions = instructions or cls.__instructions__
         system_prompt = system_prompt or cls.__system_prompt__
         user_prompt = user_prompt or cls.__user_prompt__
         value_getter = value_getter or cls.__value_getter__
         context_fn = context_fn or cls.__context_fn__
         method = method or cls.__method__
+
         return [
             {
                 "role": "system",
@@ -189,6 +189,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
                         options=cls,
                         value_getter=value_getter,
                         context_fn=context_fn,
+                        enum_class_docstring=cls.__doc__,
                     )
                     .strip()
                 ),
