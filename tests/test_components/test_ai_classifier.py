@@ -1,5 +1,6 @@
 from enum import Enum
 
+import pytest
 from marvin import ai_classifier
 from marvin.core.ChatCompletion import ChatCompletion
 
