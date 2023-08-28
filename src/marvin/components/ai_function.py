@@ -9,6 +9,7 @@ from typing_extensions import ParamSpec
 from marvin.core.ChatCompletion import ChatCompletion
 from marvin.pydantic import BaseModel, Field
 from marvin.types import Function, FunctionRegistry
+from marvin.utilities.async_utils import run_sync
 
 T = TypeVar("T")
 
@@ -120,6 +121,7 @@ class AIFunction(BaseModel):
         wrapper_function.acreate = model.acreate
         wrapper_function.acall = model.acall
         wrapper_function.map = model.map
+        wrapper_function.amap = model.amap
         return wrapper_function
 
     def _call(self, *args, __schema__=True, **kwargs):
@@ -174,18 +176,13 @@ class AIFunction(BaseModel):
         each argument must be a list. The function is called once for each item
         in the list, and the results are returned in a list.
 
-        This method can be called synchronously or asynchronously.
+        This method should be called synchronously.
 
         For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
 
         fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2, x='b')].
         """
-        if asyncio.get_event_loop().is_running():
-            return self.amap(*map_args, **map_kwargs)
-        else:
-            return asyncio.get_event_loop().run_until_complete(
-                self.amap(*map_args, **map_kwargs)
-            )
+        return run_sync(self.amap(*map_args, **map_kwargs))
 
     async def amap(self, *map_args: list, **map_kwargs: list):
         tasks = []
