@@ -100,5 +100,7 @@ class TestMapping:
             POSITIVE = "Positive"
             NEGATIVE = "Negative"
 
-        result = Sentiment.map(["good", "bad"], instructions="It's opposite day")
+        result = Sentiment.map(
+            ["good", "bad"], instructions="I want the opposite of the right answer"
+        )
         assert result == [Sentiment.NEGATIVE, Sentiment.POSITIVE]
