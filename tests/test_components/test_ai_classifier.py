@@ -1,6 +1,5 @@
 from enum import Enum
 
-import pytest
 from marvin import ai_classifier
 from marvin.core.ChatCompletion import ChatCompletion
 
@@ -22,8 +21,7 @@ class TestAIClassifiersInitialization:
             POSITIVE = "Positive"
             NEGATIVE = "Negative"
 
-        with pytest.raises(ValueError, match="(only compatible with OpenAI models)"):
-            Sentiment("Great!")
+        assert Sentiment.__model__._module == "anthropic.Anthropic"
 
 
 @pytest_mark_class("llm")
