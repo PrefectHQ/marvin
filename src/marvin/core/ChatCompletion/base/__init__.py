@@ -270,10 +270,12 @@ class BaseChatCompletion(
     async def acreate(self, *args, **kwargs):
         request = self.prepare_request(**kwargs)
         request_dict = request.schema()
-        acreate = getattr(self.model(request), self._acreate)
+
+        # TODO: Fix this to make actual async calls
+        acreate = getattr(self.model(request), self._create)
 
         return self.response(
-            raw=await acreate(*args, **request_dict),
+            raw=acreate(*args, **request_dict),
             request=request,
         )
 
