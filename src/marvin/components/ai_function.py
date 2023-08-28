@@ -9,6 +9,7 @@ from typing_extensions import ParamSpec
 from marvin.core.ChatCompletion import ChatCompletion
 from marvin.pydantic import BaseModel, Field
 from marvin.types import Function, FunctionRegistry
+from marvin.utilities.async_utils import run_sync
 
 T = TypeVar("T")
 
@@ -114,15 +115,16 @@ class AIFunction(BaseModel):
             else sync_wrapper_function
         )
 
-        wrapper_function.prompt = model
+        wrapper_function.prompt = model._call
         wrapper_function.to_chat_completion = model.to_chat_completion
         wrapper_function.create = model.create
         wrapper_function.acreate = model.acreate
         wrapper_function.acall = model.acall
         wrapper_function.map = model.map
+        wrapper_function.amap = model.amap
         return wrapper_function
 
-    def __call__(self, *args, __schema__=True, **kwargs):
+    def _call(self, *args, __schema__=True, **kwargs):
         response = {}
         response["messages"] = self._messages(*args, **kwargs)
         response["functions"] = self._functions(*args, **kwargs)
@@ -157,7 +159,7 @@ class AIFunction(BaseModel):
         return {"name": self._functions(*args, **kwargs)[0].__name__}
 
     def to_chat_completion(self, *args, __schema__=False, **kwargs):
-        return self.model(**self.__call__(*args, __schema__=__schema__, **kwargs))
+        return self.model(**self._call(*args, __schema__=__schema__, **kwargs))
 
     def create(self, *args, **kwargs):
         return self.to_chat_completion(*args, **kwargs).create()
@@ -174,18 +176,13 @@ class AIFunction(BaseModel):
         each argument must be a list. The function is called once for each item
         in the list, and the results are returned in a list.
 
-        This method can be called synchronously or asynchronously.
+        This method should be called synchronously.
 
         For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
 
         fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2, x='b')].
         """
-        if asyncio.get_event_loop().is_running():
-            return self.amap(*map_args, **map_kwargs)
-        else:
-            return asyncio.get_event_loop().run_until_complete(
-                self.amap(*map_args, **map_kwargs)
-            )
+        return run_sync(self.amap(*map_args, **map_kwargs))
 
     async def amap(self, *map_args: list, **map_kwargs: list):
         tasks = []
