@@ -1,4 +1,4 @@
-<img src="docs/img/heroes/it_hates_me_hero.png" style="width: 100%; height: auto;"/>
+<img src="docs/img/heroes/it_hates_me_hero.png" style="width: 80%; height: auto;"/>
 
 # Marvin
 
