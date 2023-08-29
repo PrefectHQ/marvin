@@ -1,4 +1,4 @@
-![](docs/img/heroes/ai_model_location.png)
+<img src="docs/img/heroes/it_hates_me_hero.png" style="width: 100%; height: auto;"/>
 
 # Marvin
 
