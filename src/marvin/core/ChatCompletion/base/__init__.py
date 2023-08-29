@@ -1,3 +1,10 @@
+from functools import cached_property
+import json
+from abc import ABC
+from operator import itemgetter
+from typing import Callable, Literal, Optional, Union, Type, Any
+
+from pydantic import ValidationError
 from marvin.pydantic import (
     BaseModel,
     BaseSettings,
@@ -6,17 +13,10 @@ from marvin.pydantic import (
     SecretStr,
     ModelMetaclass,
 )
-from marvin.settings import ENV_PATH
-from typing import Callable, Literal, Optional, Union, Type, Any
-import os
-from pathlib import Path
+from marvin.settings import ENV_PATH, settings as marvin_settings
 from marvin.types import Function
-from functools import cached_property, singledispatch
 from marvin.utilities.module_loading import import_string
-from operator import itemgetter
-from abc import ABC, abstractmethod
-
-import json
+from marvin.utilities.retries import retry_on_exception
 
 from .abstract import (
     AbstractChatCompletion,
@@ -195,6 +195,9 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         """
         return self.function_call() is not None
 
+    @retry_on_exception(
+        exception_types=ValidationError, retries=marvin_settings.format_response_retries
+    )
     def call_function(self, as_message=True):
         """
         This method evaluates the function call in the response and returns the result.

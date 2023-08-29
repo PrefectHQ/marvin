@@ -87,6 +87,7 @@ class Settings(MarvinBaseSettings):
     )
     llm_temperature: float = 0.8
     llm_request_timeout_seconds: Union[float, list[float]] = 600.0
+    format_response_retries: int = 0
 
     # AI APPLICATIONS
     ai_application_max_iterations: int = None
