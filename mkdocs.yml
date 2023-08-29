@@ -15,20 +15,21 @@ nav:
     - Configuration: 
       - Settings: configuration/settings.md
       - Providers: configuration/providers.md
-    - LLMs: 
-      - Calling LLMs: llms/llms.md
-      - Building Prompts: llms/prompt.md
     - Components: 
       - Overview: components/overview.md
       - AI Function: components/ai_function.md
       - AI Model: components/ai_model.md
       - AI Classifier: components/ai_classifier.md
       - AI Application: components/ai_application.md
+    - OpenAI API Utilities: 
+      - Calling LLMs: llms/llms.md
+      - Building Prompts: llms/prompt.md
     - Deployment: 
       - FastAPI: 
         - deployment/index.md
     - Examples:
       - Slackbot: examples/slackbot.md
+      - GitHub Digest: examples/github_digest.md
   - API Reference:
     # - src/api_reference/index.md
     - AI Components:

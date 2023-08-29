@@ -1,24 +1,24 @@
 import asyncio
 import functools
 import inspect
-import re
-from typing import Callable, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
+from jinja2 import Template
 from typing_extensions import ParamSpec
 
-from marvin.engine.language_models.base import ChatLLM, chat_llm
-from marvin.prompts import library as prompt_library
+from marvin.core.ChatCompletion import ChatCompletion
+from marvin.pydantic import BaseModel, Field
+from marvin.types import Function, FunctionRegistry
 from marvin.utilities.async_utils import run_sync
 
 T = TypeVar("T")
+
+
 P = ParamSpec("P")
 
-prompts = [
-    prompt_library.System(content="""
-        {% if instructions %}
-        {{ instructions }}
+system_prompt = inspect.cleandoc("""
+        {{ instructions if instructions }}
         
-        {% endif %}
         Your job is to generate likely outputs for a Python function with the
         following signature and docstring:
     
@@ -27,26 +27,19 @@ prompts = [
         The user will provide function inputs (if any) and you must respond with
         the most likely result. 
         
-        {% if function_description %}
+        {% if description %}
         The following function description was also provided:
 
-        {{ function_description }}
+        {{ description }}
         {% endif %}
-        
-        ## Response Format
-        
-        Your response must match the function's return signature. To validate your
-        response, you must pass its values to the FormatResponse function before
-        responding to the user. 
-        
-        {% if basemodel_response -%}
-        `FormatResponse` has the same signature as the function.
-        {% else -%}
-        `FormatResponse` requires keyword arguments, so pass your response under
-        the `data` parameter for validation.
+        {% if functions|length > 1 %}
+        You may call any provided function as necessary, but before any final 
+        response is returned to the user you must format your response using 
+        the {{functions[0].__name__}} function.
         {% endif %}
-        """),
-    prompt_library.User(content="""
+        """)
+
+user_prompt = inspect.cleandoc("""\
         {% if input_binds %} 
         The function was called with the following inputs:
         
@@ -58,59 +51,122 @@ prompts = [
         The function was called without inputs.
         {% endif -%}
         
-        What is its output?
-        """),
-]
+        What is its output?\
+        """)
 
 
-class AIFunction:
-    def __init__(
-        self,
-        *,
-        fn: Callable = None,
-        name: str = None,
-        description: str = None,
-        model: ChatLLM = None,
-        instructions: str = None,
-    ):
-        self._fn = fn
-        self.model = model
-        self.name = name or fn.__name__
-        self.description = description or fn.__doc__
-        self.instructions = instructions
-        self.__signature__ = inspect.signature(fn)
+class AIFunction(BaseModel):
+    fn: Optional[Callable] = None
+    system: str = system_prompt
+    user: str = user_prompt
+    name: Optional[str] = None
+    description: Optional[str] = None
+    instructions: Optional[str] = None
+    model: Optional[Any] = None
+    functions: Optional[list[Callable]] = Field(default_factory=list)
 
-        super().__init__()
+    @classmethod
+    def as_decorator(
+        cls,
+        fn: Optional[Callable[P, T]] = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        system: str = system_prompt,
+        user: str = user_prompt,
+        instructions: Optional[str] = None,
+        functions: Optional[list[Callable]] = None,
+        model: str = None,
+        **model_kwargs,
+    ) -> Callable[P, T]:
+        if not fn:
+            return functools.partial(
+                cls.as_decorator,
+                name=name,
+                description=description,
+                system=system,
+                user=user,
+                instructions=instructions,
+                model=model,
+                functions=functions or [],
+            )
 
-    @property
-    def fn(self):
-        """
-        Return's the `run` method if no function was provided, otherwise returns
-        the function provided at initialization.
-        """
-        if self._fn is None:
-            return self.run
-        else:
-            return self._fn
+        model = AIFunction(
+            fn=Function(fn),
+            name=name,
+            description=description,
+            system=system,
+            user=user,
+            instructions=instructions,
+            model=ChatCompletion(model=model, **model_kwargs),
+            functions=functions or [],
+        )
 
-    def is_async(self):
-        """
-        Returns whether self.fn is an async function.
+        @functools.wraps(fn)
+        async def async_wrapper_function(*args: Any, **kwargs: Any) -> Any:
+            return await model.acall(*args, **kwargs)
 
-        This is used to determine whether to invoke the AI function on call, or
-        return an awaitable.
-        """
-        return inspect.iscoroutinefunction(self.fn)
+        @functools.wraps(fn)
+        def sync_wrapper_function(*args: Any, **kwargs: Any) -> Any:
+            return model.call(*args, **kwargs)
 
-    def __repr__(self):
-        return f"<AIFunction {self.name}>"
+        wrapper_function = (
+            async_wrapper_function
+            if asyncio.iscoroutinefunction(fn)
+            else sync_wrapper_function
+        )
 
-    def __call__(self, *args, **kwargs):
-        output = self._call(*args, **kwargs)
-        if not self.is_async():
-            output = run_sync(output)
+        wrapper_function.prompt = model._call
+        wrapper_function.to_chat_completion = model.to_chat_completion
+        wrapper_function.create = model.create
+        wrapper_function.acreate = model.acreate
+        wrapper_function.acall = model.acall
+        wrapper_function.map = model.map
+        wrapper_function.amap = model.amap
+        return wrapper_function
 
-        return output
+    def _call(self, *args, __schema__=True, **kwargs):
+        response = {}
+        response["messages"] = self._messages(*args, **kwargs)
+        response["functions"] = self._functions(*args, **kwargs)
+        response["function_call"] = self._function_call(
+            *args, __schema__=__schema__, **kwargs
+        )
+        if __schema__:
+            response["functions"] = response["functions"].schema()
+        return response
+
+    def _messages(self, *args, **kwargs):
+        return [
+            {
+                "role": role,
+                "content": (
+                    Template(getattr(self, role))
+                    .render(self.dict(*args, **kwargs))
+                    .strip()
+                ),
+            }
+            for role in ["system", "user"]
+        ]
+
+    def _functions(self, *args, **kwargs):
+        functions = [self.fn.response_model()]
+        functions.extend([Function(fn) for fn in self.functions])
+        return FunctionRegistry(functions)
+
+    def _function_call(self, *args, __schema__=True, **kwargs):
+        if __schema__:
+            return {"name": self._functions(*args, **kwargs).schema()[0].get("name")}
+        return {"name": self._functions(*args, **kwargs)[0].__name__}
+
+    def to_chat_completion(self, *args, __schema__=False, **kwargs):
+        return self.model(**self._call(*args, __schema__=__schema__, **kwargs))
+
+    def create(self, *args, **kwargs):
+        return self.to_chat_completion(*args, **kwargs).create()
+
+    def call(self, *args, **kwargs):
+        completion = self.create(*args, **kwargs)
+        return completion.call_function(as_message=False).data
 
     def map(self, *map_args: list, **map_kwargs: list):
         """
@@ -120,117 +176,46 @@ class AIFunction:
         each argument must be a list. The function is called once for each item
         in the list, and the results are returned in a list.
 
+        This method should be called synchronously.
+
         For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
 
-        fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2,
-        x='b')].
+        fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2, x='b')].
         """
+        return run_sync(self.amap(*map_args, **map_kwargs))
 
-        coros = []
-
-        i = 0
-        while True:
-            call_args = []
-            call_kwargs = {}
-            try:
-                for arg in map_args:
-                    call_args.append(arg[i])
-                for k, v in map_kwargs.items():
-                    call_kwargs[k] = v[i]
-            except IndexError:
-                break
-            call_coro = self._call(*call_args, **call_kwargs)
-            coros.append(call_coro)
-            i += 1
-
-        # gather returns a future, but run_sync requires a coroutine
-        async def gather_coros():
-            return await asyncio.gather(*coros)
-
-        result = gather_coros()
-        if not self.is_async():
-            result = run_sync(result)
-        return result
-
-    async def _call(self, *args, **kwargs):
-        # Get function signature
-        sig = inspect.signature(self.fn)
-
-        # get return annotation
-        if sig.return_annotation is inspect._empty:
-            pass
+    async def amap(self, *map_args: list, **map_kwargs: list):
+        tasks = []
+        if map_args:
+            max_length = max(len(arg) for arg in map_args)
         else:
-            pass
+            max_length = max(len(v) for v in map_kwargs.values())
 
-        # get the function source code - it might include the @ai_fn decorator,
-        # which can confuse the AI, so we use regex to only get the function
-        # that is being decorated
-        function_def = inspect.cleandoc(inspect.getsource(self.fn))
-        if match := re.search(re.compile(r"(\bdef\b.*)", re.DOTALL), function_def):
-            function_def = match.group(0)
+        for i in range(max_length):
+            call_args = [arg[i] if i < len(arg) else None for arg in map_args]
+            call_kwargs = (
+                {k: v[i] if i < len(v) else None for k, v in map_kwargs.items()}
+                if map_kwargs
+                else {}
+            )
+            tasks.append(self.acall(*call_args, **call_kwargs))
 
-        # Bind the provided arguments to the function signature
-        bound_args = sig.bind(*args, **kwargs)
-        bound_args.apply_defaults()
+        return await asyncio.gather(*tasks)
 
-        if self.model is None:
-            chat_llm()
-        else:
-            pass
+    async def acreate(self, *args, **kwargs):
+        return await self.to_chat_completion(*args, **kwargs).acreate()
 
-        # executor = OpenAIFunctionsExecutor(
-        #     model=model,
-        #     functions=[FormatResponse(type_=return_annotation).as_openai_function()],
-        #     function_call={"name": "FormatResponse"},
-        #     max_iterations=1,
-        # )
-        # [response] = await executor.start(
-        #     prompts=prompts,
-        #     prompt_render_kwargs=dict(
-        #         function_def=function_def,
-        #         function_name=self.fn.__name__,
-        #         function_description=(
-        #             self.description if self.description != self.fn.__doc__ else None
-        #         ),
-        #         basemodel_response=safe_issubclass(return_annotation, BaseModel),
-        #         input_binds=bound_args.arguments,
-        #         instructions=self.instructions,
-        #     ),
-        # )
+    async def acall(self, *args, **kwargs):
+        completion = await self.acreate(*args, **kwargs)
+        return completion.call_function(as_message=False).data
 
-        # return response.data["result"]
-
-    def run(self, *args, **kwargs):
-        # Override this to create the AI function as an instance method instead of
-        # a passed function
-        raise NotImplementedError()
+    def dict(self, *args, **kwargs):
+        return {
+            **super().dict(exclude_none=True),
+            "functions": self._functions(*args, **kwargs),
+            "function_def": self.fn.getsource(),
+            "input_binds": self.fn.bind_arguments(*args, **kwargs),
+        }
 
 
-def ai_fn(
-    fn: Callable[P, T] = None, instructions: str = None, model: ChatLLM = None
-) -> Callable[P, T]:
-    """Decorator that transforms a Python function with a signature and docstring
-    into a prompt for an AI to predict the function's output.
-
-    Args:
-        fn: The function to decorate - this function does not need source code
-
-    Keyword Args:
-        instructions: Added context for the AI to help it predict the function's output.
-
-    Example:
-        Returns a word that rhymes with the input word.
-        ```python
-        @ai_fn
-        def rhyme(word: str) -> str:
-            "Returns a word that rhymes with the input word."
-
-        rhyme("blue") # "glue"
-        ```
-    """
-    # this allows the decorator to be used with or without calling it
-    if fn is None:
-        return functools.partial(
-            ai_fn, instructions=instructions, model=model
-        )  # , **kwargs)
-    return AIFunction(fn=fn, instructions=instructions, model=model)
+ai_fn = AIFunction.as_decorator

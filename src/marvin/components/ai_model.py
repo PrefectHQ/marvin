@@ -202,39 +202,52 @@ class AIModel(LoggerMixin, BaseModel):
             return cls(**arguments)
 
     @classmethod
+    async def amap(
+        cls, texts: list[str], instructions: str = None, model: ChatLLM = None
+    ) -> list["AIModel"]:
+        """Map the AI model over a sequence of arguments. Runs concurrently
+        and must be awaited.
+        """
+
+        results = await asyncio.gather(
+            *[
+                cls._extract_async(
+                    t,
+                    instructions_=instructions,
+                    model_=model,
+                    as_dict_=True,
+                )
+                for t in texts
+            ]
+        )
+
+        return [cls(**r) for r in results]
+
+    @classmethod
     def map(
         cls, texts: list[str], instructions: str = None, model: ChatLLM = None
     ) -> list["AIModel"]:
+        """Map the AI model over a sequence of arguments. Runs concurrently
+        and is called synchronously.
+
+        Example:
+            ```python
+            from pydantic import BaseModel
+            from marvin import ai_model
+
+            @ai_model
+            class Location(BaseModel):
+                city: str
+                state: str
+
+            Location.map(["windy city", "big apple"])
+            # [
+            #   Location(city='Chicago', state='Illinois'),
+            #   Location(city='New York City', state='New York')
+            # ]
+            ```
         """
-        Map the AI function over a sequence of arguments. Runs concurrently.
-
-        Arguments should be provided as if calling the function normally, but
-        each argument must be a list. The function is called once for each item
-        in the list, and the results are returned in a list.
-
-        For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
-
-        fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2,
-        x='b')].
-        """
-
-        coros = [
-            cls._extract_async(
-                t,
-                instructions_=instructions,
-                model_=model,
-                as_dict_=True,
-            )
-            for t in texts
-        ]
-
-        # gather returns a future, but run_sync requires a coroutine
-        async def gather_coros():
-            return await asyncio.gather(*coros)
-
-        result = run_sync(gather_coros())
-
-        return [cls(**r) for r in result]
+        return run_sync(cls.amap(texts, instructions=instructions, model=model))
 
     @classmethod
     async def _get_arguments(
