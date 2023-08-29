@@ -2,56 +2,38 @@
 
 # Marvin
 
+```bash
+pip install marvin
+```
+Getting started? Head over to our [setup guide](https://www.askmarvin.ai/src/getting_started/installation/).
 ### The AI engineering framework
 
 Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.
 
-Large Language Models (LLMs) are pretty cool, but let's face it, they can be a headache to integrate. So, we decided to take the fuss out of the process. Marvin is our answer to the challenge: a neat, flexible tool that works as hard as you do.
+Sometimes the most challenging part of working with generative AI is remembering that it's not magic; it's software. It's new, it's nondeterministic, and it's incredibly powerful - but still software.
 
-Sometimes the most challenging part of working with generative AI is remembering that it's not magic; it's software. It's new, it's nondeterministic, and it's incredibly powerful, but it's still software: parameterized API calls that can trigger dependent actions (and just might talk like a pirate). Marvin's goal is to bring the best practices of building dependable, observable software to the frontier of generative AI. As the team behind [Prefect](https://github.com/prefecthq/prefect), which does something very similar for data engineers, we've poured years of open-source developer tool experience (and a few hard-won lessons!) into Marvin's design.
-
-### Developer Experience
-
-Above all else, Marvin is focused on a rock-solid developer experience. It's ergonomic and opinionated at every layer, but also incrementally adoptable so you can use it as much or as little as you like. It’s a Swiss Army Knife, not a kitchen sink. It’s familiar. It feels like the library you’d write if you had the time: simple, accessible, portable LLM abstractions that you can quickly deploy in your application, whether you’re doing straightforward NLP or building a full-featured autonomous agent.
-
-Marvin prioritizes a developer experience focused on speed and reliability. It's built with type-safety and observability as first-class citizens. Its abstractions are Pythonic, simple, and self-documenting. These core primitives let us build surprisingly complex agentic software without sacrificing control:
-
-🧩 **AI Models** for structuring text into type-safe schemas
-
-🏷️ **AI Classifiers** for bulletproof classification and routing
-
-🪄 **AI Functions** for complex business logic and transformations
-
-🤝 **AI Applications** for interactive use and persistent state
-
-### Ambient AI
-
-With Marvin, we’re taking the first steps on a journey to deliver [Ambient AI](https://twitter.com/DrJimFan/status/1657782710344249344): omnipresent but unobtrusive autonomous routines that act as persistent translators for noisy, real-world data. Ambient AI makes unstructured data universally accessible to traditional software, allowing the entire software stack to embrace AI technology without interrupting the development workflow. Marvin brings simplicity and stability to AI engineering through abstractions that are reliable and easy to trust. 
-
-Marvin's 1.0 release reflects our confidence that its core abstractions are locked-in. And why wouldn't they be? They're the same interfaces you use every day: Python functions, classes, enums, and Pydantic models. Our next objectives are leveraging these primitives to build production deployment patterns and an observability platform.
-
-To hit the ground running, please read Marvin's [getting started docs](https://www.askmarvin.ai/welcome/what_is_marvin/). 
-
-## Quick Install
-
-Marvin can be installed with pip:
-
-```bash
-pip install marvin
-```
-
-For more information please see the [installation docs](https://www.askmarvin.ai/src/getting_started/installation/).
+Marvin's goal is to bring the best practices for building dependable, observable software to generative AI. As the team behind Prefect, which does something very similar for data engineers, we've poured years of open-source developer tool experience and lessons into Marvin's design.
 
 ## Documentation
 Marvin's docs are available at [askmarvin.ai](https://www.askmarvin.ai), including concepts, tutorials, and an API reference.
 
 ## Community
-The heart of our community beats in our Discord server. It's a space where you can ask questions, share ideas, or just chat with like-minded developers. Don't be shy, join us on [Discord](https://discord.gg/Kgw4HpcuYG) or [Twitter](https://twitter.com/AskMarvinAI)!
+To ask questions, share ideas, or just chat with like-minded developers, join us on [Discord](https://discord.gg/Kgw4HpcuYG) or [Twitter](https://twitter.com/AskMarvinAI)!
 
 
 ## Core AI Components
 
 Marvin's high-level abstractions are familiar Python interfaces that make it easy to leverage AI in your application. These interfaces aim to be simple and self-documenting, adding a touch of AI magic to everyday objects.
+
+🧩 [**AI Models**](/components/ai_model) for structuring text into type-safe schemas
+
+🏷️ [**AI Classifiers**](/components/ai_classifier) for bulletproof classification and routing
+
+🪄 [**AI Functions**](/components/ai_function) for complex business logic and transformations
+
+🤝 [**AI Applications**](/components/ai_application) for interactive use and persistent state
+
+___
 
 ### 🧩 AI Models
 
@@ -179,15 +161,13 @@ print(f"App state: {todo_app.state.json(indent=2)}")
 ```
 
 
-
-
-## Things Marvin can build in 5 minutes (seriously) 
+## Marvin is great for...
 
 #### Scalable APIs, data pipelines, and agents
 
 🏷️ Build bulletproof and lightning-fast classifiers
 
-🧩 Extract structured data from unstructured text 
+🧩 Extract structured & type-safe data from unstructured text 
 
 🧪 Generate synthetic data for your applications 
 
@@ -196,7 +176,7 @@ print(f"App state: {todo_app.state.json(indent=2)}")
 🔎 Scrape web data without custom scrapers
 
 
-#### Chatbots with access to tools, data, and the web
+#### AI powered apps with access to tools, data, and the web
 😍 Customize ChatGPT with system prompts and tools
 
 🎓 Extract relevant insights from your data
