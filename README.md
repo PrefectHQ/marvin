@@ -3,11 +3,6 @@
 </p>
 
 # Marvin
-
-```bash
-pip install marvin
-```
-Getting started? Head over to our [setup guide](https://www.askmarvin.ai/src/getting_started/installation/).
 ### The AI engineering framework
 
 Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.
@@ -18,6 +13,11 @@ Marvin's goal is to bring the best practices for building dependable, observable
 
 ## Documentation
 Marvin's docs are available at [askmarvin.ai](https://www.askmarvin.ai), including concepts, tutorials, and an API reference.
+
+```bash
+pip install marvin
+```
+Getting started? Head over to our [setup guide](https://www.askmarvin.ai/src/getting_started/installation/).
 
 ## Community
 To ask questions, share ideas, or just chat with like-minded developers, join us on [Discord](https://discord.gg/Kgw4HpcuYG) or [Twitter](https://twitter.com/AskMarvinAI)!
