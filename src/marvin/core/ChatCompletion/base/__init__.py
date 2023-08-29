@@ -196,7 +196,8 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         return self.function_call() is not None
 
     @retry_on_exception(
-        exception_types=ValidationError, retries=marvin_settings.format_response_retries
+        exception_types=ValidationError,
+        retries=marvin_settings.openai_function_call_retries,
     )
     def call_function(self, as_message=True):
         """
