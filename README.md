@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/img/heroes/it_hates_me_hero.png" style="width: 80%; height: auto;"/>
+  <img src="docs/img/heroes/it_hates_me_hero.png" style="width: 95%; height: auto;"/>
 </p>
 
 # Marvin
