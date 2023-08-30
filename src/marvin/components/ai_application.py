@@ -225,24 +225,22 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             v = []
         return v
 
-    # @validator("tools", pre=True, always=True)
-    # def validate_tools(cls, v):
-    #     if v is None:
-    #         v = []
+    @validator("tools", pre=True, always=True)
+    def validate_tools(cls, v):
+        if v is None:
+            v = []
 
-    #     tools = []
+        tools = []
 
-    #     # convert AI Applications and functions to tools
-    #     for tool in v:
-    #         if isinstance(tool, AIApplication):
-    #             tools.append(tool.as_tool())
-    #         elif isinstance(tool, Tool):
-    #             tools.append(tool)
-    #         elif callable(tool):
-    #             tools.append(Tool.from_function(tool, tool.__name__, tool.__doc__))
-    #         else:
-    #             raise ValueError(f"Tool {tool} is not a Tool or callable.")
-    #     return tools
+        # convert AI Applications and functions to tools
+        for tool in v:
+            if isinstance(tool, (AIApplication, Tool)):
+                tools.append(tool.as_function())
+            elif callable(tool):
+                tools.append(tool)
+            else:
+                raise ValueError(f"Tool {tool} is not a `Tool` or callable.")
+        return tools
 
     @validator("name", always=True)
     def validate_name(cls, v):
@@ -302,8 +300,8 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         ]
 
         for msg_dict in cleaned_messages:
-            msg_dict.update({"role": msg_dict["role"].value.lower()})
-            msg_dict.update({"name": msg_dict["name"] or "none"})
+            msg_dict.update({"role": msg_dict.get("role").value.lower()})
+            msg_dict.update({"name": msg_dict.get("name") or "none"})
 
         conversation = await ChatCompletion(
             functions=tools, model=model, _stream_handler_fn=self.stream_handler
@@ -317,6 +315,9 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
 
     def as_tool(self, name: str = None) -> Tool:
         return AIApplicationTool(app=self, name=name)
+
+    def as_function(self, name: str = None) -> Callable:
+        return self.as_tool(name=name).as_function()
 
 
 class AIApplicationTool(Tool):

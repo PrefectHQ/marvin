@@ -4,7 +4,6 @@ from typing import Optional, Type, TypeVar
 
 from pydantic import BaseModel, PrivateAttr
 
-from marvin.engine.executors import OpenAIFunctionsExecutor
 from marvin.engine.language_models import ChatLLM, chat_llm
 from marvin.prompts import library as prompt_library
 from marvin.prompts import render_prompts

@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import json
 from abc import ABC
 from functools import cached_property
@@ -16,6 +17,7 @@ from marvin.pydantic import (
 )
 from marvin.settings import ENV_PATH
 from marvin.types import Function
+from marvin.utilities.async_utils import run_sync
 from marvin.utilities.logging import get_logger
 from marvin.utilities.module_loading import import_string
 
@@ -206,6 +208,10 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         function = self.callable_registry.get(name)
         arguments = function.model.parse_raw(raw_arguments)
         value = function(**arguments.dict(exclude_none=True))
+
+        if inspect.isawaitable(value):
+            value = run_sync(value)
+
         if as_message:
             return {"role": "function", "name": name, "content": str(value)}
         else:

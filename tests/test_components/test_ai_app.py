@@ -4,6 +4,7 @@ from marvin.components.ai_application import (
     AIApplication,
     AppPlan,
     FreeformState,
+    JSONPatchModel,
     TaskState,
     UpdatePlan,
     UpdateState,
@@ -18,7 +19,9 @@ class TestStateJSONPatch:
             state=FreeformState(state={"foo": "bar"}), description="test app"
         )
         tool = UpdateState(app=app)
-        tool.run([{"op": "replace", "path": "/state/foo", "value": "baz"}])
+        tool.run(
+            [JSONPatchModel(**{"op": "replace", "path": "/state/foo", "value": "baz"})]
+        )
         assert app.state.dict() == {"state": {"foo": "baz"}}
 
     def test_update_app_state_invalid_patch(self):
@@ -27,7 +30,13 @@ class TestStateJSONPatch:
         )
         tool = UpdateState(app=app)
         with pytest.raises(jsonpatch.InvalidJsonPatch):
-            tool.run([{"op": "invalid_op", "path": "/state/foo", "value": "baz"}])
+            tool.run(
+                [
+                    JSONPatchModel(
+                        **{"op": "invalid_op", "path": "/state/foo", "value": "baz"}
+                    )
+                ]
+            )
         assert app.state.dict() == {"state": {"foo": "bar"}}
 
     def test_update_app_state_non_existent_path(self):
@@ -36,7 +45,13 @@ class TestStateJSONPatch:
         )
         tool = UpdateState(app=app)
         with pytest.raises(jsonpatch.JsonPatchConflict):
-            tool.run([{"op": "replace", "path": "/state/baz", "value": "qux"}])
+            tool.run(
+                [
+                    JSONPatchModel(
+                        **{"op": "replace", "path": "/state/baz", "value": "qux"}
+                    )
+                ]
+            )
         assert app.state.dict() == {"state": {"foo": "bar"}}
 
 
@@ -84,7 +99,13 @@ class TestPlanJSONPatch:
             description="test app",
         )
         tool = UpdatePlan(app=app)
-        tool.run([{"op": "replace", "path": "/tasks/0/state", "value": "COMPLETED"}])
+        tool.run(
+            [
+                JSONPatchModel(
+                    **{"op": "replace", "path": "/tasks/0/state", "value": "COMPLETED"}
+                )
+            ]
+        )
         assert app.plan.dict() == {
             "tasks": [
                 {
@@ -108,7 +129,15 @@ class TestPlanJSONPatch:
         tool = UpdatePlan(app=app)
         with pytest.raises(jsonpatch.JsonPatchException):
             tool.run(
-                [{"op": "invalid_op", "path": "/tasks/0/state", "value": "COMPLETED"}]
+                [
+                    JSONPatchModel(
+                        **{
+                            "op": "invalid_op",
+                            "path": "/tasks/0/state",
+                            "value": "COMPLETED",
+                        }
+                    )
+                ]
             )
         assert app.plan.dict() == {
             "tasks": [
@@ -133,7 +162,15 @@ class TestPlanJSONPatch:
         tool = UpdatePlan(app=app)
         with pytest.raises(jsonpatch.JsonPointerException):
             tool.run(
-                [{"op": "replace", "path": "/tasks/1/state", "value": "COMPLETED"}]
+                [
+                    JSONPatchModel(
+                        **{
+                            "op": "replace",
+                            "path": "/tasks/1/state",
+                            "value": "COMPLETED",
+                        }
+                    )
+                ]
             )
         assert app.plan.dict() == {
             "tasks": [
