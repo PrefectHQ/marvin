@@ -106,7 +106,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
     """
 
     @classmethod
-    def to_prompt(
+    def prompt(
         cls,
         *args,
         __schema__: bool = True,
@@ -214,7 +214,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
 
     @classmethod
     def to_chat_completion(cls, *args, __schema__=False, **kwargs):
-        return cls.__model__(**cls.to_prompt(*args, __schema__=__schema__, **kwargs))
+        return cls.__model__(**cls.prompt(*args, __schema__=__schema__, **kwargs))
 
     @classmethod
     def create(cls, *args, **kwargs):
