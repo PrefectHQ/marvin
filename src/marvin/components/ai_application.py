@@ -310,7 +310,6 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         ).achain(messages=cleaned_messages)
 
         for msg in (messages := Message.from_conversation(conversation)):
-            print(msg.content)
             self.history.add_message(msg)
 
         self.logger.debug_kv("AI response", messages[-1].content, key_style="blue")
