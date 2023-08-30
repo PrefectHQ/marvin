@@ -39,34 +39,18 @@ class Message(MarvinBaseModel):
             v = inspect.cleandoc(v)
         return v
 
-    def dict(self, *args, serialize: bool = True, **kwargs):
-        if serialize:
-            d = super().dict(
-                *args, **kwargs, exclude={"llm_response", "data", "timestamp"}
-            )
-            if isinstance(self.role, Role):
-                d["role"] = self.role.value.lower()
-            if "name" in d and d["name"] is None:
-                del d["name"]
-
-            return d
-        return super().dict(*args, **kwargs)
-
     @classmethod
     def from_conversation(cls: Type[Self], conversation) -> list[Type[Self]]:
         messages = []
         for turn in conversation.turns:
-            choice = turn.raw.get("choices", [{}])[0]
-            created_at = datetime.fromtimestamp(turn.raw.get("created"))
-            message_data = choice.get("message", {})
-            role = message_data.get("role")
-            content = message_data.get("content")
+            choice = turn.raw.choices[0]
+            message = choice.message
 
             message = cls(
-                role=role,
-                content=content,
-                name=message_data.get("name"),
-                timestamp=created_at,
+                role=turn.raw.choices[0].message.role,
+                content=turn.raw.choices[0].message.content,
+                name=message.get("name"),
+                timestamp=turn.raw.created,
                 data=turn.raw,
             )
             messages.append(message)

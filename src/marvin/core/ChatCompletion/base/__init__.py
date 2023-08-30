@@ -5,7 +5,7 @@ from functools import cached_property
 from operator import itemgetter
 from typing import Callable, Literal, Optional, Union, Type, TypeVar, Any
 
-
+from marvin.engine.language_models.openai import OpenAIStreamHandler
 from marvin.pydantic import (
     BaseModel,
     BaseSettings,
@@ -273,19 +273,35 @@ class BaseChatCompletion(
 
     async def achain(
         self, *args, until: Callable[[T], bool] = lambda _: False, **kwargs
-    ):
-        logger = get_logger()
+    ) -> BaseConversationState:
+        logger = get_logger("ChatCompletion.achain")
         with self as conversation:
-            await conversation.asend(*args, **kwargs)
+            await conversation.asend(*args, **kwargs)  # send off prompts
             while conversation.last_response.has_function_call() and not until(
                 conversation
-            ):
-                logger.debug(
-                    f"Running function: {conversation.last_response.raw.get('choices')}"
+            ):  # check for function calls
+                message = conversation.last_response.raw.get("choices")[0].message
+                fn_name = message.get("function_call", {}).get("name")
+                fn_args = message.get("function_call", {}).get("arguments")
+
+                logger.debug_kv(
+                    "Function Call",
+                    f"Running function: {fn_name} with arguments: {fn_args}",
+                    key_style="green",
                 )
-                await conversation.asend(
-                    messages=[conversation.last_response.call_function()]
-                )
+                try:
+                    fn_result = (
+                        conversation.last_response.call_function()
+                    )  # run function
+                except Exception as exc:
+                    fn_result = (
+                        f"The function '{fn_name}' encountered an error:"
+                        f" {str(exc)}\n\nThe payload you provided was: {fn_args}\n\nYou"
+                        " can try to fix the error and call the function again."
+                    )
+                    logger.debug_kv("Error", fn_result, key_style="red")
+
+                await conversation.asend(messages=[fn_result])
             return conversation
 
     def chain(self, *args, until: Callable[[T], bool] = lambda _: False, **kwargs):
@@ -295,11 +311,20 @@ class BaseChatCompletion(
         request = self.prepare_request(**kwargs)
         request_dict = request.schema()
 
-        # TODO: Fix this to make actual async calls
-        acreate = getattr(self.model(request), self._create)
+        acreate = getattr(self.model(request), self._acreate)
+
+        stream_handler_fn = request_dict.pop("_stream_handler_fn", None)
+
+        raw_response = await acreate(
+            *args, **request_dict, **{"stream": True if stream_handler_fn else False}
+        )
+
+        if stream_handler_fn:
+            handler = OpenAIStreamHandler(callback=stream_handler_fn)
+            raw_response = await handler.handle_streaming_response(raw_response)
 
         return self.response(
-            raw=acreate(*args, **request_dict),
+            raw=raw_response,
             request=request,
         )
 

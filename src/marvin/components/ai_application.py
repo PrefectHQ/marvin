@@ -225,24 +225,24 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             v = []
         return v
 
-    @validator("tools", pre=True, always=True)
-    def validate_tools(cls, v):
-        if v is None:
-            v = []
+    # @validator("tools", pre=True, always=True)
+    # def validate_tools(cls, v):
+    #     if v is None:
+    #         v = []
 
-        tools = []
+    #     tools = []
 
-        # convert AI Applications and functions to tools
-        for tool in v:
-            if isinstance(tool, AIApplication):
-                tools.append(tool.as_tool())
-            elif isinstance(tool, Tool):
-                tools.append(tool)
-            elif callable(tool):
-                tools.append(Tool.from_function(tool))
-            else:
-                raise ValueError(f"Tool {tool} is not a Tool or callable.")
-        return tools
+    #     # convert AI Applications and functions to tools
+    #     for tool in v:
+    #         if isinstance(tool, AIApplication):
+    #             tools.append(tool.as_tool())
+    #         elif isinstance(tool, Tool):
+    #             tools.append(tool)
+    #         elif callable(tool):
+    #             tools.append(Tool.from_function(tool, tool.__name__, tool.__doc__))
+    #         else:
+    #             raise ValueError(f"Tool {tool} is not a Tool or callable.")
+    #     return tools
 
     @validator("name", always=True)
     def validate_name(cls, v):
@@ -297,11 +297,20 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             prompts, render_kwargs=dict(app=self, input_text=input_text)
         )
 
-        conversation = await ChatCompletion(functions=tools, model=model).achain(
-            messages=[msg.dict() for msg in prompts]
-        )
+        cleaned_messages = [
+            d.dict(exclude={"data", "timestamp", "llm_response"}) for d in prompts
+        ]
+
+        for msg_dict in cleaned_messages:
+            msg_dict.update({"role": msg_dict["role"].value.lower()})
+            msg_dict.update({"name": msg_dict["name"] or "none"})
+
+        conversation = await ChatCompletion(
+            functions=tools, model=model, _stream_handler_fn=self.stream_handler
+        ).achain(messages=cleaned_messages)
 
         for msg in (messages := Message.from_conversation(conversation)):
+            print(msg.content)
             self.history.add_message(msg)
 
         self.logger.debug_kv("AI response", messages[-1].content, key_style="blue")
@@ -385,7 +394,7 @@ class UpdateState(Tool):
         super().__init__(**kwargs)
 
     def run(self, patches: list[JSONPatchModel]):
-        patch = JsonPatch(patches)
+        patch = JsonPatch([patch.dict() for patch in patches])
         updated_state = patch.apply(self._app.state.dict())
         self._app.state = type(self._app.state)(**updated_state)
         return "Application state updated successfully!"
@@ -434,7 +443,7 @@ class UpdatePlan(Tool):
         super().__init__(**kwargs)
 
     def run(self, patches: list[JSONPatchModel]):
-        patch = JsonPatch(patches)
-        updated_state = patch.apply(self._app.plan.dict())
-        self._app.plan = type(self._app.plan)(**updated_state)
+        patch = JsonPatch([patch.dict() for patch in patches])
+        updated_plan = patch.apply(self._app.plan.dict())
+        self._app.plan = type(self._app.plan)(**updated_plan)
         return "Application plan updated successfully!"

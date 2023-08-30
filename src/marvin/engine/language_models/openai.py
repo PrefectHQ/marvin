@@ -1,6 +1,6 @@
 import inspect
 from logging import Logger
-from typing import Callable, Union
+from typing import AsyncGenerator, Callable, Union
 
 import openai
 import openai.openai_object
@@ -37,41 +37,47 @@ def openai_role_map(marvin_role: Role) -> str:
 class OpenAIStreamHandler(StreamHandler):
     async def handle_streaming_response(
         self,
-        api_response: openai.openai_object.OpenAIObject,
-    ) -> Message:
-        """
-        Accumulate chunk deltas into a full response. Returns the full message.
-        Passes partial messages to the callback, if provided.
-        """
-        response = {"role": None, "content": "", "data": {}, "llm_response": None}
+        api_response: AsyncGenerator[openai.openai_object.OpenAIObject, None],
+    ) -> openai.openai_object.OpenAIObject:
+        final_chunk = {}
+        accumulated_content = ""
 
         async for r in api_response:
-            response["llm_response"] = r.to_dict_recursive()
+            final_chunk.update(r.to_dict_recursive())
 
             delta = r.choices[0].delta
 
-            if "role" in delta:
-                response["role"] = delta.role
-
-            if fn_call := delta.get("function_call"):
-                if "function_call" not in response["data"]:
-                    response["data"]["function_call"] = {"name": None, "arguments": ""}
-                if "name" in fn_call:
-                    response["data"]["function_call"]["name"] = fn_call.name
-                if "arguments" in fn_call:
-                    response["data"]["function_call"]["arguments"] += (
-                        fn_call.arguments or ""
-                    )
-
             if "content" in delta:
-                response["content"] += delta.content or ""
+                accumulated_content += delta.content or ""
 
             if self.callback:
-                callback_result = self.callback(Message(**response))
+                callback_result = self.callback(final_chunk)
                 if inspect.isawaitable(callback_result):
                     create_task(callback_result)
 
-        return Message(**response)
+        if "choices" in final_chunk and len(final_chunk["choices"]) > 0:
+            final_chunk["choices"][0]["content"] = accumulated_content
+
+        final_chunk["object"] = "chat.completion"
+
+        return openai.openai_object.OpenAIObject.construct_from(
+            {
+                "id": final_chunk["id"],
+                "object": "chat.completion",
+                "created": final_chunk["created"],
+                "model": final_chunk["model"],
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": accumulated_content,
+                        },
+                        "finish_reason": "stop",
+                    }
+                ],
+            }
+        )
 
 
 class OpenAIChatLLM(ChatLLM):
