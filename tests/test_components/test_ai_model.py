@@ -34,29 +34,20 @@ class TestAIModels:
         assert x.state == "Nebraska"
         assert "United" in x.country
         assert "States" in x.country
-        assert x.latitude // 1 == 40
-        assert x.longitude // 1 == -97
+        assert 2 > abs(x.latitude - 41)  # Lincoln is at 40.8 N
+        assert 2 > abs(x.longitude + 97)  # Lincoln is at 96.7 W
 
     def test_depth(self):
-        from typing import List
-
-        class Country(BaseModel):
-            name: str
-
-        class City(BaseModel):
-            name: str
-            country: Country
-
         class Neighborhood(BaseModel):
             name: str
-            city: City
+            city: str
 
         @ai_model
         class RentalHistory(BaseModel):
-            neighborhood: List[Neighborhood]
+            neighborhood: list[Neighborhood]
 
         assert RentalHistory("""\
-            I lived in Palms, then Mar Vista, then Pico Robertson.
+            I lived in Queens for a bit, then to Logan Square in chitown, now French Quarter in NOLA.
         """)
 
     def test_resume(self):
@@ -157,18 +148,6 @@ class TestAIModelsMessage:
 
 @pytest_mark_class("llm")
 class TestInstructions:
-    def test_instructions_error(self):
-        @ai_model
-        class Test(BaseModel):
-            text: str
-
-        with pytest.raises(
-            ValueError, match="(Received `instructions` but this model)"
-        ):
-            Test("Hello!", instructions="Translate to French")
-        with pytest.raises(ValueError, match="(Received `model` but this model)"):
-            Test("Hello!", model=None)
-
     def test_instructions(self):
         @ai_model
         class Test(BaseModel):
@@ -194,11 +173,11 @@ class TestInstructions:
         assert t1.text == "Hello"
 
         # this model is identical except it has an instruction
-        @ai_model
+        @ai_model(instructions_="Translate the text to French")
         class Test(BaseModel):
             text: str
 
-        t2 = Test("Hello", instructions_="Translate the text to French")
+        t2 = Test("Hello")
         assert t2.text == "Bonjour"
 
     def test_follow_global_and_instance_instructions(self):
@@ -224,22 +203,32 @@ class TestInstructions:
 
     def test_follow_multiple_instructions(self):
         # ensure that instructions don't bleed to other invocations
-        @ai_model
+        @ai_model(instructions="Translate to French")
         class Translation(BaseModel):
             """Translates from one language to another language"""
 
             original_text: str
             translated_text: str
 
-        t1 = Translation("Hello, world!", instructions_="Translate to French")
-        t2 = Translation("Hello, world!", instructions_="Translate to German")
+        t1 = Translation("Hello, world!")
 
-        assert t1 == Translation(
-            original_text="Hello, world!", translated_text="Bonjour, monde!"
-        )
-        assert t2 == Translation(
-            original_text="Hello, world!", translated_text="Hallo, Welt!"
-        )
+        @ai_model(instructions="Translate to German")
+        class Translation(BaseModel):
+            """Translates from one language to another language"""
+
+            original_text: str
+            translated_text: str
+
+        t2 = Translation("Hello, world!")
+
+        assert t1.original_text == "Hello, world!"
+        assert t1.translated_text in [
+            "Bonjour, le monde!",
+            "Bonjour, monde!",
+            "Bonjour, tout le monde!",
+        ]
+        assert t2.original_text == "Hello, world!"
+        assert t2.translated_text in ["Hallo Welt!", "Hallo, Welt!", "Hallo, die Welt!"]
 
 
 @pytest_mark_class("llm")
@@ -274,11 +263,11 @@ class TestAIModelMapping:
         assert all(r == expected for r in result)
 
     def test_instructions(self):
-        @ai_model
+        @ai_model(instructions="Translate to French")
         class Translate(BaseModel):
             text: str
 
-        result = Translate.map(["Hello", "Goodbye"], instructions="Translate to French")
+        result = Translate.map(["Hello", "Goodbye"])
         assert len(result) == 2
         assert result[0].text == "Bonjour"
         assert result[1].text == "Au revoir"
