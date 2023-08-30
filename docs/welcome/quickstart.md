@@ -10,7 +10,6 @@ Marvin is a high-level interface for working with LLMs. In order to use it, you 
 
 To use the default model, provide an API key:
 
-
 ```python
 import marvin
 
@@ -23,8 +22,6 @@ To use another provider or model, please see the [configuration docs](../../conf
 ## AI Models
 
 Marvin's most basic component is the AI Model, a drop-in replacement for Pydantic's `BaseModel`. AI Models can be instantiated from any string, making them ideal for structuring data, entity extraction, and synthetic data generation:
-
-
 
 ```python
 from marvin import ai_model
@@ -40,17 +37,11 @@ class Location(BaseModel):
 Location("The Big Apple")
 ```
 
-
-
-
     Location(city='New York', state='NY')
-
-
 
 ## AI Classifiers
 
 AI Classifiers let you build multi-label classifiers with no code and no training data. Given user input, each classifier uses a [clever logit bias trick](https://twitter.com/AAAzzam/status/1669753721574633473) to force an LLM to deductively choose the best option. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
-
 
 ```python
 from marvin import ai_classifier
@@ -75,17 +66,11 @@ class AppRoute(Enum):
 AppRoute("update my name")
 ```
 
-
-
-
     <AppRoute.USER_PROFILE: '/user-profile'>
-
-
 
 ## AI Functions
 
-AI Functions look like regular functions, but have no source code. Instead, an AI uses their description and inputs to generate their outputs, making them ideal for NLP applications like sentiment analysis. 
-
+AI Functions look like regular functions, but have no source code. Instead, an AI uses their description and inputs to generate their outputs, making them ideal for NLP applications like sentiment analysis.
 
 ```python
 from marvin import ai_fn
@@ -106,9 +91,7 @@ print("Text 2:", sentiment("These examples could use some work..."))
     Text 1: 0.8
     Text 2: -0.2
 
-
 Because AI functions are just like regular functions, you can quickly modify them for your needs. Here, we modify the above example to work with multiple strings at once:
-
 
 ```python
 from marvin import ai_fn
@@ -130,22 +113,17 @@ sentiment_list(
 )
 ```
 
-
-
-
     [0.7, -0.5]
-
-
 
 ## AI Applications
 
 AI Applications are the base class for interactive use cases. They are designed to be invoked one or more times, and automatically maintain three forms of state:
+
 - `state`: a structured application state
 - `plan`: high-level planning for the AI assistant to keep the application "on-track" across multiple invocations
 - `history`: a history of all LLM interactions
 
 AI Applications can be used to implement many "classic" LLM use cases, such as chatbots, tool-using agents, developer assistants, and more. In addition, thanks to their persistent state and planning, they can implement applications that don't have a traditional chat UX, such as a ToDo app. Here's an example:
-
 
 ```python
 from datetime import datetime
@@ -177,7 +155,6 @@ todo_app = AIApplication(
 
 Now we can invoke the app directly to add a to-do item. Note that the app understands that it is supposed to manipulate state, not just respond conversationally.
 
-
 ```python
 # invoke the application by adding a todo
 response = todo_app("I need to go to the store tomorrow at 5pm")
@@ -190,7 +167,7 @@ print(f"App state: {todo_app.state.json(indent=2)}")
 ```
 
     Response: Sure! I've added a new task to your to-do list. You need to go to the store tomorrow at 5pm.
-    
+
     App state: {
       "todos": [
         {
@@ -202,9 +179,7 @@ print(f"App state: {todo_app.state.json(indent=2)}")
       ]
     }
 
-
 We can inform the app that we already finished the task, and it updates state appropriately
-
 
 ```python
 # complete the task
@@ -216,7 +191,7 @@ print(f"App state: {todo_app.state.json(indent=2)}")
 ```
 
     Response: Great! I've marked the task "Go to the store" as completed. Is there anything else you need help with?
-    
+
     App state: {
       "todos": [
         {
@@ -227,9 +202,3 @@ print(f"App state: {todo_app.state.json(indent=2)}")
         }
       ]
     }
-
-
-
-```python
-
-```
