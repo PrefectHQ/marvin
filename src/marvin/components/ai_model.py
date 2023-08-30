@@ -54,20 +54,24 @@ user_prompt = inspect.cleandoc("""\
 
 
 class AIModel(BaseModel):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, instructions_: Optional[str] = None, **kwargs):
         if text := next(iter(args), None):
-            kwargs.update(self.__class__.call(text))
+            kwargs.update(self.__class__.call(text, instructions=instructions_))
         super().__init__(**kwargs)
 
     @classmethod
     def as_prompt(cls, text: str = None, *args, __schema__=True, **kwargs):
         response = {}
+        instructions = kwargs.pop("instructions", None)
         response["functions"] = cls._functions(*args, **kwargs)
         response["function_call"] = cls._function_call(
             *args, __schema__=__schema__, **kwargs
         )
         response["messages"] = cls._messages(
-            text=text, functions=response["functions"], **kwargs
+            text=text,
+            functions=response["functions"],
+            instructions=instructions,
+            **kwargs,
         )
         if __schema__:
             response["functions"] = response["functions"].schema()
@@ -142,7 +146,7 @@ class AIModel(BaseModel):
 
     @classmethod
     def to_chat_completion(cls, *args, __schema__=False, **kwargs):
-        return ChatCompletion(**cls.prompt(*args, __schema__=__schema__, **kwargs))
+        return ChatCompletion(**cls.as_prompt(*args, __schema__=__schema__, **kwargs))
 
     @classmethod
     def create(cls, *args, **kwargs):
