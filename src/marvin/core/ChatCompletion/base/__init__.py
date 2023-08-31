@@ -203,7 +203,6 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         """
         name, raw_arguments = itemgetter("name", "arguments")(self.function_call())
         function = self.callable_registry.get(name)
-        print(raw_arguments)
         arguments = function.model.parse_raw(raw_arguments)
         value = function(**arguments.dict(exclude_none=True))
         if as_message:
