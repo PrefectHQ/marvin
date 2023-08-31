@@ -54,15 +54,24 @@ user_prompt = inspect.cleandoc("""\
 
 
 class AIModel(BaseModel):
-    def __init__(self, *args, instructions_: Optional[str] = None, **kwargs):
+    def __init__(self, *args, **kwargs):
+        instructions = kwargs.pop("instructions_", None)
         if text := next(iter(args), None):
-            kwargs.update(self.__class__.call(text, instructions=instructions_))
+            kwargs.update(self.__class__.call(text, instructions=instructions))
         super().__init__(**kwargs)
 
     @classmethod
-    def as_prompt(cls, text: str = None, *args, __schema__=True, **kwargs):
+    def as_prompt(
+        cls,
+        text: str = None,
+        *args,
+        __schema__=True,
+        instructions: Optional[str] = None,
+        **kwargs,
+    ):
+        print(instructions)
+        print(getattr(cls, "instructions", None))
         response = {}
-        instructions = kwargs.pop("instructions", None)
         response["functions"] = cls._functions(*args, **kwargs)
         response["function_call"] = cls._function_call(
             *args, __schema__=__schema__, **kwargs
@@ -70,8 +79,8 @@ class AIModel(BaseModel):
         response["messages"] = cls._messages(
             text=text,
             functions=response["functions"],
-            instructions=instructions,
             **kwargs,
+            **({"instructions": instructions} if instructions else {}),
         )
         if __schema__:
             response["functions"] = response["functions"].schema()
@@ -79,6 +88,7 @@ class AIModel(BaseModel):
 
     @classmethod
     def _messages(cls, **kwargs):
+        print(kwargs)
         return [
             {
                 "role": role,
@@ -101,9 +111,9 @@ class AIModel(BaseModel):
     def as_decorator(
         cls,
         base_model=None,
-        instructions: str = None,
         system: str = None,
         user: str = user_prompt,
+        instructions: str = None,
         context_fn: Optional[Callable[[str], dict]] = default_context,
         mode: Literal["extract", "generate"] = "extract",
         model: Any = None,
@@ -112,7 +122,6 @@ class AIModel(BaseModel):
         if not base_model:
             return functools.partial(
                 cls.as_decorator,
-                instructions=instructions,
                 system=system
                 or (
                     system_extract_prompt
@@ -121,6 +130,7 @@ class AIModel(BaseModel):
                 ),
                 user=user or user_prompt,
                 model=model,
+                instructions=instructions,
                 context_fn=context_fn,
                 **model_kwargs,
             )
@@ -131,7 +141,6 @@ class AIModel(BaseModel):
                 **dict(base_model.__dict__),
                 "_messages": functools.partial(
                     cls._messages,
-                    instructions=instructions,
                     system=system
                     or (
                         system_extract_prompt
@@ -140,21 +149,30 @@ class AIModel(BaseModel):
                     ),
                     user=user or user_prompt,
                     context_fn=context_fn,
+                    instructions=instructions,
                 ),
             },
         )
 
     @classmethod
-    def to_chat_completion(cls, *args, __schema__=False, **kwargs):
-        return ChatCompletion(**cls.as_prompt(*args, __schema__=__schema__, **kwargs))
+    def to_chat_completion(
+        cls, *args, __schema__=False, instructions: str = None, **kwargs
+    ):
+        return ChatCompletion(
+            **cls.as_prompt(
+                *args, __schema__=__schema__, instructions=instructions, **kwargs
+            )
+        )
 
     @classmethod
-    def create(cls, *args, **kwargs):
-        return cls.to_chat_completion(*args, **kwargs).create()
+    def create(cls, *args, instructions: str = None, **kwargs):
+        return cls.to_chat_completion(
+            *args, instructions=instructions, **kwargs
+        ).create()
 
     @classmethod
-    def call(cls, *args, **kwargs):
-        completion = cls.create(*args, **kwargs)
+    def call(cls, *args, instructions: str = None, **kwargs):
+        completion = cls.create(*args, instructions=instructions, **kwargs)
         return completion.call_function(as_message=False)
 
     @classmethod
