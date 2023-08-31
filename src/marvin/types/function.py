@@ -2,7 +2,7 @@ import copy
 import inspect
 import re
 from functools import partial
-from typing import Callable, Optional, Type
+from typing import Any, Callable, Optional, Type
 
 from pydantic import BaseModel, validate_arguments
 from pydantic.decorator import (
@@ -20,6 +20,18 @@ extraneous_fields = [
     V_POSITIONAL_ONLY_NAME,
     V_DUPLICATE_KWARGS,
 ]
+
+
+def openai_schema(
+    schema: Callable[[BaseModel], dict[str, Any]]
+) -> Callable[[], dict[str, Any]]:
+    def wrapped_schema():
+        response: dict[str, Any] = {"parameters": schema()}
+        response["name"] = response.get("parameters").pop("title", None)
+        response["description"] = response.get("parameters").pop("description", "")
+        return response
+
+    return wrapped_schema
 
 
 def get_openai_function_schema(schema, model):
@@ -43,6 +55,7 @@ def get_openai_function_schema(schema, model):
     schema["parameters"] = {
         k: v for (k, v) in _schema.items() if k not in extraneous_fields
     }
+    return schema
 
 
 class FunctionConfig(BaseModel):
@@ -117,7 +130,7 @@ class Function:
         )
 
         instance.model.schema = model.schema
-        instance.schema = model.schema
+        instance.schema = openai_schema(model.schema)
 
         return instance
 
