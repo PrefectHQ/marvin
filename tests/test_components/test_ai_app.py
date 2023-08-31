@@ -9,6 +9,7 @@ from marvin.components.ai_application import (
     UpdatePlan,
     UpdateState,
 )
+from marvin.tools import Tool
 
 from tests.utils.mark import pytest_mark_class
 
@@ -226,3 +227,52 @@ class TestUpdatePlan:
             TaskState.SKIPPED,
             TaskState.COMPLETED,
         ]
+
+
+@pytest_mark_class("llm")
+class TestUseCallable:
+    def test_use_sync_fn(self):
+        def get_schleeb():
+            return 42
+
+        app = AIApplication(
+            name="Schleeb app",
+            tools=[get_schleeb],
+            state_enabled=False,
+            plan_enabled=False,
+            description="answer user questions",
+        )
+
+        assert "42" in app("what is the value of schleeb?").content
+
+    def test_use_async_fn(self):
+        async def get_schleeb():
+            return 42
+
+        app = AIApplication(
+            name="Schleeb app",
+            tools=[get_schleeb],
+            state_enabled=False,
+            plan_enabled=False,
+            description="answer user questions",
+        )
+
+        assert "42" in app("what is the value of schleeb?").content
+
+
+@pytest_mark_class("llm")
+class TestUseTool:
+    class GetSchleeb(Tool):
+        async def run(self):
+            return 42
+
+    def test_use_tool(self):
+        app = AIApplication(
+            name="Schleeb app",
+            tools=[self.GetSchleeb()],
+            state_enabled=False,
+            plan_enabled=False,
+            description="answer user questions",
+        )
+
+        assert "42" in app("what is the value of schleeb?").content
