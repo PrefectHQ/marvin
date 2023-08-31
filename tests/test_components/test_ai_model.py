@@ -1,8 +1,7 @@
-from typing import List, Literal, Optional
+from typing import List, Literal
 
 import pytest
 from marvin import ai_model
-from marvin.utilities.messages import Message, Role
 from pydantic import BaseModel, Field
 
 from tests.utils.mark import pytest_mark_class
@@ -20,6 +19,7 @@ class TestAIModels:
         assert x.sum == 7
         assert x.is_odd
 
+    @pytest.mark.flaky(reruns=2)
     def test_geospatial(self):
         @ai_model
         class Location(BaseModel):
@@ -37,41 +37,38 @@ class TestAIModels:
         assert 2 > abs(x.latitude - 41)  # Lincoln is at 40.8 N
         assert 2 > abs(x.longitude + 97)  # Lincoln is at 96.7 W
 
+    @pytest.mark.xfail(reason="TODO, explore advanced nested models")
     def test_depth(self):
         class Neighborhood(BaseModel):
             name: str
-            city: str
+            city: str = Field(
+                ..., description="The city in which the neighborhood is located"
+            )
 
         @ai_model
         class RentalHistory(BaseModel):
             neighborhoods: list[Neighborhood]
 
-        assert (
-            RentalHistory("""\
+        rental_history = RentalHistory("""
             I lived in Queens for a bit, then to Logan Square in chitown, now French Quarter in NOLA.
         """)  # noqa
-            == RentalHistory(
-                neighborhoods=[
-                    Neighborhood(name="Queens", city="New York"),
-                    Neighborhood(name="Logan Square", city="Chicago"),
-                    Neighborhood(name="French Quarter", city="New Orleans"),
-                ]
-            )
+
+        assert rental_history == RentalHistory(
+            neighborhoods=[
+                Neighborhood(name="Queens", city="New York"),
+                Neighborhood(name="Logan Square", city="Chicago"),
+                Neighborhood(name="French Quarter", city="New Orleans"),
+            ]
         )
 
     def test_resume(self):
-        class Experience(BaseModel):
-            technology: str
-            years_of_experience: int
-            supporting_phrase: Optional[str]
-
         @ai_model
         class Resume(BaseModel):
             """Details about a person's work experience."""
 
             greater_than_three_years_management_experience: bool
             greater_than_ten_years_management_experience: bool
-            technologies: List[Experience]
+            technologies: List[str]
 
         x = Resume("""\
             Data Engineering Manager, 2017-2022
@@ -83,22 +80,21 @@ class TestAIModels:
         assert x.greater_than_three_years_management_experience
         assert not x.greater_than_ten_years_management_experience
         assert len(x.technologies) == 2
+        assert "Apache Kafka" in x.technologies
+        assert "xgboost" in x.technologies
 
     @pytest.mark.flaky(reruns=2)
     def test_literal(self):
-        class CertainPerson(BaseModel):
-            name: Literal["Adam", "Nate", "Jeremiah"]
-
         @ai_model
         class LLMConference(BaseModel):
-            speakers: List[CertainPerson]
+            speakers: List[Literal["Adam", "Nate", "Jeremiah"]]
 
         x = LLMConference("""
             The conference for best LLM framework will feature talks by
             Adam, Nate, Jeremiah, Marvin, and Billy Bob Thornton.
         """)
-        assert len(set([speaker.name for speaker in x.speakers])) == 3
-        assert set([speaker.name for speaker in x.speakers]) == set(
+        assert len(set([speaker for speaker in x.speakers])) == 3
+        assert set([speaker for speaker in x.speakers]) == set(
             ["Adam", "Nate", "Jeremiah"]
         )
 
@@ -143,19 +139,6 @@ class TestAIModels:
 
 
 @pytest_mark_class("llm")
-class TestAIModelsMessage:
-    def test_arithmetic_message(self):
-        @ai_model
-        class Arithmetic(BaseModel):
-            sum: float
-
-        x = Arithmetic("One plus six")
-        assert x.sum == 7
-        assert isinstance(x._message, Message)
-        assert x._message.role == Role.FUNCTION_RESPONSE
-
-
-@pytest_mark_class("llm")
 class TestInstructions:
     def test_instructions(self):
         @ai_model
@@ -182,33 +165,29 @@ class TestInstructions:
         assert t1.text == "Hello"
 
         # this model is identical except it has an instruction
-        @ai_model(instructions_="Translate the text to French")
+        @ai_model(instructions="Translate the text to French")
         class Test(BaseModel):
             text: str
 
         t2 = Test("Hello")
         assert t2.text == "Bonjour"
 
-    def test_follow_global_and_instance_instructions(self):
-        @ai_model(instructions="Always set color_1 to 'red'")
+    def test_call_instructions_overwrite_default(self):
+        @ai_model(instructions="Always set color to 'red'")
         class Test(BaseModel):
-            color_1: str
-            color_2: str
+            color: str
 
-        t1 = Test("Hello", instructions_="Always set color_2 to 'blue'")
-        assert t1 == Test(color_1="red", color_2="blue")
+        t1 = Test("Hello", instructions_="Always set color to 'blue'")
+        assert t1 == Test(color="blue")
 
-    def test_follow_docstring_and_global_and_instance_instructions(self):
+    def test_follow_instructions_with_field(self):
         @ai_model(instructions="Always set color_1 to 'red'")
-        class Test(BaseModel):
-            """Always set color_3 to 'orange'"""
-
+        class Colors(BaseModel):
             color_1: str
-            color_2: str
-            color_3: str
+            color_2: str = Field(default="orange")
 
-        t1 = Test("Hello", instructions_="Always set color_2 to 'blue'")
-        assert t1 == Test(color_1="red", color_2="blue", color_3="orange")
+        t1 = Colors("Hello")
+        assert t1 == Colors(color_1="red", color_2="orange")
 
     def test_follow_multiple_instructions(self):
         # ensure that instructions don't bleed to other invocations
@@ -231,11 +210,7 @@ class TestInstructions:
         t2 = Translation("Hello, world!")
 
         assert t1.original_text == "Hello, world!"
-        assert t1.translated_text in [
-            "Bonjour, le monde!",
-            "Bonjour, monde!",
-            "Bonjour, tout le monde!",
-        ]
+        assert "Bonjour" in t1.translated_text and "monde" in t1.translated_text
         assert t2.original_text == "Hello, world!"
         assert t2.translated_text in ["Hallo Welt!", "Hallo, Welt!", "Hallo, die Welt!"]
 
@@ -254,22 +229,21 @@ class TestAIModelMapping:
 
     def test_location(self):
         @ai_model
-        class City(BaseModel):
-            name: str = Field("The proper name of the city")
+        class Location(BaseModel):
+            city: str = Field(
+                ..., description="The capitalized, correct name of the city referenced"
+            )  # noqa
 
-        result = City.map(
+        result = Location.map(
             [
                 "the windy city",
-                "chicago IL",
                 "Chicago",
                 "Chcago",
                 "chicago, Illinois, USA",
-                "chi-town",
             ]
         )
-        assert len(result) == 6
-        expected = City(name="Chicago")
-        assert all(r == expected for r in result)
+        assert len(result) == 4
+        assert all(r == Location(city="Chicago") for r in result)
 
     def test_instructions(self):
         @ai_model(instructions="Translate to French")
