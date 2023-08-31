@@ -116,6 +116,9 @@ class Function:
             },
         )
 
+        instance.model.schema = model.schema
+        instance.schema = model.schema
+
         return instance
 
     @classmethod
