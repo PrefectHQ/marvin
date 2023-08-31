@@ -44,11 +44,20 @@ class TestAIModels:
 
         @ai_model
         class RentalHistory(BaseModel):
-            neighborhood: list[Neighborhood]
+            neighborhoods: list[Neighborhood]
 
-        assert RentalHistory("""\
+        assert (
+            RentalHistory("""\
             I lived in Queens for a bit, then to Logan Square in chitown, now French Quarter in NOLA.
-        """)
+        """)  # noqa
+            == RentalHistory(
+                neighborhoods=[
+                    Neighborhood(name="Queens", city="New York"),
+                    Neighborhood(name="Logan Square", city="Chicago"),
+                    Neighborhood(name="French Quarter", city="New Orleans"),
+                ]
+            )
+        )
 
     def test_resume(self):
         class Experience(BaseModel):

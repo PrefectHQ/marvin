@@ -69,8 +69,6 @@ class AIModel(BaseModel):
         instructions: Optional[str] = None,
         **kwargs,
     ):
-        print(instructions)
-        print(getattr(cls, "instructions", None))
         response = {}
         response["functions"] = cls._functions(*args, **kwargs)
         response["function_call"] = cls._function_call(
@@ -88,7 +86,6 @@ class AIModel(BaseModel):
 
     @classmethod
     def _messages(cls, **kwargs):
-        print(kwargs)
         return [
             {
                 "role": role,
