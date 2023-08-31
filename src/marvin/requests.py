@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from functools import singledispatchmethod
-from typing import Any, Callable, Dict, Literal, Optional, Union
+from typing import Any, Callable, Dict, Literal, Optional
 
 from .pydantic import BaseModel, Field, validate_arguments
 
@@ -44,47 +43,6 @@ class AbstractRequestSerializer(ABC):
     ) -> Optional[Literal["auto"] | Dict[Literal["name"], str]]:
         """Abstract method for serializing function_call."""
         pass
-
-    @singledispatchmethod
-    @classmethod
-    def serialize(
-        cls, arg: Any
-    ) -> Union[
-        Dict[str, Any],
-        list[Dict[str, Any]],
-        Callable[..., Any] | Dict[str, Any] | BaseModel,
-        list[Callable[..., Any] | Dict[str, Any] | BaseModel],
-        Optional[Literal["auto"] | Dict[Literal["name"], str]],
-    ]:
-        pass
-
-    @serialize.register
-    @classmethod
-    def _(cls, arg: dict[str, Any]) -> dict[str, Any]:
-        return cls.serialize_messages([arg])[0]
-
-    @serialize.register
-    @classmethod
-    def _(cls, arg: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
-        return cls.serialize_messages(arg)
-
-    @serialize.register
-    @classmethod
-    def _(cls, arg: Callable[..., Any] | Dict[str, Any] | BaseModel) -> Dict[str, Any]:
-        return cls.serialize_functions([arg])[0]
-
-    @serialize.register
-    def _(
-        cls, arg: list[Callable[..., Any] | Dict[str, Any] | BaseModel]
-    ) -> list[Dict[str, Any]]:
-        return cls.serialize_functions(arg)
-
-    @serialize.register
-    @classmethod
-    def _(
-        cls, arg: Optional[Literal["auto"] | Dict[Literal["name"], str]]
-    ) -> Optional[Literal["auto"] | Dict[Literal["name"], str]]:
-        return cls.serialize_function_call(arg)
 
     def to_dict(
         self,
