@@ -300,12 +300,13 @@ class BaseChatCompletion(
                         conversation.last_response.call_function()
                     )  # run function
                 except Exception as exc:
-                    fn_result = (
+                    exc_msg = (
                         f"The function '{fn_name}' encountered an error:"
                         f" {str(exc)}\n\nThe payload you provided was: {fn_args}\n\nYou"
                         " can try to fix the error and call the function again."
                     )
-                    logger.debug_kv("Error", fn_result, key_style="red")
+                    logger.debug_kv("Error", exc_msg, key_style="red")
+                    fn_result = {"role": "system", "content": exc_msg}
 
                 await conversation.asend(messages=[fn_result])
             return conversation
