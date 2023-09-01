@@ -71,8 +71,7 @@ class TestAIModels:
         class Resume(BaseModel):
             """Details about a person's work experience."""
 
-            greater_than_three_years_management_experience: bool
-            greater_than_ten_years_management_experience: bool
+            years_management_experience: int = Field(default=0)
             technologies: List[str]
 
         x = Resume("""\
@@ -82,8 +81,7 @@ class TestAIModels:
             • Built tree-based classifier to predict customer churn (xgboost)\
         """)
 
-        assert x.greater_than_three_years_management_experience
-        assert not x.greater_than_ten_years_management_experience
+        assert x.years_management_experience == 5
         assert len(x.technologies) == 2
         assert "Apache Kafka" in x.technologies
         assert "xgboost" in x.technologies
