@@ -252,7 +252,6 @@ class TestAIModelMapping:
             ]
         )
         assert len(result) == 4
-        print(result)
         assert all(r == Location(city="Chicago") for r in result)
 
     def test_instructions(self):

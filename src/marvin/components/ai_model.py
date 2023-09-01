@@ -29,9 +29,10 @@ The user will provide context as text that you need to parse into a structured f
     - You must format your response according to the `{{functions[0].__name__}}` signature.
                                          
 You have been provided instructions on completing your task: 
-    - {% if instructions %}{{instructions}}{% endif %}
     - Use the provided text to extract parameters needed by `{{functions[0].__name__}}`.
     - When data is missing, you correctly deduce missing data from context.
+    {% if instructions %}- Adhere to these requirements: {{instructions}}{% endif %}
+
 {% if defaults %}
 If you cannot extract a parameter, you can use the following default values to
 extract, infer or deduce missing data:
