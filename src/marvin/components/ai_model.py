@@ -103,7 +103,13 @@ class AIModel(BaseModel):
         return FunctionRegistry(
             [
                 Function.from_model(
-                    cls,
+                    type(
+                        "format_response",
+                        (cls,),
+                        {
+                            **dict(cls.__dict__),
+                        },
+                    ),
                     name="format_response",
                     description=(
                         "You MUST always call this function before responding to the"

@@ -135,7 +135,15 @@ class Function:
             list(model.__signature__.parameters.values()), return_annotation=model
         )
 
-        instance = cls.__new__(cls, model, **kwargs)
+        instance = cls.__new__(
+            cls,
+            model,
+            **{
+                "name": name or model.__name__,
+                "description": description or model.__doc__,
+                **kwargs,
+            },
+        )
 
         instance.schema = openai_schema(model.schema)
 
