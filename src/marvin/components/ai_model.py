@@ -17,21 +17,19 @@ T = TypeVar("T")
 
 def default_context(text: str) -> dict:
     return {
-        "The current date is": datetime.now(ZoneInfo("UTC")).strftime(
+        "Today is": datetime.now(ZoneInfo("UTC")).strftime(
             "%A, %d %B %Y at %I:%M:%S %p %Z"
         )
     }
 
 
 system_extract_prompt = inspect.cleandoc("""\
-The user will provide context as text that you need to parse into a structured form. 
-    - To validate your response, you must call the `{{functions[0].__name__}}` function.
-    - Use the provided text to extract or infer any parameters needed by `{{functions[0].__name__}}`, including any missing data.
-                                         
-{% if context_fn %}
-{% for (arg, value) in context_fn(text).items() %}{{ arg }}: {{ value }}{% endfor %}
-{% endif %}
-{{ instructions }}""")  # noqa
+The user will provide context as text that you need to parse into a
+structured form. To validate your response, you must call the
+{{functions[0].__name__}} function. Use the provided text to extract or infer
+any parameters needed by {{functions[0].__name__}}, including any missing data.
+{% if context_fn %}{% for (arg, value) in context_fn(text).items() %}{{ arg }} {{ value }}{% endfor %}{% endif %}
+{{ instructions if instructions }}""")  # noqa
 
 
 system_generate_prompt = inspect.cleandoc(

@@ -14,7 +14,7 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
     Provider-specific settings.
     """
 
-    model: str = "gpt-3.5-turbo"
+    model: str = "gpt-4"
     api_key: SecretStr = Field(None, env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"])
     organization: str = Field(None)
     api_type: str = None
