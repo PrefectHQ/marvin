@@ -37,12 +37,15 @@ class TestAIModels:
         assert 2 > abs(x.latitude - 41)  # Lincoln is at 40.8 N
         assert 2 > abs(x.longitude + 97)  # Lincoln is at 96.7 W
 
-    @pytest.mark.xfail(reason="TODO, explore advanced nested models")
+    @pytest.mark.xfail(reason="TODO: improve nested models")
     def test_depth(self):
         class Neighborhood(BaseModel):
             name: str
             city: str = Field(
                 ..., description="The city in which the neighborhood is located"
+            )
+            state: str = Field(
+                ..., description="The state in which the neighborhood is located"
             )
 
         @ai_model
@@ -50,14 +53,16 @@ class TestAIModels:
             neighborhoods: list[Neighborhood]
 
         rental_history = RentalHistory("""
-            I lived in Queens for a bit, then to Logan Square in chitown, now French Quarter in NOLA.
+            I lived in Queens for a bit, then to Logan Square, now French Quarter.
         """)  # noqa
 
         assert rental_history == RentalHistory(
             neighborhoods=[
-                Neighborhood(name="Queens", city="New York"),
-                Neighborhood(name="Logan Square", city="Chicago"),
-                Neighborhood(name="French Quarter", city="New Orleans"),
+                Neighborhood(name="Queens", city="New York", state="New York"),
+                Neighborhood(name="Logan Square", city="Chicago", state="Illinois"),
+                Neighborhood(
+                    name="French Quarter", city="New Orleans", state="Louisiana"
+                ),
             ]
         )
 
@@ -177,17 +182,21 @@ class TestInstructions:
         class Test(BaseModel):
             color: str
 
-        t1 = Test("Hello", instructions_="Always set color to 'blue'")
+        t1 = Test("Hello", instructions_="Always set color_1 to 'blue'")
         assert t1 == Test(color="blue")
 
-    def test_follow_instructions_with_field(self):
-        @ai_model(instructions="Always set color_1 to 'red'")
-        class Colors(BaseModel):
-            color_1: str
-            color_2: str = Field(default="orange")
+    def test_follow_instructions_with_field_default(self):
+        @ai_model(
+            instructions="Assume Marvin is the subject unless otherwise specified"
+        )
+        class Person(BaseModel):
+            name: str
+            strong_hand: str = Field("right")
 
-        t1 = Colors("Hello")
-        assert t1 == Colors(color_1="red", color_2="orange")
+        person = Person("Need I really say his name?")
+
+        assert person.name.lower() == "marvin"
+        assert person.strong_hand == "right"
 
     def test_follow_multiple_instructions(self):
         # ensure that instructions don't bleed to other invocations
@@ -228,11 +237,11 @@ class TestAIModelMapping:
         assert x[1].sum == 101
 
     def test_location(self):
-        @ai_model
+        @ai_model(instructions="capitalize city names, spell correctly")
         class Location(BaseModel):
             city: str = Field(
-                ..., description="The capitalized, correct name of the city referenced"
-            )  # noqa
+                description="The real city in which the location is located"
+            )
 
         result = Location.map(
             [
@@ -243,6 +252,7 @@ class TestAIModelMapping:
             ]
         )
         assert len(result) == 4
+        print(result)
         assert all(r == Location(city="Chicago") for r in result)
 
     def test_instructions(self):
