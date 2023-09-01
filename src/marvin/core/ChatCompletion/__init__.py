@@ -1,4 +1,6 @@
 import marvin
+from typing import Any, Optional
+from .base import BaseChatCompletion
 
 _provider_shortcuts = {
     "gpt-3.5-turbo": "openai",
@@ -8,7 +10,7 @@ _provider_shortcuts = {
 }
 
 
-def ChatCompletion(model: str = None, **kwargs):
+def ChatCompletion(model: Optional[str] = None, **kwargs: Any) -> BaseChatCompletion:
     if model is None:
         model = marvin.settings.llm_model
 
