@@ -34,9 +34,9 @@ You have been provided instructions on completing your task:
     {% if instructions %}- Adhere to these requirements: {{instructions}}{% endif %}
 
 {% if defaults %}
-If you cannot extract a parameter, you can use the following default values to
-extract, infer or deduce missing data:
-{% for (arg, value) in defaults.items() %}    - {{ arg }}: {{ value }}{% endfor %}                                   
+If you cannot extract a parameter, you can use the following default values:
+{% for (arg, value) in defaults.items() %}    - {{ arg }}: {{ value }}{% endfor %}      
+Use these default values to extract, infer, or deduce missing data.                                                                    
 {% endif %}
 {% if context_fn %}You have been provided ground truth context to 
 extract, infer or deduce missing data:
