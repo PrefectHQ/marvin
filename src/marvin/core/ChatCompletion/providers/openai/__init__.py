@@ -1,4 +1,5 @@
 from marvin.pydantic import Field, SecretStr, PrivateAttr
+import tiktoken
 from marvin.utilities.module_loading import import_string
 from marvin.core.ChatCompletion.base import (
     BaseChatCompletion,
@@ -78,6 +79,10 @@ class ChatCompletion(BaseChatCompletion):
         off of the OpenAI API.
         """
         return super().prepare_request(**kwargs)
+
+    def get_tokens(self, text: str, **kwargs) -> list[int]:
+        enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        return enc.encode(text)
 
 
 OpenAIChatCompletion = ChatCompletion()

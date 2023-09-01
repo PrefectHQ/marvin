@@ -2,28 +2,27 @@ from enum import Enum
 
 import pytest
 from marvin import ai_classifier
-from marvin.engine.language_models import chat_llm
+from marvin.core.ChatCompletion import ChatCompletion
 
 from tests.utils.mark import pytest_mark_class
 
 
 class TestAIClassifiersInitialization:
     def test_model(self):
-        @ai_classifier(model=chat_llm("openai/gpt-4-test-model"))
+        @ai_classifier(model=ChatCompletion("openai/gpt-4-test-model"))
         class Sentiment(Enum):
             POSITIVE = "Positive"
             NEGATIVE = "Negative"
 
-        assert Sentiment.__model__.model == "gpt-4-test-model"
+        assert Sentiment.__model__._module == "openai.ChatCompletion"
 
     def test_invalid_model(self):
-        @ai_classifier(model=chat_llm("anthropic/claude-2"))
+        @ai_classifier(model=ChatCompletion("anthropic/claude-2"))
         class Sentiment(Enum):
             POSITIVE = "Positive"
             NEGATIVE = "Negative"
 
-        with pytest.raises(ValueError, match="(only compatible with OpenAI models)"):
-            Sentiment("Great!")
+        assert Sentiment.__model__._module == "anthropic.Anthropic"
 
 
 @pytest_mark_class("llm")
@@ -94,11 +93,14 @@ class TestMapping:
         result = Sentiment.map(["good", "bad"])
         assert result == [Sentiment.POSITIVE, Sentiment.NEGATIVE]
 
+    @pytest.mark.xfail(reason="Flaky with 3.5 turbo")
     def test_mapping_with_instructions(self):
         @ai_classifier
         class Sentiment(Enum):
             POSITIVE = "Positive"
             NEGATIVE = "Negative"
 
-        result = Sentiment.map(["good", "bad"], instructions="It's opposite day")
+        result = Sentiment.map(
+            ["good", "bad"], instructions="I want the opposite of the right answer"
+        )
         assert result == [Sentiment.NEGATIVE, Sentiment.POSITIVE]

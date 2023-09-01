@@ -3,7 +3,6 @@ from pydantic_settings import BaseSettings
 
 PYDANTIC_V2 = PYDANTIC_VERSION.startswith("2.")
 
-# if not PYDANTIC_V2:
 from pydantic import (
     BaseModel,
     Extra,

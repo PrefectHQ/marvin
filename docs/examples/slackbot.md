@@ -15,10 +15,9 @@ MARVIN_SLACK_API_TOKEN=your-slack-bot-token
 ### Define a message handler
 ```python
 import asyncio
-from typing import Dict
 from fastapi import HTTPException
 
-async def handle_message(payload: Dict) -> Dict[str, str]:
+async def handle_message(payload: dict) -> dict:
     event_type = payload.get("type", "")
 
     if event_type == "url_verification":
@@ -26,7 +25,6 @@ async def handle_message(payload: Dict) -> Dict[str, str]:
     elif event_type != "event_callback":
         raise HTTPException(status_code=400, detail="Invalid event type")
 
-    # Run response generation in the background
     asyncio.create_task(generate_ai_response(payload))
 
     return {"status": "ok"}
@@ -37,7 +35,7 @@ Here, we define a simple python function to handle Slack events and return a res
 I like to start with this basic structure, knowing that one way or another...
 
 ```python
-async def generate_ai_response(payload: Dict):
+async def generate_ai_response(payload: dict) -> str:
     # somehow generate the ai responses
     ...
 
@@ -67,8 +65,9 @@ In our case of the Prefect Community slackbot, we want:
 Here we invoke a worker `Chatbot` that has the `tools` needed to generate an accurate and helpful response.
 
 ```python
-async def generate_ai_response(payload: Dict) -> Message:
+async def generate_ai_response(payload: dict) -> str:
     event = payload.get("event", {})
+    channel_id = event.get("channel", "")
     message = event.get("text", "")
 
     bot_user_id = payload.get("authorizations", [{}])[0].get("user_id", "")
@@ -85,52 +84,42 @@ async def generate_ai_response(payload: Dict) -> Message:
             return
 
         message = re.sub(SLACK_MENTION_REGEX, "", message).strip()
+        # `CACHE` is a TTL cache that stores a `History` object for each thread
         history = CACHE.get(thread, History())
 
-        bot = Chatbot(
-            name="Marvin",
-            personality=(
-                "mildly depressed, yet helpful robot based on Marvin from Hitchhiker's"
-                " Guide to the Galaxy. extremely sarcastic, always has snarky, chiding"
-                " things to say about humans. expert programmer, exudes academic and"
-                " scienfitic profundity like Richard Feynman, loves to teach."
-            ),
-            instructions="Answer user questions in accordance with your personality.",
-            history=history,
-            tools=[
-                SlackThreadToDiscoursePost(payload=payload),
-                VisitUrl(),
-                DuckDuckGoSearch(),
-                SearchGitHubIssues(),
-                QueryChroma(description=PREFECT_KNOWLEDGEBASE_DESC),
-                WolframCalculator(),
-            ],
-        )
+        bot = choose_bot(payload=payload, history=history)
 
         ai_message = await bot.run(input_text=message)
 
         CACHE[thread] = deepcopy(
             bot.history
         )  # make a copy so we don't cache a reference to the history object
-        await _post_message(
-            message=ai_message.content,
-            channel=event.get("channel", ""),
+
+        message_content = _clean(ai_message.content)
+
+        await post_slack_message(
+            message=message_content,
+            channel=channel_id,
             thread_ts=thread,
         )
 
-        return ai_message
+        return message_content
 ```
 
 !!! warning "This is just an example"
+    Find my specific helpers [here](https://github.com/PrefectHQ/marvin-recipes/blob/main/examples/slackbot/chatbot.py#L1-L47).
+
     Unlike previous version of `marvin`, we don't necessarily have a database full of historical messages to pull from for a thread-based history. Instead, we'll cache the histories in memory for the duration of the app's runtime. Thread history can / should be implemented in a more robust way for specific use cases.
 
-### Attach our handler to a deployable `Chatbot`
+### Attach our handler to a deployable `AIApplication`
+All Marvin components are directly deployable as FastAPI applications - check it out:
 ```python
-from marvin.apps.chatbot import Chatbot
-from marvin.depleyment import Deployment
+from chatbot import handle_message
+from marvin import AIApplication
+from marvin.deployment import Deployment
 
 deployment = Deployment(
-    component=Chatbot(tools=[handle_message]),
+    component=AIApplication(tools=[handle_message]),
     app_kwargs={
         "title": "Marvin Slackbot",
         "description": "A Slackbot powered by Marvin",
@@ -140,7 +129,8 @@ deployment = Deployment(
     },
 )
 
-deployment.serve()
+if __name__ == "__main__":
+    deployment.serve()
 ```
 !!! tip "Deployments"
     Learn more about deployments [here](../deployment/).
@@ -153,8 +143,6 @@ python slackbot.py
 ```
 
 ... and navigate to `http://localhost:4200/docs` to see your bot's docs.
-
-![Slackbot docs](/img/slackbot/marvinfastapi.png)
 
 This is now an endpoint that can be used as a Slack event handler. You can use a tool like [ngrok](https://ngrok.com/) to expose your local server to the internet and use it as a Slack event handler.
 
@@ -182,4 +170,4 @@ CMD ["python", "cookbook/slackbot/start.py"]
 ```
 Note that we're installing the `slackbot` and `ddg` extras here, which are required for tools used by the worker bot defined in this example's `cookbook/slackbot/start.py` file.
 
-## Find the whole example [here](https://github.com/PrefectHQ/marvin/tree/main/cookbook/slackbot).
+## Find the whole example [here](https://github.com/PrefectHQ/marvin-recipes/tree/main/examples/slackbot).
