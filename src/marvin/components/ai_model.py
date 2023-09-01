@@ -1,362 +1,223 @@
 import asyncio
 import functools
-from typing import Optional, Type, TypeVar
+import inspect
+from datetime import datetime
+from typing import Any, Callable, Literal, Optional, TypeVar
+from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, PrivateAttr
+from jinja2 import Template
 
-from marvin.engine.executors import OpenAIFunctionsExecutor
-from marvin.engine.language_models import ChatLLM, chat_llm
-from marvin.prompts import library as prompt_library
-from marvin.prompts import render_prompts
-from marvin.prompts.base import Prompt
-from marvin.tools.format_response import FormatResponse
+from marvin.core.ChatCompletion import ChatCompletion
+from marvin.pydantic import BaseModel
+from marvin.types import Function, FunctionRegistry
 from marvin.utilities.async_utils import run_sync
-from marvin.utilities.messages import Message
-from marvin.utilities.types import LoggerMixin
 
 T = TypeVar("T")
 
 
-extract_structured_data_prompts = [
-    prompt_library.System(content="""
-            The user will provide context as text that you need to parse into a
-            structured form. To validate your response, you must call the
-            `FormatResponse` function. Use the provided text to extract or infer
-            any parameters needed by `FormatResponse`, including any missing
-            data.
-            """),
-    prompt_library.Now(),
-    prompt_library.User(content="""The text to parse: {{ input_text }}"""),
-]
-
-generate_structured_data_prompts = [
-    prompt_library.System(content="""
-            The user may provide context as text that you need to parse to
-            generate synthetic data. To validate your response, you must call
-            the `FormatResponse` function. Use the provided text to generate or
-            invent any parameters needed by `FormatResponse`, including any
-            missing data. It is okay to make up representative data.
-            """),
-    prompt_library.Now(),
-    prompt_library.User(content="""The text to parse: {{ input_text }}"""),
-]
+def default_context(text: str) -> dict:
+    return {
+        "The current date is": datetime.now(ZoneInfo("UTC")).strftime(
+            "%A, %d %B %Y at %I:%M:%S %p %Z"
+        )
+    }
 
 
-class AIModel(LoggerMixin, BaseModel):
-    """Base class for AI models."""
+system_extract_prompt = inspect.cleandoc("""\
+The user will provide context as text that you need to parse into a structured form. 
+    - To validate your response, you must call the `{{functions[0].__name__}}` function.
+    - You must format your response according to the `{{functions[0].__name__}}` signature.
+                                         
+You have been provided instructions on completing your task: 
+    - {% if instructions %}{{instructions}}{% endif %}
+    - Use the provided text to extract parameters needed by `{{functions[0].__name__}}`.
+    - When data is missing, you correctly deduce missing data from context.
+{% if defaults %}
+If you cannot extract a parameter, you can use the following default values to
+extract, infer or deduce missing data:
+{% for (arg, value) in defaults.items() %}    - {{ arg }}: {{ value }}{% endfor %}                                   
+{% endif %}
+{% if context_fn %}You have been provided ground truth context to 
+extract, infer or deduce missing data:
+{% for (arg, value) in context_fn(text).items() %}    - {{ arg }}: {{ value }}
+{% endfor %}{% endif %}""")  # noqa
 
-    _message: Message = PrivateAttr(None)
 
-    def __init__(
-        self,
-        text_: str = None,
-        *,
-        instructions_: str = None,
-        model_: ChatLLM = None,
-        **kwargs,
-    ):
-        """
-        Args:
-            text_: The text to parse into a structured form.
-            instructions_: Additional instructions to assist the model.
-            model_: The language model to use.
-        """
+system_generate_prompt = inspect.cleandoc(
+    "The user will provide context as text that you need to parse to generate synthetic"
+    " data.\n    - To validate your response, you must call the"
+    " `{{functions[0].__name__}}` function.\n    - Use the provided text to generate or"
+    " invent any parameters needed by `{{functions[0].__name__}}`, including any"
+    " missing data.\n    - It is okay to make up representative data.\n{% if"
+    " instructions %}You have been provided instructions on completing your task:"
+    " {{instructions}}{% endif %}{% if context_fn %}You have been provided the"
+    " following context to perform your task:\n{%for (arg, value) in"
+    " context_fn(text).items()%}    - {{ arg }}: {{ value }}\n{% endfor %}{% endif %}"
+)
 
-        # check if the user passed `instructions` but there isn't a
-        # corresponding Pydantic field
-        if "instructions" in kwargs and "instructions" not in self.__fields__:
-            raise ValueError(
-                "Received `instructions` but this model does not have a `instructions`"
-                " field. Did you mean to provide `instructions_` to the AI Model?"
-            )
-        # check model
-        if "model" in kwargs and "model" not in self.__fields__:
-            raise ValueError(
-                "Received `model` but this model does not have a `model` field. Did you"
-                " mean to provide a `model_` for LLM configuration?"
-            )
+user_prompt = inspect.cleandoc("""\
+    The text to parse: {{text}}
+    """)
 
-        if text_:
-            # use the extract constructor to build the class
-            kwargs = self.__class__.extract(
-                text_=text_,
-                instructions_=instructions_,
-                model_=model_,
-                as_dict_=True,
-                **kwargs,
-            )
 
-        message = kwargs.pop("_message", None)
+class AIModel(BaseModel):
+    def __init__(self, *args, **kwargs):
+        instructions = kwargs.pop("instructions_", None)
+        if text := next(iter(args), None):
+            kwargs.update(self.__class__.call(text, instructions=instructions))
         super().__init__(**kwargs)
-        # set private attr after init
-        self._message = message
 
     @classmethod
-    def route(cls):
-        def extract(q: str) -> cls:
-            return cls(q)
-
-        return extract
-
-    @classmethod
-    def extract(
+    def as_prompt(
         cls,
-        text_: str = None,
-        *,
-        instructions_: str = None,
-        model_: ChatLLM = None,
-        as_dict_: bool = False,
+        text: str = None,
+        *args,
+        __schema__=True,
+        instructions: Optional[str] = None,
         **kwargs,
     ):
-        """
-        Class method to extract structured data from text.
+        response = {}
+        response["functions"] = cls._functions(*args, **kwargs)
+        response["function_call"] = cls._function_call(
+            *args, __schema__=__schema__, **kwargs
+        )
+        response["messages"] = cls._messages(
+            text=text,
+            functions=response["functions"],
+            **kwargs,
+            **({"instructions": instructions} if instructions else {}),
+        )
+        if __schema__:
+            response["functions"] = response["functions"].schema()
+        return response
 
-        Args:
-            text_: The text to parse into a structured form.
-            instructions_: Additional string instructions to assist the model.
-            model_: The language model to use.
-            as_dict_: Whether to return the result as a dictionary or as an
-                instance of this class.
-            kwargs: Additional keyword arguments to pass to the constructor.
-        """
-        return run_sync(
-            cls._extract_async(
-                text_=text_,
-                instructions_=instructions_,
-                model_=model_,
-                as_dict_=as_dict_,
-                **kwargs,
+    @classmethod
+    def _messages(cls, defaults: Optional[dict[str, Any]] = None, **kwargs):
+        return [
+            {
+                "role": role,
+                "content": (
+                    Template(kwargs.get(role, ""))
+                    .render(defaults=defaults, **kwargs)
+                    .strip()
+                ),
+            }
+            for role in ["system", "user"]
+        ]
+
+    @classmethod
+    def _functions(cls, *args, **kwargs):
+        return FunctionRegistry([Function.from_model(cls)])
+
+    @classmethod
+    def _function_call(cls, *args, __schema__=True, **kwargs):
+        if __schema__:
+            return {"name": cls._functions(*args, **kwargs).schema()[0].get("name")}
+        return {"name": cls._functions(*args, **kwargs)[0].__name__}
+
+    @classmethod
+    def as_decorator(
+        cls,
+        base_model=None,
+        system: str = None,
+        user: str = user_prompt,
+        instructions: str = None,
+        context_fn: Optional[Callable[[str], dict]] = default_context,
+        mode: Literal["extract", "generate"] = "extract",
+        model: Any = None,
+        **model_kwargs,
+    ):
+        if not base_model:
+            return functools.partial(
+                cls.as_decorator,
+                system=system
+                or (
+                    system_extract_prompt
+                    if mode == "extract"
+                    else system_generate_prompt
+                ),
+                user=user or user_prompt,
+                model=model,
+                instructions=instructions,
+                context_fn=context_fn,
+                **model_kwargs,
+            )
+        return type(
+            base_model.__name__,
+            (cls,),
+            {
+                **dict(base_model.__dict__),
+                "_messages": functools.partial(
+                    cls._messages,
+                    system=system
+                    or (
+                        system_extract_prompt
+                        if mode == "extract"
+                        else system_generate_prompt
+                    ),
+                    user=user or user_prompt,
+                    defaults=base_model.construct().dict(),
+                    context_fn=context_fn,
+                    instructions=instructions,
+                ),
+            },
+        )
+
+    @classmethod
+    def to_chat_completion(
+        cls, *args, __schema__=False, instructions: str = None, **kwargs
+    ):
+        return ChatCompletion(
+            **cls.as_prompt(
+                *args, __schema__=__schema__, instructions=instructions, **kwargs
             )
         )
 
     @classmethod
-    async def _extract_async(
-        cls,
-        text_: str = None,
-        *,
-        instructions_: str = None,
-        model_: ChatLLM = None,
-        as_dict_: bool = False,
-        **kwargs,
-    ):
-        prompts = extract_structured_data_prompts.copy()
-        if instructions_:
-            prompts.append(prompt_library.System(content=instructions_))
-        arguments = await cls._get_arguments(
-            model=model_, prompts=prompts, render_kwargs=dict(input_text=text_)
-        )
-        arguments.update(kwargs)
-        if as_dict_:
-            return arguments
-        else:
-            return cls(**arguments)
+    def create(cls, *args, instructions: str = None, **kwargs):
+        return cls.to_chat_completion(
+            *args, instructions=instructions, **kwargs
+        ).create()
 
     @classmethod
-    def generate(
-        cls,
-        text_: str = None,
-        *,
-        instructions_: str = None,
-        model_: ChatLLM = None,
-        as_dict_: bool = False,
-        **kwargs,
-    ):
-        """Class method to generate structured data from text.
+    def call(cls, *args, instructions: str = None, **kwargs):
+        completion = cls.create(*args, instructions=instructions, **kwargs)
+        return completion.call_function(as_message=False)
 
-        Args:
-            text_: The text to parse into a structured form.
-            instructions_: Additional instructions to assist the model.
-            model_: The language model to use.
-            as_dict_: Whether to return the result as a dictionary or as an
-                instance of this class.
-            kwargs: Additional keyword arguments to pass to the constructor.
+    @classmethod
+    async def amap(cls, *map_args: list, **map_kwargs: list) -> list:
         """
-        return run_sync(
-            cls._generate_async(
-                text_=text_,
-                instructions_=instructions_,
-                model_=model_,
-                as_dict_=as_dict_,
-                **kwargs,
-            )
-        )
-
-    @classmethod
-    async def _generate_async(
-        cls,
-        text_: str = None,
-        *,
-        instructions_: str = None,
-        model_: ChatLLM = None,
-        as_dict_: bool = False,
-        **kwargs,
-    ):
-        prompts = generate_structured_data_prompts
-        if instructions_:
-            prompts.append(prompt_library.System(content=instructions_))
-        arguments = await cls._get_arguments(
-            model=model_, prompts=prompts, render_kwargs=dict(input_text=text_)
-        )
-        arguments.update(kwargs)
-        if as_dict_:
-            return arguments
-        else:
-            return cls(**arguments)
-
-    @classmethod
-    async def amap(
-        cls, texts: list[str], instructions: str = None, model: ChatLLM = None
-    ) -> list["AIModel"]:
-        """Map the AI model over a sequence of arguments. Runs concurrently
-        and must be awaited.
-        """
-
-        results = await asyncio.gather(
-            *[
-                cls._extract_async(
-                    t,
-                    instructions_=instructions,
-                    model_=model,
-                    as_dict_=True,
-                )
-                for t in texts
-            ]
-        )
-
-        return [cls(**r) for r in results]
-
-    @classmethod
-    def map(
-        cls, texts: list[str], instructions: str = None, model: ChatLLM = None
-    ) -> list["AIModel"]:
-        """Map the AI model over a sequence of arguments. Runs concurrently
-        and is called synchronously.
+        Map the AI Model over a sequence of arguments. Runs concurrently.
 
         Example:
-            ```python
-            from pydantic import BaseModel
-            from marvin import ai_model
-
-            @ai_model
-            class Location(BaseModel):
-                city: str
-                state: str
-
-            Location.map(["windy city", "big apple"])
-            # [
-            #   Location(city='Chicago', state='Illinois'),
-            #   Location(city='New York City', state='New York')
-            # ]
-            ```
+            >>> await Location.amap(["windy city", "big apple"])
+            # [Location(city="Chicago"), Location(city="New York City")]
         """
-        return run_sync(cls.amap(texts, instructions=instructions, model=model))
+
+        if not map_kwargs:
+            tasks = [cls.acall(*a) for a in zip(*map_args)]
+        else:
+            tasks = [
+                cls.acall(*a, **{k: v for k, v in zip(map_kwargs.keys(), kw)})
+                for a, kw in zip(zip(*map_args), zip(*map_kwargs.values()))
+            ]
+        return await asyncio.gather(*tasks)
 
     @classmethod
-    async def _get_arguments(
-        cls, model: ChatLLM, prompts: list[Prompt], render_kwargs: dict = None
-    ) -> Message:
-        if model is None:
-            model = chat_llm()
-        messages = render_prompts(prompts, render_kwargs=render_kwargs)
-        executor = OpenAIFunctionsExecutor(
-            model=model,
-            functions=[FormatResponse(type_=cls).as_openai_function()],
-            function_call={"name": "FormatResponse"},
-            max_iterations=3,
-        )
+    def map(cls, *map_args: list, **map_kwargs: list):
+        """
+        Map the AI Model over a sequence of arguments. Runs concurrently.
+        """
+        return run_sync(cls.amap(*map_args, **map_kwargs))
 
-        messages = await executor.start(prompts=messages)
-        message = messages[-1]
+    @classmethod
+    async def acreate(cls, *args, **kwargs):
+        return await cls.to_chat_completion(*args, **kwargs).acreate()
 
-        if message.data.get("is_error"):
-            raise TypeError(
-                f"Could not build AI Model; most recent error was: {message.content}"
-            )
-
-        arguments = message.data.get("arguments", {}).copy()
-        arguments["_message"] = message
-        return arguments
+    @classmethod
+    async def acall(cls, *args, **kwargs):
+        completion = await cls.acreate(*args, **kwargs)
+        return completion.call_function(as_message=False)
 
 
-def ai_model(
-    cls: Optional[Type[T]] = None,
-    *,
-    instructions: str = None,
-    model: ChatLLM = None,
-) -> Type[T]:
-    """Decorator to add AI model functionality to a class.
-
-    Args:
-        cls: The class to decorate.
-        instructions: Instructions to guide the model's behavior. This can also
-            be set on a per-call basis, in which the per-call instructions are
-            appended to these instructions.
-        model: The language model to use. This can also be set on a per-call
-            basis, in which case the per-call model overwrites this model.
-
-    Example:
-        Hydrate a class schema from a natural language description:
-        ```python
-        from pydantic import BaseModel
-        from marvin import ai_model
-
-        @ai_model
-        class Location(BaseModel):
-            city: str
-            state: str
-            latitude: float
-            longitude: float
-
-        Location("no way, I also live in the windy city")
-        # Location(
-        #   city='Chicago', state='Illinois', latitude=41.8781, longitude=-87.6298
-        # )
-        ```
-    """
-    if cls is None:
-        return functools.partial(ai_model, instructions=instructions, model=model)
-
-    # create a new class that subclasses AIModel and the original class
-    ai_model_class = type(cls.__name__, (cls, AIModel), {})
-
-    # add global instructions to the class docstring
-    if instructions:
-        if cls.__doc__:
-            instructions = f"{cls.__doc__}\n\n{instructions}"
-        ai_model_class.__doc__ = instructions
-
-    # Use setattr() to add the original class's methods and class variables to
-    # the new class do not attempt to copy dunder methods
-    for name, attr in cls.__dict__.items():
-        if not name.startswith("__"):
-            setattr(ai_model_class, name, attr)
-
-    original_init = ai_model_class.__init__
-
-    # create a wrapper that intercepts kwargs and uses the the global
-    # instructions/models variables that were passed to the @ai_model
-    # constructor (if available) This allows setting the instructions and model
-    # at the class level and then expanding them (in the case of instructions)
-    # or overwriting them (in the case of model) on a per-instance basis
-    def init_wrapper(
-        *args, instructions_: str = None, model_: ChatLLM = None, **kwargs
-    ):
-        if class_instructions := kwargs.pop("class_instructions_", None):
-            if instructions_:
-                instructions_ = f"{class_instructions}\n\n{instructions_}"
-            else:
-                instructions_ = class_instructions
-
-        if class_model := kwargs.pop("class_model_", None):
-            if model_ is None:
-                model_ = class_model
-
-        return original_init(
-            *args, instructions_=instructions_, model_=model_, **kwargs
-        )
-
-    ai_model_class.__init__ = functools.partialmethod(
-        init_wrapper, class_instructions_=instructions, class_model_=model
-    )
-
-    return ai_model_class
+ai_model = AIModel.as_decorator

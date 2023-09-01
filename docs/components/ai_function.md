@@ -123,7 +123,7 @@ Marvin exposes an API to prompt an `ai_fn` with natural language. This lets you 
 
 
 ```python
-generate_synthetic_customer_data.prompt(
+generate_synthetic_customer_data.as_prompt(
     "I need 10 profiles from rural US cities making between 3 and 7 purchases"
 )
 ```

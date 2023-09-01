@@ -2,7 +2,7 @@ import copy
 import inspect
 import re
 from functools import partial
-from typing import Callable, Optional, Type
+from typing import Any, Callable, Optional, Type
 
 from pydantic import BaseModel, validate_arguments
 from pydantic.decorator import (
@@ -20,6 +20,24 @@ extraneous_fields = [
     V_POSITIONAL_ONLY_NAME,
     V_DUPLICATE_KWARGS,
 ]
+
+
+def openai_schema(
+    schema: Callable[[BaseModel], dict[str, Any]],
+    name: Callable[[str, str], str] = None,
+    description: Callable[[str, str], str] = None,
+) -> Callable[[], dict[str, Any]]:
+    def wrapped_schema():
+        response: dict[str, Any] = {"parameters": copy.deepcopy(schema())}
+        title = response["parameters"].pop("title", "")
+        description_ = response["parameters"].pop("description", "")
+        response["name"] = name(title, description_)
+        response["description"] = description(title, description_)
+        # Hack to order the parameters.
+        response["parameters"] = response.pop("parameters")
+        return response
+
+    return wrapped_schema
 
 
 def get_openai_function_schema(schema, model):
@@ -43,6 +61,7 @@ def get_openai_function_schema(schema, model):
     schema["parameters"] = {
         k: v for (k, v) in _schema.items() if k not in extraneous_fields
     }
+    return schema
 
 
 class FunctionConfig(BaseModel):
@@ -114,6 +133,13 @@ class Function:
                 "description": "Format the response",
                 **kwargs,
             },
+        )
+
+        instance.model.schema = model.schema
+        instance.schema = openai_schema(
+            model.schema,
+            name=lambda title, description: "format_response",
+            description=lambda title, description: f"Formats the response into {title}",
         )
 
         return instance
