@@ -133,7 +133,7 @@ class BaseChatRequest(BaseModel, AbstractChatRequest):
         )
         if response.get("functions", None):
             response["functions"] = [
-                Function(f).model.schema() if isinstance(f, Callable) else f
+                Function(f).schema() if isinstance(f, Callable) else f
                 for f in response.get("functions", [])
             ] or None
 
@@ -203,7 +203,7 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         """
         name, raw_arguments = itemgetter("name", "arguments")(self.function_call())
         function = self.callable_registry.get(name)
-        arguments = function.model.parse_raw(raw_arguments)
+        arguments = getattr(function, "model", function).parse_raw(raw_arguments)
         value = function(**arguments.dict(exclude_none=True))
         if as_message:
             return {"role": "function", "name": name, "content": str(value)}
@@ -265,6 +265,7 @@ class BaseChatCompletion(
         request = self.prepare_request(**kwargs)
         request_dict = request.schema()
         create = getattr(self.model(request), self._create)
+
         return self.response(raw=create(*args, **request_dict), request=request)
 
     async def acreate(self, *args, **kwargs):

@@ -24,17 +24,17 @@ extraneous_fields = [
 
 def openai_schema(
     schema: Callable[[BaseModel], dict[str, Any]],
-    name: Callable[[str, str], str] = None,
-    description: Callable[[str, str], str] = None,
 ) -> Callable[[], dict[str, Any]]:
+    if schema().get("name"):
+        return schema
+
     def wrapped_schema():
         response: dict[str, Any] = {"parameters": copy.deepcopy(schema())}
-        title = response["parameters"].pop("title", "")
-        description_ = response["parameters"].pop("description", "")
-        response["name"] = name(title, description_)
-        response["description"] = description(title, description_)
+        response["name"] = response["parameters"].pop("title", "format_response")
+        response["description"] = response["parameters"].get("description", "")
         # Hack to order the parameters.
         response["parameters"] = response.pop("parameters")
+
         return response
 
     return wrapped_schema
@@ -107,8 +107,12 @@ class Function:
     def __new__(cls, fn: Callable, **kwargs):
         config = FunctionConfig(fn, **kwargs)
 
-        instance = validate_arguments(fn, config=config.dict())
-        instance.schema = instance.model.schema
+        if hasattr(fn, "schema"):
+            instance = fn
+
+        else:
+            instance = validate_arguments(fn, config=config.dict())
+            instance.schema = instance.model.schema
         instance.evaluate_raw = partial(cls.evaluate_raw, fn=instance)
 
         instance.response_model = config.response_model
@@ -120,27 +124,20 @@ class Function:
         return instance
 
     @classmethod
-    def from_model(cls, model: Type[BaseModel], **kwargs):
+    def from_model(
+        cls,
+        model: Type[BaseModel],
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        **kwargs,
+    ):
         model.__signature__ = inspect.Signature(
             list(model.__signature__.parameters.values()), return_annotation=model
         )
 
-        instance = cls.__new__(
-            cls,
-            model,
-            **{
-                "name": "format_response",
-                "description": "Format the response",
-                **kwargs,
-            },
-        )
+        instance = cls.__new__(cls, model, **kwargs)
 
-        instance.model.schema = model.schema
-        instance.schema = openai_schema(
-            model.schema,
-            name=lambda title, description: "format_response",
-            description=lambda title, description: f"Formats the response into {title}",
-        )
+        instance.schema = openai_schema(model.schema)
 
         return instance
 

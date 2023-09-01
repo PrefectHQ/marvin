@@ -26,22 +26,12 @@ def default_context(text: str) -> dict:
 system_extract_prompt = inspect.cleandoc("""\
 The user will provide context as text that you need to parse into a structured form. 
     - To validate your response, you must call the `{{functions[0].__name__}}` function.
-    - You must format your response according to the `{{functions[0].__name__}}` signature.
+    - Use the provided text to extract or infer any parameters needed by `{{functions[0].__name__}}`, including any missing data.
                                          
-You have been provided instructions on completing your task: 
-    - Use the provided text to extract parameters needed by `{{functions[0].__name__}}`.
-    - When data is missing, you correctly deduce missing data from context.
-    {% if instructions %}- Adhere to these requirements: {{instructions}}{% endif %}
-
-{% if defaults %}
-If you cannot extract a parameter, you can use the following default values:
-{% for (arg, value) in defaults.items() %}    - {{ arg }}: {{ value }}{% endfor %}      
-Use these default values to extract, infer, or deduce missing data.                                                                    
+{% if context_fn %}
+{% for (arg, value) in context_fn(text).items() %}{{ arg }}: {{ value }}{% endfor %}
 {% endif %}
-{% if context_fn %}You have been provided ground truth context to 
-extract, infer or deduce missing data:
-{% for (arg, value) in context_fn(text).items() %}    - {{ arg }}: {{ value }}
-{% endfor %}{% endif %}""")  # noqa
+{{ instructions }}""")  # noqa
 
 
 system_generate_prompt = inspect.cleandoc(
@@ -65,7 +55,9 @@ class AIModel(BaseModel):
     def __init__(self, *args, **kwargs):
         instructions = kwargs.pop("instructions_", None)
         if text := next(iter(args), None):
-            kwargs.update(self.__class__.call(text, instructions=instructions))
+            k = self.__class__.call(text, instructions=instructions)
+
+            kwargs.update(k)
         super().__init__(**kwargs)
 
     @classmethod
@@ -107,8 +99,21 @@ class AIModel(BaseModel):
         ]
 
     @classmethod
-    def _functions(cls, *args, **kwargs):
-        return FunctionRegistry([Function.from_model(cls)])
+    def _functions(cls, *args, instructions: Optional[str] = None, **kwargs):
+        return FunctionRegistry(
+            [
+                Function.from_model(
+                    cls,
+                    name="format_response",
+                    description=(
+                        "You MUST always call this function before responding to the"
+                        " user to ensure that your final response is formatted"
+                        " correctly and complies with the output format"
+                        " requirements.\n\n{0}".format(instructions or "")
+                    ).strip(),
+                ),
+            ]
+        )
 
     @classmethod
     def _function_call(cls, *args, __schema__=True, **kwargs):
@@ -143,26 +148,28 @@ class AIModel(BaseModel):
                 context_fn=context_fn,
                 **model_kwargs,
             )
-        return type(
+        subclass = type(
             base_model.__name__,
             (cls,),
             {
                 **dict(base_model.__dict__),
-                "_messages": functools.partial(
-                    cls._messages,
-                    system=system
-                    or (
-                        system_extract_prompt
-                        if mode == "extract"
-                        else system_generate_prompt
-                    ),
-                    user=user or user_prompt,
-                    defaults=base_model.construct().dict(),
-                    context_fn=context_fn,
-                    instructions=instructions,
-                ),
             },
         )
+        subclass._messages = functools.partial(
+            subclass._messages,
+            system=system
+            or (system_extract_prompt if mode == "extract" else system_generate_prompt),
+            user=user or user_prompt,
+            defaults=base_model.construct().dict(),
+            context_fn=context_fn,
+            instructions=instructions,
+        )
+
+        subclass._functions = functools.partial(
+            subclass._functions,
+            instructions=instructions,
+        )
+        return subclass
 
     @classmethod
     def to_chat_completion(
