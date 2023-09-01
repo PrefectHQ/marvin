@@ -94,6 +94,8 @@ class FunctionConfig(BaseModel):
         format_response.__name__ = kwargs.get("name", format_response.__name__)
         format_response.__doc__ = kwargs.get("description", format_response.__doc__)
         response_model = Function(format_response).model
+        response_model.__name__ = format_response.__name__
+        response_model.__doc__ = format_response.__doc__
         response_model.__signature__ = inspect.signature(format_response)
         return response_model
 
