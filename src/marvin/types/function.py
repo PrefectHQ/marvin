@@ -23,12 +23,18 @@ extraneous_fields = [
 
 
 def openai_schema(
-    schema: Callable[[BaseModel], dict[str, Any]]
+    schema: Callable[[BaseModel], dict[str, Any]],
+    name: Callable[[str, str], str] = None,
+    description: Callable[[str, str], str] = None,
 ) -> Callable[[], dict[str, Any]]:
     def wrapped_schema():
-        response: dict[str, Any] = {"parameters": schema()}
-        response["name"] = response.get("parameters").pop("title", None)
-        response["description"] = response.get("parameters").pop("description", "")
+        response: dict[str, Any] = {"parameters": copy.deepcopy(schema())}
+        title = response["parameters"].pop("title", "")
+        description_ = response["parameters"].pop("description", "")
+        response["name"] = name(title, description_)
+        response["description"] = description(title, description_)
+        # Hack to order the parameters.
+        response["parameters"] = response.pop("parameters")
         return response
 
     return wrapped_schema
@@ -130,7 +136,11 @@ class Function:
         )
 
         instance.model.schema = model.schema
-        instance.schema = openai_schema(model.schema)
+        instance.schema = openai_schema(
+            model.schema,
+            name=lambda title, description: "format_response",
+            description=lambda title, description: f"Formats the response into {title}",
+        )
 
         return instance
 

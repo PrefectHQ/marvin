@@ -23,17 +23,24 @@ def default_context(text: str) -> dict:
     }
 
 
-system_extract_prompt = inspect.cleandoc(
-    "The user will provide context as text that you need to parse into a structured"
-    " form.\n    - To validate your response, you must call the"
-    " `{{functions[0].__name__}}` function. \n {% if instructions %} You have been"
-    " provided instructions on completing your task: {{instructions}}{% endif %}  \n -"
-    " Use provided text to extract / infer any parameters needed by"
-    " `{{functions[0].__name__}}`,  including any missing data. \n{% if context_fn"
-    " %}You have been provided the following context to perform your task:\n{%for (arg,"
-    " value) in context_fn(text).items()%}    - {{ arg }}: {{ value }}\n{% endfor %}{%"
-    " endif %}"
-)
+system_extract_prompt = inspect.cleandoc("""\
+The user will provide context as text that you need to parse into a structured form. 
+    - To validate your response, you must call the `{{functions[0].__name__}}` function.
+    - You must format your response according to the `{{functions[0].__name__}}` signature.
+                                         
+You have been provided instructions on completing your task: 
+    - {% if instructions %}{{instructions}}{% endif %}
+    - Use the provided text to extract parameters needed by `{{functions[0].__name__}}`.
+    - When data is missing, you correctly deduce missing data from context.
+{% if defaults %}
+If you cannot extract a parameter, you can use the following default values to
+extract, infer or deduce missing data:
+{% for (arg, value) in defaults.items() %}    - {{ arg }}: {{ value }}{% endfor %}                                   
+{% endif %}
+{% if context_fn %}You have been provided ground truth context to 
+extract, infer or deduce missing data:
+{% for (arg, value) in context_fn(text).items() %}    - {{ arg }}: {{ value }}
+{% endfor %}{% endif %}""")  # noqa
 
 
 system_generate_prompt = inspect.cleandoc(
@@ -85,11 +92,15 @@ class AIModel(BaseModel):
         return response
 
     @classmethod
-    def _messages(cls, **kwargs):
+    def _messages(cls, defaults: Optional[dict[str, Any]] = None, **kwargs):
         return [
             {
                 "role": role,
-                "content": Template(kwargs.get(role, "")).render({**kwargs}).strip(),
+                "content": (
+                    Template(kwargs.get(role, ""))
+                    .render(defaults=defaults, **kwargs)
+                    .strip()
+                ),
             }
             for role in ["system", "user"]
         ]
@@ -145,6 +156,7 @@ class AIModel(BaseModel):
                         else system_generate_prompt
                     ),
                     user=user or user_prompt,
+                    defaults=base_model.construct().dict(),
                     context_fn=context_fn,
                     instructions=instructions,
                 ),
