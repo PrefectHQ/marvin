@@ -9,6 +9,14 @@ from tests.utils.mark import pytest_mark_class
 
 @pytest_mark_class("llm")
 class TestAIModels:
+    def test_hero(self):
+        @ai_model
+        class Location(BaseModel):
+            city: str
+            state: str = Field(..., description="The two-letter state abbreviation")
+
+        assert Location("The Big Apple") == Location(city="New York", state="NY")
+
     def test_arithmetic(self):
         @ai_model
         class Arithmetic(BaseModel):

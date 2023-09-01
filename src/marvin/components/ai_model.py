@@ -27,11 +27,14 @@ system_extract_prompt = inspect.cleandoc("""\
 The user will provide context as text that you need to parse into a structured form. 
     - To validate your response, you must call the `{{functions[0].__name__}}` function.
     - Use the provided text to extract or infer any parameters needed by `{{functions[0].__name__}}`, including any missing data.
+                                      
+{% if instructions %}
+The user has provided some additional requirements for this task: {{ instructions }} 
+{% endif %}
                                          
 {% if context_fn %}
 {% for (arg, value) in context_fn(text).items() %}{{ arg }}: {{ value }}{% endfor %}
-{% endif %}
-{{ instructions }}""")  # noqa
+{% endif %}""")  # noqa
 
 
 system_generate_prompt = inspect.cleandoc(
