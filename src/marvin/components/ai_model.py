@@ -1,191 +1,275 @@
 import asyncio
 import functools
-import inspect
-from datetime import datetime
-from typing import Any, Callable, Literal, Optional, TypeVar
-from zoneinfo import ZoneInfo
-
-from jinja2 import Template
-
-from marvin.core.ChatCompletion import ChatCompletion
-from marvin.pydantic import BaseModel
-from marvin.types import Function, FunctionRegistry
-from marvin.utilities.async_utils import run_sync
-
-T = TypeVar("T")
-
-
-def default_context(text: str) -> dict:
-    return {
-        "The current date is": datetime.now(ZoneInfo("UTC")).strftime(
-            "%A, %d %B %Y at %I:%M:%S %p %Z"
-        )
-    }
-
-
-system_extract_prompt = inspect.cleandoc("""\
-The user will provide context as text that you need to parse into a structured form. 
-    - To validate your response, you must call the `{{functions[0].__name__}}` function.
-    - You must format your response according to the `{{functions[0].__name__}}` signature.
-                                         
-You have been provided instructions on completing your task: 
-    - {% if instructions %}{{instructions}}{% endif %}
-    - Use the provided text to extract parameters needed by `{{functions[0].__name__}}`.
-    - When data is missing, you correctly deduce missing data from context.
-{% if defaults %}
-If you cannot extract a parameter, you can use the following default values to
-extract, infer or deduce missing data:
-{% for (arg, value) in defaults.items() %}    - {{ arg }}: {{ value }}{% endfor %}                                   
-{% endif %}
-{% if context_fn %}You have been provided ground truth context to 
-extract, infer or deduce missing data:
-{% for (arg, value) in context_fn(text).items() %}    - {{ arg }}: {{ value }}
-{% endfor %}{% endif %}""")  # noqa
-
-
-system_generate_prompt = inspect.cleandoc(
-    "The user will provide context as text that you need to parse to generate synthetic"
-    " data.\n    - To validate your response, you must call the"
-    " `{{functions[0].__name__}}` function.\n    - Use the provided text to generate or"
-    " invent any parameters needed by `{{functions[0].__name__}}`, including any"
-    " missing data.\n    - It is okay to make up representative data.\n{% if"
-    " instructions %}You have been provided instructions on completing your task:"
-    " {{instructions}}{% endif %}{% if context_fn %}You have been provided the"
-    " following context to perform your task:\n{%for (arg, value) in"
-    " context_fn(text).items()%}    - {{ arg }}: {{ value }}\n{% endfor %}{% endif %}"
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Optional,
+    Type,
+    TypeVar,
 )
 
-user_prompt = inspect.cleandoc("""\
-    The text to parse: {{text}}
-    """)
+from marvin.core.ChatCompletion import BaseChatCompletion, ChatCompletion
+from marvin.core.messages import Message, Prompt
+from marvin.core.requests import Request
+from marvin.core.serializers import AbstractRequestSerializer
+from marvin.pydantic import BaseModel
+from marvin.utilities.async_utils import run_sync
+
+T = TypeVar("T", bound="AIModel")
 
 
-class AIModel(BaseModel):
-    def __init__(self, *args, **kwargs):
-        instructions = kwargs.pop("instructions_", None)
-        if text := next(iter(args), None):
-            kwargs.update(self.__class__.call(text, instructions=instructions))
+def base_extract(response_model: type[BaseModel], text: str, **kwargs: Any) -> Prompt:
+    """
+    Creates most basic prompt that can be used to extract a response model from
+    unstructured text.
+
+    Args:
+        response_model (type[BaseModel]): The response model to extract.
+        text (str): The unstructured text to extract from.
+        **kwargs (Any): Any additional keyword arguments to pass to the prompt.
+
+    Returns:
+        Prompt: A prompt object that can be used to generate a chat completion.
+    """
+
+    return Prompt(
+        response_model=response_model,
+        messages=[
+            Message(
+                role="system",
+                content="""You correctly extract {{response_model.__name__}} objects from unstructured text.""",  # noqa
+            ),
+            Message(role="user", content="{{text}}"),
+        ],
+    ).render(text=text, **kwargs)
+
+
+def extract(
+    text: str,
+    response_model: type[BaseModel],
+    static_context: Optional[str] = None,
+    context_function: Optional[Callable[..., str]] = None,
+) -> Prompt:
+    """
+    Creates a prompt that can be used to extract a response model from
+    unstructured text. This prompt is more flexible than `base_extract` in that
+    it allows for the specification of context functions that can be used to
+    extract, infer, or deduce missing data.
+
+    Args:
+        - text (str): The unstructured text to extract from.
+        - response_model (type[BaseModel]): The response model to extract.
+        - static_context (Optional[str], optional): Instructions from the user on how to complete the task. Defaults to None.
+        - context_function (Optional[Callable[..., str]], optional): A function that takes in text and returns a string of context. Defaults to None.
+
+    Returns:
+        Prompt: A prompt object that can be used to generate a chat completion.
+    """  # noqa
+    return Prompt(
+        response_model=response_model,
+        messages=[
+            Message(
+                role="system",
+                content=(
+                    """You correctly extract, deduce, infer, and compute {{response_model.__name__}} objects from unstructured text. """  # noqa
+                    """    - You deduce and both correct values and data types even if not directly provided."""  # noqa
+                    """    - To validate your response, you must call the `{{response_model.__name__}}` function."""  # noqa
+                    """    - You must format your response according to the `{{response_model.__name__}}` signature."""  # noqa
+                    """{% if static_context %}{{'\n' + static_context}}{% endif %}"""  # noqa
+                    """{% if context_function %}{% set context = context_function(text) %}{{'\n' + context if context}}{% endif %}"""  # noqa
+                ),
+            ),
+            Message(role="user", content="{{text}}"),
+        ],
+    ).render(
+        text=text,
+        static_context=static_context,
+        context_function=context_function,
+    )
+
+
+class BaseAIModel(BaseModel):
+    _instructions: ClassVar[Optional[str]] = None
+    _compute_prompt: ClassVar[Optional[Callable[..., Prompt]]] = None
+
+    @classmethod
+    def extract(
+        cls,
+        text: str,
+        instructions: Optional[str] = None,
+        context_function: Optional[Callable[[str], str]] = None,
+        **kwargs: Any,
+    ) -> Prompt:
+        """
+        Creates a prompt that can be used to extract a response model from
+        unstructured text.
+
+        Args:
+            - text (str): The unstructured text to extract from.
+            - instructions (Optional[str], optional): Instructions from the user on how to complete the task. Defaults to None.
+            - context_function (Optional[Callable[..., str]], optional): A function that takes in text and returns a string of context. Defaults to None.
+
+        Keyword Args:
+            - **kwargs (Any): Any additional keyword arguments to render into the prompt.
+
+        Returns:
+            Request: A prompt object that can be used to generate a chat completion.
+
+        """  # noqa
+
+        instructions = "\n".join(
+            list(filter(bool, [(cls._instructions or ""), (instructions or "")]))
+        )
+        return (cls._extract_prompt or base_extract)(
+            response_model=cls,
+            text=text,
+            static_context=instructions,
+            context_function=context_function,
+        )
+
+
+class AIModel(BaseAIModel):
+    _extract_prompt: ClassVar[Optional[Callable[..., Prompt]]] = None
+    _chat_completion: ClassVar[Optional[BaseChatCompletion]] = None
+
+    def __init__(
+        self,
+        text: Optional[str] = None,
+        *,
+        _instructions: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:  # noqa
+        # Takes a single positional argument `text` which, if present, is used to
+        # extract parameters needed by the Pydantic model. The call method returns
+        # a dictionary of keyword arguments that are passed to the Pydantic model.
+
+        # Exposes an optional `_instructions` keyword argument that is passed to the
+        # `Prompt` object. This is useful for providing instructions to the LLM.
+
+        # NOTE: Pydantic models do not accept positional arguments, so we are free to
+        # overload this method to accept a text argument without fear of breaking
+        # the Pydantic model.
+
+        if text:
+            kwargs.update(
+                self.__class__.call(
+                    self.extract(
+                        text,
+                        static_context=getattr(self.__class__, "_instructions", None),
+                        runtime_context=_instructions,
+                        context_function=getattr(self, "_context_function", None),
+                    )
+                )
+            )
         super().__init__(**kwargs)
 
     @classmethod
     def as_prompt(
         cls,
-        text: str = None,
-        *args,
-        __schema__=True,
+        text: str,
         instructions: Optional[str] = None,
-        **kwargs,
-    ):
-        response = {}
-        response["functions"] = cls._functions(*args, **kwargs)
-        response["function_call"] = cls._function_call(
-            *args, __schema__=__schema__, **kwargs
-        )
-        response["messages"] = cls._messages(
-            text=text,
-            functions=response["functions"],
+        context_function: Optional[Callable[[str], str]] = None,
+        prompt: Optional[Prompt] = None,
+        serializer: Optional[Type[AbstractRequestSerializer]] = None,
+        **kwargs: Any,
+    ) -> Prompt:
+        return cls.extract(
+            text,
+            instructions=instructions,
+            context_function=context_function,
+            serializer=serializer,
+            prompt=prompt,
             **kwargs,
-            **({"instructions": instructions} if instructions else {}),
+        ).serialize(
+            serializer=serializer,
         )
-        if __schema__:
-            response["functions"] = response["functions"].schema()
-        return response
 
     @classmethod
-    def _messages(cls, defaults: Optional[dict[str, Any]] = None, **kwargs):
-        return [
-            {
-                "role": role,
-                "content": (
-                    Template(kwargs.get(role, ""))
-                    .render(defaults=defaults, **kwargs)
-                    .strip()
-                ),
-            }
-            for role in ["system", "user"]
-        ]
-
-    @classmethod
-    def _functions(cls, *args, **kwargs):
-        return FunctionRegistry([Function.from_model(cls)])
-
-    @classmethod
-    def _function_call(cls, *args, __schema__=True, **kwargs):
-        if __schema__:
-            return {"name": cls._functions(*args, **kwargs).schema()[0].get("name")}
-        return {"name": cls._functions(*args, **kwargs)[0].__name__}
-
-    @classmethod
-    def as_decorator(
+    def extract(
         cls,
-        base_model=None,
-        system: str = None,
-        user: str = user_prompt,
-        instructions: str = None,
-        context_fn: Optional[Callable[[str], dict]] = default_context,
-        mode: Literal["extract", "generate"] = "extract",
-        model: Any = None,
-        **model_kwargs,
-    ):
-        if not base_model:
-            return functools.partial(
-                cls.as_decorator,
-                system=system
-                or (
-                    system_extract_prompt
-                    if mode == "extract"
-                    else system_generate_prompt
-                ),
-                user=user or user_prompt,
-                model=model,
-                instructions=instructions,
-                context_fn=context_fn,
-                **model_kwargs,
+        text: str,
+        instructions: Optional[str] = None,
+        context_function: Optional[Callable[[str], str]] = None,
+        prompt: Optional[Prompt] = None,
+        **kwargs: Any,
+    ) -> Request:
+        """
+        Creates a prompt that can be used to extract a response model from
+        unstructured text. This prompt is more flexible than `base_extract` in that
+        it allows for the specification of context functions that can be used to
+        extract, infer, or deduce missing data.
+
+        Args:
+            - text (str): The unstructured text to extract from.
+            - response_model (type[BaseModel]): The response model to extract.
+            - instructions (Optional[str], optional): Instructions from the user on how to complete the task. Defaults to None.
+            - context_function (Optional[Callable[..., str]], optional): A function that takes in text and returns a string of context. Defaults to None.
+
+        Keyword Args:
+            - **kwargs (Any): Any additional keyword arguments to render into the prompt.
+
+        Returns:
+            Request: A prompt object that can be used to generate a chat completion.
+
+        """  # noqa
+
+        instructions = "\n".join(
+            list(filter(bool, [(cls._instructions or ""), (instructions or "")]))
+        )
+
+        return Request.from_prompt(
+            (prompt or cls._extract_prompt or extract)(
+                response_model=cls,
+                text=text,
+                static_context=instructions,
+                context_function=context_function,
             )
-        return type(
-            base_model.__name__,
-            (cls,),
-            {
-                **dict(base_model.__dict__),
-                "_messages": functools.partial(
-                    cls._messages,
-                    system=system
-                    or (
-                        system_extract_prompt
-                        if mode == "extract"
-                        else system_generate_prompt
-                    ),
-                    user=user or user_prompt,
-                    defaults=base_model.construct().dict(),
-                    context_fn=context_fn,
-                    instructions=instructions,
-                ),
-            },
         )
 
     @classmethod
     def to_chat_completion(
-        cls, *args, __schema__=False, instructions: str = None, **kwargs
-    ):
-        return ChatCompletion(
-            **cls.as_prompt(
-                *args, __schema__=__schema__, instructions=instructions, **kwargs
-            )
+        cls: type[T],
+        text: str,
+        instructions: Optional[str] = None,
+        context_function: Optional[Callable[[str], str]] = None,
+        **kwargs: list[Any],
+    ) -> BaseChatCompletion:
+        return (cls._chat_completion or ChatCompletion)(
+            **cls.extract(
+                text,
+                instructions=instructions,
+                context_function=context_function,
+                **kwargs,
+            ).serialize()
         )
 
     @classmethod
-    def create(cls, *args, instructions: str = None, **kwargs):
-        return cls.to_chat_completion(
-            *args, instructions=instructions, **kwargs
-        ).create()
+    def call(
+        cls: type[T],
+        Prompt: Prompt,
+    ) -> dict[str, Any]:
+        chat_completion: BaseChatCompletion = cls._chat_completion or ChatCompletion()
+        response = chat_completion.create(**Prompt.dict())
+        if response_model := response.to_model():
+            return response_model.dict()
+        return {}
 
     @classmethod
-    def call(cls, *args, instructions: str = None, **kwargs):
-        completion = cls.create(*args, instructions=instructions, **kwargs)
-        return completion.call_function(as_message=False)
+    async def acall(
+        cls: type[T],
+        Prompt: Prompt,
+    ) -> dict[str, Any]:
+        chat_completion: BaseChatCompletion = cls._chat_completion or ChatCompletion()
+        response = await chat_completion.acreate(**Prompt.dict())
+        if response_model := response.to_model():
+            return response_model.dict()
+        return {}
 
     @classmethod
-    async def amap(cls, *map_args: list, **map_kwargs: list) -> list:
+    async def amap(
+        cls: type[T], *map_args: list[str], **map_kwargs: list[Any]
+    ) -> list[T]:
         """
         Map the AI Model over a sequence of arguments. Runs concurrently.
 
@@ -195,29 +279,57 @@ class AIModel(BaseModel):
         """
 
         if not map_kwargs:
-            tasks = [cls.acall(*a) for a in zip(*map_args)]
+            tasks = [cls.acall(cls.extract(*a)) for a in zip(*map_args)]
         else:
             tasks = [
-                cls.acall(*a, **{k: v for k, v in zip(map_kwargs.keys(), kw)})
+                cls.acall(
+                    cls.extract(*a, **{k: v for k, v in zip(map_kwargs.keys(), kw)})
+                )  # noqa
                 for a, kw in zip(zip(*map_args), zip(*map_kwargs.values()))
             ]
         return await asyncio.gather(*tasks)
 
     @classmethod
-    def map(cls, *map_args: list, **map_kwargs: list):
+    def map(cls: type[T], *map_args: list[str], **map_kwargs: list[Any]) -> list[T]:
         """
         Map the AI Model over a sequence of arguments. Runs concurrently.
         """
         return run_sync(cls.amap(*map_args, **map_kwargs))
 
     @classmethod
-    async def acreate(cls, *args, **kwargs):
-        return await cls.to_chat_completion(*args, **kwargs).acreate()
+    def as_decorator(
+        cls: type[T],
+        base_model: Optional[type[BaseModel]] = None,
+        instructions: Optional[str] = None,
+        context_function: Optional[Callable[..., str]] = None,
+        extract_prompt: Optional[Callable[..., Prompt]] = None,
+        model: Optional[str] = None,
+        **kwargs: Any,
+    ) -> type[T] | functools.partial[Any]:
+        if not base_model:
+            return functools.partial(
+                cls.as_decorator,
+                instructions=instructions,
+                context_function=context_function,
+                extract_prompt=extract_prompt,
+                **kwargs,
+            )
+        subclass: type[T] = type(
+            base_model.__name__,
+            (cls,),
+            {
+                **dict(base_model.__dict__),
+                "_chat_completion": ChatCompletion(
+                    model=model,
+                    **kwargs,
+                ),
+                "_instructions": instructions,
+                "_context_function": context_function,
+                "_extract_prompt": extract_prompt,
+            },
+        )  # type: ignore
 
-    @classmethod
-    async def acall(cls, *args, **kwargs):
-        completion = await cls.acreate(*args, **kwargs)
-        return completion.call_function(as_message=False)
+        return subclass
 
 
 ai_model = AIModel.as_decorator

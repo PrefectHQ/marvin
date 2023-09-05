@@ -1,5 +1,6 @@
 import json
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     ClassVar,
@@ -13,6 +14,9 @@ from jinja2 import Environment
 from pydantic import BaseModel, Field, Json, PrivateAttr
 
 from ..utilities.strings import jinja_env
+
+if TYPE_CHECKING:
+    from .serializers import AbstractRequestSerializer
 
 M = TypeVar("M", bound="Message")
 T = TypeVar("T", bound="Prompt")
@@ -120,7 +124,9 @@ class Prompt(BaseModel):
     _context: dict[str, Any] = PrivateAttr(default_factory=dict)
 
     messages: list[Message] = Field(default_factory=MessageList)
-    functions: Optional[list[Callable[..., Any] | dict[str, Any] | BaseModel]] = None
+    functions: Optional[list[Callable[..., Any] | dict[str, Any] | type[BaseModel]]] = (
+        None
+    )
     function_call: Optional[Union[Literal["auto"], dict[Literal["name"], str]]] = None
     response_model: Optional[type[BaseModel]] = None
 
@@ -144,13 +150,37 @@ class Prompt(BaseModel):
         )
         return copy
 
+    def serialize(
+        self,
+        exclude_none: bool = True,
+        exclude_unset: bool = True,
+        serializer: Optional["AbstractRequestSerializer"] = None,
+    ) -> dict[str, Any]:
+        # Then, we serialize the messages, functions, and function_call.
+        if not serializer:
+            from .providers.openai import OpenAIRequestSerializer
+
+            serializer = OpenAIRequestSerializer()
+
+        return serializer.to_dict(
+            messages=self.messages,
+            functions=self.functions,
+            function_call=self.function_call,
+            response_model=self.response_model,
+            **self.dict(
+                exclude={"messages", "functions", "function_call", "response_model"},
+                exclude_none=exclude_none,
+                exclude_unset=exclude_unset,
+            ),
+        )
+
     @classmethod
     def from_string(
         cls,
         text: str,
         role: Literal["system", "user", "assistant", "function"] = "user",
         functions: Optional[
-            list[Callable[..., Any] | dict[str, Any] | BaseModel]
+            list[Callable[..., Any] | dict[str, Any] | type[BaseModel]]
         ] = None,
         function_call: Optional[Literal["auto"] | dict[Literal["name"], str]] = None,
         response_model: Optional[type[BaseModel]] = None,

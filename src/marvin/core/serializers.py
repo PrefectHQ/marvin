@@ -75,36 +75,41 @@ class AbstractRequestSerializer(ABC):
     """
 
     @staticmethod
-    @abstractmethod
-    def serialize_messages(messages: list[Message]) -> list[Dict[str, Any]]:
-        """Abstract method for serializing messages."""
-        pass
+    def serialize_messages(messages: list[Message]) -> list[dict[str, Any]]:
+        return [
+            {"content": None, **message.dict(exclude_none=True)} for message in messages
+        ]  # noqa
 
     @staticmethod
-    @abstractmethod
     def serialize_functions(
         functions: list[Callable[..., Any] | Dict[str, Any] | type[BaseModel]]
     ) -> list[Dict[str, Any]]:
-        """Abstract method for serializing functions."""
-        pass
+        response: list[Dict[str, Any]] = []
+        for function in functions:
+            if isinstance(function, dict):
+                response.append(function)
+            else:
+                response.append(json_schema(function))
+
+        return response
 
     @staticmethod
-    def serialize_response_model(response_model: BaseModel) -> Dict[str, Any]:
+    def serialize_response_model(response_model: type[BaseModel]) -> Dict[str, Any]:
         """Abstract method for serializing function_call."""
         schema = {**response_model.schema()}
         json_schema: Dict[str, Any] = {}
         json_schema["name"] = schema.pop("title")
-        json_schema["description"] = schema.pop("description", None)
+        json_schema["description"] = schema.pop(
+            "description", f"""Base {json_schema['name']} model"""
+        )  # noqa
         json_schema["parameters"] = schema
         return json_schema
 
     @staticmethod
-    @abstractmethod
     def serialize_function_call(
         function_call: Optional[Literal["auto"] | Dict[Literal["name"], str]]
     ) -> Optional[Literal["auto"] | Dict[Literal["name"], str]]:
-        """Abstract method for serializing function_call."""
-        pass
+        return function_call
 
     def to_dict(
         self,
@@ -112,12 +117,12 @@ class AbstractRequestSerializer(ABC):
         *,
         messages: Optional[list[Message]] = None,
         functions: Optional[
-            list[Callable[..., Any] | Dict[str, Any] | type[BaseModel]]
+            list[Callable[..., Any] | dict[str, Any] | type[BaseModel]]
         ] = None,  # noqa
         function_call: Optional[
             Literal["auto"] | Dict[Literal["name"], str]
         ] = None,  # noqa
-        response_model: Optional[BaseModel] = None,
+        response_model: Optional[type[BaseModel]] = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         serialized_request: dict[str, Any] = {}

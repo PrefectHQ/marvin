@@ -48,7 +48,7 @@ class Turn(BaseModel):
     def has_response_model(self) -> bool:
         return bool(self.request.response_model)
 
-    def _evaluate_function(self) -> Any:
+    def _evaluate_function(self, construct: bool = False) -> Any:
         if self.response.message and self.response.message.function_call:
             name: str = self.response.message.function_call.name
             functions: dict[
@@ -70,6 +70,9 @@ class Turn(BaseModel):
                         **self.response.message.function_call.arguments
                     )  # noqa
                     return run_sync(promise)
+                elif construct and getattr(function, "construct", None):
+                    constructor: Callable[..., Any] = getattr(function, "construct")
+                    return constructor(**self.response.message.function_call.arguments)
                 else:
                     return function(**self.response.message.function_call.arguments)
         else:
@@ -89,9 +92,9 @@ class Turn(BaseModel):
                 name=getattr(self.response.message.function_call, "name", None),
             )
 
-    def to_model(self) -> Optional[BaseModel]:
+    def to_model(self, construct: bool = False) -> Optional[BaseModel]:
         if self.request.response_model:
-            evaluation: BaseModel = self._evaluate_function()
+            evaluation: BaseModel = self._evaluate_function(construct=construct)
             return evaluation
         else:
             return None
