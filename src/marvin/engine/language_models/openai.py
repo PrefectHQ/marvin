@@ -48,7 +48,10 @@ class OpenAIStreamHandler(StreamHandler):
         async for r in api_response:
             response["llm_response"] = r.to_dict_recursive()
 
-            delta = r.choices[0].delta
+            delta = r.choices[0].delta if r.choices and r.choices[0] else None
+            
+            if delta is None:
+                continue
 
             if "role" in delta:
                 response["role"] = delta.role
