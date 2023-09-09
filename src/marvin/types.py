@@ -5,9 +5,9 @@ from typing import Any, Callable, Literal, Union
 from pydantic import BaseModel
 
 if sys.version_info < (3, 10):
-    pass
+    from typing_extensions import ParamSpec  # noqa
 else:
-    pass
+    from typing import ParamSpec  # noqa
 
 
 # Type aliases.
