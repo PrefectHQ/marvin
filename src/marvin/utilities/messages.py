@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import Field, validator
 
+from marvin.core.conversations import Conversation
 from marvin.utilities.types import MarvinBaseModel
 
 
@@ -40,18 +41,17 @@ class Message(MarvinBaseModel):
         return v
 
     @classmethod
-    def from_conversation(cls: Type[Self], conversation) -> list[Type[Self]]:
+    def from_conversation(
+        cls: Type[Self], conversation: Conversation
+    ) -> list[Type[Self]]:
         messages = []
         for turn in conversation.turns:
-            choice = turn.raw.choices[0]
-            message = choice.message
+            message = turn.response.message
 
             message = cls(
-                role=turn.raw.choices[0].message.role,
-                content=turn.raw.choices[0].message.content,
-                name=message.get("name"),
-                timestamp=turn.raw.created,
-                data=turn.raw,
+                role=message.role,
+                content=message.content,
+                name=message.name,
             )
             messages.append(message)
 
