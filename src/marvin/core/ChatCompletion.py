@@ -10,8 +10,6 @@ from typing import (
     overload,
 )
 
-import openai
-from marvin import settings
 from pydantic import BaseModel, Extra, Field
 
 from .messages import Message
@@ -23,14 +21,12 @@ if TYPE_CHECKING:
 
 
 class ChatCompletionConfig(Request):
-    create: ClassVar[Callable[..., Any]] = openai.ChatCompletion.create  # type: ignore
-    acreate: ClassVar[Callable[..., Awaitable[Any]]] = openai.ChatCompletion.acreate  # type: ignore # noqa
+    create: ClassVar[Callable[..., Any]]
+    acreate: ClassVar[Callable[..., Awaitable[Any]]]
 
-    api_key: Optional[str] = getattr(
-        settings.openai.api_key, "get_secret_value", lambda: None
-    )()  # noqa
+    api_key: str | None = Field(default=None)
 
-    model: str = "gpt-3.5-turbo"
+    model: str | None = Field(default=None)
 
     class Config(Request.Config):
         extra = Extra.allow
@@ -38,7 +34,7 @@ class ChatCompletionConfig(Request):
 
 class BaseChatCompletion(BaseModel):
     defaults: ChatCompletionConfig = Field(
-        default=ChatCompletionConfig(),
+        default_factory=ChatCompletionConfig,  # type: ignore
         exclude=True,
         repr=False,
     )
@@ -103,6 +99,8 @@ class BaseChatCompletion(BaseModel):
         | None = None,
         function_call: Literal["auto"] | dict[Literal["name"], str] | None = None,
         response_model: type[BaseModel] | None = None,
+        create: Optional[Callable[..., Any]] = None,
+        acreate: Optional[Callable[..., Awaitable[Any]]] = None,
         **kwargs: Any,
     ):
         """
@@ -124,31 +122,29 @@ class BaseChatCompletion(BaseModel):
         """  # noqa
 
         # Perform shallow copy as to not mutate the original object.
-        _self = self.copy()
-
-        # If a request object is passed, return a new ChatCompletion object
-        if request:
-            # Merge the request object's parameters with the existing defaults.
-            return _self.__class__(
-                defaults=ChatCompletionConfig(**(self.defaults | request).dict())
-            )
-        else:
-            # Create a new request object with the provided parameters.
-            # Merge the request object's parameters with the existing defaults.
-            return _self.__class__(
-                defaults=ChatCompletionConfig(
-                    **(
-                        self.defaults
-                        | Request(
-                            messages=messages or [],
-                            functions=functions,
-                            function_call=function_call,
-                            response_model=response_model,
-                            **kwargs,
-                        )
-                    ).dict()
+        defaults = type(
+            "ChatCompletionConfig",
+            (ChatCompletionConfig,),
+            {
+                "create": create or self.defaults.create,
+                "acreate": acreate or self.defaults.acreate,
+            },
+        )(
+            **(
+                self.defaults
+                | (
+                    request
+                    or Request(
+                        messages=messages or [],
+                        functions=functions,
+                        function_call=function_call,
+                        response_model=response_model,
+                        **kwargs,
+                    )
                 )
-            )
+            ).dict()
+        )
+        return BaseChatCompletion(defaults=defaults)
 
     @overload
     def prepare_request(
@@ -256,6 +252,48 @@ class BaseChatCompletion(BaseModel):
             Turn: A Turn object.
         """  # noqa
 
+    @overload
+    def create(
+        self,
+        *,
+        preview: bool = True,
+        **kwargs: Any,
+    ) -> Turn:
+        """
+        Passes the provided request parameters to the ChatCompletion object's create method.
+
+        Args:
+            - messages (list[Message] | None): A list of messages.
+            - functions (list[Callable[..., Any]|dict[str, Any]|BaseModel] | None): A list of functions.
+            - function_call (Literal["auto"] | dict[Literal["name"], str] | None): A function call.
+            - response_model (type[BaseModel] | None): A response model.
+            - **kwargs: Additional keyword arguments.
+
+        Returns:
+            Turn: A Turn object.
+        """  # noqa
+
+    @overload
+    def create(
+        self,
+        *,
+        preview: bool = True,
+        **kwargs: Any,
+    ) -> Turn:
+        """
+        Passes the provided request parameters to the ChatCompletion object's create method.
+
+        Args:
+            - messages (list[Message] | None): A list of messages.
+            - functions (list[Callable[..., Any]|dict[str, Any]|BaseModel] | None): A list of functions.
+            - function_call (Literal["auto"] | dict[Literal["name"], str] | None): A function call.
+            - response_model (type[BaseModel] | None): A response model.
+            - **kwargs: Additional keyword arguments.
+
+        Returns:
+            Turn: A Turn object.
+        """  # noqa
+
     def create(
         self,
         request: Optional[Request] = None,
@@ -264,8 +302,9 @@ class BaseChatCompletion(BaseModel):
         | None = None,
         function_call: Literal["auto"] | dict[Literal["name"], str] | None = None,
         response_model: type[BaseModel] | None = None,
+        preview: bool = False,
         **kwargs: Any,
-    ) -> Turn:
+    ) -> Turn | Request:
         request = self.prepare_request(
             request=request,
             messages=messages,
@@ -274,9 +313,14 @@ class BaseChatCompletion(BaseModel):
             response_model=response_model,
             **kwargs,
         )
+
+        if preview:
+            return request
+
+        raw_response = self.defaults.create(**request.serialize())
         return Turn(
             request=request,
-            response=Response(**self.defaults.create(**request.serialize())),
+            response=Response(**raw_response),
         )
 
     @overload
@@ -484,6 +528,14 @@ def ChatCompletion(
     pass
 
 
+_provider_shortcuts = {
+    "gpt-3.5-turbo": "openai",
+    "gpt-4": "openai",
+    "claude-1": "anthropic",
+    "claude-2": "anthropic",
+}
+
+
 def ChatCompletion(
     model: Optional[str] = None,
     defaults: Optional[Request] = None,
@@ -495,25 +547,60 @@ def ChatCompletion(
         Union[Literal["auto"], dict[Literal["name"], str]]
     ] = None,  # noqa
     response_model: Optional[type[BaseModel]] = None,
+    create: Optional[Callable[..., Any]] = None,
+    acreate: Optional[Callable[..., Awaitable[Any]]] = None,
     **kwargs: Any,
 ) -> BaseChatCompletion:
-    if defaults:
-        response = BaseChatCompletion(
-            defaults=ChatCompletionConfig.construct(
-                model=model or getattr(defaults, "model", None) or "gpt-3.5-turbo",
-                **defaults.dict(),
-                **kwargs,
-            )
-        )
+    if not model:
+        from marvin import settings
+
+        model = settings.llm_model
+
+    if model in _provider_shortcuts:
+        provider, model = _provider_shortcuts[model], model
+
     else:
-        response = BaseChatCompletion(
-            defaults=ChatCompletionConfig.construct(
-                model=model or "gpt-3.5-turbo",
-                messages=messages or [],
-                functions=functions,
-                function_call=function_call,
-                response_model=response_model,
-                **kwargs,
-            )
+        provider, model = model.split("/", 1)
+
+    if provider == "openai":
+        from marvin import settings
+
+        base = settings.openai.ChatCompletion(
+            model=model,
         )
-    return response
+
+    elif provider == "anthropic":
+        from marvin import settings
+
+        base = settings.anthropic.ChatCompletion(
+            model=model,
+        )
+
+    elif provider == "azure_openai":
+        from marvin import settings
+
+        base = settings.azure_openai.ChatCompletion(
+            model=model,
+        )
+
+    else:
+        base = BaseChatCompletion(
+            defaults=type(
+                "ChatCompletionConfig",
+                (ChatCompletionConfig,),
+                {
+                    "create": create,
+                    "acreate": acreate,
+                },
+            )()
+        )
+
+    return base(
+        model=model,
+        request=defaults,
+        messages=messages,
+        functions=functions,
+        function_call=function_call,
+        response_model=response_model,
+        **kwargs,
+    )

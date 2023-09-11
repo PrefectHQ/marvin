@@ -2,7 +2,8 @@ import inspect
 from typing import Any, Awaitable, Callable, ClassVar, Optional, Type
 
 from fastapi.encoders import jsonable_encoder
-from pydantic import BaseModel, Extra, Field, root_validator
+from marvin._compat import BaseModel, Field, root_validator
+from pydantic import Extra
 
 from ..utilities.async_utils import run_sync
 from .messages import FunctionCall, Message

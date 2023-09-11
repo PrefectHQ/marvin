@@ -1,29 +1,27 @@
 from types import GenericAlias
 from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
 
-from pydantic import BaseModel
-
-from marvin._compat import _model_dump, cast_to_json  # type: ignore
+from marvin._compat import BaseModel, cast_to_json, model_dump  # type: ignore
 
 if TYPE_CHECKING:
     from .messages import Message
 
 
 def cast_response_model_to_json(
-    response_model: (
-        Optional[
-            Union[
-                type,  # e.g. str
-                GenericAlias,  # e.g. list[str]
-                type[BaseModel],  # e.g. Person
-                Callable[..., Any],  # e.g. Callable[[str], str]
-            ]
+    response_model: Optional[
+        Union[
+            type,  # e.g. str
+            GenericAlias,  # e.g. list[str]
+            type[BaseModel],  # e.g. Person
+            Callable[..., Any],  # e.g. Callable[[str], str]
         ]
-    ) = None,
+    ] = None,
+    name: Optional[str] = None,
+    description: Optional[str] = None,
 ) -> dict[str, Any]:
     if response_model is None:
         return {}
-    json_schema = cast_to_json(response_model)
+    json_schema = cast_to_json(response_model, name, description)
     response: dict[str, Any] = {}
     response["functions"] = [json_schema]
     response["function_call"] = {"name": json_schema.get("name")}
@@ -89,6 +87,8 @@ def model_serialize(
     response_model: Optional[
         Union[type, GenericAlias, type[BaseModel], Callable[..., Any]]
     ] = None,  # noqa
+    response_model_name: Optional[str] = None,
+    response_model_description: Optional[str] = None,
     **kwargs: Any,
 ) -> dict[str, Any]:
     """
@@ -110,11 +110,19 @@ def model_serialize(
     """
 
     return {
-        "messages": [
-            _model_dump(message, exclude_none=True) for message in messages or []
-        ],
-        **({"functions": cast_functions_to_json(functions)} if functions else {}),
-        **({"function_call": function_call} if function_call else {}),
-        **cast_response_model_to_json(response_model),
-        **kwargs,
+        key: value
+        for key, value in {
+            "messages": [
+                model_dump(message, exclude_none=True) for message in messages or []
+            ],
+            **({"functions": cast_functions_to_json(functions)} if functions else {}),
+            **({"function_call": function_call} if function_call else {}),
+            **cast_response_model_to_json(
+                response_model,
+                name=response_model_name,
+                description=response_model_description,
+            ),
+            **kwargs,
+        }.items()
+        if value
     }

@@ -2,7 +2,7 @@ from typing import Any, Awaitable, Callable
 
 from pydantic import Field, SecretStr, create_model
 
-from ..._compat import V1Field, _model_dump  # type: ignore[import-private]
+from ..._compat import V1Field, model_dump  # type: ignore[import-private]
 from ...core.ChatCompletion import BaseChatCompletion, ChatCompletionConfig
 from .base import MarvinBaseSettings
 
@@ -59,8 +59,10 @@ class AnthropicBaseSettings(MarvinBaseSettings):
             create=self.get_create(api_key=api_key),
             acreate=self.get_acreate(api_key=api_key),
         )(
-            **_model_dump(self, mode="python", exclude_none=True, exclude={"api_key"}),
-            **self.get_request_params(**kwargs),
+            **{
+                **model_dump(self, exclude_none=True, exclude={"api_key"}),
+                **self.get_request_params(**kwargs),
+            }
         )
 
     def ChatCompletion(

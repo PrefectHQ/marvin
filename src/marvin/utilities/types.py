@@ -1,12 +1,70 @@
 import inspect
 import logging
 from types import GenericAlias
-from typing import Any, Callable, _SpecialForm
+from typing import (
+    Any,
+    Callable,
+    Optional,
+    _SpecialForm,
+)
 
 import pydantic
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, PrivateAttr, create_model
 
+from marvin.core.serializers import cast_to_model
 from marvin.utilities.logging import get_logger
+
+
+class ResponseModel(BaseModel):
+    """
+    You must call this function to format your response.
+    """
+
+    output: type[BaseModel]
+
+    @classmethod
+    def from_type(
+        cls,
+        type_: type,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        field_name: Optional[str] = None,
+    ) -> type[BaseModel]:
+        if inspect.isclass(type_) and issubclass(type_, BaseModel):
+            model = create_model(
+                name or type_.__name__,
+                __base__=type_,
+            )
+            model.__doc__ = description or cls.__doc__
+            return model
+        fields: dict[str, Any] = {}
+        fields[field_name or "output"] = (type_, ...)
+        model = create_model(
+            name or "Output",
+            **fields,
+        )
+        model.__doc__ = description or cls.__doc__
+        return model
+
+    @classmethod
+    def from_callable(
+        cls,
+        fn: Callable[..., Any] | type[BaseModel],
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        field_name: Optional[str] = None,
+    ) -> type[BaseModel]:
+        if inspect.isclass(fn) and issubclass(type(fn), BaseModel):
+            return fn
+        model = cast_to_model(fn)
+        fields: dict[str, Any] = {}
+        fields[field_name or "output"] = (model, ...)
+        response_model = create_model(
+            name or "Output",
+            **fields,
+        )
+        response_model.__doc__ = description or cls.__doc__
+        return response_model
 
 
 class MarvinBaseModel(BaseModel):
@@ -77,7 +135,7 @@ def function_to_schema(function: Callable[..., Any], name: str = None) -> dict:
     return Model.schema()
 
 
-def safe_issubclass(type_, classes):
+def safe_issubclass(type_: Any, classes: Any) -> bool:
     if isinstance(type_, type) and not isinstance(type_, GenericAlias):
         return issubclass(type_, classes)
     else:

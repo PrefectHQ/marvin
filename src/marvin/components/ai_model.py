@@ -1,335 +1,174 @@
-import asyncio
-import functools
+from functools import partial
 from typing import (
     Any,
     Callable,
     ClassVar,
+    Generic,
     Optional,
     Type,
-    TypeVar,
+    Union,
+    overload,
 )
 
+from marvin._compat import BaseModel, cast_to_model
 from marvin.core.ChatCompletion import BaseChatCompletion, ChatCompletion
-from marvin.core.messages import Message, Prompt
-from marvin.core.requests import Request
-from marvin.core.serializers import AbstractRequestSerializer
-from marvin.pydantic import BaseModel
-from marvin.utilities.async_utils import run_sync
+from marvin.messages import BasePrompt, prompt
+from marvin.types import ParamSpec
 
-T = TypeVar("T", bound="AIModel")
+P = ParamSpec("P")
 
 
-def base_extract(response_model: type[BaseModel], text: str, **kwargs: Any) -> Prompt:
-    """
-    Creates most basic prompt that can be used to extract a response model from
-    unstructured text.
-
-    Args:
-        response_model (type[BaseModel]): The response model to extract.
-        text (str): The unstructured text to extract from.
-        **kwargs (Any): Any additional keyword arguments to pass to the prompt.
-
-    Returns:
-        Prompt: A prompt object that can be used to generate a chat completion.
-    """
-
-    return Prompt(
-        response_model=response_model,
-        messages=[
-            Message(
-                role="system",
-                content="""You correctly extract {{response_model.__name__}} objects from unstructured text.""",  # noqa
-            ),
-            Message(role="user", content="{{text}}"),
-        ],
-    ).render(text=text, **kwargs)
-
-
-def extract(
-    text: str,
-    response_model: type[BaseModel],
-    static_context: Optional[str] = None,
-    context_function: Optional[Callable[..., str]] = None,
-) -> Prompt:
-    """
-    Creates a prompt that can be used to extract a response model from
-    unstructured text. This prompt is more flexible than `base_extract` in that
-    it allows for the specification of context functions that can be used to
-    extract, infer, or deduce missing data.
-
-    Args:
-        - text (str): The unstructured text to extract from.
-        - response_model (type[BaseModel]): The response model to extract.
-        - static_context (Optional[str], optional): Instructions from the user on how to complete the task. Defaults to None.
-        - context_function (Optional[Callable[..., str]], optional): A function that takes in text and returns a string of context. Defaults to None.
-
-    Returns:
-        Prompt: A prompt object that can be used to generate a chat completion.
-    """  # noqa
-    return Prompt(
-        response_model=response_model,
-        messages=[
-            Message(
-                role="system",
-                content=(
-                    """You correctly extract, deduce, infer, and compute {{response_model.__name__}} objects from unstructured text. """  # noqa
-                    """    - You deduce and both correct values and data types even if not directly provided."""  # noqa
-                    """    - To validate your response, you must call the `{{response_model.__name__}}` function."""  # noqa
-                    """    - You must format your response according to the `{{response_model.__name__}}` signature."""  # noqa
-                    """{% if static_context %}{{'\n' + static_context}}{% endif %}"""  # noqa
-                    """{% if context_function %}{% set context = context_function(text) %}{{'\n' + context if context}}{% endif %}"""  # noqa
-                ),
-            ),
-            Message(role="user", content="{{text}}"),
-        ],
-    ).render(
-        text=text,
-        static_context=static_context,
-        context_function=context_function,
+def ai_model_prompt(
+    model: type,
+    response_model_name: Optional[str] = "FormatResponse",
+    response_model_description: Optional[
+        str
+    ] = "You must call this function to validate your response.",  # noqa
+) -> Callable[P, "BasePrompt"]:
+    response_model: type[BaseModel] = cast_to_model(
+        model, name=response_model_name, description=response_model_description
     )
 
-
-class BaseAIModel(BaseModel):
-    _instructions: ClassVar[Optional[str]] = None
-    _compute_prompt: ClassVar[Optional[Callable[..., Prompt]]] = None
-
-    @classmethod
-    def extract(
-        cls,
-        text: str,
+    @prompt(response_model=response_model)
+    def wrapper(
+        text: str = "",
+        *,
+        objective: Optional[str] = None,
         instructions: Optional[str] = None,
-        context_function: Optional[Callable[[str], str]] = None,
-        **kwargs: Any,
-    ) -> Prompt:
+        context: Optional[Callable[..., str]] = None,
+    ) -> None:
         """
-        Creates a prompt that can be used to extract a response model from
-        unstructured text.
+        System:
+        {%- if objective %}
+        {{objective}}
+        {%- else %}
+        The user will provide context as text that you need to parse into a structured form.
+        {%- endif %}
+        {%- set model_name = response_model.__name__ %}
 
-        Args:
-            - text (str): The unstructured text to extract from.
-            - instructions (Optional[str], optional): Instructions from the user on how to complete the task. Defaults to None.
-            - context_function (Optional[Callable[..., str]], optional): A function that takes in text and returns a string of context. Defaults to None.
+        To validate your response, you must call the `{{model_name}}` function.
+        Use the provided text to extract or infer any parameters needed by `{{model_name}}`, including any missing data.
+        {{- instructions if instructions }}
+        The current time is {{now()}}.
+        {{ context(text) if context and text }}
 
-        Keyword Args:
-            - **kwargs (Any): Any additional keyword arguments to render into the prompt.
-
-        Returns:
-            Request: A prompt object that can be used to generate a chat completion.
-
+        Human: The text to parse: {{text}}
         """  # noqa
 
-        instructions = "\n".join(
-            list(filter(bool, [(cls._instructions or ""), (instructions or "")]))
-        )
-        return (cls._extract_prompt or base_extract)(
-            response_model=cls,
-            text=text,
-            static_context=instructions,
-            context_function=context_function,
-        )
+    return wrapper
 
 
-class AIModel(BaseAIModel):
-    _extract_prompt: ClassVar[Optional[Callable[..., Prompt]]] = None
-    _chat_completion: ClassVar[Optional[BaseChatCompletion]] = None
+class BaseAIModel(BaseModel, Generic[P]):
+    ChatCompletion: ClassVar[BaseChatCompletion] = ChatCompletion()
+    objective: ClassVar[Optional[str]] = None
+    instructions: ClassVar[Optional[str]] = None
+    context: ClassVar[Optional[Callable[..., str]]] = None
 
     def __init__(
         self,
-        text: Optional[str] = None,
-        *,
-        _instructions: Optional[str] = None,
+        text: Optional[str] = "",
+        _objective: Optional[str] = None,
+        _instuctions: Optional[str] = None,
+        _context: Optional[Callable[..., str]] = None,
+        *args: Any,
         **kwargs: Any,
-    ) -> None:  # noqa
-        # Takes a single positional argument `text` which, if present, is used to
-        # extract parameters needed by the Pydantic model. The call method returns
-        # a dictionary of keyword arguments that are passed to the Pydantic model.
+    ) -> None:
+        """
+        A modified version of the constructor that accepts a single
+        positional `text` argument.
+        - If no `text` is provided, the constructor falls back to the default
+        behavior of the `BaseModel` constructor, which does not accept a
+        `text` argument. So you can still use the `BaseAIModel` class as a
+        base class for your own models.
+        - If `text` is provided, it is passed to the `prompt` method of the
+        model, which returns a `ChatCompletion` object. The `ChatCompletion`
+        performs the actual API call to the model, and returns the result,
+        which is spread into the `BaseModel` constructor as keyword arguments.
 
-        # Exposes an optional `_instructions` keyword argument that is passed to the
-        # `Prompt` object. This is useful for providing instructions to the LLM.
-
-        # NOTE: Pydantic models do not accept positional arguments, so we are free to
-        # overload this method to accept a text argument without fear of breaking
-        # the Pydantic model.
-
-        if text:
-            kwargs.update(
-                self.__class__.call(
-                    self.extract(
-                        text,
-                        static_context=getattr(self.__class__, "_instructions", None),
-                        runtime_context=_instructions,
-                        context_function=getattr(self, "_context_function", None),
-                    )
-                )
-            )
+        :param text: The text to parse.
+        :param _objective: The objective of the prompt.
+        :param _instructions: The instructions for the prompt.
+        :param _context: The context for the prompt, which is a function that
+        accepts the `text` argument and returns a string. Helpful for
+        Retrieval Augmented Generation (RAG) models.
+        """
         super().__init__(**kwargs)
 
     @classmethod
-    def as_prompt(
-        cls,
-        text: str,
-        instructions: Optional[str] = None,
-        context_function: Optional[Callable[[str], str]] = None,
-        prompt: Optional[Prompt] = None,
-        serializer: Optional[Type[AbstractRequestSerializer]] = None,
-        **kwargs: Any,
-    ) -> Prompt:
-        return cls.extract(
-            text,
-            instructions=instructions,
-            context_function=context_function,
-            serializer=serializer,
-            prompt=prompt,
-            **kwargs,
-        ).serialize(
-            serializer=serializer,
-        )
-
-    @classmethod
-    def extract(
-        cls,
-        text: str,
-        instructions: Optional[str] = None,
-        context_function: Optional[Callable[[str], str]] = None,
-        prompt: Optional[Prompt] = None,
-        **kwargs: Any,
-    ) -> Request:
+    def prompt(cls) -> Callable[P, "BasePrompt"]:
         """
-        Creates a prompt that can be used to extract a response model from
-        unstructured text. This prompt is more flexible than `base_extract` in that
-        it allows for the specification of context functions that can be used to
-        extract, infer, or deduce missing data.
+        A decorator that adds a `prompt` method to the class.
 
-        Args:
-            - text (str): The unstructured text to extract from.
-            - response_model (type[BaseModel]): The response model to extract.
-            - instructions (Optional[str], optional): Instructions from the user on how to complete the task. Defaults to None.
-            - context_function (Optional[Callable[..., str]], optional): A function that takes in text and returns a string of context. Defaults to None.
-
-        Keyword Args:
-            - **kwargs (Any): Any additional keyword arguments to render into the prompt.
-
-        Returns:
-            Request: A prompt object that can be used to generate a chat completion.
-
-        """  # noqa
-
-        instructions = "\n".join(
-            list(filter(bool, [(cls._instructions or ""), (instructions or "")]))
-        )
-
-        return Request.from_prompt(
-            (prompt or cls._extract_prompt or extract)(
-                response_model=cls,
-                text=text,
-                static_context=instructions,
-                context_function=context_function,
-            )
-        )
-
-    @classmethod
-    def to_chat_completion(
-        cls: type[T],
-        text: str,
-        instructions: Optional[str] = None,
-        context_function: Optional[Callable[[str], str]] = None,
-        **kwargs: list[Any],
-    ) -> BaseChatCompletion:
-        return (cls._chat_completion or ChatCompletion)(
-            **cls.extract(
-                text,
-                instructions=instructions,
-                context_function=context_function,
-                **kwargs,
-            ).serialize()
-        )
-
-    @classmethod
-    def call(
-        cls: type[T],
-        Prompt: Prompt,
-    ) -> dict[str, Any]:
-        chat_completion: BaseChatCompletion = cls._chat_completion or ChatCompletion()
-        response = chat_completion.create(**Prompt.dict())
-        if response_model := response.to_model():
-            return response_model.dict()
-        return {}
-
-    @classmethod
-    async def acall(
-        cls: type[T],
-        Prompt: Prompt,
-    ) -> dict[str, Any]:
-        chat_completion: BaseChatCompletion = cls._chat_completion or ChatCompletion()
-        response = await chat_completion.acreate(**Prompt.dict())
-        if response_model := response.to_model():
-            return response_model.dict()
-        return {}
-
-    @classmethod
-    async def amap(
-        cls: type[T], *map_args: list[str], **map_kwargs: list[Any]
-    ) -> list[T]:
+        If you want to customize the prompt, you can subclass `BaseAIModel`
+        and override this method.
         """
-        Map the AI Model over a sequence of arguments. Runs concurrently.
-
-        Example:
-            >>> await Location.amap(["windy city", "big apple"])
-            # [Location(city="Chicago"), Location(city="New York City")]
-        """
-
-        if not map_kwargs:
-            tasks = [cls.acall(cls.extract(*a)) for a in zip(*map_args)]
-        else:
-            tasks = [
-                cls.acall(
-                    cls.extract(*a, **{k: v for k, v in zip(map_kwargs.keys(), kw)})
-                )  # noqa
-                for a, kw in zip(zip(*map_args), zip(*map_kwargs.values()))
-            ]
-        return await asyncio.gather(*tasks)
+        return ai_model_prompt(cls)
 
     @classmethod
-    def map(cls: type[T], *map_args: list[str], **map_kwargs: list[Any]) -> list[T]:
-        """
-        Map the AI Model over a sequence of arguments. Runs concurrently.
-        """
-        return run_sync(cls.amap(*map_args, **map_kwargs))
+    def as_prompt(cls, *args: P.args, **kwargs: P.kwargs) -> dict[str, Any]:
+        return cls.prompt()(*args, **kwargs).serialize()
 
     @classmethod
-    def as_decorator(
-        cls: type[T],
-        base_model: Optional[type[BaseModel]] = None,
-        instructions: Optional[str] = None,
-        context_function: Optional[Callable[..., str]] = None,
-        extract_prompt: Optional[Callable[..., Prompt]] = None,
-        model: Optional[str] = None,
-        **kwargs: Any,
-    ) -> type[T] | functools.partial[Any]:
-        if not base_model:
-            return functools.partial(
-                cls.as_decorator,
-                instructions=instructions,
-                context_function=context_function,
-                extract_prompt=extract_prompt,
-                **kwargs,
-            )
-        subclass: type[T] = type(
-            base_model.__name__,
-            (cls,),
-            {
-                **dict(base_model.__dict__),
-                "_chat_completion": ChatCompletion(
-                    model=model,
-                    **kwargs,
-                ),
-                "_instructions": instructions,
-                "_context_function": context_function,
-                "_extract_prompt": extract_prompt,
-            },
-        )  # type: ignore
-
-        return subclass
+    def call(cls, *args: P.args, **kwargs: P.kwargs) -> Any:
+        """
+        A convenience method that calls the `ChatCompletion` object directly.
+        """
+        return cls.ChatCompletion.create(**cls.as_prompt(*args, **kwargs))
 
 
-ai_model = AIModel.as_decorator
+@overload
+def ai_model(
+    *,
+    prompt: Optional[Callable[..., Callable[..., "BasePrompt"]]] = None,
+    objective: Optional[str] = None,
+    instructions: Optional[str] = None,
+    context: Optional[Callable[..., str]] = None,
+    model: Optional[str] = None,
+    **model_kwargs: Any,
+) -> Callable[..., Callable[..., Any]]:
+    ...
+
+
+@overload
+def ai_model(
+    base_model: Type[BaseModel],
+    *,
+    prompt: Optional[Callable[..., Callable[P, "BasePrompt"]]] = None,
+    objective: Optional[str] = None,
+    instructions: Optional[str] = None,
+    context: Optional[Callable[..., str]] = None,
+    model: Optional[str] = None,
+    **model_kwargs: Any,
+) -> Type[BaseAIModel[P]]:
+    ...
+
+
+def ai_model(
+    base_model: Optional[Type[BaseModel]] = None,
+    prompt: Optional[Callable[..., Callable[P, "BasePrompt"]]] = None,
+    objective: Optional[str] = None,
+    instructions: Optional[str] = None,
+    context: Optional[Callable[..., str]] = None,
+    model: Optional[str] = None,
+    **model_kwargs: Any,
+) -> Union[Callable[..., Callable[..., Any]], Type[BaseAIModel[P]]]:
+    if base_model is None:
+        return partial(ai_model, prompt=prompt)
+    return type(
+        base_model.__name__,
+        (BaseAIModel,),
+        {
+            "ChatCompletion": ChatCompletion(model, **model_kwargs),
+            "objective": objective,
+            "instructions": instructions,
+            "context": context,
+            **base_model.__dict__,
+        },
+    )
+
+
+# @ai_model(instruction='Please provide your name.')
+# class Person(BaseModel):
+#     name: str
+
+# Person

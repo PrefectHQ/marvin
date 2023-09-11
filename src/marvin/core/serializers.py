@@ -1,22 +1,26 @@
 import warnings
 from abc import ABC, abstractmethod
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Literal,
-    Optional,
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, Literal, Optional
 
 from pydantic import BaseModel, validate_arguments
-from pydantic.decorator import (
-    ALT_V_ARGS,
-    ALT_V_KWARGS,
-    V_DUPLICATE_KWARGS,
-    V_POSITIONAL_ONLY_NAME,
-)
 
-from .messages import Message
+try:
+    from pydantic.decorator import (
+        ALT_V_ARGS,
+        ALT_V_KWARGS,
+        V_DUPLICATE_KWARGS,
+        V_POSITIONAL_ONLY_NAME,
+    )
+except ImportError:
+    from pydantic.v1.decorator import (
+        ALT_V_ARGS,
+        ALT_V_KWARGS,
+        V_DUPLICATE_KWARGS,
+        V_POSITIONAL_ONLY_NAME,
+    )
+
+if TYPE_CHECKING:
+    from .messages import Message
 
 
 def cast_to_model(
@@ -25,7 +29,11 @@ def cast_to_model(
     if isinstance(model, type):
         return model
     else:
-        return validate_arguments(model).model  # type: ignore
+        response = validate_arguments(model).model  # type: ignore
+        response.__fields__.pop("args", None)
+        response.__fields__.pop("v__duplicate_kwargs", None)
+        response.__fields__.pop("kwargs", None)
+        return response
 
 
 def json_schema(
@@ -75,7 +83,7 @@ class AbstractRequestSerializer(ABC):
     """
 
     @staticmethod
-    def serialize_messages(messages: list[Message]) -> list[dict[str, Any]]:
+    def serialize_messages(messages: list["Message"]) -> list[dict[str, Any]]:
         return [
             {"content": None, **message.dict(exclude_none=True)} for message in messages
         ]  # noqa
@@ -115,7 +123,7 @@ class AbstractRequestSerializer(ABC):
         self,
         /,
         *,
-        messages: Optional[list[Message]] = None,
+        messages: Optional[list["Message"]] = None,
         functions: Optional[
             list[Callable[..., Any] | dict[str, Any] | type[BaseModel]]
         ] = None,  # noqa

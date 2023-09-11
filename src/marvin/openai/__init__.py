@@ -1,8 +1,5 @@
-import sys
-from openai import *  # noqa: F403
-from marvin.core.ChatCompletion.providers.openai import (
-    OpenAIChatCompletion as ChatCompletion,
-)
+from marvin.settings import settings
 
-from .Function import openai_fn
-from .Function.Registry import OpenAIFunctionRegistry
+from openai import *  # noqa # type: ignore
+
+ChatCompletion = settings.openai.ChatCompletion()
