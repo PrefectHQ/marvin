@@ -48,6 +48,7 @@ nav:
       - settings: api_reference/settings.md
     - Utilities:
       - async_utils: api_reference/utilities/async_utils.md
+      - collections: api_reference/utilities/collections.md
       - embeddings: api_reference/utilities/embeddings.md
       - history: api_reference/utilities/history.md
       - logging: api_reference/utilities/logging.md
