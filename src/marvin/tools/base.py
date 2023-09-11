@@ -4,7 +4,7 @@ from typing import Callable, Optional
 
 from pydantic import BaseModel, validator
 
-from marvin.engine.language_models import OpenAIFunction
+from marvin.types import Function
 from marvin.utilities.strings import jinja_env
 from marvin.utilities.types import LoggerMixin, function_to_schema
 
@@ -41,12 +41,12 @@ class Tool(LoggerMixin, BaseModel):
         schema.pop("title", None)
         return schema
 
-    def as_openai_function(self) -> OpenAIFunction:
+    def as_function(self) -> Function:
         schema = self.argument_schema()
         description = jinja_env.from_string(inspect.cleandoc(self.description or ""))
         description = description.render(**self.dict(), TOOL=self)
 
-        return OpenAIFunction(
+        return Function(
             name=self.name,
             description=description,
             parameters=schema,

@@ -13,7 +13,7 @@ from marvin.utilities.types import MarvinBaseModel
 
 
 class StreamHandler(MarvinBaseModel, abc.ABC):
-    callback: Callable[[Message], None] = None
+    callback: Callable = None
 
     @abc.abstractmethod
     def handle_streaming_response(self, api_response) -> Message:

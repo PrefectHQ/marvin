@@ -5,10 +5,9 @@ from typing import Any, Callable, Union
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr, validator
 
-from marvin.engine.executors import OpenAIFunctionsExecutor
-from marvin.engine.language_models import ChatLLM, chat_llm
+from marvin.openai import ChatCompletion
 from marvin.prompts import library as prompt_library
-from marvin.prompts.base import Prompt
+from marvin.prompts.base import Prompt, render_prompts
 from marvin.tools import Tool
 from marvin.utilities.async_utils import run_sync
 from marvin.utilities.history import History, HistoryFilter
@@ -41,7 +40,7 @@ SYSTEM_PROMPT = """
     
     {% if app.plan_enabled %}
 
-    - Call the `UpdatePlan` function to update your plan. Use your plan
+    - Call the `update_plan` function to update your plan. Use your plan
     to track notes, objectives, in-progress work, and to break problems down
     into solvable, possibly dependent parts. You plan consists of a few fields:
     
@@ -70,7 +69,7 @@ SYSTEM_PROMPT = """
 
     {% if app.state_enabled %}
 
-    - Call the `UpdateState` function to update the application's state. This
+    - Call the `update_state` function to update the application's state. This
     is where you should store any information relevant to the application
     itself.
     
@@ -226,7 +225,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             v = []
         return v
 
-    @validator("tools", pre=True)
+    @validator("tools", pre=True, always=True)
     def validate_tools(cls, v):
         if v is None:
             v = []
@@ -235,14 +234,12 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
 
         # convert AI Applications and functions to tools
         for tool in v:
-            if isinstance(tool, AIApplication):
-                tools.append(tool.as_tool())
-            elif isinstance(tool, Tool):
-                tools.append(tool)
+            if isinstance(tool, (AIApplication, Tool)):
+                tools.append(tool.as_function())
             elif callable(tool):
-                tools.append(Tool.from_function(tool))
+                tools.append(tool)
             else:
-                raise ValueError(f"Tool {tool} is not a Tool or callable.")
+                raise ValueError(f"Tool {tool} is not a `Tool` or callable.")
         return tools
 
     @validator("name", always=True)
@@ -251,7 +248,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             v = cls.__name__
         return v
 
-    def __call__(self, input_text: str = None, model: ChatLLM = None):
+    def __call__(self, input_text: str = None, model: str = None):
         return run_sync(self.run(input_text=input_text, model=model))
 
     async def entrypoint(self, q: str) -> str:
@@ -260,9 +257,9 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         response = await self.run(input_text=q)
         return response.content
 
-    async def run(self, input_text: str = None, model: ChatLLM = None):
+    async def run(self, input_text: str = None, model: str = None) -> Message:
         if model is None:
-            model = chat_llm()
+            model = "gpt-3.5-turbo"
 
         # set up prompts
         prompts = [
@@ -290,29 +287,37 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         # set up tools
         tools = self.tools.copy()
         if self.state_enabled:
-            tools.append(UpdateState(app=self))
+            tools.append(UpdateState(app=self).as_function())
         if self.plan_enabled:
-            tools.append(UpdatePlan(app=self))
+            tools.append(UpdatePlan(app=self).as_function())
 
-        executor = OpenAIFunctionsExecutor(
-            model=model,
-            functions=[t.as_openai_function() for t in tools],
-            stream_handler=self.stream_handler,
+        prompts = render_prompts(
+            prompts, render_kwargs=dict(app=self, input_text=input_text)
         )
 
-        responses = await executor.start(
-            prompts=prompts,
-            prompt_render_kwargs=dict(app=self, input_text=input_text),
-        )
+        cleaned_messages = [
+            d.dict(exclude={"data", "timestamp", "llm_response"}) for d in prompts
+        ]
 
-        for r in responses:
-            self.history.add_message(r)
+        for msg_dict in cleaned_messages:
+            msg_dict.update({"role": msg_dict.get("role").value.lower()})
+            msg_dict.update({"name": msg_dict.get("name") or "none"})
 
-        self.logger.debug_kv("AI response", responses[-1].content, key_style="blue")
-        return responses[-1]
+        conversation = await ChatCompletion(
+            functions=tools, model=model, _stream_handler_fn=self.stream_handler
+        ).achain(messages=cleaned_messages)
+
+        for msg in (messages := Message.from_conversation(conversation)):
+            self.history.add_message(msg)
+
+        self.logger.debug_kv("AI response", messages[-1].content, key_style="blue")
+        return messages[-1]
 
     def as_tool(self, name: str = None) -> Tool:
         return AIApplicationTool(app=self, name=name)
+
+    def as_function(self, name: str = None) -> Callable:
+        return self.as_tool(name=name).as_function()
 
 
 class AIApplicationTool(Tool):
@@ -384,12 +389,12 @@ class UpdateState(Tool):
         JSON schema.
         """
 
-    def __init__(self, app: AIApplication, **kwargs):
+    def __init__(self, app: "AIApplication", **kwargs):
         self._app = app
         super().__init__(**kwargs)
 
     def run(self, patches: list[JSONPatchModel]):
-        patch = JsonPatch(patches)
+        patch = JsonPatch([patch.dict() for patch in patches])
         updated_state = patch.apply(self._app.state.dict())
         self._app.state = type(self._app.state)(**updated_state)
         return "Application state updated successfully!"
@@ -433,12 +438,12 @@ class UpdatePlan(Tool):
         documents. The state must always comply with the plan's JSON schema.
         """
 
-    def __init__(self, app: AIApplication, **kwargs):
+    def __init__(self, app: "AIApplication", **kwargs):
         self._app = app
         super().__init__(**kwargs)
 
     def run(self, patches: list[JSONPatchModel]):
-        patch = JsonPatch(patches)
-        updated_state = patch.apply(self._app.plan.dict())
-        self._app.plan = type(self._app.plan)(**updated_state)
+        patch = JsonPatch([patch.dict() for patch in patches])
+        updated_plan = patch.apply(self._app.plan.dict())
+        self._app.plan = type(self._app.plan)(**updated_plan)
         return "Application plan updated successfully!"
