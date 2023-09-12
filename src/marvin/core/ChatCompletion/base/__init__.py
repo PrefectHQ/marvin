@@ -203,7 +203,6 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         """
         name, raw_arguments = itemgetter("name", "arguments")(self.function_call())
         function = self.callable_registry.get(name)
-        json.loads(raw_arguments)
         try:
             value = function(**json.loads(raw_arguments))
         except Exception:
