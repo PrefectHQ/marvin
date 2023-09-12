@@ -17,10 +17,11 @@ Use cases include API documentation, data validation, and runtime type inspectio
 import inspect
 import logging
 from types import GenericAlias
-from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
+from typing import Any, Callable, Optional, Tuple, Type, Union
 
 from pydantic import BaseModel, PrivateAttr, create_model
 
+from marvin._compat import model_json_schema
 from marvin.utilities.logging import get_logger
 
 
@@ -104,7 +105,7 @@ def function_to_openapi_schema(
     function: Callable[..., Any],
     name: Optional[str] = None,
     description: Optional[str] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Convert a function's signature into an OpenAPI schema.
 
@@ -114,7 +115,7 @@ def function_to_openapi_schema(
                             Defaults to the function's name.
 
     Returns:
-    - Dict[str, Any]: The OpenAPI schema representation.
+    - dict[str, Any]: The OpenAPI schema representation.
     """
     Model = create_model_from_function(function, name=name, description=description)
     return Model.schema()
@@ -140,6 +141,28 @@ def safe_issubclass(
     if isinstance(type_, type) and not isinstance(type_, GenericAlias):
         return issubclass(type_, classes)
     return False
+
+
+def type_to_schema(type_: Type[Any], set_root_type: bool = False) -> dict[str, Any]:
+    if safe_issubclass(type_, BaseModel):
+        schema = model_json_schema(model=type_)
+        # if the docstring was updated at runtime, make it the description
+        if type_.__doc__ and type_.__doc__ != schema.get("description"):
+            schema["description"] = type_.__doc__
+        return schema
+
+    elif set_root_type:
+
+        class Model(BaseModel):  # type: ignore
+            __root__: type_
+
+        return model_json_schema(model=Model)
+    else:
+
+        class Model(BaseModel):
+            data: type_
+
+        return model_json_schema(model=Model)
 
 
 def contains_type_in_genericalias(

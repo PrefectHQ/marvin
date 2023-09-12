@@ -1,57 +1,88 @@
+"""
+This module provides tools for interacting with GitHub's API. It includes classes for
+representing GitHub users, comments, labels, and issues, as well as a tool for searching
+GitHub issues. Each class is rigorously type hinted and documented to attract potential
+OSS contributors.
+"""
 from datetime import datetime
 from typing import List, Optional
 
 import httpx
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 import marvin
+from marvin._compat import field_validator
 from marvin.tools import Tool
 from marvin.utilities.strings import slice_tokens
 
 
 class GitHubUser(BaseModel):
-    """GitHub user."""
+    """
+    Represents a GitHub user.
+    """
 
-    login: str
+    login: str = Field(..., description="The login name of the GitHub user")
 
 
 class GitHubComment(BaseModel):
-    """GitHub comment."""
+    """
+    Represents a GitHub comment.
+    """
 
-    body: str = Field(default="")
-    user: GitHubUser = Field(default_factory=GitHubUser)
+    body: str = Field(default="", description="The body text of the comment")
+    user: GitHubUser = Field(
+        default_factory=lambda: GitHubUser(login=""),
+        description="The user who made the comment",
+    )
 
 
 class GitHubLabel(BaseModel):
-    """GitHub label."""
+    """
+    Represents a GitHub label.
+    """
 
-    name: str = Field(default="")
+    name: str = Field(default="", description="The name of the label")
 
 
 class GitHubIssue(BaseModel):
-    """GitHub issue."""
+    """
+    Represents a GitHub issue.
+    """
 
-    created_at: datetime = Field(...)
-    html_url: str = Field(...)
-    number: int = Field(...)
-    title: str = Field(default="")
-    body: Optional[str] = Field(default="")
-    labels: List[GitHubLabel] = Field(default_factory=GitHubLabel)
-    user: GitHubUser = Field(default_factory=GitHubUser)
+    created_at: datetime = Field(
+        ..., description="The creation date and time of the issue"
+    )
+    html_url: str = Field(..., description="The URL of the issue")
+    number: int = Field(..., description="The number of the issue")
+    title: str = Field(default="", description="The title of the issue")
+    body: Optional[str] = Field(default="", description="The body text of the issue")
+    labels: List[GitHubLabel] = Field(
+        default_factory=list, description="The labels attached to the issue"
+    )
+    user: GitHubUser = Field(
+        default_factory=lambda: GitHubUser(login=""),
+        description="The user who created the issue",
+    )
 
-    @validator("body", always=True)
-    def validate_body(cls, v):
-        if not v:
-            return ""
-        return v
+    @field_validator("body")
+    def validate_body(cls, v: Optional[str]) -> str:
+        """
+        Validates the body of the issue. If the body is None, it returns an empty string
+        """
+        return "" if not v else v
 
 
 class SearchGitHubIssues(Tool):
-    """Tool for searching GitHub issues."""
+    """
+    Tool for searching GitHub issues.
+    """
 
-    description: str = "Use the GitHub API to search for issues in a given repository."
+    description: str = Field(
+        ...,
+        description="Use the GitHub API to search for issues in a given repository.",
+    )
 
-    async def run(self, query: str, repo: str = "prefecthq/prefect", n: int = 3) -> str:
+    async def run(self, query: str, repo: str = "prefecthq/prefect", n: int = 3) -> str:  # type: ignore # noqa: E501
         """
         Use the GitHub API to search for issues in a given repository. Do
         not alter the default value for `n` unless specifically requested by

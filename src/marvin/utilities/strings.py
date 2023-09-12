@@ -224,3 +224,5 @@ def convert_markdown_links_to_slack(text: str) -> str:
 # ------------------
 
 count_tokens = get_token_count
+html_to_content = extract_text_from_html
+slice_tokens = truncate_text_by_tokens

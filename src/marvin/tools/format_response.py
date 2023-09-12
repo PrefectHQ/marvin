@@ -27,9 +27,9 @@ class FormatResponse(Tool):
         " format requirements."
     )
 
-    def __init__(self, type_: Union[type, GenericAlias] = SENTINEL, **kwargs):
+    def __init__(self, type_: Union[type, GenericAlias] = SENTINEL, **kwargs: Any):  # type: ignore # noqa: E501
         if type_ is not SENTINEL:
-            if not isinstance(type_, (type, GenericAlias)):
+            if not isinstance(type_, (type, GenericAlias)):  # type: ignore
                 raise ValueError(f"Expected a type or GenericAlias, got {type_}")
 
             # warn if the type is a set or tuple with GPT 3.5
@@ -37,9 +37,9 @@ class FormatResponse(Tool):
                 "gpt-3.5" in marvin.settings.llm_model
                 or "gpt-35" in marvin.settings.llm_model
             ):
-                if safe_issubclass(type_, (set, tuple)) or genericalias_contains(
-                    type_, (set, tuple)
-                ):
+                if safe_issubclass(type_, (set, tuple)) or genericalias_contains(  # type: ignore # noqa: E501
+                    type_, (set, tuple)  # type: ignore
+                ):  # type: ignore
                     warnings.warn(
                         (
                             "GPT-3.5 often fails with `set` or `tuple` types. Consider"
@@ -49,15 +49,15 @@ class FormatResponse(Tool):
                     )
 
             type_schema = marvin.utilities.types.type_to_schema(
-                type_, set_root_type=False
+                type_, set_root_type=False  # type: ignore
             )
             type_schema.pop("title", None)
             kwargs["type_schema"] = type_schema
 
         super().__init__(**kwargs)
         if type_ is not SENTINEL:
-            if type_schema.get("description"):
-                self.description += f"\n\n {type_schema['description']}"
+            if type_schema.get("description"):  # type: ignore
+                self.description += f"\n\n {type_schema['description']}"  # type: ignore
 
         if type_ is not SENTINEL:
             self._cached_type = type_
@@ -65,16 +65,16 @@ class FormatResponse(Tool):
     def get_type(self) -> Union[type, GenericAlias]:
         if self._cached_type is not SENTINEL:
             return self._cached_type
-        model = marvin.utilities.types.schema_to_type(self.type_schema)
-        type_ = model.__fields__["__root__"].outer_type_
+        model = marvin.utilities.types.schema_to_type(self.type_schema)  # type: ignore
+        type_ = model.__fields__["__root__"].outer_type_  # type: ignore
         self._cached_type = type_
-        return type_
+        return type_  # type: ignore
 
-    def run(self, **kwargs) -> Any:
+    def run(self, **kwargs) -> Any:  # type: ignore
         type_ = self.get_type()
-        if not safe_issubclass(type_, BaseModel):
-            kwargs = kwargs["data"]
-        return pydantic.parse_obj_as(type_, kwargs)
+        if not safe_issubclass(type_, BaseModel):  # type: ignore
+            kwargs = kwargs["data"]  # type: ignore
+        return pydantic.parse_obj_as(type_, kwargs)  # type: ignore
 
-    def argument_schema(self) -> dict:
+    def argument_schema(self) -> dict:  # type: ignore
         return self.type_schema
