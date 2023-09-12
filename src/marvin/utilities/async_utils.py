@@ -1,69 +1,102 @@
+"""
+Asynchronous Utilities
+=======================
+
+This module provides utility functions to facilitate asynchronous programming.
+It includes methods for creating background tasks, running synchronous functions
+asynchronously, and executing coroutines from synchronous contexts.
+
+Key Functions:
+--------------
+- `create_task`: Safely creates a background task to prevent garbage collection issues.
+- `run_async`: Executes a synchronous function asynchronously.
+- `run_sync`: Runs a coroutine from a synchronous context, handling various runtimes.
+
+Note:
+-----
+These utilities are designed to handle special cases such as Jupyter notebooks where
+the event loop runs on the main thread and to ensure background tasks are not 
+prematurely garbage collected.
+"""
+
 import asyncio
-import functools
 from concurrent.futures import ThreadPoolExecutor
-from typing import Awaitable, TypeVar
+from functools import partial
+from typing import Any, Callable, Coroutine, TypeVar
 
 T = TypeVar("T")
 
-BACKGROUND_TASKS = set()
+BACKGROUND_TASKS: set[asyncio.Task[Any]] = set()
 
 
-def create_task(coro):
+def create_task(coro: Coroutine[Any, Any, T]) -> asyncio.Task[T]:
     """
-    Creates async background tasks in a way that is safe from garbage
-    collection.
+    Safely creates a background task to prevent it from being garbage collected.
 
-    See
+    Args:
+    - coro (Coroutine): The coroutine to run as a background task.
+
+    Returns:
+    - asyncio.Task: The created task.
+
+    Reference:
+    ----------
     https://textual.textualize.io/blog/2023/02/11/the-heisenbug-lurking-in-your-async-code/
+    """
 
-    Example:
-
-    async def my_coro(x: int) -> int:
-        return x + 1
-
-    # safely submits my_coro for background execution
-    create_task(my_coro(1))
-    """  # noqa: E501
     task = asyncio.create_task(coro)
     BACKGROUND_TASKS.add(task)
     task.add_done_callback(BACKGROUND_TASKS.discard)
     return task
 
 
-async def run_async(func, *args, **kwargs) -> T:
+async def run_async(func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
     """
-    Runs a synchronous function in an asynchronous manner.
+    Runs a synchronous function asynchronously.
+
+    Args:
+    - func (Callable): The synchronous function to run.
+    - *args: Positional arguments to pass to the function.
+    - **kwargs: Keyword arguments to pass to the function.
+
+    Returns:
+    - T: The result of the function execution.
     """
+
+    loop = asyncio.get_event_loop()
 
     async def wrapper() -> T:
         try:
-            return await loop.run_in_executor(
-                None, functools.partial(func, *args, **kwargs)
-            )
+            return await loop.run_in_executor(None, partial(func, *args, **kwargs))
         except Exception as e:
             # propagate the exception to the caller
-            raise e
+            raise e from None
 
-    loop = asyncio.get_event_loop()
     return await wrapper()
 
 
-def run_sync(coroutine: Awaitable[T]) -> T:
+def run_sync(coro: Coroutine[Any, Any, T]) -> T:
     """
-    Runs a coroutine from a synchronous context, either in the current event
-    loop or in a new one if there is no event loop running. The coroutine will
-    block until it is done. A thread will be spawned to run the event loop if
-    necessary, which allows coroutines to run in environments like Jupyter
-    notebooks where the event loop runs on the main thread.
+    Runs a coroutine from a synchronous context.
 
+    If there is no event loop running, the coroutine will be run in a new one.
+    If an event loop is running in environments like Jupyter notebooks, a thread
+    is spawned to run the event loop.
+
+    Args:
+    - coro (Coroutine): The coroutine to run synchronously.
+
+    Returns:
+    - T: The result of the coroutine execution.
     """
+
     try:
         loop = asyncio.get_running_loop()
         if loop.is_running():
             with ThreadPoolExecutor() as executor:
-                future = executor.submit(asyncio.run, coroutine)
+                future = executor.submit(asyncio.run, coro)
                 return future.result()
         else:
-            return asyncio.run(coroutine)
+            return asyncio.run(coro)
     except RuntimeError:
-        return asyncio.run(coroutine)
+        return asyncio.run(coro)

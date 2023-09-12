@@ -1,130 +1,181 @@
+"""
+Pydantic Utilities for Marvin Framework
+=======================================
+
+This module provides utility functions and classes for integrating Pydantic
+within the Marvin framework. The primary focus is on:
+
+- Providing a base model for Marvin with configuration adjustments.
+- Offering a mixin for easy logging integration in models.
+- Converting Python functions into Pydantic models and OpenAPI schemas.
+- Supporting type conversions and inspections for Pydantic and OpenAPI 
+  integration.
+
+Use cases include API documentation, data validation, and runtime type inspections.
+"""
+
 import inspect
 import logging
 from types import GenericAlias
-from typing import Any, Callable, _SpecialForm
+from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
 
-import pydantic
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel, PrivateAttr, create_model
 
 from marvin.utilities.logging import get_logger
 
 
 class MarvinBaseModel(BaseModel):
+    """
+    Base model for Marvin, configured to forbid any extra attributes
+    during model instantiation.
+    """
+
     class Config:
         extra = "forbid"
 
 
 class LoggerMixin(BaseModel):
     """
-    BaseModel mixin that adds a private `logger` attribute
+    A mixin for Pydantic's BaseModel that integrates logging.
+
+    Provides a logger instance, easing logging within models and methods.
+
+    Attributes:
+    - _logger: The logger instance, set during instantiation.
     """
 
     _logger: logging.Logger = PrivateAttr()
 
-    def __init__(self, **data):
+    def __init__(self, **data: Any) -> None:
         super().__init__(**data)
         self._logger = get_logger(type(self).__name__)
 
     @property
-    def logger(self):
+    def logger(self) -> logging.Logger:
+        """Returns the logger instance associated with the model."""
         return self._logger
 
 
-def function_to_model(
-    function: Callable[..., Any], name: str = None, description: str = None
-) -> dict:
+def create_model_from_function(
+    function: Callable[..., Any],
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+) -> Type[BaseModel]:
     """
-    Converts a function's arguments into an OpenAPI schema by parsing it into a
-    Pydantic model. To work, all arguments must have valid type annotations.
+    Convert a function's signature into a Pydantic model.
+
+    This function creates a Pydantic model whose fields correspond to the function's
+    parameters. All parameters must have type annotations.
+
+    Args:
+    - function (Callable): The target function to convert.
+    - name (Optional[str]): A custom name for the generated model.
+                            Defaults to the function's name.
+
+    Returns:
+    - Type[BaseModel]: The generated Pydantic model.
+
+    Raises:
+    - ValueError: If any parameter lacks a type annotation or encounters
+                  a Pydantic-related error.
     """
     signature = inspect.signature(function)
-
     fields = {
-        p: (
-            signature.parameters[p].annotation,
-            (
-                signature.parameters[p].default
-                if signature.parameters[p].default != inspect._empty
-                else ...
-            ),
+        param_name: (
+            param.annotation,
+            param.default if param.default != param.empty else ...,
         )
-        for p in signature.parameters
-        if p != getattr(function, "__self__", None)
+        for param_name, param in signature.parameters.items()
+        if param_name != getattr(function, "__self__", None)
     }
 
-    # Create Pydantic model
     try:
-        Model = pydantic.create_model(name or function.__name__, **fields)
+        return create_model(name or function.__name__, **fields)  # type: ignore
     except RuntimeError as exc:
         if "see `arbitrary_types_allowed` " in str(exc):
             raise ValueError(
-                f"Error while inspecting {function.__name__} with signature"
-                f" {signature}: {exc}"
-            )
+                f"Error creating model for {function.__name__} with signature {signature}: {exc}"  # noqa: E501
+            ) from exc
         else:
             raise
 
-    return Model
 
-
-def function_to_schema(function: Callable[..., Any], name: str = None) -> dict:
+def function_to_openapi_schema(
+    function: Callable[..., Any],
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+) -> Dict[str, Any]:
     """
-    Converts a function's arguments into an OpenAPI schema by parsing it into a
-    Pydantic model. To work, all arguments must have valid type annotations.
-    """
-    Model = function_to_model(function, name=name)
+    Convert a function's signature into an OpenAPI schema.
 
+    Args:
+    - function (Callable): The target function to convert.
+    - name (Optional[str]): A custom name for the generated schema.
+                            Defaults to the function's name.
+
+    Returns:
+    - Dict[str, Any]: The OpenAPI schema representation.
+    """
+    Model = create_model_from_function(function, name=name, description=description)
     return Model.schema()
 
 
-def safe_issubclass(type_, classes):
+def safe_issubclass(
+    type_: Type[Any], classes: Union[Type[Any], Tuple[Type[Any], ...]]
+) -> bool:
+    """
+    Safely determine if a type is a subclass of one or multiple classes.
+
+    This function is a safe version of the built-in `issubclass` function. It doesn't
+    raise a TypeError if the first argument is not a class.
+
+    Args:
+    - type_ (Type[Any]): The type to inspect.
+    - classes (Union[Type[Any], Tuple[Type[Any], ...]]): The class or tuple of classes
+                                                        to check against.
+
+    Returns:
+    - bool: True if `type_` is a subclass of any entry in `classes`, False otherwise.
+    """
     if isinstance(type_, type) and not isinstance(type_, GenericAlias):
         return issubclass(type_, classes)
-    else:
-        return False
+    return False
 
 
-def type_to_schema(type_, set_root_type: bool = True) -> dict:
-    if safe_issubclass(type_, pydantic.BaseModel):
-        schema = type_.schema()
-        # if the docstring was updated at runtime, make it the description
-        if type_.__doc__ and type_.__doc__ != schema.get("description"):
-            schema["description"] = type_.__doc__
-        return schema
-
-    elif set_root_type:
-
-        class Model(pydantic.BaseModel):
-            __root__: type_
-
-        return Model.schema()
-    else:
-
-        class Model(pydantic.BaseModel):
-            data: type_
-
-        return Model.schema()
-
-
-def genericalias_contains(genericalias, target_type):
+def contains_type_in_genericalias(
+    genericalias: Union[Type[Any], GenericAlias],
+    target_types: Union[Type[Any], Tuple[Type[Any], ...]],
+) -> bool:
     """
-    Explore whether a type or generic alias contains a target type. The target
-    types can be a single type or a tuple of types.
+    Determine whether a type or generic alias contains a target type or types.
 
-    Useful for seeing if a type contains a pydantic model, for example.
+    This function is useful for checking if a type contains a specific subtype,
+    like a Pydantic model within a more complex type.
+
+    Args:
+    - genericalias (Union[Type[Any], GenericAlias]): The main type or generic to inspect
+    - target_types (Union[Type[Any], Tuple[Type[Any], ...]]): The target type/s to check
+
+    Returns:
+    - bool: True if the target type(s) is found within the main type, False otherwise.
     """
-    if isinstance(target_type, tuple):
-        return any(genericalias_contains(genericalias, t) for t in target_type)
+    if isinstance(target_types, tuple):
+        return any(contains_type_in_genericalias(genericalias, t) for t in target_types)
 
     if isinstance(genericalias, GenericAlias):
-        if safe_issubclass(genericalias.__origin__, target_type):
+        if safe_issubclass(genericalias.__origin__, target_types):
             return True
-        for arg in genericalias.__args__:
-            if genericalias_contains(arg, target_type):
-                return True
-    elif isinstance(genericalias, _SpecialForm):
-        return False
-    else:
-        return safe_issubclass(genericalias, target_type)
+        return any(
+            contains_type_in_genericalias(arg, target_types)
+            for arg in genericalias.__args__
+        )
 
-    return False
+    return safe_issubclass(genericalias, target_types)
+
+
+# ------------------
+# Deprecated aliases
+# ------------------
+function_to_schema = function_to_openapi_schema
+genericalias_contains = contains_type_in_genericalias
+function_to_model = create_model_from_function
