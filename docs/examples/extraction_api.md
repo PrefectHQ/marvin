@@ -24,13 +24,14 @@ In this example, we'll show how to
     
     ```python
     from marvin import ai_fn, settings
+    from typing import Any
 
     settings.openai.api_key = 'API_KEY' 
  
     @ai_fn
-    def extract_person(text: str) -> dict[str, Any]:
+    def extract_person(text: str) -> dict:
         '''
-            Extracts a persons `birth_year`, `first_name` and `last_name`
+            Correctly infers a persons `birth_year`, `first_name` and `last_name`
             from the passed `text`. 
         '''
 
@@ -63,9 +64,9 @@ In the following example, we will demonstrate how to deploy the AI function we j
 
     @app.post("/extract_person/")
     @ai_fn
-    def extract_person(text: str) -> dict[str, Any]:
+    def extract_person(text: str) -> dict:
         '''
-            Extracts a persons `birth_year`, `first_name` and `last_name`
+            Correctly infers a persons `birth_year`, `first_name` and `last_name`
             from the passed `text`. 
         '''
         

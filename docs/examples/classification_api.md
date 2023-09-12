@@ -23,20 +23,14 @@ In this example, we'll show how to
     
     ```python
     from marvin import ai_fn, settings
-    from enum import Enum
-
-    class Category(Enum):
-        SPORTS = "sports"
-        POLITICS = "politics"
-        TECHNOLOGY = "technology"
-        # Add more categories as needed
+    from typing import Literal
 
     settings.openai.api_key = 'API_KEY' 
 
     @ai_fn
-    def classify_text(text: str) -> Category:
+    def classify_text(text: str) -> Literal['sports', 'politics', 'technology']:
         '''
-            Classifies the passed `text` into one of the predefined categories. 
+            Correctly classifies the passed `text` into one of the predefined categories. 
         '''
 
     ```
@@ -61,6 +55,9 @@ In the following example, we will demonstrate how to deploy the AI function we j
     ```python
     from fastapi import FastAPI
     from marvin import ai_fn, settings
+    from typing import Literal
+
+    settings.openai.api_key = 'API_KEY' 
 
     app = FastAPI()
 
@@ -68,9 +65,9 @@ In the following example, we will demonstrate how to deploy the AI function we j
 
     @app.post("/classify_text/")
     @ai_fn
-    def classify_text(text: str) -> Category:
+    def classify_text(text: str) -> Literal['sports', 'politics', 'technology']:
         '''
-            Classifies the passed `text` into one of the predefined categories. 
+            Correctly classifies the passed `text` into one of the predefined categories. 
         '''
     ```
 
