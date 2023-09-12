@@ -1,8 +1,6 @@
 # Disable unused import warnings with pylance
 import asyncio
 
-import pytest
-
 
 class TestRegressions:
     def test_logging_utilities_imports(self):
@@ -128,7 +126,6 @@ def test_convert_markdown_links_to_slack():
     assert slack_text == "Check out <https://openai.com|OpenAI>"
 
 
-@pytest.mark.asyncio
 async def test_create_task() -> None:
     from marvin.utilities.async_utils import create_task
 
@@ -164,7 +161,6 @@ def test_run_sync() -> None:
     assert result == 3
 
 
-@pytest.mark.asyncio
 async def test_run_sync_from_async_context() -> None:
     from marvin.utilities.async_utils import run_sync
 

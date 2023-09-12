@@ -3,9 +3,10 @@ import json
 from ast import literal_eval
 from typing import Callable, List, Optional, Union
 
-from pydantic import Field, root_validator, validator
+from pydantic import Field
 
 import marvin
+from marvin._compat import field_validator
 from marvin.engine.language_models import OpenAIFunction
 from marvin.utilities.messages import Message, Role
 
@@ -27,7 +28,7 @@ class OpenAIFunctionsExecutor(Executor):
     )
     stream_handler: Callable[[Message], None] = Field(default=None)
 
-    @validator("functions", pre=True)
+    @field_validator("functions")
     def validate_functions(cls, v):
         if v is None:
             return None
@@ -37,17 +38,17 @@ class OpenAIFunctionsExecutor(Executor):
         ]
         return v
 
-    @root_validator
-    def validate_function_call(cls, values):
-        # validate function call
-        if values["functions"] and values.get("function_call") is None:
-            values["function_call"] = "auto"
-        elif values["function_call"] not in (
-            ["auto", "none"] + [{"name": f.name} for f in values["functions"]]
-        ):
-            raise ValueError(f'Invalid function_call: {values["function_call"]}')
+    # @root_validator
+    # def validate_function_call(cls, values):
+    #     # validate function call
+    #     if values["functions"] and values.get("function_call") is None:
+    #         values["function_call"] = "auto"
+    #     elif values["function_call"] not in (
+    #         ["auto", "none"] + [{"name": f.name} for f in values["functions"]]
+    #     ):
+    #         raise ValueError(f'Invalid function_call: {values["function_call"]}')
 
-        return values
+    #     return values
 
     async def run_engine(self, messages: list[Message]) -> Message:
         """

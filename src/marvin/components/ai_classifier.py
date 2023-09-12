@@ -8,7 +8,7 @@ from pydantic import create_model
 from pydantic.fields import FieldInfo
 
 from marvin.core.ChatCompletion import ChatCompletion
-from marvin.types import Function, FunctionRegistry
+from marvin.types.function import Function, FunctionRegistry
 from marvin.utilities.async_utils import run_sync
 
 system_prompt = inspect.cleandoc("""\

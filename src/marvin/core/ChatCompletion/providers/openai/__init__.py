@@ -1,4 +1,4 @@
-from marvin.pydantic import Field, SecretStr, PrivateAttr
+from pydantic import Field, SecretStr, PrivateAttr
 import tiktoken
 from marvin.utilities.module_loading import import_string
 from marvin.core.ChatCompletion.base import (

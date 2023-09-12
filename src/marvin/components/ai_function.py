@@ -4,10 +4,10 @@ import inspect
 from typing import Any, Callable, Optional, TypeVar
 
 from jinja2 import Template
+from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec
 
 from marvin.core.ChatCompletion import ChatCompletion
-from marvin.pydantic import BaseModel, Field
 from marvin.types import Function, FunctionRegistry
 from marvin.utilities.async_utils import run_sync
 

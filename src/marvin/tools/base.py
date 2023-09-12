@@ -33,8 +33,8 @@ class Tool(LoggerMixin, BaseModel):
         fn (Callable): The function that implements the tool's functionality.
     """
 
-    name: str
-    description: str
+    name: Optional[str] = None
+    description: Optional[str] = None
     fn: Optional[Callable[..., Any]] = None
 
     @classmethod

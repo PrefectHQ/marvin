@@ -1,11 +1,9 @@
-from marvin.pydantic import (
-    BaseModel,
-    BaseSettings,
+from pydantic import (
     Extra,
     Field,
     SecretStr,
-    ModelMetaclass,
 )
+from marvin._compat import BaseSettings, ModelMetaclass, V1BaseModel as BaseModel
 from marvin.settings import ENV_PATH
 from typing import Callable, Literal, Optional, Union, Type, Any
 import os
@@ -98,12 +96,16 @@ class BaseChatCompletionSettings(BaseSettings, AbstractChatCompletionSettings):
 
 class BaseChatRequest(BaseModel, AbstractChatRequest):
     _config: Type[BaseChatCompletionSettings]
-    messages: list = []
-    functions: Optional[list[Callable, dict[str, str]]] = None
+    messages: list[Any] = Field(default_factory=list)
+    functions: Optional[list[Union[Callable[..., Any], dict[str, str]]]] = None
     function_call: Optional[Union[Literal["auto"], dict[Literal["name"], str]]] = None
 
-    _response_model: Optional[Type[BaseModel]] = Field(None, alias="response_model")
-    _evaluate_function_call: bool = Field(False, alias="evaluate_function_call")
+    response_model: Optional[Type[BaseModel]] = Field(
+        default=None, alias="response_model", exclude=True
+    )
+    evaluate_function_call: bool = Field(
+        default=False, alias="evaluate_function_call", exclude=True
+    )
 
     class Config:
         extra = Extra.allow

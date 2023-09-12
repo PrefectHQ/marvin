@@ -1,4 +1,4 @@
-from marvin.pydantic import Field, SecretStr, BaseModel, PrivateAttr
+from pydantic import Field, SecretStr, BaseModel, PrivateAttr
 import re
 from marvin.utilities.module_loading import import_string
 from typing import Optional

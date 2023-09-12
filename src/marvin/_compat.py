@@ -10,13 +10,24 @@ PYDANTIC_V2 = PYDANTIC_VERSION.startswith("2.")
 
 if PYDANTIC_V2:
     from pydantic.v1 import validate_arguments  # noqa # type: ignore
+    from pydantic.v1 import main  # noqa # type: ignore
+    from pydantic.v1 import BaseModel as V1BaseModel  # noqa # type: ignore
+
+    ModelMetaclass = main.ModelMetaclass  # noqa # type: ignore
     from pydantic_settings import BaseSettings  # noqa # type: ignore
     from pydantic_settings import SettingsConfigDict  # noqa # type: ignore
     from pydantic import field_validator  # noqa # type: ignore
 
 else:
-    from pydantic import BaseSettings, validate_arguments  # noqa # type: ignore
+    from pydantic import BaseModel as V1BaseModel  # noqa # type: ignore
+    from pydantic import (
+        BaseSettings,  # noqa # type: ignore
+        validate_arguments,  # noqa # type: ignore
+    )
+
+    # noqa # type: ignore
     from pydantic import validator as field_validator  # noqa # type: ignore
+    from pydantic.main import ModelMetaclass  # noqa # type: ignore
 
     SettingsConfigDict = BaseSettings.Config
 

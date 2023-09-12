@@ -1,6 +1,6 @@
 import inspect
 from enum import Enum
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr, validator
@@ -200,8 +200,8 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         ```
     """
 
-    name: str = None
-    description: str = None
+    name: Optional[str] = None
+    description: Optional[str] = None
     state: BaseModel = Field(default_factory=FreeformState)
     plan: AppPlan = Field(default_factory=AppPlan)
     tools: list[Union[Tool, Callable]] = []
@@ -378,7 +378,7 @@ class UpdateState(Tool):
     """
 
     _app: "AIApplication" = PrivateAttr()
-    description = """
+    description: str = """
         Update the application state by providing a list of JSON patch
         documents. The state must always comply with the state's
         JSON schema.
@@ -428,7 +428,7 @@ class UpdatePlan(Tool):
     """
 
     _app: "AIApplication" = PrivateAttr()
-    description = """
+    description: str = """
         Update the application plan by providing a list of JSON patch
         documents. The state must always comply with the plan's JSON schema.
         """
