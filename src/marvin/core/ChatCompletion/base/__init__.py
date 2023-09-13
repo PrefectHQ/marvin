@@ -206,8 +206,11 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         """
         name, raw_arguments = itemgetter("name", "arguments")(self.function_call())
         function = self.callable_registry.get(name)
-        arguments = function.model.parse_raw(raw_arguments)
-        value = function(**arguments.dict(exclude_none=True))
+
+        try:
+            value = function(**json.loads(raw_arguments))
+        except Exception:
+            value = function(data=json.loads(raw_arguments))
 
         if inspect.isawaitable(value):
             value = run_sync(value)
