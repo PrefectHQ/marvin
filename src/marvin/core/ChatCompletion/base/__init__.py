@@ -291,7 +291,7 @@ class BaseChatCompletion(
                 fn_args = message.get("function_call", {}).get("arguments")
 
                 logger.debug_kv(
-                    f"Running function [{fn_name} with arguments: {fn_args}",
+                    f"Running function [{fn_name} with payload: {fn_args}",
                     key_style="green",
                 )
                 try:
