@@ -261,3 +261,97 @@ AI applications can consult and maintain their own application state, which they
 
 #### 📝 Task Planning
 AI Applications can also maintain an internal `AppPlan`, a `list[Task]` that represent the status of the application's current plan. Like the application's state, the plan is updated as the application instance evolves.
+
+## More Examples
+
+### Multi-Tool Chatbot
+With a couple garden-variety hand-crafted python functions:
+
+```python
+async def search(query: str, n_results: int = 3) -> list[str]:
+    """find stuff on the internet
+    
+    example: 
+        "who's that guy always telling people to say hello to his little friend?"
+        >> search("story of al pacino as tony montana")
+    """
+    from itertools import islice
+    from duckduckgo_search import DDGS
+
+    with DDGS() as ddgs:
+        return [
+            r for r in islice(ddgs.text(query, backend="lite"), n_results)
+        ]
+
+async def send_text(message: str, recipient: str) -> str:
+    """send a text message to a phone number
+    
+    example: 
+        "just say hello to my little friend Al Pacino at +15555555555"
+        >> send_text("hello", "+15555555555")
+    """
+    import dotenv, httpx, os
+
+    dotenv.load_dotenv()
+    account_sid, auth_token = os.environ.get("TWILIO_ACCOUNT_SID"), os.environ.get("TWILIO_AUTH_TOKEN")
+
+    async with httpx.AsyncClient() as client:
+        r = await client.post(
+            f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json",
+            data={
+                "From": os.environ.get("TWILIO_PHONE_NUMBER"),
+                "To": recipient,
+                "Body": message,
+            },
+            auth=(account_sid, auth_token)
+        )
+        return r.text
+```
+
+... a model to guide and restrict the growth of our `AIApplication`'s state:
+    
+```python
+from pydantic import BaseModel, Field
+
+class PhoneBook(BaseModel):
+    contacts: dict[str, str] = Field(
+        default_factory=dict,
+        description="A mapping of contact names to phone numbers.",
+    )
+```
+
+... we have a stateful and tool-enabled little chatbot:
+
+```python
+from marvin import AIApplication, settings as marvin_settings
+
+marvin_settings.llm_model = "openai/gpt-4"
+
+chatbot = AIApplication(
+    description="A chatbot that can search the internet and send text messages.",
+    state=PhoneBook(),
+    tools=[search, send_text],
+)
+
+chatbot("hi, i'm marvin - my number is +14242424242")
+
+# Running `update_state` with payload {'patches': [{'op': 'add', 'path': '/contacts/Marvin', 'value': '+14242424242'}]}
+
+# Message(role=<Role.ASSISTANT: 'ASSISTANT'>, content="Hello Marvin, I've saved your number. How can I assist you today?")
+
+# In [20]: chatbot.state
+# Out[20]: PhoneBook(contacts={'Marvin': '+14242424242'})
+
+chatbot("i just really need someone to send me a cat meme right meow")
+
+# Running `search` with payload {'query': 'cat meme', 'n_results': 1}
+
+# Result of `search`: ".. https://www.rd.com/list/hilarious-cat-memes-youll-laugh-at-every-time/ .."
+
+# Running `send_text` with payload {
+#   'message': "Here's a link to some hilarious cat memes: https://www.rd.com/list/hilarious-cat-memes-youll-laugh-at-every-time/",
+#   'recipient': '+14242424242'
+# }
+
+# Message(role=<Role.ASSISTANT: 'ASSISTANT'>, content="I've sent you a text with a link to some hilarious cat memes. Enjoy!")
+```
