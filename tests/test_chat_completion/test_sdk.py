@@ -12,12 +12,11 @@ class TestRegressions:
         v = openai.ChatCompletion.prepare_request()._config.api_key.get_secret_value()
         assert v == "test"
 
-    # TODO: make sure we scoop `OPENAI_API_KEY` as well
     @pytest.mark.parametrize("valid_env_var", ["MARVIN_OPENAI_API_KEY"])
     def test_key_set_via_env(self, monkeypatch, valid_env_var):
+        monkeypatch.setenv(valid_env_var, "test")
         from marvin import openai
 
-        monkeypatch.setenv(valid_env_var, "test")
         v = openai.ChatCompletion.prepare_request()._config.api_key.get_secret_value()
         assert v == "test"
 
