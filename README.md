@@ -165,7 +165,7 @@ print(f"App state: {todo_app.state.json(indent=2)}")
 
 ## Marvin is great for...
 
-#### Scalable APIs, data pipelines, and agents
+### Scalable APIs, data pipelines, and agents:
 
 🏷️ Build bulletproof and lightning-fast classifiers
 
@@ -178,7 +178,7 @@ print(f"App state: {todo_app.state.json(indent=2)}")
 🔎 Scrape web data without custom scrapers
 
 
-#### AI powered apps with access to tools, data, and the web
+### AI powered apps with access to tools, data, and the web:
 😍 Customize ChatGPT with system prompts and tools
 
 🎓 Extract relevant insights from your data
@@ -187,7 +187,7 @@ print(f"App state: {todo_app.state.json(indent=2)}")
 
 🗣️ Quickly add NLP to your app
 
-#### Coming soon...
+### Advanced applications:
 📱 AI applications with persistent state
 
 🕵️ Autonomous agents with high-level planning
