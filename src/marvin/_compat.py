@@ -21,20 +21,20 @@ else:
     SettingsConfigDict = BaseSettings.Config
 
 
-def model_dump(model: type[_ModelT], **kwargs: Any) -> dict[str, Any]:
+def model_dump(model: BaseModel, **kwargs: Any) -> dict[str, Any]:
     if PYDANTIC_V2 and hasattr(model, "model_dump"):
         return model.model_dump(**kwargs)  # type: ignore
     return model.dict(**kwargs)  # type: ignore
 
 
-def model_dump_json(model: type[_ModelT], **kwargs: Any) -> dict[str, Any]:
+def model_dump_json(model: type[BaseModel], **kwargs: Any) -> dict[str, Any]:
     if PYDANTIC_V2 and hasattr(model, "model_dump_json"):
         return model.model_dump_json(**kwargs)  # type: ignore
     return model.json(**kwargs)  # type: ignore
 
 
 def model_json_schema(
-    model: type[_ModelT],
+    model: type[BaseModel],
     name: Optional[str] = None,
     description: Optional[str] = None,
 ) -> dict[str, Any]:
@@ -53,7 +53,7 @@ def model_json_schema(
     return schema
 
 
-def model_schema(model: type[_ModelT], **kwargs: Any) -> dict[str, Any]:
+def model_schema(model: type[BaseModel], **kwargs: Any) -> dict[str, Any]:
     if PYDANTIC_V2 and hasattr(model, "model_json_schema"):
         return model.model_json_schema(**kwargs)  # type: ignore
     return model.schema(**kwargs)  # type: ignore

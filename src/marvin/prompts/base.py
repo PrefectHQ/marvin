@@ -1,29 +1,48 @@
 import abc
 import inspect
-from typing import Union
+from typing import Any, Optional, Self, Union
 
 from pydantic import BaseModel, Field
 
 import marvin
+from marvin._compat import model_dump
 from marvin.utilities.messages import Message, Role
 from marvin.utilities.strings import count_tokens, jinja_env
+
+
+class MessageList(list[Message]):
+    def render(
+        self: Self,
+        **kwargs: Any,
+    ) -> Self:
+        return render_prompts(self, render_kwargs=kwargs)
+
+    def serialize(
+        self: Self,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        return [model_dump(message) for message in self.render(**kwargs)]
 
 
 class PromptList(list[Union["Prompt", Message]]):
     def __init__(self, prompts: list[Union["Prompt", Message]]):
         super().__init__(prompts)
 
-    def render(self, **kwargs):
-        return render_prompts(self, render_kwargs=kwargs)
+    def render(
+        self: Self,
+        content: Optional[str] = None,
+        render_kwargs: Optional[dict[str, Any]] = None,
+    ) -> list[Message]:
+        return render_prompts(self, render_kwargs=render_kwargs)
 
-    def dict(self, **kwargs):
-        return [message.dict() for message in self.render(**kwargs)]
+    def dict(self, **kwargs: Any):
+        return [model_dump(message) for message in self.render(**kwargs)]
 
-    def __call__(self, **kwargs):
+    def __call__(self, **kwargs: Any):
         return self.render(**kwargs)
 
 
-class Prompt(BaseModel, abc.ABC):
+class BasePrompt(BaseModel, abc.ABC):
     """
     Base class for prompt templates.
     """
@@ -50,13 +69,15 @@ class Prompt(BaseModel, abc.ABC):
     )
 
     @abc.abstractmethod
-    def generate(self, **kwargs) -> list["Message"]:
+    def generate(self, **kwargs: Any) -> list["Message"]:
         """
         Abstract method that generates a list of messages from the prompt template
         """
         pass
 
-    def render(self, content, render_kwargs: dict = None):
+    def render(
+        self: Self, content: str, render_kwargs: Optional[dict[str, Any]] = None
+    ) -> str:
         """
         Helper function for rendering any jinja2 template with runtime render kwargs
         """
@@ -64,7 +85,7 @@ class Prompt(BaseModel, abc.ABC):
             **(render_kwargs or {})
         )
 
-    def __or__(self, other):
+    def __or__(self: Self, other: Union[Self, list[Self]]) -> PromptList:
         """
         Supports pipe syntax:
         prompt = (
@@ -77,8 +98,8 @@ class Prompt(BaseModel, abc.ABC):
         if isinstance(other, Prompt):
             return PromptList([self, other])
         # when the right operand is a list
-        elif isinstance(other, list):
-            return PromptList([self] + other)
+        elif isinstance(other, list[Prompt]):
+            return PromptList([self, *other])
         else:
             raise TypeError(
                 f"unsupported operand type(s) for |: '{type(self).__name__}' and"
@@ -107,20 +128,39 @@ class Prompt(BaseModel, abc.ABC):
             )
 
 
-class MessageWrapper(Prompt):
+class Prompt(BasePrompt):
+    def generate(self, **kwargs: Any) -> list[Message]:
+        return Message.from_transcript(
+            self.render(content=self.__doc__ or "", render_kwargs=kwargs)
+        )
+
+    def serialize(self, **kwargs: Any) -> list[dict[str, Any]]:
+        return [
+            {
+                key: value
+                for (key, value) in model_dump(message).items()
+                if key in ["role", "content", "name"] and value is not None
+            }
+            for message in render_prompts(self.generate(**model_dump(self) | kwargs))
+        ]
+
+
+class MessageWrapper(BasePrompt):
     """
     A Prompt class that stores and returns a specific Message
     """
 
     message: Message
 
-    def generate(self, **kwargs) -> list[Message]:
+    def generate(self, **kwargs: Any) -> list[Message]:
         return [self.message]
 
 
 def render_prompts(
-    prompts: list[Union[Prompt, Message]], render_kwargs: dict = None, max_tokens=None
-) -> list[Message]:
+    prompts: Union[list[Message], list[Union[Prompt, Message]]],
+    render_kwargs: Optional[dict[str, Any]] = None,
+    max_tokens: Optional[int] = None,
+) -> MessageList:
     max_tokens = max_tokens or marvin.settings.llm_max_context_tokens
 
     all_messages = []
