@@ -291,8 +291,7 @@ class BaseChatCompletion(
                 fn_args = message.get("function_call", {}).get("arguments")
 
                 logger.debug_kv(
-                    "Function Call",
-                    f"Running function: {fn_name} with arguments: {fn_args}",
+                    f"Running function [{fn_name} with arguments: {fn_args}",
                     key_style="green",
                 )
                 try:
@@ -311,17 +310,17 @@ class BaseChatCompletion(
                 await conversation.asend(messages=[fn_result])
             return conversation
 
-    def chain(self, *args, until: Callable[[T], bool] = lambda _: False, **kwargs):
-        return asyncio.run(self.achain(*args, until=until, **kwargs))
+    def chain(
+        self, *args, until: Callable[[T], bool] = lambda _: False, **kwargs
+    ) -> BaseConversationState:
+        return run_sync(self.achain(*args, until=until, **kwargs))
 
     async def acreate(self, *args, **kwargs):
         request = self.prepare_request(**kwargs)
+        acreate = getattr(self.model(request), self._acreate)
         request_dict = request.schema()
 
-        acreate = getattr(self.model(request), self._acreate)
-
-        stream_handler_fn = request_dict.pop("_stream_handler_fn", None)
-
+        stream_handler_fn = request.dict().pop("_stream_handler_fn", None)
         raw_response = await acreate(
             *args, **request_dict, **{"stream": True if stream_handler_fn else False}
         )
