@@ -73,7 +73,7 @@ class Message(MarvinBaseModel):
             text=text, split_tokens=[role.value.capitalize() for role in Role]
         )
         return [
-            Message(
+            cls(
                 role=Role(pair[0]),
                 content=pair[1],
             )

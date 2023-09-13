@@ -1,6 +1,17 @@
 import abc
 import inspect
-from typing import Any, Optional, Self, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Literal,
+    Optional,
+    Self,
+    TypeVar,
+    Union,
+)
 
 from pydantic import BaseModel, Field
 
@@ -8,6 +19,8 @@ import marvin
 from marvin._compat import model_dump
 from marvin.utilities.messages import Message, Role
 from marvin.utilities.strings import count_tokens, jinja_env
+
+T = TypeVar("T")
 
 
 class MessageList(list[Message]):
@@ -46,6 +59,21 @@ class BasePrompt(BaseModel, abc.ABC):
     """
     Base class for prompt templates.
     """
+
+    functions: Optional[List[Union[Dict[str, Any], Callable[..., Any]]]] = Field(
+        default=None
+    )
+
+    function_call: Optional[
+        Union[
+            Literal["auto"],
+            Dict[Literal["name"], str],
+        ]
+    ] = Field(default=None)
+
+    response_model: Optional[Union[type, Generic[Any], type[BaseModel]]] = Field(
+        default=None
+    )
 
     position: int = Field(
         None,
