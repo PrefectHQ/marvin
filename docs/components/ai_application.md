@@ -328,7 +328,13 @@ from marvin import AIApplication, settings as marvin_settings
 marvin_settings.llm_model = "openai/gpt-4"
 
 chatbot = AIApplication(
+    # a description is generally important for the LLM to precisely understand
+    # our choice of application state model and intended tool use strategy
     description="A chatbot that can search the internet and send text messages.",
+    # we don't need this app to plan anything
+    plan_enabled=False,
+    # you could pre-define some contacts in the initial app state
+    # (e.g PhoneBook(contacts={"Marvin": "+14242424242", **rest_of_contacts}))
     state=PhoneBook(),
     tools=[search, send_text],
 )
