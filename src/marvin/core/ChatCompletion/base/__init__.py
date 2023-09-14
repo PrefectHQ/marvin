@@ -1,3 +1,12 @@
+import asyncio
+import inspect
+import json
+from abc import ABC
+from functools import cached_property
+from operator import itemgetter
+from typing import Callable, Literal, Optional, Union, Type, TypeVar, Any
+
+from marvin.engine.language_models.openai import OpenAIStreamHandler
 from marvin.pydantic import (
     BaseModel,
     BaseSettings,
@@ -7,16 +16,10 @@ from marvin.pydantic import (
     ModelMetaclass,
 )
 from marvin.settings import ENV_PATH
-from typing import Callable, Literal, Optional, Union, Type, Any
-import os
-from pathlib import Path
 from marvin.types import Function
-from functools import cached_property, singledispatch
+from marvin.utilities.async_utils import run_sync
+from marvin.utilities.logging import get_logger
 from marvin.utilities.module_loading import import_string
-from operator import itemgetter
-from abc import ABC, abstractmethod
-
-import json
 
 from .abstract import (
     AbstractChatCompletion,
@@ -203,8 +206,15 @@ class BaseChatResponse(BaseModel, AbstractChatResponse):
         """
         name, raw_arguments = itemgetter("name", "arguments")(self.function_call())
         function = self.callable_registry.get(name)
-        arguments = getattr(function, "model", function).parse_raw(raw_arguments)
-        value = function(**arguments.dict(exclude_none=True))
+
+        try:
+            value = function(**json.loads(raw_arguments))
+        except Exception:
+            value = function(data=json.loads(raw_arguments))
+
+        if inspect.isawaitable(value):
+            value = run_sync(value)
+
         if as_message:
             return {"role": "function", "name": name, "content": str(value)}
         else:
@@ -223,6 +233,9 @@ class MetaChatCompletion(ModelMetaclass):
         if name in ["create", "acreate", "prepare_request"]:
             return cls().__getattribute__(name)
         return super().__getattribute__(name)
+
+
+T = TypeVar("T", bound="BaseChatCompletion")
 
 
 class BaseChatCompletion(
@@ -268,15 +281,61 @@ class BaseChatCompletion(
 
         return self.response(raw=create(*args, **request_dict), request=request)
 
+    async def achain(
+        self, *args, until: Callable[[T], bool] = lambda _: False, **kwargs
+    ) -> BaseConversationState:
+        logger = get_logger("ChatCompletion.achain")
+        with self as conversation:
+            await conversation.asend(*args, **kwargs)  # send off prompts
+            while conversation.last_response.has_function_call() and not until(
+                conversation
+            ):  # check for function calls
+                message = conversation.last_response.raw.get("choices")[0].message
+                fn_name = message.get("function_call", {}).get("name")
+                fn_args = message.get("function_call", {}).get("arguments")
+
+                logger.debug_kv(
+                    "Function",
+                    f"Running {fn_name!r} with payload: {fn_args}",
+                    key_style="green",
+                )
+                try:
+                    fn_result = (
+                        conversation.last_response.call_function()
+                    )  # run function
+                except Exception as exc:
+                    exc_msg = (
+                        f"The function '{fn_name}' encountered an error:"
+                        f" {str(exc)}\n\nThe payload you provided was: {fn_args}\n\nYou"
+                        " can try to fix the error and call the function again."
+                    )
+                    logger.debug_kv("Error", exc_msg, key_style="red")
+                    fn_result = {"role": "system", "content": exc_msg}
+
+                await conversation.asend(messages=[fn_result])
+            return conversation
+
+    def chain(
+        self, *args, until: Callable[[T], bool] = lambda _: False, **kwargs
+    ) -> BaseConversationState:
+        return run_sync(self.achain(*args, until=until, **kwargs))
+
     async def acreate(self, *args, **kwargs):
         request = self.prepare_request(**kwargs)
+        acreate = getattr(self.model(request), self._acreate)
         request_dict = request.schema()
 
-        # TODO: Fix this to make actual async calls
-        acreate = getattr(self.model(request), self._create)
+        stream_handler_fn = request.dict().pop("_stream_handler_fn", None)
+        raw_response = await acreate(
+            *args, **request_dict, **{"stream": True if stream_handler_fn else False}
+        )
+
+        if stream_handler_fn:
+            handler = OpenAIStreamHandler(callback=stream_handler_fn)
+            raw_response = await handler.handle_streaming_response(raw_response)
 
         return self.response(
-            raw=acreate(*args, **request_dict),
+            raw=raw_response,
             request=request,
         )
 

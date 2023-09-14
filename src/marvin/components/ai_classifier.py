@@ -61,8 +61,17 @@ class AIEnumMeta(EnumMeta):
         model: ChatCompletion = None,
         **kwargs,
     ):
-        # If kwargs are provided, handle the missing case
-        if kwargs:
+        # Enum's are tricky things. They are in a sense their own metaclass,
+        # so this function is called twice. The first time it is called, the
+        # cls argument is the AIEnum class itself, and the second time it is
+        # called, the cls argument is the enum class that is being created.
+
+        # To distinguish, we will attach a __model__ attribute to the AIEnum
+        # class. If this attribute exists, then we know that the cls argument
+        # is the enum class that is being created. If it does not exist, then
+        # we know that the cls argument is the AIEnum class itself.
+
+        if hasattr(cls, "__model__"):
             return cls._missing_(
                 value,
                 system_prompt=system_prompt,
