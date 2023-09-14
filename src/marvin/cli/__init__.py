@@ -15,7 +15,7 @@ app.acommand()(chat)
 def version():
     from marvin import __version__
 
-    print(f"{__version__=!r}")
+    print(__version__)
 
 
 if __name__ == "__main__":
