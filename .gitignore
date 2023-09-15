@@ -172,3 +172,6 @@ local_examples/
 
 # Chroma
 .chroma/
+
+# Marvin
+src/marvin/_version.py
