@@ -31,11 +31,10 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
             if k in self.__fields__ and v is not None
         }
         super().__init__(*args, **{**defaults, **kwargs})
-        if self.api_type is None:
-            from marvin import openai
+        from marvin import openai
 
-            if openai.api_key:
-                self.api_key = openai.api_key
+        if openai.api_key and not self.api_key:
+            self.api_key = openai.api_key
 
     class Config(BaseChatCompletionSettings.Config):
         env_prefix = "MARVIN_OPENAI_"

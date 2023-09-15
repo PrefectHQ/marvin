@@ -1,6 +1,6 @@
 from marvin.pydantic import Field, SecretStr
 from marvin.utilities.module_loading import import_string
-from marvin import settings  # noqa # type: ignore
+
 from typing import Literal
 from marvin.core.ChatCompletion.base import (
     BaseChatCompletion,
@@ -36,14 +36,18 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
     )
 
     def __init__(self, *args, **kwargs):
-        from marvin import settings  # noqa
+        from marvin import settings
 
         defaults = {
             k: v
-            for (k, v) in model_dump(settings.openai).items()
+            for (k, v) in model_dump(settings.azure_openai).items()
             if k in self.__fields__ and v is not None
         }
         super().__init__(*args, **{**defaults, **kwargs})
+        from marvin import openai
+
+        if openai.api_key and not self.api_key:
+            self.api_key = openai.api_key
 
     class Config(BaseChatCompletionSettings.Config):
         env_prefix = "MARVIN_AZURE_OPENAI_"

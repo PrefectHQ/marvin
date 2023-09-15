@@ -9,8 +9,18 @@ class TestRegressions:
         from marvin import openai
 
         monkeypatch.setattr(openai, "api_key", "test")
-        v = openai.ChatCompletion.prepare_request()._config.api_key.get_secret_value()
-        assert v == "test"
+        v = openai.ChatCompletion.prepare_request()._config.api_key
+        assert v
+        assert v.get_secret_value() == "test"
+
+    def test_key_set_via_settings(self, monkeypatch):
+        from marvin import openai, settings
+
+        openai_settings = settings.openai
+        monkeypatch.setattr(openai_settings, "api_key", "test")
+        v = openai.ChatCompletion.prepare_request()._config.api_key
+        assert v
+        assert v.get_secret_value() == "test"
 
     @pytest.mark.parametrize("valid_env_var", ["MARVIN_OPENAI_API_KEY"])
     def test_key_set_via_env(self, monkeypatch, valid_env_var):
