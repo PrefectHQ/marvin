@@ -36,6 +36,16 @@ class TestAIFunctions:
         result = await coro
         assert len(result) == 3
 
+    def test_list_fruit_with_generic_type_hints(self):
+        from typing import List
+
+        @ai_fn
+        def list_fruit(n: int) -> List[str]:
+            """Returns a list of `n` fruit"""
+
+        result = list_fruit(3)
+        assert len(result) == 3
+
 
 @pytest_mark_class("llm")
 class TestAIFunctionsMap:

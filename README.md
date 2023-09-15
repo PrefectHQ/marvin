@@ -17,7 +17,7 @@ Marvin's docs are available at [askmarvin.ai](https://www.askmarvin.ai), includi
 ```bash
 pip install marvin
 ```
-Getting started? Head over to our [setup guide](https://www.askmarvin.ai/src/getting_started/installation/).
+Getting started? Head over to our [setup guide](https://www.askmarvin.ai/welcome/installation/).
 
 ## Community
 To ask questions, share ideas, or just chat with like-minded developers, join us on [Discord](https://discord.gg/Kgw4HpcuYG) or [Twitter](https://twitter.com/AskMarvinAI)!
@@ -27,13 +27,13 @@ To ask questions, share ideas, or just chat with like-minded developers, join us
 
 Marvin's high-level abstractions are familiar Python interfaces that make it easy to leverage AI in your application. These interfaces aim to be simple and self-documenting, adding a touch of AI magic to everyday objects.
 
-🧩 [**AI Models**](/components/ai_model) for structuring text into type-safe schemas
+🧩 [**AI Models**](https://www.askmarvin.ai/components/ai_model/) for structuring text into type-safe schemas
 
-🏷️ [**AI Classifiers**](/components/ai_classifier) for bulletproof classification and routing
+🏷️ [**AI Classifiers**](https://www.askmarvin.ai/components/ai_classifier/) for bulletproof classification and routing
 
-🪄 [**AI Functions**](/components/ai_function) for complex business logic and transformations
+🪄 [**AI Functions**](https://www.askmarvin.ai/components/ai_function/) for complex business logic and transformations
 
-🤝 [**AI Applications**](/components/ai_application) for interactive use and persistent state
+🤝 [**AI Applications**](https://www.askmarvin.ai/components/ai_application/) for interactive use and persistent state
 
 ___
 
@@ -165,7 +165,7 @@ print(f"App state: {todo_app.state.json(indent=2)}")
 
 ## Marvin is great for...
 
-#### Scalable APIs, data pipelines, and agents
+### Scalable APIs, data pipelines, and agents:
 
 🏷️ Build bulletproof and lightning-fast classifiers
 
@@ -178,7 +178,7 @@ print(f"App state: {todo_app.state.json(indent=2)}")
 🔎 Scrape web data without custom scrapers
 
 
-#### AI powered apps with access to tools, data, and the web
+### AI powered apps with access to tools, data, and the web:
 😍 Customize ChatGPT with system prompts and tools
 
 🎓 Extract relevant insights from your data
@@ -187,7 +187,7 @@ print(f"App state: {todo_app.state.json(indent=2)}")
 
 🗣️ Quickly add NLP to your app
 
-#### Coming soon...
+### Advanced applications:
 📱 AI applications with persistent state
 
 🕵️ Autonomous agents with high-level planning
