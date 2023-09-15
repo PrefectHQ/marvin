@@ -12,6 +12,7 @@ from marvin.core.ChatCompletion.base import (
     BaseChatResponse,
 )
 from marvin.utilities.strings import jinja_env
+from marvin._compat import model_dump
 
 
 class ChatCompletionSettings(BaseChatCompletionSettings):
@@ -25,6 +26,16 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
     )
     _function_call_prompt: str = f"{__name__}.FunctionCallPrompt"
     max_tokens_to_sample: int = 1000
+
+    def __init__(self, *args, **kwargs):
+        from marvin import settings
+
+        defaults = {
+            k: v
+            for (k, v) in model_dump(settings.anthropic).items()
+            if k in self.__fields__ and v is not None
+        }
+        super().__init__(*args, **{**defaults, **kwargs})
 
     @property
     def function_call_prompt(self):

@@ -7,6 +7,7 @@ from marvin.core.ChatCompletion.base import (
     BaseChatRequest,
     BaseChatResponse,
 )
+from marvin._compat import model_dump
 
 
 class ChatCompletionSettings(BaseChatCompletionSettings):
@@ -22,7 +23,14 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
     api_version: str = Field(None, description="The API version")
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        from marvin import settings
+
+        defaults = {
+            k: v
+            for (k, v) in model_dump(settings.openai).items()
+            if k in self.__fields__ and v is not None
+        }
+        super().__init__(*args, **{**defaults, **kwargs})
         if self.api_type is None:
             from marvin import openai
 
