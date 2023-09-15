@@ -1,5 +1,14 @@
 from types import FunctionType, GenericAlias
-from typing import Any, Callable, Optional, TypeVar, Union, cast
+from typing import (
+    Annotated,
+    Any,
+    Callable,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+    get_origin,
+)
 
 from pydantic import BaseModel, create_model
 from pydantic.version import VERSION as PYDANTIC_VERSION
@@ -100,6 +109,22 @@ def cast_to_model(
     Casts a type or callable to a Pydantic model.
     """
     response = BaseModel
+    if get_origin(function_or_type) is Annotated:
+        metadata: Any = next(iter(function_or_type.__metadata__), None)  # type: ignore
+        annotated_field_name: Optional[str] = field_name
+        if hasattr(metadata, "extra") and isinstance(metadata.extra, dict):
+            annotated_field_name: Optional[str] = metadata.extra.get("name", "")  # type: ignore # noqa
+        elif isinstance(metadata, dict):
+            annotated_field_name: Optional[str] = metadata.get("name", "")  # type: ignore # noqa
+        elif isinstance(metadata, str):
+            annotated_field_name: Optional[str] = metadata
+
+        response = cast_to_model(
+            function_or_type.__origin__,  # type: ignore
+            name=name,
+            description=description,
+            field_name=annotated_field_name,  # type: ignore
+        )
     if isinstance(function_or_type, GenericAlias):
         response = cast_type_or_alias_to_model(
             function_or_type, name, description, field_name
