@@ -1,5 +1,6 @@
 import abc
 import inspect
+from functools import partial, wraps
 from typing import (
     Any,
     Callable,
@@ -8,19 +9,22 @@ from typing import (
     List,
     Literal,
     Optional,
+    ParamSpec,
     Self,
     TypeVar,
     Union,
 )
 
+from jinja2 import Environment
 from pydantic import BaseModel, Field
 
 import marvin
-from marvin._compat import model_dump
+from marvin._compat import cast_to_json, model_dump
 from marvin.utilities.messages import Message, Role
 from marvin.utilities.strings import count_tokens, jinja_env
 
 T = TypeVar("T")
+P = ParamSpec("P")
 
 
 class MessageList(list[Message]):
@@ -60,9 +64,14 @@ class BasePrompt(BaseModel, abc.ABC):
     Base class for prompt templates.
     """
 
-    functions: Optional[List[Union[Dict[str, Any], Callable[..., Any]]]] = Field(
-        default=None
-    )
+    functions: Optional[
+        Union[
+            List[Union[Dict[str, Any], Callable[..., Any], type[BaseModel]]],
+            Callable[
+                ..., List[Union[Dict[str, Any], Callable[..., Any], type[BaseModel]]]
+            ],
+        ]
+    ] = Field(default=None)
 
     function_call: Optional[
         Union[
@@ -71,13 +80,35 @@ class BasePrompt(BaseModel, abc.ABC):
         ]
     ] = Field(default=None)
 
-    response_model: Optional[Union[type, Generic[Any], type[BaseModel]]] = Field(
-        default=None
+    response_model: Optional[
+        Union[
+            type,
+            type[BaseModel],
+            Any,
+            Callable[..., Union[type, type[BaseModel], Any]],
+        ]
+    ] = Field(default=None)
+
+    response_model_name: Optional[str] = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    response_model_description: Optional[str] = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    response_model_field_name: Optional[str] = Field(
+        default=None,
+        exclude=True,
+        repr=False,
     )
 
-    position: int = Field(
-        None,
+    position: Optional[int] = Field(
+        deafult=None,
         repr=False,
+        exclude=True,
         description=(
             "Position indicates the desired index for this prompt's messages. 0"
             " indicates they should be first; 1 indicates they should be second; -1"
@@ -86,8 +117,9 @@ class BasePrompt(BaseModel, abc.ABC):
         ),
     )
     priority: float = Field(
-        10,
+        default=10,
         repr=False,
+        exclude=True,
         description=(
             "Priority indicates the weight given when trimming messages to satisfy"
             " context limitations. Lower numbers indicate higher priority e.g. the"
@@ -156,21 +188,93 @@ class BasePrompt(BaseModel, abc.ABC):
             )
 
 
-class Prompt(BasePrompt):
+class Prompt(BasePrompt, Generic[P]):
     def generate(self, **kwargs: Any) -> list[Message]:
         return Message.from_transcript(
             self.render(content=self.__doc__ or "", render_kwargs=kwargs)
         )
 
-    def serialize(self, **kwargs: Any) -> list[dict[str, Any]]:
-        return [
-            {
-                key: value
-                for (key, value) in model_dump(message).items()
-                if key in ["role", "content", "name"] and value is not None
-            }
-            for message in render_prompts(self.generate(**model_dump(self) | kwargs))
-        ]
+    def serialize(self, **kwargs: Any) -> dict[str, Any]:
+        _dict = {
+            key: value
+            for (key, value) in model_dump(self, exclude_none=True).items()
+            if key in ["functions", "function_call", "response_model"]
+        }
+        if functions := _dict.pop("functions", []):
+            _dict["functions"] = [
+                cast_to_json(function) if callable(function) else function
+                for function in functions
+            ]
+
+        if response_model := _dict.pop("response_model", None):
+            serialized_response_model = cast_to_json(
+                response_model,
+                name=self.response_model_name,
+                description=self.response_model_description,
+                field_name=self.response_model_field_name,
+            )
+            _dict["functions"] = [serialized_response_model]
+            _dict["function_call"] = {"name": serialized_response_model["name"]}
+
+        return {
+            **_dict,
+            "messages": [
+                {
+                    key: value
+                    for (key, value) in model_dump(message).items()
+                    if key in ["role", "content", "name"] and value is not None
+                }
+                for message in render_prompts(
+                    self.generate(**model_dump(self) | kwargs)
+                )
+            ],
+        }
+
+    @classmethod
+    def as_decorator(
+        cls: type[Self],
+        func: Optional[Callable[P, Any]] = None,
+        *,
+        environment: Optional[Environment] = None,
+        ctx: Optional[dict[str, Any]] = None,
+        role: Optional[Role] = None,
+        functions: Optional[
+            list[Union[Callable[..., Any], type[BaseModel], dict[str, Any]]]
+        ] = None,  # noqa
+        function_call: Optional[
+            Union[Literal["auto"], dict[Literal["name"], str]]
+        ] = None,  # noqa
+        response_model: Optional[type[BaseModel]] = None,
+        response_model_name: Optional[str] = None,
+        response_model_description: Optional[str] = None,
+        response_model_field_name: Optional[str] = None,
+    ) -> Union[
+        Callable[[Callable[P, None]], Callable[P, None]],
+        Callable[[Callable[P, None]], Callable[P, Self]],
+        Callable[P, Self],
+    ]:
+        def wrapper(func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> Self:
+            signature = inspect.signature(func)
+            params = signature.bind(*args, **kwargs)
+            params.apply_defaults()
+            response = type(getattr(cls, "__name__", ""), (cls,), params.arguments)(
+                functions=functions,
+                function_call=function_call,
+                response_model=response_model or signature.return_annotation,
+                response_model_name=response_model_name,
+                response_model_description=response_model_description,
+                response_model_field_name=response_model_field_name,
+            )
+            response.__doc__ = func.__doc__
+            return response
+
+        if func is not None:
+            return wraps(func)(partial(wrapper, func))
+
+        def decorator(func: Callable[P, None]) -> Callable[P, Self]:
+            return wraps(func)(partial(wrapper, func))
+
+        return decorator
 
 
 class MessageWrapper(BasePrompt):
