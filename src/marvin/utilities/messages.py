@@ -1,10 +1,11 @@
 import inspect
 from datetime import datetime
 from enum import Enum
-from typing import Optional, Self, Type
+from typing import Optional, Type
 from zoneinfo import ZoneInfo
 
 from pydantic import Field, validator
+from typing_extensions import Self
 
 from marvin.utilities.types import MarvinBaseModel
 
