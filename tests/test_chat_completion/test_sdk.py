@@ -30,6 +30,13 @@ class TestRegressions:
         v = openai.ChatCompletion.prepare_request()._config.api_key.get_secret_value()
         assert v == "test"
 
+    def test_key_set_via_mutated_settings(self):
+        from marvin import openai, settings
+
+        settings.openai.api_key = "test"
+        v = openai.ChatCompletion.prepare_request()._config.api_key.get_secret_value()
+        assert v == "test"
+
     def facet(self):
         messages = [{"role": "user", "content": "hey"}]
         from marvin import openai

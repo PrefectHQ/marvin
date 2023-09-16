@@ -7,6 +7,7 @@ from marvin.core.ChatCompletion.base import (
     BaseChatRequest,
     BaseChatResponse,
 )
+import os
 from marvin._compat import model_dump
 
 
@@ -21,6 +22,11 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
     api_type: str = None
     api_base: str = Field(None, description="The endpoint the OpenAI API.")
     api_version: str = Field(None, description="The API version")
+    max_tokens: int = Field(
+        default=1500, description="The max number of tokens for AI completions"
+    )
+    temperature: float = Field(default=0.8)
+    request_timeout: float = Field(default=600.0)
 
     def __init__(self, *args, **kwargs):
         from marvin import settings
@@ -30,11 +36,31 @@ class ChatCompletionSettings(BaseChatCompletionSettings):
             for (k, v) in model_dump(settings.openai).items()
             if k in self.__fields__ and v is not None
         }
-        super().__init__(*args, **{**defaults, **kwargs})
-        from marvin import openai
 
-        if openai.api_key and not self.api_key:
-            self.api_key = openai.api_key
+        defaults["max_tokens"] = settings.llm_max_tokens
+        defaults["temperature"] = settings.llm_temperature
+        defaults["request_timeout"] = settings.llm_request_timeout_seconds
+
+        super().__init__(*args, **{**defaults, **kwargs})
+
+        from marvin import openai, settings
+
+        if openai.api_key or settings.openai.api_key:
+            """
+            TODO: Simplify this experience. We're technically on the hook here
+            since we provide mutating runtime settings AND setting openai.api_key
+            = 'whatever.
+            """
+            from marvin import openai, settings
+
+            if key := os.environ.get("MARVIN_OPENAI_API_KEY", None):
+                self.api_key = key
+            elif key := os.environ.get("OPENAI_API_KEY", None):
+                self.api_key = key
+            elif openai.api_key:
+                self.api_key = openai.api_key
+            elif settings.openai.api_key:
+                self.api_key = settings.openai.api_key.get_secret_value()
 
     class Config(BaseChatCompletionSettings.Config):
         env_prefix = "MARVIN_OPENAI_"
