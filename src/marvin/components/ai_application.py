@@ -307,7 +307,9 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             functions=tools, model=model, _stream_handler_fn=self.stream_handler
         ).achain(messages=cleaned_messages)
 
-        for msg in (messages := Message.from_conversation(conversation)):
+        messages = Message.from_conversation(conversation)
+
+        for msg in messages:
             self.history.add_message(msg)
 
         self.logger.debug_kv("AI response", messages[-1].content, key_style="blue")
