@@ -26,26 +26,46 @@ class OpenAISettings(MarvinBaseSettings):
     class Config(MarvinBaseSettings.Config):
         env_prefix = "MARVIN_OPENAI_"
 
-    api_key: SecretStr = Field(
+    api_key: Optional[SecretStr] = Field(
         default=None,
         # for OpenAI convenience, we first check the Marvin-specific env var,
         # then the generic one
         env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"],
     )
     organization: Optional[str] = Field(default=None)
-    embedding_engine: str = "text-embedding-ada-002"
+    embedding_engine: str = Field(default="text-embedding-ada-002", exclude=True)
     api_type: Optional[str] = Field(default=None)
     api_base: Optional[str] = Field(
         default=None, description="The endpoint the OpenAI API."
     )
     api_version: Optional[str] = Field(default=None, description="The API version")
 
+    def get_defaults(self, settings: "Settings") -> dict[str, Any]:
+        response: dict[str, Any] = {}
+        if settings.llm_max_context_tokens > 0:
+            response["max_tokens"] = settings.llm_max_tokens
+        response["api_key"] = self.api_key and self.api_key.get_secret_value()
+        response["temperature"] = settings.llm_temperature
+        response["request_timeout"] = settings.llm_request_timeout_seconds
+        return {k: v for k, v in response.items() if v is not None}
+
 
 class AnthropicSettings(MarvinBaseSettings):
     class Config(MarvinBaseSettings.Config):
         env_prefix = "MARVIN_ANTHROPIC_"
 
-    api_key: Optional[SecretStr] = Field(default=None)
+    api_key: Optional[SecretStr] = Field(
+        default=None, env=["MARVIN_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"]
+    )
+
+    def get_defaults(self, settings: "Settings") -> dict[str, Any]:
+        response: dict[str, Any] = {}
+        if settings.llm_max_context_tokens > 0:
+            response["max_tokens_to_sample"] = settings.llm_max_tokens
+        response["api_key"] = self.api_key and self.api_key.get_secret_value()
+        response["temperature"] = settings.llm_temperature
+        response["timeout"] = settings.llm_request_timeout_seconds
+        return {k: v for k, v in response.items() if v is not None}
 
 
 class AzureOpenAI(MarvinBaseSettings):
@@ -71,6 +91,15 @@ class AzureOpenAI(MarvinBaseSettings):
             " you deployed a model."
         ),
     )
+
+    def get_defaults(self, settings: "Settings") -> dict[str, Any]:
+        response: dict[str, Any] = {}
+        if settings.llm_max_context_tokens > 0:
+            response["max_tokens"] = settings.llm_max_tokens
+        response["api_key"] = self.api_key and self.api_key.get_secret_value()
+        response["temperature"] = settings.llm_temperature
+        response["request_timeout"] = settings.llm_request_timeout_seconds
+        return {k: v for k, v in response.items() if v is not None}
 
 
 class Settings(MarvinBaseSettings):
@@ -139,6 +168,17 @@ class Settings(MarvinBaseSettings):
 
         marvin.utilities.logging.setup_logging(level=v)
         return v
+
+    def get_defaults(self, provider: Optional[str] = None) -> dict[str, Any]:
+        response: dict[str, Any] = {}
+        if provider == "openai":
+            return self.openai.get_defaults(self)
+        elif provider == "anthropic":
+            return self.anthropic.get_defaults(self)
+        elif provider == "azure_openai":
+            return self.azure_openai.get_defaults(self)
+        else:
+            return response
 
 
 settings = Settings()

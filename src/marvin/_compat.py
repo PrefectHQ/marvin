@@ -21,7 +21,7 @@ else:
     SettingsConfigDict = BaseSettings.Config
 
 
-def model_dump(model: type[_ModelT], **kwargs: Any) -> dict[str, Any]:
+def model_dump(model: _ModelT, **kwargs: Any) -> dict[str, Any]:
     if PYDANTIC_V2 and hasattr(model, "model_dump"):
         return model.model_dump(**kwargs)  # type: ignore
     return model.dict(**kwargs)  # type: ignore
