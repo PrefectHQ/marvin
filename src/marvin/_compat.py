@@ -59,6 +59,12 @@ def model_schema(model: type[_ModelT], **kwargs: Any) -> dict[str, Any]:
     return model.schema(**kwargs)  # type: ignore
 
 
+def model_copy(model: _ModelT, **kwargs: Any) -> _ModelT:
+    if PYDANTIC_V2 and hasattr(model, "model_copy"):
+        return model.model_copy(**kwargs)  # type: ignore
+    return model.copy(**kwargs)  # type: ignore
+
+
 def cast_callable_to_model(
     function: Callable[..., Any],
     name: Optional[str] = None,
