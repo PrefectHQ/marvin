@@ -75,6 +75,7 @@ def cast_callable_to_model(
         fields = cast(dict[str, Any], response.__fields__)  # type: ignore
         fields.pop(field, None)
     response.__title__ = name or function.__name__
+    response.__name__ = name or function.__name__
     response.__doc__ = description or function.__doc__
     return response  # type: ignore
 
