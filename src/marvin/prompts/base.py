@@ -19,7 +19,7 @@ from jinja2 import Environment
 from pydantic import BaseModel, Field
 
 import marvin
-from marvin._compat import cast_to_json, model_dump
+from marvin._compat import cast_to_model, model_dump
 from marvin.utilities.messages import Message, Role
 from marvin.utilities.strings import count_tokens, jinja_env
 
@@ -106,7 +106,7 @@ class BasePrompt(BaseModel, abc.ABC):
     )
 
     position: Optional[int] = Field(
-        deafult=None,
+        default=None,
         repr=False,
         exclude=True,
         description=(
@@ -188,46 +188,24 @@ class BasePrompt(BaseModel, abc.ABC):
             )
 
 
-class Prompt(BasePrompt, Generic[P]):
+class Prompt(BasePrompt, Generic[P], extra="allow", arbitrary_types_allowed=True):
     def generate(self, **kwargs: Any) -> list[Message]:
-        return Message.from_transcript(
+        response = Message.from_transcript(
             self.render(content=self.__doc__ or "", render_kwargs=kwargs)
         )
+        return response
 
     def serialize(self, **kwargs: Any) -> dict[str, Any]:
-        _dict = {
-            key: value
-            for (key, value) in model_dump(self, exclude_none=True).items()
-            if key in ["functions", "function_call", "response_model"]
-        }
-        if functions := _dict.pop("functions", []):
-            _dict["functions"] = [
-                cast_to_json(function) if callable(function) else function
-                for function in functions
-            ]
-
-        if response_model := _dict.pop("response_model", None):
-            serialized_response_model = cast_to_json(
-                response_model,
-                name=self.response_model_name,
-                description=self.response_model_description,
-                field_name=self.response_model_field_name,
-            )
-            _dict["functions"] = [serialized_response_model]
-            _dict["function_call"] = {"name": serialized_response_model["name"]}
-
+        extras = model_dump(
+            self,
+            exclude=set(self.__fields__.keys()),
+            exclude_none=True,
+        )
         return {
-            **_dict,
             "messages": [
-                {
-                    key: value
-                    for (key, value) in model_dump(message).items()
-                    if key in ["role", "content", "name"] and value is not None
-                }
-                for message in render_prompts(
-                    self.generate(**model_dump(self) | kwargs)
-                )
-            ],
+                model_dump(message, include={"content", "role"})
+                for message in render_prompts(self.generate(**extras | kwargs))
+            ]
         }
 
     @classmethod
@@ -257,10 +235,18 @@ class Prompt(BasePrompt, Generic[P]):
             signature = inspect.signature(func)
             params = signature.bind(*args, **kwargs)
             params.apply_defaults()
-            response = type(getattr(cls, "__name__", ""), (cls,), params.arguments)(
+            response = type(getattr(cls, "__name__", ""), (cls,), {})(
+                __params__=params.arguments,
+                **params.arguments,
+                **ctx or {},
                 functions=functions,
                 function_call=function_call,
-                response_model=response_model or signature.return_annotation,
+                response_model=cast_to_model(
+                    response_model or signature.return_annotation,
+                    name=response_model_name,
+                    description=response_model_description,
+                    field_name=response_model_field_name,
+                ),
                 response_model_name=response_model_name,
                 response_model_description=response_model_description,
                 response_model_field_name=response_model_field_name,
@@ -275,6 +261,9 @@ class Prompt(BasePrompt, Generic[P]):
             return wraps(func)(partial(wrapper, func))
 
         return decorator
+
+
+prompt_fn = Prompt.as_decorator
 
 
 class MessageWrapper(BasePrompt):

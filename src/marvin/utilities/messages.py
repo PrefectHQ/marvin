@@ -14,7 +14,7 @@ from marvin.utilities.types import MarvinBaseModel
 class Role(Enum):
     SYSTEM = "system"
     ASSISTANT = "assistant"
-    USER = "uer"
+    USER = "user"
     FUNCTION_REQUEST = "function_request"
     FUNCTION_RESPONSE = "function_response"
 
