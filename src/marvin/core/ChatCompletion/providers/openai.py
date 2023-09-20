@@ -26,13 +26,13 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         Serialize the request as per OpenAI's requirements.
         """
 
-        extras = model_dump(
+        extras = self.defaults | model_dump(
             request,
             exclude={"functions", "function_call", "response_model"},
+            exclude_none=True,
         )
         functions: dict[str, Any] = {}
         function_call: Any = {}
-
         for message in extras.get("messages", []):
             if message.get("name", -1) is None:
                 message.pop("name", None)
@@ -51,7 +51,8 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
             ]
             if request.function_call:
                 function_call["function_call"] = request.function_call
-        return self.defaults | extras | functions | function_call
+        print("extras", extras)
+        return extras | functions | function_call
 
     def _create_request(self, **kwargs: Any) -> Request[T]:
         """
