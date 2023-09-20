@@ -1,146 +1,172 @@
-from marvin.pydantic import Field, SecretStr, BaseModel, PrivateAttr
-import re
-from marvin.utilities.module_loading import import_string
-from typing import Optional
-from anthropic import AI_PROMPT, HUMAN_PROMPT
-from functools import cached_property
-from .prompts import FUNCTION_PROMPT as FunctionCallPrompt
-from marvin.core.ChatCompletion.base import (
-    BaseChatCompletion,
-    BaseChatCompletionSettings,
-    BaseChatRequest,
-    BaseChatResponse,
+from typing import (
+    Any,
+    TypeVar,
+    Callable,
+    Awaitable,
 )
-from marvin.utilities.strings import jinja_env
+import inspect
+from marvin._compat import cast_to_json, model_dump
+from marvin.settings import settings
+from pydantic import BaseModel
+from .prompt import render_anthropic_functions_prompt, handle_anthropic_response
+from ...abstract import AbstractChatCompletion
+from ...handlers import Request, Response
+
+T = TypeVar(
+    "T",
+    bound=BaseModel,
+)
 
 
-class ChatCompletionSettings(BaseChatCompletionSettings):
+def get_anthropic_create(**kwargs: Any) -> tuple[Callable[..., Any], dict[str, Any]]:
     """
-    Provider-specific settings.
+    Get the Anthropic create function and the default parameters,
+    pruned of parameters that are not accepted by the constructor.
+    """
+    import anthropic
+
+    params = dict(inspect.signature(anthropic.Anthropic).parameters)
+
+    return anthropic.Anthropic(
+        **{k: v for k, v in kwargs.items() if k in params.keys()}
+    ).completions.create, {k: v for k, v in kwargs.items() if k not in params.keys()}
+
+
+def get_anthropic_acreate(
+    **kwargs: Any,
+) -> tuple[Callable[..., Awaitable[Any]], dict[str, Any]]:  # noqa
+    """
+    Get the Anthropic acreate function and the default parameters,
+    pruned of parameters that are not accepted by the constructor.
+    """
+    import anthropic
+
+    params = dict(inspect.signature(anthropic.AsyncAnthropic).parameters)
+    return anthropic.AsyncAnthropic(
+        **{k: v for k, v in kwargs.items() if k in params.keys()}
+    ).completions.create, {k: v for k, v in kwargs.items() if k not in params.keys()}
+
+
+class AnthropicChatCompletion(AbstractChatCompletion[T]):
+    """
+    Anthropic-specific implementation of the ChatCompletion.
     """
 
-    model: str = "claude-2"
-    api_key: SecretStr = Field(
-        None, env=["MARVIN_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"]
-    )
-    _function_call_prompt: str = f"{__name__}.FunctionCallPrompt"
-    max_tokens_to_sample: int = 1000
+    def __init__(self, **kwargs: Any):
+        """
+        Filters out the parameters that are not accepted by the constructor.
+        """
+        import anthropic
 
-    @property
-    def function_call_prompt(self):
-        return import_string(self._function_call_prompt)
+        kwargs = {
+            k: v
+            for k, v in kwargs.items()
+            if k not in dict(inspect.signature(anthropic.Anthropic).parameters).keys()
+        }
+        super().__init__(defaults=settings.get_defaults("anthropic") | kwargs)
 
-    class Config(BaseChatCompletionSettings.Config):
-        exclude_none = True
-        exclude = {"api_key"}
+    def _serialize_request(self, request: Request[T]) -> dict[str, Any]:
+        """
+        Serialize the request as per OpenAI's requirements.
+        """
 
-
-class ChatRequest(BaseChatRequest):
-    prompt: Optional[str] = Field(default=None)
-    _config: ChatCompletionSettings = PrivateAttr(
-        default_factory=ChatCompletionSettings
-    )
-
-    class Config(BaseChatRequest.Config):
-        exclude = BaseChatRequest.Config.exclude.union(
-            {"messages", "api_key", "functions", "function_call"}
+        extras = model_dump(
+            request,
+            exclude={"messages", "functions", "function_call", "response_model"},
         )
+        functions: dict[str, Any] = {}
+        function_call: Any = {}
 
+        prompt = "\n\nHuman:"
+        for message in request.messages or []:
+            if message.role != "function" and message.content:
+                prompt += f"\n\n{'Human' if message.role == 'user' else 'Assistant'}"
+                prompt += f": {message.content}"
 
-class ChatResponse(BaseChatResponse):
-    @property
-    def choices(self):
-        # TODO: This is a hack, should use native classes
-        class AttrDict(dict):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                self.__dict__ = self
+        if request.response_model:
+            schema = cast_to_json(request.response_model)
+            functions["functions"] = [schema]
+            function_call["function_call"] = {"name": schema.get("name")}
 
-        return [
-            AttrDict(
-                **{
-                    "index": 0,
-                    "message": AttrDict(
-                        **{
-                            "role": "assistant",
-                            "content": self.raw.completion,
-                        }
-                    ),
-                    "finish_reason": "stop",
-                }
-            )
-        ]
-
-    @property
-    def message(self):
-        """
-        This property extracts the message from the raw response.
-        If there is only one choice, it returns the message from that choice.
-        Otherwise, it returns a list of messages from all choices.
-        """
-        return self.raw.completion
-
-    def function_call(self, *args, **kwargs):
-        """
-        This property extracts the function call from the message.
-        If the message is a list, it returns a list of function calls from all messages.
-        Otherwise, it returns the function call from the message.
-        """
-
-        class AnthropicFunctionCall(BaseModel):
-            mode: str
-            name: str
-            arguments: str
-
-            @classmethod
-            def parse_raw(cls, raw: str):
-                return super().parse_raw(re.sub("^[^{]*|[^}]*$", "", raw))
-
-        return AnthropicFunctionCall.parse_raw(self.message).dict()
-
-
-class ChatCompletion(BaseChatCompletion):
-    _module: str = "anthropic.Anthropic"
-    _create: str = "create"
-    _acreate: str = "acreate"
-
-    _request_class: ChatRequest = ChatRequest
-    _response_class: ChatResponse = ChatResponse
-
-    def model(self, request):
-        """
-        This property returns the model name.
-        """
-        return self.module(
-            api_key=request._config.api_key.get_secret_value()
-        ).completions
-
-    def prepare_request(self, **kwargs):
-        """
-        This method prepares the request for the API call.
-        It sets the prompt to the messages in the request.
-        """
-        request = super().prepare_request(**kwargs)
-        request.prompt = ""
-        if next(iter(request.messages), {}).get("content", None) != "user":
-            request.prompt += HUMAN_PROMPT
-        request.prompt += " ".join(
-            [
-                "{prompt} {content}".format(
-                    prompt={"user": HUMAN_PROMPT}.get(message.get("role"), AI_PROMPT),
-                    content=message.get("content", ""),
-                )
-                for message in request.messages
+        elif request.functions:
+            functions["functions"] = [
+                cast_to_json(function) if callable(function) else function
+                for function in request.functions
             ]
-        )
-        if request.functions:
-            request.prompt += (
-                AI_PROMPT
-                + " "
-                + jinja_env.from_string(request._config.function_call_prompt).render(
-                    functions=request.schema(exclude=set()).get("functions"),
-                    function_call=request.function_call,
-                )
+            if request.function_call:
+                function_call["function_call"] = request.function_call
+
+        if functions:
+            prompt += render_anthropic_functions_prompt(
+                functions=functions.pop("functions", []),
+                function_call=function_call.pop("function_call", None),
             )
-        request.prompt += AI_PROMPT
-        return request
+
+        for message in request.messages or []:
+            if message.role == "function":
+                prompt += "\n\nAssistant"
+                prompt += f": The result of {message.name} is {message.content}."
+            if message.function_call:
+                prompt += "\n\nAssistant"
+                prompt += f": I will call the {message.function_call.name} function."
+
+        prompt += "\n\nAssistant: "
+        prompt.replace("\n\nHuman:\n\nHuman: ", "\n\nHuman: ")
+        return self.defaults | extras | {"prompt": prompt}
+
+    def _create_request(self, **kwargs: Any) -> Request[T]:
+        """
+        Prepare and return an OpenAI-specific request object.
+        """
+        return Request(**kwargs)
+
+    def _parse_response(self, response: Any) -> Response[T]:
+        """
+        Parse the response received from OpenAI.
+        """
+        # Convert OpenAI's response into a standard format or object
+
+        content, function_call = handle_anthropic_response(response.completion)
+
+        return Response(
+            **{
+                "id": response.log_id,
+                "model": response.model,
+                "object": "text_completion",
+                "created": 0,
+                "choices": [
+                    {
+                        "index": 0,
+                        "finish_reason": "stop",
+                        "message": {
+                            "content": content,  # type: ignore
+                            "role": "assistant",
+                            "function_call": function_call,
+                        },
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0,
+                },
+            }
+        )
+
+    def _send_request(self, **serialized_request: Any) -> Any:
+        """
+        Send the serialized request to OpenAI's endpoint/service.
+        """
+        # Use openai's library functions to send the request and get a response
+        # Example:
+        create, params = get_anthropic_create(**serialized_request)
+        response = create(**params)
+        return response
+
+    async def _send_request_async(self, **serialized_request: Any) -> Response[T]:
+        """
+        Send the serialized request to OpenAI's endpoint asynchronously.
+        """
+        create, params = get_anthropic_acreate(**serialized_request)
+        response = await create(**params)
+        return response
