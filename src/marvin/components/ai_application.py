@@ -344,6 +344,7 @@ class JSONPatchModel(BaseModel):
 
     class Config:
         allow_population_by_field_name = True
+        populate_by_name = True
 
 
 class UpdateState(Tool):
@@ -378,7 +379,7 @@ class UpdateState(Tool):
     """
 
     _app: "AIApplication" = PrivateAttr()
-    description = """
+    description: str = """
         Update the application state by providing a list of JSON patch
         documents. The state must always comply with the state's
         JSON schema.
@@ -428,7 +429,7 @@ class UpdatePlan(Tool):
     """
 
     _app: "AIApplication" = PrivateAttr()
-    description = """
+    description: str = """
         Update the application plan by providing a list of JSON patch
         documents. The state must always comply with the plan's JSON schema.
         """

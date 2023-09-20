@@ -4,21 +4,17 @@ import re
 from functools import partial
 from typing import Callable, Optional, Type
 
-from pydantic import BaseModel, validate_arguments
-from pydantic.decorator import (
-    ALT_V_ARGS,
-    ALT_V_KWARGS,
-    V_DUPLICATE_KWARGS,
-    V_POSITIONAL_ONLY_NAME,
-)
+from pydantic import BaseModel
+
+from marvin._compat import validate_arguments
 
 extraneous_fields = [
     "args",
     "kwargs",
-    ALT_V_ARGS,
-    ALT_V_KWARGS,
-    V_POSITIONAL_ONLY_NAME,
-    V_DUPLICATE_KWARGS,
+    "ALT_V_ARGS",
+    "ALT_V_KWARGS",
+    "V_POSITIONAL_ONLY_NAME",
+    "V_DUPLICATE_KWARGS",
 ]
 
 
