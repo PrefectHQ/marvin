@@ -260,11 +260,9 @@ class TestAIModelMapping:
     def test_location(self):
         @ai_model
         class City(BaseModel):
-            name: str = Field(
-                description="The normalized and correct city name"  # noqa
-            )
+            name: str = Field(description="The correct city name, e.g. Omaha")  # noqa
 
-        result = City.map(
+        results = City.map(
             [
                 "the windy city",
                 "chicago IL",
@@ -274,9 +272,9 @@ class TestAIModelMapping:
                 "chi-town",
             ]
         )
-        assert len(result) == 6
-        expected = City(name="Chicago")
-        assert all(r == expected for r in result)
+        assert len(results) == 6
+        for result in results:
+            assert result.name == "Chicago"
 
     def test_instructions(self):
         @ai_model
