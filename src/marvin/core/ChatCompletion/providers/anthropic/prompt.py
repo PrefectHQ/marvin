@@ -1,3 +1,10 @@
+import json
+import re
+from typing import Any, Literal, Optional, Union
+
+from jinja2 import Environment
+from marvin.utilities.strings import jinja_env
+
 FUNCTION_PROMPT = """
 # Functions
 
@@ -65,4 +72,34 @@ The user will execute the function and respond with its result verbatim.
 # function_call instruction
 
 The user provided the following `function_call` instruction: {{ function_call }}
+
+# final_response instruction
+
+When you choose to call no functions, your final answer should be summative.
+Do not acknowledge any internal functions you had access to or chose to call.
+
 """
+
+
+def render_anthropic_functions_prompt(
+    functions: list[dict[str, Any]],
+    function_call: Union[dict[Literal["name"], str], Literal["auto"]],
+    environment: Optional[Environment] = None,
+) -> str:
+    env = environment or jinja_env
+    template = env.from_string(FUNCTION_PROMPT)
+    return template.render(functions=functions, function_call=function_call or "auto")
+
+
+def handle_anthropic_response(
+    completion: str,
+) -> tuple[Optional[str], Optional[dict[str, Any]]]:
+    try:
+        response: dict[str, Any] = json.loads(
+            re.findall(r"\{.*\}", completion, re.DOTALL)[0]
+        )
+        if response.pop("mode", None) == "function_call":
+            return None, response
+    except Exception:
+        pass
+    return completion, None

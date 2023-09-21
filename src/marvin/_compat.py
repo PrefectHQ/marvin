@@ -21,7 +21,7 @@ else:
     SettingsConfigDict = BaseSettings.Config
 
 
-def model_dump(model: type[_ModelT], **kwargs: Any) -> dict[str, Any]:
+def model_dump(model: _ModelT, **kwargs: Any) -> dict[str, Any]:
     if PYDANTIC_V2 and hasattr(model, "model_dump"):
         return model.model_dump(**kwargs)  # type: ignore
     return model.dict(**kwargs)  # type: ignore
@@ -59,6 +59,12 @@ def model_schema(model: type[_ModelT], **kwargs: Any) -> dict[str, Any]:
     return model.schema(**kwargs)  # type: ignore
 
 
+def model_copy(model: _ModelT, **kwargs: Any) -> _ModelT:
+    if PYDANTIC_V2 and hasattr(model, "model_copy"):
+        return model.model_copy(**kwargs)  # type: ignore
+    return model.copy(**kwargs)  # type: ignore
+
+
 def cast_callable_to_model(
     function: Callable[..., Any],
     name: Optional[str] = None,
@@ -69,6 +75,7 @@ def cast_callable_to_model(
         fields = cast(dict[str, Any], response.__fields__)  # type: ignore
         fields.pop(field, None)
     response.__title__ = name or function.__name__
+    response.__name__ = name or function.__name__
     response.__doc__ = description or function.__doc__
     return response  # type: ignore
 
