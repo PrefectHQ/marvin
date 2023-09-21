@@ -41,10 +41,24 @@ class OpenAISettings(MarvinBaseSettings):
     api_version: Optional[str] = Field(default=None, description="The API version")
 
     def get_defaults(self, settings: "Settings") -> dict[str, Any]:
+        import os
+
+        import openai
+
+        from marvin import openai as marvin_openai
+
         response: dict[str, Any] = {}
         if settings.llm_max_context_tokens > 0:
             response["max_tokens"] = settings.llm_max_tokens
         response["api_key"] = self.api_key and self.api_key.get_secret_value()
+        if os.environ.get("MARVIN_OPENAI_API_KEY"):
+            response["api_key"] = os.environ["MARVIN_OPENAI_API_KEY"]
+        if os.environ.get("OPENAI_API_KEY"):
+            response["api_key"] = os.environ["OPENAI_API_KEY"]
+        if openai.api_key:
+            response["api_key"] = openai.api_key
+        if marvin_openai.api_key:
+            response["api_key"] = marvin_openai.api_key
         response["temperature"] = settings.llm_temperature
         response["request_timeout"] = settings.llm_request_timeout_seconds
         return {k: v for k, v in response.items() if v is not None}
@@ -65,6 +79,10 @@ class AnthropicSettings(MarvinBaseSettings):
         response["api_key"] = self.api_key and self.api_key.get_secret_value()
         response["temperature"] = settings.llm_temperature
         response["timeout"] = settings.llm_request_timeout_seconds
+        if os.environ.get("MARVIN_ANTHROPIC_API_KEY"):
+            response["api_key"] = os.environ["MARVIN_ANTHROPIC_API_KEY"]
+        if os.environ.get("ANTHROPIC_API_KEY"):
+            response["api_key"] = os.environ["ANTHROPIC_API_KEY"]
         return {k: v for k, v in response.items() if v is not None}
 
 
@@ -99,6 +117,23 @@ class AzureOpenAI(MarvinBaseSettings):
         response["api_key"] = self.api_key and self.api_key.get_secret_value()
         response["temperature"] = settings.llm_temperature
         response["request_timeout"] = settings.llm_request_timeout_seconds
+
+        import os
+
+        import openai
+
+        from marvin import openai as marvin_openai
+
+        response: dict[str, Any] = {}
+        if settings.llm_max_context_tokens > 0:
+            response["max_tokens"] = settings.llm_max_tokens
+        response["api_key"] = self.api_key and self.api_key.get_secret_value()
+        if os.environ.get("MARVIN_AZURE_OPENAI_API_KEY"):
+            response["api_key"] = os.environ["MARVIN_AZURE_OPENAI_API_KEY"]
+        if openai.api_key:
+            response["api_key"] = openai.api_key
+        if marvin_openai.api_key:
+            response["api_key"] = marvin_openai.api_key
         return {k: v for k, v in response.items() if v is not None}
 
 

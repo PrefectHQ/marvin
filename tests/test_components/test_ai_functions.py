@@ -1,7 +1,7 @@
 import inspect
 
 import pytest
-from marvin import ai_fn
+from marvin.components.ai_function import ai_fn
 
 from tests.utils.mark import pytest_mark_class
 

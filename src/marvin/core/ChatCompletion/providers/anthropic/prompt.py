@@ -5,6 +5,8 @@ from typing import Any, Literal, Optional, Union
 from jinja2 import Environment
 from marvin.utilities.strings import jinja_env
 
+from ...utils import parse_raw
+
 FUNCTION_PROMPT = """
 # Functions
 
@@ -95,11 +97,14 @@ def handle_anthropic_response(
     completion: str,
 ) -> tuple[Optional[str], Optional[dict[str, Any]]]:
     try:
-        response: dict[str, Any] = json.loads(
+        response: dict[str, Any] = parse_raw(
             re.findall(r"\{.*\}", completion, re.DOTALL)[0]
         )
         if response.pop("mode", None) == "function_call":
-            return None, response
+            return None, {
+                "name": response.pop("name", None),
+                "arguments": json.dumps(response.pop("arguments", None)),
+            }
     except Exception:
         pass
     return completion, None

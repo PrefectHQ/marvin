@@ -54,6 +54,7 @@ class Conversation(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed
                 *messages,
             ],
         )
+        print(turn)
         self.turns.append(turn)
         return turn
 
@@ -93,7 +94,7 @@ class AbstractChatCompletion(
         return copy
 
     @abstractmethod
-    def _serialize_request(self, request: Request[T]) -> dict[str, Any]:
+    def _serialize_request(self, request: Optional[Request[T]]) -> dict[str, Any]:
         """
         Serialize the request.
         This should be implemented by derived classes based on their specific needs.
@@ -150,9 +151,10 @@ class AbstractChatCompletion(
         response = self._parse_response(response_data)
         return Turn(
             request=Request(
-                **serialized_request
+                **self.defaults
+                | serialized_request
                 | model_dump(request)
-                | {"response_model": response_model}
+                | ({"response_model": response_model} if response_model else {})
             ),
             response=response,
         )
@@ -170,9 +172,10 @@ class AbstractChatCompletion(
         response = self._parse_response(response_data)
         return Turn(
             request=Request(
-                **serialized_request
+                **self.defaults
+                | serialized_request
                 | model_dump(request)
-                | {"response_model": response_model}
+                | ({"response_model": response_model} if response_model else {})
             ),
             response=response,
         )

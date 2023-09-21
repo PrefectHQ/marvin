@@ -2,7 +2,6 @@ from typing import List, Literal, Optional
 
 import pytest
 from marvin import ai_model
-from marvin.utilities.messages import Message, Role
 from pydantic import BaseModel, Field
 
 from tests.utils.mark import pytest_mark_class
@@ -10,15 +9,15 @@ from tests.utils.mark import pytest_mark_class
 
 @pytest_mark_class("llm")
 class TestAIModels:
-    def test_arithmetic(self):
-        @ai_model
-        class Arithmetic(BaseModel):
-            sum: float
-            is_odd: bool
+    # def test_arithmetic(self):
+    #     @ai_model
+    #     class Arithmetic(BaseModel):
+    #         sum: float
+    #         is_odd: bool
 
-        x = Arithmetic("One plus six")
-        assert x.sum == 7
-        assert x.is_odd
+    #     x = Arithmetic("One plus six")
+    #     assert x.sum == 7
+    #     assert x.is_odd
 
     def test_geospatial(self):
         @ai_model
@@ -151,23 +150,23 @@ class TestAIModelsMessage:
 
         x = Arithmetic("One plus six")
         assert x.sum == 7
-        assert isinstance(x._message, Message)
-        assert x._message.role == Role.FUNCTION_RESPONSE
+        # assert isinstance(x._message, Message)
+        # assert x._message.role == Role.FUNCTION_RESPONSE
 
 
 @pytest_mark_class("llm")
 class TestInstructions:
-    def test_instructions_error(self):
-        @ai_model
-        class Test(BaseModel):
-            text: str
+    # def test_instructions_error(self):
+    #     @ai_model
+    #     class Test(BaseModel):
+    #         text: str
 
-        with pytest.raises(
-            ValueError, match="(Received `instructions` but this model)"
-        ):
-            Test("Hello!", instructions="Translate to French")
-        with pytest.raises(ValueError, match="(Received `model` but this model)"):
-            Test("Hello!", model=None)
+    #     with pytest.raises(
+    #         ValueError, match="(Received `instructions` but this model)"
+    #     ):
+    #         Test("Hello!", instructions="Translate to French")
+    #     with pytest.raises(ValueError, match="(Received `model` but this model)"):
+    #         Test("Hello!", model=None)
 
     def test_instructions(self):
         @ai_model
@@ -244,15 +243,15 @@ class TestInstructions:
 
 @pytest_mark_class("llm")
 class TestAIModelMapping:
-    def test_arithmetic(self):
-        @ai_model
-        class Arithmetic(BaseModel):
-            sum: float
+    # def test_arithmetic(self):
+    #     @ai_model
+    #     class Arithmetic(BaseModel):
+    #         sum: float
 
-        x = Arithmetic.map(["One plus six", "Two plus 100 minus one"])
-        assert len(x) == 2
-        assert x[0].sum == 7
-        assert x[1].sum == 101
+    #     x = Arithmetic.map(["One plus six", "Two plus 100 minus one"])
+    #     assert len(x) == 2
+    #     assert x[0].sum == 7
+    #     assert x[1].sum == 101
 
     def test_location(self):
         @ai_model

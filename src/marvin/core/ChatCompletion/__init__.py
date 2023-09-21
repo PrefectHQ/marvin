@@ -23,11 +23,18 @@ def parse_model_shortcut(provider: Optional[str]) -> tuple[str, str]:
     - If the provider is a shortcut, use the shortcut to get the provider and model.
     """
     if provider is None:
-        provider, model = settings.llm_model.split("/", 1)
+        try:
+            provider, model = settings.llm_model.split("/")
+        except Exception:
+            provider, model = (
+                PROVIDER_SHORTCUTS[str(settings.llm_model)],
+                settings.llm_model,
+            )
+
     elif provider in PROVIDER_SHORTCUTS:
         provider, model = PROVIDER_SHORTCUTS[provider], provider
     else:
-        provider, model = provider.split("/", 1)
+        provider, model = provider.split("/")
     return provider, model
 
 

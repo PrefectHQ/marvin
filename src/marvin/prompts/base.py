@@ -19,7 +19,9 @@ from jinja2 import Environment
 from pydantic import BaseModel, Field
 
 import marvin
-from marvin._compat import cast_to_model, model_dump
+from marvin._compat import cast_to_json, cast_to_model, model_dump, model_json_schema
+from marvin.core.ChatCompletion import ChatCompletion
+from marvin.core.ChatCompletion.abstract import AbstractChatCompletion
 from marvin.utilities.messages import Message, Role
 from marvin.utilities.strings import count_tokens, jinja_env
 
@@ -195,7 +197,7 @@ class Prompt(BasePrompt, Generic[P], extra="allow", arbitrary_types_allowed=True
         )
         return response
 
-    def serialize(self, **kwargs: Any) -> dict[str, Any]:
+    def to_dict(self, **kwargs: Any) -> dict[str, Any]:
         extras = model_dump(
             self,
             exclude=set(self.__fields__.keys()),
@@ -204,9 +206,45 @@ class Prompt(BasePrompt, Generic[P], extra="allow", arbitrary_types_allowed=True
         return {
             "messages": [
                 model_dump(message, include={"content", "role"})
-                for message in render_prompts(self.generate(**extras | kwargs))
-            ]
+                for message in render_prompts(
+                    self.generate(
+                        **extras | kwargs | {"response_model": self.response_model}
+                    )
+                )
+            ],
+            "functions": self.functions,
+            "function_call": self.function_call,
+            "response_model": self.response_model,
         }
+
+    def to_chat_completion(
+        self, model: Optional[str] = None, **model_kwargs: Any
+    ) -> AbstractChatCompletion[T]:
+        return ChatCompletion(model=model, **model_kwargs)(**self.to_dict())
+
+    def serialize(self, model: Any = None, **kwargs: Any) -> dict[str, Any]:
+        if model:
+            return model(**self.to_dict(**kwargs))._serialize_request()  # type: ignore
+
+        _dict = self.to_dict(**kwargs)
+
+        response: dict[str, Any] = {}
+        response["messages"] = _dict["messages"]
+
+        if _dict.get("response_model", None):
+            response["functions"] = [
+                model_json_schema(cast_to_model(_dict["response_model"]))
+            ]
+            response["function_call"] = {"name": response["functions"][0]["name"]}
+        elif _dict.get("functions", None):
+            response["functions"] = [
+                cast_to_json(function) if callable(function) else function
+                for function in _dict["functions"]
+            ]
+            if _dict["function_call"]:
+                response["function_call"] = _dict["function_call"]
+
+        return response
 
     @classmethod
     def as_decorator(

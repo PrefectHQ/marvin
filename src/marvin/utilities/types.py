@@ -4,9 +4,8 @@ from types import GenericAlias
 from typing import Any, Callable, _SpecialForm
 
 import pydantic
-from pydantic import PrivateAttr
+from pydantic import BaseModel, PrivateAttr
 
-from marvin._compat import BaseModel
 from marvin.utilities.logging import get_logger
 
 

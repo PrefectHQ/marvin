@@ -1,6 +1,6 @@
 import inspect
 from logging import Logger
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 import openai
 import openai.openai_object
@@ -78,7 +78,7 @@ class OpenAIStreamHandler(StreamHandler):
 
 
 class OpenAIChatLLM(ChatLLM):
-    model: str = "gpt-3.5-turbo"
+    model: Optional[str] = "gpt-3.5-turbo"
 
     @property
     def context_size(self) -> int:

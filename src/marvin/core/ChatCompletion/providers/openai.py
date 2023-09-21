@@ -1,4 +1,4 @@
-from typing import Any, TypeVar
+from typing import Any, Optional, TypeVar
 
 from marvin._compat import cast_to_json, model_dump
 from marvin.settings import settings
@@ -21,16 +21,37 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
     def __init__(self, provider: str, **kwargs: Any):
         super().__init__(defaults=settings.get_defaults(provider or "openai") | kwargs)
 
-    def _serialize_request(self, request: Request[T]) -> dict[str, Any]:
+    def _serialize_request(
+        self, request: Optional[Request[T]] = None
+    ) -> dict[str, Any]:
         """
         Serialize the request as per OpenAI's requirements.
         """
-
-        extras = self.defaults | model_dump(
-            request,
-            exclude={"functions", "function_call", "response_model"},
-            exclude_none=True,
+        _request = request or Request()
+        _request = Request(
+            **self.defaults
+            | (
+                model_dump(
+                    request,
+                    exclude_none=True,
+                )
+                if request
+                else {}
+            )
         )
+        _request.function_call = _request.function_call or (
+            request and request.function_call
+        )
+        _request.functions = _request.functions or (request and request.functions)
+        _request.response_model = _request.response_model or (
+            request and request.response_model
+        )  # noqa
+
+        extras = model_dump(
+            _request,
+            exclude={"functions", "function_call", "response_model"},
+        )
+
         functions: dict[str, Any] = {}
         function_call: Any = {}
         for message in extras.get("messages", []):
@@ -39,19 +60,18 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
             if message.get("function_call", -1) is None:
                 message.pop("function_call", None)
 
-        if request.response_model:
-            schema = cast_to_json(request.response_model)
+        if _request.response_model:
+            schema = cast_to_json(_request.response_model)
             functions["functions"] = [schema]
             function_call["function_call"] = {"name": schema.get("name")}
 
-        elif request.functions:
+        elif _request.functions:
             functions["functions"] = [
                 cast_to_json(function) if callable(function) else function
-                for function in request.functions
+                for function in _request.functions
             ]
-            if request.function_call:
-                function_call["function_call"] = request.function_call
-        print("extras", extras)
+            if _request.function_call:
+                function_call["function_call"] = _request.function_call
         return extras | functions | function_call
 
     def _create_request(self, **kwargs: Any) -> Request[T]:

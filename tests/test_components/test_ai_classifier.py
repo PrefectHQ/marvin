@@ -2,27 +2,29 @@ from enum import Enum
 
 import pytest
 from marvin import ai_classifier
-from marvin.core.ChatCompletion import ChatCompletion
 
 from tests.utils.mark import pytest_mark_class
 
 
 class TestAIClassifiersInitialization:
     def test_model(self):
-        @ai_classifier(model=ChatCompletion("openai/gpt-4-test-model"))
+        @ai_classifier(model="openai/gpt-4-test-model")
         class Sentiment(Enum):
             POSITIVE = "Positive"
             NEGATIVE = "Negative"
 
-        assert Sentiment.__model__._module == "openai.ChatCompletion"
+        assert (
+            Sentiment.as_chat_completion("test").defaults.get("model")
+            == "gpt-4-test-model"
+        )
 
     def test_invalid_model(self):
-        @ai_classifier(model=ChatCompletion("anthropic/claude-2"))
+        @ai_classifier(model="anthropic/claude-2")
         class Sentiment(Enum):
             POSITIVE = "Positive"
             NEGATIVE = "Negative"
 
-        assert Sentiment.__model__._module == "anthropic.Anthropic"
+        assert Sentiment.as_chat_completion("test").defaults.get("model") == "claude-2"
 
 
 @pytest_mark_class("llm")

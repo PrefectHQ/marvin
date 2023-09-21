@@ -181,4 +181,12 @@ class Turn(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True):
             raise ValueError("No response model found.")
         model = self.request.response_model
         pairs = self.get_function_call()
-        return model(**pairs[0][1])
+        try:
+            return model(**pairs[0][1])
+        except TypeError:
+            pass
+        try:
+            return model.parse_raw(pairs[0][1])  # type: ignore
+        except TypeError:
+            pass
+        return model.construct(**pairs[0][1])  # type: ignore
