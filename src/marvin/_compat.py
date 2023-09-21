@@ -132,13 +132,19 @@ def cast_to_model(
             description=description,
             field_name=annotated_field_name,  # type: ignore
         )
+        response.__doc__ = description or function_or_type.__doc__
     if isinstance(function_or_type, GenericAlias):
         response = cast_type_or_alias_to_model(
             function_or_type, name, description, field_name
         )
     elif isinstance(function_or_type, type):
         if issubclass(function_or_type, BaseModel):
-            response = function_or_type
+            response = create_model(
+                name or function_or_type.__name__,
+                __base__=function_or_type,
+            )
+            response.__doc__ = description or function_or_type.__doc__
+
         else:
             response = cast_type_or_alias_to_model(
                 function_or_type, name, description, field_name

@@ -54,7 +54,6 @@ class Conversation(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed
                 *messages,
             ],
         )
-        print(turn)
         self.turns.append(turn)
         return turn
 
@@ -153,7 +152,7 @@ class AbstractChatCompletion(
             request=Request(
                 **self.defaults
                 | serialized_request
-                | model_dump(request)
+                | model_dump(request, exclude_none=True)
                 | ({"response_model": response_model} if response_model else {})
             ),
             response=response,

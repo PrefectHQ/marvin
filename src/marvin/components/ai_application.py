@@ -208,7 +208,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
     tools: list[Union[Tool, Callable[..., Any]]] = []
     history: History = Field(default_factory=History)
     additional_prompts: list[Prompt] = Field(
-        [],
+        default_factory=list,
         description=(
             "Additional prompts that will be added to the prompt stack for rendering."
         ),
@@ -216,6 +216,33 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
     stream_handler: Optional[Callable[[Message], None]] = None
     state_enabled: bool = True
     plan_enabled: bool = True
+
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        tools: Optional[list[Union[Tool, Callable[..., Any]]]] = None,
+        **kwargs: Any,
+    ):
+        name = name or self.__class__.__name__
+        description = description or inspect.cleandoc(self.__class__.__doc__ or "")
+        tools_ = tools or []
+        tools = []
+        for tool in tools_:
+            if isinstance(tool, AIApplicationTool):
+                tool.app = self
+            elif isinstance(tool, Tool):
+                tools.append(tool)
+            elif callable(tool):
+                tools.append(Tool.from_function(tool))
+            else:
+                raise ValueError(f"Tool {tool} is not a Tool or callable.")
+        super().__init__(
+            name=name,
+            description=description,
+            tools=tools,
+            **kwargs,
+        )
 
     @validator("description")
     def validate_description(cls, v):
@@ -291,10 +318,9 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         # set up tools
         tools = self.tools.copy()
         if self.state_enabled:
-            tools.append(UpdateState(app=self))
+            tools.append(UpdateState(app=self, name="UpdateState"))
         if self.plan_enabled:
-            tools.append(UpdatePlan(app=self))
-
+            tools.append(UpdatePlan(app=self, name="UpdatePlan"))
         executor = OpenAIFunctionsExecutor(
             model=model,
             functions=[t.as_openai_function() for t in tools],
@@ -446,6 +472,7 @@ class UpdatePlan(Tool):
 
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
+
         updated_state = patch.apply(self.app.plan.dict())
         self.app.plan = type(self.app.plan)(**updated_state)
         return "Application plan updated successfully!"

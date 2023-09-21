@@ -23,22 +23,24 @@ def ai_model_prompt(
     ctx: Optional[dict[str, Any]] = None,
     **kwargs: Any,
 ) -> Callable[[str], Prompt[P]]:
+    description = cls.__doc__ or ""
+    if ctx and ctx.get("instructions") and isinstance(ctx.get("instructions"), str):
+        instructions = str(ctx.get("instructions"))
+        description += "\n" + instructions if (instructions != description) else ""
+
     @prompt_fn(
         ctx={"ctx": ctx or {}, "inspect": inspect},
         response_model=cls,
+        response_model_name="FormatResponse",
+        response_model_description=description,
     )
     def prompt_wrapper(text: str) -> None:  # type: ignore # noqa
         """
-        System: The user will provide context as text that you need to parse into a
-        structured form. To validate your response, you must call the
+        The user will provide text that you need to parse into a
+        structured form. {{ctx.get('instructions') if ctx.get('instructions')}}
+        To validate your response, you must call the
         `{{response_model.__name__}}` function.
-        {% if ctx.get('instructions') %}
-            - Your instructions: {{ctx.get('instructions')}}
-        {% endif %}
-        {% if response_model.__doc__ %}
-            - {{response_model.__doc__}}}
-        {% endif %}
-        Use the provided text and context to extract or infer
+        Use the provided text and context to extract, deduce, or infer
         any parameters needed by `{{response_model.__name__}}`, including any missing
         data.
 
@@ -326,12 +328,8 @@ class AIModel(BaseModel):
             call_args: list[str] = [
                 arg[i] if i < len(arg) else None for arg in map_args
             ]  # type: ignore
-            call_kwargs = (
-                {k: v[i] if i < len(v) else None for k, v in map_kwargs.items()}
-                if map_kwargs
-                else {}
-            )
-            tasks.append(cls.acall(*call_args, **call_kwargs))
+
+            tasks.append(cls.acall(*call_args, **map_kwargs))
 
         return await asyncio.gather(*tasks)
 

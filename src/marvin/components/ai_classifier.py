@@ -55,12 +55,12 @@ def ai_classifier_prompt(
         """
         System: You are an expert classifier that always chooses correctly.
 
-        Your classification task is: {{ enum.__doc__ }}
-
+        Your instructions are:
+            - {{ enum.__doc__ }}
         {% if ctx.get('instructions') %}
-        Your instructions are: {{ctx.get('instructions')}}
+            - {{ctx.get('instructions')}}
         {% endif %}
-        The user will provide context through text, you will use your expertise
+        The user will provide text to classify, you will use your expertise
         to choose the best option below based on it:
         {% for option in enum %}
             {{ loop.index }}. {{option.name}} ({{option.value}})
@@ -307,11 +307,15 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
             enum.__name__,  # type: ignore
             {member.name: member.value for member in enum},  # type: ignore
         )
-        response.__metadata__ = AIEnumMetaData(
-            model=ChatCompletion(model=model, **model_kwargs),
-            ctx=ctx,
-            instructions=instructions,
-            mode=mode,
+        setattr(
+            response,
+            "__metadata__",
+            AIEnumMetaData(
+                model=ChatCompletion(model=model, **model_kwargs),
+                ctx=ctx,
+                instructions=instructions,
+                mode=mode,
+            ),
         )
 
         response.__doc__ = enum.__doc__  # type: ignore

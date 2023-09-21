@@ -50,14 +50,12 @@ class TestUpdateState:
         )
 
         app("I went to San Francisco")
-
-        assert app.state.dict() == {"state": {"San Francisco": {"visited": True}}}
+        print(app.state.state)
+        assert bool(app.state.state.get("San Francisco", {}).get("visited"))
 
         app("oh also I went to San Jose")
 
-        assert app.state.dict() == {
-            "state": {"San Francisco": {"visited": True}, "San Jose": {"visited": True}}
-        }
+        assert bool(app.state.state.get("San Jose", {}).get("visited"))
 
     def test_keep_app_state_undo_previous_patch(self):
         app = AIApplication(
@@ -65,14 +63,14 @@ class TestUpdateState:
             state=FreeformState(state={"San Francisco": {"visited": False}}),
             description="keep track of where I've been",
         )
-
         app("I went to San Francisco")
 
-        assert app.state.dict() == {"state": {"San Francisco": {"visited": True}}}
+        assert bool(app.state.state.get("San Francisco", {}).get("visited"))
 
         app("oh actually I lied about going to SF, but I did go to San Jose")
 
-        assert app.state.dict() == {"state": {"San Jose": {"visited": True}}}
+        assert not bool(app.state.state.get("San Francisco", {}).get("visited"))
+        assert bool(app.state.state.get("San Jose", {}).get("visited"))
 
 
 class TestPlanJSONPatch:

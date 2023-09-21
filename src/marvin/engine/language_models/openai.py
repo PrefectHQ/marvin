@@ -26,12 +26,12 @@ CONTEXT_SIZES = {
 
 
 def openai_role_map(marvin_role: Role) -> str:
-    if marvin_role == Role.FUNCTION_RESPONSE:
+    if marvin_role == Role.FUNCTION_RESPONSE or marvin_role == "function_request":
         return "function"
-    elif marvin_role == Role.FUNCTION_REQUEST:
+    elif marvin_role == Role.FUNCTION_REQUEST or marvin_role == "function_response":
         return "assistant"
     else:
-        return marvin_role.value.lower()
+        return getattr(marvin_role, "value", marvin_role).lower()
 
 
 class OpenAIStreamHandler(StreamHandler):
