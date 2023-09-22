@@ -28,6 +28,7 @@ def ai_fn_prompt(
     @prompt_fn(
         ctx={"ctx": ctx or {}, "func": func, "inspect": inspect},
         response_model=return_annotation,
+        serialize_on_call=False,
         **kwargs,
     )
     def prompt_wrapper(*args: P.args, **kwargs: P.kwargs) -> None:  # type: ignore # noqa
@@ -81,7 +82,6 @@ class AIFunction(BaseModel, Generic[P, T]):
             response_model_name=self.response_model_name,
             response_model_description=self.response_model_description,
             response_model_field_name=self.response_model_field_name,
-            serialize_on_call=False,
         )
 
     def as_prompt(
