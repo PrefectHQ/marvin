@@ -5,7 +5,6 @@ from typing import (
     Generic,
     Literal,
     Optional,
-    ParamSpec,
     TypeVar,
     Union,
     overload,
@@ -13,6 +12,7 @@ from typing import (
 
 from marvin._compat import cast_to_json, model_dump
 from pydantic import BaseModel, Field
+from typing_extensions import ParamSpec
 
 from .utils import parse_raw
 
