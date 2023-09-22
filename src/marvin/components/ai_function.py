@@ -1,7 +1,7 @@
 import asyncio
 import inspect
 from functools import partial
-from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar
+from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec, Self
@@ -171,7 +171,7 @@ class AIFunction(BaseModel, Generic[P, T]):
         response_model_field_name: Optional[str] = None,
         model: Optional[str] = None,
         **model_kwargs: Any,
-    ) -> Callable[P, T] | Callable[P, Awaitable[T]]:
+    ) -> Union[Callable[P, T], Callable[P, Awaitable[T]]]:
         if not fn:
             return partial(
                 cls.as_decorator,
