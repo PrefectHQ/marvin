@@ -1,5 +1,14 @@
 from types import FunctionType, GenericAlias
-from typing import Any, Callable, Optional, TypeVar, Union, cast
+from typing import (
+    Annotated,
+    Any,
+    Callable,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+    get_origin,
+)
 
 from pydantic import BaseModel, create_model
 from pydantic.version import VERSION as PYDANTIC_VERSION
@@ -27,14 +36,14 @@ def model_dump(model: _ModelT, **kwargs: Any) -> dict[str, Any]:
     return model.dict(**kwargs)  # type: ignore
 
 
-def model_dump_json(model: type[_ModelT], **kwargs: Any) -> dict[str, Any]:
+def model_dump_json(model: type[BaseModel], **kwargs: Any) -> dict[str, Any]:
     if PYDANTIC_V2 and hasattr(model, "model_dump_json"):
         return model.model_dump_json(**kwargs)  # type: ignore
     return model.json(**kwargs)  # type: ignore
 
 
 def model_json_schema(
-    model: type[_ModelT],
+    model: type[BaseModel],
     name: Optional[str] = None,
     description: Optional[str] = None,
 ) -> dict[str, Any]:
@@ -53,7 +62,7 @@ def model_json_schema(
     return schema
 
 
-def model_schema(model: type[_ModelT], **kwargs: Any) -> dict[str, Any]:
+def model_schema(model: type[BaseModel], **kwargs: Any) -> dict[str, Any]:
     if PYDANTIC_V2 and hasattr(model, "model_json_schema"):
         return model.model_json_schema(**kwargs)  # type: ignore
     return model.schema(**kwargs)  # type: ignore
@@ -107,13 +116,35 @@ def cast_to_model(
     Casts a type or callable to a Pydantic model.
     """
     response = BaseModel
+    if get_origin(function_or_type) is Annotated:
+        metadata: Any = next(iter(function_or_type.__metadata__), None)  # type: ignore
+        annotated_field_name: Optional[str] = field_name
+        if hasattr(metadata, "extra") and isinstance(metadata.extra, dict):
+            annotated_field_name: Optional[str] = metadata.extra.get("name", "")  # type: ignore # noqa
+        elif isinstance(metadata, dict):
+            annotated_field_name: Optional[str] = metadata.get("name", "")  # type: ignore # noqa
+        elif isinstance(metadata, str):
+            annotated_field_name: Optional[str] = metadata
+
+        response = cast_to_model(
+            function_or_type.__origin__,  # type: ignore
+            name=name,
+            description=description,
+            field_name=annotated_field_name,  # type: ignore
+        )
+        response.__doc__ = description or function_or_type.__doc__
     if isinstance(function_or_type, GenericAlias):
         response = cast_type_or_alias_to_model(
             function_or_type, name, description, field_name
         )
     elif isinstance(function_or_type, type):
         if issubclass(function_or_type, BaseModel):
-            response = function_or_type
+            response = create_model(
+                name or function_or_type.__name__,
+                __base__=function_or_type,
+            )
+            response.__doc__ = description or function_or_type.__doc__
+
         else:
             response = cast_type_or_alias_to_model(
                 function_or_type, name, description, field_name

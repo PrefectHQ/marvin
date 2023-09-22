@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Optional, Self, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from marvin._compat import model_copy, model_dump
 from pydantic import BaseModel, Field
+from typing_extensions import Self
 
 from .handlers import Message, Request, Response, Turn
 
@@ -14,7 +15,7 @@ T = TypeVar(
 
 class Conversation(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True):
     turns: list[Turn[T]]
-    model: "AbstractChatCompletion[T]"
+    model: Any
 
     def __getitem__(self, key: int) -> Turn[T]:
         return self.turns[key]
@@ -73,6 +74,12 @@ class Conversation(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed
         return turn
 
 
+# if PYDANTIC_V2:
+#     Conversation.model_rebuild()
+# else:
+#     Conversation.update_forward_refs()
+
+
 class AbstractChatCompletion(
     BaseModel, Generic[T], ABC, extra="allow", arbitrary_types_allowed=True
 ):
@@ -93,7 +100,7 @@ class AbstractChatCompletion(
         return copy
 
     @abstractmethod
-    def _serialize_request(self, request: Request[T]) -> dict[str, Any]:
+    def _serialize_request(self, request: Optional[Request[T]]) -> dict[str, Any]:
         """
         Serialize the request.
         This should be implemented by derived classes based on their specific needs.
@@ -150,9 +157,10 @@ class AbstractChatCompletion(
         response = self._parse_response(response_data)
         return Turn(
             request=Request(
-                **serialized_request
-                | model_dump(request)
-                | {"response_model": response_model}
+                **self.defaults
+                | serialized_request
+                | model_dump(request, exclude_none=True)
+                | ({"response_model": response_model} if response_model else {})
             ),
             response=response,
         )
@@ -170,9 +178,10 @@ class AbstractChatCompletion(
         response = self._parse_response(response_data)
         return Turn(
             request=Request(
-                **serialized_request
+                **self.defaults
+                | serialized_request
                 | model_dump(request)
-                | {"response_model": response_model}
+                | ({"response_model": response_model} if response_model else {})
             ),
             response=response,
         )

@@ -1,10 +1,11 @@
 import inspect
 from enum import Enum
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 from jsonpatch import JsonPatch
-from pydantic import BaseModel, Field, PrivateAttr, validator
+from pydantic import BaseModel, Field, validator
 
+from marvin._compat import PYDANTIC_V2
 from marvin.engine.executors import OpenAIFunctionsExecutor
 from marvin.engine.language_models import ChatLLM, chat_llm
 from marvin.prompts import library as prompt_library
@@ -141,8 +142,8 @@ class Task(BaseModel):
 
     id: int
     description: str
-    upstream_task_ids: list[int] = None
-    parent_task_id: int = None
+    upstream_task_ids: Optional[list[int]] = None
+    parent_task_id: Optional[int] = None
     state: TaskState = TaskState.IN_PROGRESS
 
 
@@ -200,21 +201,48 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         ```
     """
 
-    name: str = None
-    description: str = None
+    name: Optional[str] = None
+    description: Optional[str] = None
     state: BaseModel = Field(default_factory=FreeformState)
     plan: AppPlan = Field(default_factory=AppPlan)
-    tools: list[Union[Tool, Callable]] = []
+    tools: list[Union[Tool, Callable[..., Any]]] = []
     history: History = Field(default_factory=History)
     additional_prompts: list[Prompt] = Field(
-        [],
+        default_factory=list,
         description=(
             "Additional prompts that will be added to the prompt stack for rendering."
         ),
     )
-    stream_handler: Callable[[Message], None] = None
+    stream_handler: Optional[Callable[[Message], None]] = None
     state_enabled: bool = True
     plan_enabled: bool = True
+
+    def __init__(
+        self,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        tools: Optional[list[Union[Tool, Callable[..., Any]]]] = None,
+        **kwargs: Any,
+    ):
+        name = name or self.__class__.__name__
+        description = description or inspect.cleandoc(self.__class__.__doc__ or "")
+        tools_ = tools or []
+        tools = []
+        for tool in tools_:
+            if isinstance(tool, AIApplicationTool):
+                tool.app = self
+            elif isinstance(tool, Tool):
+                tools.append(tool)
+            elif callable(tool):
+                tools.append(Tool.from_function(tool))
+            else:
+                raise ValueError(f"Tool {tool} is not a Tool or callable.")
+        super().__init__(
+            name=name,
+            description=description,
+            tools=tools,
+            **kwargs,
+        )
 
     @validator("description")
     def validate_description(cls, v):
@@ -290,10 +318,9 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         # set up tools
         tools = self.tools.copy()
         if self.state_enabled:
-            tools.append(UpdateState(app=self))
+            tools.append(UpdateState(app=self, name="UpdateState"))
         if self.plan_enabled:
-            tools.append(UpdatePlan(app=self))
-
+            tools.append(UpdatePlan(app=self, name="UpdatePlan"))
         executor = OpenAIFunctionsExecutor(
             model=model,
             functions=[t.as_openai_function() for t in tools],
@@ -327,7 +354,18 @@ class AIApplicationTool(Tool):
         return run_sync(self.app.run(input_text))
 
 
-class JSONPatchModel(BaseModel):
+class JSONPatchModel(
+    BaseModel,
+    **(
+        {
+            "allow_population_by_field_name": True,
+        }
+        if not PYDANTIC_V2
+        else {
+            "populate_by_name": True,
+        }
+    ),
+):
     """A JSON Patch document.
 
     Attributes:
@@ -341,10 +379,6 @@ class JSONPatchModel(BaseModel):
     path: str
     value: Union[str, float, int, bool, list, dict] = None
     from_: str = Field(None, alias="from")
-
-    class Config:
-        allow_population_by_field_name = True
-        populate_by_name = True
 
 
 class UpdateState(Tool):
@@ -378,7 +412,7 @@ class UpdateState(Tool):
         ```
     """
 
-    _app: "AIApplication" = PrivateAttr()
+    app: "AIApplication" = Field(..., repr=False, exclude=True)
     description: str = """
         Update the application state by providing a list of JSON patch
         documents. The state must always comply with the state's
@@ -386,13 +420,12 @@ class UpdateState(Tool):
         """
 
     def __init__(self, app: AIApplication, **kwargs):
-        self._app = app
-        super().__init__(**kwargs)
+        super().__init__(**kwargs, app=app)
 
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
-        updated_state = patch.apply(self._app.state.dict())
-        self._app.state = type(self._app.state)(**updated_state)
+        updated_state = patch.apply(self.app.state.dict())
+        self.app.state = type(self.app.state)(**updated_state)
         return "Application state updated successfully!"
 
 
@@ -428,18 +461,18 @@ class UpdatePlan(Tool):
         ```
     """
 
-    _app: "AIApplication" = PrivateAttr()
+    app: "AIApplication" = Field(..., repr=False, exclude=True)
     description: str = """
         Update the application plan by providing a list of JSON patch
         documents. The state must always comply with the plan's JSON schema.
         """
 
     def __init__(self, app: AIApplication, **kwargs):
-        self._app = app
-        super().__init__(**kwargs)
+        super().__init__(**kwargs, app=app)
 
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
-        updated_state = patch.apply(self._app.plan.dict())
-        self._app.plan = type(self._app.plan)(**updated_state)
+
+        updated_state = patch.apply(self.app.plan.dict())
+        self.app.plan = type(self.app.plan)(**updated_state)
         return "Application plan updated successfully!"

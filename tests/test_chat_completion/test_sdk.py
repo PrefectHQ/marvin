@@ -1,5 +1,5 @@
 import pytest
-from marvin.core.ChatCompletion.base import BaseConversationState
+from marvin.core.ChatCompletion.abstract import Conversation
 
 from tests.utils.mark import pytest_mark_class
 
@@ -9,7 +9,7 @@ class TestRegressions:
         from marvin import openai
 
         monkeypatch.setattr(openai, "api_key", "test")
-        v = openai.ChatCompletion.prepare_request()._config.api_key.get_secret_value()
+        v = openai.ChatCompletion().defaults.get("api_key")
         assert v == "test"
 
     @pytest.mark.parametrize("valid_env_var", ["MARVIN_OPENAI_API_KEY"])
@@ -17,7 +17,7 @@ class TestRegressions:
         monkeypatch.setenv(valid_env_var, "test")
         from marvin import openai
 
-        v = openai.ChatCompletion.prepare_request()._config.api_key.get_secret_value()
+        v = openai.ChatCompletion().defaults.get("api_key")
         assert v == "test"
 
     def facet(self):
@@ -39,7 +39,7 @@ class TestChatCompletion:
             name: str
             age: int
 
-        response = openai.ChatCompletion.create(
+        response = openai.ChatCompletion().create(
             messages=[{"role": "user", "content": "Billy is 10 years old"}],
             response_model=Person,
         )
@@ -58,7 +58,7 @@ class TestChatCompletionChain:
             messages=[{"role": "user", "content": "Hello"}],
         )
 
-        assert isinstance(convo, BaseConversationState)
+        assert isinstance(convo, Conversation)
         assert len(convo.turns) == 1
 
     async def test_achain(self):
@@ -68,5 +68,5 @@ class TestChatCompletionChain:
             messages=[{"role": "user", "content": "Hello"}],
         )
 
-        assert isinstance(convo, BaseConversationState)
+        assert isinstance(convo, Conversation)
         assert len(convo.turns) == 1

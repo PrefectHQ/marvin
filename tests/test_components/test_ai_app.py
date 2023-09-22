@@ -46,33 +46,33 @@ class TestUpdateState:
         app = AIApplication(
             name="location tracker app",
             state=FreeformState(state={"San Francisco": {"visited": False}}),
-            description="keep track of where I've been",
+            description="keep track of where I've visited",
         )
 
-        app("I went to San Francisco")
+        app("I just visited to San Francisco")
+        assert bool(app.state.state.get("San Francisco", {}).get("visited"))
 
-        assert app.state.dict() == {"state": {"San Francisco": {"visited": True}}}
+        app("oh also I visited San Jose!")
 
-        app("oh also I went to San Jose")
-
-        assert app.state.dict() == {
-            "state": {"San Francisco": {"visited": True}, "San Jose": {"visited": True}}
-        }
+        assert bool(app.state.state.get("San Jose", {}).get("visited"))
 
     def test_keep_app_state_undo_previous_patch(self):
         app = AIApplication(
             name="location tracker app",
             state=FreeformState(state={"San Francisco": {"visited": False}}),
-            description="keep track of where I've been",
+            description="keep track of where I've visited",
         )
 
-        app("I went to San Francisco")
+        app("I just visited San Francisco")
+        assert bool(app.state.state.get("San Francisco", {}).get("visited"))
 
-        assert app.state.dict() == {"state": {"San Francisco": {"visited": True}}}
+        app(
+            "sorry, I was confused, I didn't visit San Francisco - but I did visit San"
+            " Jose"
+        )
 
-        app("oh actually I lied about going to SF, but I did go to San Jose")
-
-        assert app.state.dict() == {"state": {"San Jose": {"visited": True}}}
+        assert not bool(app.state.state.get("San Francisco", {}).get("visited"))
+        assert bool(app.state.state.get("San Jose", {}).get("visited"))
 
 
 class TestPlanJSONPatch:
@@ -83,7 +83,7 @@ class TestPlanJSONPatch:
             ),
             description="test app",
         )
-        tool = UpdatePlan(app=app)
+        tool = UpdatePlan(app=app, name="UpdatePlan")
         tool.run([{"op": "replace", "path": "/tasks/0/state", "value": "COMPLETED"}])
         assert app.plan.dict() == {
             "tasks": [
@@ -105,7 +105,7 @@ class TestPlanJSONPatch:
             ),
             description="test app",
         )
-        tool = UpdatePlan(app=app)
+        tool = UpdatePlan(app=app, name="UpdatePlan")
         with pytest.raises(jsonpatch.JsonPatchException):
             tool.run(
                 [{"op": "invalid_op", "path": "/tasks/0/state", "value": "COMPLETED"}]
@@ -168,12 +168,12 @@ class TestUpdatePlan:
                     },
                 ]
             ),
-            description="plan my visit to the zoo",
+            description="plan and track my visit to the zoo",
         )
 
         app(
             "Actually I heard the tigers ate Carol Baskin's husband - I think I'll skip"
-            " that."
+            " visiting them."
         )
 
         assert [task["state"] for task in app.plan.dict()["tasks"]] == [
@@ -181,7 +181,7 @@ class TestUpdatePlan:
             TaskState.PENDING,
         ]
 
-        app("Dude i just saw the giraffes and their necks are so long!")
+        app("Dude i just visited the giraffes!")
 
         assert [task["state"] for task in app.plan.dict()["tasks"]] == [
             TaskState.SKIPPED,

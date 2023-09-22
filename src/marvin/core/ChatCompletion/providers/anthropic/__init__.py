@@ -1,9 +1,4 @@
-from typing import (
-    Any,
-    TypeVar,
-    Callable,
-    Awaitable,
-)
+from typing import Any, TypeVar, Callable, Awaitable, Optional
 import inspect
 from marvin._compat import cast_to_json, model_dump
 from marvin.settings import settings
@@ -65,15 +60,26 @@ class AnthropicChatCompletion(AbstractChatCompletion[T]):
         }
         super().__init__(defaults=settings.get_defaults("anthropic") | kwargs)
 
-    def _serialize_request(self, request: Request[T]) -> dict[str, Any]:
+    def _serialize_request(
+        self, request: Optional[Request[T]] = None
+    ) -> dict[str, Any]:
         """
         Serialize the request as per OpenAI's requirements.
         """
+        request = request or Request()
+        request = Request(
+            **self.defaults
+            | model_dump(
+                request,
+                exclude_none=True,
+            )
+        )
 
         extras = model_dump(
             request,
-            exclude={"messages", "functions", "function_call", "response_model"},
+            exclude={"functions", "function_call", "response_model", "messages"},
         )
+
         functions: dict[str, Any] = {}
         function_call: Any = {}
 
@@ -112,7 +118,7 @@ class AnthropicChatCompletion(AbstractChatCompletion[T]):
 
         prompt += "\n\nAssistant: "
         prompt.replace("\n\nHuman:\n\nHuman: ", "\n\nHuman: ")
-        return self.defaults | extras | {"prompt": prompt}
+        return extras | {"prompt": prompt}
 
     def _create_request(self, **kwargs: Any) -> Request[T]:
         """

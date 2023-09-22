@@ -1,7 +1,7 @@
 import inspect
 
 import pytest
-from marvin import ai_fn
+from marvin.components.ai_function import ai_fn
 
 from tests.utils.mark import pytest_mark_class
 
@@ -37,10 +37,8 @@ class TestAIFunctions:
         assert len(result) == 3
 
     def test_list_fruit_with_generic_type_hints(self):
-        from typing import List
-
         @ai_fn
-        def list_fruit(n: int) -> List[str]:
+        def list_fruit(n: int) -> list[str]:
             """Returns a list of `n` fruit"""
 
         result = list_fruit(3)

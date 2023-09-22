@@ -1,7 +1,7 @@
 import abc
 import json
 from logging import Logger
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 import tiktoken
 from pydantic import Field, validator
@@ -21,11 +21,11 @@ class StreamHandler(MarvinBaseModel, abc.ABC):
 
 
 class OpenAIFunction(MarvinBaseModel):
-    name: str
-    description: str = None
+    name: Optional[str] = None
+    description: Optional[str] = None
     parameters: dict[str, Any] = {"type": "object", "properties": {}}
-    fn: Callable = Field(None, exclude=True)
-    args: dict = None
+    fn: Optional[Callable] = Field(None, exclude=True)
+    args: Optional[dict] = None
     """
     Base class for representing a function that can be called by an LLM. The
     format is identical to OpenAI's Functions API.
@@ -64,7 +64,7 @@ class OpenAIFunction(MarvinBaseModel):
 
 
 class ChatLLM(MarvinBaseModel, abc.ABC):
-    name: str = None
+    name: Optional[str] = None
     model: str
     max_tokens: int = Field(default_factory=lambda: marvin.settings.llm_max_tokens)
     temperature: float = Field(default_factory=lambda: marvin.settings.llm_temperature)

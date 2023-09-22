@@ -2,7 +2,7 @@ import inspect
 from functools import partial
 from typing import Callable, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 
 from marvin.engine.language_models import OpenAIFunction
 from marvin.utilities.strings import jinja_env
@@ -21,11 +21,11 @@ class Tool(LoggerMixin, BaseModel):
         description = description or fn.__doc__
         return cls(name=name, description=description, fn=fn)
 
-    @validator("name", always=True)
-    def default_name_from_class_name(cls, v):
-        if v is None:
-            v = cls.__name__
-        return v
+    # @validator("name", always=True)
+    # def default_name_from_class_name(cls, v):
+    #     if v is None:
+    #         v = cls.__name__
+    #     return v
 
     def run(self, *args, **kwargs):
         if not self.fn:
