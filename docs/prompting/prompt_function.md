@@ -21,12 +21,12 @@ This is the easiest way to use Azure / OpenAI's function calling API.
     def list_fruits(n: int, color: str = 'red') -> list[str]:
         '''Generates a list of {{n}} {{color}} fruits'''
 
-    list_fruits(3, color = 'blue').serialize()
+    list_fruits(3, color = 'blue')
 
     ```
     This function can now be run and serialized to an Azure / OpenAI Function Calling payload.
 
-    ??? success "Click to see results: ```list_fruits(3, color = 'blue').serialize()```"
+    ??? success "Click to see results: ```list_fruits(3, color = 'blue')```"
         ```python
             {
             "messages": [
@@ -84,12 +84,12 @@ This is the easiest way to use Azure / OpenAI's function calling API.
     def list_fruits(n: int, color: str = 'red') -> list[Fruit]:
         '''Generates a list of {{n}} {{color}} fruits'''
 
-    list_fruits(3, color = 'blue').serialize()
+    list_fruits(3, color = 'blue')
 
     ```
     This function can now be run and serialized to an Azure / OpenAI Function Calling payload.
 
-    ??? success "Click to see results: ```list_fruits(3, color = 'blue').serialize()```"
+    ??? success "Click to see results: ```list_fruits(3, color = 'blue')```"
         ```python
             {
             "messages": [
@@ -168,12 +168,12 @@ This is the easiest way to use Azure / OpenAI's function calling API.
     def list_fruits(n: int, color: str = 'red') -> list[Fruit]:
         '''Generates a list of {{n}} {{color}} fruits'''
         
-    list_fruits(3, color = 'blue').serialize()
+    list_fruits(3, color = 'blue')
 
     ```
     This function can now be run and serialized to an Azure / OpenAI Function Calling payload.
 
-    ??? success "Click to see results: ```list_fruits(3, color = 'blue').serialize()```"
+    ??? success "Click to see results: ```list_fruits(3, color = 'blue')```"
         ```python
             {
             "messages": [
@@ -246,12 +246,12 @@ This is the easiest way to use Azure / OpenAI's function calling API.
     def list_fruits(n: int, color: str = 'red') -> list[Fruit]:
         '''Generates a list of {{n}} {{color}} {{'{{ response_model.__name__.lower() }}'}}'''
         
-    list_fruits(3, color = 'blue').serialize()
+    list_fruits(3, color = 'blue')
 
     ```
     This function can now be run and serialized to an Azure / OpenAI Function Calling payload.
 
-    ??? success "Click to see results: ```list_fruits(3, color = 'blue').serialize()```"
+    ??? success "Click to see results: ```list_fruits(3, color = 'blue')```"
         ```python
             {
                 "messages": [
@@ -324,7 +324,7 @@ This is the easiest way to use Azure / OpenAI's function calling API.
 
     This function can now be run and serialized to an Azure / OpenAI Function Calling payload.
 
-    ??? success "Click to see results: ```list_fruits(3, color = 'blue').serialize()```"
+    ??? success "Click to see results: ```list_fruits(3, color = 'blue')```"
         ```python
             {
                 "messages": [
@@ -385,7 +385,7 @@ This is the easiest way to use Azure / OpenAI's function calling API.
 
     This function can now be run and serialized to an Azure / OpenAI Function Calling payload.
 
-    ??? success "Click to see results: ```list_fruits(3, color = 'blue').serialize()```"
+    ??? success "Click to see results: ```list_fruits(3, color = 'blue')```"
         ```python
             {
                 "messages": [
@@ -456,7 +456,7 @@ This is the easiest way to use Azure / OpenAI's function calling API.
 
     This function can now be run and serialized to an Azure / OpenAI Function Calling payload.
 
-    ??? success "Click to see results: ```classify_fruits('tomato').serialize()```"
+    ??? success "Click to see results: ```classify_fruits('tomato')```"
         ```python
         {
         "messages": [
@@ -525,7 +525,7 @@ This is the easiest way to use Azure / OpenAI's function calling API.
 
     This function can now be run and serialized to an Azure / OpenAI Function Calling payload.
 
-    ??? success "```extract_fruits('There are red apples and yellow bananas.').serialize()```"
+    ??? success "```extract_fruits('There are red apples and yellow bananas.')```"
         ```python
         {
             "messages": [

@@ -33,6 +33,7 @@ def ai_model_prompt(
         response_model=cls,
         response_model_name="FormatResponse",
         response_model_description=description,
+        serialize_on_call=False,
     )
     def prompt_wrapper(text: str) -> None:  # type: ignore # noqa
         """

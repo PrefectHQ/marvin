@@ -263,6 +263,7 @@ class Prompt(BasePrompt, Generic[P], extra="allow", arbitrary_types_allowed=True
         response_model_name: Optional[str] = None,
         response_model_description: Optional[str] = None,
         response_model_field_name: Optional[str] = None,
+        serialize_on_call: bool = True,
     ) -> Union[
         Callable[[Callable[P, None]], Callable[P, None]],
         Callable[[Callable[P, None]], Callable[P, Self]],
@@ -289,6 +290,8 @@ class Prompt(BasePrompt, Generic[P], extra="allow", arbitrary_types_allowed=True
                 response_model_field_name=response_model_field_name,
             )
             response.__doc__ = func.__doc__
+            if serialize_on_call:
+                return response.serialize()
             return response
 
         if func is not None:

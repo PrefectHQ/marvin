@@ -28,6 +28,7 @@ def ai_fn_prompt(
     @prompt_fn(
         ctx={"ctx": ctx or {}, "func": func, "inspect": inspect},
         response_model=return_annotation,
+        serialize_on_call=False,
         **kwargs,
     )
     def prompt_wrapper(*args: P.args, **kwargs: P.kwargs) -> None:  # type: ignore # noqa
