@@ -46,7 +46,7 @@ class Conversation(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed
     def send(self, messages: list[Message], **kwargs: Any) -> Turn[T]:
         params = kwargs
         if self.last_request:
-            params = model_dump(self.last_request, exclude="messages") | kwargs
+            params = model_dump(self.last_request, exclude={"messages"}) | kwargs
 
         turn = self.model.create(
             **params,
@@ -155,10 +155,11 @@ class AbstractChatCompletion(
         serialized_request = self._serialize_request(request=request)
         response_data = self._send_request(**serialized_request)
         response = self._parse_response(response_data)
+
         return Turn(
             request=Request(
-                **self.defaults
-                | serialized_request
+                **serialized_request
+                | self.defaults
                 | model_dump(request, exclude_none=True)
                 | ({"response_model": response_model} if response_model else {})
             ),
