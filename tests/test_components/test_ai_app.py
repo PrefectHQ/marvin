@@ -83,7 +83,7 @@ class TestPlanJSONPatch:
             ),
             description="test app",
         )
-        tool = UpdatePlan(app=app)
+        tool = UpdatePlan(app=app, name="UpdatePlan")
         tool.run([{"op": "replace", "path": "/tasks/0/state", "value": "COMPLETED"}])
         assert app.plan.dict() == {
             "tasks": [
@@ -105,7 +105,7 @@ class TestPlanJSONPatch:
             ),
             description="test app",
         )
-        tool = UpdatePlan(app=app)
+        tool = UpdatePlan(app=app, name="UpdatePlan")
         with pytest.raises(jsonpatch.JsonPatchException):
             tool.run(
                 [{"op": "invalid_op", "path": "/tasks/0/state", "value": "COMPLETED"}]
