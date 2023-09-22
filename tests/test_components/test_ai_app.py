@@ -168,12 +168,12 @@ class TestUpdatePlan:
                     },
                 ]
             ),
-            description="plan my visit to the zoo",
+            description="plan and track my visit to the zoo",
         )
 
         app(
             "Actually I heard the tigers ate Carol Baskin's husband - I think I'll skip"
-            " that."
+            " visiting them."
         )
 
         assert [task["state"] for task in app.plan.dict()["tasks"]] == [
@@ -181,7 +181,7 @@ class TestUpdatePlan:
             TaskState.PENDING,
         ]
 
-        app("Dude i just saw the giraffes and their necks are so long!")
+        app("Dude i just visited the giraffes!")
 
         assert [task["state"] for task in app.plan.dict()["tasks"]] == [
             TaskState.SKIPPED,
