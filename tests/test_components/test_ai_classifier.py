@@ -70,7 +70,8 @@ class TestAIClassifiers:
             NEGATIVE = "Negative"
 
         assert (
-            Sentiment("Great!", instructions="It's opposite day") == Sentiment.NEGATIVE
+            Sentiment("Great!", instructions="today is opposite day")
+            == Sentiment.NEGATIVE
         )
 
     def test_recover_complex_values(self):

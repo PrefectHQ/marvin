@@ -53,13 +53,11 @@ def ai_classifier_prompt(
     #     {% endif %}\
     def prompt_wrapper(text: str) -> None:  # type: ignore # noqa
         """
-        System: You are an expert classifier that always chooses correctly.
+        System: You are an expert classifier that always chooses correctly
+        {{ '(note, however: ' + ctx.get('instructions') + ')' if ctx.get('instructions') }}
 
-        Your instructions are:
-            - {{ enum.__doc__ }}
-        {% if ctx.get('instructions') %}
-            - {{ctx.get('instructions')}}
-        {% endif %}
+        {{ 'Also note that: ' + enum.__doc__ if enum.__doc__ }}
+
         The user will provide text to classify, you will use your expertise
         to choose the best option below based on it:
         {% for option in enum %}
@@ -73,6 +71,8 @@ def ai_classifier_prompt(
         {% endfor %}
         {% endif %}
         User: {{text}}
+
+        What is the index of the most likely class?
         """  # noqa
 
     return prompt_wrapper  # type: ignore
