@@ -70,9 +70,7 @@ def ai_classifier_prompt(
             - {{ arg }}: {{ value }}\n
         {% endfor %}
         {% endif %}
-        User: {{text}}
-
-        What is the index of the most likely class?
+        User: the text to classify: {{text}}
         """  # noqa
 
     return prompt_wrapper  # type: ignore
