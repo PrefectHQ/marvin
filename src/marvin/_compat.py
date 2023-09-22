@@ -119,20 +119,34 @@ def cast_to_model(
     if get_origin(function_or_type) is Annotated:
         metadata: Any = next(iter(function_or_type.__metadata__), None)  # type: ignore
         annotated_field_name: Optional[str] = field_name
+
         if hasattr(metadata, "extra") and isinstance(metadata.extra, dict):
             annotated_field_name: Optional[str] = metadata.extra.get("name", "")  # type: ignore # noqa
+        elif hasattr(metadata, "json_schema_extra") and isinstance(
+            metadata.json_schema_extra, dict
+        ):  # noqa
+            annotated_field_name: Optional[str] = metadata.json_schema_extra.get("name", "")  # type: ignore # noqa
         elif isinstance(metadata, dict):
             annotated_field_name: Optional[str] = metadata.get("name", "")  # type: ignore # noqa
         elif isinstance(metadata, str):
             annotated_field_name: Optional[str] = metadata
+        else:
+            pass
+        annotated_field_description: Optional[str] = description or ""
+        if hasattr(metadata, "description") and isinstance(metadata.description, str):
+            annotated_field_description: Optional[str] = metadata.description  # type: ignore # noqa
+        elif isinstance(metadata, dict):
+            annotated_field_description: Optional[str] = metadata.get("description", "")  # type: ignore # noqa
+        else:
+            pass
 
         response = cast_to_model(
             function_or_type.__origin__,  # type: ignore
             name=name,
-            description=description,
+            description=annotated_field_description,
             field_name=annotated_field_name,  # type: ignore
         )
-        response.__doc__ = description or function_or_type.__doc__
+        response.__doc__ = annotated_field_description or ""
     if isinstance(function_or_type, GenericAlias):
         response = cast_type_or_alias_to_model(
             function_or_type, name, description, field_name
