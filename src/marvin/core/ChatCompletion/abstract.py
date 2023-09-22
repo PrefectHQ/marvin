@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Generic, Optional, TypeVar
 
-from marvin._compat import model_copy, model_dump
+from marvin._compat import PYDANTIC_V2, model_copy, model_dump
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
@@ -72,6 +72,12 @@ class Conversation(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed
         )
         self.turns.append(turn)
         return turn
+
+
+if PYDANTIC_V2:
+    Conversation.model_rebuild()
+else:
+    Conversation.update_forward_refs()
 
 
 class AbstractChatCompletion(
