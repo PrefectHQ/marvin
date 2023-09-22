@@ -1,10 +1,10 @@
 import asyncio
 import inspect
 from functools import partial
-from typing import Any, Awaitable, Callable, Generic, Optional, Self, TypeVar
+from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar
 
 from pydantic import BaseModel, Field
-from typing_extensions import ParamSpec
+from typing_extensions import ParamSpec, Self
 
 from marvin.core.ChatCompletion import ChatCompletion
 from marvin.core.ChatCompletion.abstract import AbstractChatCompletion
