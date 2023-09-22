@@ -151,7 +151,7 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         ctx = ctx or cls.__metadata__.ctx or {}
         instructions = instructions or cls.__metadata__.instructions
         ctx["instructions"] = instructions or ctx.get("instructions", None)
-        return ai_classifier_prompt(cls, ctx=ctx, **kwargs)  # type: ignore
+        return ai_classifier_prompt(cls, ctx=ctx, serialize_on_call=False, **kwargs)  # type: ignore # noqa
 
     @classmethod
     def as_prompt(

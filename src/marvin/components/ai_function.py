@@ -81,6 +81,7 @@ class AIFunction(BaseModel, Generic[P, T]):
             response_model_name=self.response_model_name,
             response_model_description=self.response_model_description,
             response_model_field_name=self.response_model_field_name,
+            serialize_on_call=False,
         )
 
     def as_prompt(

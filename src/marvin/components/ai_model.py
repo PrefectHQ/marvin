@@ -114,6 +114,7 @@ class AIModel(BaseModel):
             response_model_name=response_model_name,
             response_model_description=response_model_description,
             response_model_field_name=response_model_field_name,
+            serialize_on_call=False,
         )
 
     @classmethod
