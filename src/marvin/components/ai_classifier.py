@@ -1,6 +1,6 @@
 import asyncio
 import inspect
-from enum import Enum, EnumMeta, FlagBoundary  # noqa
+from enum import Enum, EnumMeta  # noqa
 from functools import partial
 from typing import Any, Callable, Literal, Optional, TypeVar
 
@@ -105,7 +105,7 @@ class AIEnumMeta(EnumMeta):
         qualname: Optional[str] = None,
         type: Optional[type] = None,
         start: int = 1,
-        boundary: Optional[FlagBoundary] = None,
+        boundary: Optional[Any] = None,
         model: Optional[str] = None,
         ctx: Optional[dict[str, Any]] = None,
         instructions: Optional[str] = None,
