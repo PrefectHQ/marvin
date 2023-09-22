@@ -38,13 +38,13 @@ specify a model name.
     # Call claude-2 simply by specifying it inside of ChatCompletion.
     anthropic = ChatCompletion('claude-2').create(messages = messages)
     ```
-    We can now access both results as we would with OpenAI.
+    We can now access both results as we would with OpenAI (after calling .response)
 
     ```python
-    print(openai.choices[0].message.content)
+    print(openai.response.choices[0].message.content)
     # Hello! I'm an AI, so I don't have feelings, but I'm here to help you. How can I assist you?
 
-    print(anthropic.choices[0].message.content)
+    print(anthropic.response.choices[0].message.content)
     # I'm doing well, thanks for asking!
     ```
 
@@ -87,7 +87,7 @@ keyword arguments passed to ChatCompletion will be persisted and passed to subse
     from marvin import openai
 
 
-    openai.ChatCompletion.create(
+    openai.ChatCompletion().create(
         messages = [{
             'role': 'user',
             'content': 'Hey! How are you?'
@@ -124,7 +124,7 @@ Let's consider two examples.
         with_sugar: bool = False
 
 
-    response = openai.ChatCompletion.create(
+    response = openai.ChatCompletion().create(
         messages = [{
             'role': 'user',
             'content': 'Can I get a small soymilk latte?'
@@ -154,7 +154,7 @@ Let's consider two examples.
         swedish: str
 
 
-    response = openai.ChatCompletion.create(
+    response = openai.ChatCompletion().create(
         messages = [
         {
             'role': 'system',
@@ -214,7 +214,7 @@ Let's consider an example.
 
     ```python
     
-    response = openai.ChatCompletion.create(
+    response = ZZZcreate(
         messages = [{
             'role': 'user',
             'content': 'What if I put it $100 every month for 60 months at 12%?'
@@ -348,11 +348,11 @@ Let's consider an example.
         conversation.send(messages = [{'role': 'user', 'content': prompt}])
 
         # While the most recent turn has a function call, evaluate it. 
-        while conversation.last_response.has_function_call():
+        while conversation.last_turn.has_function_call():
 
             # Send the most recent function call to the conversation. 
             conversation.send(messages = [
-                conversation.last_response.call_function() 
+                conversation.last_turn.call_function() 
             ])
 
     ```
@@ -361,7 +361,7 @@ Let's consider an example.
 
     ```python
     
-    conversation.last_response.choices[0].message.content
+    conversation.last_turn.choices[0].message.content
 
     # The result of adding 4124124 and 424242 is 4548366. When this result is divided by 48124, 
     # the answer is approximately 94.51346521486161.
@@ -371,29 +371,33 @@ Let's consider an example.
     If we want to see the entire state, every `[request, response]` pair is held in the conversation's 
     `turns`.
     ```python
-    [response.choices[0].message for response in conversation.turns]
+    [turn.response.choices[0].message.dict() for turn in conversation.turns]
 
-    # [<OpenAIObject at 0x120667c50> JSON: {
-    # "role": "assistant",
-    # "content": null,
-    # "function_call": {
-    #     "name": "add",
-    #     "arguments": "{\n  \"x\": 4124124,\n  \"y\": 424242\n}"
-    # }
-    # },
-    # <OpenAIObject at 0x1206f4830> JSON: {
-    # "role": "assistant",
-    # "content": null,
-    # "function_call": {
-    #     "name": "divide",
-    #     "arguments": "{\n  \"x\": 4548366,\n  \"y\": 48124\n}"
-    # }
-    # },
-    # <OpenAIObject at 0x1206f4b90> JSON: {
-    # "role": "assistant",
-    # "content": "The result of adding 4124124 and 424242 is 4548366. 
-    #             When this result is divided by 48124, the answer is 
-    #             approximately 94.51346521486161."
-    # }]
+    [
+    {
+        "content": null,
+        "role": "assistant",
+        "name": null,
+        "function_call": {
+        "name": "add",
+        "arguments": "{\n  \"x\": 4124124,\n  \"y\": 424242\n}"
+        }
+    },
+    {
+        "content": null,
+        "role": "assistant",
+        "name": null,
+        "function_call": {
+        "name": "divide",
+        "arguments": "{\n  \"x\": 4548366,\n  \"y\": 48124\n}"
+        }
+    },
+    {
+        "content": "4124124 + 424242 divided by 48124 is approximately 94.51346521486161.",
+        "role": "assistant",
+        "name": null,
+        "function_call": null
+    }
+    ]
 
     ```

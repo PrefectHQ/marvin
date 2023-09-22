@@ -10,9 +10,8 @@ Marvin introduces a number of components that can become the building blocks of 
 
     
     ```python
-    from marvin.engine.language_models.openai import OpenAIChatLLM
 
-    @ai_fn(model=OpenAIChatLLM(model="openai/gpt-3.5-turbo-16k"))
+    @ai_fn(model="openai/gpt-3.5-turbo-16k", temperature = 0)
     def my_ai_fn():
         """..."""
     ```
