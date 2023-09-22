@@ -50,7 +50,6 @@ class TestUpdateState:
         )
 
         app("I went to San Francisco")
-        print(app.state.state)
         assert bool(app.state.state.get("San Francisco", {}).get("visited"))
 
         app("oh also I went to San Jose")
@@ -61,13 +60,17 @@ class TestUpdateState:
         app = AIApplication(
             name="location tracker app",
             state=FreeformState(state={"San Francisco": {"visited": False}}),
-            description="keep track of where I've been",
+            description="keep track of where I've visited",
         )
-        app("I went to San Francisco")
 
+        app("I just visited San Francisco")
         assert bool(app.state.state.get("San Francisco", {}).get("visited"))
 
-        app("oh actually I lied about going to SF, but I did go to San Jose")
+        app(
+            "sorry, I was confused, I didn't visit San Francisco - but I did visit San"
+            " Jose"
+        )
+        app("I went to San Francisco")
 
         assert not bool(app.state.state.get("San Francisco", {}).get("visited"))
         assert bool(app.state.state.get("San Jose", {}).get("visited"))
