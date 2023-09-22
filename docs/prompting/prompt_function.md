@@ -244,7 +244,7 @@ This is the easiest way to use Azure / OpenAI's function calling API.
 
     @prompt_fn(response_model_name = 'Fruits')
     def list_fruits(n: int, color: str = 'red') -> list[Fruit]:
-        '''Generates a list of {{n}} {{color}} {{response_model.__name__.lower()}}'''
+        '''Generates a list of {{n}} {{color}} {{'{{ response_model.__name__.lower() }}'}}'''
         
     list_fruits(3, color = 'blue').serialize()
 
