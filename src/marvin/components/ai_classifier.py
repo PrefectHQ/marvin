@@ -126,7 +126,6 @@ class AIEnumMeta(EnumMeta):
             qualname=qualname,
             type=type,
             start=start,
-            boundary=boundary,
         )
 
 
