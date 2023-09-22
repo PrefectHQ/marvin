@@ -10,13 +10,13 @@ from typing import (
     Literal,
     Optional,
     ParamSpec,
-    Self,
     TypeVar,
     Union,
 )
 
 from jinja2 import Environment
 from pydantic import BaseModel, Field
+from typing_extensions import Self
 
 import marvin
 from marvin._compat import cast_to_json, cast_to_model, model_dump, model_json_schema

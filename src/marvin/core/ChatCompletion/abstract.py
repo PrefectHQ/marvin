@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Optional, Self, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from marvin._compat import model_copy, model_dump
 from pydantic import BaseModel, Field
+from typing_extensions import Self
 
 from .handlers import Message, Request, Response, Turn
 
