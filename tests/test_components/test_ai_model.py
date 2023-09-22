@@ -181,7 +181,7 @@ class TestInstructions:
         assert t1.text == "Hello"
 
         # this model is identical except it has an instruction
-        @ai_model(instructions="Extracts the text as French")
+        @ai_model(instructions="translate the text to French")
         class Text(BaseModel):
             text: str
 
@@ -201,7 +201,7 @@ class TestInstructions:
         class Test(BaseModel):
             text: str
 
-        t2 = Test("Hello", instructions_="Extracts the text as French")
+        t2 = Test("Hello", instructions_="translate the text to French")
         assert t2.text == "Bonjour"
 
     def test_follow_global_and_instance_instructions(self):

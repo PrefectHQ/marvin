@@ -37,7 +37,7 @@ def ai_model_prompt(
     def prompt_wrapper(text: str) -> None:  # type: ignore # noqa
         """
         The user will provide text that you need to parse into a
-        structured form. {{ctx.get('instructions') if ctx.get('instructions')}}
+        structured form ({{'note you must also: ' + ctx.get('instructions') + ')' if ctx.get('instructions')}}.
         To validate your response, you must call the
         `{{response_model.__name__}}` function.
         Use the provided text and context to extract, deduce, or infer
@@ -54,6 +54,8 @@ def ai_model_prompt(
         {% endif %}
 
         User: The text to parse: {{text}}
+
+
         """  # noqa
 
     return prompt_wrapper  # type: ignore
