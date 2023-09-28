@@ -19,8 +19,12 @@ PYDANTIC_V2 = PYDANTIC_VERSION.startswith("2.")
 
 if PYDANTIC_V2:
     from pydantic.v1 import validate_arguments  # noqa # type: ignore
-    from pydantic_settings import BaseSettings  # noqa # type: ignore
-    from pydantic_settings import SettingsConfigDict  # noqa # type: ignore
+
+    try:
+        from pydantic_settings import BaseSettings  # noqa # type: ignore
+        from pydantic_settings import SettingsConfigDict  # noqa # type: ignore
+    except Exception as e:
+        print('Please install "pydantic-settings" to marvin with Pydantic v2.', e)
     from pydantic import field_validator  # noqa # type: ignore
 
 else:
