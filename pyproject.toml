@@ -18,7 +18,6 @@ dependencies = [
   "jsonpatch>=1.33",
   "openai>=0.27.8",
   "pydantic[dotenv]>=1.10.7",
-  "pydantic-settings>=2.0.0",
   "rich>=12",
   "tiktoken>=0.4.0",
   "typer>=0.9.0",
