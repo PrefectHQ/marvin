@@ -53,7 +53,6 @@ def model_json_schema(
 ) -> dict[str, Any]:
     # Get the schema from the model.
     schema = {"parameters": {**model_schema(model)}}
-
     # Mutate the schema to match the OpenAPI spec.
     schema["parameters"]["title"] = name or schema["parameters"].pop("title")
     schema["parameters"]["description"] = description or schema["parameters"].pop(
@@ -68,7 +67,13 @@ def model_json_schema(
 
 def model_schema(model: type[BaseModel], **kwargs: Any) -> dict[str, Any]:
     if PYDANTIC_V2 and hasattr(model, "model_json_schema"):
-        return model.model_json_schema(**kwargs)  # type: ignore
+        schema = model.model_json_schema(
+            **{"ref_template": "#/definitions/{model}"} | kwargs
+        )
+        if definitions := schema.pop("$defs", None):
+            schema["definitions"] = definitions
+        return schema
+        # type: ignore # noqa
     return model.schema(**kwargs)  # type: ignore
 
 
