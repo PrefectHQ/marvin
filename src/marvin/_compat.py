@@ -25,6 +25,11 @@ if PYDANTIC_V2:
         from pydantic_settings import SettingsConfigDict  # noqa # type: ignore
     except Exception as e:
         print('Please install "pydantic-settings" to marvin with Pydantic v2.', e)
+        # TODO: remove this when we drop support for Pydantic v1.
+        from pydantic.v1 import BaseSettings  # noqa # type: ignore
+
+        SettingsConfigDict = BaseSettings.Config
+
     from pydantic import field_validator  # noqa # type: ignore
 
 else:
