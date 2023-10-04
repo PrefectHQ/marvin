@@ -99,6 +99,7 @@ class AIModel(BaseModel):
             )
             or None
         )
+
         response_model_name = response_model_name or getattr(
             cls, "__metadata__", {}
         ).get("response_model_name")
@@ -129,19 +130,23 @@ class AIModel(BaseModel):
         model: Optional[str] = None,
         **model_kwargs: Any,
     ) -> dict[str, Any]:
-        ctx = ctx or getattr(cls, "__metadata__", {}).get("ctx", {})
-        instructions = instructions or getattr(cls, "__metadata__", {}).get(
-            "instructions"
-        )  # noqa
-        response_model_name = response_model_name or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_name")
-        response_model_description = response_model_description or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_description")
-        response_model_field_name = response_model_field_name or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_field_name")
+        metadata = getattr(cls, "__metadata__", {})
+
+        # Set default values using a loop to reduce repetition
+        default_keys = [
+            "ctx",
+            "instructions",
+            "response_model_name",
+            "response_model_description",
+            "response_model_field_name",
+            "model",
+            "model_kwargs",
+        ]
+        local_vars = locals()
+        for key in default_keys:
+            if local_vars.get(key, None) is None:
+                local_vars[key] = metadata.get(key, {})
+
         return cls.get_prompt(
             ctx=ctx,
             instructions=instructions,
@@ -162,19 +167,22 @@ class AIModel(BaseModel):
         model: Optional[str] = None,
         **model_kwargs: Any,
     ) -> dict[str, Any]:
-        ctx = ctx or getattr(cls, "__metadata__", {}).get("ctx", {})
-        instructions = instructions or getattr(cls, "__metadata__", {}).get(
-            "instructions"
-        )  # noqa
-        response_model_name = response_model_name or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_name")
-        response_model_description = response_model_description or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_description")
-        response_model_field_name = response_model_field_name or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_field_name")
+        metadata = getattr(cls, "__metadata__", {})
+
+        # Set default values using a loop to reduce repetition
+        default_keys = [
+            "ctx",
+            "instructions",
+            "response_model_name",
+            "response_model_description",
+            "response_model_field_name",
+            "model",
+            "model_kwargs",
+        ]
+        local_vars = locals()
+        for key in default_keys:
+            if local_vars.get(key, None) is None:
+                local_vars[key] = metadata.get(key, {})
         return cls.get_prompt(
             ctx=ctx,
             instructions=instructions,
@@ -195,19 +203,23 @@ class AIModel(BaseModel):
         model: Optional[str] = None,
         **model_kwargs: Any,
     ) -> AbstractChatCompletion[T]:  # type: ignore
-        ctx = ctx or getattr(cls, "__metadata__", {}).get("ctx", {})
-        instructions = instructions or getattr(cls, "__metadata__", {}).get(
-            "instructions"
-        )  # noqa
-        response_model_name = response_model_name or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_name")
-        response_model_description = response_model_description or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_description")
-        response_model_field_name = response_model_field_name or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_field_name")
+        metadata = getattr(cls, "__metadata__", {})
+
+        # Set default values using a loop to reduce repetition
+        default_keys = [
+            "ctx",
+            "instructions",
+            "response_model_name",
+            "response_model_description",
+            "response_model_field_name",
+            "model",
+            "model_kwargs",
+        ]
+        local_vars = locals()
+        for key in default_keys:
+            if local_vars.get(key, None) is None:
+                local_vars[key] = metadata.get(key, {})
+
         return ChatCompletion(model=model, **model_kwargs)(
             **cls.as_dict(
                 text,
@@ -232,20 +244,23 @@ class AIModel(BaseModel):
         model: Optional[str] = None,
         **model_kwargs: Any,
     ) -> Self:
-        ctx = ctx or getattr(cls, "__metadata__", {}).get("ctx", {})
+        metadata = getattr(cls, "__metadata__", {})
 
-        instructions = instructions or getattr(cls, "__metadata__", {}).get(
-            "instructions"
-        )  # noqa
-        response_model_name = response_model_name or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_name")
-        response_model_description = response_model_description or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_description")
-        response_model_field_name = response_model_field_name or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_field_name")
+        # Set default values using a loop to reduce repetition
+        default_keys = [
+            "ctx",
+            "instructions",
+            "response_model_name",
+            "response_model_description",
+            "response_model_field_name",
+            "model",
+            "model_kwargs",
+        ]
+        local_vars = locals()
+        for key in default_keys:
+            if local_vars.get(key, None) is None:
+                local_vars[key] = metadata.get(key, {})
+
         _model: Self = (  # type: ignore
             cls.as_chat_completion(
                 text,
@@ -275,19 +290,23 @@ class AIModel(BaseModel):
         model: Optional[str] = None,
         **model_kwargs: Any,
     ) -> Self:
-        ctx = ctx or getattr(cls, "__metadata__", {}).get("ctx", {})
-        instructions = instructions or getattr(cls, "__metadata__", {}).get(
-            "instructions"
-        )  # noqa
-        response_model_name = response_model_name or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_name")
-        response_model_description = response_model_description or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_description")
-        response_model_field_name = response_model_field_name or getattr(
-            cls, "__metadata__", {}
-        ).get("response_model_field_name")
+        metadata = getattr(cls, "__metadata__", {})
+
+        # Set default values using a loop to reduce repetition
+        default_keys = [
+            "ctx",
+            "instructions",
+            "response_model_name",
+            "response_model_description",
+            "response_model_field_name",
+            "model",
+            "model_kwargs",
+        ]
+        local_vars = locals()
+        for key in default_keys:
+            if local_vars.get(key, None) is None:
+                local_vars[key] = metadata.get(key, {})
+
         _model: Self = (  # type: ignore
             await cls.as_chat_completion(
                 text,
