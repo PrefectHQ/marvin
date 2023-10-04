@@ -5,7 +5,7 @@ from typing import Any, Literal, Optional, Union
 
 from pydantic import Field, SecretStr
 
-from ._compat import BaseSettings, SettingsConfigDict, field_validator
+from ._compat import BaseSettings, SettingsConfigDict, field_validator, model_dump
 
 ENV_PATH = Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()
 
@@ -112,13 +112,6 @@ class AzureOpenAI(MarvinBaseSettings):
     )
 
     def get_defaults(self, settings: "Settings") -> dict[str, Any]:
-        response: dict[str, Any] = {}
-        if settings.llm_max_context_tokens > 0:
-            response["max_tokens"] = settings.llm_max_tokens
-        response["api_key"] = self.api_key and self.api_key.get_secret_value()
-        response["temperature"] = settings.llm_temperature
-        response["request_timeout"] = settings.llm_request_timeout_seconds
-
         import os
 
         import openai
@@ -128,6 +121,8 @@ class AzureOpenAI(MarvinBaseSettings):
         response: dict[str, Any] = {}
         if settings.llm_max_context_tokens > 0:
             response["max_tokens"] = settings.llm_max_tokens
+        response["temperature"] = settings.llm_temperature
+        response["request_timeout"] = settings.llm_request_timeout_seconds
         response["api_key"] = self.api_key and self.api_key.get_secret_value()
         if os.environ.get("MARVIN_AZURE_OPENAI_API_KEY"):
             response["api_key"] = os.environ["MARVIN_AZURE_OPENAI_API_KEY"]
@@ -135,7 +130,10 @@ class AzureOpenAI(MarvinBaseSettings):
             response["api_key"] = openai.api_key
         if marvin_openai.api_key:
             response["api_key"] = marvin_openai.api_key
-        return {k: v for k, v in response.items() if v is not None}
+
+        return model_dump(self, exclude_unset=True) | {
+            k: v for k, v in response.items() if v is not None
+        }
 
 
 class Settings(MarvinBaseSettings):
