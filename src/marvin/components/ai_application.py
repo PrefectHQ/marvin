@@ -6,9 +6,10 @@ from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, validator
 
 from marvin._compat import PYDANTIC_V2
+from marvin.engine.language_models.openai import CONTEXT_SIZES
 from marvin.openai import ChatCompletion
 from marvin.prompts import library as prompt_library
-from marvin.prompts.base import Prompt
+from marvin.prompts.base import Prompt, render_prompts
 from marvin.tools import Tool
 from marvin.utilities.async_utils import run_sync
 from marvin.utilities.history import History, HistoryFilter
@@ -204,7 +205,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
     description: Optional[str] = None
     state: BaseModel = Field(default_factory=FreeformState)
     plan: AppPlan = Field(default_factory=AppPlan)
-    tools: list[Union[Tool, Callable[..., Any]]] = []
+    tools: list[Union[Tool, Callable[..., Any]]] = Field(default_factory=list)
     history: History = Field(default_factory=History)
     additional_prompts: list[Prompt] = Field(
         default_factory=list,
@@ -263,7 +264,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             model = "gpt-3.5-turbo"
 
         # set up prompts
-        [
+        prompts = [
             # system prompts
             prompt_library.System(content=SYSTEM_PROMPT),
             # add current datetime
@@ -278,6 +279,12 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             prompt_library.User(content="{{ input_text }}"),
             *self.additional_prompts,
         ]
+
+        message_list = render_prompts(
+            prompts=prompts,
+            render_kwargs=dict(app=self, input_text=input_text),
+            max_tokens=CONTEXT_SIZES.get(model, 2048),
+        )
 
         # get latest user input
         input_text = input_text or ""
@@ -294,7 +301,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
 
         conversation = await ChatCompletion(
             model=model, functions=tools  # , _stream_handler_fn=self.stream_handler
-        ).achain(messages=self.history.get_messages())
+        ).achain(messages=message_list)
 
         for msg in (messages := conversation.history):
             self.history.add_message(msg)

@@ -12,7 +12,7 @@ class HistoryFilter(BaseModel):
     timestamp_le: datetime.datetime = None
 
 
-class History(BaseModel):
+class History(BaseModel, arbitrary_types_allowed=True):
     messages: list[Message] = Field(default_factory=list)
     max_messages: int = None
 

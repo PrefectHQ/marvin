@@ -77,7 +77,7 @@ class Request(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True
         return {
             serializer(function).get("name", ""): function
             for function in self.functions or []
-            if isinstance(function, FunctionType)
+            if callable(function)
         }
 
 
@@ -152,7 +152,9 @@ class Turn(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True):
         for pair in pairs:
             name, argument = pair
             if name not in function_registry:
-                raise ValueError(f"Function {name} not found in function registry.")
+                raise ValueError(
+                    f"Function {name} not found in {function_registry=!r}."
+                )
 
             logger.debug_kv(
                 "Function call",

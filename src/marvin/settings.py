@@ -25,6 +25,7 @@ class OpenAISettings(MarvinBaseSettings):
 
     class Config(MarvinBaseSettings.Config):
         env_prefix = "MARVIN_OPENAI_"
+        # extra = "allow"
 
     api_key: Optional[SecretStr] = Field(
         default=None,
@@ -194,14 +195,6 @@ class Settings(MarvinBaseSettings):
     @classmethod
     def initial_setup(cls, v: Path) -> Path:
         v.mkdir(parents=True, exist_ok=True)
-        return v
-
-    @field_validator("log_level")
-    @classmethod
-    def set_log_level(cls, v: str) -> str:
-        import marvin.utilities.logging
-
-        marvin.utilities.logging.setup_logging(level=v)
         return v
 
     def get_defaults(self, provider: Optional[str] = None) -> dict[str, Any]:
