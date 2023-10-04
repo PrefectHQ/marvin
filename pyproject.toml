@@ -17,7 +17,7 @@ dependencies = [
   "jinja2>=3.1.2",
   "jsonpatch>=1.33",
   "openai>=0.27.8",
-  "pydantic[dotenv]>=1.10.7, <2.0.0",
+  "pydantic[dotenv]>=1.10.7",
   "rich>=12",
   "tiktoken>=0.4.0",
   "typer>=0.9.0",
@@ -48,6 +48,7 @@ tests = [
     "pytest-rerunfailures>=10,<13",
     "pytest-sugar~=0.9",
     "pytest~=7.3.1",
+    "pydantic-settings>=2.0.0",
 ]
 framework = [
     "aiosqlite>=0.19.0",
@@ -76,6 +77,7 @@ requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
+write_to = "src/marvin/_version.py"
 
 # pytest configuration
 [tool.pytest.ini_options]

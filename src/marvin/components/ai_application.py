@@ -1,13 +1,14 @@
 import inspect
 from enum import Enum
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 from jsonpatch import JsonPatch
-from pydantic import BaseModel, Field, PrivateAttr, validator
+from pydantic import BaseModel, Field, validator
 
+from marvin._compat import PYDANTIC_V2
 from marvin.openai import ChatCompletion
 from marvin.prompts import library as prompt_library
-from marvin.prompts.base import Prompt, render_prompts
+from marvin.prompts.base import Prompt
 from marvin.tools import Tool
 from marvin.utilities.async_utils import run_sync
 from marvin.utilities.history import History, HistoryFilter
@@ -140,8 +141,8 @@ class Task(BaseModel):
 
     id: int
     description: str
-    upstream_task_ids: list[int] = None
-    parent_task_id: int = None
+    upstream_task_ids: Optional[list[int]] = None
+    parent_task_id: Optional[int] = None
     state: TaskState = TaskState.IN_PROGRESS
 
 
@@ -199,19 +200,19 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         ```
     """
 
-    name: str = None
-    description: str = None
+    name: Optional[str] = None
+    description: Optional[str] = None
     state: BaseModel = Field(default_factory=FreeformState)
     plan: AppPlan = Field(default_factory=AppPlan)
-    tools: list[Union[Tool, Callable]] = []
+    tools: list[Union[Tool, Callable[..., Any]]] = []
     history: History = Field(default_factory=History)
     additional_prompts: list[Prompt] = Field(
-        [],
+        default_factory=list,
         description=(
             "Additional prompts that will be added to the prompt stack for rendering."
         ),
     )
-    stream_handler: Callable[[Message], None] = None
+    stream_handler: Optional[Callable[[Message], None]] = None
     state_enabled: bool = True
     plan_enabled: bool = True
 
@@ -262,7 +263,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             model = "gpt-3.5-turbo"
 
         # set up prompts
-        prompts = [
+        [
             # system prompts
             prompt_library.System(content=SYSTEM_PROMPT),
             # add current datetime
@@ -287,29 +288,15 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         # set up tools
         tools = self.tools.copy()
         if self.state_enabled:
-            tools.append(UpdateState(app=self).as_function())
+            tools.append(UpdateState(app=self))
         if self.plan_enabled:
-            tools.append(UpdatePlan(app=self).as_function())
-
-        prompts = render_prompts(
-            prompts, render_kwargs=dict(app=self, input_text=input_text)
-        )
-
-        cleaned_messages = [
-            d.dict(exclude={"data", "timestamp", "llm_response"}) for d in prompts
-        ]
-
-        for msg_dict in cleaned_messages:
-            msg_dict.update({"role": msg_dict.get("role").value.lower()})
-            msg_dict.update({"name": msg_dict.get("name") or "none"})
+            tools.append(UpdatePlan(app=self))
 
         conversation = await ChatCompletion(
-            functions=tools, model=model, _stream_handler_fn=self.stream_handler
-        ).achain(messages=cleaned_messages)
+            model=model, functions=tools  # , _stream_handler_fn=self.stream_handler
+        ).achain(messages=self.history.get_messages())
 
-        messages = Message.from_conversation(conversation)
-
-        for msg in messages:
+        for msg in (messages := conversation.history):
             self.history.add_message(msg)
 
         self.logger.debug_kv("AI response", messages[-1].content, key_style="blue")
@@ -334,7 +321,18 @@ class AIApplicationTool(Tool):
         return run_sync(self.app.run(input_text))
 
 
-class JSONPatchModel(BaseModel):
+class JSONPatchModel(
+    BaseModel,
+    **(
+        {
+            "allow_population_by_field_name": True,
+        }
+        if not PYDANTIC_V2
+        else {
+            "populate_by_name": True,
+        }
+    ),
+):
     """A JSON Patch document.
 
     Attributes:
@@ -348,9 +346,6 @@ class JSONPatchModel(BaseModel):
     path: str
     value: Union[str, float, int, bool, list, dict] = None
     from_: str = Field(None, alias="from")
-
-    class Config:
-        allow_population_by_field_name = True
 
 
 class UpdateState(Tool):
@@ -372,11 +367,13 @@ class UpdateState(Tool):
             state=FreeformState(state={"San Francisco": "not visited"}),
         )
 
-        patch = JSONPatchModel(
-            op="replace", path="/state/San Francisco", value="visited"
-        )
-
-        UpdateState(app=destination_tracker).run([patch.dict()])
+        UpdateState(app=destination_tracker).run([
+            {
+                "op": "replace",
+                "path": "/state/San Francisco",
+                "value": "visited"
+            }
+        ])
 
         assert destination_tracker.state.dict() == {
             "state": {"San Francisco": "visited"}
@@ -384,21 +381,20 @@ class UpdateState(Tool):
         ```
     """
 
-    _app: "AIApplication" = PrivateAttr()
-    description = """
+    app: "AIApplication" = Field(..., repr=False, exclude=True)
+    description: str = """
         Update the application state by providing a list of JSON patch
         documents. The state must always comply with the state's
         JSON schema.
         """
 
-    def __init__(self, app: "AIApplication", **kwargs):
-        self._app = app
-        super().__init__(**kwargs)
+    def __init__(self, app: AIApplication, **kwargs):
+        super().__init__(**kwargs, app=app)
 
     def run(self, patches: list[JSONPatchModel]):
-        patch = JsonPatch([patch.dict() for patch in patches])
-        updated_state = patch.apply(self._app.state.dict())
-        self._app.state = type(self._app.state)(**updated_state)
+        patch = JsonPatch(patches)
+        updated_state = patch.apply(self.app.state.dict())
+        self.app.state = type(self.app.state)(**updated_state)
         return "Application state updated successfully!"
 
 
@@ -413,7 +409,6 @@ class UpdatePlan(Tool):
         from marvin.components.ai_application import (
             AIApplication,
             AppPlan,
-            JSONPatchModel,
             UpdatePlan,
         )
 
@@ -422,30 +417,30 @@ class UpdatePlan(Tool):
         todo_app("i need to buy milk")
 
         # manually update the plan (usually done by the AI)
-        patch = JSONPatchModel(
-            op="replace",
-            path="/tasks/0/state",
-            value="COMPLETED"
-        )
-
-        UpdatePlan(app=todo_app).run([patch.dict()])
+        UpdatePlan(app=todo_app).run([
+            {
+                "op": "replace",
+                "path": "/tasks/0/state",
+                "value": "COMPLETED"
+            }
+        ])
 
         print(todo_app.plan)
         ```
     """
 
-    _app: "AIApplication" = PrivateAttr()
-    description = """
+    app: "AIApplication" = Field(..., repr=False, exclude=True)
+    description: str = """
         Update the application plan by providing a list of JSON patch
         documents. The state must always comply with the plan's JSON schema.
         """
 
-    def __init__(self, app: "AIApplication", **kwargs):
-        self._app = app
-        super().__init__(**kwargs)
+    def __init__(self, app: AIApplication, **kwargs):
+        super().__init__(**kwargs, app=app)
 
     def run(self, patches: list[JSONPatchModel]):
-        patch = JsonPatch([patch.dict() for patch in patches])
-        updated_plan = patch.apply(self._app.plan.dict())
-        self._app.plan = type(self._app.plan)(**updated_plan)
+        patch = JsonPatch(patches)
+
+        updated_state = patch.apply(self.app.plan.dict())
+        self.app.plan = type(self.app.plan)(**updated_state)
         return "Application plan updated successfully!"

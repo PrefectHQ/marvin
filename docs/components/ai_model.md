@@ -143,26 +143,19 @@ Note that the kwarg is `model_` with a trailing underscore; this is to avoid con
 
 
 ```python
-from marvin.engine.language_models import chat_llm
 
-
-@ai_model(model=chat_llm(model="openai/gpt-3.5-turbo", temperature=0))
+@ai_model(model="openai/gpt-3.5-turbo", temperature=0)
 class Location(BaseModel):
     city: str
     state: str
 
 
 print(Location("The Big Apple"))
-print(
-    Location(
-        "The Big Apple",
-        model_=chat_llm(model="openai/gpt-3.5-turbo", temperature=1),
-    )
-)
+
 ```
 
     city='New York' state='New York'
-    city='New York' state='New York'
+
 
 
 ## Features

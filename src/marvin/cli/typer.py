@@ -1,9 +1,10 @@
 import asyncio
 from collections.abc import Callable, Coroutine
 from functools import wraps
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, TypeVar
 
 from typer import Typer
+from typing_extensions import ParamSpec
 
 P = ParamSpec("P")
 R = TypeVar("R")

@@ -1,174 +1,133 @@
 import asyncio
-import functools
 import inspect
-from typing import Any, Callable, Optional, TypeVar
+from functools import partial
+from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar, Union
 
-from jinja2 import Template
-from typing_extensions import ParamSpec
+from pydantic import BaseModel, Field
+from typing_extensions import ParamSpec, Self
 
 from marvin.core.ChatCompletion import ChatCompletion
-from marvin.pydantic import BaseModel, Field
-from marvin.types import Function, FunctionRegistry
+from marvin.core.ChatCompletion.abstract import AbstractChatCompletion
+from marvin.prompts import Prompt, prompt_fn
 from marvin.utilities.async_utils import run_sync
 
-T = TypeVar("T")
+T = TypeVar("T", bound=BaseModel)
 
+A = TypeVar("A", bound=Any)
 
 P = ParamSpec("P")
 
-system_prompt = inspect.cleandoc("""
-        {{ instructions if instructions }}
-        
+
+def ai_fn_prompt(
+    func: Callable[P, Any],
+    ctx: Optional[dict[str, Any]] = None,
+    **kwargs: Any,
+) -> Callable[P, Prompt[P]]:
+    return_annotation: Any = inspect.signature(func).return_annotation
+
+    @prompt_fn(
+        ctx={"ctx": ctx or {}, "func": func, "inspect": inspect},
+        response_model=return_annotation,
+        serialize_on_call=False,
+        **kwargs,
+    )
+    def prompt_wrapper(*args: P.args, **kwargs: P.kwargs) -> None:  # type: ignore # noqa
+        """
+        System: {{ctx.get('instructions') if ctx.get('instructions')}}
+
         Your job is to generate likely outputs for a Python function with the
         following signature and docstring:
-    
-        {{ function_def }}        
-        
+
+        {{'def' + ''.join(inspect.getsource(func).split('def')[1:])}}
+
         The user will provide function inputs (if any) and you must respond with
-        the most likely result. 
-        
-        {% if description %}
-        The following function description was also provided:
+        the most likely result.
 
-        {{ description }}
-        {% endif %}
-        {% if functions|length > 1 %}
-        You may call any provided function as necessary, but before any final 
-        response is returned to the user you must format your response using 
-        the {{functions[0].__name__}} function.
-        {% endif %}
-        """)
-
-user_prompt = inspect.cleandoc("""\
-        {% if input_binds %} 
-        The function was called with the following inputs:
-        
-        {%for (arg, value) in input_binds.items()%}
+        User: The function was called with the following inputs:
+        {% set sig = inspect.signature(func) %}
+        {% set binds = sig.bind(*args, **kwargs) %}
+        {% set defaults = binds.apply_defaults() %}
+        {% set params = binds.arguments %}
+        {%for (arg, value) in params.items()%}
         - {{ arg }}: {{ value }}
-        
         {% endfor %}
-        {% else %}
-        The function was called without inputs.
-        {% endif -%}
-        
-        What is its output?\
-        """)
+
+        What is its output?
+        """
+
+    return prompt_wrapper  # type: ignore
 
 
-class AIFunction(BaseModel):
-    fn: Optional[Callable] = None
-    system: str = system_prompt
-    user: str = user_prompt
-    name: Optional[str] = None
-    description: Optional[str] = None
-    instructions: Optional[str] = None
-    model: Optional[Any] = None
-    functions: Optional[list[Callable]] = Field(default_factory=list)
+class AIFunction(BaseModel, Generic[P, T]):
+    fn: Callable[P, Any]
+    ctx: Optional[dict[str, Any]] = None
+    model: Any = Field(default_factory=ChatCompletion)
+    response_model_name: Optional[str] = Field(default=None, exclude=True)
+    response_model_description: Optional[str] = Field(default=None, exclude=True)
+    response_model_field_name: Optional[str] = Field(default=None, exclude=True)
 
-    @classmethod
-    def as_decorator(
-        cls,
-        fn: Optional[Callable[P, T]] = None,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        system: str = system_prompt,
-        user: str = user_prompt,
-        instructions: Optional[str] = None,
-        functions: Optional[list[Callable]] = None,
-        model: str = None,
-        **model_kwargs,
-    ) -> Callable[P, T]:
-        if not fn:
-            return functools.partial(
-                cls.as_decorator,
-                name=name,
-                description=description,
-                system=system,
-                user=user,
-                instructions=instructions,
-                model=model,
-                functions=functions or [],
-            )
+    def __call__(
+        self,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> Any:
+        return self.call(*args, **kwargs)
 
-        model = AIFunction(
-            fn=Function(fn),
-            name=name,
-            description=description,
-            system=system,
-            user=user,
-            instructions=instructions,
-            model=ChatCompletion(model=model, **model_kwargs),
-            functions=functions or [],
+    def get_prompt(
+        self,
+    ) -> Callable[P, Prompt[P]]:
+        return ai_fn_prompt(
+            self.fn,
+            ctx=self.ctx,
+            response_model_name=self.response_model_name,
+            response_model_description=self.response_model_description,
+            response_model_field_name=self.response_model_field_name,
         )
 
-        @functools.wraps(fn)
-        async def async_wrapper_function(*args: Any, **kwargs: Any) -> Any:
-            return await model.acall(*args, **kwargs)
-
-        @functools.wraps(fn)
-        def sync_wrapper_function(*args: Any, **kwargs: Any) -> Any:
-            return model.call(*args, **kwargs)
-
-        wrapper_function = (
-            async_wrapper_function
-            if asyncio.iscoroutinefunction(fn)
-            else sync_wrapper_function
+    def as_prompt(
+        self,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> dict[str, Any]:
+        return self.get_prompt()(*args, **kwargs).serialize(
+            model=self.model,
         )
 
-        wrapper_function.as_prompt = model._call
-        wrapper_function.to_chat_completion = model.to_chat_completion
-        wrapper_function.create = model.create
-        wrapper_function.acreate = model.acreate
-        wrapper_function.acall = model.acall
-        wrapper_function.map = model.map
-        wrapper_function.amap = model.amap
-        return wrapper_function
+    def as_dict(
+        self,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> dict[str, Any]:
+        return self.get_prompt()(*args, **kwargs).to_dict()
 
-    def _call(self, *args, __schema__=True, **kwargs):
-        response = {}
-        response["messages"] = self._messages(*args, **kwargs)
-        response["functions"] = self._functions(*args, **kwargs)
-        response["function_call"] = self._function_call(
-            *args, __schema__=__schema__, **kwargs
+    def as_chat_completion(
+        self,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> AbstractChatCompletion[T]:
+        return self.model(**self.as_dict(*args, **kwargs))
+
+    def call(
+        self,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> Any:
+        return getattr(
+            self.as_chat_completion(*args, **kwargs).create().to_model(),
+            self.response_model_field_name or "output",
         )
-        if __schema__:
-            response["functions"] = response["functions"].schema()
-        return response
 
-    def _messages(self, *args, **kwargs):
-        return [
-            {
-                "role": role,
-                "content": (
-                    Template(getattr(self, role))
-                    .render(self.dict(*args, **kwargs))
-                    .strip()
-                ),
-            }
-            for role in ["system", "user"]
-        ]
+    async def acall(
+        self,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> Any:
+        return getattr(
+            (await self.as_chat_completion(*args, **kwargs).acreate()).to_model(),
+            self.response_model_field_name or "output",
+        )
 
-    def _functions(self, *args, **kwargs):
-        functions = [self.fn.response_model()]
-        functions.extend([Function(fn) for fn in self.functions])
-        return FunctionRegistry(functions)
-
-    def _function_call(self, *args, __schema__=True, **kwargs):
-        if __schema__:
-            return {"name": self._functions(*args, **kwargs).schema()[0].get("name")}
-        return {"name": self._functions(*args, **kwargs)[0].__name__}
-
-    def to_chat_completion(self, *args, __schema__=False, **kwargs):
-        return self.model(**self._call(*args, __schema__=__schema__, **kwargs))
-
-    def create(self, *args, **kwargs):
-        return self.to_chat_completion(*args, **kwargs).create()
-
-    def call(self, *args, **kwargs):
-        completion = self.create(*args, **kwargs)
-        return completion.call_function(as_message=False).data
-
-    def map(self, *map_args: list, **map_kwargs: list):
+    def map(self, *map_args: list[Any], **map_kwargs: list[Any]):
         """
         Map the AI function over a sequence of arguments. Runs concurrently.
 
@@ -184,8 +143,8 @@ class AIFunction(BaseModel):
         """
         return run_sync(self.amap(*map_args, **map_kwargs))
 
-    async def amap(self, *map_args: list, **map_kwargs: list):
-        tasks = []
+    async def amap(self, *map_args: list[Any], **map_kwargs: list[Any]) -> list[Any]:
+        tasks: list[Any] = []
         if map_args:
             max_length = max(len(arg) for arg in map_args)
         else:
@@ -202,20 +161,53 @@ class AIFunction(BaseModel):
 
         return await asyncio.gather(*tasks)
 
-    async def acreate(self, *args, **kwargs):
-        return await self.to_chat_completion(*args, **kwargs).acreate()
+    @classmethod
+    def as_decorator(
+        cls: type[Self],
+        fn: Optional[Callable[P, T]] = None,
+        ctx: Optional[dict[str, Any]] = None,
+        instructions: Optional[str] = None,
+        response_model_name: Optional[str] = None,
+        response_model_description: Optional[str] = None,
+        response_model_field_name: Optional[str] = None,
+        model: Optional[str] = None,
+        **model_kwargs: Any,
+    ) -> Union[Callable[P, T], Callable[P, Awaitable[T]]]:
+        if not fn:
+            return partial(
+                cls.as_decorator,
+                ctx=ctx,
+                instructions=instructions,
+                response_model_name=response_model_name,
+                response_model_description=response_model_description,
+                response_model_field_name=response_model_field_name,
+                model=model,
+                **model_kwargs,
+            )  # type: ignore
 
-    async def acall(self, *args, **kwargs):
-        completion = await self.acreate(*args, **kwargs)
-        return completion.call_function(as_message=False).data
+        if not inspect.iscoroutinefunction(fn):
+            return cls(
+                fn=fn,
+                ctx={"instructions": instructions, **(ctx or {})},
+                response_model_name=response_model_name,
+                response_model_description=response_model_description,
+                response_model_field_name=response_model_field_name,
+                model=ChatCompletion(model=model, **model_kwargs),
+            )
+        else:
+            return AsyncAIFunction[P, T](
+                fn=fn,
+                ctx={"instructions": instructions, **(ctx or {})},
+                response_model_name=response_model_name,
+                response_model_description=response_model_description,
+                response_model_field_name=response_model_field_name,
+                model=ChatCompletion(model=model, **model_kwargs),
+            )
 
-    def dict(self, *args, **kwargs):
-        return {
-            **super().dict(exclude_none=True),
-            "functions": self._functions(*args, **kwargs),
-            "function_def": self.fn.getsource(),
-            "input_binds": self.fn.bind_arguments(*args, **kwargs),
-        }
+
+class AsyncAIFunction(AIFunction[P, T]):
+    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Any:
+        return await super().acall(*args, **kwargs)
 
 
 ai_fn = AIFunction.as_decorator

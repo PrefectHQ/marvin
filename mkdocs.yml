@@ -18,6 +18,8 @@ nav:
     - Configuration: 
       - Settings: configuration/settings.md
       - Providers: configuration/providers.md
+    - Prompting:
+      - Prompt Function: prompting/prompt_function.md
     - Components: 
       - Overview: components/overview.md
       - AI Function: components/ai_function.md

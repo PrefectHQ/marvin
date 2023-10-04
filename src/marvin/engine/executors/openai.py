@@ -1,13 +1,13 @@
 import inspect
 import json
 from ast import literal_eval
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
-from pydantic import Field, root_validator, validator
+from pydantic import Field
 
 import marvin
 from marvin.engine.language_models import OpenAIFunction
-from marvin.utilities.messages import Message, Role
+from marvin.utilities.messages import Message
 
 from .base import Executor
 
@@ -20,34 +20,41 @@ class OpenAIFunctionsExecutor(Executor):
     Functions API, so provider LLMs must be compatible.
     """
 
-    functions: List[OpenAIFunction] = Field(default=None)
+    functions: Optional[List[OpenAIFunction]] = Field(default=None)
     function_call: Union[str, dict[str, str]] = Field(default=None)
     max_iterations: Optional[int] = Field(
         default_factory=lambda: marvin.settings.ai_application_max_iterations
     )
-    stream_handler: Callable[[Message], None] = Field(default=None)
+    stream_handler: Optional[Callable[[Message], None]] = Field(default=None)
 
-    @validator("functions", pre=True)
-    def validate_functions(cls, v):
-        if v is None:
-            return None
-        v = [
-            OpenAIFunction.from_function(i) if not isinstance(i, OpenAIFunction) else i
-            for i in v
-        ]
-        return v
+    def __init__(
+        self,
+        functions: Optional[List[Union[OpenAIFunction, Callable[..., Any]]]] = None,
+        **kwargs: Any,
+    ):
+        if functions is not None:
+            functions = [
+                (
+                    OpenAIFunction.from_function(i)
+                    if not isinstance(i, OpenAIFunction)
+                    else i
+                )
+                for i in functions
+            ]
+        super().__init__(
+            functions=functions,
+            **kwargs,
+        )
 
-    @root_validator
-    def validate_function_call(cls, values):
-        # validate function call
-        if values["functions"] and values.get("function_call") is None:
-            values["function_call"] = "auto"
-        elif values["function_call"] not in (
-            ["auto", "none"] + [{"name": f.name} for f in values["functions"]]
-        ):
-            raise ValueError(f'Invalid function_call: {values["function_call"]}')
-
-        return values
+    # @validator("functions", pre=True)
+    # def validate_functions(cls, v):
+    #     if v is None:
+    #         return None
+    #     v = [
+    #         OpenAIFunction.from_function(i) if not isinstance(i, OpenAIFunction)else i
+    #         for i in v
+    #     ]
+    #     return v
 
     async def run_engine(self, messages: list[Message]) -> Message:
         """
@@ -78,7 +85,7 @@ class OpenAIFunctionsExecutor(Executor):
         # if function calls are set to auto and the most recent call was a
         # function, continue
         if self.function_call == "auto":
-            if responses and responses[-1].role == Role.FUNCTION_RESPONSE:
+            if responses and responses[-1].role == "function_response":
                 return False
 
         # if a specific function call was requested but errored, continue
@@ -90,7 +97,7 @@ class OpenAIFunctionsExecutor(Executor):
         return True
 
     async def process_response(self, response: Message) -> Message:
-        if response.role == Role.FUNCTION_REQUEST:
+        if response.role == "function_request":
             return await self.process_function_call(response)
         else:
             return response
@@ -147,7 +154,7 @@ class OpenAIFunctionsExecutor(Executor):
         response_data["result"] = fn_result
 
         return Message(
-            role=Role.FUNCTION_RESPONSE,
+            role="function_response",
             name=fn_name,
             content=str(fn_result),
             data=response_data,

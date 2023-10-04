@@ -1,7 +1,8 @@
 import datetime
 
-from pydantic import BaseModel, Field, validate_arguments
+from pydantic import Field
 
+from marvin._compat import BaseModel, validate_arguments
 from marvin.utilities.messages import Message, Role
 
 
@@ -16,10 +17,13 @@ class History(BaseModel):
     max_messages: int = None
 
     def add_message(self, message: Message):
-        self.messages.append(message)
+        if not any(
+            existing_message._id == message._id for existing_message in self.messages
+        ):
+            self.messages.append(message)
 
-        if self.max_messages is not None:
-            self.messages = self.messages[-self.max_messages :]
+            if self.max_messages is not None:
+                self.messages = self.messages[-self.max_messages :]
 
     @validate_arguments
     def get_messages(
@@ -29,9 +33,9 @@ class History(BaseModel):
 
         if filter is not None:
             if filter.timestamp_ge:
-                messages = [m for m in messages if m.timestamp >= filter.timestamp_ge]
+                messages = [m for m in messages if m._timestamp >= filter.timestamp_ge]
             if filter.timestamp_le:
-                messages = [m for m in messages if m.timestamp <= filter.timestamp_le]
+                messages = [m for m in messages if m._timestamp <= filter.timestamp_le]
             if filter.role_in:
                 messages = [m for m in messages if m.role in filter.role_in]
 

@@ -2,15 +2,16 @@ import inspect
 from functools import partial
 from typing import Callable, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel
 
+from marvin._compat import field_validator
 from marvin.types import Function
 from marvin.utilities.strings import jinja_env
 from marvin.utilities.types import LoggerMixin, function_to_schema
 
 
 class Tool(LoggerMixin, BaseModel):
-    name: str = None
+    name: Optional[str] = None
     description: str = None
     fn: Optional[Callable] = None
 
@@ -21,11 +22,12 @@ class Tool(LoggerMixin, BaseModel):
         description = description or fn.__doc__
         return cls(name=name, description=description, fn=fn)
 
-    @validator("name", always=True)
-    def default_name_from_class_name(cls, v):
+    @field_validator("name", pre=True)
+    def default_name(cls, v: Optional[str]) -> str:
         if v is None:
-            v = cls.__name__
-        return v
+            return cls.__name__
+        else:
+            return v
 
     def run(self, *args, **kwargs):
         if not self.fn:
