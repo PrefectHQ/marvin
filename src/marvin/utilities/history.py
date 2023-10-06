@@ -3,7 +3,7 @@ from typing import Optional
 
 from pydantic import Field
 
-from marvin._compat import BaseModel, validate_arguments
+from marvin._compat import BaseModel
 from marvin.utilities.messages import Message, Role
 
 
@@ -26,7 +26,6 @@ class History(BaseModel, arbitrary_types_allowed=True):
             if self.max_messages is not None:
                 self.messages = self.messages[-self.max_messages :]
 
-    @validate_arguments
     def get_messages(
         self, n: int = None, skip: int = None, filter: HistoryFilter = None
     ) -> list[Message]:
