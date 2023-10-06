@@ -76,7 +76,7 @@ SYSTEM_PROMPT = """
     itself.
     
     {% endif %}
-    
+     
     You can call these functions at any time, in any order, as necessary.
     Finally, respond to the user with an informative message. Remember that the
     user is probably uninterested in the internal steps you took, so respond
@@ -254,8 +254,6 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         return run_sync(self.run(input_text=input_text, model=model))
 
     async def entrypoint(self, q: str) -> str:
-        # Helper function for deployment stuff to hide the model bits from
-        # Tiangolo.
         response = await self.run(input_text=q)
         return response.content
 
@@ -289,25 +287,29 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         # get latest user input
         input_text = input_text or ""
         self.logger.debug_kv("User input", input_text, key_style="green")
-        input_message = Message(role=Role.USER, content=input_text)
-        self.history.add_message(input_message)
 
         # set up tools
         tools = self.tools.copy()
         if self.state_enabled:
-            tools.append(UpdateState(app=self))
+            tools.append(UpdateState(app=self).as_function())
         if self.plan_enabled:
-            tools.append(UpdatePlan(app=self))
+            tools.append(UpdatePlan(app=self).as_function())
+
+        preceeding_messages = self.history.get_messages()
 
         conversation = await ChatCompletion(
             model=model, functions=tools  # , _stream_handler_fn=self.stream_handler
         ).achain(messages=message_list)
 
-        for msg in (messages := conversation.history):
+        new_messages = [
+            msg for msg in conversation.history if msg not in preceeding_messages
+        ]
+
+        for msg in new_messages:
             self.history.add_message(msg)
 
-        self.logger.debug_kv("AI response", messages[-1].content, key_style="blue")
-        return messages[-1]
+        self.logger.debug_kv("AI response", new_messages[-1].content, key_style="blue")
+        return new_messages[-1]
 
     def as_tool(self, name: str = None) -> Tool:
         return AIApplicationTool(app=self, name=name)

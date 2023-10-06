@@ -1,4 +1,5 @@
 import inspect
+import json
 from types import FunctionType
 from typing import (
     Any,
@@ -62,8 +63,7 @@ class Request(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True
         elif self.functions:
             functions = {
                 "functions": [
-                    functions_serializer(function) if callable(function) else function
-                    for function in self.functions
+                    functions_serializer(function) for function in self.functions
                 ]
             }
             if self.function_call:
@@ -71,11 +71,9 @@ class Request(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True
 
         return extras | functions | function_call | messages | response_model
 
-    def function_registry(
-        self, serializer: Callable[[Callable[..., Any]], dict[str, Any]] = cast_to_json
-    ) -> dict[str, FunctionType]:
+    def function_registry(self) -> dict[str, FunctionType]:
         return {
-            serializer(function).get("name", ""): function
+            function.__name__: function
             for function in self.functions or []
             if callable(function)
         }
@@ -158,7 +156,10 @@ class Turn(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True):
 
             logger.debug_kv(
                 "Function call",
-                f"Calling function {name!r} with payload: {argument}",
+                (
+                    f"Calling function {name!r} with payload:"
+                    f" {json.dumps(argument, indent=2)}"
+                ),
                 key_style="green",
             )
 

@@ -1,7 +1,8 @@
-from typing import Any, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar, Union
 
 from marvin._compat import cast_to_json, model_dump
 from marvin.settings import settings
+from marvin.types import Function
 from pydantic import BaseModel
 
 from ..abstract import AbstractChatCompletion
@@ -11,6 +12,27 @@ T = TypeVar(
     "T",
     bound=BaseModel,
 )
+
+
+def serialize_function_or_callable(
+    function_or_callable: Union[Function, Callable[..., Any]],
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    field_name: Optional[str] = None,
+) -> dict[str, Any]:
+    if isinstance(function_or_callable, Function):
+        return {
+            "name": function_or_callable.__name__,
+            "description": function_or_callable.__doc__,
+            "parameters": function_or_callable.schema,
+        }
+    else:
+        return cast_to_json(
+            function_or_callable,
+            name=name,
+            description=description,
+            field_name=field_name,
+        )
 
 
 class OpenAIChatCompletion(AbstractChatCompletion[T]):
@@ -67,7 +89,7 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
 
         elif _request.functions:
             functions["functions"] = [
-                cast_to_json(function) if callable(function) else function
+                serialize_function_or_callable(function)
                 for function in _request.functions
             ]
             if _request.function_call:

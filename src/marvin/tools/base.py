@@ -39,20 +39,28 @@ class Tool(LoggerMixin, BaseModel):
         return self.run(*args, **kwargs)
 
     def argument_schema(self) -> dict:
-        schema = function_to_schema(self.fn or self.run)
+        schema = function_to_schema(self.fn or self.run, name=self.name)
         schema.pop("title", None)
         return schema
 
     def as_function(self) -> Function:
-        schema = self.argument_schema()
         description = jinja_env.from_string(inspect.cleandoc(self.description or ""))
         description = description.render(**self.dict(), TOOL=self)
 
+        def fn(*args, **kwargs):
+            return self.run(*args, **kwargs)
+
+        fn.__name__ = self.__class__.__name__
+        fn.__doc__ = self.run.__doc__
+
+        schema = self.argument_schema()
+
         return Function(
-            name=self.name,
+            name=fn.__name__,
             description=description,
             parameters=schema,
-            fn=self.run,
+            fn=fn,
+            signature=inspect.signature(self.run),
         )
 
 

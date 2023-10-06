@@ -1,7 +1,6 @@
 import copy
 import inspect
 import re
-from functools import partial
 from typing import Callable, Optional, Type
 
 from pydantic import BaseModel
@@ -81,20 +80,24 @@ class Function:
     such as a schema, response model, and more.
     """
 
-    def __new__(cls, fn: Callable, **kwargs):
+    def __new__(cls, fn: Callable, parameters: dict = None, signature=None, **kwargs):
         config = FunctionConfig(fn, **kwargs)
-
-        instance = validate_arguments(fn, config=config.dict())
-        instance.schema = instance.model.schema
-        instance.evaluate_raw = partial(cls.evaluate_raw, fn=instance)
-
+        instance = super().__new__(cls)
+        instance.instance = validate_arguments(fn, config=config.dict())
+        instance.schema = parameters or instance.instance.model.schema
         instance.response_model = config.response_model
         instance.bind_arguments = config.bind_arguments
         instance.getsource = config.getsource
-
-        instance.__name__ = config.name
-        instance.__doc__ = config.description
+        instance.__name__ = config.name or fn.__name__
+        instance.__doc__ = config.description or fn.__doc__
+        instance.signature = signature or inspect.signature(fn)
         return instance
+
+    def __call__(self, *args, **kwargs):
+        return self.evaluate_raw(*args, **kwargs)
+
+    def evaluate_raw(self, *args, **kwargs):
+        return self.instance(*args, **kwargs)
 
     @classmethod
     def from_model(cls, model: Type[BaseModel], **kwargs):
@@ -102,17 +105,9 @@ class Function:
             list(model.__signature__.parameters.values()), return_annotation=model
         )
 
-        instance = cls.__new__(
-            cls,
-            model,
-            **{
-                "name": "format_response",
-                "description": "Format the response",
-                **kwargs,
-            },
+        return cls(
+            model, name="format_response", description="Format the response", **kwargs
         )
-
-        return instance
 
     @classmethod
     def from_return_annotation(
@@ -124,14 +119,21 @@ class Function:
 
         format_final_response.__name__ = name or format_final_response.__name__
         format_final_response.__doc__ = description or format_final_response.__doc__
-        response_model = cls(format_final_response)
-        return response_model
+        return cls(format_final_response)
 
-    @classmethod
-    def evaluate_raw(cls, args: str, /, *, fn: Callable, **kwargs):
-        return fn(**fn.model.parse_raw(args).dict(exclude_none=True))
-
-
-class FunctionRegistry(list[Function]):
-    def schema(self, *args, **kwargs):
-        return [fn.schema(*args, **kwargs) for fn in self]
+    def __repr__(self):
+        parameters = []
+        for _, param in self.signature.parameters.items():
+            param_repr = str(param)
+            if param.annotation is not param.empty:
+                param_repr = param_repr.replace(
+                    str(param.annotation),
+                    (
+                        param.annotation.__name__
+                        if isinstance(param.annotation, type)
+                        else str(param.annotation)
+                    ),
+                )
+            parameters.append(param_repr)
+        param_str = ", ".join(parameters)
+        return f"marvin.functions.{self.__name__}({param_str})"
