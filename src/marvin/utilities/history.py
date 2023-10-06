@@ -1,4 +1,5 @@
 import datetime
+from typing import Optional
 
 from pydantic import Field
 
@@ -7,9 +8,9 @@ from marvin.utilities.messages import Message, Role
 
 
 class HistoryFilter(BaseModel):
-    role_in: list[Role] = None
-    timestamp_ge: datetime.datetime = None
-    timestamp_le: datetime.datetime = None
+    role_in: list[Role] = Field(default_factory=list)
+    timestamp_ge: Optional[datetime.datetime] = None
+    timestamp_le: Optional[datetime.datetime] = None
 
 
 class History(BaseModel, arbitrary_types_allowed=True):
