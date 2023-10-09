@@ -1,12 +1,16 @@
-from typing import Any, Callable, Optional, TypeVar, Union
+import inspect
+from typing import Any, AsyncGenerator, Callable, Optional, TypeVar, Union
 
 from marvin._compat import cast_to_json, model_dump
 from marvin.settings import settings
 from marvin.types import Function
+from marvin.utilities.async_utils import create_task
+from marvin.utilities.streaming import StreamHandler
+from openai.openai_object import OpenAIObject
 from pydantic import BaseModel
 
 from ..abstract import AbstractChatCompletion
-from ..handlers import Request, Response
+from ..handlers import Request, Response, Usage
 
 T = TypeVar(
     "T",
@@ -32,6 +36,59 @@ def serialize_function_or_callable(
             name=name,
             description=description,
             field_name=field_name,
+        )
+
+
+class OpenAIStreamHandler(StreamHandler):
+    async def handle_streaming_response(
+        self,
+        api_response: AsyncGenerator[OpenAIObject, None],
+    ) -> OpenAIObject:
+        final_chunk = {}
+        accumulated_content = ""
+
+        async for r in api_response:
+            final_chunk.update(r.to_dict_recursive())
+
+            delta = r.choices[0].delta if r.choices and r.choices[0] else None
+
+            if delta is None:
+                continue
+
+            if "content" in delta:
+                accumulated_content += delta.content or ""
+
+            if self.callback:
+                callback_result = self.callback(final_chunk)
+                if inspect.isawaitable(callback_result):
+                    create_task(callback_result)
+
+        if "choices" in final_chunk and len(final_chunk["choices"]) > 0:
+            final_chunk["choices"][0]["content"] = accumulated_content
+
+        final_chunk["object"] = "chat.completion"
+
+        return OpenAIObject.construct_from(
+            {
+                "id": final_chunk["id"],
+                "object": "chat.completion",
+                "created": final_chunk["created"],
+                "model": final_chunk["model"],
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": accumulated_content,
+                        },
+                        "finish_reason": "stop",
+                    }
+                ],
+                # TODO: Figure out how to get the usage from the streaming response
+                "usage": Usage.parse_obj(
+                    {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+                ),
+            }
         )
 
 
@@ -127,5 +184,14 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         """
         import openai
 
+        if handler_fn := serialized_request.pop("stream_handler", {}):
+            serialized_request["stream"] = True
+
         response = await openai.ChatCompletion.acreate(**serialized_request)  # type: ignore # noqa
+
+        if handler_fn:
+            response = await OpenAIStreamHandler(
+                callback=handler_fn,
+            ).handle_streaming_response(response)
+
         return response  # type: ignore

@@ -295,14 +295,16 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         if self.plan_enabled:
             tools.append(UpdatePlan(app=self).as_function())
 
-        preceeding_messages = self.history.get_messages()
-
         conversation = await ChatCompletion(
-            model=model, functions=tools  # , _stream_handler_fn=self.stream_handler
+            model=model,
+            functions=tools,
+            stream_handler=self.stream_handler,
         ).achain(messages=message_list)
 
         new_messages = [
-            msg for msg in conversation.history if msg not in preceeding_messages
+            msg
+            for msg in conversation.history
+            if msg not in self.history.get_messages()
         ]
 
         for msg in new_messages:

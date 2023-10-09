@@ -48,6 +48,8 @@ class OpenAISettings(MarvinBaseSettings):
 
         from marvin import openai as marvin_openai
 
+        EXCLUDE_KEYS = {"stream_handler"}
+
         response: dict[str, Any] = {}
         if settings.llm_max_context_tokens > 0:
             response["max_tokens"] = settings.llm_max_tokens
@@ -62,7 +64,9 @@ class OpenAISettings(MarvinBaseSettings):
             response["api_key"] = marvin_openai.api_key
         response["temperature"] = settings.llm_temperature
         response["request_timeout"] = settings.llm_request_timeout_seconds
-        return {k: v for k, v in response.items() if v is not None}
+        return {
+            k: v for k, v in response.items() if v is not None and k not in EXCLUDE_KEYS
+        }
 
 
 class AnthropicSettings(MarvinBaseSettings):
