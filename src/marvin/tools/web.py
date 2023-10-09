@@ -3,15 +3,14 @@ from itertools import islice
 from typing import Dict
 
 import httpx
-from pydantic import Field, SecretStr
 from typing_extensions import Literal
 
-from marvin.settings import MarvinBaseSettings
+from marvin._compat import BaseSettings, Field, SecretStr
 from marvin.tools import Tool
 from marvin.utilities.strings import html_to_content, slice_tokens
 
 
-class SerpApiSettings(MarvinBaseSettings):
+class SerpApiSettings(BaseSettings):
     api_key: SecretStr = Field(None, env="MARVIN_SERPAPI_API_KEY")
 
 

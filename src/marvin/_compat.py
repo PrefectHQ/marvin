@@ -20,6 +20,8 @@ PYDANTIC_V2 = PYDANTIC_VERSION.startswith("2.")
 if PYDANTIC_V2:
     from pydantic.v1 import (
         BaseSettings,
+        Field,
+        SecretStr,
         validate_arguments,
     )
 
@@ -28,13 +30,13 @@ if PYDANTIC_V2:
     from pydantic import field_validator  # noqa # type: ignore
 
 else:
-    from pydantic import (
+    from pydantic import (  # noqa # type: ignore
         BaseSettings,
+        Field,
+        SecretStr,
         validate_arguments,
+        validator as field_validator,
     )
-
-    # noqa # type: ignore
-    from pydantic import validator as field_validator  # noqa # type: ignore
 
     SettingsConfigDict = BaseSettings.Config
 

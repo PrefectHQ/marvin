@@ -2,14 +2,15 @@ import json
 from typing import Optional
 
 import httpx
-from pydantic import BaseModel, Field, SecretStr, validator
+from pydantic import BaseModel
 from typing_extensions import Self
 
 from marvin import ai_model
-from marvin._compat import BaseSettings
+from marvin._compat import Field, SecretStr, field_validator
+from marvin.settings import MarvinBaseSettings
 
 
-class DiscourseSettings(BaseSettings):
+class DiscourseSettings(MarvinBaseSettings):
     class Config:
         env_prefix = "MARVIN_DISCOURSE_"
 
@@ -47,7 +48,7 @@ class DiscoursePost(BaseModel):
 
     topic_url: Optional[str] = Field(None)
 
-    @validator("title", "question", "answer")
+    @field_validator("title", "question", "answer")
     def non_empty_string(cls, value):
         if not value:
             raise ValueError("this field cannot be empty")

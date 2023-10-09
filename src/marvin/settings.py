@@ -29,19 +29,12 @@ class OpenAISettings(MarvinBaseSettings):
     class Config:
         env_prefix = "MARVIN_OPENAI_"
 
-    api_key: Optional[SecretStr] = Field(
-        default=None,
-        # for OpenAI convenience, we first check the Marvin-specific env var,
-        # then the generic one
-        env=["MARVIN_OPENAI_API_KEY", "OPENAI_API_KEY"],
-    )
-    organization: Optional[str] = Field(default=None)
-    embedding_engine: str = Field(default="text-embedding-ada-002", exclude=True)
-    api_type: Optional[str] = Field(default=None)
-    api_base: Optional[str] = Field(
-        default=None, description="The endpoint the OpenAI API."
-    )
-    api_version: Optional[str] = Field(default=None, description="The API version")
+    api_key: Optional[SecretStr] = None
+    organization: Optional[str] = None
+    embedding_engine: str = "text-embedding-ada-002"
+    api_type: Optional[str] = None
+    api_base: Optional[str] = None
+    api_version: Optional[str] = None
 
     def get_defaults(self, settings: "Settings") -> dict[str, Any]:
         import os
@@ -72,12 +65,10 @@ class OpenAISettings(MarvinBaseSettings):
 
 
 class AnthropicSettings(MarvinBaseSettings):
-    class Config(MarvinBaseSettings.Config):
+    class Config:
         env_prefix = "MARVIN_ANTHROPIC_"
 
-    api_key: Optional[SecretStr] = Field(
-        default=None, env=["MARVIN_ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY"]
-    )
+    api_key: Optional[SecretStr] = None
 
     def get_defaults(self, settings: "Settings") -> dict[str, Any]:
         response: dict[str, Any] = {}
@@ -94,28 +85,17 @@ class AnthropicSettings(MarvinBaseSettings):
 
 
 class AzureOpenAI(MarvinBaseSettings):
-    class Config(MarvinBaseSettings.Config):
+    class Config:
         env_prefix = "MARVIN_AZURE_OPENAI_"
 
-    api_key: Optional[SecretStr] = Field(default=None)
+    api_key: Optional[SecretStr] = None
     api_type: Literal["azure", "azure_ad"] = "azure"
-    api_base: Optional[str] = Field(
-        default=None,
-        description=(
-            "The endpoint of the Azure OpenAI API. This should have the form"
-            " https://YOUR_RESOURCE_NAME.openai.azure.com"
-        ),
-    )
-    api_version: Optional[str] = Field(
-        default="2023-07-01-preview", description="The API version"
-    )
-    deployment_name: Optional[str] = Field(
-        default=None,
-        description=(
-            "This will correspond to the custom name you chose for your deployment when"
-            " you deployed a model."
-        ),
-    )
+    # "The endpoint of the Azure OpenAI API. This should have the form https://YOUR_RESOURCE_NAME.openai.azure.com" # noqa
+    api_base: Optional[str] = None
+    api_version: Optional[str] = "2023-07-01-preview"
+    # `deployment_name` will correspond to the custom name you chose for your deployment when # noqa
+    # you deployed a model.
+    deployment_name: Optional[str] = None
 
     def get_defaults(self, settings: "Settings") -> dict[str, Any]:
         import os
@@ -142,7 +122,9 @@ class AzureOpenAI(MarvinBaseSettings):
         }
 
 
-def initial_setup(home: Path) -> Path:
+def initial_setup(home: Union[Path, None] = None) -> Path:
+    if not home:
+        home = Path.home() / ".marvin"
     home.mkdir(parents=True, exist_ok=True)
     return home
 
@@ -150,7 +132,7 @@ def initial_setup(home: Path) -> Path:
 class Settings(MarvinBaseSettings):
     """Marvin settings"""
 
-    home: Path = Field(default_factory=lambda: initial_setup(Path.home() / ".marvin"))
+    home: Path = initial_setup()
     test_mode: bool = False
 
     # LOGGING
@@ -159,22 +141,18 @@ class Settings(MarvinBaseSettings):
 
     # LLMS
     llm_model: str = "openai/gpt-3.5-turbo"
-    llm_max_tokens: int = Field(
-        default=1500, description="The max number of tokens for AI completions"
-    )
-    llm_max_context_tokens: int = Field(
-        default=3500, description="The max number of tokens to use for context"
-    )
-    llm_temperature: float = Field(default=0.8)
+    llm_max_tokens: int = 1500
+    llm_max_context_tokens: int = 3500
+    llm_temperature: float = 0.8
     llm_request_timeout_seconds: Union[float, list[float]] = 600.0
 
     # AI APPLICATIONS
     ai_application_max_iterations: Optional[int] = None
 
     # providers
-    openai: OpenAISettings = Field(default_factory=OpenAISettings)
-    anthropic: AnthropicSettings = Field(default_factory=AnthropicSettings)
-    azure_openai: AzureOpenAI = Field(default_factory=AzureOpenAI)
+    openai: OpenAISettings = OpenAISettings()
+    anthropic: AnthropicSettings = AnthropicSettings()
+    azure_openai: AzureOpenAI = AzureOpenAI()
 
     # SLACK
     slack_api_token: Optional[SecretStr] = Field(
