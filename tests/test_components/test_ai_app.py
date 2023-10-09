@@ -9,6 +9,7 @@ from marvin.components.ai_application import (
     UpdateState,
 )
 from marvin.tools import Tool
+from marvin.utilities.messages import Message
 
 from tests.utils.mark import pytest_mark_class
 
@@ -17,6 +18,7 @@ class GetSchleeb(Tool):
     name = "get_schleeb"
 
     async def run(self):
+        """Get the value of schleeb"""
         return 42
 
 
@@ -240,3 +242,31 @@ class TestUseTool:
         )
 
         assert "42" in app("what is the value of schleeb?").content
+
+
+@pytest_mark_class("llm")
+class TestStreaming:
+    def test_streaming(self):
+        external_state = {"content": []}
+
+        def handler(chunk):
+            delta = chunk["choices"][0]["delta"]
+            if delta and delta["content"]:
+                external_state["content"].append(delta["content"])
+
+        app = AIApplication(
+            name="streaming app",
+            stream_handler=handler,
+            state_enabled=False,
+            plan_enabled=False,
+        )
+
+        response = app(
+            "say the words 'Hello world' EXACTLY as i have written them."
+            " no other characters should be included, do not add any punctuation."
+        )
+
+        assert isinstance(response, Message)
+        assert "Hello world" in response.content
+
+        assert len([i for i in external_state["content"] if i is not None]) == 2

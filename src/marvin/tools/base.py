@@ -12,7 +12,7 @@ from marvin.utilities.types import LoggerMixin, function_to_schema
 
 class Tool(LoggerMixin, BaseModel):
     name: Optional[str] = None
-    description: str = None
+    description: Optional[str] = None
     fn: Optional[Callable] = None
 
     @classmethod
