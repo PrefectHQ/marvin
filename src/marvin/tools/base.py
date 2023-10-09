@@ -22,7 +22,7 @@ class Tool(LoggerMixin, BaseModel):
         description = description or fn.__doc__
         return cls(name=name, description=description, fn=fn)
 
-    @field_validator("name", always=True, pre=True)
+    @field_validator("name")
     def default_name(cls, v: Optional[str]) -> str:
         if v is None:
             return cls.__name__

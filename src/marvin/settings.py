@@ -3,18 +3,21 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Literal, Optional, Union
 
-from pydantic import Field, SecretStr
+from ._compat import (
+    BaseSettings,
+    Field,
+    SecretStr,
+    model_dump,
+)
 
-from ._compat import BaseSettings, SettingsConfigDict, field_validator, model_dump
-
-ENV_PATH = Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()
+DEFAULT_ENV_PATH = Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()
 
 
 class MarvinBaseSettings(BaseSettings):
-    class Config(SettingsConfigDict):
+    class Config:
         env_file = (
             ".env",
-            str(Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()),
+            str(DEFAULT_ENV_PATH),
         )
         env_prefix = "MARVIN_"
         validate_assignment = True
@@ -23,9 +26,8 @@ class MarvinBaseSettings(BaseSettings):
 class OpenAISettings(MarvinBaseSettings):
     """Provider-specific settings. Only some of these will be relevant to users."""
 
-    class Config(MarvinBaseSettings.Config):
+    class Config:
         env_prefix = "MARVIN_OPENAI_"
-        # extra = "allow"
 
     api_key: Optional[SecretStr] = Field(
         default=None,
@@ -140,10 +142,15 @@ class AzureOpenAI(MarvinBaseSettings):
         }
 
 
+def initial_setup(home: Path) -> Path:
+    home.mkdir(parents=True, exist_ok=True)
+    return home
+
+
 class Settings(MarvinBaseSettings):
     """Marvin settings"""
 
-    home: Path = Path("~/.marvin").expanduser()
+    home: Path = Field(default_factory=lambda: initial_setup(Path.home() / ".marvin"))
     test_mode: bool = False
 
     # LOGGING
@@ -181,23 +188,11 @@ class Settings(MarvinBaseSettings):
     chroma_server_host: Optional[str] = Field(default=None)
     chroma_server_http_port: Optional[int] = Field(default=None)
 
-    # discourse
-    discourse_help_category_id: Optional[int] = Field(default=None)
-    discourse_api_key: Optional[SecretStr] = Field(default=None)
-    discourse_api_username: Optional[str] = Field(default=None)
-    discourse_url: Optional[str] = Field(default=None)
-
     # github
     github_token: Optional[SecretStr] = Field(default=None)
 
     # wolfram
     wolfram_app_id: Optional[SecretStr] = Field(default=None)
-
-    @field_validator("home")
-    @classmethod
-    def initial_setup(cls, v: Path) -> Path:
-        v.mkdir(parents=True, exist_ok=True)
-        return v
 
     def get_defaults(self, provider: Optional[str] = None) -> dict[str, Any]:
         response: dict[str, Any] = {}

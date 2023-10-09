@@ -5,8 +5,8 @@ from typing import Any, Callable, Optional, Union
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, validator
 
-from marvin._compat import PYDANTIC_V2
-from marvin.engine.language_models.openai import CONTEXT_SIZES
+from marvin._compat import PYDANTIC_V2, model_dump
+from marvin.core.ChatCompletion.providers.openai import CONTEXT_SIZES
 from marvin.openai import ChatCompletion
 from marvin.prompts import library as prompt_library
 from marvin.prompts.base import Prompt, render_prompts
@@ -404,7 +404,7 @@ class UpdateState(Tool):
 
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
-        updated_state = patch.apply(self.app.state.dict())
+        updated_state = patch.apply(model_dump(self.app.state))
         self.app.state = type(self.app.state)(**updated_state)
         return "Application state updated successfully!"
 
@@ -452,6 +452,6 @@ class UpdatePlan(Tool):
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
 
-        updated_state = patch.apply(self.app.plan.dict())
-        self.app.plan = type(self.app.plan)(**updated_state)
+        updated_plan = patch.apply(model_dump(self.app.plan))
+        self.app.plan = type(self.app.plan)(**updated_plan)
         return "Application plan updated successfully!"

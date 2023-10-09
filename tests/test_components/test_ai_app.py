@@ -1,5 +1,6 @@
 import jsonpatch
 import pytest
+from marvin._compat import model_dump
 from marvin.components.ai_application import (
     AIApplication,
     AppPlan,
@@ -15,7 +16,7 @@ from tests.utils.mark import pytest_mark_class
 
 
 class GetSchleeb(Tool):
-    name = "get_schleeb"
+    name: str = "get_schleeb"
 
     async def run(self):
         """Get the value of schleeb"""
@@ -29,7 +30,7 @@ class TestStateJSONPatch:
         )
         tool = UpdateState(app=app)
         tool.run([{"op": "replace", "path": "/state/foo", "value": "baz"}])
-        assert app.state.dict() == {"state": {"foo": "baz"}}
+        assert model_dump(app.state) == {"state": {"foo": "baz"}}
 
     def test_update_app_state_invalid_patch(self):
         app = AIApplication(
@@ -38,7 +39,7 @@ class TestStateJSONPatch:
         tool = UpdateState(app=app)
         with pytest.raises(jsonpatch.InvalidJsonPatch):
             tool.run([{"op": "invalid_op", "path": "/state/foo", "value": "baz"}])
-        assert app.state.dict() == {"state": {"foo": "bar"}}
+        assert model_dump(app.state) == {"state": {"foo": "bar"}}
 
     def test_update_app_state_non_existent_path(self):
         app = AIApplication(
@@ -47,7 +48,7 @@ class TestStateJSONPatch:
         tool = UpdateState(app=app)
         with pytest.raises(jsonpatch.JsonPatchConflict):
             tool.run([{"op": "replace", "path": "/state/baz", "value": "qux"}])
-        assert app.state.dict() == {"state": {"foo": "bar"}}
+        assert model_dump(app.state) == {"state": {"foo": "bar"}}
 
 
 @pytest_mark_class("llm")
@@ -95,7 +96,7 @@ class TestPlanJSONPatch:
         )
         tool = UpdatePlan(app=app)
         tool.run([{"op": "replace", "path": "/tasks/0/state", "value": "COMPLETED"}])
-        assert app.plan.dict() == {
+        assert model_dump(app.plan) == {
             "tasks": [
                 {
                     "id": 1,
@@ -120,7 +121,7 @@ class TestPlanJSONPatch:
             tool.run(
                 [{"op": "invalid_op", "path": "/tasks/0/state", "value": "COMPLETED"}]
             )
-        assert app.plan.dict() == {
+        assert model_dump(app.plan) == {
             "tasks": [
                 {
                     "id": 1,
@@ -145,7 +146,7 @@ class TestPlanJSONPatch:
             tool.run(
                 [{"op": "replace", "path": "/tasks/1/state", "value": "COMPLETED"}]
             )
-        assert app.plan.dict() == {
+        assert model_dump(app.plan) == {
             "tasks": [
                 {
                     "id": 1,
