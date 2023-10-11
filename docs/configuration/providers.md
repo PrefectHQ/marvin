@@ -142,3 +142,40 @@ import marvin
 
 marvin.settings.llm_model = 'azure_openai/gpt-35-turbo'
 ```
+
+## Huggingface, Palm, Ollama, TogetherAI, AI21, Cohere etc.[Full List](https://docs.litellm.ai/docs/providers)
+
+### Create OpenAI-proxy
+We'll use [LiteLLM](https://docs.litellm.ai/docs/) to create an OpenAI-compatible endpoint, that translates OpenAI calls to any of the [supported providers](https://docs.litellm.ai/docs/providers).
+
+Example to use a local CodeLLama model from Ollama.ai with Marvin: 
+
+Let's spin up a proxy server to route any OpenAI call from Marvin to Ollama/CodeLlama
+```python
+pip install litellm
+```
+```python
+$ litellm --model ollama/codellama
+
+#INFO: Ollama running on http://0.0.0.0:8000
+```
+
+[Docs](https://docs.litellm.ai/docs/proxy_server)
+
+### Update Marvin
+
+Update your .env 
+
+```shell
+os.environ["MARVIN_AZURE_OPENAI_API_KEY"] = "my-fake-key"
+os.environ["MARVIN_AZURE_OPENAI_API_BASE"] = "http://0.0.0.0:8000"
+os.environ["MARVIN_AZURE_OPENAI_DEPLOYMENT_NAME"] = "my-fake-model"
+os.environ["MARVIN_AZURE_OPENAI_API_TYPE"] = "azure"
+```
+
+Once the provider is configured, you can use CodeLLama in Marvin like this:
+```python
+import marvin
+
+marvin.settings.llm_model = 'azure_openai/my-fake-model'
+```
