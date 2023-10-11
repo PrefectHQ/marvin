@@ -5,11 +5,11 @@ from typing import Any, Callable, Optional, Union
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, validator
 
-from marvin._compat import PYDANTIC_V2
-from marvin.engine.executors import OpenAIFunctionsExecutor
-from marvin.engine.language_models import ChatLLM, chat_llm
+from marvin._compat import PYDANTIC_V2, model_dump
+from marvin.core.ChatCompletion.providers.openai import CONTEXT_SIZES
+from marvin.openai import ChatCompletion
 from marvin.prompts import library as prompt_library
-from marvin.prompts.base import Prompt
+from marvin.prompts.base import Prompt, render_prompts
 from marvin.tools import Tool
 from marvin.utilities.async_utils import run_sync
 from marvin.utilities.history import History, HistoryFilter
@@ -42,7 +42,7 @@ SYSTEM_PROMPT = """
     
     {% if app.plan_enabled %}
 
-    - Call the `UpdatePlan` function to update your plan. Use your plan
+    - Call the `update_plan` function to update your plan. Use your plan
     to track notes, objectives, in-progress work, and to break problems down
     into solvable, possibly dependent parts. You plan consists of a few fields:
     
@@ -71,12 +71,12 @@ SYSTEM_PROMPT = """
 
     {% if app.state_enabled %}
 
-    - Call the `UpdateState` function to update the application's state. This
+    - Call the `update_state` function to update the application's state. This
     is where you should store any information relevant to the application
     itself.
     
     {% endif %}
-    
+     
     You can call these functions at any time, in any order, as necessary.
     Finally, respond to the user with an informative message. Remember that the
     user is probably uninterested in the internal steps you took, so respond
@@ -205,7 +205,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
     description: Optional[str] = None
     state: BaseModel = Field(default_factory=FreeformState)
     plan: AppPlan = Field(default_factory=AppPlan)
-    tools: list[Union[Tool, Callable[..., Any]]] = []
+    tools: list[Union[Tool, Callable[..., Any]]] = Field(default_factory=list)
     history: History = Field(default_factory=History)
     additional_prompts: list[Prompt] = Field(
         default_factory=list,
@@ -217,33 +217,6 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
     state_enabled: bool = True
     plan_enabled: bool = True
 
-    def __init__(
-        self,
-        name: Optional[str] = None,
-        description: Optional[str] = None,
-        tools: Optional[list[Union[Tool, Callable[..., Any]]]] = None,
-        **kwargs: Any,
-    ):
-        name = name or self.__class__.__name__
-        description = description or inspect.cleandoc(self.__class__.__doc__ or "")
-        tools_ = tools or []
-        tools = []
-        for tool in tools_:
-            if isinstance(tool, AIApplicationTool):
-                tool.app = self
-            elif isinstance(tool, Tool):
-                tools.append(tool)
-            elif callable(tool):
-                tools.append(Tool.from_function(tool))
-            else:
-                raise ValueError(f"Tool {tool} is not a Tool or callable.")
-        super().__init__(
-            name=name,
-            description=description,
-            tools=tools,
-            **kwargs,
-        )
-
     @validator("description")
     def validate_description(cls, v):
         return inspect.cleandoc(v)
@@ -254,7 +227,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             v = []
         return v
 
-    @validator("tools", pre=True)
+    @validator("tools", pre=True, always=True)
     def validate_tools(cls, v):
         if v is None:
             v = []
@@ -263,14 +236,12 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
 
         # convert AI Applications and functions to tools
         for tool in v:
-            if isinstance(tool, AIApplication):
-                tools.append(tool.as_tool())
-            elif isinstance(tool, Tool):
-                tools.append(tool)
+            if isinstance(tool, (AIApplication, Tool)):
+                tools.append(tool.as_function())
             elif callable(tool):
-                tools.append(Tool.from_function(tool))
+                tools.append(tool)
             else:
-                raise ValueError(f"Tool {tool} is not a Tool or callable.")
+                raise ValueError(f"Tool {tool} is not a `Tool` or callable.")
         return tools
 
     @validator("name", always=True)
@@ -279,18 +250,16 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             v = cls.__name__
         return v
 
-    def __call__(self, input_text: str = None, model: ChatLLM = None):
+    def __call__(self, input_text: str = None, model: str = None):
         return run_sync(self.run(input_text=input_text, model=model))
 
     async def entrypoint(self, q: str) -> str:
-        # Helper function for deployment stuff to hide the model bits from
-        # Tiangolo.
         response = await self.run(input_text=q)
         return response.content
 
-    async def run(self, input_text: str = None, model: ChatLLM = None):
+    async def run(self, input_text: str = None, model: str = None) -> Message:
         if model is None:
-            model = chat_llm()
+            model = "gpt-3.5-turbo"
 
         # set up prompts
         prompts = [
@@ -309,37 +278,46 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             *self.additional_prompts,
         ]
 
+        message_list = render_prompts(
+            prompts=prompts,
+            render_kwargs=dict(app=self, input_text=input_text),
+            max_tokens=CONTEXT_SIZES.get(model, 2048),
+        )
+
         # get latest user input
         input_text = input_text or ""
         self.logger.debug_kv("User input", input_text, key_style="green")
-        input_message = Message(role=Role.USER, content=input_text)
-        self.history.add_message(input_message)
 
         # set up tools
         tools = self.tools.copy()
         if self.state_enabled:
-            tools.append(UpdateState(app=self, name="UpdateState"))
+            tools.append(UpdateState(app=self).as_function())
         if self.plan_enabled:
-            tools.append(UpdatePlan(app=self, name="UpdatePlan"))
-        executor = OpenAIFunctionsExecutor(
+            tools.append(UpdatePlan(app=self).as_function())
+
+        conversation = await ChatCompletion(
             model=model,
-            functions=[t.as_openai_function() for t in tools],
+            functions=tools,
             stream_handler=self.stream_handler,
-        )
+        ).achain(messages=message_list)
 
-        responses = await executor.start(
-            prompts=prompts,
-            prompt_render_kwargs=dict(app=self, input_text=input_text),
-        )
+        new_messages = [
+            msg
+            for msg in conversation.history
+            if msg not in self.history.get_messages()
+        ]
 
-        for r in responses:
-            self.history.add_message(r)
+        for msg in new_messages:
+            self.history.add_message(msg)
 
-        self.logger.debug_kv("AI response", responses[-1].content, key_style="blue")
-        return responses[-1]
+        self.logger.debug_kv("AI response", new_messages[-1].content, key_style="blue")
+        return new_messages[-1]
 
     def as_tool(self, name: str = None) -> Tool:
         return AIApplicationTool(app=self, name=name)
+
+    def as_function(self, name: str = None) -> Callable:
+        return self.as_tool(name=name).as_function()
 
 
 class AIApplicationTool(Tool):
@@ -400,11 +378,13 @@ class UpdateState(Tool):
             state=FreeformState(state={"San Francisco": "not visited"}),
         )
 
-        patch = JSONPatchModel(
-            op="replace", path="/state/San Francisco", value="visited"
-        )
-
-        UpdateState(app=destination_tracker).run([patch.dict()])
+        UpdateState(app=destination_tracker).run([
+            {
+                "op": "replace",
+                "path": "/state/San Francisco",
+                "value": "visited"
+            }
+        ])
 
         assert destination_tracker.state.dict() == {
             "state": {"San Francisco": "visited"}
@@ -424,7 +404,7 @@ class UpdateState(Tool):
 
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
-        updated_state = patch.apply(self.app.state.dict())
+        updated_state = patch.apply(model_dump(self.app.state))
         self.app.state = type(self.app.state)(**updated_state)
         return "Application state updated successfully!"
 
@@ -440,7 +420,6 @@ class UpdatePlan(Tool):
         from marvin.components.ai_application import (
             AIApplication,
             AppPlan,
-            JSONPatchModel,
             UpdatePlan,
         )
 
@@ -449,13 +428,13 @@ class UpdatePlan(Tool):
         todo_app("i need to buy milk")
 
         # manually update the plan (usually done by the AI)
-        patch = JSONPatchModel(
-            op="replace",
-            path="/tasks/0/state",
-            value="COMPLETED"
-        )
-
-        UpdatePlan(app=todo_app).run([patch.dict()])
+        UpdatePlan(app=todo_app).run([
+            {
+                "op": "replace",
+                "path": "/tasks/0/state",
+                "value": "COMPLETED"
+            }
+        ])
 
         print(todo_app.plan)
         ```
@@ -473,6 +452,6 @@ class UpdatePlan(Tool):
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
 
-        updated_state = patch.apply(self.app.plan.dict())
-        self.app.plan = type(self.app.plan)(**updated_state)
+        updated_plan = patch.apply(model_dump(self.app.plan))
+        self.app.plan = type(self.app.plan)(**updated_plan)
         return "Application plan updated successfully!"

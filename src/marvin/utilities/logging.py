@@ -76,3 +76,6 @@ def add_logging_methods(logger):
     logger.warning_kv = partial(log_kv, logging.WARNING)
     logger.error_kv = partial(log_kv, logging.ERROR)
     logger.critical_kv = partial(log_kv, logging.CRITICAL)
+
+
+setup_logging(level=marvin.settings.log_level)

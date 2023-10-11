@@ -353,10 +353,10 @@ def render_prompts(
     current_tokens = 0
     allowed_messages = []
     for _, position, msg in sorted(all_messages, key=lambda m: (m[0], -1 * m[1])):
-        if current_tokens >= max_tokens:
+        if current_tokens >= max_tokens or not (content := msg.content):
             break
         allowed_messages.append((position, msg))
-        current_tokens += count_tokens(msg.content)
+        current_tokens += count_tokens(content)
 
     # sort allowed messages by position to restore original order
     messages = [msg for _, msg in sorted(allowed_messages, key=lambda m: m[0])]

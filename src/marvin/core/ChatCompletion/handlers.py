@@ -1,3 +1,5 @@
+import inspect
+import json
 from types import FunctionType
 from typing import (
     Any,
@@ -11,6 +13,9 @@ from typing import (
 )
 
 from marvin._compat import cast_to_json, model_dump
+from marvin.utilities.async_utils import run_sync
+from marvin.utilities.logging import get_logger
+from marvin.utilities.messages import Message, Role
 from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec
 
@@ -22,18 +27,6 @@ T = TypeVar(
 )
 
 P = ParamSpec("P")
-
-
-class FunctionCall(BaseModel):
-    name: str
-    arguments: str
-
-
-class Message(BaseModel):
-    content: Optional[str] = Field(default=None)
-    role: Optional[str] = Field(default=None)
-    name: Optional[str] = Field(default=None)
-    function_call: Optional[FunctionCall] = Field(default=None)
 
 
 class Request(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True):
@@ -70,8 +63,7 @@ class Request(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True
         elif self.functions:
             functions = {
                 "functions": [
-                    functions_serializer(function) if callable(function) else function
-                    for function in self.functions
+                    functions_serializer(function) for function in self.functions
                 ]
             }
             if self.function_call:
@@ -79,13 +71,11 @@ class Request(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True
 
         return extras | functions | function_call | messages | response_model
 
-    def function_registry(
-        self, serializer: Callable[[Callable[..., Any]], dict[str, Any]] = cast_to_json
-    ) -> dict[str, FunctionType]:
+    def function_registry(self) -> dict[str, FunctionType]:
         return {
-            serializer(function).get("name", ""): function
+            function.__name__: function
             for function in self.functions or []
-            if isinstance(function, FunctionType)
+            if callable(function)
         }
 
 
@@ -150,19 +140,46 @@ class Turn(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True):
     def call_function(self) -> Union[Message, list[Message]]:
         if not self.has_function_call():
             raise ValueError("No function call found.")
+
         pairs: list[tuple[str, dict[str, Any]]] = self.get_function_call()
         function_registry: dict[str, FunctionType] = self.request.function_registry()
         evaluations: list[Any] = []
+
+        logger = get_logger("ChatCompletion.handlers")
+
         for pair in pairs:
             name, argument = pair
             if name not in function_registry:
-                raise ValueError(f"Function {name} not found in function registry.")
-            evaluations.append(function_registry[name](**argument))
+                raise ValueError(
+                    f"Function {name} not found in {function_registry=!r}."
+                )
+
+            logger.debug_kv(
+                "Function call",
+                (
+                    f"Calling function {name!r} with payload:"
+                    f" {json.dumps(argument, indent=2)}"
+                ),
+                key_style="green",
+            )
+
+            function_result = function_registry[name](**argument)
+
+            if inspect.isawaitable(function_result):
+                function_result = run_sync(function_result)
+
+            logger.debug_kv(
+                "Function call",
+                f"Function {name!r} returned: {function_result}",
+                key_style="green",
+            )
+
+            evaluations.append(function_result)
         if len(evaluations) != 1:
             return [
                 Message(
                     name=pairs[j][0],
-                    role="function",
+                    role=Role.FUNCTION_RESPONSE,
                     content=str(evaluations[j]),
                     function_call=None,
                 )
@@ -171,7 +188,7 @@ class Turn(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True):
         else:
             return Message(
                 name=pairs[0][0],
-                role="function",
+                role=Role.FUNCTION_RESPONSE,
                 content=str(evaluations[0]),
                 function_call=None,
             )

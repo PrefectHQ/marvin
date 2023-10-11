@@ -1,10 +1,11 @@
 import inspect
+import uuid
 from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 from typing_extensions import Self
 
 from marvin._compat import field_validator
@@ -16,8 +17,8 @@ class Role(Enum):
     SYSTEM = "system"
     ASSISTANT = "assistant"
     USER = "user"
-    FUNCTION_REQUEST = "function_request"
-    FUNCTION_RESPONSE = "function_response"
+    FUNCTION_REQUEST = "function"
+    FUNCTION_RESPONSE = "function"
 
     @classmethod
     def _missing_(cls: type[Self], value: object) -> Optional[Self]:
@@ -26,6 +27,11 @@ class Role(Enum):
             (member for member in cls if member.value.lower() == lower_value), None
         )
         return matching_member
+
+
+class FunctionCall(BaseModel):
+    name: str
+    arguments: str
 
 
 class Message(MarvinBaseModel):
@@ -37,23 +43,14 @@ class Message(MarvinBaseModel):
         description="The name of the message",
     )
 
-    # Internal fields for intelligent rendering.
+    function_call: Optional[FunctionCall] = Field(default=None)
+
+    # convenience fields, excluded from serialization
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, exclude=True)
+    data: Optional[dict[str, Any]] = Field(default_factory=dict, exclude=True)
     timestamp: datetime = Field(
-        repr=False,
         default_factory=lambda: datetime.now(ZoneInfo("UTC")),
-        description="The timestamp of the message",
-    )
-
-    data: Optional[dict[str, Any]] = Field(
-        default_factory=dict,
-        repr=False,
-        description="The request data for the message",
-    )
-
-    llm_response: Optional[dict[str, Any]] = Field(
-        default_factory=dict,
-        repr=False,
-        description="The response data for the message",
+        exclude=True,
     )
 
     @field_validator("content")

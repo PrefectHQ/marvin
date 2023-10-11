@@ -18,23 +18,25 @@ _ModelT = TypeVar("_ModelT", bound="BaseModel")
 PYDANTIC_V2 = PYDANTIC_VERSION.startswith("2.")
 
 if PYDANTIC_V2:
-    from pydantic.v1 import validate_arguments  # noqa # type: ignore
+    from pydantic.v1 import (
+        BaseSettings,
+        Field,
+        SecretStr,
+        validate_arguments,
+    )
 
-    try:
-        from pydantic_settings import BaseSettings  # noqa # type: ignore
-        from pydantic_settings import SettingsConfigDict  # noqa # type: ignore
-    except Exception as e:
-        print('Please install "pydantic-settings" to marvin with Pydantic v2.', e)
-        # TODO: remove this when we drop support for Pydantic v1.
-        from pydantic.v1 import BaseSettings  # noqa # type: ignore
-
-        SettingsConfigDict = BaseSettings.Config
+    SettingsConfigDict = BaseSettings.Config
 
     from pydantic import field_validator  # noqa # type: ignore
 
 else:
-    from pydantic import BaseSettings, validate_arguments  # noqa # type: ignore
-    from pydantic import validator as field_validator  # noqa # type: ignore
+    from pydantic import (  # noqa # type: ignore
+        BaseSettings,
+        Field,
+        SecretStr,
+        validate_arguments,
+        validator as field_validator,
+    )
 
     SettingsConfigDict = BaseSettings.Config
 
@@ -60,7 +62,7 @@ def model_json_schema(
     schema = {"parameters": {**model_schema(model)}}
 
     # Mutate the schema to match the OpenAPI spec.
-    schema["parameters"]["title"] = name or schema["parameters"].pop("title")
+    schema["parameters"]["title"] = name or schema["parameters"].pop("title", None)
     schema["parameters"]["description"] = description or schema["parameters"].pop(
         "description", ""
     )  # noqa

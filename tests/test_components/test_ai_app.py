@@ -1,5 +1,6 @@
 import jsonpatch
 import pytest
+from marvin._compat import model_dump
 from marvin.components.ai_application import (
     AIApplication,
     AppPlan,
@@ -8,8 +9,18 @@ from marvin.components.ai_application import (
     UpdatePlan,
     UpdateState,
 )
+from marvin.tools import Tool
+from marvin.utilities.messages import Message
 
 from tests.utils.mark import pytest_mark_class
+
+
+class GetSchleeb(Tool):
+    name: str = "get_schleeb"
+
+    async def run(self):
+        """Get the value of schleeb"""
+        return 42
 
 
 class TestStateJSONPatch:
@@ -19,7 +30,7 @@ class TestStateJSONPatch:
         )
         tool = UpdateState(app=app)
         tool.run([{"op": "replace", "path": "/state/foo", "value": "baz"}])
-        assert app.state.dict() == {"state": {"foo": "baz"}}
+        assert model_dump(app.state) == {"state": {"foo": "baz"}}
 
     def test_update_app_state_invalid_patch(self):
         app = AIApplication(
@@ -28,7 +39,7 @@ class TestStateJSONPatch:
         tool = UpdateState(app=app)
         with pytest.raises(jsonpatch.InvalidJsonPatch):
             tool.run([{"op": "invalid_op", "path": "/state/foo", "value": "baz"}])
-        assert app.state.dict() == {"state": {"foo": "bar"}}
+        assert model_dump(app.state) == {"state": {"foo": "bar"}}
 
     def test_update_app_state_non_existent_path(self):
         app = AIApplication(
@@ -37,7 +48,7 @@ class TestStateJSONPatch:
         tool = UpdateState(app=app)
         with pytest.raises(jsonpatch.JsonPatchConflict):
             tool.run([{"op": "replace", "path": "/state/baz", "value": "qux"}])
-        assert app.state.dict() == {"state": {"foo": "bar"}}
+        assert model_dump(app.state) == {"state": {"foo": "bar"}}
 
 
 @pytest_mark_class("llm")
@@ -83,9 +94,9 @@ class TestPlanJSONPatch:
             ),
             description="test app",
         )
-        tool = UpdatePlan(app=app, name="UpdatePlan")
+        tool = UpdatePlan(app=app)
         tool.run([{"op": "replace", "path": "/tasks/0/state", "value": "COMPLETED"}])
-        assert app.plan.dict() == {
+        assert model_dump(app.plan) == {
             "tasks": [
                 {
                     "id": 1,
@@ -105,12 +116,12 @@ class TestPlanJSONPatch:
             ),
             description="test app",
         )
-        tool = UpdatePlan(app=app, name="UpdatePlan")
+        tool = UpdatePlan(app=app)
         with pytest.raises(jsonpatch.JsonPatchException):
             tool.run(
                 [{"op": "invalid_op", "path": "/tasks/0/state", "value": "COMPLETED"}]
             )
-        assert app.plan.dict() == {
+        assert model_dump(app.plan) == {
             "tasks": [
                 {
                     "id": 1,
@@ -135,7 +146,7 @@ class TestPlanJSONPatch:
             tool.run(
                 [{"op": "replace", "path": "/tasks/1/state", "value": "COMPLETED"}]
             )
-        assert app.plan.dict() == {
+        assert model_dump(app.plan) == {
             "tasks": [
                 {
                     "id": 1,
@@ -187,3 +198,71 @@ class TestUpdatePlan:
             TaskState.SKIPPED,
             TaskState.COMPLETED,
         ]
+
+
+@pytest_mark_class("llm")
+class TestUseCallable:
+    def test_use_sync_fn(self):
+        def get_schleeb():
+            return 42
+
+        app = AIApplication(
+            name="Schleeb app",
+            tools=[get_schleeb],
+            state_enabled=False,
+            plan_enabled=False,
+            description="answer user questions",
+        )
+
+        assert "42" in app("what is the value of schleeb?").content
+
+    def test_use_async_fn(self):
+        async def get_schleeb():
+            return 42
+
+        app = AIApplication(
+            name="Schleeb app",
+            tools=[get_schleeb],
+            state_enabled=False,
+            plan_enabled=False,
+            description="answer user questions",
+        )
+
+        assert "42" in app("what is the value of schleeb?").content
+
+
+@pytest_mark_class("llm")
+class TestUseTool:
+    def test_use_tool(self):
+        app = AIApplication(
+            name="Schleeb app",
+            tools=[GetSchleeb()],
+            state_enabled=False,
+            plan_enabled=False,
+            description="answer user questions",
+        )
+
+        assert "42" in app("what is the value of schleeb?").content
+
+
+@pytest_mark_class("llm")
+class TestStreaming:
+    def test_streaming(self):
+        external_state = {"content": []}
+
+        app = AIApplication(
+            name="streaming app",
+            stream_handler=lambda m: external_state["content"].append(m.content),
+            state_enabled=False,
+            plan_enabled=False,
+        )
+
+        response = app(
+            "say the words 'Hello world' EXACTLY as i have written them."
+            " no other characters should be included, do not add any punctuation."
+        )
+
+        assert isinstance(response, Message)
+        assert response.content == "Hello world"
+
+        assert external_state["content"] == ["", "Hello", "Hello world", "Hello world"]

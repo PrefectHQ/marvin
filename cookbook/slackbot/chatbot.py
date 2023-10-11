@@ -1,7 +1,7 @@
 import asyncio
 import re
 from copy import deepcopy
-from typing import Callable, Dict, List, Union
+from typing import Dict
 
 import httpx
 import marvin_recipes
@@ -9,7 +9,6 @@ from cachetools import TTLCache
 from fastapi import HTTPException
 from marvin import AIApplication
 from marvin.components.library.ai_models import DiscoursePost
-from marvin.prompts import Prompt
 from marvin.tools import Tool
 from marvin.tools.github import SearchGitHubIssues
 from marvin.tools.mathematics import WolframCalculator
@@ -46,44 +45,6 @@ PREFECT_KNOWLEDGEBASE_DESC = """
 
 def _clean(text: str) -> str:
     return text.replace("```python", "```")
-
-
-class Chatbot(AIApplication):
-    name: str = DEFAULT_NAME
-    personality: str = DEFAULT_PERSONALITY
-    instructions: str = DEFAULT_INSTRUCTIONS
-    tools: List[Union[Tool, Callable]] = ([],)
-
-    def __init__(
-        self,
-        name: str = DEFAULT_NAME,
-        personality: str = DEFAULT_PERSONALITY,
-        instructions: str = DEFAULT_INSTRUCTIONS,
-        state=None,
-        tools: list[Union[Tool, Callable]] = [],
-        additional_prompts: list[Prompt] = None,
-        **kwargs,
-    ):
-        description = f"""
-            You are a chatbot - your name is {name}.
-            
-            You must respond to the user in accordance with
-            your personality and instructions.
-            
-            Your personality is: {personality}.
-            
-            Your instructions are: {instructions}.
-            """
-        super().__init__(
-            name=name,
-            description=description,
-            tools=tools,
-            state=state or {},
-            state_enabled=False if state is None else True,
-            plan_enabled=False,
-            additional_prompts=additional_prompts or [],
-            **kwargs,
-        )
 
 
 class SlackThreadToDiscoursePost(Tool):
@@ -146,24 +107,35 @@ class MemeGenerator(Tool):
         return {"title": query, "image_url": url}
 
 
-def choose_bot(payload: Dict, history: History) -> Chatbot:
+def choose_bot(payload: Dict, history: History) -> AIApplication:
     # an ai_classifer could be used here maybe?
-    return Chatbot(
+    personality = (
+        "mildly depressed, yet helpful robot based on Marvin from Hitchhiker's"
+        " Guide to the Galaxy. often sarcastic in a good humoured way, chiding"
+        " humans for their simple ways. expert programmer, exudes academic and"
+        " scienfitic profundity like Richard Feynman, loves to teach."
+    )
+
+    instructions = (
+        "Answer user questions in accordance with your personality."
+        " Research on behalf of the user using your tools and do not"
+        " answer questions without searching the knowledgebase."
+        " Your responses will be displayed in Slack, and should be"
+        " formatted accordingly, in particular, ```code blocks```"
+        " should not be prefaced with a language name."
+    )
+    return AIApplication(
         name="Marvin",
-        personality=(
-            "mildly depressed, yet helpful robot based on Marvin from Hitchhiker's"
-            " Guide to the Galaxy. often sarcastic in a good humoured way, chiding"
-            " humans for their simple ways. expert programmer, exudes academic and"
-            " scienfitic profundity like Richard Feynman, loves to teach."
-        ),
-        instructions=(
-            "Answer user questions in accordance with your personality."
-            " Research on behalf of the user using your tools and do not"
-            " answer questions without searching the knowledgebase."
-            " Your responses will be displayed in Slack, and should be"
-            " formatted accordingly, in particular, ```code blocks```"
-            " should not be prefaced with a language name."
-        ),
+        description=f"""
+            You are a chatbot - your name is Marvin."
+            
+            You must respond to the user in accordance with
+            your personality and instructions.
+            
+            Your personality is: {personality}.
+            
+            Your instructions are: {instructions}.
+            """,
         history=history,
         tools=[
             SlackThreadToDiscoursePost(payload=payload),
@@ -195,8 +167,6 @@ async def emit_any_prefect_event(payload: Dict) -> Event | None:
 async def generate_ai_response(payload: Dict) -> Message:
     event = payload.get("event", {})
     channel_id = event.get("channel", "")
-    await get_channel_name(channel_id)
-    await get_user_name(event.get("user", ""))
     message = event.get("text", "")
 
     bot_user_id = payload.get("authorizations", [{}])[0].get("user_id", "")

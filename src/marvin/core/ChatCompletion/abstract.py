@@ -2,10 +2,11 @@ from abc import ABC, abstractmethod
 from typing import Any, Generic, Optional, TypeVar
 
 from marvin._compat import model_copy, model_dump
+from marvin.utilities.messages import Message
 from pydantic import BaseModel, Field
 from typing_extensions import Self
 
-from .handlers import Message, Request, Response, Turn
+from .handlers import Request, Response, Turn
 
 T = TypeVar(
     "T",
@@ -61,7 +62,7 @@ class Conversation(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed
     async def asend(self, messages: list[Message], **kwargs: Any) -> Turn[T]:
         params = kwargs
         if self.last_request:
-            params = model_dump(self.last_request, exclude="messages") | kwargs
+            params = model_dump(self.last_request, exclude={"messages"}) | kwargs
 
         turn = await self.model.acreate(
             **params,
@@ -72,12 +73,6 @@ class Conversation(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed
         )
         self.turns.append(turn)
         return turn
-
-
-# if PYDANTIC_V2:
-#     Conversation.model_rebuild()
-# else:
-#     Conversation.update_forward_refs()
 
 
 class AbstractChatCompletion(
@@ -179,9 +174,9 @@ class AbstractChatCompletion(
         response = self._parse_response(response_data)
         return Turn(
             request=Request(
-                **self.defaults
-                | serialized_request
-                | model_dump(request)
+                **serialized_request
+                | self.defaults
+                | model_dump(request, exclude_none=True)
                 | ({"response_model": response_model} if response_model else {})
             ),
             response=response,

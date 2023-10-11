@@ -4,14 +4,15 @@ from typing import Callable, Optional
 
 from pydantic import BaseModel
 
-from marvin.engine.language_models import OpenAIFunction
+from marvin._compat import field_validator
+from marvin.types import Function
 from marvin.utilities.strings import jinja_env
 from marvin.utilities.types import LoggerMixin, function_to_schema
 
 
 class Tool(LoggerMixin, BaseModel):
-    name: str = None
-    description: str = None
+    name: Optional[str] = None
+    description: Optional[str] = None
     fn: Optional[Callable] = None
 
     @classmethod
@@ -21,11 +22,12 @@ class Tool(LoggerMixin, BaseModel):
         description = description or fn.__doc__
         return cls(name=name, description=description, fn=fn)
 
-    # @validator("name", always=True)
-    # def default_name_from_class_name(cls, v):
-    #     if v is None:
-    #         v = cls.__name__
-    #     return v
+    @field_validator("name")
+    def default_name(cls, v: Optional[str]) -> str:
+        if v is None:
+            return cls.__name__
+        else:
+            return v
 
     def run(self, *args, **kwargs):
         if not self.fn:
@@ -37,20 +39,28 @@ class Tool(LoggerMixin, BaseModel):
         return self.run(*args, **kwargs)
 
     def argument_schema(self) -> dict:
-        schema = function_to_schema(self.fn or self.run)
+        schema = function_to_schema(self.fn or self.run, name=self.name)
         schema.pop("title", None)
         return schema
 
-    def as_openai_function(self) -> OpenAIFunction:
-        schema = self.argument_schema()
+    def as_function(self) -> Function:
         description = jinja_env.from_string(inspect.cleandoc(self.description or ""))
         description = description.render(**self.dict(), TOOL=self)
 
-        return OpenAIFunction(
-            name=self.name,
+        def fn(*args, **kwargs):
+            return self.run(*args, **kwargs)
+
+        fn.__name__ = self.__class__.__name__
+        fn.__doc__ = self.run.__doc__
+
+        schema = self.argument_schema()
+
+        return Function(
+            name=fn.__name__,
             description=description,
             parameters=schema,
-            fn=self.run,
+            fn=fn,
+            signature=inspect.signature(self.run),
         )
 
 
