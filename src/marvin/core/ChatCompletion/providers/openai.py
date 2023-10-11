@@ -5,6 +5,7 @@ from marvin._compat import cast_to_json, model_dump
 from marvin.settings import settings
 from marvin.types import Function
 from marvin.utilities.async_utils import create_task
+from marvin.utilities.messages import Message
 from marvin.utilities.streaming import StreamHandler
 from openai.openai_object import OpenAIObject
 from pydantic import BaseModel
@@ -70,7 +71,9 @@ class OpenAIStreamHandler(StreamHandler):
                 accumulated_content += delta.content or ""
 
             if self.callback:
-                callback_result = self.callback(final_chunk)
+                callback_result = self.callback(
+                    Message(content=accumulated_content, role="assistant")
+                )
                 if inspect.isawaitable(callback_result):
                     create_task(callback_result)
 
