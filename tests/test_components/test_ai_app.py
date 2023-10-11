@@ -250,14 +250,9 @@ class TestStreaming:
     def test_streaming(self):
         external_state = {"content": []}
 
-        def handler(chunk):
-            delta = chunk["choices"][0]["delta"]
-            if delta and delta["content"]:
-                external_state["content"].append(delta["content"])
-
         app = AIApplication(
             name="streaming app",
-            stream_handler=handler,
+            stream_handler=lambda m: external_state["content"].append(m.content),
             state_enabled=False,
             plan_enabled=False,
         )
@@ -268,6 +263,6 @@ class TestStreaming:
         )
 
         assert isinstance(response, Message)
-        assert "Hello world" in response.content
+        assert response.content == "Hello world"
 
-        assert len([i for i in external_state["content"] if i is not None]) == 2
+        assert external_state["content"] == ["", "Hello", "Hello world", "Hello world"]
