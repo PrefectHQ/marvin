@@ -72,7 +72,9 @@ class OpenAIStreamHandler(StreamHandler):
 
             if self.callback:
                 callback_result = self.callback(
-                    Message(content=accumulated_content, role="assistant")
+                    Message(
+                        content=accumulated_content, role="assistant", data=final_chunk
+                    )
                 )
                 if inspect.isawaitable(callback_result):
                     create_task(callback_result)

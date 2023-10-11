@@ -19,7 +19,7 @@ class History(BaseModel, arbitrary_types_allowed=True):
 
     def add_message(self, message: Message):
         if not any(
-            existing_message._id == message._id for existing_message in self.messages
+            existing_message.id == message.id for existing_message in self.messages
         ):
             self.messages.append(message)
 
@@ -33,9 +33,9 @@ class History(BaseModel, arbitrary_types_allowed=True):
 
         if filter is not None:
             if filter.timestamp_ge:
-                messages = [m for m in messages if m._timestamp >= filter.timestamp_ge]
+                messages = [m for m in messages if m.timestamp >= filter.timestamp_ge]
             if filter.timestamp_le:
-                messages = [m for m in messages if m._timestamp <= filter.timestamp_le]
+                messages = [m for m in messages if m.timestamp <= filter.timestamp_le]
             if filter.role_in:
                 messages = [m for m in messages if m.role in filter.role_in]
 

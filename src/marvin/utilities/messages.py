@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field
 from typing_extensions import Self
 
 from marvin._compat import field_validator
@@ -45,16 +45,13 @@ class Message(MarvinBaseModel):
 
     function_call: Optional[FunctionCall] = Field(default=None)
 
-    # Internal fields for intelligent rendering.
-    _timestamp: datetime = PrivateAttr(
-        default_factory=lambda: datetime.now(ZoneInfo("UTC"))
+    # convenience fields, excluded from serialization
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, exclude=True)
+    data: Optional[dict[str, Any]] = Field(default_factory=dict, exclude=True)
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(ZoneInfo("UTC")),
+        exclude=True,
     )
-
-    _data: Optional[dict[str, Any]] = PrivateAttr(default_factory=dict)
-
-    _llm_response: Optional[dict[str, Any]] = PrivateAttr(default_factory=dict)
-
-    _id: uuid.UUID = PrivateAttr(default_factory=uuid.uuid4)
 
     @field_validator("content")
     def clean_content(cls, v: Optional[str]) -> Optional[str]:
