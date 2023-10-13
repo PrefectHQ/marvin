@@ -114,6 +114,8 @@ def convert_md_links_to_slack(text: str) -> str:
     md_link_regex = re.compile(r"\[(?P<text>[^\]]+)\]\((?P<url>[^\)]+)\)")
     text = md_link_regex.sub(r"<\g<url>|\g<text>>", text)
 
+    text = re.sub(r"\*\*(.+?)\*\*", r"*\1*", text)
+
     return text
 
 
