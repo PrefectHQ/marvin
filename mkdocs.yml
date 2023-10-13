@@ -10,9 +10,11 @@ nav:
     - welcome/what_is_marvin.md
     - welcome/installation.md
     - welcome/quickstart.md
-  - Examples:
-    - Basic Extraction API: examples/extraction_api.md
-    - Basic Classification API: examples/classification_api.md
+  - Cookbook:
+    - Entity Deduplication: examples/deduplication.md
+    - Deploying an API:
+      - Basic Extraction API: examples/extraction_api.md
+      - Basic Classification API: examples/classification_api.md
   - Docs:
     - Overview: welcome/overview.md
     - Configuration: 
