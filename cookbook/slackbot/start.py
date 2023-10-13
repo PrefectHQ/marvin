@@ -1,6 +1,7 @@
-from chatbot import handle_message
 from marvin import AIApplication
 from marvin.deployment import Deployment
+
+from cookbook.slackbot.handler import handle_message
 
 deployment = Deployment(
     component=AIApplication(tools=[handle_message]),

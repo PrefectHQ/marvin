@@ -30,6 +30,13 @@ CONTEXT_SIZES = {
 }
 
 
+def get_context_size(model: str) -> int:
+    if "/" in model:
+        model = model.split("/")[-1]
+
+    return CONTEXT_SIZES.get(model, 2048)
+
+
 def serialize_function_or_callable(
     function_or_callable: Union[Function, Callable[..., Any]],
     name: Optional[str] = None,

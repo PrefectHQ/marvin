@@ -56,7 +56,7 @@ class DiscoursePost(BaseModel):
 
     @classmethod
     def from_slack_thread(cls, messages: list[str]) -> Self:
-        return cls("\n".join(messages))
+        return cls("here is the transcript:\n" + "\n\n".join(messages))
 
     async def publish(
         self,

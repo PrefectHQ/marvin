@@ -10,6 +10,7 @@ from marvin.core.ChatCompletion import ChatCompletion
 from marvin.core.ChatCompletion.abstract import AbstractChatCompletion
 from marvin.prompts import Prompt, prompt_fn
 from marvin.utilities.async_utils import run_sync
+from marvin.utilities.logging import get_logger
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -71,6 +72,11 @@ class AIFunction(BaseModel, Generic[P, T]):
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> Any:
+        get_logger("marvin.AIFunction").debug_kv(
+            f"Calling `ai_fn` {self.fn.__name__!r}",
+            f"with args: {args} kwargs: {kwargs}",
+        )
+
         return self.call(*args, **kwargs)
 
     def get_prompt(
