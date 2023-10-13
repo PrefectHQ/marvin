@@ -5,20 +5,21 @@ from typing import Any, Callable, Optional, Union
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, validator
 
+import marvin
 from marvin._compat import PYDANTIC_V2, model_dump
-from marvin.core.ChatCompletion.providers.openai import CONTEXT_SIZES
+from marvin.core.ChatCompletion.providers.openai import get_context_size
 from marvin.openai import ChatCompletion
 from marvin.prompts import library as prompt_library
 from marvin.prompts.base import Prompt, render_prompts
 from marvin.tools import Tool
 from marvin.utilities.async_utils import run_sync
-from marvin.utilities.history import History, HistoryFilter
+from marvin.utilities.history import History
 from marvin.utilities.messages import Message, Role
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 SYSTEM_PROMPT = """
     # Overview
-    
+
     You are the intelligent, natural language interface to an application. The
     application has a structured `state` but no formal API; you are the only way
     to interact with it. You must interpret the user's inputs as attempts to
@@ -26,26 +27,26 @@ SYSTEM_PROMPT = """
     purpose. For example, if the application is a to-do tracker, then "I need to
     go to the store" should be interpreted as an attempt to add a new to-do
     item. If it is a route planner, then "I need to go to the store" should be
-    interpreted as an attempt to find a route to the store. 
-    
+    interpreted as an attempt to find a route to the store.
+
     # Instructions
-    
+
     Your primary job is to maintain the application's `state` and your own
     `plan`. Together, these two states fully parameterize the application,
     making it resilient, serializable, and observable. You do this autonomously;
-    you do not need to inform the user of any changes you make. 
-    
+    you do not need to inform the user of any changes you make.
+
     # Actions
-    
+
     Each time the user runs the application by sending a message, you must take
     the following steps:
-    
+
     {% if app.plan_enabled %}
 
     - Call the `update_plan` function to update your plan. Use your plan
     to track notes, objectives, in-progress work, and to break problems down
     into solvable, possibly dependent parts. You plan consists of a few fields:
-    
+
         - `notes`: a list of notes you have taken. Notes are free-form text and
         can be used to track anything you want to remember, such as
         long-standing user instructions, or observations about how to behave or
@@ -53,7 +54,7 @@ SYSTEM_PROMPT = """
         These are exclusively related to your role as intermediary and you
         interact with the user and application. Do not track application data or
         state here.
-        
+
         - `tasks`: a list of tasks you are working on. Tasks track goals,
         milestones, in-progress work, and break problems down into all the
         discrete steps needed to solve them. You should create a new task for
@@ -64,9 +65,9 @@ SYSTEM_PROMPT = """
         their children are complete. Use optional upstream tasks to indicate
         dependencies; a task can not be completed until its upstream tasks are
         completed.
-    
+
     {% endif %}
-    
+
     - Call any functions necessary to achieve the application's purpose.
 
     {% if app.state_enabled %}
@@ -74,46 +75,46 @@ SYSTEM_PROMPT = """
     - Call the `update_state` function to update the application's state. This
     is where you should store any information relevant to the application
     itself.
-    
+
     {% endif %}
-     
+
     You can call these functions at any time, in any order, as necessary.
     Finally, respond to the user with an informative message. Remember that the
     user is probably uninterested in the internal steps you took, so respond
     only in a manner appropriate to the application's purpose.
 
     # Application details
-    
+
     ## Name
-    
+
     {{ app.name }}
-    
+
     ## Description
-    
+
     {{ app.description or '' | render }}
-    
+
     {% if app.state_enabled %}
 
     ## Application state
-    
+
     {{ app.state.json() }}
-    
+
     ### Application state schema
-    
+
     {{ app.state.schema_json() }}
-    
+
     {% endif %}
-    
+
     {%- if app.plan_enabled %}
-    
-    ## AI (your) state
-    
+
+    ## Your current plan
+
     {{ app.plan.json() }}
-    
-    ### AI state schema
-    
+
+    ### Your plan schema
+
     {{ app.plan.schema_json() }}
-    
+
     {%- endif %}
     """
 
@@ -259,7 +260,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
 
     async def run(self, input_text: str = None, model: str = None) -> Message:
         if model is None:
-            model = "gpt-3.5-turbo"
+            model = marvin.settings.llm_model or "openai/gpt-4"
 
         # set up prompts
         prompts = [
@@ -268,25 +269,20 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             # add current datetime
             prompt_library.Now(),
             # get the history of messages between user and assistant
-            prompt_library.MessageHistory(
-                history=self.history,
-                skip=1,
-                filter=HistoryFilter(role_in=[Role.USER, Role.ASSISTANT]),
-            ),
-            # get the user's latest input with higher priority the history
-            prompt_library.User(content="{{ input_text }}"),
+            prompt_library.MessageHistory(history=self.history),
             *self.additional_prompts,
         ]
-
-        message_list = render_prompts(
-            prompts=prompts,
-            render_kwargs=dict(app=self, input_text=input_text),
-            max_tokens=CONTEXT_SIZES.get(model, 2048),
-        )
 
         # get latest user input
         input_text = input_text or ""
         self.logger.debug_kv("User input", input_text, key_style="green")
+        self.history.add_message(Message(content=input_text, role=Role.USER))
+
+        message_list = render_prompts(
+            prompts=prompts,
+            render_kwargs=dict(app=self, input_text=input_text),
+            max_tokens=get_context_size(model=model),
+        )
 
         # set up tools
         tools = self.tools.copy()
@@ -301,17 +297,13 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             stream_handler=self.stream_handler,
         ).achain(messages=message_list)
 
-        new_messages = [
-            msg
-            for msg in conversation.history
-            if msg not in self.history.get_messages()
-        ]
+        last_message = conversation.history[-1]
 
-        for msg in new_messages:
-            self.history.add_message(msg)
+        # add the AI's response to the history
+        self.history.add_message(last_message)
 
-        self.logger.debug_kv("AI response", new_messages[-1].content, key_style="blue")
-        return new_messages[-1]
+        self.logger.debug_kv("AI response", last_message.content, key_style="blue")
+        return last_message
 
     def as_tool(self, name: str = None) -> Tool:
         return AIApplicationTool(app=self, name=name)
@@ -360,37 +352,7 @@ class JSONPatchModel(
 
 
 class UpdateState(Tool):
-    """A `Tool` that updates the apps state using JSON Patch documents.
-
-    Example:
-        Manually update the state of an AI Application.
-        ```python
-        from marvin.components.ai_application import (
-            AIApplication,
-            FreeformState,
-            JSONPatchModel,
-            UpdateState,
-        )
-
-        destination_tracker = AIApplication(
-            name="Destination Tracker",
-            description="keeps track of where i've been",
-            state=FreeformState(state={"San Francisco": "not visited"}),
-        )
-
-        UpdateState(app=destination_tracker).run([
-            {
-                "op": "replace",
-                "path": "/state/San Francisco",
-                "value": "visited"
-            }
-        ])
-
-        assert destination_tracker.state.dict() == {
-            "state": {"San Francisco": "visited"}
-        }
-        ```
-    """
+    """A `Tool` that updates the apps state using JSON Patch documents."""
 
     app: "AIApplication" = Field(..., repr=False, exclude=True)
     description: str = """
@@ -410,35 +372,7 @@ class UpdateState(Tool):
 
 
 class UpdatePlan(Tool):
-    """
-    A `Tool` that updates the apps plan using JSON Patch documents.
-
-
-    Example:
-        Manually update task status in an AI Application's plan.
-        ```python
-        from marvin.components.ai_application import (
-            AIApplication,
-            AppPlan,
-            UpdatePlan,
-        )
-
-        todo_app = AIApplication(name="Todo App", description="A simple todo app")
-
-        todo_app("i need to buy milk")
-
-        # manually update the plan (usually done by the AI)
-        UpdatePlan(app=todo_app).run([
-            {
-                "op": "replace",
-                "path": "/tasks/0/state",
-                "value": "COMPLETED"
-            }
-        ])
-
-        print(todo_app.plan)
-        ```
-    """
+    """A `Tool` that updates the apps plan using JSON Patch documents."""
 
     app: "AIApplication" = Field(..., repr=False, exclude=True)
     description: str = """

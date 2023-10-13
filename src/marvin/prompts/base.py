@@ -353,24 +353,24 @@ def render_prompts(
     current_tokens = 0
     allowed_messages = []
     for _, position, msg in sorted(all_messages, key=lambda m: (m[0], -1 * m[1])):
-        if current_tokens >= max_tokens or not (content := msg.content):
+        if current_tokens >= max_tokens:
             break
         allowed_messages.append((position, msg))
-        current_tokens += count_tokens(content)
+        current_tokens += count_tokens(msg.content)
 
     # sort allowed messages by position to restore original order
     messages = [msg for _, msg in sorted(allowed_messages, key=lambda m: m[0])]
 
     # Combine all system messages into one and insert at the index of the first
     # system message
-    system_messages = [m for m in messages if m.role == Role.SYSTEM]
+    system_messages = [m for m in messages if m.role == Role.SYSTEM.value]
     if len(system_messages) > 1:
         system_message = Message(
             role=Role.SYSTEM,
             content="\n\n".join([m.content for m in system_messages]),
         )
         system_message_index = messages.index(system_messages[0])
-        messages = [m for m in messages if m.role != Role.SYSTEM]
+        messages = [m for m in messages if m.role != Role.SYSTEM.value]
         messages.insert(system_message_index, system_message)
 
     # return all messages

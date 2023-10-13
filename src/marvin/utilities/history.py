@@ -18,13 +18,10 @@ class History(BaseModel, arbitrary_types_allowed=True):
     max_messages: int = None
 
     def add_message(self, message: Message):
-        if not any(
-            existing_message.id == message.id for existing_message in self.messages
-        ):
-            self.messages.append(message)
+        self.messages.append(message)
 
-            if self.max_messages is not None:
-                self.messages = self.messages[-self.max_messages :]
+        if self.max_messages is not None:
+            self.messages = self.messages[-self.max_messages :]
 
     def get_messages(
         self, n: int = None, skip: int = None, filter: HistoryFilter = None

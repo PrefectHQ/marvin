@@ -33,15 +33,18 @@ def setup_logging(level: str = None):
     else:
         logger.setLevel(marvin.settings.log_level)
 
-    if not any(isinstance(h, RichHandler) for h in logger.handlers):
-        handler = RichHandler(
-            rich_tracebacks=True,
-            markup=False,
-            # console=Console(width=marvin.settings.log_console_width),
-        )
-        formatter = logging.Formatter("%(name)s: %(message)s")
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+    logger.handlers.clear()
+
+    handler = RichHandler(
+        rich_tracebacks=True,
+        markup=False,
+        # console=Console(width=marvin.settings.log_console_width),
+    )
+    formatter = logging.Formatter("%(name)s: %(message)s")
+    handler.setFormatter(formatter)
+
+    logger.addHandler(handler)
+    logger.propagate = False
 
 
 def add_logging_methods(logger):

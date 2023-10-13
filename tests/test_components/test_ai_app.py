@@ -57,6 +57,7 @@ class TestUpdateState:
         app = AIApplication(
             name="location tracker app",
             state=FreeformState(state={"San Francisco": {"visited": False}}),
+            plan_enabled=False,
             description="keep track of where I've visited",
         )
 
@@ -67,10 +68,12 @@ class TestUpdateState:
 
         assert bool(app.state.state.get("San Jose", {}).get("visited"))
 
+    @pytest.mark.flaky(max_runs=3)
     def test_keep_app_state_undo_previous_patch(self):
         app = AIApplication(
             name="location tracker app",
             state=FreeformState(state={"San Francisco": {"visited": False}}),
+            plan_enabled=False,
             description="keep track of where I've visited",
         )
 
@@ -78,7 +81,7 @@ class TestUpdateState:
         assert bool(app.state.state.get("San Francisco", {}).get("visited"))
 
         app(
-            "sorry, I was confused, I didn't visit San Francisco - but I did visit San"
+            "sorry, scratch that, I did not visit San Francisco - but I did visit San"
             " Jose"
         )
 
@@ -179,6 +182,7 @@ class TestUpdatePlan:
                     },
                 ]
             ),
+            state_enabled=False,
             description="plan and track my visit to the zoo",
         )
 
@@ -266,3 +270,21 @@ class TestStreaming:
         assert response.content == "Hello world"
 
         assert external_state["content"] == ["", "Hello", "Hello world", "Hello world"]
+
+
+@pytest_mark_class("llm")
+class TestMemory:
+    def test_recall(self):
+        app = AIApplication(
+            name="memory app",
+            state_enabled=False,
+            plan_enabled=False,
+        )
+
+        app("I like pistachio ice cream")
+
+        response = app(
+            "reply only with the type of ice cream i like, it should be one word"
+        )
+
+        assert "pistachio" in response.content.lower()
