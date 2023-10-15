@@ -238,7 +238,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         # convert AI Applications and functions to tools
         for tool in v:
             if isinstance(tool, (AIApplication, Tool)):
-                tools.append(tool.as_function())
+                tools.append(tool.as_function(description=tool.description))
             elif callable(tool):
                 tools.append(tool)
             else:
@@ -305,11 +305,15 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         self.logger.debug_kv("AI response", last_message.content, key_style="blue")
         return last_message
 
-    def as_tool(self, name: str = None) -> Tool:
-        return AIApplicationTool(app=self, name=name)
+    def as_tool(
+        self,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Tool:
+        return AIApplicationTool(app=self, name=name, description=description)
 
-    def as_function(self, name: str = None) -> Callable:
-        return self.as_tool(name=name).as_function()
+    def as_function(self, name: str = None, description: str = None) -> Callable:
+        return self.as_tool(name=name, description=description).as_function()
 
 
 class AIApplicationTool(Tool):

@@ -43,9 +43,12 @@ class Tool(LoggerMixin, BaseModel):
         schema.pop("title", None)
         return schema
 
-    def as_function(self) -> Function:
-        description = jinja_env.from_string(inspect.cleandoc(self.description or ""))
-        description = description.render(**self.dict(), TOOL=self)
+    def as_function(self, description: Optional[str] = None) -> Function:
+        if not description:
+            description = jinja_env.from_string(
+                inspect.cleandoc(self.description or "")
+            )
+            description = description.render(**self.dict(), TOOL=self)
 
         def fn(*args, **kwargs):
             return self.run(*args, **kwargs)

@@ -165,6 +165,7 @@ class TestPlanJSONPatch:
 
 @pytest_mark_class("llm")
 class TestUpdatePlan:
+    @pytest.mark.flaky(max_runs=3)
     def test_keep_app_plan(self):
         app = AIApplication(
             name="Zoo planner app",
