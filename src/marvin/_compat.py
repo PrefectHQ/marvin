@@ -10,7 +10,7 @@ from typing import (
     get_origin,
 )
 
-from pydantic import BaseModel, create_model
+from pydantic import create_model
 from pydantic.version import VERSION as PYDANTIC_VERSION
 
 _ModelT = TypeVar("_ModelT", bound="BaseModel")
@@ -19,6 +19,7 @@ PYDANTIC_V2 = PYDANTIC_VERSION.startswith("2.")
 
 if PYDANTIC_V2:
     from pydantic.v1 import (
+        BaseModel,
         BaseSettings,
         Field,
         SecretStr,

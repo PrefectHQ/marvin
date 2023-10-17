@@ -12,11 +12,10 @@ from typing import (
     overload,
 )
 
-from marvin._compat import cast_to_json, model_dump
+from marvin._compat import BaseModel, Field, cast_to_json, model_dump
 from marvin.utilities.async_utils import run_sync
 from marvin.utilities.logging import get_logger
 from marvin.utilities.messages import Message, Role
-from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec
 
 from .utils import parse_raw
@@ -83,6 +82,9 @@ class Choice(BaseModel):
     message: Message
     index: int
     finish_reason: str
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class Usage(BaseModel):
