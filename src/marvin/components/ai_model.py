@@ -10,6 +10,7 @@ from marvin.core.ChatCompletion import ChatCompletion
 from marvin.core.ChatCompletion.abstract import AbstractChatCompletion
 from marvin.prompts import Prompt, prompt_fn
 from marvin.utilities.async_utils import run_sync
+from marvin.utilities.logging import get_logger
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -246,6 +247,11 @@ class AIModel(BaseModel):
     ) -> Self:
         metadata = getattr(cls, "__metadata__", {})
 
+        get_logger("marvin.AIModel").debug_kv(
+            f"Calling `ai_model` {cls.__name__!r}",
+            f"with {text!r}",
+        )
+
         # Set default values using a loop to reduce repetition
         default_keys = [
             "ctx",
@@ -273,7 +279,7 @@ class AIModel(BaseModel):
                 **model_kwargs,
             )
             .create()
-            .to_model()
+            .to_model(cls)
         )
         return _model  # type: ignore
 
@@ -291,6 +297,11 @@ class AIModel(BaseModel):
         **model_kwargs: Any,
     ) -> Self:
         metadata = getattr(cls, "__metadata__", {})
+
+        get_logger("marvin.AIModel").debug_kv(
+            f"Calling `ai_model` {cls.__name__!r}",
+            f"with {text!r}",
+        )
 
         # Set default values using a loop to reduce repetition
         default_keys = [
@@ -318,7 +329,7 @@ class AIModel(BaseModel):
                 model=model,
                 **model_kwargs,
             ).acreate()  # type: ignore
-        ).to_model()
+        ).to_model(cls)
         return _model  # type: ignore
 
     @classmethod

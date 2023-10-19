@@ -195,10 +195,12 @@ class Turn(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True):
                 function_call=None,
             )
 
-    def to_model(self) -> T:
-        if not self.request.response_model:
-            raise ValueError("No response model found.")
-        model = self.request.response_model
+    def to_model(self, model_cls: Optional[type[T]] = None) -> T:
+        model = model_cls or self.request.response_model
+
+        if not model:
+            raise ValueError("No model found.")
+
         pairs = self.get_function_call()
         try:
             return model(**pairs[0][1])

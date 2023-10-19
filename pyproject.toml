@@ -39,7 +39,7 @@ dev = [
     "mkdocstrings[python]~=0.22",
     "pdbpp~=0.10",
     "pre-commit>=2.21,<4.0",
-    "pydantic",
+    "pydantic[dotenv]",
     "ruff",
 ]
 tests = [
