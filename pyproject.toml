@@ -39,6 +39,7 @@ dev = [
     "mkdocstrings[python]~=0.22",
     "pdbpp~=0.10",
     "pre-commit>=2.21,<4.0",
+    "pydantic",
     "ruff",
 ]
 tests = [
@@ -49,8 +50,6 @@ tests = [
     "pytest-sugar~=0.9",
     "pytest~=7.3.1",
 ]
-
-pydantic-v2 = ["pydantic>=2.4.2", "pydantic-settings>=2.0.0"]
 
 framework = [
     "aiosqlite>=0.19.0",

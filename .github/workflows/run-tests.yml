@@ -75,13 +75,8 @@ jobs:
       - name: Install Marvin
         run: pip install ".[tests]"
 
-      - name: Install pydantic v1
-        run: pip install "pydantic<2"
-        if: ${{ matrix.pydantic_version == '<2' }}
-
-      - name: Install pydantic v2
-        run: pip install ".[pydantic-v2]"
-        if: ${{ matrix.pydantic_version == '>=2.4.2' }}
+      - name: Install pydantic
+        run: pip install "pydantic${{ matrix.pydantic_version }}"
 
 
       - name: Run ${{ matrix.test-type }} tests (${{ matrix.llm_model }})
