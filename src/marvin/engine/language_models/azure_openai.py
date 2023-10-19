@@ -42,7 +42,7 @@ class AzureOpenAIChatLLM(OpenAIChatLLM):
                 " MARVIN_AZURE_OPENAI_API_KEY environment variable."
             )
         if marvin.settings.azure_openai.deployment_name:
-            openai_kwargs["deployment_id"] = (
+            openai_kwargs["deployment_name"] = (
                 marvin.settings.azure_openai.deployment_name
             )
         if marvin.settings.azure_openai.api_type:
