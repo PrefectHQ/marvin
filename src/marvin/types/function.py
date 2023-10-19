@@ -3,9 +3,7 @@ import inspect
 import re
 from typing import Callable, Optional, Type
 
-from pydantic import BaseModel
-
-from marvin._compat import validate_arguments
+from marvin._compat import BaseModel, validate_arguments
 
 extraneous_fields = [
     "args",

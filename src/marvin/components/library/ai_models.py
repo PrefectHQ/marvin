@@ -2,11 +2,10 @@ import json
 from typing import Optional
 
 import httpx
-from pydantic import BaseModel
 from typing_extensions import Self
 
 from marvin import ai_model
-from marvin._compat import Field, SecretStr, field_validator
+from marvin._compat import BaseModel, Field, SecretStr, field_validator
 from marvin.settings import MarvinBaseSettings
 
 
