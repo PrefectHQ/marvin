@@ -20,13 +20,17 @@ if PYDANTIC_V2:
         PrivateAttr,
         SecretStr,
         ValidationError,
-        create_model,
         validate_arguments,
     )
 
     SettingsConfigDict = BaseSettings.Config
 
-    from pydantic import BaseModel, Field, field_validator  # noqa # type: ignore
+    from pydantic import (
+        BaseModel,
+        Field,
+        create_model,
+        field_validator,
+    )
 
 else:
     from pydantic import (  # noqa # type: ignore

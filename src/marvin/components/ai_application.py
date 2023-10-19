@@ -3,10 +3,9 @@ from enum import Enum
 from typing import Any, Callable, Optional, Union
 
 from jsonpatch import JsonPatch
-from pydantic import BaseModel, Field, validator
 
 import marvin
-from marvin._compat import PYDANTIC_V2, model_dump
+from marvin._compat import PYDANTIC_V2, BaseModel, Field, field_validator, model_dump
 from marvin.core.ChatCompletion.providers.openai import get_context_size
 from marvin.openai import ChatCompletion
 from marvin.prompts import library as prompt_library
@@ -218,17 +217,19 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
     state_enabled: bool = True
     plan_enabled: bool = True
 
-    @validator("description")
+    @field_validator("description")
     def validate_description(cls, v):
         return inspect.cleandoc(v)
 
-    @validator("additional_prompts")
+    @field_validator("additional_prompts")
     def validate_additional_prompts(cls, v):
         if v is None:
             v = []
         return v
 
-    @validator("tools", pre=True, always=True)
+    @field_validator(
+        "tools", **(dict(pre=True, always=True) if not PYDANTIC_V2 else {})
+    )
     def validate_tools(cls, v):
         if v is None:
             v = []
@@ -245,7 +246,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
                 raise ValueError(f"Tool {tool} is not a `Tool` or callable.")
         return tools
 
-    @validator("name", always=True)
+    @field_validator("name")
     def validate_name(cls, v):
         if v is None:
             v = cls.__name__
@@ -351,8 +352,8 @@ class JSONPatchModel(
 
     op: str
     path: str
-    value: Union[str, float, int, bool, list, dict] = None
-    from_: str = Field(None, alias="from")
+    value: Union[str, float, int, bool, list, dict, None] = None
+    from_: Optional[str] = Field(None, alias="from")
 
 
 class UpdateState(Tool):
