@@ -140,7 +140,9 @@ class AbstractChatCompletion(
         """
         pass
 
-    def create(self, response_model: Optional[type] = None, **kwargs: Any) -> Turn[T]:
+    def create(
+        self, response_model: Optional[type[T]] = None, **kwargs: Any
+    ) -> Turn[T]:
         """
         Create a completion synchronously.
         Derived classes can override this if they need to change the core logic.

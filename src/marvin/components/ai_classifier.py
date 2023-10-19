@@ -11,6 +11,7 @@ from marvin.core.ChatCompletion import ChatCompletion
 from marvin.core.ChatCompletion.abstract import AbstractChatCompletion
 from marvin.prompts import Prompt, prompt_fn
 from marvin.utilities.async_utils import run_sync
+from marvin.utilities.logging import get_logger
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -238,6 +239,10 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         instructions: Optional[str] = None,
         mode: Optional[Literal["function", "logit_bias"]] = None,
     ) -> Any:
+        get_logger("marvin.AIClassifier").debug_kv(
+            f"Calling `AIEnum` {cls.__name__!r}", f" with value {value!r}."
+        )
+
         ctx = ctx or cls.__metadata__.ctx or {}
         instructions = instructions or cls.__metadata__.instructions
         ctx["instructions"] = instructions or ctx.get("instructions", None)
@@ -257,6 +262,9 @@ class AIEnum(Enum, metaclass=AIEnumMeta):
         instructions: Optional[str] = None,
         mode: Optional[Literal["function", "logit_bias"]] = None,
     ) -> Any:
+        get_logger("marvin.AIClassifier").debug_kv(
+            f"Calling `AIEnum` {cls.__name__!r}", f" with value {value!r}."
+        )
         ctx = ctx or cls.__metadata__.ctx or {}
         instructions = instructions or cls.__metadata__.instructions
         ctx["instructions"] = instructions or ctx.get("instructions", None)
