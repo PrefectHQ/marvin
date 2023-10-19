@@ -1,7 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel
-
+from marvin._compat import BaseModel
 from marvin.components.ai_model import ai_model
 
 

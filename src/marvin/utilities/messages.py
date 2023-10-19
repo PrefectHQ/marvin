@@ -5,10 +5,9 @@ from enum import Enum
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field
 from typing_extensions import Self
 
-from marvin._compat import field_validator
+from marvin._compat import BaseModel, Field, field_validator
 from marvin.utilities.strings import split_text_by_tokens
 from marvin.utilities.types import MarvinBaseModel
 
@@ -34,6 +33,10 @@ class FunctionCall(BaseModel):
     arguments: str
 
 
+def utcnow():
+    return datetime.now(ZoneInfo("UTC"))
+
+
 class Message(MarvinBaseModel):
     role: Role
     content: Optional[str] = Field(default=None, description="The message content")
@@ -49,7 +52,7 @@ class Message(MarvinBaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, exclude=True)
     data: Optional[dict[str, Any]] = Field(default_factory=dict, exclude=True)
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(ZoneInfo("UTC")),
+        default_factory=utcnow,
         exclude=True,
     )
 

@@ -10,35 +10,44 @@ from typing import (
     get_origin,
 )
 
-from pydantic import BaseModel, create_model
 from pydantic.version import VERSION as PYDANTIC_VERSION
-
-_ModelT = TypeVar("_ModelT", bound="BaseModel")
 
 PYDANTIC_V2 = PYDANTIC_VERSION.startswith("2.")
 
 if PYDANTIC_V2:
     from pydantic.v1 import (
         BaseSettings,
-        Field,
+        PrivateAttr,
         SecretStr,
+        ValidationError,
         validate_arguments,
     )
 
     SettingsConfigDict = BaseSettings.Config
 
-    from pydantic import field_validator  # noqa # type: ignore
+    from pydantic import (
+        BaseModel,
+        Field,
+        create_model,
+        field_validator,
+    )
 
 else:
     from pydantic import (  # noqa # type: ignore
         BaseSettings,
+        BaseModel,
+        create_model,
         Field,
         SecretStr,
         validate_arguments,
         validator as field_validator,
+        ValidationError,
+        PrivateAttr,
     )
 
     SettingsConfigDict = BaseSettings.Config
+
+_ModelT = TypeVar("_ModelT", bound=BaseModel)
 
 
 def model_dump(model: _ModelT, **kwargs: Any) -> dict[str, Any]:

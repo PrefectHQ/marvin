@@ -4,9 +4,9 @@ from enum import Enum, EnumMeta  # noqa
 from functools import partial
 from typing import Any, Callable, Literal, Optional, TypeVar
 
-from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec, Self
 
+from marvin._compat import BaseModel, Field
 from marvin.core.ChatCompletion import ChatCompletion
 from marvin.core.ChatCompletion.abstract import AbstractChatCompletion
 from marvin.prompts import Prompt, prompt_fn

@@ -1,6 +1,7 @@
 from typing import Optional, Any, TypeVar
-from pydantic import BaseModel
 from .abstract import AbstractChatCompletion
+
+from marvin._compat import BaseModel
 from marvin.settings import settings
 
 T = TypeVar(

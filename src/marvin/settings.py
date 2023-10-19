@@ -5,7 +5,6 @@ from typing import Any, Literal, Optional, Union
 
 from ._compat import (
     BaseSettings,
-    Field,
     SecretStr,
     model_dump,
 )
@@ -155,22 +154,19 @@ class Settings(MarvinBaseSettings):
     azure_openai: AzureOpenAI = AzureOpenAI()
 
     # SLACK
-    slack_api_token: Optional[SecretStr] = Field(
-        default=None,
-        description="The Slack API token to use for the Slack client",
-    )
+    slack_api_token: Optional[SecretStr] = None
 
     # TOOLS
 
     # chroma
-    chroma_server_host: Optional[str] = Field(default=None)
-    chroma_server_http_port: Optional[int] = Field(default=None)
+    chroma_server_host: Optional[str] = None
+    chroma_server_http_port: Optional[int] = None
 
     # github
-    github_token: Optional[SecretStr] = Field(default=None)
+    github_token: Optional[SecretStr] = None
 
     # wolfram
-    wolfram_app_id: Optional[SecretStr] = Field(default=None)
+    wolfram_app_id: Optional[SecretStr] = None
 
     def get_defaults(self, provider: Optional[str] = None) -> dict[str, Any]:
         response: dict[str, Any] = {}

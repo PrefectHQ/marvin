@@ -1,14 +1,13 @@
 import inspect
 from typing import Any, AsyncGenerator, Callable, Optional, TypeVar, Union
 
-from marvin._compat import cast_to_json, model_dump
+from marvin._compat import BaseModel, cast_to_json, model_dump
 from marvin.settings import settings
 from marvin.types import Function
 from marvin.utilities.async_utils import create_task
 from marvin.utilities.messages import Message
 from marvin.utilities.streaming import StreamHandler
 from openai.openai_object import OpenAIObject
-from pydantic import BaseModel
 
 from ..abstract import AbstractChatCompletion
 from ..handlers import Request, Response, Usage
