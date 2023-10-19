@@ -74,8 +74,18 @@ jobs:
           cache: "pip"
       - name: Install Marvin
         run: pip install ".[tests]"
+
+      - name: Install pydantic v1
+        run: pip install "pydantic<2"
+        if: ${{ matrix.pydantic_version == '<2' }}
+
+      - name: Install pydantic v2
+        run: pip install ".[pydantic-v2]"
+        if: ${{ matrix.pydantic_version == '>=2.4.2' }}
+
+
       - name: Run ${{ matrix.test-type }} tests (${{ matrix.llm_model }})
-        run: pip install ".[tests]" "pydantic${{ matrix.pydantic_version }}"
+        run: pytest -vv -m ${{ matrix.test-type }}
         env:
           MARVIN_LLM_MODEL: ${{ matrix.llm_model }}
         if: ${{ !(github.event.pull_request.head.repo.fork && matrix.test-type == 'llm') }}

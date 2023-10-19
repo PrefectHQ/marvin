@@ -48,8 +48,10 @@ tests = [
     "pytest-rerunfailures>=10,<13",
     "pytest-sugar~=0.9",
     "pytest~=7.3.1",
-    "pydantic-settings>=2.0.0",
 ]
+
+pydantic-v2 = ["pydantic>=2.4.2", "pydantic-settings>=2.0.0"]
+
 framework = [
     "aiosqlite>=0.19.0",
     "alembic>=1.11.1",
