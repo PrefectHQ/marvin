@@ -38,12 +38,26 @@ jobs:
         python-version: ['3.9', '3.10', '3.11']
         test-type: ['not llm']
         llm_model: ['openai/gpt-3.5-turbo']
+        pydantic_version: ['']
 
         include:
           - python-version: '3.9'
             os: 'ubuntu-latest'
             test-type: 'llm'
             llm_model: 'openai/gpt-3.5-turbo'
+            pydantic_version: ''
+          
+          - python-version: '3.9'
+            os: 'ubuntu-latest'
+            test-type: 'llm'
+            llm_model: 'openai/gpt-3.5-turbo'
+            pydantic_version: '<2'
+
+          - python-version: '3.9'
+            os: 'ubuntu-latest'
+            test-type: 'not llm'
+            llm_model: 'openai/gpt-3.5-turbo'
+            pydantic_version: '<2'
 
     runs-on: ${{ matrix.os }}
 
@@ -61,7 +75,7 @@ jobs:
       - name: Install Marvin
         run: pip install ".[tests]"
       - name: Run ${{ matrix.test-type }} tests (${{ matrix.llm_model }})
-        run: pytest -vv -m "${{ matrix.test-type }}"
+        run: pip install "pydantic${{ matrix.pydantic_version }}" ".[tests]"
         env:
           MARVIN_LLM_MODEL: ${{ matrix.llm_model }}
         if: ${{ !(github.event.pull_request.head.repo.fork && matrix.test-type == 'llm') }}
