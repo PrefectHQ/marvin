@@ -75,7 +75,7 @@ jobs:
       - name: Install Marvin
         run: pip install ".[tests]"
       - name: Run ${{ matrix.test-type }} tests (${{ matrix.llm_model }})
-        run: pip install "pydantic${{ matrix.pydantic_version }}" ".[tests]"
+        run: pip install ".[tests]" "pydantic${{ matrix.pydantic_version }}"
         env:
           MARVIN_LLM_MODEL: ${{ matrix.llm_model }}
         if: ${{ !(github.event.pull_request.head.repo.fork && matrix.test-type == 'llm') }}
