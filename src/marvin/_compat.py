@@ -16,7 +16,6 @@ PYDANTIC_V2 = PYDANTIC_VERSION.startswith("2.")
 
 if PYDANTIC_V2:
     from pydantic.v1 import (
-        BaseModel,
         BaseSettings,
         Field,
         PrivateAttr,
@@ -28,7 +27,7 @@ if PYDANTIC_V2:
 
     SettingsConfigDict = BaseSettings.Config
 
-    from pydantic import field_validator  # noqa # type: ignore
+    from pydantic import BaseModel, field_validator  # noqa # type: ignore
 
 else:
     from pydantic import (  # noqa # type: ignore
