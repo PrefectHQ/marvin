@@ -33,6 +33,10 @@ class FunctionCall(BaseModel):
     arguments: str
 
 
+def utcnow():
+    return datetime.now(ZoneInfo("UTC"))
+
+
 class Message(MarvinBaseModel):
     role: Role
     content: Optional[str] = Field(default=None, description="The message content")
@@ -48,7 +52,7 @@ class Message(MarvinBaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, exclude=True)
     data: Optional[dict[str, Any]] = Field(default_factory=dict, exclude=True)
     timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(ZoneInfo("UTC")),
+        default_factory=utcnow,
         exclude=True,
     )
 
