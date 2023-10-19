@@ -3,9 +3,9 @@ import inspect
 from functools import partial
 from typing import Any, Awaitable, Callable, Generic, Optional, TypeVar, Union
 
-from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec, Self
 
+from marvin._compat import BaseModel, Field
 from marvin.core.ChatCompletion import ChatCompletion
 from marvin.core.ChatCompletion.abstract import AbstractChatCompletion
 from marvin.prompts import Prompt, prompt_fn
@@ -42,7 +42,7 @@ def ai_fn_prompt(
         {{'def' + ''.join(inspect.getsource(func).split('def')[1:])}}
 
         The user will provide function inputs (if any) and you must respond with
-        the most likely result.
+        the most likely result, which must be valid, double-quoted JSON.
 
         User: The function was called with the following inputs:
         {% set sig = inspect.signature(func) %}
@@ -119,7 +119,6 @@ class AIFunction(BaseModel, Generic[P, T]):
         **kwargs: P.kwargs,
     ) -> Any:
         model_instance = self.as_chat_completion(*args, **kwargs).create().to_model()
-
         response_model_field_name = self.response_model_field_name or "output"
 
         if not (output := getattr(model_instance, response_model_field_name, None)):
@@ -132,10 +131,16 @@ class AIFunction(BaseModel, Generic[P, T]):
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> Any:
-        return getattr(
-            (await self.as_chat_completion(*args, **kwargs).acreate()).to_model(),
-            self.response_model_field_name or "output",
-        )
+        model_instance = (
+            await self.as_chat_completion(*args, **kwargs).acreate()
+        ).to_model()
+
+        response_model_field_name = self.response_model_field_name or "output"
+
+        if not (output := getattr(model_instance, response_model_field_name, None)):
+            return model_instance
+
+        return output
 
     def map(self, *map_args: list[Any], **map_kwargs: list[Any]):
         """

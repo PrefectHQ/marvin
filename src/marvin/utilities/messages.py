@@ -5,10 +5,9 @@ from enum import Enum
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field
 from typing_extensions import Self
 
-from marvin._compat import field_validator
+from marvin._compat import BaseModel, Field, field_validator
 from marvin.utilities.strings import split_text_by_tokens
 from marvin.utilities.types import MarvinBaseModel
 

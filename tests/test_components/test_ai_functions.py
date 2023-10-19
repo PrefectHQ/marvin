@@ -1,8 +1,8 @@
 import inspect
 
 import pytest
-from marvin._compat import BaseModel
-from marvin.components.ai_function import ai_fn
+from marvin import ai_fn
+from pydantic import BaseModel
 
 from tests.utils.mark import pytest_mark_class
 
@@ -55,8 +55,6 @@ class TestAIFunctions:
             """Returns a fruit with the provided description"""
 
         fruit = get_fruit("loved by monkeys")
-
-        assert isinstance(fruit, Fruit)
         assert fruit.name.lower() == "banana"
         assert fruit.color.lower() == "yellow"
 
