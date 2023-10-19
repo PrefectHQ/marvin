@@ -85,7 +85,7 @@ jobs:
 
 
       - name: Run ${{ matrix.test-type }} tests (${{ matrix.llm_model }})
-        run: pytest -vv -m ${{ matrix.test-type }}
+        run: pytest -vv -m "${{ matrix.test-type }}"
         env:
           MARVIN_LLM_MODEL: ${{ matrix.llm_model }}
         if: ${{ !(github.event.pull_request.head.repo.fork && matrix.test-type == 'llm') }}
