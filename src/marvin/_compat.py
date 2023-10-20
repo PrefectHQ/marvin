@@ -27,6 +27,7 @@ if PYDANTIC_V2:
 
     from pydantic import (
         BaseModel,
+        Extra,
         Field,
         create_model,
         field_validator,
@@ -37,6 +38,7 @@ else:
         BaseSettings,
         BaseModel,
         create_model,
+        Extra,
         Field,
         SecretStr,
         validate_arguments,

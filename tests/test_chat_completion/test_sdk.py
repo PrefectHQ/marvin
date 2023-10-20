@@ -1,7 +1,68 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
+from marvin import openai
 from marvin.core.ChatCompletion.abstract import Conversation
 
 from tests.utils.mark import pytest_mark_class
+
+
+@pytest.fixture
+def mock_completion():
+    return {
+        "id": "chatcmpl-8BdS5cSTx1oqGvIa0U5dXf4pNpVVN",
+        "object": "chat.completion",
+        "created": 1697783953,
+        "model": "gpt-3.5-turbo-0613",
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": "Hello! How can I assist you today?",
+                },
+                "finish_reason": "stop",
+            }
+        ],
+        "usage": {"prompt_tokens": 8, "completion_tokens": 9, "total_tokens": 17},
+    }
+
+
+@pytest.fixture
+def mock_create_methods(mock_completion):
+    with (
+        patch(
+            "openai.ChatCompletion.create", MagicMock(return_value=mock_completion)
+        ) as mock_create,
+        patch(
+            "openai.ChatCompletion.acreate", AsyncMock(return_value=mock_completion)
+        ) as mock_acreate,
+    ):
+        yield mock_create, mock_acreate
+
+
+class TestOriginalOpenAICompatibility:
+    async def test_create_class_methods(self, mock_create_methods, mock_completion):
+        """in OpenAIs SDK, `create` and `acreate` are class methods"""
+
+        response = openai.ChatCompletion.create(
+            messages=[{"role": "user", "content": "Hello"}],
+        )
+
+        other_response = await openai.ChatCompletion.acreate(
+            messages=[{"role": "user", "content": "Hello"}],
+        )
+        assert response == other_response == mock_completion
+
+        for mock_method in mock_create_methods:
+            mock_method.assert_called_once()
+            _, kwargs = mock_method.call_args
+
+            assert kwargs["messages"] == [{"role": "user", "content": "Hello"}]
+            assert "max_tokens" in kwargs
+            assert "api_key" in kwargs
+            assert "temperature" in kwargs
+            assert "request_timeout" in kwargs
 
 
 class TestRegressions:
@@ -52,8 +113,6 @@ class TestChatCompletion:
 @pytest_mark_class("llm")
 class TestChatCompletionChain:
     def test_chain(self):
-        from marvin import openai
-
         convo = openai.ChatCompletion().chain(
             messages=[{"role": "user", "content": "Hello"}],
         )
@@ -62,8 +121,6 @@ class TestChatCompletionChain:
         assert len(convo.turns) == 1
 
     async def test_achain(self):
-        from marvin import openai
-
         convo = await openai.ChatCompletion().achain(
             messages=[{"role": "user", "content": "Hello"}],
         )

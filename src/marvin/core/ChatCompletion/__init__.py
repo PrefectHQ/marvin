@@ -3,6 +3,7 @@ from .abstract import AbstractChatCompletion
 
 from marvin._compat import BaseModel
 from marvin.settings import settings
+from openai import ChatCompletion as OriginalChatCompletion
 
 T = TypeVar(
     "T",
@@ -39,18 +40,28 @@ def parse_model_shortcut(provider: Optional[str]) -> tuple[str, str]:
     return provider, model
 
 
-def ChatCompletion(
-    model: Optional[str] = None,
-    **kwargs: Any,
-) -> AbstractChatCompletion[T]:  # type: ignore
-    provider, model = parse_model_shortcut(model)
-    if provider == "openai" or provider == "azure_openai":
-        from .providers.openai import OpenAIChatCompletion
+class ChatCompletion(OriginalChatCompletion):
+    def __new__(cls, model: Optional[str] = None, **kwargs: Any):
+        provider, model = parse_model_shortcut(model)
 
-        return OpenAIChatCompletion(provider=provider, model=model, **kwargs)
-    if provider == "anthropic":
-        from .providers.anthropic import AnthropicChatCompletion
+        if provider in ("openai", "azure_openai"):
+            from .providers.openai import OpenAIChatCompletion
 
-        return AnthropicChatCompletion(model=model, **kwargs)
-    else:
-        raise ValueError(f"Unknown provider: {provider}")
+            instance = OpenAIChatCompletion(provider=provider, model=model, **kwargs)
+
+        elif provider == "anthropic":
+            from .providers.anthropic import AnthropicChatCompletion
+
+            instance = AnthropicChatCompletion(model=model, **kwargs)
+        else:
+            raise ValueError(f"Unknown provider: {provider}")
+
+        return instance
+
+    @classmethod
+    def create(cls, *args, _provider: str = "openai", **kwargs):
+        return super().create(*args, **kwargs | settings.get_defaults(_provider))
+
+    @classmethod
+    async def acreate(cls, *args, _provider: str = "openai", **kwargs):
+        return await super().acreate(*args, **kwargs | settings.get_defaults(_provider))
