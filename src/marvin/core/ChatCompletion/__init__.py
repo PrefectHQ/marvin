@@ -59,9 +59,9 @@ class ChatCompletion(OriginalChatCompletion):
         return instance
 
     @classmethod
-    def create(cls, *args, _provider: str = "openai", **kwargs):
-        return super().create(*args, **kwargs | settings.get_defaults(_provider))
+    def create(cls, _provider: str = "openai", **kwargs):
+        return super().create(**(settings.get_defaults(_provider) | kwargs))
 
     @classmethod
-    async def acreate(cls, *args, _provider: str = "openai", **kwargs):
-        return await super().acreate(*args, **kwargs | settings.get_defaults(_provider))
+    async def acreate(cls, _provider: str = "openai", **kwargs):
+        return await super().acreate(**(settings.get_defaults(_provider) | kwargs))

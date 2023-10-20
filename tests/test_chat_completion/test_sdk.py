@@ -55,20 +55,20 @@ class TestOriginalOpenAICompatibility:
         assert response == other_response == mock_completion
 
         for mock_method in mock_create_methods:
-            mock_method.assert_called_once()
-            _, kwargs = mock_method.call_args
-
+            args, kwargs = mock_method.call_args
+            mock_method.assert_called_once_with(*args, **kwargs)
             assert kwargs["messages"] == [{"role": "user", "content": "Hello"}]
-            assert "max_tokens" in kwargs
-            assert "api_key" in kwargs
-            assert "temperature" in kwargs
-            assert "request_timeout" in kwargs
+            assert set(kwargs.keys()) == {
+                "max_tokens",
+                "messages",
+                "api_key",
+                "temperature",
+                "request_timeout",
+            }
 
 
 class TestRegressions:
     def test_key_set_via_attr(self, monkeypatch):
-        from marvin import openai
-
         monkeypatch.setattr(openai, "api_key", "test")
         v = openai.ChatCompletion().defaults.get("api_key")
         assert v == "test"
@@ -76,14 +76,12 @@ class TestRegressions:
     @pytest.mark.parametrize("valid_env_var", ["MARVIN_OPENAI_API_KEY"])
     def test_key_set_via_env(self, monkeypatch, valid_env_var):
         monkeypatch.setenv(valid_env_var, "test")
-        from marvin import openai
 
         v = openai.ChatCompletion().defaults.get("api_key")
         assert v == "test"
 
     def facet(self):
         messages = [{"role": "user", "content": "hey"}]
-        from marvin import openai
 
         faceted = openai.ChatCompletion(messages=messages)
         faceted_request = faceted.prepare_request(messages=messages)
@@ -94,7 +92,6 @@ class TestRegressions:
 class TestChatCompletion:
     def test_response_model(self):
         import pydantic
-        from marvin import openai
 
         class Person(pydantic.BaseModel):
             name: str
