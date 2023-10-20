@@ -1,5 +1,5 @@
 import inspect
-from typing import Callable, Literal
+from typing import Callable, Literal, Optional
 
 from pydantic import Field
 
@@ -69,8 +69,8 @@ class User(MessagePrompt):
 
 class MessageHistory(Prompt):
     history: History
-    n: int = 100
-    skip: int = None
+    n: Optional[int] = 100
+    skip: Optional[int] = None
     filter: HistoryFilter = None
 
     def generate(self, **kwargs) -> list[Message]:

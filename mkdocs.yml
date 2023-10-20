@@ -10,11 +10,18 @@ nav:
     - welcome/what_is_marvin.md
     - welcome/installation.md
     - welcome/quickstart.md
+  - Cookbook:
+    - Entity Deduplication: examples/deduplication.md
+    - Deploying an API:
+      - Basic Extraction API: examples/extraction_api.md
+      - Basic Classification API: examples/classification_api.md
   - Docs:
     - Overview: welcome/overview.md
     - Configuration: 
       - Settings: configuration/settings.md
       - Providers: configuration/providers.md
+    - Prompting:
+      - Prompt Function: prompting/prompt_function.md
     - Components: 
       - Overview: components/overview.md
       - AI Function: components/ai_function.md
@@ -48,6 +55,7 @@ nav:
       - settings: api_reference/settings.md
     - Utilities:
       - async_utils: api_reference/utilities/async_utils.md
+      - collections: api_reference/utilities/collections.md
       - embeddings: api_reference/utilities/embeddings.md
       - history: api_reference/utilities/history.md
       - logging: api_reference/utilities/logging.md

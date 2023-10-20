@@ -1,1 +1,1 @@
-from .function import Function, FunctionRegistry
+from .function import Function

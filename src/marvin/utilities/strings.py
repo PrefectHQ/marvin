@@ -109,12 +109,40 @@ def html_to_content(html: str) -> str:
     return condense_newlines(text)
 
 
-def convert_md_links_to_slack(text) -> str:
-    # converting Markdown links to Slack-style links
-    def to_slack_link(match):
-        return f'<{match.group("url")}|{match.group("text")}>'
+def convert_md_links_to_slack(text: str) -> str:
+    # Convert Markdown links to Slack-style links
+    md_link_regex = re.compile(r"\[(?P<text>[^\]]+)\]\((?P<url>[^\)]+)\)")
+    text = md_link_regex.sub(r"<\g<url>|\g<text>>", text)
 
-    # Replace Markdown links with Slack-style links
-    slack_text = re.sub(MD_LINK_REGEX, to_slack_link, text)
+    text = re.sub(r"\*\*(.+?)\*\*", r"*\1*", text)
 
-    return slack_text
+    return text
+
+
+def split_text_by_tokens(text: str, split_tokens: list[str]) -> list[tuple[str, str]]:
+    cleaned_text = inspect.cleandoc(text)
+
+    # Find all positions of tokens in the text
+    positions = [
+        (match.start(), match.end(), match.group().rstrip(":").strip())
+        for token in split_tokens
+        for match in re.finditer(re.escape(token) + r"(?::\s*)?", cleaned_text)
+    ]
+
+    # Sort positions by their start index
+    positions.sort(key=lambda x: x[0])
+
+    paired: list[tuple[str, str]] = []
+    prev_end = 0
+    prev_token = split_tokens[0]
+    for start, end, token in positions:
+        paired.append((prev_token, cleaned_text[prev_end:start].strip()))
+        prev_end = end
+        prev_token = token
+
+    paired.append((prev_token, cleaned_text[prev_end:].strip()))
+
+    # Remove pairs where the text is empty
+    paired = [(token.replace(":", ""), text) for token, text in paired if text]
+
+    return paired

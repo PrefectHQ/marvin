@@ -1,21 +1,23 @@
+import pytest
+from marvin.core.ChatCompletion.abstract import Conversation
+
 from tests.utils.mark import pytest_mark_class
 
 
 class TestRegressions:
-    def test_key_1(self):
+    def test_key_set_via_attr(self, monkeypatch):
         from marvin import openai
 
-        openai.api_key = "test"
-        v = openai.ChatCompletion.prepare_request()._config.api_key.get_secret_value()
+        monkeypatch.setattr(openai, "api_key", "test")
+        v = openai.ChatCompletion().defaults.get("api_key")
         assert v == "test"
 
-    def test_key_2(self):
-        import os
-
+    @pytest.mark.parametrize("valid_env_var", ["MARVIN_OPENAI_API_KEY"])
+    def test_key_set_via_env(self, monkeypatch, valid_env_var):
+        monkeypatch.setenv(valid_env_var, "test")
         from marvin import openai
 
-        os.environ["OPENAI_API_KEY"] = "test"
-        v = openai.ChatCompletion.prepare_request()._config.api_key.get_secret_value()
+        v = openai.ChatCompletion().defaults.get("api_key")
         assert v == "test"
 
     def facet(self):
@@ -37,7 +39,7 @@ class TestChatCompletion:
             name: str
             age: int
 
-        response = openai.ChatCompletion.create(
+        response = openai.ChatCompletion().create(
             messages=[{"role": "user", "content": "Billy is 10 years old"}],
             response_model=Person,
         )
@@ -45,3 +47,26 @@ class TestChatCompletion:
         model = response.to_model()
         assert model.name == "Billy"
         assert model.age == 10
+
+
+@pytest_mark_class("llm")
+class TestChatCompletionChain:
+    def test_chain(self):
+        from marvin import openai
+
+        convo = openai.ChatCompletion().chain(
+            messages=[{"role": "user", "content": "Hello"}],
+        )
+
+        assert isinstance(convo, Conversation)
+        assert len(convo.turns) == 1
+
+    async def test_achain(self):
+        from marvin import openai
+
+        convo = await openai.ChatCompletion().achain(
+            messages=[{"role": "user", "content": "Hello"}],
+        )
+
+        assert isinstance(convo, Conversation)
+        assert len(convo.turns) == 1

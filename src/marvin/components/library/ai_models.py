@@ -2,13 +2,29 @@ import json
 from typing import Optional
 
 import httpx
-from pydantic import BaseModel, Field, validator
 from typing_extensions import Self
 
-import marvin
+from marvin import ai_model
+from marvin._compat import BaseModel, Field, SecretStr, field_validator
+from marvin.settings import MarvinBaseSettings
 
 
-@marvin.ai_model(instructions="Produce a comprehensive Discourse post from text.")
+class DiscourseSettings(MarvinBaseSettings):
+    class Config:
+        env_prefix = "MARVIN_DISCOURSE_"
+
+    help_category_id: Optional[int] = Field(
+        None, env=["MARVIN_DISCOURSE_HELP_CATEGORY_ID"]
+    )
+    api_key: Optional[SecretStr] = Field(None, env=["MARVIN_DISCOURSE_API_KEY"])
+    api_username: Optional[str] = Field(None, env=["MARVIN_DISCOURSE_API_USERNAME"])
+    url: Optional[str] = Field(None, env=["MARVIN_DISCOURSE_URL"])
+
+
+discourse_settings = DiscourseSettings()
+
+
+@ai_model(instructions="Produce a comprehensive Discourse post from text.")
 class DiscoursePost(BaseModel):
     title: Optional[str] = Field(
         description="A fitting title for the post.",
@@ -31,7 +47,7 @@ class DiscoursePost(BaseModel):
 
     topic_url: Optional[str] = Field(None)
 
-    @validator("title", "question", "answer")
+    @field_validator("title", "question", "answer")
     def non_empty_string(cls, value):
         if not value:
             raise ValueError("this field cannot be empty")
@@ -39,18 +55,21 @@ class DiscoursePost(BaseModel):
 
     @classmethod
     def from_slack_thread(cls, messages: list[str]) -> Self:
-        return cls("\n".join(messages))
+        return cls("here is the transcript:\n" + "\n\n".join(messages))
 
     async def publish(
         self,
         topic: str = None,
-        category: int = marvin.settings.discourse_help_category_id,
-        url: str = marvin.settings.discourse_url,
+        category: Optional[int] = None,
+        url: str = discourse_settings.url,
         tags: list[str] = None,
     ) -> str:
+        if not category:
+            category = discourse_settings.help_category_id
+
         headers = {
-            "Api-Key": marvin.settings.discourse_api_key.get_secret_value(),
-            "Api-Username": marvin.settings.discourse_api_username,
+            "Api-Key": discourse_settings.api_key.get_secret_value(),
+            "Api-Username": discourse_settings.api_username,
             "Content-Type": "application/json",
         }
         data = {

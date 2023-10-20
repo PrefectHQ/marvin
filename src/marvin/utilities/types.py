@@ -3,9 +3,7 @@ import logging
 from types import GenericAlias
 from typing import Any, Callable, _SpecialForm
 
-import pydantic
-from pydantic import BaseModel, PrivateAttr
-
+from marvin._compat import BaseModel, PrivateAttr, create_model
 from marvin.utilities.logging import get_logger
 
 
@@ -54,7 +52,7 @@ def function_to_model(
 
     # Create Pydantic model
     try:
-        Model = pydantic.create_model(name or function.__name__, **fields)
+        Model = create_model(name or function.__name__, **fields)
     except RuntimeError as exc:
         if "see `arbitrary_types_allowed` " in str(exc):
             raise ValueError(
@@ -85,7 +83,7 @@ def safe_issubclass(type_, classes):
 
 
 def type_to_schema(type_, set_root_type: bool = True) -> dict:
-    if safe_issubclass(type_, pydantic.BaseModel):
+    if safe_issubclass(type_, BaseModel):
         schema = type_.schema()
         # if the docstring was updated at runtime, make it the description
         if type_.__doc__ and type_.__doc__ != schema.get("description"):
@@ -94,13 +92,13 @@ def type_to_schema(type_, set_root_type: bool = True) -> dict:
 
     elif set_root_type:
 
-        class Model(pydantic.BaseModel):
+        class Model(BaseModel):
             __root__: type_
 
         return Model.schema()
     else:
 
-        class Model(pydantic.BaseModel):
+        class Model(BaseModel):
             data: type_
 
         return Model.schema()

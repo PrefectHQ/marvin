@@ -1,4 +1,4 @@
-from chatbot import handle_message
+from handler import handle_message
 from marvin import AIApplication
 from marvin.deployment import Deployment
 

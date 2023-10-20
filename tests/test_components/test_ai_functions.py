@@ -2,6 +2,7 @@ import inspect
 
 import pytest
 from marvin import ai_fn
+from pydantic import BaseModel
 
 from tests.utils.mark import pytest_mark_class
 
@@ -35,6 +36,27 @@ class TestAIFunctions:
         assert inspect.iscoroutine(coro)
         result = await coro
         assert len(result) == 3
+
+    def test_list_fruit_with_generic_type_hints(self):
+        @ai_fn
+        def list_fruit(n: int) -> list[str]:
+            """Returns a list of `n` fruit"""
+
+        result = list_fruit(3)
+        assert len(result) == 3
+
+    def test_basemodel_response(self):
+        class Fruit(BaseModel):
+            name: str
+            color: str
+
+        @ai_fn
+        def get_fruit(description: str) -> Fruit:
+            """Returns a fruit with the provided description"""
+
+        fruit = get_fruit("loved by monkeys")
+        assert fruit.name.lower() == "banana"
+        assert fruit.color.lower() == "yellow"
 
 
 @pytest_mark_class("llm")

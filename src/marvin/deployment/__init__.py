@@ -6,6 +6,7 @@ from fastapi import FastAPI, APIRouter
 from pydantic import BaseModel, Extra
 
 from marvin import AIApplication, AIModel, AIFunction
+from marvin.tools import Tool
 
 
 class Deployment(BaseModel):
@@ -44,9 +45,14 @@ class Deployment(BaseModel):
             base_path = f"/{name.lower()}"
             self._router.get(base_path, tags=[name])(self._controller.entrypoint)
             for tool in self._controller.tools:
-                if tool.fn:
-                    tool_path = f"{base_path}/tools/{tool.name}"
-                    self._router.post(tool_path, tags=[name])(tool.fn)
+                name, fn = (
+                    (tool.name, tool.fn)
+                    if isinstance(tool, Tool)
+                    else (tool.__name__, tool)
+                )
+                tool_path = f"{base_path}/tools/{name}"
+                self._router.post(tool_path, tags=[name])(fn)
+
             self._app.include_router(self._router)
             self._app.openapi_tags = self._app.openapi_tags or []
             self._app.openapi_tags.append(

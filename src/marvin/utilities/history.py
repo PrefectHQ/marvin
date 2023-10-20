@@ -1,17 +1,19 @@
 import datetime
+from typing import Optional
 
-from pydantic import BaseModel, Field, validate_arguments
+from pydantic import Field
 
+from marvin._compat import BaseModel
 from marvin.utilities.messages import Message, Role
 
 
 class HistoryFilter(BaseModel):
-    role_in: list[Role] = None
-    timestamp_ge: datetime.datetime = None
-    timestamp_le: datetime.datetime = None
+    role_in: list[Role] = Field(default_factory=list)
+    timestamp_ge: Optional[datetime.datetime] = None
+    timestamp_le: Optional[datetime.datetime] = None
 
 
-class History(BaseModel):
+class History(BaseModel, arbitrary_types_allowed=True):
     messages: list[Message] = Field(default_factory=list)
     max_messages: int = None
 
@@ -21,7 +23,6 @@ class History(BaseModel):
         if self.max_messages is not None:
             self.messages = self.messages[-self.max_messages :]
 
-    @validate_arguments
     def get_messages(
         self, n: int = None, skip: int = None, filter: HistoryFilter = None
     ) -> list[Message]:

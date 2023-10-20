@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   run_tests:
-    name: ${{ matrix.test-type }} w/ python ${{ matrix.python-version }} on ${{ matrix.os }}
+    name: ${{ matrix.test-type }} w/ python ${{ matrix.python-version }} | pydantic ${{ matrix.pydantic_version }} on ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       matrix:
@@ -38,12 +38,26 @@ jobs:
         python-version: ['3.9', '3.10', '3.11']
         test-type: ['not llm']
         llm_model: ['openai/gpt-3.5-turbo']
+        pydantic_version: ['>=2.4.2']
 
         include:
           - python-version: '3.9'
             os: 'ubuntu-latest'
             test-type: 'llm'
             llm_model: 'openai/gpt-3.5-turbo'
+            pydantic_version: '>=2.4.2'
+          
+          - python-version: '3.9'
+            os: 'ubuntu-latest'
+            test-type: 'llm'
+            llm_model: 'openai/gpt-3.5-turbo'
+            pydantic_version: '<2'
+
+          - python-version: '3.9'
+            os: 'ubuntu-latest'
+            test-type: 'not llm'
+            llm_model: 'openai/gpt-3.5-turbo'
+            pydantic_version: '<2'
 
     runs-on: ${{ matrix.os }}
 
@@ -60,6 +74,11 @@ jobs:
           cache: "pip"
       - name: Install Marvin
         run: pip install ".[tests]"
+
+      - name: Install pydantic
+        run: pip install "pydantic${{ matrix.pydantic_version }}"
+
+
       - name: Run ${{ matrix.test-type }} tests (${{ matrix.llm_model }})
         run: pytest -vv -m "${{ matrix.test-type }}"
         env:

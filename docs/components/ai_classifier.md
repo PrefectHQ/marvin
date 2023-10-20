@@ -194,10 +194,8 @@ By default, `@ai_classifier` uses the global LLM settings. To specify a particul
 
 
 ```python
-from marvin.engine.language_models import chat_llm
 
-
-@ai_classifier(model=chat_llm("openai/gpt-3.5-turbo-0613"))
+@ai_classifier(model="openai/gpt-3.5-turbo-0613", temperature = 0)
 class Sentiment(Enum):
     POSITIVE = 1
     NEGATIVE = -1

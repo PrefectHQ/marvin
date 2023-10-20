@@ -1,23 +1,24 @@
 import inspect
 from enum import Enum
-from typing import Any, Callable, Union
+from typing import Any, Callable, Optional, Union
 
 from jsonpatch import JsonPatch
-from pydantic import BaseModel, Field, PrivateAttr, validator
 
-from marvin.engine.executors import OpenAIFunctionsExecutor
-from marvin.engine.language_models import ChatLLM, chat_llm
+import marvin
+from marvin._compat import PYDANTIC_V2, BaseModel, Field, field_validator, model_dump
+from marvin.core.ChatCompletion.providers.openai import get_context_size
+from marvin.openai import ChatCompletion
 from marvin.prompts import library as prompt_library
-from marvin.prompts.base import Prompt
+from marvin.prompts.base import Prompt, render_prompts
 from marvin.tools import Tool
 from marvin.utilities.async_utils import run_sync
-from marvin.utilities.history import History, HistoryFilter
+from marvin.utilities.history import History
 from marvin.utilities.messages import Message, Role
 from marvin.utilities.types import LoggerMixin, MarvinBaseModel
 
 SYSTEM_PROMPT = """
     # Overview
-    
+
     You are the intelligent, natural language interface to an application. The
     application has a structured `state` but no formal API; you are the only way
     to interact with it. You must interpret the user's inputs as attempts to
@@ -25,26 +26,26 @@ SYSTEM_PROMPT = """
     purpose. For example, if the application is a to-do tracker, then "I need to
     go to the store" should be interpreted as an attempt to add a new to-do
     item. If it is a route planner, then "I need to go to the store" should be
-    interpreted as an attempt to find a route to the store. 
-    
+    interpreted as an attempt to find a route to the store.
+
     # Instructions
-    
+
     Your primary job is to maintain the application's `state` and your own
     `plan`. Together, these two states fully parameterize the application,
     making it resilient, serializable, and observable. You do this autonomously;
-    you do not need to inform the user of any changes you make. 
-    
+    you do not need to inform the user of any changes you make.
+
     # Actions
-    
+
     Each time the user runs the application by sending a message, you must take
     the following steps:
-    
+
     {% if app.plan_enabled %}
 
-    - Call the `UpdatePlan` function to update your plan. Use your plan
+    - Call the `update_plan` function to update your plan. Use your plan
     to track notes, objectives, in-progress work, and to break problems down
     into solvable, possibly dependent parts. You plan consists of a few fields:
-    
+
         - `notes`: a list of notes you have taken. Notes are free-form text and
         can be used to track anything you want to remember, such as
         long-standing user instructions, or observations about how to behave or
@@ -52,7 +53,7 @@ SYSTEM_PROMPT = """
         These are exclusively related to your role as intermediary and you
         interact with the user and application. Do not track application data or
         state here.
-        
+
         - `tasks`: a list of tasks you are working on. Tasks track goals,
         milestones, in-progress work, and break problems down into all the
         discrete steps needed to solve them. You should create a new task for
@@ -63,56 +64,56 @@ SYSTEM_PROMPT = """
         their children are complete. Use optional upstream tasks to indicate
         dependencies; a task can not be completed until its upstream tasks are
         completed.
-    
+
     {% endif %}
-    
+
     - Call any functions necessary to achieve the application's purpose.
 
     {% if app.state_enabled %}
 
-    - Call the `UpdateState` function to update the application's state. This
+    - Call the `update_state` function to update the application's state. This
     is where you should store any information relevant to the application
     itself.
-    
+
     {% endif %}
-    
+
     You can call these functions at any time, in any order, as necessary.
     Finally, respond to the user with an informative message. Remember that the
     user is probably uninterested in the internal steps you took, so respond
     only in a manner appropriate to the application's purpose.
 
     # Application details
-    
+
     ## Name
-    
+
     {{ app.name }}
-    
+
     ## Description
-    
+
     {{ app.description or '' | render }}
-    
+
     {% if app.state_enabled %}
 
     ## Application state
-    
+
     {{ app.state.json() }}
-    
+
     ### Application state schema
-    
+
     {{ app.state.schema_json() }}
-    
+
     {% endif %}
-    
+
     {%- if app.plan_enabled %}
-    
-    ## AI (your) state
-    
+
+    ## Your current plan
+
     {{ app.plan.json() }}
-    
-    ### AI state schema
-    
+
+    ### Your plan schema
+
     {{ app.plan.schema_json() }}
-    
+
     {%- endif %}
     """
 
@@ -141,8 +142,8 @@ class Task(BaseModel):
 
     id: int
     description: str
-    upstream_task_ids: list[int] = None
-    parent_task_id: int = None
+    upstream_task_ids: Optional[list[int]] = None
+    parent_task_id: Optional[int] = None
     state: TaskState = TaskState.IN_PROGRESS
 
 
@@ -200,33 +201,35 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         ```
     """
 
-    name: str = None
-    description: str = None
+    name: Optional[str] = None
+    description: Optional[str] = None
     state: BaseModel = Field(default_factory=FreeformState)
     plan: AppPlan = Field(default_factory=AppPlan)
-    tools: list[Union[Tool, Callable]] = []
+    tools: list[Union[Tool, Callable[..., Any]]] = Field(default_factory=list)
     history: History = Field(default_factory=History)
     additional_prompts: list[Prompt] = Field(
-        [],
+        default_factory=list,
         description=(
             "Additional prompts that will be added to the prompt stack for rendering."
         ),
     )
-    stream_handler: Callable[[Message], None] = None
+    stream_handler: Optional[Callable[[Message], None]] = None
     state_enabled: bool = True
     plan_enabled: bool = True
 
-    @validator("description")
+    @field_validator("description")
     def validate_description(cls, v):
         return inspect.cleandoc(v)
 
-    @validator("additional_prompts")
+    @field_validator("additional_prompts")
     def validate_additional_prompts(cls, v):
         if v is None:
             v = []
         return v
 
-    @validator("tools", pre=True)
+    @field_validator(
+        "tools", **(dict(pre=True, always=True) if not PYDANTIC_V2 else {})
+    )
     def validate_tools(cls, v):
         if v is None:
             v = []
@@ -235,34 +238,30 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
 
         # convert AI Applications and functions to tools
         for tool in v:
-            if isinstance(tool, AIApplication):
-                tools.append(tool.as_tool())
-            elif isinstance(tool, Tool):
-                tools.append(tool)
+            if isinstance(tool, (AIApplication, Tool)):
+                tools.append(tool.as_function(description=tool.description))
             elif callable(tool):
-                tools.append(Tool.from_function(tool))
+                tools.append(tool)
             else:
-                raise ValueError(f"Tool {tool} is not a Tool or callable.")
+                raise ValueError(f"Tool {tool} is not a `Tool` or callable.")
         return tools
 
-    @validator("name", always=True)
+    @field_validator("name")
     def validate_name(cls, v):
         if v is None:
             v = cls.__name__
         return v
 
-    def __call__(self, input_text: str = None, model: ChatLLM = None):
+    def __call__(self, input_text: str = None, model: str = None):
         return run_sync(self.run(input_text=input_text, model=model))
 
     async def entrypoint(self, q: str) -> str:
-        # Helper function for deployment stuff to hide the model bits from
-        # Tiangolo.
         response = await self.run(input_text=q)
         return response.content
 
-    async def run(self, input_text: str = None, model: ChatLLM = None):
+    async def run(self, input_text: str = None, model: str = None) -> Message:
         if model is None:
-            model = chat_llm()
+            model = marvin.settings.llm_model or "openai/gpt-4"
 
         # set up prompts
         prompts = [
@@ -271,48 +270,51 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             # add current datetime
             prompt_library.Now(),
             # get the history of messages between user and assistant
-            prompt_library.MessageHistory(
-                history=self.history,
-                skip=1,
-                filter=HistoryFilter(role_in=[Role.USER, Role.ASSISTANT]),
-            ),
-            # get the user's latest input with higher priority the history
-            prompt_library.User(content="{{ input_text }}"),
+            prompt_library.MessageHistory(history=self.history),
             *self.additional_prompts,
         ]
 
         # get latest user input
         input_text = input_text or ""
         self.logger.debug_kv("User input", input_text, key_style="green")
-        input_message = Message(role=Role.USER, content=input_text)
-        self.history.add_message(input_message)
+        self.history.add_message(Message(content=input_text, role=Role.USER))
+
+        message_list = render_prompts(
+            prompts=prompts,
+            render_kwargs=dict(app=self, input_text=input_text),
+            max_tokens=get_context_size(model=model),
+        )
 
         # set up tools
         tools = self.tools.copy()
         if self.state_enabled:
-            tools.append(UpdateState(app=self))
+            tools.append(UpdateState(app=self).as_function())
         if self.plan_enabled:
-            tools.append(UpdatePlan(app=self))
+            tools.append(UpdatePlan(app=self).as_function())
 
-        executor = OpenAIFunctionsExecutor(
+        conversation = await ChatCompletion(
             model=model,
-            functions=[t.as_openai_function() for t in tools],
+            functions=tools,
             stream_handler=self.stream_handler,
-        )
+        ).achain(messages=message_list)
 
-        responses = await executor.start(
-            prompts=prompts,
-            prompt_render_kwargs=dict(app=self, input_text=input_text),
-        )
+        last_message = conversation.history[-1]
 
-        for r in responses:
-            self.history.add_message(r)
+        # add the AI's response to the history
+        self.history.add_message(last_message)
 
-        self.logger.debug_kv("AI response", responses[-1].content, key_style="blue")
-        return responses[-1]
+        self.logger.debug_kv("AI response", last_message.content, key_style="blue")
+        return last_message
 
-    def as_tool(self, name: str = None) -> Tool:
-        return AIApplicationTool(app=self, name=name)
+    def as_tool(
+        self,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> Tool:
+        return AIApplicationTool(app=self, name=name, description=description)
+
+    def as_function(self, name: str = None, description: str = None) -> Callable:
+        return self.as_tool(name=name, description=description).as_function()
 
 
 class AIApplicationTool(Tool):
@@ -327,7 +329,18 @@ class AIApplicationTool(Tool):
         return run_sync(self.app.run(input_text))
 
 
-class JSONPatchModel(BaseModel):
+class JSONPatchModel(
+    BaseModel,
+    **(
+        {
+            "allow_population_by_field_name": True,
+        }
+        if not PYDANTIC_V2
+        else {
+            "populate_by_name": True,
+        }
+    ),
+):
     """A JSON Patch document.
 
     Attributes:
@@ -339,106 +352,45 @@ class JSONPatchModel(BaseModel):
 
     op: str
     path: str
-    value: Union[str, float, int, bool, list, dict] = None
-    from_: str = Field(None, alias="from")
-
-    class Config:
-        allow_population_by_field_name = True
+    value: Union[str, float, int, bool, list, dict, None] = None
+    from_: Optional[str] = Field(None, alias="from")
 
 
 class UpdateState(Tool):
-    """A `Tool` that updates the apps state using JSON Patch documents.
+    """A `Tool` that updates the apps state using JSON Patch documents."""
 
-    Example:
-        Manually update the state of an AI Application.
-        ```python
-        from marvin.components.ai_application import (
-            AIApplication,
-            FreeformState,
-            JSONPatchModel,
-            UpdateState,
-        )
-
-        destination_tracker = AIApplication(
-            name="Destination Tracker",
-            description="keeps track of where i've been",
-            state=FreeformState(state={"San Francisco": "not visited"}),
-        )
-
-        patch = JSONPatchModel(
-            op="replace", path="/state/San Francisco", value="visited"
-        )
-
-        UpdateState(app=destination_tracker).run([patch.dict()])
-
-        assert destination_tracker.state.dict() == {
-            "state": {"San Francisco": "visited"}
-        }
-        ```
-    """
-
-    _app: "AIApplication" = PrivateAttr()
-    description = """
+    app: "AIApplication" = Field(..., repr=False, exclude=True)
+    description: str = """
         Update the application state by providing a list of JSON patch
         documents. The state must always comply with the state's
         JSON schema.
         """
 
     def __init__(self, app: AIApplication, **kwargs):
-        self._app = app
-        super().__init__(**kwargs)
+        super().__init__(**kwargs, app=app)
 
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
-        updated_state = patch.apply(self._app.state.dict())
-        self._app.state = type(self._app.state)(**updated_state)
+        updated_state = patch.apply(model_dump(self.app.state))
+        self.app.state = type(self.app.state)(**updated_state)
         return "Application state updated successfully!"
 
 
 class UpdatePlan(Tool):
-    """
-    A `Tool` that updates the apps plan using JSON Patch documents.
+    """A `Tool` that updates the apps plan using JSON Patch documents."""
 
-
-    Example:
-        Manually update task status in an AI Application's plan.
-        ```python
-        from marvin.components.ai_application import (
-            AIApplication,
-            AppPlan,
-            JSONPatchModel,
-            UpdatePlan,
-        )
-
-        todo_app = AIApplication(name="Todo App", description="A simple todo app")
-
-        todo_app("i need to buy milk")
-
-        # manually update the plan (usually done by the AI)
-        patch = JSONPatchModel(
-            op="replace",
-            path="/tasks/0/state",
-            value="COMPLETED"
-        )
-
-        UpdatePlan(app=todo_app).run([patch.dict()])
-
-        print(todo_app.plan)
-        ```
-    """
-
-    _app: "AIApplication" = PrivateAttr()
-    description = """
+    app: "AIApplication" = Field(..., repr=False, exclude=True)
+    description: str = """
         Update the application plan by providing a list of JSON patch
         documents. The state must always comply with the plan's JSON schema.
         """
 
     def __init__(self, app: AIApplication, **kwargs):
-        self._app = app
-        super().__init__(**kwargs)
+        super().__init__(**kwargs, app=app)
 
     def run(self, patches: list[JSONPatchModel]):
         patch = JsonPatch(patches)
-        updated_state = patch.apply(self._app.plan.dict())
-        self._app.plan = type(self._app.plan)(**updated_state)
+
+        updated_plan = patch.apply(model_dump(self.app.plan))
+        self.app.plan = type(self.app.plan)(**updated_plan)
         return "Application plan updated successfully!"

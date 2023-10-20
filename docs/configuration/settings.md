@@ -39,7 +39,7 @@ Valid `llm_model` settings are strings with the form `"{provider_key}/{model_nam
 | --- | --- | --- | --- |
 | OpenAI | `openai` | `gpt-3.5-turbo`, `gpt-4` (default), or any other [compatible model](https://platform.openai.com/docs/models/) | Marvin is generally tested and optimized with this provider. |
 | Anthropic | `anthropic` | `claude-2`, `claude-instant-1` or any other [compatible model](https://docs.anthropic.com/claude/reference/selecting-a-model) | Available in Marvin 1.1|
-| Azure OpenAI Service | `azure_openai` | `gpt-35-turbo`, `gpt-4`, or any other [compatible model](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) | The Azure OpenAI Service shares all the same configuration options as the OpenAI models, as well as a few additional ones. Available in Marvin 1.1.  | 
+| Azure OpenAI Service | `azure_openai` | `gpt-3.5-turbo`, `gpt-4`, or any other [compatible model](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models) | The Azure OpenAI Service shares all the same configuration options as the OpenAI models, as well as a few additional ones. Available in Marvin 1.1.  | 
 
 ## LLM Configuration
 

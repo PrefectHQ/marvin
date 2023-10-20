@@ -1,6 +1,6 @@
 
 .admonition-title { 
-    margin-bottom: 15px
+    margin-bottom: 0px !important
 }
 
 :root {
@@ -13,13 +13,13 @@ article a {
 }
 
 p {
-    margin-bottom: 15px !important;
+    margin-bottom: 15px;
 }
 
 h2 {
     margin-top: 16px !important;
 }
 
-h1, .admonition > p:first-of-type {
+h1 {
     margin-bottom: 15px !important
 }
