@@ -45,7 +45,7 @@ class TestAIFunctions:
         result = list_fruit(3)
         assert len(result) == 3
 
-    def test_basemodel_response(self):
+    def test_basemodel_return_annotation(self):
         class Fruit(BaseModel):
             name: str
             color: str
@@ -57,6 +57,14 @@ class TestAIFunctions:
         fruit = get_fruit("loved by monkeys")
         assert fruit.name.lower() == "banana"
         assert fruit.color.lower() == "yellow"
+
+    @pytest.mark.parametrize("name,expected", [("banana", True), ("car", False)])
+    def test_bool_return_annotation(self, name, expected):
+        @ai_fn
+        def is_fruit(name: str) -> bool:
+            """Returns True if the provided name is a fruit"""
+
+        assert is_fruit(name) == expected
 
 
 @pytest_mark_class("llm")
