@@ -4,7 +4,7 @@ from typing import Any, AsyncGenerator, Callable, Optional, TypeVar, Union
 from marvin._compat import BaseModel, cast_to_json, model_dump
 from marvin.settings import settings
 from marvin.types import Function
-from marvin.utilities.async_utils import create_task
+from marvin.utilities.async_utils import create_task, run_sync
 from marvin.utilities.messages import Message
 from marvin.utilities.streaming import StreamHandler
 from openai.openai_object import OpenAIObject
@@ -195,10 +195,9 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         # Use openai's library functions to send the request and get a response
         # Example:
 
-        import openai
-
-        response = openai.ChatCompletion.create(**serialized_request)  # type: ignore
-        return response  # type: ignore
+        return run_sync(
+            self._send_request_async(**serialized_request),
+        )
 
     async def _send_request_async(self, **serialized_request: Any) -> Response[T]:
         """
@@ -216,4 +215,4 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
                 callback=handler_fn,
             ).handle_streaming_response(response)
 
-        return response  # type: ignore
+        return response

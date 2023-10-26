@@ -48,6 +48,37 @@ class TestChatCompletion:
         assert model.name == "Billy"
         assert model.age == 10
 
+    def test_streaming(self):
+        from marvin import openai
+
+        streamed_data = []
+
+        def handler(message):
+            streamed_data.append(message.content)
+
+        completion = openai.ChatCompletion(stream_handler=handler).create(
+            messages=[{"role": "user", "content": "say exactly 'hello'"}],
+        )
+
+        assert completion.response.choices[0].message.content == streamed_data[-1]
+        assert "hello" in streamed_data[-1].lower()
+        assert len(streamed_data) > 1
+
+    async def test_streaming_async(self):
+        from marvin import openai
+
+        streamed_data = []
+
+        async def handler(message):
+            streamed_data.append(message.content)
+
+        completion = await openai.ChatCompletion(stream_handler=handler).acreate(
+            messages=[{"role": "user", "content": "say only 'hello'"}],
+        )
+        assert completion.response.choices[0].message.content == streamed_data[-1]
+        assert "hello" in streamed_data[-1].lower()
+        assert len(streamed_data) > 1
+
 
 @pytest_mark_class("llm")
 class TestChatCompletionChain:
