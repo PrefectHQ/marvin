@@ -1,4 +1,5 @@
 import inspect
+from typing import Dict, List
 
 import pytest
 from marvin import ai_fn
@@ -39,7 +40,7 @@ class TestAIFunctions:
 
     def test_list_fruit_with_generic_type_hints(self):
         @ai_fn
-        def list_fruit(n: int) -> list[str]:
+        def list_fruit(n: int) -> List[str]:
             """Returns a list of `n` fruit"""
 
         result = list_fruit(3)
@@ -65,6 +66,68 @@ class TestAIFunctions:
             """Returns True if the provided name is a fruit"""
 
         assert is_fruit(name) == expected
+
+    def test_plain_dict_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> dict:
+            """Returns a fruit with the provided name and color"""
+
+        fruit = get_fruit("banana")
+        assert fruit["name"].lower() == "banana"
+        assert fruit["color"].lower() == "yellow"
+
+    def test_annotated_dict_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> dict[str, str]:
+            """Returns a fruit with the provided name and color"""
+
+        fruit = get_fruit("banana")
+        assert fruit["name"].lower() == "banana"
+        assert fruit["color"].lower() == "yellow"
+
+    def test_generic_dict_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> Dict[str, str]:
+            """Returns a fruit with the provided name and color"""
+
+        fruit = get_fruit("banana")
+        assert fruit["name"].lower() == "banana"
+        assert fruit["color"].lower() == "yellow"
+
+    def test_int_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> int:
+            """Returns the number of letters in the provided fruit name"""
+
+        assert get_fruit("banana") == 6
+
+    def test_float_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> float:
+            """Returns the number of letters in the provided fruit name"""
+
+        assert get_fruit("banana") == 6.0
+
+    def test_tuple_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> tuple:
+            """Returns the number of letters in the provided fruit name"""
+
+        assert get_fruit("banana") == (6,)
+
+    def test_set_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> set:
+            """Returns the letters in the provided fruit name"""
+
+        assert get_fruit("banana") == {"a", "b", "n"}
+
+    def test_frozenset_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> frozenset:
+            """Returns the letters in the provided fruit name"""
+
+        assert get_fruit("banana") == frozenset({"a", "b", "n"})
 
 
 @pytest_mark_class("llm")

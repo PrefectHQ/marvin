@@ -204,10 +204,12 @@ class Turn(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True):
         pairs = self.get_function_call()
         try:
             return model(**pairs[0][1])
+        except ValueError:  # ValidationError is a subclass of ValueError
+            return model(output=pairs[0][1])
         except TypeError:
             pass
         try:
-            return model.parse_raw(pairs[0][1])  # type: ignore
+            return model.parse_raw(pairs[0][1])
         except TypeError:
             pass
-        return model.construct(**pairs[0][1])  # type: ignore
+        return model.construct(**pairs[0][1])
