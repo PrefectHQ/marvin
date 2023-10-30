@@ -121,7 +121,7 @@ class AIFunction(BaseModel, Generic[P, T]):
         model_instance = self.as_chat_completion(*args, **kwargs).create().to_model()
         response_model_field_name = self.response_model_field_name or "output"
 
-        if not (output := getattr(model_instance, response_model_field_name, None)):
+        if (output := getattr(model_instance, response_model_field_name, None)) is None:
             return model_instance
 
         return output
@@ -137,7 +137,7 @@ class AIFunction(BaseModel, Generic[P, T]):
 
         response_model_field_name = self.response_model_field_name or "output"
 
-        if not (output := getattr(model_instance, response_model_field_name, None)):
+        if (output := getattr(model_instance, response_model_field_name, None)) is None:
             return model_instance
 
         return output

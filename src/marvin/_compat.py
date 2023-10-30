@@ -19,7 +19,6 @@ if PYDANTIC_V2:
         BaseSettings,
         PrivateAttr,
         SecretStr,
-        ValidationError,
         validate_arguments,
     )
 
@@ -43,7 +42,6 @@ else:
         SecretStr,
         validate_arguments,
         validator as field_validator,
-        ValidationError,
         PrivateAttr,
     )
 
@@ -137,8 +135,10 @@ def cast_to_model(
     """
     Casts a type or callable to a Pydantic model.
     """
+    origin = get_origin(function_or_type) or function_or_type
+
     response = BaseModel
-    if get_origin(function_or_type) is Annotated:
+    if origin is Annotated:
         metadata: Any = next(iter(function_or_type.__metadata__), None)  # type: ignore
         annotated_field_name: Optional[str] = field_name
 
@@ -169,11 +169,11 @@ def cast_to_model(
             field_name=annotated_field_name,  # type: ignore
         )
         response.__doc__ = annotated_field_description or ""
-    if isinstance(function_or_type, GenericAlias):
+    elif origin in {dict, list, tuple, set, frozenset}:
         response = cast_type_or_alias_to_model(
             function_or_type, name, description, field_name
         )
-    elif isinstance(function_or_type, type):
+    elif isinstance(origin, type):
         if issubclass(function_or_type, BaseModel):
             response = create_model(
                 name or function_or_type.__name__,
