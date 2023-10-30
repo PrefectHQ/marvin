@@ -94,6 +94,41 @@ class TestAIFunctions:
         assert fruit["name"].lower() == "banana"
         assert fruit["color"].lower() == "yellow"
 
+    def test_int_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> int:
+            """Returns the number of letters in the provided fruit name"""
+
+        assert get_fruit("banana") == 6
+
+    def test_float_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> float:
+            """Returns the number of letters in the provided fruit name"""
+
+        assert get_fruit("banana") == 6.0
+
+    def test_tuple_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> tuple:
+            """Returns the number of letters in the provided fruit name"""
+
+        assert get_fruit("banana") == (6,)
+
+    def test_set_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> set:
+            """Returns the letters in the provided fruit name"""
+
+        assert get_fruit("banana") == {"a", "b", "n"}
+
+    def test_frozenset_return_type(self):
+        @ai_fn
+        def get_fruit(name: str) -> frozenset:
+            """Returns the letters in the provided fruit name"""
+
+        assert get_fruit("banana") == frozenset({"a", "b", "n"})
+
 
 @pytest_mark_class("llm")
 class TestAIFunctionsMap:
