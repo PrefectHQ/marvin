@@ -12,7 +12,7 @@ from typing import (
     overload,
 )
 
-from marvin._compat import BaseModel, Field, cast_to_json, model_dump
+from marvin._compat import BaseModel, Field, ValidationError, cast_to_json, model_dump
 from marvin.utilities.async_utils import run_sync
 from marvin.utilities.logging import get_logger
 from marvin.utilities.messages import Message, Role
@@ -206,8 +206,10 @@ class Turn(BaseModel, Generic[T], extra="allow", arbitrary_types_allowed=True):
             return model(**pairs[0][1])
         except TypeError:
             pass
+        except ValidationError:  # added this
+            return model(output=pairs[0][1])
         try:
-            return model.parse_raw(pairs[0][1])  # type: ignore
+            return model.parse_raw(pairs[0][1])
         except TypeError:
             pass
-        return model.construct(**pairs[0][1])  # type: ignore
+        return model.construct(**pairs[0][1])
