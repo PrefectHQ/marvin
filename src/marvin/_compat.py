@@ -19,7 +19,6 @@ if PYDANTIC_V2:
         BaseSettings,
         PrivateAttr,
         SecretStr,
-        ValidationError,
         validate_arguments,
     )
 
@@ -41,7 +40,6 @@ else:
         SecretStr,
         validate_arguments,
         validator as field_validator,
-        ValidationError,
         PrivateAttr,
     )
 
