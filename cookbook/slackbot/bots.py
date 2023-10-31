@@ -4,7 +4,7 @@ import httpx
 import marvin_recipes
 from marvin import AIApplication, ai_classifier
 from marvin.components.library.ai_models import DiscoursePost
-from marvin.tools.github import SearchGitHubIssues
+from marvin.tools.github import SearchGitHubIssues, search_github_repo
 from marvin.tools.web import DuckDuckGoSearch
 from marvin.utilities.history import History
 from marvin_recipes.tools.chroma import MultiQueryChroma
@@ -31,7 +31,7 @@ async def save_thread_to_discourse(channel: str, thread_ts: str) -> DiscoursePos
 async def select_a_meme(query: str) -> dict:
     """For generating a meme when the time is right.
 
-    Provide the name of a well-known meme as the query
+    Provide the name of a FAMILY FRIENDLY, well-known meme as the query
     based on user interactions thus far, to lightly make fun of them.
     Queries should end the word "meme" for best results.
     """
@@ -99,6 +99,8 @@ bots = {
             " and update your own state. Only well-reserached responses should be"
             " described as facts, otherwise you should be clear that you are"
             " speculating based on your own baseline knowledge."
+            " You should often use `search_github_repo` to find relevant code"
+            " snippets related to the user's question if asked about Prefect."
             " Prefer the `MultiQueryChroma` tool for searching for information"
             " that seems workflow related, as it will return excerpts from"
             " Prefect documentation and forum posts."
@@ -111,6 +113,7 @@ bots = {
         "tools": [
             save_thread_to_discourse,
             select_a_meme,
+            search_github_repo,
             DuckDuckGoSearch(),
             SearchGitHubIssues(),
             MultiQueryChroma(

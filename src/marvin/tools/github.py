@@ -46,6 +46,13 @@ class GitHubIssue(BaseModel):
         return v
 
 
+class GitHubCodeResult(BaseModel):
+    name: str
+    path: str
+    html_url: str
+    repository: dict
+
+
 class SearchGitHubIssues(Tool):
     """Tool for searching GitHub issues."""
 
@@ -95,3 +102,38 @@ class SearchGitHubIssues(Tool):
         if not summary.strip():
             raise ValueError("No issues found.")
         return summary
+
+
+async def search_github_repo(
+    query: str, repo: str = "prefecthq/prefect", n: int = 3
+) -> str:
+    """Use the GitHub API to search for relevant code snippets in a given repository."""
+
+    headers = {"Accept": "application/vnd.github.v3+json"}
+
+    if token := marvin.settings.github_token:
+        headers["Authorization"] = f"Bearer {token.get_secret_value()}"
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://api.github.com/search/code",
+            headers=headers,
+            params={
+                "q": query if "repo:" in query else f"repo:{repo} {query}",
+                "order": "desc",
+                "per_page": n,
+            },
+        )
+        response.raise_for_status()
+
+    code_data = response.json()["items"]
+    code_results = [GitHubCodeResult(**code) for code in code_data]
+
+    summary = "\n\n".join(
+        f"{code.name} ({code.html_url}):\nPath: {code.path}" for code in code_results
+    )
+
+    if not summary.strip():
+        raise ValueError("No code found.")
+
+    return summary
