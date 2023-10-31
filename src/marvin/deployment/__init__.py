@@ -42,7 +42,11 @@ class Deployment(BaseModel):
 
         if isinstance(self._controller, AIApplication):
             name = self._controller.name
-            base_path = f"/{name.lower()}" if name else "aiapp"
+            base_path = (
+                f"/{name.lower()}"
+                if name
+                else self._controller.__class__.__name__.lower()
+            )
             self._router.get(base_path, tags=[name])(self._controller.entrypoint)
             for tool in self._controller.tools:
                 name, fn = (
