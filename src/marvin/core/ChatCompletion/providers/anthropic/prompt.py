@@ -40,8 +40,8 @@ To call a function:
     
 # Available Functions
 
-Your have access to the following functions. Each has a name (which must be part
-of your response), a description (which you should use to decide to call the
+You have access to the following functions. Each has a name (which must be part
+of your response), a description (which you should use to decide whether to call the
 function), and a parameter spec (which is a JSON Schema description of the
 arguments you should pass in your response)
 
