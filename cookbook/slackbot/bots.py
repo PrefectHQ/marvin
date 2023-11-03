@@ -33,6 +33,7 @@ async def select_a_meme(query: str) -> dict:
 
     Provide the name of a FAMILY FRIENDLY, well-known meme as the query
     based on user interactions thus far, to lightly make fun of them.
+
     Queries should end the word "meme" for best results.
     """
     try:
