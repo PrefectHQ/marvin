@@ -18,14 +18,14 @@ class GitHubUser(BaseModel):
 class GitHubComment(BaseModel):
     """GitHub comment."""
 
-    body: str = Field(default="")
+    body: str = Field(default_factory=str)
     user: GitHubUser = Field(default_factory=GitHubUser)
 
 
 class GitHubLabel(BaseModel):
     """GitHub label."""
 
-    name: str = Field(default="")
+    name: str = Field(default_factory=str)
 
 
 class GitHubIssue(BaseModel):
@@ -34,8 +34,8 @@ class GitHubIssue(BaseModel):
     created_at: datetime = Field(...)
     html_url: str = Field(...)
     number: int = Field(...)
-    title: str = Field(default="")
-    body: Optional[str] = Field(default="")
+    title: str = Field(default_factory=str)
+    body: Optional[str] = Field(default_factory=str)
     labels: List[GitHubLabel] = Field(default_factory=GitHubLabel)
     user: GitHubUser = Field(default_factory=GitHubUser)
 
@@ -51,10 +51,11 @@ class GitHubCodeResult(BaseModel):
     path: str
     html_url: str
     repository: dict
+    fragment: str = Field(default_factory=str)
 
 
 async def search_github_issues(
-    query: str, repo: str = "prefecthq/prefect", n: int = 3
+    query: str, repo: str = "prefecthq/prefect", n: int = 3, max_tokens: int = 1000
 ) -> str:
     """
     Use the GitHub API to search for issues in a given repository. Do
@@ -89,7 +90,7 @@ async def search_github_issues(
     for issue in issues_data:
         if not issue["body"]:
             continue
-        issue["body"] = slice_tokens(issue["body"], 1000)
+        issue["body"] = slice_tokens(issue["body"], max_tokens)
 
     issues = [GitHubIssue(**issue) for issue in issues_data]
 
@@ -121,11 +122,9 @@ class SearchGitHubIssues(Tool):
 
 
 async def search_github_repo(
-    query: str, repo: str = "prefecthq/prefect", n: int = 3
+    query: str, repo: str = "prefecthq/prefect", n: int = 3, max_tokens: str = 1000
 ) -> str:
-    """Use the GitHub API to search for relevant code snippets in a given repository."""
-
-    headers = {"Accept": "application/vnd.github.v3+json"}
+    headers = {"Accept": "application/vnd.github.v3.text-match+json"}
 
     if token := marvin.settings.github_token:
         headers["Authorization"] = f"Bearer {token.get_secret_value()}"
@@ -134,22 +133,31 @@ async def search_github_repo(
         response = await client.get(
             "https://api.github.com/search/code",
             headers=headers,
-            params={
-                "q": query if "repo:" in query else f"repo:{repo} {query}",
-                "order": "desc",
-                "per_page": n,
-            },
+            params={"q": f"{query} repo:{repo}", "per_page": n},
         )
         response.raise_for_status()
 
-    code_data = response.json()["items"]
-    code_results = [GitHubCodeResult(**code) for code in code_data]
+    code_data = response.json().get("items", [])
+    code_results = [
+        GitHubCodeResult(
+            name=item["name"],
+            path=item["path"],
+            html_url=item["html_url"],
+            repository=item["repository"],
+            fragment="\n".join(
+                match.get("fragment")
+                for match in item.get("text_matches", [])
+                if match["property"] == "content"
+            ),
+        )
+        for item in code_data
+    ]
 
-    summary = "\n\n".join(
-        f"{code.name} ({code.html_url}):\nPath: {code.path}" for code in code_results
+    return (
+        "\n\n".join(
+            f"{code.name} ({code.html_url}):\n{slice_tokens(code.fragment, max_tokens)}"
+            for code in code_results
+        )
+        if code_data
+        else "No code found."
     )
-
-    if not summary.strip():
-        raise ValueError("No code found.")
-
-    return summary
