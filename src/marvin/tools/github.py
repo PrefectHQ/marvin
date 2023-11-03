@@ -124,6 +124,23 @@ class SearchGitHubIssues(Tool):
 async def search_github_repo(
     query: str, repo: str = "prefecthq/prefect", n: int = 3, max_tokens: str = 1000
 ) -> str:
+    """Searches a GitHub repo for code snippets matching `query`.
+
+    Use to provide users with code examples.
+    The response includes the file's name, a URL, and a code fragment.
+
+    Args:
+        query: Search keywords.
+        repo: 'owner/repo' format.
+        n: Number of results.
+        token: GitHub API token.
+
+    Returns:
+        A string with search results or "No code found."
+
+    Usage:
+        result = await search_github_repo("prefect test harness", "prefecthq/prefect")
+    """
     headers = {"Accept": "application/vnd.github.v3.text-match+json"}
 
     if token := marvin.settings.github_token:
