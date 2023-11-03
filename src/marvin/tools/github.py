@@ -86,7 +86,7 @@ async def search_github_issues(
 
     issues_data = response.json()["items"]
 
-    # enforce 1000 token limit per body
+    # enforce a max number of tokens per issue
     for issue in issues_data:
         if not issue["body"]:
             continue
