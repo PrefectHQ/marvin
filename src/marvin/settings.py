@@ -3,13 +3,11 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Literal, Optional, Union
 
-from ._compat import (
-    BaseSettings,
-    SecretStr,
-    model_dump,
-)
+from ._compat import OPENAI_V1, BaseSettings, SecretStr, model_dump
 
 DEFAULT_ENV_PATH = Path(os.getenv("MARVIN_ENV_FILE", "~/.marvin/.env")).expanduser()
+
+request_timeout_key = "timeout" if OPENAI_V1 else "request_timeout"
 
 
 class MarvinBaseSettings(BaseSettings):
@@ -54,10 +52,10 @@ class OpenAISettings(MarvinBaseSettings):
             response["api_key"] = os.environ["OPENAI_API_KEY"]
         if openai.api_key:
             response["api_key"] = openai.api_key
-        if marvin_openai.api_key:
+        if not OPENAI_V1 and marvin_openai.api_key:
             response["api_key"] = marvin_openai.api_key
         response["temperature"] = settings.llm_temperature
-        response["request_timeout"] = settings.llm_request_timeout_seconds
+        response[request_timeout_key] = settings.llm_request_timeout_seconds
         return {
             k: v for k, v in response.items() if v is not None and k not in EXCLUDE_KEYS
         }
@@ -107,11 +105,11 @@ class AzureOpenAI(MarvinBaseSettings):
         if settings.llm_max_context_tokens > 0:
             response["max_tokens"] = settings.llm_max_tokens
         response["temperature"] = settings.llm_temperature
-        response["request_timeout"] = settings.llm_request_timeout_seconds
+        response[request_timeout_key] = settings.llm_request_timeout_seconds
         response["api_key"] = self.api_key and self.api_key.get_secret_value()
         if os.environ.get("MARVIN_AZURE_OPENAI_API_KEY"):
             response["api_key"] = os.environ["MARVIN_AZURE_OPENAI_API_KEY"]
-        if openai.api_key:
+        if not OPENAI_V1 and openai.api_key:
             response["api_key"] = openai.api_key
         if marvin_openai.api_key:
             response["api_key"] = marvin_openai.api_key

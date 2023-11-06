@@ -83,6 +83,7 @@ class AbstractChatCompletion(
     """
 
     defaults: dict[str, Any] = Field(default_factory=dict, exclude=True)
+    client: Any = Field(default=None, exclude=True)
 
     def __call__(self: Self, **kwargs: Any) -> Self:
         """
@@ -172,7 +173,6 @@ class AbstractChatCompletion(
         request = self._create_request(**kwargs, response_model=response_model)
         serialized_request = self._serialize_request(request=request)
         response_data = await self._send_request_async(**serialized_request)
-        response = self._parse_response(response_data)
         return Turn(
             request=Request(
                 **serialized_request
@@ -180,7 +180,7 @@ class AbstractChatCompletion(
                 | model_dump(request, exclude_none=True)
                 | ({"response_model": response_model} if response_model else {})
             ),
-            response=response,
+            response=model_dump(response_data),
         )
 
     def chain(self, **kwargs: Any) -> Conversation[T]:

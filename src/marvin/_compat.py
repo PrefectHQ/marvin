@@ -10,9 +10,11 @@ from typing import (
     get_origin,
 )
 
+from openai.version import VERSION as OPENAI_VERSION
 from pydantic.version import VERSION as PYDANTIC_VERSION
 
 PYDANTIC_V2 = PYDANTIC_VERSION.startswith("2.")
+OPENAI_V1 = OPENAI_VERSION.startswith("1.")
 
 if PYDANTIC_V2:
     from pydantic.v1 import (

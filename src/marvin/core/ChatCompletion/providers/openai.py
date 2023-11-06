@@ -1,16 +1,41 @@
 import inspect
 from typing import Any, AsyncGenerator, Callable, Optional, TypeVar, Union
 
-from marvin._compat import BaseModel, cast_to_json, model_dump
+from marvin._compat import OPENAI_V1, BaseModel, cast_to_json, model_dump
 from marvin.settings import settings
 from marvin.types import Function
 from marvin.utilities.async_utils import create_task, run_sync
 from marvin.utilities.messages import Message
 from marvin.utilities.streaming import StreamHandler
-from openai.openai_object import OpenAIObject
 
 from ..abstract import AbstractChatCompletion
 from ..handlers import Request, Response, Usage
+
+if OPENAI_V1:
+
+    class OpenAIObject(BaseModel):
+        class Config:
+            arbitrary_types_allowed = True
+            extra = "allow"
+
+        def to_dict_recursive(self) -> dict[str, Any]:
+            return model_dump(self, exclude_none=True)
+
+else:
+    from openai import OpenAIObject
+
+
+def make_openai_v1_create_request(request: dict) -> tuple[Callable[..., Any], dict]:
+    from openai import AsyncOpenAI
+
+    params = dict(inspect.signature(AsyncOpenAI).parameters)
+    return AsyncOpenAI(
+        **{k: v for k, v in request.items() if k in params.keys()}
+        | {"api_key": settings.openai.api_key.get_secret_value()}
+    ).chat.completions.create, {
+        k: v for k, v in request.items() if k not in params.keys()
+    }
+
 
 T = TypeVar(
     "T",
@@ -66,7 +91,8 @@ class OpenAIStreamHandler(StreamHandler):
         accumulated_content = ""
 
         async for r in api_response:
-            final_chunk.update(r.to_dict_recursive())
+            print(r)
+            final_chunk.update(model_dump(r))
 
             delta = r.choices[0].delta if r.choices and r.choices[0] else None
 
@@ -75,6 +101,9 @@ class OpenAIStreamHandler(StreamHandler):
 
             if "content" in delta:
                 accumulated_content += delta.content or ""
+
+            if hasattr(delta, "choices"):
+                accumulated_content += delta.choices[0].text or ""
 
             if self.callback:
                 callback_result = self.callback(
@@ -90,10 +119,10 @@ class OpenAIStreamHandler(StreamHandler):
 
         final_chunk["object"] = "chat.completion"
 
-        return OpenAIObject.construct_from(
+        return OpenAIObject.parse_obj(
             {
                 "id": final_chunk["id"],
-                "object": "chat.completion",
+                "object": final_chunk["object"],
                 "created": final_chunk["created"],
                 "model": final_chunk["model"],
                 "choices": [
@@ -186,7 +215,7 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         Parse the response received from OpenAI.
         """
         # Convert OpenAI's response into a standard format or object
-        return Response(**response.to_dict_recursive())  # type: ignore
+        return Response(**model_dump(response))  # type: ignore
 
     def _send_request(self, **serialized_request: Any) -> Any:
         """
@@ -203,12 +232,19 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         """
         Send the serialized request to OpenAI's endpoint asynchronously.
         """
-        import openai
+        if OPENAI_V1:
+            chat_completion_create, serialized_request = make_openai_v1_create_request(
+                serialized_request
+            )
+        else:
+            import openai
+
+            chat_completion_create = openai.ChatCompletion.acreate
 
         if handler_fn := serialized_request.pop("stream_handler", {}):
             serialized_request["stream"] = True
 
-        response = await openai.ChatCompletion.acreate(**serialized_request)  # type: ignore # noqa
+        response = await chat_completion_create(**serialized_request)  # type: ignore # noqa
 
         if handler_fn:
             response = await OpenAIStreamHandler(
