@@ -6,8 +6,6 @@ from jinja2 import Template, select_autoescape
 
 from marvin.utilities.strings import jinja_env
 
-jinja_env.is_async = True
-
 jinja_env.autoescape = select_autoescape()
 
 default_template = jinja_env.from_string("""
@@ -47,4 +45,4 @@ async def parse_spec_to_human_readable(
     if template is None:
         template = default_template
 
-    return await template.render_async(openapi_spec=spec)
+    return template.render(openapi_spec=spec)
