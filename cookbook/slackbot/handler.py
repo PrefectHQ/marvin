@@ -1,19 +1,62 @@
 import asyncio
+import logging
+import random
 import re
+from contextlib import asynccontextmanager
 from copy import deepcopy
 
 from bots import choose_bot
 from cachetools import TTLCache
 from fastapi import HTTPException
+from marvin.utilities.async_utils import run_sync
 from marvin.utilities.history import History
 from marvin.utilities.logging import get_logger
-from marvin.utilities.messages import Message
 from marvin_recipes.utilities.slack import (
+    edit_slack_message,
     get_channel_name,
     get_user_name,
     post_slack_message,
 )
+from personality import completion_messages, start_messages
 from prefect.events import Event, emit_event
+
+
+class LogCaptureHandler(logging.Handler):
+    def __init__(self, channel, ts):
+        super().__init__()
+        self.channel = channel
+        self.ts = ts
+        self.records = []
+
+    def emit(self, record):
+        if "Function call:" in record.msg:
+            tool_name_search = re.search(r"'(.+?)'", record.msg)
+            if tool_name_search:
+                tool_name = tool_name_search.group(1)
+                action = (
+                    "started using"
+                    if "with payload:" in record.msg
+                    else "finished using"
+                )
+                log_entry = f"\t » {action} {tool_name}"
+                self.records.append(log_entry)
+                run_sync(edit_slack_message(self.channel, self.ts, log_entry))
+
+
+@asynccontextmanager
+async def stream_logs(name, channel, ts):
+    logger = get_logger(name)
+    handler = LogCaptureHandler(channel, ts)
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%m/%d/%y %H:%M:%S"
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    try:
+        yield handler
+    finally:
+        logger.removeHandler(handler)
+
 
 SLACK_MENTION_REGEX = r"<@(\w+)>"
 CACHE = TTLCache(maxsize=1000, ttl=86400)
@@ -37,7 +80,7 @@ async def emit_any_prefect_event(payload: dict) -> Event | None:
     )
 
 
-async def generate_ai_response(payload: dict) -> Message:
+async def generate_ai_response(payload: dict):
     event = payload.get("event", {})
     channel_id = event.get("channel", "")
     channel_name = await get_channel_name(channel_id)
@@ -56,18 +99,27 @@ async def generate_ai_response(payload: dict) -> Message:
             get_logger().info(f"Skipping message not meant for the bot: {message}")
             return
 
-        message = re.sub(SLACK_MENTION_REGEX, "", message).strip()
+        message_content = re.sub(SLACK_MENTION_REGEX, "", message).strip()
         history = CACHE.get(thread, History())
 
         bot = choose_bot(payload=payload, history=history)
 
-        get_logger("marvin.Deployment").debug_kv(
-            "generate_ai_response",
-            f"{bot.name} responding in {channel_name}/{thread}",
-            key_style="bold blue",
+        get_logger("marvin.Deployment").debug(
+            f"{bot.name} responding in {channel_name}/{thread}"
         )
 
-        ai_message = await bot.run(input_text=message)
+        initial_message_response = await post_slack_message(
+            message=random.choice(start_messages), channel=channel_id, thread_ts=thread
+        )
+
+        thread_ts = initial_message_response.json().get("ts")
+
+        async with stream_logs("marvin.ChatCompletion.handlers", channel_id, thread_ts):
+            ai_message = await bot.run(input_text=message_content)
+
+        await edit_slack_message(
+            channel_id, thread_ts, random.choice(completion_messages)
+        )
 
         CACHE[thread] = deepcopy(
             bot.history
