@@ -1,8 +1,6 @@
 name: Run Tests
 
 env:
-  # enable colored output
-  # https://github.com/pytest-dev/pytest/issues/7443
   PY_COLORS: 1
 
 on:
@@ -30,34 +28,43 @@ permissions:
 
 jobs:
   run_tests:
-    name: ${{ matrix.test-type }} w/ python ${{ matrix.python-version }} | pydantic ${{ matrix.pydantic_version }} on ${{ matrix.os }}
+    name: ${{ matrix.test-type }} w/ python ${{ matrix.python-version }} | pydantic ${{ matrix.pydantic_version }} | openai ${{ matrix.openai_version }} on ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: ['3.9']
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11']
+        test-type: ['not llm']
+        pydantic_version: ['>=2.4.2', '<2']
+        openai_version: ['<1']
+        llm_model: ['openai/gpt-3.5-turbo']
         include:
-          - test-type: 'not llm'
-            pydantic_version: '1.*'
-            openai_version: '<1.0.0'
-            llm_model: 'none'
+          - python-version: '3.9'
+            os: 'ubuntu-latest'
+            test-type: 'llm'
+            pydantic_version: '>=2.4.2'
+            openai_version: '>1'
 
-          - test-type: 'not llm'
-            pydantic_version: '2.*'
-            openai_version: '<1.0.0'
-            llm_model: 'none'
+          - python-version: '3.9'
+            os: 'ubuntu-latest'
+            test-type: 'llm'
+            pydantic_version: '<2'
+            openai_version: '>1'
+          
+          - python-version: '3.9'
+            os: 'ubuntu-latest'
+            test-type: 'not llm'
+            pydantic_version: '>=2.4.2'
+            openai_version: '>1'
 
-          - test-type: 'llm'
-            pydantic_version: '2.*'
-            openai_version: '<1.0.0'
-            llm_model: 'openai/gpt-3.5-turbo'
+          - python-version: '3.9'
+            os: 'ubuntu-latest'
+            test-type: 'not llm'
+            pydantic_version: '<2'
+            openai_version: '>1'
 
     runs-on: ${{ matrix.os }}
-
-    env:
-      MARVIN_OPENAI_API_KEY: ${{ secrets.MARVIN_OPENAI_API_KEY }}
-      MARVIN_ANTHROPIC_API_KEY: ${{ secrets.MARVIN_ANTHROPIC_API_KEY }}
 
     steps:
       - uses: actions/checkout@v3
@@ -71,8 +78,6 @@ jobs:
           pip install ".[tests]"
           pip install "pydantic${{ matrix.pydantic_version }}"
           pip install "openai${{ matrix.openai_version }}"
-        if: ${{ matrix.openai_version != 'none' }}
-
       - name: Run ${{ matrix.test-type }} tests (${{ matrix.llm_model }})
         run: pytest -vv -m "${{ matrix.test-type }}"
         env:
