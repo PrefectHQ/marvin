@@ -38,7 +38,7 @@ jobs:
         test-type: ['not llm']
         pydantic_version: ['>=2.4.2', '<2']
         openai_version: ['<1']
-        llm_model: ['openai/gpt-3.5-turbo']
+        llm_model: ['gpt-3.5-turbo']
         include:
           - python-version: '3.9'
             os: 'ubuntu-latest'
