@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Optional
 
 import httpx
 import marvin_recipes
@@ -9,6 +10,7 @@ from marvin.tools.web import DuckDuckGoSearch
 from marvin.utilities.history import History
 from marvin_recipes.tools.chroma import MultiQueryChroma
 from marvin_recipes.utilities.slack import get_thread_messages
+from prefect.deployments import run_deployment
 from pydantic import BaseModel, Field
 
 
@@ -68,6 +70,34 @@ async def select_a_meme(query: str) -> dict:
     return {"title": query, "image_url": url}
 
 
+async def run_prefect_flow(
+    deployment_name: str, parameters: Optional[dict] = None, timeout: float = 0
+) -> dict:
+    """Run a prefect deployment with the given parameters.
+
+    Args:
+        deployment_name (str): The name of the deployment to run.
+        parameters (dict | None): The parameters to pass to the deployment.
+        timeout (float): The timeout in seconds for the deployment to run.
+
+    Existing valid deployments:
+    - name: "Daily GitHub Digest/prefect-github-digest"
+        - signature: (message: str = "Hello, world!")
+    - name: "generate-case-study/generate case studies"
+        - signature (
+            repo: str = "prefecthq/prefect",
+            owner: str = "prefecthq",
+            slack_channel: str = "ask-marvin-tests",
+            post_story_to_slack: bool = False,
+        )"""
+    if not parameters:
+        parameters = {}
+
+    return await run_deployment(
+        name=deployment_name, parameters=parameters, timeout=timeout
+    )
+
+
 bots = {
     "marvin": {
         "state": Notes(
@@ -113,6 +143,7 @@ bots = {
         ),
         "tools": [
             save_thread_to_discourse,
+            run_prefect_flow,
             select_a_meme,
             search_github_repo,
             DuckDuckGoSearch(),
