@@ -51,7 +51,7 @@ class OpenAISettings(MarvinBaseSettings):
         elif os.environ.get("OPENAI_API_KEY"):
             response["api_key"] = os.environ["OPENAI_API_KEY"]
         elif not OPENAI_V1 and openai.api_key:
-            response["api_key"] = openai.api_key
+            response["api_key"] = openai.api_key.get_secret_value()
         elif not OPENAI_V1 and marvin_openai.api_key:
             response["api_key"] = marvin_openai.api_key
         response["temperature"] = settings.llm_temperature
