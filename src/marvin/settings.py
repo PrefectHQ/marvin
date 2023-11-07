@@ -36,7 +36,7 @@ class OpenAISettings(MarvinBaseSettings):
     def get_defaults(self, settings: "Settings") -> dict[str, Any]:
         import os
 
-        import openai
+        import openai as openai_sdk
 
         from marvin import openai as marvin_openai
 
@@ -50,8 +50,8 @@ class OpenAISettings(MarvinBaseSettings):
             response["api_key"] = os.environ["MARVIN_OPENAI_API_KEY"]
         elif os.environ.get("OPENAI_API_KEY"):
             response["api_key"] = os.environ["OPENAI_API_KEY"]
-        elif not OPENAI_V1 and openai.api_key:
-            response["api_key"] = openai.api_key.get_secret_value()
+        elif not OPENAI_V1 and openai_sdk.api_key:
+            response["api_key"] = openai_sdk.api_key
         elif not OPENAI_V1 and marvin_openai.api_key:
             response["api_key"] = marvin_openai.api_key
         response["temperature"] = settings.llm_temperature
