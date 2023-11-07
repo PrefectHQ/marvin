@@ -14,7 +14,7 @@ from ..handlers import Request, Response, Usage
 if OPENAI_V1:
     OpenAIObject = None
 else:
-    from openai import OpenAIObject
+    from openai.openai_object import OpenAIObject
 
 T = TypeVar(
     "T",
