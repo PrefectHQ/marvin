@@ -232,9 +232,14 @@ class OpenAIV1ChatCompletion(AbstractChatCompletion[T]):
         if handler_fn := serialized_request.pop("stream_handler", {}):
             serialized_request["stream"] = True
 
-        response = await AsyncOpenAI(
-            api_key=settings.openai.api_key.get_secret_value(),
-        ).chat.completions.create(**serialized_request)
+        api_key = (
+            serialized_request.pop("api_key", None)
+            or settings.openai.api_key.get_secret_value()
+        )
+
+        response = await AsyncOpenAI(api_key=api_key).chat.completions.create(
+            **serialized_request
+        )
 
         if handler_fn:
             response = await OpenAIV1StreamHandler(
