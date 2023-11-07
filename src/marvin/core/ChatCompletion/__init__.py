@@ -1,7 +1,7 @@
 from typing import Optional, Any, TypeVar
 from .abstract import AbstractChatCompletion
 
-from marvin._compat import BaseModel
+from marvin._compat import BaseModel, OPENAI_V1
 from marvin.settings import settings
 
 T = TypeVar(
@@ -45,9 +45,14 @@ def ChatCompletion(
 ) -> AbstractChatCompletion[T]:  # type: ignore
     provider, model = parse_model_shortcut(model)
     if provider == "openai" or provider == "azure_openai":
-        from .providers.openai import OpenAIChatCompletion
+        if OPENAI_V1:
+            from .providers.openai_v1 import OpenAIV1ChatCompletion
 
-        return OpenAIChatCompletion(provider=provider, model=model, **kwargs)
+            return OpenAIV1ChatCompletion(provider=provider, model=model, **kwargs)
+        else:
+            from .providers.openai import OpenAIChatCompletion
+
+            return OpenAIChatCompletion(provider=provider, model=model, **kwargs)
     if provider == "anthropic":
         from .providers.anthropic import AnthropicChatCompletion
 
