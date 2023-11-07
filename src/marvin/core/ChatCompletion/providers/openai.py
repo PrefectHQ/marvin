@@ -71,7 +71,6 @@ class OpenAIStreamHandler(StreamHandler):
         accumulated_content = ""
 
         async for r in api_response:
-            print(r)
             final_chunk.update(r.to_dict_recursive())
 
             delta = r.choices[0].delta if r.choices and r.choices[0] else None
@@ -79,8 +78,8 @@ class OpenAIStreamHandler(StreamHandler):
             if delta is None:
                 continue
 
-            if hasattr(delta, "choices"):
-                accumulated_content += delta.choices[0].text or ""
+            if "content" in delta:
+                accumulated_content += delta["content"] or ""
 
             if self.callback:
                 callback_result = self.callback(
@@ -191,7 +190,7 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         """
         Parse the response received from OpenAI.
         """
-        return Response(**model_dump(response))
+        return Response(**response.to_dict_recursive())
 
     def _send_request(self, **serialized_request: Any) -> Any:
         """

@@ -47,12 +47,16 @@ class OpenAISettings(MarvinBaseSettings):
             response["max_tokens"] = settings.llm_max_tokens
 
         if os.environ.get("MARVIN_OPENAI_API_KEY"):
+            print("MARVIN_OPENAI_API_KEY")
             response["api_key"] = os.environ["MARVIN_OPENAI_API_KEY"]
         elif os.environ.get("OPENAI_API_KEY"):
+            print("OPENAI_API_KEY")
             response["api_key"] = os.environ["OPENAI_API_KEY"]
         elif not OPENAI_V1 and openai_sdk.api_key:
+            print("openai_sdk.api_key")
             response["api_key"] = openai_sdk.api_key
         elif not OPENAI_V1 and marvin_openai.api_key:
+            print("marvin_openai.api_key")
             response["api_key"] = marvin_openai.api_key
         response["temperature"] = settings.llm_temperature
         response[request_timeout_key] = settings.llm_request_timeout_seconds
