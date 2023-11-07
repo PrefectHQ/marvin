@@ -2,6 +2,8 @@ name: Run Tests
 
 env:
   PY_COLORS: 1
+  MARVIN_OPENAI_API_KEY: ${{ secrets.MARVIN_OPENAI_API_KEY }}
+  MARVIN_ANTHROPIC_API_KEY: ${{ secrets.MARVIN_ANTHROPIC_API_KEY }}
 
 on:
   push:
