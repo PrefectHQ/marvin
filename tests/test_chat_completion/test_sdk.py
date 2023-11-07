@@ -1,13 +1,14 @@
-import unittest
-
 import pytest
 from marvin._compat import OPENAI_V1
 from marvin.core.ChatCompletion.abstract import Conversation
 
 from tests.utils.mark import pytest_mark_class
 
+pytestmark = pytest.mark.skipif(
+    OPENAI_V1, reason="This test suite is for v0.x openai sdk only"
+)
 
-@unittest.skipIf(OPENAI_V1, "openai>=1 is incompatible with this test suite")
+
 class TestRegressions:
     def test_key_set_via_attr(self, monkeypatch):
         from marvin import openai
@@ -33,7 +34,6 @@ class TestRegressions:
         assert faceted_request.messages == 2 * messages
 
 
-@unittest.skipIf(OPENAI_V1, "openai>=1 is incompatible with this test suite")
 @pytest_mark_class("llm")
 class TestChatCompletion:
     def test_response_model(self):
@@ -85,7 +85,6 @@ class TestChatCompletion:
         assert len(streamed_data) > 1
 
 
-@unittest.skipIf(OPENAI_V1, "openai>=1 is incompatible with this test suite")
 @pytest_mark_class("llm")
 class TestChatCompletionChain:
     def test_chain(self):
