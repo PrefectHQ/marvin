@@ -48,9 +48,9 @@ class OpenAISettings(MarvinBaseSettings):
 
         if os.environ.get("MARVIN_OPENAI_API_KEY"):
             response["api_key"] = os.environ["MARVIN_OPENAI_API_KEY"]
-        if os.environ.get("OPENAI_API_KEY"):
+        elif os.environ.get("OPENAI_API_KEY"):
             response["api_key"] = os.environ["OPENAI_API_KEY"]
-        if not OPENAI_V1 and openai.api_key:
+        elif not OPENAI_V1 and openai.api_key:
             response["api_key"] = openai.api_key
         elif not OPENAI_V1 and marvin_openai.api_key:
             response["api_key"] = marvin_openai.api_key

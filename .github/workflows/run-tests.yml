@@ -53,19 +53,19 @@ jobs:
             pydantic_version: '<2'
             openai_version: '>1'
             llm_model: 'gpt-3.5-turbo'
-          
+
           - python-version: '3.9'
             os: 'ubuntu-latest'
-            test-type: 'not llm'
+            test-type: 'llm'
             pydantic_version: '>=2.4.2'
-            openai_version: '>1'
+            openai_version: '<1'
             llm_model: 'gpt-3.5-turbo'
 
           - python-version: '3.9'
             os: 'ubuntu-latest'
-            test-type: 'not llm'
+            test-type: 'llm'
             pydantic_version: '<2'
-            openai_version: '>1'
+            openai_version: '<1'
             llm_model: 'gpt-3.5-turbo'
 
     runs-on: ${{ matrix.os }}
