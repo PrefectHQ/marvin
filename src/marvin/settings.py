@@ -7,7 +7,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ChatCompletionSettings(BaseModel):
-    model_config = ConfigDict(allow_arbitrary_types=True, extra="allow")
+    model: str = Field(
+        default="gpt-4-1106-preview",
+        description="The default chat model to use.",
+    )
+
+    model_config = ConfigDict(
+        extra="allow",
+        arbitrary_types_allowed=True,
+    )
 
 
 class ChatSettings(BaseSettings):
@@ -19,12 +27,8 @@ class OpenAISettings(BaseSettings):
         env_prefix="marvin_openai_", env_file="~/.marvin/.env"
     )
 
-    llm_model: str = Field(
-        default="gpt-4-1106-preview",
-        description="The default LLM model to use.",
-    )
-
-    api_key: SecretStr = Field(
+    api_key: Optional[SecretStr] = Field(
+        default=None,
         description="Your OpenAI API key.",
     )
 
