@@ -11,13 +11,12 @@ classifiers = [
 keywords = ["ai", "chatbot", "llm"]
 requires-python = ">=3.9"
 dependencies = [
-  "beautifulsoup4>=4.12.2",
-  "fastapi>=0.98.0",
   "httpx>=0.24.1",
   "jinja2>=3.1.2",
   "jsonpatch>=1.33",
-  "openai>=0.27.8, <1.0.0",
-  "pydantic[dotenv]>=1.10.7",
+  "openai>=1.1.0",
+  "pydantic>=2.4.2",
+  "pydantic_settings",
   "rich>=12",
   "tiktoken>=0.4.0",
   "typer>=0.9.0",
@@ -50,21 +49,6 @@ tests = [
     "pytest-sugar~=0.9",
     "pytest~=7.3.1",
 ]
-
-framework = [
-    "aiosqlite>=0.19.0",
-    "alembic>=1.11.1",
-    "bcrypt>=4.0.1",
-    "gunicorn>=20.1.0",
-    "prefect>=2.10.17",
-    "sqlalchemy>=2.0.17"
-]
-openai = ["openai>=0.27.8", "tiktoken>=0.4.0"]
-anthropic = ["anthropic>=0.3"]
-lancedb = ["lancedb>=0.1.8"]
-slackbot = ["cachetools>=5.3.1", "numpy>=1.21.2"]
-ddg = ["duckduckgo_search>=3.8.3"]
-serpapi = ["google-search-results>=2.4.2"]
 
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"

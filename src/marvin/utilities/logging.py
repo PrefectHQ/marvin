@@ -1,10 +1,9 @@
 import logging
 from functools import lru_cache, partial
 
+import marvin
 from rich.logging import RichHandler
 from rich.markup import escape
-
-import marvin
 
 
 @lru_cache()

@@ -12,8 +12,7 @@ from jinja2 import (
     select_autoescape,
 )
 from markupsafe import Markup
-
-import marvin.utilities.async_utils
+from marvin.utilities.asyncutils import run_sync
 
 NEWLINES_REGEX = re.compile(r"(\s*\n\s*)")
 MD_LINK_REGEX = r"\[(?P<text>[^\]]+)]\((?P<url>[^\)]+)\)"
@@ -33,8 +32,9 @@ jinja_env = Environment(
 
 jinja_env.globals.update(
     zip=zip,
-    arun=marvin.utilities.async_utils.run_sync,
+    arun=run_sync,
     now=lambda: datetime.now(ZoneInfo("UTC")),
+    inspect=inspect,
 )
 
 
