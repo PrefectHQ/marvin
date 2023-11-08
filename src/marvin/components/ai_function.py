@@ -1,10 +1,10 @@
 import inspect
 import json
 from functools import partial
-from typing import Any, Callable, Generic, Optional, Self, TypeVar, Union
+from typing import Any, Callable, Generic, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Field
-from typing_extensions import ParamSpec
+from typing_extensions import ParamSpec, Self
 
 from marvin import settings
 from marvin.utilities.asyncutils import run_sync
