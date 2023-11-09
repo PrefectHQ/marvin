@@ -110,6 +110,8 @@ def expose_sync_method(name: str) -> Callable[..., Any]:
         setattr(async_method, "_sync_wrapper", sync_wrapper)
         setattr(async_method, "_sync_name", name)
 
-        return sync_wrapper
+        # return the original async method; the sync wrapper will be added to
+        # the class by the init hook
+        return async_method
 
     return decorator
