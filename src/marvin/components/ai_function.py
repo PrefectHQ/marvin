@@ -72,7 +72,7 @@ class AIFunction(BaseModel, Generic[P, T]):
 
     def to_payload(self, *args: P.args, **kwargs: P.kwargs) -> dict[str, Any]:
         return {
-            "model": settings.openai.llm_model,
+            "model": settings.openai.chat.completions.model,
             "response_format": {"type": "json_object"},
             "messages": [
                 {
