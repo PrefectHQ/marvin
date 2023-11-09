@@ -1,9 +1,8 @@
 import asyncio
-import inspect
 import json
-from typing import Any, Optional
+from typing import Any, Callable, Optional, Union
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from marvin.beta.assistants.types import Message, Run, Tool
 from marvin.utilities.asyncutils import (
@@ -116,18 +115,16 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     name: str
     model: str = "gpt-4-1106-preview"
     instructions: Optional[str] = None
-    tools: list[Tool] = []
+    tools: list[Union[Tool, Callable]] = []
     file_ids: list[str] = []
     metadata: dict[str, str] = {}
 
-    @validator("tools", pre=True)
-    def convert_functions_to_tools(cls, v):
-        tools = []
-        for tool in v:
-            if inspect.isfunction(tool):
-                tool = Tool.from_function(tool)
-            tools.append(tool)
-        return tools
+    @field_validator("tools")
+    def format_tools(cls, tools: list[Union[Tool, Callable]]):
+        return [
+            tool if isinstance(tool, Tool) else Tool.from_function(tool)
+            for tool in tools
+        ]
 
     def __enter__(self):
         self.create()
@@ -145,7 +142,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             raise ValueError("Assistant has already been created.")
         client = get_client()
         response = await client.beta.assistants.create(
-            **self.model_dump(exclude={"id"})
+            **self.model_dump(exclude={"id"}),
         )
         self.id = response.id
 
@@ -179,9 +176,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             )
             if run.status == "requires_action":
                 if run.required_action.type == "submit_tool_outputs":
-                    tool_outputs = await self._get_tool_outputs(
-                        required_action=run.required_action
-                    )
+                    tool_outputs = await self._get_tool_outputs(run=run)
                     await client.beta.threads.runs.submit_tool_outputs(
                         thread_id=thread.id, run_id=run.id, tool_outputs=tool_outputs
                     )
@@ -200,12 +195,12 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         return messages
         # return Run.model_validate(run.model_dump())
 
-    async def _get_tool_outputs(self, required_action: dict) -> Any:
-        if required_action.type != "submit_tool_outputs":
+    async def _get_tool_outputs(self, run: Run) -> Any:
+        if run.required_action.type != "submit_tool_outputs":
             raise ValueError("Invalid required action type")
 
         tool_outputs = []
-        for tool_call in required_action.submit_tool_outputs.tool_calls:
+        for tool_call in run.required_action.submit_tool_outputs.tool_calls:
             if tool_call.type != "function":
                 continue
             tool = next(
@@ -228,3 +223,6 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
                     output = f"Error calling function {tool.function.name}: {exc}"
             tool_outputs.append(dict(tool_call_id=tool_call.id, output=output))
         return tool_outputs
+
+    # def as_tool(self, delegate=True) -> Tool:
+    #     def run_assistant(thread_id: str = None):

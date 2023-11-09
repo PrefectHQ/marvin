@@ -17,7 +17,7 @@ class Function(BaseModel):
         return cls(
             name=name or fn.__name__,
             description=description or fn.__doc__,
-            parameters=model.model_json_schema()["properties"],
+            parameters=model.schema(),
             fn=fn,
         )
 
