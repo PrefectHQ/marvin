@@ -127,7 +127,7 @@ def parse_as(
     """Parse a json string to a Pydantic model."""
     adapter = TypeAdapter(type_)
 
-    if get_origin(type_) is list:
+    if get_origin(type_) is list and isinstance(data, dict):
         data = next(iter(data.values()))
 
     parser = getattr(adapter, f"validate_{mode}")

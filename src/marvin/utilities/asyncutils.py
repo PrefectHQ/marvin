@@ -67,3 +67,63 @@ def run_sync(coroutine: Awaitable[T]) -> T:
             return asyncio.run(coroutine)
     except RuntimeError:
         return asyncio.run(coroutine)
+
+
+class ExposeSyncMethodsMixin:
+    """
+    A mixin class that can take functions decorated with `expose_sync_method` and
+    automatically create synchronous versions.
+
+
+    Example:
+
+    class MyClass(ExposeSyncMethodsMixin):
+
+        @expose_sync_method("my_method")
+        async def my_method_async(self):
+            return 42
+
+    my_instance = MyClass()
+    await my_instance.my_method_async() # returns 42
+    my_instance.my_method()  # returns 42
+    """
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        for method in list(cls.__dict__.values()):
+            if callable(method) and hasattr(method, "_sync_name"):
+                sync_method_name = method._sync_name
+                setattr(cls, sync_method_name, method._sync_wrapper)
+
+
+def expose_sync_method(name: str):
+    """
+    Decorator that automatically exposes synchronous versions of async methods.
+    Note it doesn't work with classmethods.
+
+    Example:
+
+    class MyClass(ExposeSyncMethodsMixin):
+
+        @expose_sync_method("my_method")
+        async def my_method_async(self):
+            return 42
+
+    my_instance = MyClass()
+    await my_instance.my_method_async() # returns 42
+    my_instance.my_method()  # returns 42
+    """
+
+    def decorator(async_method):
+        @functools.wraps(async_method)
+        def sync_wrapper(*args, **kwargs):
+            coro = async_method(*args, **kwargs)
+            return run_sync(coro)
+
+        # Attach attributes to the async wrapper
+        async_method._sync_wrapper = sync_wrapper
+        async_method._sync_name = name
+
+        return async_method
+
+    return decorator
