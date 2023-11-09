@@ -20,15 +20,26 @@ from marvin.utilities.pydantic import parse_as
 class Thread(BaseModel, ExposeSyncMethodsMixin):
     id: Optional[str] = None
     metadata: dict = {}
+    messages: list[Message] = []
 
     class Config:
         orm_mode = True
 
-    async def _lazy_create(self):
+    @expose_sync_method("_create")
+    async def _create_async(self, messages: list[str] = None):
+        """
+        Idempotently creates a thread. Designed to be called lazily whenever the
+        thread is needed.
+        """
         if self.id is None:
+            if messages is not None:
+                messages = [
+                    {"role": "user", "content": message} for message in messages
+                ]
             client = get_client()
-            response = await client.beta.threads.create()
+            response = await client.beta.threads.create(messages=messages)
             self.id = response.id
+        return self
 
     @expose_sync_method("add")
     async def add_async(self, message: str) -> Message:
@@ -37,20 +48,29 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         """
         client = get_client()
 
-        await self._lazy_create()
+        await self._create_async()
         response = await client.beta.threads.messages.create(
             thread_id=self.id, role="user", content=message
         )
         return Message.model_validate(response.model_dump())
 
-    @expose_sync_method("get_messages")
-    async def get_messages_async(
+    @expose_sync_method("refresh_messages")
+    async def refresh_messages_async(
         self,
         limit: int = None,
         before_message: Optional[str] = None,
         after_message: Optional[str] = None,
     ) -> list[dict]:
-        await self._lazy_create()
+        """
+        Refresh the messages in the thread.
+
+        """
+        if limit is None:
+            limit = 20
+        if after_message is None and self.messages:
+            after_message = self.messages[-1].id
+
+        await self._create_async()
         client = get_client()
         response = await client.beta.threads.messages.list(
             thread_id=self.id,
@@ -61,8 +81,16 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             limit=limit,
         )
         messages = parse_as(list[Message], response.model_dump()["data"])
-        # return messages in ascending order
-        return list(reversed(messages))
+
+        # combine messages with existing messages
+        # in ascending order
+        all_messages = self.messages + list(reversed(messages))
+
+        # ensure messages are unique
+        all_messages = {m.id: m for m in all_messages}.values()
+
+        # keep the last 100 messages locally
+        self.messages = list(all_messages)[-100:]
 
     @expose_sync_method("delete")
     async def delete_async(self):
@@ -71,7 +99,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("run")
     async def run_async(self, assistant: "Assistant") -> Run:
-        await self._lazy_create()
+        await self._create_async()
         return await assistant.run_thread_async(thread=self)
 
 
@@ -127,7 +155,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         return cls.model_validate(response)
 
     @expose_sync_method("run_thread")
-    async def run_thread_async(self, thread: Thread) -> Run:
+    async def run_thread_async(self, thread: Thread) -> list[Message]:
         client = get_client()
         run = await client.beta.threads.runs.create(
             thread_id=thread.id, assistant_id=self.id
@@ -149,7 +177,17 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
 
                 else:
                     raise ValueError("Invalid required action type")
-        return Run.model_validate(run.model_dump())
+
+        # reload thread messages
+        await thread.refresh_messages_async()
+        # get any messages created after the run's created time
+        messages = [
+            m
+            for m in thread.messages
+            if m.created_at >= run.created_at and m.role == "assistant"
+        ]
+        return messages
+        # return Run.model_validate(run.model_dump())
 
     async def _get_tool_outputs(self, required_action: dict) -> Any:
         if required_action.type != "submit_tool_outputs":
@@ -183,7 +221,8 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
 
 @contextmanager
 def temporary_thread():
-    thread = Thread.create()
+    thread = Thread()
+    thread._create()
     try:
         yield thread
     finally:
