@@ -1,44 +1,28 @@
 import asyncio
 import functools
 from concurrent.futures import ThreadPoolExecutor
-from typing import Awaitable, TypeVar
+from typing import Any, Callable, Coroutine, TypeVar
 
 T = TypeVar("T")
 
-BACKGROUND_TASKS = set()
 
-
-def create_task(coro):
-    """
-    Creates async background tasks in a way that is safe from garbage
-    collection.
-
-    See
-    https://textual.textualize.io/blog/2023/02/11/the-heisenbug-lurking-in-your-async-code/
-
-    Example:
-
-    async def my_coro(x: int) -> int:
-        return x + 1
-
-    # safely submits my_coro for background execution
-    create_task(my_coro(1))
-    """  # noqa: E501
-    task = asyncio.create_task(coro)
-    BACKGROUND_TASKS.add(task)
-    task.add_done_callback(BACKGROUND_TASKS.discard)
-    return task
-
-
-async def run_async(func, *args, **kwargs) -> T:
+async def run_async(fn: Callable[..., T], *args: Any, **kwargs: Any) -> T:
     """
     Runs a synchronous function in an asynchronous manner.
+
+    Args:
+        fn: The function to run.
+        *args: Positional arguments to pass to the function.
+        **kwargs: Keyword arguments to pass to the function.
+
+    Returns:
+        The return value of the function.
     """
 
     async def wrapper() -> T:
         try:
             return await loop.run_in_executor(
-                None, functools.partial(func, *args, **kwargs)
+                None, functools.partial(fn, *args, **kwargs)
             )
         except Exception as e:
             # propagate the exception to the caller
@@ -48,7 +32,7 @@ async def run_async(func, *args, **kwargs) -> T:
     return await wrapper()
 
 
-def run_sync(coroutine: Awaitable[T]) -> T:
+def run_sync(coroutine: Coroutine[Any, Any, T]) -> T:
     """
     Runs a coroutine from a synchronous context, either in the current event
     loop or in a new one if there is no event loop running. The coroutine will
@@ -88,7 +72,7 @@ class ExposeSyncMethodsMixin:
     my_instance.my_method()  # returns 42
     """
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         for method in list(cls.__dict__.values()):
             if callable(method) and hasattr(method, "_sync_name"):
@@ -96,7 +80,7 @@ class ExposeSyncMethodsMixin:
                 setattr(cls, sync_method_name, method._sync_wrapper)
 
 
-def expose_sync_method(name: str):
+def expose_sync_method(name: str) -> Callable[..., Any]:
     """
     Decorator that automatically exposes synchronous versions of async methods.
     Note it doesn't work with classmethods.
@@ -114,16 +98,18 @@ def expose_sync_method(name: str):
     my_instance.my_method()  # returns 42
     """
 
-    def decorator(async_method):
+    def decorator(
+        async_method: Callable[..., Coroutine[Any, Any, T]]
+    ) -> Callable[..., T]:
         @functools.wraps(async_method)
-        def sync_wrapper(*args, **kwargs):
+        def sync_wrapper(*args: Any, **kwargs: Any) -> T:
             coro = async_method(*args, **kwargs)
             return run_sync(coro)
 
         # Attach attributes to the async wrapper
-        async_method._sync_wrapper = sync_wrapper
-        async_method._sync_name = name
+        setattr(async_method, "_sync_wrapper", sync_wrapper)
+        setattr(async_method, "_sync_name", name)
 
-        return async_method
+        return sync_wrapper
 
     return decorator

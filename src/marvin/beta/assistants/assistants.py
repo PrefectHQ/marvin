@@ -6,7 +6,7 @@ from typing import Any, Optional
 from pydantic import BaseModel, validator
 
 from marvin.beta.assistants.types import Message, Run, Tool
-from marvin.utilities.asyncutils import (
+from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
     run_sync,
