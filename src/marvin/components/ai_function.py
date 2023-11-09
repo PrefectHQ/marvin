@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec, Self
 
 from marvin import settings
-from marvin.utilities.asyncutils import run_sync
+from marvin.utilities.asyncio import run_sync
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_client
 from marvin.utilities.pydantic import parse_as

@@ -2,7 +2,7 @@ import sys
 import typer
 from rich.console import Console
 from typing import Optional
-from marvin.utilities.asyncutils import run_sync
+from marvin.utilities.asyncio import run_sync
 from marvin.utilities.openai import get_client
 from marvin.cli.version import display_version
 
