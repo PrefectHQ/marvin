@@ -24,7 +24,7 @@ class Environment(pydantic.BaseModel):
 
     globals: dict[str, Any] = pydantic.Field(
         default_factory=lambda: {
-            "now": datetime.now(ZoneInfo("UTC")),
+            "now": lambda: datetime.now(ZoneInfo("UTC")),
             "inspect": inspect,
         }
     )
