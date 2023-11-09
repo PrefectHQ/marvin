@@ -5,9 +5,11 @@ import re
 from contextlib import asynccontextmanager
 from copy import deepcopy
 
+from auxillary import get_reduced_kw_relationship_map
 from bots import choose_bot
 from cachetools import TTLCache
 from fastapi import HTTPException
+from marvin import ai_fn
 from marvin.utilities.async_utils import run_sync
 from marvin.utilities.history import History
 from marvin.utilities.logging import get_logger
@@ -80,11 +82,35 @@ async def emit_any_prefect_event(payload: dict) -> Event | None:
     )
 
 
+@ai_fn
+def activation_score(message: str, keyword: str, target_relationship: str) -> float:
+    """Return a score between 0 and 1 indicating whether the target relationship exists
+    between the message and the keyword"""
+
+
 async def generate_ai_response(payload: dict):
     event = payload.get("event", {})
     channel_id = event.get("channel", "")
     channel_name = await get_channel_name(channel_id)
     message = event.get("text", "")
+
+    keyword_relationships = await get_reduced_kw_relationship_map()
+    keywords = [
+        keyword for keyword in keyword_relationships.keys() if keyword in message
+    ]
+    for keyword in keywords:
+        target_relationship = keyword_relationships.get(keyword)
+        if not target_relationship:
+            continue
+        score = activation_score(message, keyword, target_relationship)
+        if score > 0.5:
+            await post_slack_message(
+                message=(
+                    f"Marvin detected that you are asking about {target_relationship}."
+                ),
+                channel=channel_id,
+            )
+            return
 
     bot_user_id = payload.get("authorizations", [{}])[0].get("user_id", "")
 
