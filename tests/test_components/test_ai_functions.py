@@ -20,7 +20,7 @@ def list_fruit_color(n: int, color: str = None) -> list[str]:
 
 @pytest_mark_class("llm")
 class TestAIFunctions:
-    def test_list_fruit(self):
+    def test_list_fruit_default(self):
         result = list_fruit()
         assert len(result) == 2
 

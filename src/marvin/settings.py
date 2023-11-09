@@ -8,8 +8,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class ChatCompletionSettings(BaseModel):
     model: str = Field(
-        default="gpt-4-1106-preview",
+        default="gpt-3.5-turbo-1106",
         description="The default chat model to use.",
+    )
+
+    temperature: float = Field(
+        default=0.8,
+        description="The default temperature to use for chat completions.",
     )
 
     model_config = ConfigDict(

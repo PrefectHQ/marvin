@@ -15,7 +15,7 @@ app.command(name="version")(display_version)
 @app.callback(invoke_without_command=True)
 def main(
     ctx: typer.Context,
-    model: Optional[str] = typer.Option("gpt-3.5-turbo"),
+    model: Optional[str] = typer.Option("gpt-3.5-turbo-1106"),
     max_tokens: Optional[int] = typer.Option(1000),
 ):
     if ctx.invoked_subcommand is not None:

@@ -87,10 +87,8 @@ filterwarnings = [
 ]
 env = [
     "MARVIN_TEST_MODE=1",
-    "MARVIN_LOG_CONSOLE_WIDTH=120",
     # use 3.5 for tests by default
-    'D:MARVIN_LLM_MODEL=gpt-3.5-turbo',
-    'MARVIN_LLM_TEMPERATURE=0.0',
+    'D:MARVIN_OPENAI_CHAT_COMPLETIONS_MODEL=gpt-3.5-turbo',
 ]
 
 # black configuration

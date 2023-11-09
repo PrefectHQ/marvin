@@ -4,14 +4,33 @@ from typing import (
     Any,
     Callable,
     Optional,
+    Type,
+    TypeVar,
     Union,
     cast,
     get_origin,
 )
 
-from pydantic import BaseModel, TypeAdapter, create_model
+from pydantic import BaseModel, Field, TypeAdapter, create_model
 from pydantic.v1 import validate_arguments
 from typing_extensions import Literal
+
+T = TypeVar("T")
+
+
+def make_arbitrary_dict_model(name: str) -> Type[BaseModel]:
+    class ArbitraryDictModel(BaseModel):
+        output: dict = Field(
+            description=(
+                "This is a placeholder indicating that the model"
+                " expects a dictionary with arbitrary keys and values"
+                " based on the context of its use."
+            ),
+            example={"key1": "value1", "key2": "value2"},
+        )
+
+    ArbitraryDictModel.__name__ = name
+    return ArbitraryDictModel
 
 
 def cast_callable_to_model(
@@ -93,7 +112,11 @@ def cast_to_model(
             field_name=annotated_field_name,
         )
         response.__doc__ = annotated_field_description or ""
-    elif origin in {dict, list, tuple, set, frozenset}:
+
+    elif origin is dict:
+        response = make_arbitrary_dict_model(name or "Output")
+
+    elif origin in {list, tuple, set, frozenset}:
         response = cast_type_or_alias_to_model(
             function_or_type, name, description, field_name
         )
@@ -119,17 +142,28 @@ def cast_to_model(
     return response
 
 
+ValidationMode = Literal["python", "json", "strings"]
+
+
 def parse_as(
-    type_: Any,
-    data: Any,
-    mode: Literal["python", "json", "strings"] = "python",
-) -> BaseModel:
-    """Parse a json string to a Pydantic model."""
-    adapter = TypeAdapter(type_)
+    model_: Any,
+    data: dict[str, Any],
+    mode: ValidationMode = "python",
+    output_field_name: str = "output",
+) -> T:
+    """Parse data to a target type.
 
-    if get_origin(type_) is list and isinstance(data, dict):
-        data = next(iter(data.values()))
+    Args:
+        type_: The target type to parse to.
+        data: The data to parse.
+        mode: The mode to parse as. Defaults to "python".
+        output_field_name: The name of the output field. Defaults to "output".
+    """
+    if mode not in (modes := ValidationMode.__args__):
+        raise ValueError(f"Invalid mode: {mode!r}. Must be one of: {' | '.join(modes)}")
 
-    parser = getattr(adapter, f"validate_{mode}")
+    adapter = TypeAdapter(model_)
 
-    return parser(data)
+    validated_model = getattr(adapter, f"validate_{mode}")(data, strict=False)
+
+    return getattr(validated_model, output_field_name)

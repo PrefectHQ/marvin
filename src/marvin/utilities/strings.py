@@ -36,6 +36,7 @@ jinja_env.globals.update(
     arun=run_sync,
     now=lambda: datetime.now(ZoneInfo("UTC")),
     inspect=inspect,
+    str=str,
 )
 
 
