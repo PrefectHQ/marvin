@@ -12,12 +12,12 @@ class Function(BaseModel):
     fn: Callable = Field(exclude=True)
 
     @classmethod
-    def from_function(cls, fn: Callable):
+    def from_function(cls, fn: Callable, name: str = None, description: str = None):
         model = marvin.utilities.pydantic.cast_callable_to_model(fn)
         return cls(
-            name=fn.__name__,
-            description=fn.__doc__,
-            parameters=model.schema()["properties"],
+            name=name or fn.__name__,
+            description=description or fn.__doc__,
+            parameters=model.model_json_schema()["properties"],
             fn=fn,
         )
 
@@ -27,8 +27,11 @@ class Tool(BaseModel):
     function: Optional[Function]
 
     @classmethod
-    def from_function(cls, fn: Callable):
-        return cls(type="function", function=Function.from_function(fn))
+    def from_function(cls, fn: Callable, name: str = None, description: str = None):
+        return cls(
+            type="function",
+            function=Function.from_function(fn=fn, name=name, description=description),
+        )
 
 
 class Message(BaseModel):

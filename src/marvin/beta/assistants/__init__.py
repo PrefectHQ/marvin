@@ -1,1 +1,1 @@
-from .assistants import Assistant, Thread, temporary_thread, TemporaryAssistant
+from .assistants import Assistant, Thread

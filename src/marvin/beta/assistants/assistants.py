@@ -1,8 +1,6 @@
 import asyncio
 import inspect
 import json
-import uuid
-from contextlib import contextmanager
 from typing import Any, Optional
 
 from pydantic import BaseModel, validator
@@ -22,23 +20,28 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
     metadata: dict = {}
     messages: list[Message] = []
 
-    class Config:
-        orm_mode = True
+    def __enter__(self):
+        self.create()
+        return self
 
-    @expose_sync_method("_create")
-    async def _create_async(self, messages: list[str] = None):
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.delete()
+        # If an exception has occurred, you might want to handle it or pass it through
+        # Returning False here will re-raise any exception that occurred in the context
+        return False
+
+    @expose_sync_method("create")
+    async def create_async(self, messages: list[str] = None):
         """
-        Idempotently creates a thread. Designed to be called lazily whenever the
-        thread is needed.
+        Creates a thread.
         """
-        if self.id is None:
-            if messages is not None:
-                messages = [
-                    {"role": "user", "content": message} for message in messages
-                ]
-            client = get_client()
-            response = await client.beta.threads.create(messages=messages)
-            self.id = response.id
+        if self.id is not None:
+            raise ValueError("Thread has already been created.")
+        if messages is not None:
+            messages = [{"role": "user", "content": message} for message in messages]
+        client = get_client()
+        response = await client.beta.threads.create(messages=messages)
+        self.id = response.id
         return self
 
     @expose_sync_method("add")
@@ -48,7 +51,8 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         """
         client = get_client()
 
-        await self._create_async()
+        if self.id is None:
+            await self.create_async()
         response = await client.beta.threads.messages.create(
             thread_id=self.id, role="user", content=message
         )
@@ -70,7 +74,8 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         if after_message is None and self.messages:
             after_message = self.messages[-1].id
 
-        await self._create_async()
+        if self.id is None:
+            await self.create_async()
         client = get_client()
         response = await client.beta.threads.messages.list(
             thread_id=self.id,
@@ -96,10 +101,13 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
     async def delete_async(self):
         client = get_client()
         await client.beta.threads.delete(thread_id=self.id)
+        self.id = None
 
     @expose_sync_method("run")
     async def run_async(self, assistant: "Assistant") -> Run:
-        await self._create_async()
+        if self.id is None:
+            await self.create_async()
+
         return await assistant.run_thread_async(thread=self)
 
 
@@ -112,9 +120,6 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     file_ids: list[str] = []
     metadata: dict[str, str] = {}
 
-    class Config:
-        orm_mode = True
-
     @validator("tools", pre=True)
     def convert_functions_to_tools(cls, v):
         tools = []
@@ -124,19 +129,25 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             tools.append(tool)
         return tools
 
-    @classmethod
-    def create(cls, **kwargs):
-        return run_sync(cls.create_async(**kwargs))
+    def __enter__(self):
+        self.create()
+        return self
 
-    @classmethod
-    async def create_async(cls, **kwargs):
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.delete()
+        # If an exception has occurred, you might want to handle it or pass it through
+        # Returning False here will re-raise any exception that occurred in the context
+        return False
+
+    @expose_sync_method("create")
+    async def create_async(self):
+        if self.id is not None:
+            raise ValueError("Assistant has already been created.")
         client = get_client()
-        # apply defaults
-        obj = cls(**kwargs)
-        response = await client.beta.assistants.create(**obj.model_dump(exclude={"id"}))
-        response = response.model_dump()
-        response["tools"] = kwargs.get("tools", response.get("tools"))
-        return cls.model_validate(response)
+        response = await client.beta.assistants.create(
+            **self.model_dump(exclude={"id"})
+        )
+        self.id = response.id
 
     @expose_sync_method("delete")
     async def delete_async(self):
@@ -217,24 +228,3 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
                     output = f"Error calling function {tool.function.name}: {exc}"
             tool_outputs.append(dict(tool_call_id=tool_call.id, output=output))
         return tool_outputs
-
-
-@contextmanager
-def temporary_thread():
-    thread = Thread()
-    thread._create()
-    try:
-        yield thread
-    finally:
-        thread.delete()
-
-
-@contextmanager
-def TemporaryAssistant(**kwargs):
-    if "name" not in kwargs:
-        kwargs["name"] = f"Temporary Assistant {uuid.uuid4().hex[:8]}"
-    assistant = Assistant.create(**kwargs)
-    try:
-        yield assistant
-    finally:
-        assistant.delete()
