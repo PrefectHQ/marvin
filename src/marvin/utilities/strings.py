@@ -12,6 +12,7 @@ from jinja2 import (
     select_autoescape,
 )
 from markupsafe import Markup
+
 from marvin.utilities.asyncutils import run_sync
 
 NEWLINES_REGEX = re.compile(r"(\s*\n\s*)")
