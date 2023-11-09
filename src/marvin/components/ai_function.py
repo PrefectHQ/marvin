@@ -8,10 +8,10 @@ from typing_extensions import ParamSpec, Self
 
 from marvin import settings
 from marvin.utilities.asyncio import run_sync
+from marvin.utilities.jinja import jinja_env
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_client
 from marvin.utilities.pydantic import parse_as
-from marvin.utilities.strings import jinja_env
 
 T = TypeVar("T", bound=BaseModel)
 

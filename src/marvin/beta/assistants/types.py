@@ -1,5 +1,8 @@
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
+from openai.types.beta.threads import ThreadMessage as OpenAIMessage
+from openai.types.beta.threads.run import Run as OpenAIRun
+from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
 from pydantic import BaseModel, Field
 
 import marvin.utilities.pydantic
@@ -34,24 +37,7 @@ class Tool(BaseModel):
         )
 
 
-class Message(BaseModel):
-    id: str
-    thread_id: str
-    content: list[dict[str, Any]]
-    created_at: int
-    role: str
-    assistant_id: Optional[str] = None
-    run_id: Optional[str] = None
-    file_ids: list[str] = []
-    metadata: dict = {}
-
-
-class Run(BaseModel):
-    id: str
-    thread_id: str
-    created_at: int
-    status: str
-    model: str
-    instructions: Optional[str]
-    tools: list[dict[str, Any]]
-    metadata: dict[str, str]
+class RunResponse(BaseModel):
+    run: OpenAIRun
+    run_steps: list[OpenAIRunStep]
+    messages: list[OpenAIMessage]

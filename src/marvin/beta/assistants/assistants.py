@@ -4,7 +4,7 @@ from typing import Any, Callable, Optional, Union
 
 from pydantic import BaseModel, field_validator
 
-from marvin.beta.assistants.types import Message, Run, Tool
+from marvin.beta.assistants.types import OpenAIMessage, OpenAIRun, RunResponse, Tool
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -17,7 +17,7 @@ from marvin.utilities.pydantic import parse_as
 class Thread(BaseModel, ExposeSyncMethodsMixin):
     id: Optional[str] = None
     metadata: dict = {}
-    messages: list[Message] = []
+    messages: list[OpenAIMessage] = []
 
     def __enter__(self):
         self.create()
@@ -44,7 +44,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         return self
 
     @expose_sync_method("add")
-    async def add_async(self, message: str) -> Message:
+    async def add_async(self, message: str) -> OpenAIMessage:
         """
         Add a user message to the thread.
         """
@@ -55,7 +55,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         response = await client.beta.threads.messages.create(
             thread_id=self.id, role="user", content=message
         )
-        return Message.model_validate(response.model_dump())
+        return OpenAIMessage.model_validate(response.model_dump())
 
     @expose_sync_method("refresh_messages")
     async def refresh_messages_async(
@@ -84,7 +84,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             after=before_message,
             limit=limit,
         )
-        messages = parse_as(list[Message], response.model_dump()["data"])
+        messages = parse_as(list[OpenAIMessage], response.model_dump()["data"])
 
         # combine messages with existing messages
         # in ascending order
@@ -103,7 +103,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         self.id = None
 
     @expose_sync_method("run")
-    async def run_async(self, assistant: "Assistant") -> Run:
+    async def run_async(self, assistant: "Assistant") -> RunResponse:
         if self.id is None:
             await self.create_async()
 
@@ -163,7 +163,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         return cls.model_validate(response)
 
     @expose_sync_method("run_thread")
-    async def run_thread_async(self, thread: Thread) -> list[Message]:
+    async def run_thread_async(self, thread: Thread) -> RunResponse:
         client = get_client()
         run = await client.beta.threads.runs.create(
             thread_id=thread.id, assistant_id=self.id
@@ -192,10 +192,14 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             for m in thread.messages
             if m.created_at >= run.created_at and m.role == "assistant"
         ]
-        return messages
-        # return Run.model_validate(run.model_dump())
+        run_steps = await client.beta.threads.runs.steps.list(
+            run_id=run.id, thread_id=thread.id
+        )
+        return RunResponse(
+            run=run, run_steps=reversed(run_steps.data), messages=messages
+        )
 
-    async def _get_tool_outputs(self, run: Run) -> Any:
+    async def _get_tool_outputs(self, run: OpenAIRun) -> Any:
         if run.required_action.type != "submit_tool_outputs":
             raise ValueError("Invalid required action type")
 
