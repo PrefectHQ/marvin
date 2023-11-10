@@ -13,8 +13,11 @@ from marvin.utilities.asyncio import (
     expose_sync_method,
     run_sync,
 )
+from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_client
 from marvin.utilities.pydantic import parse_as
+
+logger = get_logger("Assistant")
 
 
 class Thread(BaseModel, ExposeSyncMethodsMixin):
@@ -239,7 +242,7 @@ class Run(BaseModel):
                 if not tool:
                     output = f"Error: could not find tool {tool_call.function.name}"
                 else:
-                    print(
+                    logger.debug(
                         f"Calling {tool.function.name} with args:"
                         f" {tool_call.function.arguments}"
                     )
@@ -249,9 +252,10 @@ class Run(BaseModel):
                         if output is None:
                             output = "<this function produced no output>"
                         output = json.dumps(output)
+                        logger.debug(f"{tool.function.name} output: {output}")
                     except Exception as exc:
                         output = f"Error calling function {tool.function.name}: {exc}"
-                    print(f"{tool.function.name} output: {output}")
+                        logger.error(f"{tool.function.name} output: {output}")
                 tool_outputs.append(dict(tool_call_id=tool_call.id, output=output))
 
             await client.beta.threads.runs.submit_tool_outputs(
@@ -275,6 +279,6 @@ class Run(BaseModel):
             await self.refresh()
 
         if self.run.status == "failed":
-            print(f"Run failed. Last error was: {self.run.last_error}")
+            logger.debug(f"Run failed. Last error was: {self.run.last_error}")
 
         return self
