@@ -1,13 +1,14 @@
 import inspect
 import re
 from datetime import datetime
-from typing import Any, Self, Union
+from typing import Any, Union
 from zoneinfo import ZoneInfo
 
 import pydantic
 from jinja2 import Environment as JinjaEnvironment
 from jinja2 import StrictUndefined, select_autoescape
 from jinja2 import Template as BaseTemplate
+from typing_extensions import Self
 
 
 class BaseEnvironment(pydantic.BaseModel):

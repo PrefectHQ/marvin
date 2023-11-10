@@ -1,5 +1,5 @@
-from typing import Any, Literal, Optional, Union, Self
-from types import FunctionType
+from typing import Any, Literal, Optional, Union
+
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 

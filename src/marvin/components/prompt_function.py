@@ -5,17 +5,18 @@ from re import Pattern, compile
 from typing import Any, Callable, ClassVar, Optional, ParamSpec, Self, Union
 
 import pydantic
+from pydantic import create_model
+
 from marvin import settings
 from marvin.requests import BaseMessage as Message
+from marvin.requests import ChatRequest
+from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import (
     BaseEnvironment,
     split_text_by_tokens,
 )
-from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.openai import get_client
-from marvin.requests import ChatRequest
-from pydantic import RootModel, create_model
 
 P = ParamSpec("P")
 
@@ -118,7 +119,8 @@ class PromptFn(pydantic.BaseModel):
                             "description": response_model_description,
                             "parameters": {
                                 **create_model(
-                                    response_model_name, **response_model_fields  # type: ignore
+                                    response_model_name,
+                                    **response_model_fields,  # type: ignore
                                 ).model_json_schema()
                             },
                         },
