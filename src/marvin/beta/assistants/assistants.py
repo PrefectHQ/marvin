@@ -1,10 +1,13 @@
 import asyncio
 import json
-from typing import Any, Callable, Optional, Union
+from typing import Callable, Optional, Union
 
+from openai.types.beta.threads import ThreadMessage as OpenAIMessage
+from openai.types.beta.threads.run import Run as OpenAIRun
+from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
 from pydantic import BaseModel, field_validator
 
-from marvin.beta.assistants.types import OpenAIMessage, OpenAIRun, RunResponse, Tool
+from marvin.beta.assistants.types import Tool
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -63,10 +66,11 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         limit: int = None,
         before_message: Optional[str] = None,
         after_message: Optional[str] = None,
-    ) -> list[dict]:
+    ) -> list[OpenAIMessage]:
         """
         Refresh the messages in the thread.
 
+        Stores the updated messages list on the Thread and returns any new messages.
         """
         if limit is None:
             limit = 20
@@ -88,13 +92,19 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
         # combine messages with existing messages
         # in ascending order
-        all_messages = self.messages + list(reversed(messages))
+        current_messages = {m.id for m in self.messages}
+        all_messages = list(
+            sorted(self.messages + messages, key=lambda m: m.created_at)
+        )
 
         # ensure messages are unique
         all_messages = {m.id: m for m in all_messages}.values()
 
         # keep the last 100 messages locally
         self.messages = list(all_messages)[-100:]
+
+        # return the new messages
+        return [m for m in reversed(messages) if m.id not in current_messages]
 
     @expose_sync_method("delete")
     async def delete_async(self):
@@ -103,11 +113,11 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         self.id = None
 
     @expose_sync_method("run")
-    async def run_async(self, assistant: "Assistant") -> RunResponse:
+    async def run_async(self, assistant: "Assistant") -> "Run":
         if self.id is None:
             await self.create_async()
 
-        return await assistant.run_thread_async(thread=self)
+        return await Run(assistant=assistant, thread=self).run_async()
 
 
 class Assistant(BaseModel, ExposeSyncMethodsMixin):
@@ -162,71 +172,109 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         response = await client.beta.assistants.retrieve(assistant_id=assistant_id)
         return cls.model_validate(response)
 
-    @expose_sync_method("run_thread")
-    async def run_thread_async(self, thread: Thread) -> RunResponse:
+    @expose_sync_method("run")
+    async def run_async(self, thread: Thread) -> "Run":
+        return await Run(assistant=self, thread=thread).run_async()
+
+
+class Run(BaseModel):
+    thread: Thread
+    assistant: Assistant
+    run: OpenAIRun = None
+    steps: list[OpenAIRunStep] = []
+    messages: list[OpenAIMessage] = []
+
+    async def _process_one_step(self):
+        if self.run.status == "requires_action":
+            await self._process_step_requires_action()
+        await self.refresh()
+
+    async def refresh(self):
+        breakpoint()
         client = get_client()
-        run = await client.beta.threads.runs.create(
-            thread_id=thread.id, assistant_id=self.id
+        self.run = await client.beta.threads.runs.retrieve(
+            run_id=self.run.id, thread_id=self.thread.id
         )
 
-        while run.status in ("queued", "in_progress", "requires_action"):
-            await asyncio.sleep(0.1)
-            run = await client.beta.threads.runs.retrieve(
-                run_id=run.id, thread_id=thread.id
-            )
-            if run.status == "requires_action":
-                if run.required_action.type == "submit_tool_outputs":
-                    tool_outputs = await self._get_tool_outputs(run=run)
-                    await client.beta.threads.runs.submit_tool_outputs(
-                        thread_id=thread.id, run_id=run.id, tool_outputs=tool_outputs
-                    )
+        # get any new messages
+        new_messages = await self.thread.refresh_messages_async(
+            after_message=self.messages[-1].id if self.messages else None
+        )
 
-                else:
-                    raise ValueError("Invalid required action type")
+        self.messages.extend(
+            [
+                m
+                for m in new_messages
+                if m.created_at >= self.run.created_at and m.role == "assistant"
+            ]
+        )
 
-        # reload thread messages
-        await thread.refresh_messages_async()
-        # get any messages created after the run's created time
-        messages = [
-            m
-            for m in thread.messages
-            if m.created_at >= run.created_at and m.role == "assistant"
-        ]
+        # get any new steps
         run_steps = await client.beta.threads.runs.steps.list(
-            run_id=run.id, thread_id=thread.id
+            run_id=self.run.id,
+            thread_id=self.thread.id,
+            # the default order is descending, so we use `before` to get steps
+            # that are chronologically `after`
+            before=self.steps[-1].id if self.steps else None,
         )
-        return RunResponse(
-            run=run, run_steps=reversed(run_steps.data), messages=messages
-        )
+        self.steps.extend(reversed(run_steps.data))
 
-    async def _get_tool_outputs(self, run: OpenAIRun) -> Any:
-        if run.required_action.type != "submit_tool_outputs":
-            raise ValueError("Invalid required action type")
+    async def _process_step_requires_action(self):
+        client = get_client()
+        if self.run.status != "requires_action":
+            return
+        if self.run.required_action.type == "submit_tool_outputs":
+            tool_outputs = []
+            for tool_call in self.run.required_action.submit_tool_outputs.tool_calls:
+                if tool_call.type != "function":
+                    continue
+                tool = next(
+                    (
+                        t
+                        for t in self.tools
+                        if t.type == "function"
+                        and t.function.name == tool_call.function.name
+                    ),
+                    None,
+                )
+                if not tool:
+                    output = f"Error: could not find tool {tool_call.function.name}"
+                else:
+                    print(
+                        f"Calling {tool.function.name} with args:"
+                        f" {tool_call.function.arguments}"
+                    )
+                    arguments = json.loads(tool_call.function.arguments)
+                    try:
+                        output = tool.function.fn(**arguments)
+                        if output is None:
+                            output = "<this function produced no output>"
+                    except Exception as exc:
+                        output = f"Error calling function {tool.function.name}: {exc}"
+                    print(f"{tool.function.name} output: {output}")
+                tool_outputs.append(dict(tool_call_id=tool_call.id, output=output))
 
-        tool_outputs = []
-        for tool_call in run.required_action.submit_tool_outputs.tool_calls:
-            if tool_call.type != "function":
-                continue
-            tool = next(
-                (
-                    t
-                    for t in self.tools
-                    if t.type == "function"
-                    and t.function.name == tool_call.function.name
-                ),
-                None,
+            await client.beta.threads.runs.submit_tool_outputs(
+                thread_id=self.thread.id, run_id=self.run.id, tool_outputs=tool_outputs
             )
-            if not tool:
-                output = f"Error: could not find tool {tool_call.function.name}"
-            else:
-                arguments = json.loads(tool_call.function.arguments)
-                try:
-                    output = tool.function.fn(**arguments)
-                except Exception as exc:
-                    print(f"Error: {exc}")
-                    output = f"Error calling function {tool.function.name}: {exc}"
-            tool_outputs.append(dict(tool_call_id=tool_call.id, output=output))
-        return tool_outputs
 
-    # def as_tool(self, delegate=True) -> Tool:
-    #     def run_assistant(thread_id: str = None):
+    async def run_async(self) -> "Run":
+        client = get_client()
+
+        self.run = await client.beta.threads.runs.create(
+            thread_id=self.thread.id, assistant_id=self.assistant.id
+        )
+
+        first_step = True
+
+        while self.run.status in ("queued", "in_progress", "requires_action"):
+            if not first_step:
+                await asyncio.sleep(0.1)
+                first_step = False
+            await self._process_one_step()
+            await self.refresh()
+
+        if self.run.status == "failed":
+            print(f"Run failed. Last error was: {self.run.last_error}")
+
+        return self
