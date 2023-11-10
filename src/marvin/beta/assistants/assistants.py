@@ -264,14 +264,9 @@ class Run(BaseModel):
         new_messages = await self.thread.refresh_messages_async(
             after_message=self.messages[-1].id if self.messages else None
         )
-
-        self.messages.extend(
-            [
-                m
-                for m in new_messages
-                if m.created_at >= self.run.created_at and m.role == "assistant"
-            ]
-        )
+        for m in new_messages:
+            if m.created_at >= self.run.created_at and m.role == "assistant":
+                self.messages.append(m)
 
         # get any new steps
         run_steps = await client.beta.threads.runs.steps.list(
@@ -289,31 +284,33 @@ class Run(BaseModel):
             return
         if self.run.required_action.type == "submit_tool_outputs":
             tool_outputs = []
+
             for tool_call in self.run.required_action.submit_tool_outputs.tool_calls:
                 if tool_call.type != "function":
                     continue
-                tool = next(
-                    (
-                        t
-                        for t in self.assistant.tools
-                        if t.type == "function"
+                tool = None
+                for t in self.assistant.tools if self.tools is None else self.tools:
+                    if (
+                        t.type == "function"
                         and t.function.name == tool_call.function.name
-                    ),
-                    None,
-                )
+                    ):
+                        tool = t
+                        break
                 if not tool:
                     output = f"Error: could not find tool {tool_call.function.name}"
+                    logger.error(output)
                 else:
                     logger.debug(
                         f"Calling {tool.function.name} with args:"
                         f" {tool_call.function.arguments}"
                     )
-                    arguments = json.loads(tool_call.function.arguments)
                     try:
+                        arguments = json.loads(tool_call.function.arguments)
                         output = tool.function.fn(**arguments)
                         if output is None:
                             output = "<this function produced no output>"
-                        output = json.dumps(output)
+                        if not isinstance(output, str):
+                            output = json.dumps(output)
                         logger.debug(f"{tool.function.name} output: {output}")
                     except Exception as exc:
                         output = f"Error calling function {tool.function.name}: {exc}"
@@ -342,14 +339,11 @@ class Run(BaseModel):
             thread_id=self.thread.id, assistant_id=self.assistant.id, **create_kwargs
         )
 
-        first_step = True
-
         while self.run.status in ("queued", "in_progress", "requires_action"):
-            if not first_step:
-                await asyncio.sleep(0.1)
-                first_step = False
             await self._process_one_step()
             await self.refresh()
+            if self.run.status in ("queued", "in_progress"):
+                await asyncio.sleep(0.1)
 
         if self.run.status == "failed":
             logger.debug(f"Run failed. Last error was: {self.run.last_error}")
