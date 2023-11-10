@@ -190,7 +190,6 @@ class Run(BaseModel):
         await self.refresh()
 
     async def refresh(self):
-        breakpoint()
         client = get_client()
         self.run = await client.beta.threads.runs.retrieve(
             run_id=self.run.id, thread_id=self.thread.id
@@ -231,7 +230,7 @@ class Run(BaseModel):
                 tool = next(
                     (
                         t
-                        for t in self.tools
+                        for t in self.assistant.tools
                         if t.type == "function"
                         and t.function.name == tool_call.function.name
                     ),
