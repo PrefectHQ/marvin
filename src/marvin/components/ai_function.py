@@ -8,7 +8,7 @@ from typing_extensions import ParamSpec, Self
 
 from marvin import settings
 from marvin.utilities.asyncio import run_sync
-from marvin.utilities.jinja import jinja_env
+from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_client
 from marvin.utilities.pydantic import parse_as
@@ -17,7 +17,8 @@ T = TypeVar("T", bound=BaseModel)
 
 P = ParamSpec("P")
 
-ai_fn_system_template = jinja_env.from_string("""
+
+ai_fn_system_template = """
 {{ctx.get('instructions') if ctx and ctx.get('instructions')}}
 
 Your job is to generate likely outputs for a Python function with the
@@ -27,9 +28,9 @@ following signature and docstring:
 
 The user will provide function inputs (if any) and you must respond with
 the most likely result, which must be valid, double-quoted JSON.
-""")
+"""
 
-ai_fn_user_template = jinja_env.from_string("""
+ai_fn_user_template = """
 The function was called with the following inputs:
 {% set sig = inspect.signature(func) %}
 {% set binds = sig.bind(*args, **kwargs) %}
@@ -40,7 +41,7 @@ The function was called with the following inputs:
 {% endfor %}
 
 What is its output?
-""")
+"""
 
 
 class AIFunction(BaseModel, Generic[P, T]):
@@ -77,7 +78,8 @@ class AIFunction(BaseModel, Generic[P, T]):
             "messages": [
                 {
                     "role": "system",
-                    "content": ai_fn_system_template.render(
+                    "content": JinjaEnvironment.render(
+                        ai_fn_system_template,
                         func=self.fn,
                         args=args,
                         kwargs=kwargs,
@@ -86,7 +88,8 @@ class AIFunction(BaseModel, Generic[P, T]):
                 },
                 {
                     "role": "user",
-                    "content": ai_fn_user_template.render(
+                    "content": JinjaEnvironment.render(
+                        ai_fn_user_template,
                         func=self.fn,
                         args=args,
                         kwargs=kwargs,
