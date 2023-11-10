@@ -248,6 +248,7 @@ class Run(BaseModel):
                         output = tool.function.fn(**arguments)
                         if output is None:
                             output = "<this function produced no output>"
+                        output = json.dumps(output)
                     except Exception as exc:
                         output = f"Error calling function {tool.function.name}: {exc}"
                     print(f"{tool.function.name} output: {output}")
