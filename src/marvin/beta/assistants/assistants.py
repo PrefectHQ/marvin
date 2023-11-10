@@ -5,7 +5,7 @@ from typing import Callable, Optional, Union
 from openai.types.beta.threads import ThreadMessage as OpenAIMessage
 from openai.types.beta.threads.run import Run as OpenAIRun
 from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from marvin.beta.assistants.types import Tool
 from marvin.utilities.asyncio import (
@@ -73,7 +73,8 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         """
         Refresh the messages in the thread.
 
-        Stores the updated messages list on the Thread and returns any new messages.
+        Stores the updated messages list on the Thread and returns any new
+        messages.
         """
         if limit is None:
             limit = 20
@@ -116,11 +117,58 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         self.id = None
 
     @expose_sync_method("run")
-    async def run_async(self, assistant: "Assistant") -> "Run":
+    async def run_async(
+        self,
+        assistant: "Assistant",
+        instructions: str = None,
+        additional_instructions: str = None,
+    ) -> "Run":
+        """
+        Creates and returns a `Run` of this thread with the provided assistant.
+
+        Arguments:
+            assistant: The assistant to run.
+            instructions: Replacement instructions to use for the assistant.
+            additional_instructions: Additional instructions to append to the
+            assistant's instructions.
+        """
         if self.id is None:
             await self.create_async()
 
-        return await Run(assistant=assistant, thread=self).run_async()
+        return await Run(
+            assistant=assistant,
+            thread=self,
+            instructions=instructions,
+            additional_instructions=additional_instructions,
+        ).run_async()
+
+    @expose_sync_method("say")
+    async def say_async(
+        self,
+        message: str,
+        assistant: "Assistant",
+        instructions: str = None,
+        additional_instructions: str = None,
+    ) -> list[OpenAIMessage]:
+        """
+        A convenience method for adding a user message, running an assistant,
+        and returning the assistant's messages.
+
+        Arguments:
+            message: The message to send to the assistant.
+            assistant: The assistant to run.
+            instructions: Replacement instructions to use for the assistant.
+            additional_instructions: Additional instructions to append to the
+                assistant's instructions.
+        """
+        if message:
+            await self.add_async(message)
+        run = await self.run_async(
+            assistant=assistant,
+            instructions=instructions,
+            additional_instructions=additional_instructions,
+        )
+        return run.messages
 
 
 class Assistant(BaseModel, ExposeSyncMethodsMixin):
@@ -128,7 +176,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     name: str
     model: str = "gpt-4-1106-preview"
     instructions: Optional[str] = None
-    tools: list[Union[Tool, Callable]] = []
+    tools: list[Tool] = []
     file_ids: list[str] = []
     metadata: dict[str, str] = {}
 
@@ -175,17 +223,31 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         response = await client.beta.assistants.retrieve(assistant_id=assistant_id)
         return cls.model_validate(response)
 
-    @expose_sync_method("run")
-    async def run_async(self, thread: Thread) -> "Run":
-        return await Run(assistant=self, thread=thread).run_async()
-
 
 class Run(BaseModel):
     thread: Thread
     assistant: Assistant
+    instructions: Optional[str] = Field(
+        None, description="Replacement instructions to use for the run."
+    )
+    additional_instructions: Optional[str] = Field(
+        None,
+        description=(
+            "Additional instructions to append to the assistant's instructions."
+        ),
+    )
+    tools: Optional[list[Tool]] = None
     run: OpenAIRun = None
     steps: list[OpenAIRunStep] = []
     messages: list[OpenAIMessage] = []
+
+    @field_validator("tools")
+    def format_tools(cls, tools: Union[None, list[Union[Tool, Callable]]]):
+        if tools is not None:
+            return [
+                tool if isinstance(tool, Tool) else Tool.from_function(tool)
+                for tool in tools
+            ]
 
     async def _process_one_step(self):
         if self.run.status == "requires_action":
@@ -265,8 +327,19 @@ class Run(BaseModel):
     async def run_async(self) -> "Run":
         client = get_client()
 
+        create_kwargs = {}
+        if self.instructions is not None:
+            create_kwargs["instructions"] = self.instructions
+        if self.additional_instructions is not None:
+            create_kwargs["instructions"] = (
+                create_kwargs.get("instructions", self.assistant.instructions)
+                + "\n\n"
+                + self.additional_instructions
+            )
+        if self.tools is not None:
+            create_kwargs["tools"] = self.tools
         self.run = await client.beta.threads.runs.create(
-            thread_id=self.thread.id, assistant_id=self.assistant.id
+            thread_id=self.thread.id, assistant_id=self.assistant.id, **create_kwargs
         )
 
         first_step = True
