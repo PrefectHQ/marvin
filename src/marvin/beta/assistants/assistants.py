@@ -72,18 +72,11 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
     ) -> list[OpenAIMessage]:
         """
         Refresh the messages in the thread.
-
-        Stores the updated messages list on the Thread and returns any new
-        messages.
         """
-        if limit is None:
-            limit = 20
-        if after_message is None and self.messages:
-            after_message = self.messages[-1].id
-
         if self.id is None:
             await self.create_async()
         client = get_client()
+
         response = await client.beta.threads.messages.list(
             thread_id=self.id,
             # note that because messages are returned in descending order,
@@ -92,23 +85,21 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             after=before_message,
             limit=limit,
         )
+
         messages = parse_as(list[OpenAIMessage], response.model_dump()["data"])
 
-        # combine messages with existing messages
-        # in ascending order
-        current_messages = {m.id for m in self.messages}
-        all_messages = list(
-            sorted(self.messages + messages, key=lambda m: m.created_at)
+        if not messages:
+            return []
+
+        new_message_ids = {m.id for m in messages}
+
+        all_messages = sorted(
+            [m for m in self.messages if m.id not in new_message_ids] + messages,
+            key=lambda m: m.created_at,
         )
 
-        # ensure messages are unique
-        all_messages = {m.id: m for m in all_messages}.values()
-
-        # keep the last 100 messages locally
-        self.messages = list(all_messages)[-100:]
-
-        # return the new messages
-        return [m for m in reversed(messages) if m.id not in current_messages]
+        # keep up to 2500 messages locally
+        self.messages = list(all_messages)[-2500:]
 
     @expose_sync_method("delete")
     async def delete_async(self):
@@ -260,18 +251,14 @@ class Run(BaseModel):
             run_id=self.run.id, thread_id=self.thread.id
         )
 
-        # get any new messages
-        new_messages = await self.thread.refresh_messages_async(
-            after_message=self.messages[-1].id if self.messages else None
-        )
+        # refresh the thread's messages
+        await self.thread.refresh_messages_async()
 
-        self.messages.extend(
-            [
-                m
-                for m in new_messages
-                if m.created_at >= self.run.created_at and m.role == "assistant"
-            ]
-        )
+        self.messages = [
+            m
+            for m in self.thread.messages
+            if m.created_at >= self.run.created_at and m.role == "assistant"
+        ]
 
         # get any new steps
         run_steps = await client.beta.threads.runs.steps.list(
