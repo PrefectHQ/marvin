@@ -6,124 +6,98 @@ from typing import Any, Callable, Generic, Optional, TypeVar, Union
 from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec, Self
 
+from yaml import serialize
+from functools import partial, wraps
+
 from marvin import settings
 from marvin.utilities.asyncio import run_sync
-from marvin.utilities.jinja import jinja_env
+from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_client
 from marvin.utilities.pydantic import parse_as
+from marvin.components.prompt_function import PromptFn
+import json
 
 T = TypeVar("T", bound=BaseModel)
 
 P = ParamSpec("P")
 
-ai_fn_system_template = jinja_env.from_string("""
-{{ctx.get('instructions') if ctx and ctx.get('instructions')}}
 
+prompt = """
 Your job is to generate likely outputs for a Python function with the
 following signature and docstring:
 
-{{'def' + ''.join(inspect.getsource(func).split('def')[1:])}}
+{{_source_code}}
 
 The user will provide function inputs (if any) and you must respond with
 the most likely result, which must be valid, double-quoted JSON.
-""")
 
-ai_fn_user_template = jinja_env.from_string("""
-The function was called with the following inputs:
-{% set sig = inspect.signature(func) %}
-{% set binds = sig.bind(*args, **kwargs) %}
-{% set defaults = binds.apply_defaults() %}
-{% set params = binds.arguments %}
-{%for (arg, value) in params.items()%}
+user: The function was called with the following inputs:
+{%for (arg, value) in _arguments.items()%}
 - {{ arg }}: {{ value }}
 {% endfor %}
 
 What is its output?
-""")
+"""
 
 
 class AIFunction(BaseModel, Generic[P, T]):
-    fn: Callable[P, Any]
-    context: Optional[dict[str, Any]] = None
-    llm_settings: dict[str, Any] = Field(default_factory=dict)
+    fn: Callable[P, T]
+    prompt_fn: PromptFn
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Any:
-        get_logger("marvin.AIFunction").debug_kv(
+        get_logger("marvin.AIFunction").debug_kv(  # type: ignore
             f"Calling `ai_fn` {self.fn.__name__!r}",
             f"with args: {args} kwargs: {kwargs}",
         )
 
-        return run_sync(self.call(*args, **kwargs))
-
-    async def call(self, *args: P.args, **kwargs: P.kwargs) -> Any:
-        chat_completion_payload = self.to_payload(*args, **kwargs | self.llm_settings)
-
-        openai_client = get_client()
-
-        completion = await openai_client.chat.completions.create(
-            **chat_completion_payload
-        )
-
-        return parse_as(
-            inspect.signature(self.fn).return_annotation,
-            json.loads(completion.choices[0].message.content),
-        )
-
-    def to_payload(self, *args: P.args, **kwargs: P.kwargs) -> dict[str, Any]:
-        return {
-            "model": settings.openai.chat.completions.model,
-            "response_format": {"type": "json_object"},
-            "messages": [
-                {
-                    "role": "system",
-                    "content": ai_fn_system_template.render(
-                        func=self.fn,
-                        args=args,
-                        kwargs=kwargs,
-                        ctx=self.context,
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": ai_fn_user_template.render(
-                        func=self.fn,
-                        args=args,
-                        kwargs=kwargs,
-                        ctx=self.context,
-                    ),
-                },
-            ],
-            **settings.openai.chat.completions.model_dump(exclude_none=True),
-        }
+        return
 
     @classmethod
     def as_decorator(
         cls: type[Self],
         fn: Optional[Callable[P, Any]] = None,
-        context: Optional[dict[str, Any]] = None,
-        instructions: Optional[str] = None,
-        **llm_settings: Any,
-    ) -> Union[Self, Callable[[Callable[P, Any]], Self]]:
-        if fn is None:
-            return partial(
-                cls.as_decorator,
-                context=context,
-                instructions=instructions,
-                **llm_settings,
-            )
+        *,
+        prompt: str = prompt,
+        response_model_name: str = "FormatResponse",
+        response_model_description: str = "Formats the response.",
+        response_model_field_name: str = "data",
+    ) -> Union[
+        Callable[[Callable[P, None]], Callable[P, None]],
+        Callable[[Callable[P, None]], Callable[P, Self]],
+        Callable[P, Self],
+    ]:
+        def wrapper(fn: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> T:
+            return json.loads(
+                PromptFn.as_decorator(
+                    fn=fn,
+                    prompt=prompt,
+                    serialize=False,
+                    response_model_name=response_model_name,
+                    response_model_description=response_model_description,
+                    response_model_field_name=response_model_field_name,
+                )(*args, **kwargs)
+                .call()  # type: ignore
+                .choices[0]
+                .message.tool_calls[0]
+                .function.arguments
+            ).get(response_model_field_name)
 
-        if not inspect.iscoroutinefunction(fn):
-            return cls(fn=fn, context=context, **llm_settings)
+        def decorator(fn: Callable[P, None]) -> Callable[P, Self]:
+            return wraps(fn)(partial(wrapper, fn))
 
-        else:
+        return decorator
 
-            async def wrapper(*args: P.args, **kwargs: P.kwargs) -> Any:
-                return await cls(fn=fn, context=context, **llm_settings)(
-                    *args, **kwargs
-                )
+        test = PromptFn.as_decorator(
+            fn=fn,
+            prompt=prompt,
+            serialize=False,
+            response_model_name=response_model_name,
+            response_model_description=response_model_description,
+            response_model_field_name=response_model_field_name,
+        )
 
-            return wrapper
+        return test
 
 
 ai_fn = AIFunction.as_decorator

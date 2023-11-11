@@ -1,14 +1,17 @@
 import logging
 from functools import lru_cache, partial
+from typing import Optional
 
-from rich.logging import RichHandler
-from rich.markup import escape
+from rich.logging import RichHandler  # type: ignore
+from rich.markup import escape  # type: ignore
 
 import marvin
 
 
 @lru_cache()
-def get_logger(name: str = None) -> logging.Logger:
+def get_logger(
+    name: Optional[str] = None,
+) -> logging.Logger:
     parent_logger = logging.getLogger("marvin")
 
     if name:
@@ -25,7 +28,9 @@ def get_logger(name: str = None) -> logging.Logger:
     return logger
 
 
-def setup_logging(level: str = None):
+def setup_logging(
+    level: Optional[str] = None,
+) -> None:
     logger = get_logger()
 
     if level is not None:
