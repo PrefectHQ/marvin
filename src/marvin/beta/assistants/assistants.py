@@ -175,12 +175,12 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     id: Optional[str] = None
     name: str
     model: str = "gpt-4-1106-preview"
-    instructions: Optional[str] = None
+    instructions: Optional[str] = Field(None, repr=False)
     tools: list[Tool] = []
     file_ids: list[str] = []
     metadata: dict[str, str] = {}
 
-    @field_validator("tools")
+    @field_validator("tools", mode="before")
     def format_tools(cls, tools: list[Union[Tool, Callable]]):
         return [
             tool if isinstance(tool, Tool) else Tool.from_function(tool)
@@ -241,7 +241,7 @@ class Run(BaseModel):
     steps: list[OpenAIRunStep] = []
     messages: list[OpenAIMessage] = []
 
-    @field_validator("tools")
+    @field_validator("tools", mode="before")
     def format_tools(cls, tools: Union[None, list[Union[Tool, Callable]]]):
         if tools is not None:
             return [
