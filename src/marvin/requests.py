@@ -14,15 +14,27 @@ class ResponseFormat(BaseModel):
     type: str
 
 
+class Tool(BaseModel):
+    type: Literal["function", "retrieval", "code_interpreter"]
+
+
 class Function(BaseModel):
     name: str
     description: Optional[str]
     parameters: dict[str, Any]
 
 
-class Tool(BaseModel):
-    type: str
+class FunctionTool(Tool):
+    type: Literal["function"] = "function"
     function: Function
+
+
+class RetrievalTool(Tool):
+    type: Literal["retrieval"] = "retrieval"
+
+
+class CodeInterpreterTool(Tool):
+    type: Literal["code_interpreter"] = "code_interpreter"
 
 
 class FunctionCall(BaseModel):
@@ -36,7 +48,7 @@ class BaseMessage(BaseModel):
 
 class Prompt(BaseModel):
     messages: list[BaseMessage] = Field(default_factory=list)
-    tools: Optional[list[Tool]] = None
+    tools: Optional[list[FunctionTool]] = None
     tool_choice: Optional[Union[Literal["auto"], FunctionCall]] = None
     logit_bias: Optional[LogitBias] = None
     max_tokens: Optional[Annotated[int, Field(strict=True, ge=1)]] = None
