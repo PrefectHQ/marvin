@@ -1,5 +1,5 @@
-from typing import Any, Literal, Optional, Union, Self
-from types import FunctionType
+from typing import Any, Literal, Optional, Union
+
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
@@ -37,9 +37,15 @@ class BaseMessage(BaseModel):
 class Prompt(BaseModel):
     messages: list[BaseMessage] = Field(default_factory=list)
     tools: Optional[list[Tool]] = None
-    tool_choice: Optional[Union[Literal["auto"], FunctionCall]] = None
+    tool_choice: Optional[Union[Literal["auto"], dict[str, Any]]] = None
     logit_bias: Optional[LogitBias] = None
     max_tokens: Optional[Annotated[int, Field(strict=True, ge=1)]] = None
+
+
+class ResponseModel(BaseModel):
+    model: type
+    name: str = Field(default="FormatResponse")
+    description: str = Field(default="Response format")
 
 
 class ChatRequest(Prompt):

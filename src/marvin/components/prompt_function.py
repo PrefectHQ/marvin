@@ -5,17 +5,18 @@ from re import Pattern, compile
 from typing import Any, Callable, ClassVar, Optional, ParamSpec, Self, Union
 
 import pydantic
+from pydantic import create_model
+
 from marvin import settings
 from marvin.requests import BaseMessage as Message
+from marvin.requests import ChatRequest, Function
+from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import (
     BaseEnvironment,
     split_text_by_tokens,
 )
-from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.openai import get_client
-from marvin.requests import ChatRequest
-from pydantic import RootModel, create_model
 
 P = ParamSpec("P")
 
@@ -37,22 +38,39 @@ class Transcript(pydantic.BaseModel):
         **kwargs: Any,
     ) -> list[Message]:
         pairs = split_text_by_tokens(
-            text=self.render(**kwargs), split_tokens=[role for role in self.roles]
+            text=self.render(**kwargs),
+            split_tokens=[f"\n{role}" for role in self.roles],
         )
         return [
             Message(
-                role=pair[0],
+                role=pair[0].strip(),
                 content=pair[1],
             )
             for pair in pairs
         ]
 
 
+def get_function_call(
+    fn: Callable[P, Any],
+    name: str = "FormatResponse",
+    description: str = "Formats the response.",
+    field_name: str = "data",
+) -> Function:
+    return Function(
+        name=name,
+        description=fn.__doc__,
+        parameters=create_model(
+            name,
+            **{field_name: (inspect.signature(fn).return_annotation, ...)},  # type: ignore
+        ).model_json_schema(),
+    )
+
+
 class PromptFn(pydantic.BaseModel):
     messages: list[Message]
     tools: Optional[list[dict[str, Any]]] = pydantic.Field(default=None)
     tool_choice: Optional[dict[str, Any]] = pydantic.Field(default=None)
-    logit_bias: Optional[dict[int, float]] = pydantic.Field(default={19: 1})
+    logit_bias: Optional[dict[int, float]] = pydantic.Field(default=None)
     max_tokens: Optional[int] = pydantic.Field(default=None)
 
     def serialize(self) -> dict[str, Any]:
@@ -72,11 +90,10 @@ class PromptFn(pydantic.BaseModel):
         *,
         environment: Optional[BaseEnvironment] = None,
         prompt: Optional[str] = None,
-        serialize_on_call: bool = True,
+        serialize: bool = True,
         response_model_name: str = "FormatResponse",
         response_model_description: str = "Formats the response.",
         response_model_field_name: str = "data",
-        model: Optional[str] = settings.openai.chat.completions.model,
     ) -> Union[
         Callable[[Callable[P, None]], Callable[P, None]],
         Callable[[Callable[P, None]], Callable[P, Union[dict[str, Any], Self]]],
@@ -125,7 +142,7 @@ class PromptFn(pydantic.BaseModel):
                     }
                 ],
             )
-            if serialize_on_call:
+            if serialize:
                 return promptfn.serialize()
             return promptfn
 
@@ -138,3 +155,6 @@ class PromptFn(pydantic.BaseModel):
             return wraps(fn)(partial(wrapper, fn))
 
         return decorator
+
+
+prompt_fn = PromptFn.as_decorator
