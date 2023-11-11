@@ -2,30 +2,32 @@ import os
 from contextlib import contextmanager
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class ChatCompletionSettings(BaseModel):
-    model: str = Field(
-        default="gpt-4-1106-preview",
-        description="The default chat model to use.",
-    )
-
-    model_config = ConfigDict(
+class MarvinSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="marvin_",
+        env_file="~/.marvin/.env",
         extra="allow",
         arbitrary_types_allowed=True,
     )
 
 
-class ChatSettings(BaseSettings):
+class ChatCompletionSettings(MarvinSettings):
+    model: str = Field(
+        default="gpt-4-1106-preview",
+        description="The default chat model to use.",
+    )
+
+
+class ChatSettings(MarvinSettings):
     completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
 
 
-class OpenAISettings(BaseSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_openai_", env_file="~/.marvin/.env"
-    )
+class OpenAISettings(MarvinSettings):
+    model_config = SettingsConfigDict(env_prefix="marvin_openai_")
 
     api_key: Optional[SecretStr] = Field(
         default=None,
@@ -40,7 +42,7 @@ class OpenAISettings(BaseSettings):
     chat: ChatSettings = Field(default_factory=ChatSettings)
 
 
-class Settings(BaseSettings):
+class Settings(MarvinSettings):
     model_config = SettingsConfigDict(env_prefix="marvin_")
 
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
