@@ -23,7 +23,7 @@ logger = get_logger("Assistant")
 class Thread(BaseModel, ExposeSyncMethodsMixin):
     id: Optional[str] = None
     metadata: dict = {}
-    messages: list[OpenAIMessage] = []
+    messages: list[OpenAIMessage] = Field([], repr=False)
 
     def __enter__(self):
         self.create()
