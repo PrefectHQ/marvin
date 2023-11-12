@@ -129,3 +129,8 @@ def print_message(message: ThreadMessage):
 
     # Printing the panel
     console.print(panel)
+
+
+def print_messages(messages: list[ThreadMessage]):
+    for message in messages:
+        print_message(message)

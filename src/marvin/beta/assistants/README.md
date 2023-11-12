@@ -4,25 +4,59 @@
 
 # Quickstart
 
+Get started with the Assistants API by creating an `Assistant` and talking directly to it. Each assistant is created with a default thread that allows request/response interaction without managing state at all.
+
 ```python
 from marvin.beta.assistants import Assistant, Thread
+from marvin.beta.assistants.formatting import print_messages
 
-# use a context manager for lifecycle management,
-# otherwise call ai.create() and ai.delete() for full control
+# Use a context manager for lifecycle management,
+# otherwise call ai.create() and ai.delete()
 with Assistant(name="Marvin", instructions="You are Marvin, the Paranoid Android.") as ai:
 
-    # send a message to an AI and receive a response
-    messages = ai.say('hello!')
-    print([m.content for m in messages])
+    # Example of sending a message and receiving a response
+    response = ai.say('Hello, Marvin!')
+
+    # pretty-print the response
+    print_messages(response.messages)
+```
+
+# Using Tools
+
+Assistants can use OpenAI's built-in tools, such as the code interpreter or file retrieval, or they can call custom Python functions. 
+
+```python
+from marvin.beta.assistants import Assistant, Thread, CodeInterpreter
+from marvin.beta.assistants.formatting import print_messages
+import requests
+
+
+# Define a custom tool function
+def visit_url(url: str):
+    return requests.get(url).text
+
+
+# Integrate custom tools with the assistant
+with Assistant(name="Marvin", tools=[CodeInterpreter, visit_url]) as ai:
+
+    # Interact with the assistant and receive a 'Run' object as a response
+    response = ai.say(
+        "Please collect the hacker news home page and compute how many titles"
+        " mention AI"
+    )
+
+    # Display the response messages
+    print_messages(response.messages)
 ```
 
 # Advanced control
 
-For full control over user messages and to inspect the OpenAI `Run` object:
+For full control, manually create a `Thread` object, `add` user messages to it, and finally `run` the thread with an AI:
 
 ```python
-import random
 from marvin.beta.assistants import Assistant, Thread
+from marvin.beta.assistants.formatting import print_messages
+import random
 
 
 # write a function to be used as a tool
@@ -32,7 +66,7 @@ def roll_dice(n_dice: int) -> list[int]:
 
 # use context manager for lifecycle management,
 # otherwise call ai.create() and ai.delete()
-with Assistant(name="Marvin", instructions="You are Marvin, the Paranoid Android.", tools=[roll_dice]) as ai:
+with Assistant(name="Marvin", tools=[roll_dice]) as ai:
 
     # create a new thread to track history
     thread = Thread()
@@ -41,13 +75,11 @@ with Assistant(name="Marvin", instructions="You are Marvin, the Paranoid Android
     thread.add("Hello")
 
     # run the thread with the AI
-    # this will enter its processing loop
-    response1 = thread.run(ai)
-    print([m.content for m in response1.messages])
+    thread.run(ai)
 
     thread.add("please roll two dice")
     thread.add("actually roll five dice")
 
-    response2 = thread.run(ai)
-    print([m.content for m in response2.messages])
+    thread.run(ai)
+    print_messages(thread.messages)
 ```
