@@ -15,8 +15,6 @@ RUN apt-get update && \
 
 RUN pip install 'git+https://github.com/PrefectHQ/marvin-recipes.git@main#egg=marvin_recipes[chroma, prefect, serpapi, slackbot]'
 
-RUN pip install 'git+https://github.com/PrefectHQ/marvin.git@slackbot-update'
-
 EXPOSE 4200
 
 CMD ["python", "cookbook/slackbot/start.py"]
