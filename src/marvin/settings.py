@@ -17,6 +17,12 @@ class ChatCompletionSettings(BaseModel):
         arbitrary_types_allowed=True,
     )
 
+    @property
+    def encoder(self):
+        import tiktoken
+
+        return tiktoken.encoding_for_model(self.model).encode
+
 
 class ChatSettings(BaseSettings):
     completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)

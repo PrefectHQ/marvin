@@ -6,12 +6,11 @@ from typing_extensions import Annotated
 from marvin import settings
 
 
-class LogitBias(BaseModel):
-    bias: dict[int, float]
-
-
 class ResponseFormat(BaseModel):
     type: str
+
+
+LogitBias = dict[int, float]
 
 
 class Function(BaseModel):

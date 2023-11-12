@@ -3,7 +3,7 @@ import re
 from functools import partial, wraps
 from re import Pattern, compile
 from typing import Any, Callable, ClassVar, Optional, ParamSpec, Self, Union
-
+from marvin.serializers import create_tool
 import pydantic
 from pydantic import create_model
 
@@ -102,16 +102,16 @@ class PromptFn(pydantic.BaseModel):
         def wrapper(
             fn: Callable[P, Any], *args: P.args, **kwargs: P.kwargs
         ) -> Union[dict[str, Any], Self]:
+            tool = create_tool(
+                _type=inspect.signature(fn).return_annotation,
+                name=response_model_name,
+                description=response_model_description,
+                field_name=response_model_field_name,
+            )
+
             signature = inspect.signature(fn)
             params = signature.bind(*args, **kwargs)
             params.apply_defaults()
-
-            response_model_fields = {
-                response_model_field_name: (
-                    inspect.signature(fn).return_annotation,
-                    ...,
-                )
-            }
 
             promptfn = cls(
                 messages=Transcript(
@@ -125,22 +125,9 @@ class PromptFn(pydantic.BaseModel):
                 ),
                 tool_choice={
                     "type": "function",
-                    "function": {"name": response_model_name},
+                    "function": {"name": tool.function.name},
                 },
-                tools=[
-                    {
-                        "type": "function",
-                        "function": {
-                            "name": response_model_name,
-                            "description": response_model_description,
-                            "parameters": {
-                                **create_model(
-                                    response_model_name, **response_model_fields  # type: ignore
-                                ).model_json_schema()
-                            },
-                        },
-                    }
-                ],
+                tools=[tool.model_dump()],
             )
             if serialize:
                 return promptfn.serialize()
