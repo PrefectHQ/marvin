@@ -76,7 +76,7 @@ async def daily_github_digest(
 
     await post_slack_message(
         message=epic_story,
-        channel=slack_channel,
+        channel_id=slack_channel,
     )
 
 

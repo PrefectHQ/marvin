@@ -17,10 +17,13 @@ from marvin_recipes.utilities.slack import (
     edit_slack_message,
     get_channel_name,
     get_user_name,
+    get_workspace_info,
     post_slack_message,
 )
 from personality import completion_messages, start_messages
-from prefect.events import Event, emit_event
+from prefect import flow, task
+from prefect.artifacts import create_markdown_artifact
+from prefect.blocks.system import Secret, String
 
 
 class LogCaptureHandler(logging.Handler):
@@ -40,9 +43,9 @@ class LogCaptureHandler(logging.Handler):
                     if "with payload:" in record.msg
                     else "finished using"
                 )
-                log_entry = f"\t » {action} {tool_name}"
+                log_entry = f"\t » {action} **{tool_name}**"
                 self.records.append(log_entry)
-                run_sync(edit_slack_message(self.channel, self.ts, log_entry))
+                run_sync(edit_slack_message(log_entry, self.channel, self.ts))
 
 
 @asynccontextmanager
@@ -68,32 +71,14 @@ def _clean(text: str) -> str:
     return text.replace("```python", "```")
 
 
-async def emit_any_prefect_event(payload: dict) -> Event | None:
-    event_type = payload.get("event", {}).get("type", "")
-
-    channel = await get_channel_name(payload.get("event", {}).get("channel", ""))
-    user = await get_user_name(payload.get("event", {}).get("user", ""))
-    ts = payload.get("event", {}).get("ts", "")
-
-    return emit_event(
-        event=f"slack {payload.get('api_app_id')} {event_type}",
-        resource={"prefect.resource.id": f"slack.{channel}.{user}.{ts}"},
-        payload=payload,
-    )
-
-
 @ai_fn
 def activation_score(message: str, keyword: str, target_relationship: str) -> float:
     """Return a score between 0 and 1 indicating whether the target relationship exists
     between the message and the keyword"""
 
 
-async def generate_ai_response(payload: dict):
-    event = payload.get("event", {})
-    channel_id = event.get("channel", "")
-    channel_name = await get_channel_name(channel_id)
-    message = event.get("text", "")
-
+@task
+async def handle_keywords(message: str, channel_name: str, asking_user: str, link: str):
     keyword_relationships = await get_reduced_kw_relationship_map()
     keywords = [
         keyword for keyword in keyword_relationships.keys() if keyword in message
@@ -106,11 +91,36 @@ async def generate_ai_response(payload: dict):
         if score > 0.5:
             await post_slack_message(
                 message=(
-                    f"Marvin detected that you are asking about {target_relationship}."
+                    f"A user ({asking_user}) just asked a question in"
+                    f" {channel_name} that contains the keyword `{keyword}`, and I'm"
+                    f" {score*100:.0f}% sure that their message indicates the"
+                    f" following:\n\n**{target_relationship!r}**.\n\n[Go to"
+                    f" message]({link})"
                 ),
-                channel=channel_id,
+                channel_id=(await String.load("ask-marvin-tests-channel-id")).value,
+                auth_token=(await Secret.load("slack-api-token")).get(),
             )
             return
+
+
+@flow
+async def generate_ai_response(payload: dict):
+    event = payload.get("event", {})
+    channel_id, message = event.get("channel", ""), event.get("text", "")
+    user_name, channel_name = await asyncio.gather(
+        get_user_name(event.get("user", "")), get_channel_name(channel_id)
+    )
+    link = (  # to user's message
+        f"{(await get_workspace_info()).get('url')}archives/"
+        f"{channel_id}/p{event.get('ts').replace('.', '')}"
+    )
+
+    await handle_keywords.submit(
+        message=message,
+        channel_name=channel_name,
+        asking_user=event.get("user", ""),
+        link=link,
+    )
 
     bot_user_id = payload.get("authorizations", [{}])[0].get("user_id", "")
 
@@ -128,38 +138,64 @@ async def generate_ai_response(payload: dict):
         message_content = re.sub(SLACK_MENTION_REGEX, "", message).strip()
         history = CACHE.get(thread, History())
 
-        bot = choose_bot(payload=payload, history=history)
+        bot = task(choose_bot)(payload=payload, history=history)
 
-        get_logger("marvin.Deployment").debug(
+        get_logger(f"slackbot.{bot.name}").debug(
             f"{bot.name} responding in {channel_name}/{thread}"
         )
 
-        initial_message_response = await post_slack_message(
-            message=random.choice(start_messages), channel=channel_id, thread_ts=thread
+        initial_message_response = await task(post_slack_message).with_options(
+            task_run_name=f"post ack in {channel_name}/{thread}"
+        )(
+            message="_(started working)_: " + random.choice(start_messages),
+            channel_id=channel_id,
+            thread_ts=thread,
         )
 
-        thread_ts = initial_message_response.json().get("ts")
+        response_ts = initial_message_response.json().get("ts")
 
-        async with stream_logs("marvin.ChatCompletion.handlers", channel_id, thread_ts):
+        async with stream_logs(
+            "marvin.ChatCompletion.handlers", channel_id, response_ts
+        ):
             ai_message = await bot.run(input_text=message_content)
 
-        await edit_slack_message(
-            channel_id, thread_ts, random.choice(completion_messages)
+        await task(edit_slack_message).with_options(
+            task_run_name=f"edit ack in {channel_name}/{thread}"
+        )(
+            new_text=(
+                "_(finished working)_:"
+                f" {random.choice(completion_messages)}\n"
+                "\n :robot_face: :speech_balloon:\n"
+            ),
+            channel_id=channel_id,
+            thread_ts=response_ts,
+        )
+
+        ai_response_content = _clean(ai_message.content)
+
+        await task(edit_slack_message).with_options(
+            task_run_name=f"add ai response to {channel_name}/{thread}"
+        )(
+            new_text=ai_response_content,
+            channel_id=channel_id,
+            thread_ts=response_ts,
         )
 
         CACHE[thread] = deepcopy(
             bot.history
         )  # make a copy so we don't cache a reference to the history object
 
-        message_content = _clean(ai_message.content)
-
-        await post_slack_message(
-            message=message_content,
-            channel=channel_id,
-            thread_ts=thread,
+        await create_markdown_artifact(
+            markdown=(
+                f"username: {user_name}\n"
+                f"channel: {channel_name}\n"
+                f"message: {message}\n"
+                f"response: {ai_response_content}"
+                f"\n [Find in slack]({link})"
+            ),
+            key=f"marvin-{channel_name}-{int(float(thread))}",
+            description="A single message/response pair between a user and slackbot",
         )
-
-        return ai_message
 
 
 async def handle_message(payload: dict) -> dict[str, str]:
@@ -169,8 +205,6 @@ async def handle_message(payload: dict) -> dict[str, str]:
         return {"challenge": payload.get("challenge", "")}
     elif event_type != "event_callback":
         raise HTTPException(status_code=400, detail="Invalid event type")
-
-    await emit_any_prefect_event(payload=payload)
 
     asyncio.create_task(generate_ai_response(payload))
 

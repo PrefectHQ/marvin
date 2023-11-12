@@ -17,12 +17,12 @@ relationships = (
 )
 
 
-async def get_reduced_kw_relationship_map():
+async def get_reduced_kw_relationship_map() -> dict:
     try:
         json_map = (await JSON.load("keyword-relationship-map")).value
-    except ObjectNotFound:
+    except (ObjectNotFound, ValueError):
         json_map = {"keywords": keywords, "relationships": relationships}
-        await JSON.save(json_map, "keyword-relationship-map")
+        await JSON(value=json_map).save("keyword-relationship-map")
 
     return {
         keyword: relationship

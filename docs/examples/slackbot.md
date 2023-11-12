@@ -99,7 +99,7 @@ async def generate_ai_response(payload: dict) -> str:
 
         await post_slack_message(
             message=message_content,
-            channel=channel_id,
+            channel_id=channel_id,
             thread_ts=thread,
         )
 
