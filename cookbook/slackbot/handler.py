@@ -145,9 +145,9 @@ async def generate_ai_response(payload: dict):
         )
 
         initial_message_response = await task(post_slack_message).with_options(
-            task_run_name=f"post ack in {channel_name}/{thread}"
+            task_run_name=f"post {bot.name}'s acknowledgement"
         )(
-            message="_(started working)_: " + random.choice(start_messages),
+            message=f":hourglass_flowing_sand: {random.choice(start_messages)}",
             channel_id=channel_id,
             thread_ts=thread,
         )
@@ -160,13 +160,9 @@ async def generate_ai_response(payload: dict):
             ai_message = await bot.run(input_text=message_content)
 
         await task(edit_slack_message).with_options(
-            task_run_name=f"edit ack in {channel_name}/{thread}"
+            task_run_name=f"mark completion of {bot.name}'s tool loop"
         )(
-            new_text=(
-                "_(finished working)_:"
-                f" {random.choice(completion_messages)}\n"
-                "\n :robot_face: :speech_balloon:\n"
-            ),
+            new_text=f":white_check_mark: {random.choice(completion_messages)}\n\n",
             channel_id=channel_id,
             thread_ts=response_ts,
         )
@@ -174,11 +170,12 @@ async def generate_ai_response(payload: dict):
         ai_response_content = _clean(ai_message.content)
 
         await task(edit_slack_message).with_options(
-            task_run_name=f"add ai response to {channel_name}/{thread}"
+            task_run_name=f"add {bot.name}'s response to message"
         )(
-            new_text=ai_response_content,
+            new_text=f"\n:robot_face: :speech_balloon: {ai_response_content}",
             channel_id=channel_id,
             thread_ts=response_ts,
+            delimiter="",  # no newline
         )
 
         CACHE[thread] = deepcopy(
@@ -187,11 +184,10 @@ async def generate_ai_response(payload: dict):
 
         await create_markdown_artifact(
             markdown=(
-                f"username: {user_name}\n"
-                f"channel: {channel_name}\n"
-                f"message: {message}\n"
-                f"response: {ai_response_content}"
-                f"\n [Find in slack]({link})"
+                f"#**{channel_name.upper()}** | {thread}\n"
+                f"**{user_name}**: {message_content}\n"
+                f"**{bot.name}**: {ai_response_content}\n"
+                f"\n\n[Find thread in slack]({link})"
             ),
             key=f"marvin-{channel_name}-{int(float(thread))}",
             description="A single message/response pair between a user and slackbot",
