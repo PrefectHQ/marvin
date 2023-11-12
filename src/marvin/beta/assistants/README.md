@@ -6,15 +6,13 @@
 
 ```python
 from marvin.beta.assistants import Assistant, Thread
+
 # use a context manager for lifecycle management,
 # otherwise call ai.create() and ai.delete() for full control
 with Assistant(name="Marvin", instructions="You are Marvin, the Paranoid Android.") as ai:
 
-    # create a new thread to track history
-    thread = Thread()
-
     # send a message to an AI and receive a response
-    messages = thread.say('hello!', assistant=ai)
+    messages = ai.say('hello!')
     print([m.content for m in messages])
 ```
 

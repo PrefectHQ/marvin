@@ -1,7 +1,7 @@
 import asyncio
 import functools
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Coroutine, TypeVar
+from typing import Any, Callable, Coroutine, TypeVar, cast
 
 T = TypeVar("T")
 
@@ -106,8 +106,12 @@ def expose_sync_method(name: str) -> Callable[..., Any]:
             coro = async_method(*args, **kwargs)
             return run_sync(coro)
 
+        # Cast the sync_wrapper to the same type as the async_method to give the
+        # type checker the needed information.
+        casted_sync_wrapper = cast(Callable[..., T], sync_wrapper)
+
         # Attach attributes to the async wrapper
-        setattr(async_method, "_sync_wrapper", sync_wrapper)
+        setattr(async_method, "_sync_wrapper", casted_sync_wrapper)
         setattr(async_method, "_sync_name", name)
 
         # return the original async method; the sync wrapper will be added to

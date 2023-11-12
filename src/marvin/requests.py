@@ -1,9 +1,10 @@
-from typing import Any, Literal, Optional, Union
+from typing import Any, Callable, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
 from marvin import settings
+from marvin.utilities.pydantic import cast_callable_to_model
 
 
 class LogitBias(BaseModel):
@@ -15,18 +16,45 @@ class ResponseFormat(BaseModel):
 
 
 class Tool(BaseModel):
-    type: Literal["function", "retrieval", "code_interpreter"]
+    type: str
 
 
 class Function(BaseModel):
+    """
+    A representation of a callable function. The actual Python function is
+    stored as well.
+    """
+
     name: str
     description: Optional[str]
     parameters: dict[str, Any]
+    python_fn: Callable = Field(
+        None,
+        exclude=True,
+        description="Private field that holds the executable function, if available",
+    )
+
+    @classmethod
+    def from_function(cls, fn: Callable, name: str = None, description: str = None):
+        model = cast_callable_to_model(fn)
+        return cls(
+            name=name or fn.__name__,
+            description=description or fn.__doc__,
+            parameters=model.schema(),
+            python_fn=fn,
+        )
 
 
 class FunctionTool(Tool):
     type: Literal["function"] = "function"
     function: Function
+
+    @classmethod
+    def from_function(cls, fn: Callable, name: str = None, description: str = None):
+        return cls(
+            type="function",
+            function=Function.from_function(fn=fn, name=name, description=description),
+        )
 
 
 class RetrievalTool(Tool):
@@ -70,24 +98,3 @@ class ChatRequest(Prompt):
     temperature: Optional[Annotated[float, Field(strict=True, ge=0, le=2)]] = 1
     top_p: Optional[Annotated[float, Field(strict=True, ge=0, le=1)]] = 1
     user: Optional[str] = None
-
-
-class AssistantMessage(BaseMessage):
-    id: str
-    thread_id: str
-    created_at: int
-    assistant_id: Optional[str] = None
-    run_id: Optional[str] = None
-    file_ids: list[str] = []
-    metadata: dict[str, Any] = {}
-
-
-class Run(BaseModel):
-    id: str
-    thread_id: str
-    created_at: int
-    status: str
-    model: str
-    instructions: Optional[str]
-    tools: Optional[list[Tool]] = None
-    metadata: dict[str, str]

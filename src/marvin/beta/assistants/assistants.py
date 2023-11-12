@@ -1,5 +1,4 @@
 import asyncio
-import json
 from typing import Callable, Optional, Union
 
 from openai.types.beta.threads import ThreadMessage as OpenAIMessage
@@ -7,7 +6,8 @@ from openai.types.beta.threads.run import Run as OpenAIRun
 from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
 from pydantic import BaseModel, Field, field_validator
 
-from marvin.beta.assistants.types import Tool
+import marvin.utilities.tools
+from marvin.requests import CodeInterpreterTool, FunctionTool, RetrievalTool, Tool
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -17,7 +17,12 @@ from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_client
 from marvin.utilities.pydantic import parse_as
 
-logger = get_logger("Assistant")
+logger = get_logger("Assistants")
+
+Retrieval = RetrievalTool()
+CodeInterpreter = CodeInterpreterTool()
+
+AssistantTools = list[Union[FunctionTool, RetrievalTool, CodeInterpreterTool, Tool]]
 
 
 class Thread(BaseModel, ExposeSyncMethodsMixin):
@@ -50,7 +55,9 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         return self
 
     @expose_sync_method("add")
-    async def add_async(self, message: str) -> OpenAIMessage:
+    async def add_async(
+        self, message: str, file_paths: Optional[list[str]] = None
+    ) -> OpenAIMessage:
         """
         Add a user message to the thread.
         """
@@ -58,8 +65,17 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
         if self.id is None:
             await self.create_async()
+
+        # Upload files and collect their IDs
+        file_ids = []
+        for file_path in file_paths or []:
+            with open(file_path, mode="rb") as file:
+                response = await client.files.create(file=file, purpose="assistants")
+                file_ids.append(response.id)
+
+        # Create the message with the attached files
         response = await client.beta.threads.messages.create(
-            thread_id=self.id, role="user", content=message
+            thread_id=self.id, role="user", content=message, file_ids=file_ids
         )
         return OpenAIMessage.model_validate(response.model_dump())
 
@@ -91,15 +107,15 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         if not messages:
             return []
 
-        new_message_ids = {m.id for m in messages}
-
-        all_messages = sorted(
-            [m for m in self.messages if m.id not in new_message_ids] + messages,
-            key=lambda m: m.created_at,
+        # update messages with latest data for each ID
+        current_messages = {m.id: m for m in self.messages}
+        current_messages.update({m.id: m for m in messages})
+        self.messages = list(
+            sorted(current_messages.values(), key=lambda m: m.created_at)
         )
 
         # keep up to 2500 messages locally
-        self.messages = list(all_messages)[-2500:]
+        self.messages = self.messages[-2500:]
 
     @expose_sync_method("delete")
     async def delete_async(self):
@@ -111,70 +127,66 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
     async def run_async(
         self,
         assistant: "Assistant",
-        instructions: str = None,
-        additional_instructions: str = None,
+        **run_kwargs,
     ) -> "Run":
         """
         Creates and returns a `Run` of this thread with the provided assistant.
-
-        Arguments:
-            assistant: The assistant to run.
-            instructions: Replacement instructions to use for the assistant.
-            additional_instructions: Additional instructions to append to the
-            assistant's instructions.
         """
         if self.id is None:
             await self.create_async()
 
-        return await Run(
-            assistant=assistant,
-            thread=self,
-            instructions=instructions,
-            additional_instructions=additional_instructions,
-        ).run_async()
+        return await Run(assistant=assistant, thread=self, **run_kwargs).run_async()
+
+
+class Assistant(BaseModel, ExposeSyncMethodsMixin):
+    id: Optional[str] = None
+    name: str = "Assistant"
+    model: str = "gpt-4-1106-preview"
+    instructions: Optional[str] = Field(None, repr=False)
+    tools: AssistantTools = []
+    file_ids: list[str] = []
+    metadata: dict[str, str] = {}
+
+    default_thread: Thread = Field(
+        default_factory=Thread,
+        repr=False,
+        description="A default thread for the assistant.",
+    )
+
+    def clear_default_thread(self):
+        self.default_thread = Thread()
 
     @expose_sync_method("say")
     async def say_async(
         self,
         message: str,
-        assistant: "Assistant",
-        instructions: str = None,
-        additional_instructions: str = None,
-    ) -> list[OpenAIMessage]:
+        file_paths: Optional[list[str]] = None,
+        message_callback: Optional[Callable] = None,
+        run_step_callback: Optional[Callable] = None,
+        **run_kwargs,
+    ) -> "Run":
         """
-        A convenience method for adding a user message, running an assistant,
-        and returning the assistant's messages.
-
-        Arguments:
-            message: The message to send to the assistant.
-            assistant: The assistant to run.
-            instructions: Replacement instructions to use for the assistant.
-            additional_instructions: Additional instructions to append to the
-                assistant's instructions.
+        A convenience method for adding a user message to the assistant's
+        default thread, running the assistant, and returning the assistant's
+        messages.
         """
         if message:
-            await self.add_async(message)
-        run = await self.run_async(
-            assistant=assistant,
-            instructions=instructions,
-            additional_instructions=additional_instructions,
+            msg = await self.default_thread.add_async(message, file_paths=file_paths)
+            if message_callback:
+                message_callback(msg)
+
+        run = await self.default_thread.run_async(
+            assistant=self,
+            message_callback=message_callback,
+            run_step_callback=run_step_callback,
+            **run_kwargs,
         )
-        return run.messages
-
-
-class Assistant(BaseModel, ExposeSyncMethodsMixin):
-    id: Optional[str] = None
-    name: str
-    model: str = "gpt-4-1106-preview"
-    instructions: Optional[str] = Field(None, repr=False)
-    tools: list[Tool] = []
-    file_ids: list[str] = []
-    metadata: dict[str, str] = {}
+        return run
 
     @field_validator("tools", mode="before")
     def format_tools(cls, tools: list[Union[Tool, Callable]]):
         return [
-            tool if isinstance(tool, Tool) else Tool.from_function(tool)
+            tool if isinstance(tool, Tool) else FunctionTool.from_function(tool)
             for tool in tools
         ]
 
@@ -194,7 +206,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             raise ValueError("Assistant has already been created.")
         client = get_client()
         response = await client.beta.assistants.create(
-            **self.model_dump(exclude={"id"}),
+            **self.model_dump(exclude={"id", "default_thread"}),
         )
         self.id = response.id
 
@@ -227,23 +239,20 @@ class Run(BaseModel):
             "Additional instructions to append to the assistant's instructions."
         ),
     )
-    tools: Optional[list[Tool]] = None
+    tools: Optional[AssistantTools] = None
     run: OpenAIRun = None
     steps: list[OpenAIRunStep] = []
     messages: list[OpenAIMessage] = []
+    run_step_callback: Optional[Callable] = None
+    message_callback: Optional[Callable] = None
 
     @field_validator("tools", mode="before")
     def format_tools(cls, tools: Union[None, list[Union[Tool, Callable]]]):
         if tools is not None:
             return [
-                tool if isinstance(tool, Tool) else Tool.from_function(tool)
+                tool if isinstance(tool, Tool) else FunctionTool.from_function(tool)
                 for tool in tools
             ]
-
-    async def _process_one_step(self):
-        if self.run.status == "requires_action":
-            await self._process_step_requires_action()
-        await self.refresh()
 
     async def refresh(self):
         client = get_client()
@@ -254,58 +263,58 @@ class Run(BaseModel):
         # refresh the thread's messages
         await self.thread.refresh_messages_async()
 
-        self.messages = [
-            m
-            for m in self.thread.messages
-            if m.created_at >= self.run.created_at and m.role == "assistant"
-        ]
+        # get any new or updated messages
+        current_messages = {m.id: m for m in self.messages}
+        for m in self.thread.messages:
+            if m.created_at < self.run.created_at or m.role != "assistant":
+                continue
+            if current_messages.get(m.id) != m:
+                # sometimes messages have no content (yet)
+                if m.content[0].text.value == "":
+                    continue
+                if self.message_callback:
+                    self.message_callback(m)
+                current_messages[m.id] = m
+        self.messages = list(
+            sorted(current_messages.values(), key=lambda m: m.created_at)
+        )
 
-        # get any new steps
+        # get any new or updated steps
         run_steps = await client.beta.threads.runs.steps.list(
             run_id=self.run.id,
             thread_id=self.thread.id,
-            # the default order is descending, so we use `before` to get steps
-            # that are chronologically `after`
-            before=self.steps[-1].id if self.steps else None,
         )
-        self.steps.extend(reversed(run_steps.data))
 
-    async def _process_step_requires_action(self):
+        current_steps = {step.id: step for step in self.steps}
+        for step in reversed(run_steps.data):
+            if current_steps.get(step.id) != step:
+                if self.run_step_callback:
+                    self.run_step_callback(step)
+                current_steps[step.id] = step
+
+        self.steps = list(sorted(current_steps.values(), key=lambda s: s.created_at))
+
+    async def _handle_step_requires_action(self):
         client = get_client()
         if self.run.status != "requires_action":
             return
         if self.run.required_action.type == "submit_tool_outputs":
             tool_outputs = []
             for tool_call in self.run.required_action.submit_tool_outputs.tool_calls:
-                if tool_call.type != "function":
-                    continue
-                tool = next(
-                    (
-                        t
-                        for t in self.assistant.tools
-                        if t.type == "function"
-                        and t.function.name == tool_call.function.name
-                    ),
-                    None,
-                )
-                if not tool:
-                    output = f"Error: could not find tool {tool_call.function.name}"
-                else:
-                    logger.debug(
-                        f"Calling {tool.function.name} with args:"
-                        f" {tool_call.function.arguments}"
+                try:
+                    output = marvin.utilities.tools.call_function(
+                        tools=(
+                            self.assistant.tools if self.tools is None else self.tools
+                        ),
+                        function_name=tool_call.function.name,
+                        function_arguments_json=tool_call.function.arguments,
                     )
-                    arguments = json.loads(tool_call.function.arguments)
-                    try:
-                        output = tool.function.fn(**arguments)
-                        if output is None:
-                            output = "<this function produced no output>"
-                        output = json.dumps(output)
-                        logger.debug(f"{tool.function.name} output: {output}")
-                    except Exception as exc:
-                        output = f"Error calling function {tool.function.name}: {exc}"
-                        logger.error(f"{tool.function.name} output: {output}")
-                tool_outputs.append(dict(tool_call_id=tool_call.id, output=output))
+                except Exception as exc:
+                    output = f"Error calling function {tool_call.function.name}: {exc}"
+                    logger.error(output)
+                tool_outputs.append(
+                    dict(tool_call_id=tool_call.id, output=output or "")
+                )
 
             await client.beta.threads.runs.submit_tool_outputs(
                 thread_id=self.thread.id, run_id=self.run.id, tool_outputs=tool_outputs
@@ -329,13 +338,10 @@ class Run(BaseModel):
             thread_id=self.thread.id, assistant_id=self.assistant.id, **create_kwargs
         )
 
-        first_step = True
-
         while self.run.status in ("queued", "in_progress", "requires_action"):
-            if not first_step:
-                await asyncio.sleep(0.1)
-                first_step = False
-            await self._process_one_step()
+            if self.run.status == "requires_action":
+                await self._handle_step_requires_action()
+            await asyncio.sleep(0.1)
             await self.refresh()
 
         if self.run.status == "failed":
