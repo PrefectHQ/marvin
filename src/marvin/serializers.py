@@ -1,8 +1,9 @@
 from enum import Enum
 from types import GenericAlias
-from typing import Any, Callable, Literal, Union, get_args, get_origin
+from typing import Any, Callable, Literal, Union, get_args, get_origin, Annotated
 
-from pydantic import create_model
+from pydantic import BaseModel, create_model
+from pydantic.fields import FieldInfo
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
 
 from marvin import settings
@@ -16,21 +17,30 @@ class FunctionSchema(GenerateJsonSchema):
         return json_schema
 
 
-def create_tool(
+def create_tool_from_type(
     _type: Union[type, GenericAlias],
-    name: str = "A",
-    description: str = "B",
+    model_name: str = "A",
+    model_description: str = "B",
     field_name: str = "C",
+    field_description: str = "D",
     **kwargs: Any,
-) -> Tool:
-    return Tool(
+) -> Tool[BaseModel]:
+    model: type[BaseModel] = create_model(
+        model_name,
+        __config__=None,
+        __base__=None,
+        __module__=__name__,
+        __validators__=None,
+        __cls_kwargs__=None,
+        **{field_name: (_type, FieldInfo(description=field_description))},
+    )
+    return Tool[BaseModel](
         type="function",
-        function=Function(
-            name=name,
-            description=description,
-            parameters=create_model(
-                name, **{field_name: (_type, ...)}  # type: ignore
-            ).model_json_schema(schema_generator=FunctionSchema),
+        function=Function[BaseModel](
+            name=model_name,
+            description=model_description,
+            parameters=model.model_json_schema(schema_generator=FunctionSchema),
+            model=model,
         ),
     )
 

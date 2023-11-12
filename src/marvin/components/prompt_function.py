@@ -2,14 +2,13 @@ import inspect
 import re
 from functools import partial, wraps
 from re import Pattern, compile
-from typing import Any, Callable, ClassVar, Optional, ParamSpec, Self, Union
-from marvin.serializers import create_tool
-import pydantic
-from pydantic import create_model
+from typing import Any, Callable, ClassVar, Optional, ParamSpec, Self, Union, overload
 
-from marvin import settings
+import pydantic
+
 from marvin.requests import BaseMessage as Message
-from marvin.requests import ChatRequest, Function
+from marvin.requests import ChatRequest
+from marvin.serializers import create_tool_from_type
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import (
     BaseEnvironment,
@@ -50,23 +49,7 @@ class Transcript(pydantic.BaseModel):
         ]
 
 
-def get_function_call(
-    fn: Callable[P, Any],
-    name: str = "FormatResponse",
-    description: str = "Formats the response.",
-    field_name: str = "data",
-) -> Function:
-    return Function(
-        name=name,
-        description=fn.__doc__,
-        parameters=create_model(
-            name,
-            **{field_name: (inspect.signature(fn).return_annotation, ...)},  # type: ignore
-        ).model_json_schema(),
-    )
-
-
-class PromptFn(pydantic.BaseModel):
+class Prompt(pydantic.BaseModel):
     messages: list[Message]
     tools: Optional[list[dict[str, Any]]] = pydantic.Field(default=None)
     tool_choice: Optional[dict[str, Any]] = pydantic.Field(default=None)
@@ -91,22 +74,24 @@ class PromptFn(pydantic.BaseModel):
         environment: Optional[BaseEnvironment] = None,
         prompt: Optional[str] = None,
         serialize: bool = True,
-        response_model_name: str = "FormatResponse",
-        response_model_description: str = "Formats the response.",
-        response_model_field_name: str = "data",
+        model_name: str = "FormatResponse",
+        model_description: str = "Formats the response.",
+        field_name: str = "data",
+        field_description: str = "The data to format.",
     ) -> Union[
-        Callable[[Callable[P, None]], Callable[P, None]],
-        Callable[[Callable[P, None]], Callable[P, Union[dict[str, Any], Self]]],
+        Callable[[Callable[P, Any]], Callable[P, Any]],
+        Callable[[Callable[P, Any]], Callable[P, Union[dict[str, Any], Self]]],
         Callable[P, Union[dict[str, Any], Self]],
     ]:
         def wrapper(
             fn: Callable[P, Any], *args: P.args, **kwargs: P.kwargs
         ) -> Union[dict[str, Any], Self]:
-            tool = create_tool(
+            tool = create_tool_from_type(
                 _type=inspect.signature(fn).return_annotation,
-                name=response_model_name,
-                description=response_model_description,
-                field_name=response_model_field_name,
+                name=model_name,
+                description=model_description,
+                field_name=field_name,
+                field_description=field_description,
             )
 
             signature = inspect.signature(fn)
@@ -144,4 +129,16 @@ class PromptFn(pydantic.BaseModel):
         return decorator
 
 
-prompt_fn = PromptFn.as_decorator
+prompt_fn = Prompt.as_decorator
+PromptFn = Prompt
+
+
+@Prompt.as_decorator()
+def add(x: int, y: int = 2) -> int:
+    """
+    Add two numbers together.
+    """
+    return x + 1
+
+
+add(1, 2)
