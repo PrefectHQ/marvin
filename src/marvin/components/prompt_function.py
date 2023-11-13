@@ -2,10 +2,11 @@ import inspect
 import re
 from functools import partial, wraps
 from re import Pattern, compile
-from typing import Any, Callable, ClassVar, Optional, ParamSpec, Self, Union
+from typing import Any, Callable, ClassVar, Optional, ParamSpec, Union
 
 import pydantic
 from pydantic import create_model
+from typing_extensions import Self
 
 from marvin import settings
 from marvin.requests import BaseMessage as Message
