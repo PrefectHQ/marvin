@@ -19,8 +19,6 @@ from marvin.utilities.pydantic import parse_as
 
 logger = get_logger("Assistants")
 
-Retrieval = RetrievalTool()
-CodeInterpreter = CodeInterpreterTool()
 
 AssistantTools = list[Union[FunctionTool, RetrievalTool, CodeInterpreterTool, Tool]]
 
@@ -79,16 +77,12 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         )
         return OpenAIMessage.model_validate(response.model_dump())
 
-    @expose_sync_method("refresh_messages")
-    async def refresh_messages_async(
+    async def get_messages_async(
         self,
         limit: int = None,
         before_message: Optional[str] = None,
         after_message: Optional[str] = None,
-    ) -> list[OpenAIMessage]:
-        """
-        Refresh the messages in the thread.
-        """
+    ):
         if self.id is None:
             await self.create_async()
         client = get_client()
@@ -100,22 +94,71 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             before=after_message,
             after=before_message,
             limit=limit,
+            order="desc",
         )
 
-        messages = parse_as(list[OpenAIMessage], response.model_dump()["data"])
+        return parse_as(list[OpenAIMessage], reversed(response.model_dump()["data"]))
+
+    async def refresh_messages_async(self):
+        """
+        Asynchronously refreshes and updates the message list.
+
+        This function fetches the latest messages up to a specified limit and
+        checks if the latest message in the current message list
+        (`self.messages`) is included in the new batch. If the latest message is
+        missing, it continues to fetch additional messages in batches, up to a
+        maximum count, using pagination. The function then updates
+        `self.messages` with these new messages, ensuring any existing messages
+        are updated with their latest versions and new messages are appended in
+        their original order.
+        """
+        # fetch up to 100 messages
+        max_fetched = 100
+        limit = 50
+        max_attempts = max_fetched / limit + 2
+
+        # Fetch the latest messages
+        messages = await self.get_messages_async(limit=limit)
 
         if not messages:
-            return []
+            return
 
-        # update messages with latest data for each ID
-        current_messages = {m.id: m for m in self.messages}
-        current_messages.update({m.id: m for m in messages})
-        self.messages = list(
-            sorted(current_messages.values(), key=lambda m: m.created_at)
+        # Check if the latest message in self.messages is in the new messages
+        latest_message_id = self.messages[-1].id if self.messages else None
+        missing_latest = (
+            latest_message_id not in {m.id for m in messages}
+            if latest_message_id
+            else True
         )
 
-        # keep up to 2500 messages locally
-        self.messages = self.messages[-2500:]
+        # If the latest message is missing, fetch additional messages
+        total_fetched = len(messages)
+        attempts = 0
+        while (
+            messages
+            and missing_latest
+            and total_fetched < max_fetched
+            and attempts < max_attempts
+        ):
+            attempts += 1
+            paginated_messages = await self.get_messages_async(
+                limit=limit, before_message=messages[0].id
+            )
+            total_fetched += len(paginated_messages)
+            # prepend messages
+            messages = paginated_messages + messages
+            if any(m.id == latest_message_id for m in paginated_messages):
+                missing_latest = False
+
+        # Update self.messages with the latest data
+        new_messages_dict = {m.id: m for m in messages}
+        for i in range(len(self.messages) - 1, -1, -1):
+            if self.messages[i].id in new_messages_dict:
+                self.messages[i] = new_messages_dict.pop(self.messages[i].id)
+            else:
+                break
+        # Append remaining new messages at the end in their original order
+        self.messages.extend(new_messages_dict.values())
 
     @expose_sync_method("delete")
     async def delete_async(self):
@@ -161,8 +204,6 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         self,
         message: str,
         file_paths: Optional[list[str]] = None,
-        message_callback: Optional[Callable] = None,
-        run_step_callback: Optional[Callable] = None,
         **run_kwargs,
     ) -> "Run":
         """
@@ -171,14 +212,10 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         messages.
         """
         if message:
-            msg = await self.default_thread.add_async(message, file_paths=file_paths)
-            if message_callback:
-                message_callback(msg)
+            await self.default_thread.add_async(message, file_paths=file_paths)
 
         run = await self.default_thread.run_async(
             assistant=self,
-            message_callback=message_callback,
-            run_step_callback=run_step_callback,
             **run_kwargs,
         )
         return run
@@ -186,7 +223,11 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     @field_validator("tools", mode="before")
     def format_tools(cls, tools: list[Union[Tool, Callable]]):
         return [
-            tool if isinstance(tool, Tool) else FunctionTool.from_function(tool)
+            (
+                tool
+                if isinstance(tool, Tool)
+                else marvin.utilities.tools.tool_from_function(tool)
+            )
             for tool in tools
         ]
 
@@ -209,12 +250,15 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             **self.model_dump(exclude={"id", "default_thread"}),
         )
         self.id = response.id
+        self.clear_default_thread()
 
     @expose_sync_method("delete")
     async def delete_async(self):
-        if self.id:
-            client = get_client()
-            await client.beta.assistants.delete(assistant_id=self.id)
+        if not self.id:
+            raise ValueError("Assistant has not been created.")
+        client = get_client()
+        await client.beta.assistants.delete(assistant_id=self.id)
+        self.id = None
 
     @classmethod
     def load(cls, assistant_id: str):
@@ -243,14 +287,16 @@ class Run(BaseModel):
     run: OpenAIRun = None
     steps: list[OpenAIRunStep] = []
     messages: list[OpenAIMessage] = []
-    run_step_callback: Optional[Callable] = None
-    message_callback: Optional[Callable] = None
 
     @field_validator("tools", mode="before")
     def format_tools(cls, tools: Union[None, list[Union[Tool, Callable]]]):
         if tools is not None:
             return [
-                tool if isinstance(tool, Tool) else FunctionTool.from_function(tool)
+                (
+                    tool
+                    if isinstance(tool, Tool)
+                    else marvin.utilities.tools.tool_from_function(tool)
+                )
                 for tool in tools
             ]
 
@@ -262,37 +308,84 @@ class Run(BaseModel):
 
         # refresh the thread's messages
         await self.thread.refresh_messages_async()
+        self.messages = [m for m in self.thread.messages if m.run_id == self.run.id]
 
-        # get any new or updated messages
-        current_messages = {m.id: m for m in self.messages}
-        for m in self.thread.messages:
-            if m.created_at < self.run.created_at or m.role != "assistant":
-                continue
-            if current_messages.get(m.id) != m:
-                # sometimes messages have no content (yet)
-                if m.content[0].text.value == "":
-                    continue
-                if self.message_callback:
-                    self.message_callback(m)
-                current_messages[m.id] = m
-        self.messages = list(
-            sorted(current_messages.values(), key=lambda m: m.created_at)
-        )
+        await self.refresh_run_steps_async()
 
-        # get any new or updated steps
-        run_steps = await client.beta.threads.runs.steps.list(
+    async def refresh_run_steps_async(self):
+        """
+        Asynchronously refreshes and updates the run steps list.
+
+        This function fetches the latest run steps up to a specified limit and
+        checks if the latest run step in the current run steps list
+        (`self.steps`) is included in the new batch. If the latest run step is
+        missing, it continues to fetch additional run steps in batches, up to a
+        maximum count, using pagination. The function then updates
+        `self.steps` with these new run steps, ensuring any existing run steps
+        are updated with their latest versions and new run steps are appended in
+        their original order.
+        """
+        # fetch up to 100 run steps
+        max_fetched = 100
+        limit = 50
+        max_attempts = max_fetched / limit + 2
+
+        # Fetch the latest run steps
+        client = get_client()
+
+        response = await client.beta.threads.runs.steps.list(
             run_id=self.run.id,
             thread_id=self.thread.id,
+            limit=limit,
+        )
+        run_steps = list(reversed(response.data))
+
+        if not run_steps:
+            return
+
+        # Check if the latest run step in self.steps is in the new run steps
+        latest_step_id = self.steps[-1].id if self.steps else None
+        missing_latest = (
+            latest_step_id not in {rs.id for rs in run_steps}
+            if latest_step_id
+            else True
         )
 
-        current_steps = {step.id: step for step in self.steps}
-        for step in reversed(run_steps.data):
-            if current_steps.get(step.id) != step:
-                if self.run_step_callback:
-                    self.run_step_callback(step)
-                current_steps[step.id] = step
+        # If the latest run step is missing, fetch additional run steps
+        total_fetched = len(run_steps)
+        attempts = 0
+        while (
+            run_steps
+            and missing_latest
+            and total_fetched < max_fetched
+            and attempts < max_attempts
+        ):
+            attempts += 1
+            response = await client.beta.threads.runs.steps.list(
+                run_id=self.run.id,
+                thread_id=self.thread.id,
+                limit=limit,
+                # because this is a raw API call, "after" refers to pagination
+                # in descnding chronological order
+                after=run_steps[0].id,
+            )
+            paginated_steps = list(reversed(response.data))
 
-        self.steps = list(sorted(current_steps.values(), key=lambda s: s.created_at))
+            total_fetched += len(paginated_steps)
+            # prepend run steps
+            run_steps = paginated_steps + run_steps
+            if any(rs.id == latest_step_id for rs in paginated_steps):
+                missing_latest = False
+
+        # Update self.steps with the latest data
+        new_steps_dict = {rs.id: rs for rs in run_steps}
+        for i in range(len(self.steps) - 1, -1, -1):
+            if self.steps[i].id in new_steps_dict:
+                self.steps[i] = new_steps_dict.pop(self.steps[i].id)
+            else:
+                break
+        # Append remaining new run steps at the end in their original order
+        self.steps.extend(new_steps_dict.values())
 
     async def _handle_step_requires_action(self):
         client = get_client()
@@ -302,7 +395,7 @@ class Run(BaseModel):
             tool_outputs = []
             for tool_call in self.run.required_action.submit_tool_outputs.tool_calls:
                 try:
-                    output = marvin.utilities.tools.call_function(
+                    output = marvin.utilities.tools.call_function_tool(
                         tools=(
                             self.assistant.tools if self.tools is None else self.tools
                         ),

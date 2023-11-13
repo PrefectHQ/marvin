@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
 from marvin import settings
-from marvin.utilities.pydantic import cast_callable_to_model
 
 
 class LogitBias(BaseModel):
@@ -30,31 +29,14 @@ class Function(BaseModel):
     parameters: dict[str, Any]
     python_fn: Callable = Field(
         None,
-        exclude=True,
         description="Private field that holds the executable function, if available",
+        exclude=True,
     )
-
-    @classmethod
-    def from_function(cls, fn: Callable, name: str = None, description: str = None):
-        model = cast_callable_to_model(fn)
-        return cls(
-            name=name or fn.__name__,
-            description=description or fn.__doc__,
-            parameters=model.schema(),
-            python_fn=fn,
-        )
 
 
 class FunctionTool(Tool):
     type: Literal["function"] = "function"
     function: Function
-
-    @classmethod
-    def from_function(cls, fn: Callable, name: str = None, description: str = None):
-        return cls(
-            type="function",
-            function=Function.from_function(fn=fn, name=name, description=description),
-        )
 
 
 class RetrievalTool(Tool):

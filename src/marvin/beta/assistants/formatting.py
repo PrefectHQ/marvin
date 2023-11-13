@@ -11,35 +11,78 @@ from rich.panel import Panel
 from marvin.beta.assistants.assistants import Run
 
 
-def print_run(run: Run):
-    all_objects = sorted(run.steps + run.messages, key=lambda x: x.created_at)
-    for obj in all_objects:
+def pprint_run(run: Run):
+    """
+    Runs are comprised of steps and messages, which are each in a sorted list
+    BUT the created_at timestamps only have second-level resolution, so we can't
+    easily sort the lists. Instead we walk them in order and combine them giving
+    ties to run steps.
+    """
+    index_steps = 0
+    index_messages = 0
+    combined = []
+
+    while index_steps < len(run.steps) and index_messages < len(run.messages):
+        if run.steps[index_steps].created_at <= run.messages[index_messages].created_at:
+            combined.append(run.steps[index_steps])
+            index_steps += 1
+        elif (
+            run.steps[index_steps].created_at > run.messages[index_messages].created_at
+        ):
+            combined.append(run.messages[index_messages])
+            index_messages += 1
+
+    # Add any remaining items from either list
+    combined.extend(run.steps[index_steps:])
+    combined.extend(run.messages[index_messages:])
+
+    for obj in combined:
         if isinstance(obj, RunStep):
-            print_run_step(obj)
+            pprint_run_step(obj)
         elif isinstance(obj, ThreadMessage):
-            print_message(obj)
+            pprint_message(obj)
 
 
-def print_run_step(run_step: RunStep):
+def pprint_run_step(run_step: RunStep):
     # Timestamp formatting
     timestamp = datetime.fromtimestamp(run_step.created_at).strftime("%I:%M:%S %p")
-    # Content based on the run step type and status
+
+    # default content
+    content = (
+        f"Assistant is performing an action: {run_step.type} - Status:"
+        f" {run_step.status}"
+    )
+
+    # attempt to customize content
     if run_step.type == "tool_calls":
         for tool_call in run_step.step_details.tool_calls:
             if tool_call.type == "code_interpreter":
                 if run_step.status == "in_progress":
-                    content = "Assistant is now running the code interpreter."
+                    content = "Assistant is running the code interpreter..."
                 elif run_step.status == "completed":
-                    content = "Assistant has finished running the code interpreter."
+                    content = "Assistant ran the code interpreter."
                 else:
                     content = f"Assistant code interpreter status: {run_step.status}"
+            elif tool_call.type == "function":
+                if run_step.status == "in_progress":
+                    content = (
+                        "Assistant used the tool"
+                        f" `{tool_call.function.name}` with arguments"
+                        f" {tool_call.function.arguments}..."
+                    )
+                elif run_step.status == "completed":
+                    content = (
+                        "Assistant used the tool"
+                        f" `{tool_call.function.name}` with arguments"
+                        f" {tool_call.function.arguments}."
+                    )
+                else:
+                    content = (
+                        f"Assistant tool `{tool_call.function.name}` status:"
+                        f" `{run_step.status}`"
+                    )
     elif run_step.type == "message_creation":
         return
-    else:
-        content = (
-            f"Assistant is performing an action: {run_step.type} - Status:"
-            f" {run_step.status}"
-        )
 
     console = Console()
 
@@ -76,7 +119,7 @@ def download_temp_file(file_id: str, suffix: str = None):
     return temp_file_path
 
 
-def print_message(message: ThreadMessage):
+def pprint_message(message: ThreadMessage):
     """
     Pretty-prints a single message using the rich library, highlighting the
     speaker's role, the message text, any available images, and the message
@@ -131,6 +174,6 @@ def print_message(message: ThreadMessage):
     console.print(panel)
 
 
-def print_messages(messages: list[ThreadMessage]):
+def pprint_messages(messages: list[ThreadMessage]):
     for message in messages:
-        print_message(message)
+        pprint_message(message)

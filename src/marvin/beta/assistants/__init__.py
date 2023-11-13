@@ -1,2 +1,2 @@
-from .assistants import Assistant, Thread, CodeInterpreter, Retrieval
-from .formatting import print_run, print_run_step, print_message
+from .assistants import Assistant, Thread
+from .formatting import pprint_run, pprint_run_step, pprint_message

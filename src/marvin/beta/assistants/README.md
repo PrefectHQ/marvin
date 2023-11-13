@@ -7,8 +7,8 @@
 Get started with the Assistants API by creating an `Assistant` and talking directly to it. Each assistant is created with a default thread that allows request/response interaction without managing state at all.
 
 ```python
-from marvin.beta.assistants import Assistant, Thread
-from marvin.beta.assistants.formatting import print_messages
+from marvin.beta.assistants import Assistant
+from marvin.beta.assistants.formatting import pprint_messages
 
 # Use a context manager for lifecycle management,
 # otherwise call ai.create() and ai.delete()
@@ -18,7 +18,7 @@ with Assistant(name="Marvin", instructions="You are Marvin, the Paranoid Android
     response = ai.say('Hello, Marvin!')
 
     # pretty-print the response
-    print_messages(response.messages)
+    pprint_messages(response.messages)
 ```
 
 # Using Tools
@@ -26,8 +26,9 @@ with Assistant(name="Marvin", instructions="You are Marvin, the Paranoid Android
 Assistants can use OpenAI's built-in tools, such as the code interpreter or file retrieval, or they can call custom Python functions. 
 
 ```python
-from marvin.beta.assistants import Assistant, Thread, CodeInterpreter
-from marvin.beta.assistants.formatting import print_messages
+from marvin.beta.assistants import Assistant
+from marvin.tools.assistants import CodeInterpreter
+from marvin.beta.assistants.formatting import pprint_messages
 import requests
 
 
@@ -46,7 +47,7 @@ with Assistant(name="Marvin", tools=[CodeInterpreter, visit_url]) as ai:
     )
 
     # Display the response messages
-    print_messages(response.messages)
+    pprint_messages(response.messages)
 ```
 
 # Advanced control
@@ -55,7 +56,7 @@ For full control, manually create a `Thread` object, `add` user messages to it, 
 
 ```python
 from marvin.beta.assistants import Assistant, Thread
-from marvin.beta.assistants.formatting import print_messages
+from marvin.beta.assistants.formatting import pprint_messages
 import random
 
 
@@ -81,5 +82,5 @@ with Assistant(name="Marvin", tools=[roll_dice]) as ai:
     thread.add("actually roll five dice")
 
     thread.run(ai)
-    print_messages(thread.messages)
+    pprint_messages(thread.messages)
 ```
