@@ -45,7 +45,7 @@ def pprint_run(run: Run):
 
 def pprint_run_step(run_step: RunStep):
     # Timestamp formatting
-    timestamp = datetime.fromtimestamp(run_step.created_at).strftime("%I:%M:%S %p")
+    timestamp = datetime.fromtimestamp(run_step.created_at).strftime("%l:%M:%S %p")
 
     # default content
     content = (
@@ -135,7 +135,7 @@ def pprint_message(message: ThreadMessage):
     }
 
     color = role_colors.get(message.role, "red")
-    timestamp = datetime.fromtimestamp(message.created_at).strftime("%I:%M:%S %p")
+    timestamp = datetime.fromtimestamp(message.created_at).strftime("%l:%M:%S %p")
 
     content = ""
     for item in message.content:
