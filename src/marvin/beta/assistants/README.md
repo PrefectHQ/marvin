@@ -17,18 +17,19 @@ with Assistant(name="Marvin", instructions="You are Marvin, the Paranoid Android
     # Example of sending a message and receiving a response
     response = ai.say('Hello, Marvin!')
 
-    # pretty-print the response
-    pprint_messages(response.messages)
+    # pretty-print all messages on the ai's default thread
+    pprint_messages(ai.default_thread.messages)
 ```
+
+![](readme_imgs/quickstart.png)
 
 # Using Tools
 
-Assistants can use OpenAI's built-in tools, such as the code interpreter or file retrieval, or they can call custom Python functions. 
+Assistants can use OpenAI's built-in tools, such as the code interpreter or file retrieval, or they can call custom Python functions.
 
 ```python
-from marvin.beta.assistants import Assistant
-from marvin.tools.assistants import CodeInterpreter
-from marvin.beta.assistants.formatting import pprint_messages
+from marvin.beta.assistants import Assistant, CodeInterpreter
+from marvin.beta.assistants.formatting import pprint_run
 import requests
 
 
@@ -46,9 +47,32 @@ with Assistant(name="Marvin", tools=[CodeInterpreter, visit_url]) as ai:
         " mention AI"
     )
 
-    # Display the response messages
-    pprint_messages(response.messages)
+    # pretty-print the run, including tool use
+    pprint_run(response)
 ```
+
+![](readme_imgs/using_tools.png)
+
+# Upload Files
+
+```python
+import pprint
+from marvin.beta.assistants import Assistant, CodeInterpreter
+from marvin.beta.assistants.formatting import pprint_messages
+
+
+# create an assistant with access to the code interpreter
+with Assistant(tools=[CodeInterpreter]) as ai:
+
+    # convenience method for request/response interaction
+    run = ai.say(
+        "Can you analyze this employee data csv?",
+        file_paths=["./Downloads/people_department_roles.csv"],
+    )
+    pprint_messages(run.messages)
+```
+
+![](readme_imgs/image.png)
 
 # Advanced control
 
@@ -84,3 +108,4 @@ with Assistant(name="Marvin", tools=[roll_dice]) as ai:
     thread.run(ai)
     pprint_messages(thread.messages)
 ```
+![](readme_imgs/advanced.png)
