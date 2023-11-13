@@ -1,57 +1,39 @@
 import inspect
 import re
 from functools import partial, wraps
-from re import Pattern, compile
-from typing import Any, Callable, ClassVar, Optional, ParamSpec, Self, Union, overload
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    Optional,
+    ParamSpec,
+    Self,
+    TypeVar,
+    Union,
+    overload,
+)
 
 import pydantic
+from pydantic import BaseModel
 
 from marvin.requests import BaseMessage as Message
-from marvin.requests import ChatRequest
+from marvin.requests import ChatRequest, Tool
 from marvin.serializers import create_tool_from_type
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import (
     BaseEnvironment,
-    split_text_by_tokens,
+    Transcript,
 )
-from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.openai import get_client
 
 P = ParamSpec("P")
+T = TypeVar("T")
+U = TypeVar("U", bound=BaseModel)
 
 
-class Transcript(pydantic.BaseModel):
-    content: str
-    roles: list[str] = pydantic.Field(default=["system", "user"])
-    environment: ClassVar[BaseEnvironment] = JinjaEnvironment
-
-    @property
-    def role_regex(self) -> Pattern[str]:
-        return compile("|".join([f"\n\n{role}:" for role in self.roles]))
-
-    def render(self: Self, **kwargs: Any) -> str:
-        return self.environment.render(self.content, **kwargs)
-
-    def render_to_messages(
-        self: Self,
-        **kwargs: Any,
-    ) -> list[Message]:
-        pairs = split_text_by_tokens(
-            text=self.render(**kwargs),
-            split_tokens=[f"\n{role}" for role in self.roles],
-        )
-        return [
-            Message(
-                role=pair[0].strip(),
-                content=pair[1],
-            )
-            for pair in pairs
-        ]
-
-
-class Prompt(pydantic.BaseModel):
+class Prompt(pydantic.BaseModel, Generic[U]):
     messages: list[Message]
-    tools: Optional[list[dict[str, Any]]] = pydantic.Field(default=None)
+    tools: Optional[list[Tool[U]]] = pydantic.Field(default=None)
     tool_choice: Optional[dict[str, Any]] = pydantic.Field(default=None)
     logit_bias: Optional[dict[int, float]] = pydantic.Field(default=None)
     max_tokens: Optional[int] = pydantic.Field(default=None)
@@ -66,6 +48,21 @@ class Prompt(pydantic.BaseModel):
         payload = ChatRequest(**self.serialize()).model_dump(exclude_none=True)
         return await get_client().chat.completions.create(**payload)  # type: ignore
 
+    @overload
+    @classmethod
+    def as_decorator(
+        cls: type[Self],
+        *,
+        environment: Optional[BaseEnvironment] = None,
+        prompt: Optional[str] = None,
+        model_name: str = "FormatResponse",
+        model_description: str = "Formats the response.",
+        field_name: str = "data",
+        field_description: str = "The data to format.",
+    ) -> Callable[[Callable[P, Any]], Callable[P, Self]]:
+        pass
+
+    @overload
     @classmethod
     def as_decorator(
         cls: type[Self],
@@ -73,72 +70,102 @@ class Prompt(pydantic.BaseModel):
         *,
         environment: Optional[BaseEnvironment] = None,
         prompt: Optional[str] = None,
-        serialize: bool = True,
         model_name: str = "FormatResponse",
         model_description: str = "Formats the response.",
         field_name: str = "data",
         field_description: str = "The data to format.",
+    ) -> Callable[P, Self]:
+        pass
+
+    @classmethod
+    def as_decorator(
+        cls: type[Self],
+        fn: Optional[Callable[P, Any]] = None,
+        *,
+        environment: Optional[BaseEnvironment] = None,
+        prompt: Optional[str] = None,
+        model_name: str = "FormatResponse",
+        model_description: str = "Formats the response.",
+        field_name: str = "data",
+        field_description: str = "The data to format.",
+        **kwargs: Any,
     ) -> Union[
-        Callable[[Callable[P, Any]], Callable[P, Any]],
-        Callable[[Callable[P, Any]], Callable[P, Union[dict[str, Any], Self]]],
-        Callable[P, Union[dict[str, Any], Self]],
+        Callable[[Callable[P, Any]], Callable[P, Self]],
+        Callable[P, Self],
     ]:
-        def wrapper(
-            fn: Callable[P, Any], *args: P.args, **kwargs: P.kwargs
-        ) -> Union[dict[str, Any], Self]:
+        def wrapper(func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> Self:
             tool = create_tool_from_type(
-                _type=inspect.signature(fn).return_annotation,
-                name=model_name,
-                description=model_description,
+                _type=inspect.signature(func).return_annotation,
+                model_name=model_name,
+                model_description=model_description,
                 field_name=field_name,
                 field_description=field_description,
             )
 
-            signature = inspect.signature(fn)
+            signature = inspect.signature(func)
             params = signature.bind(*args, **kwargs)
             params.apply_defaults()
-
-            promptfn = cls(
+            return cls(
                 messages=Transcript(
-                    content=prompt or fn.__doc__ or ""
+                    content=prompt or func.__doc__ or ""
                 ).render_to_messages(
+                    **kwargs,
                     **params.arguments,
                     _arguments=params.arguments,
+                    _response_model=tool,
                     _source_code=(
-                        "\ndef" + "def".join(re.split("def", inspect.getsource(fn))[1:])
+                        "\ndef"
+                        + "def".join(re.split("def", inspect.getsource(func))[1:])
                     ),
                 ),
                 tool_choice={
                     "type": "function",
                     "function": {"name": tool.function.name},
                 },
-                tools=[tool.model_dump()],
+                tools=[tool],
             )
-            if serialize:
-                return promptfn.serialize()
-            return promptfn
 
         if fn is not None:
             return wraps(fn)(partial(wrapper, fn))
 
-        def decorator(
-            fn: Callable[P, None]
-        ) -> Callable[P, Union[dict[str, Any], Self]]:
+        def decorator(fn: Callable[P, Any]) -> Callable[P, Self]:
             return wraps(fn)(partial(wrapper, fn))
 
         return decorator
 
 
-prompt_fn = Prompt.as_decorator
-PromptFn = Prompt
+def prompt_fn(
+    fn: Optional[Callable[P, T]] = None,
+    *,
+    environment: Optional[BaseEnvironment] = None,
+    prompt: Optional[str] = None,
+    model_name: str = "FormatResponse",
+    model_description: str = "Formats the response.",
+    field_name: str = "data",
+    field_description: str = "The data to format.",
+    **kwargs: Any,
+) -> Union[
+    Callable[[Callable[P, T]], Callable[P, dict[str, Any]]],
+    Callable[P, dict[str, Any]],
+]:
+    def wrapper(
+        func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs
+    ) -> dict[str, Any]:
+        return Prompt.as_decorator(
+            fn=func,
+            environment=environment,
+            prompt=prompt,
+            model_name=model_name,
+            model_description=model_description,
+            field_name=field_name,
+            field_description=field_description,
+            **kwargs,
+        )(*args, **kwargs).serialize()
 
+    if fn is not None:
+        return wraps(fn)(partial(wrapper, fn))
 
-@Prompt.as_decorator()
-def add(x: int, y: int = 2) -> int:
-    """
-    Add two numbers together.
-    """
-    return x + 1
+    def decorator(fn: Callable[P, Any]) -> Callable[P, dict[str, Any]]:
+        return wraps(fn)(partial(wrapper, fn))
 
-
-add(1, 2)
+    return decorator

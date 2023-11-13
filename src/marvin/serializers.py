@@ -1,6 +1,6 @@
 from enum import Enum
 from types import GenericAlias
-from typing import Any, Callable, Literal, Union, get_args, get_origin, Annotated
+from typing import Any, Callable, Literal, Union, get_args, get_origin
 
 from pydantic import BaseModel, create_model
 from pydantic.fields import FieldInfo
@@ -19,10 +19,10 @@ class FunctionSchema(GenerateJsonSchema):
 
 def create_tool_from_type(
     _type: Union[type, GenericAlias],
-    model_name: str = "A",
-    model_description: str = "B",
-    field_name: str = "C",
-    field_description: str = "D",
+    model_name: str,
+    model_description: str,
+    field_name: str,
+    field_description: str,
     **kwargs: Any,
 ) -> Tool[BaseModel]:
     model: type[BaseModel] = create_model(

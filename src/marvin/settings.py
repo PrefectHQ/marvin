@@ -1,9 +1,13 @@
 import os
 from contextlib import contextmanager
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from functools import partial
+
+if TYPE_CHECKING:
+    from openai import AsyncClient
 
 
 class ChatCompletionSettings(BaseModel):
@@ -16,6 +20,14 @@ class ChatCompletionSettings(BaseModel):
         extra="allow",
         arbitrary_types_allowed=True,
     )
+
+    def acreate(self, **kwargs: Any) -> Any:
+        from marvin.settings import settings
+
+        return partial(
+            settings.openai.client.chat.completions.create,
+            **kwargs | self.model_dump(),
+        )
 
     @property
     def encoder(self):
@@ -44,6 +56,16 @@ class OpenAISettings(BaseSettings):
     )
 
     chat: ChatSettings = Field(default_factory=ChatSettings)
+
+    @property
+    def client(self, api_key: Optional[str] = None, **kwargs: Any) -> "AsyncClient":
+        from openai import AsyncClient
+
+        return AsyncClient(
+            api_key=api_key or self.api_key.get_secret_value(),
+            organization=self.organization,
+            **kwargs,
+        )
 
 
 class Settings(BaseSettings):

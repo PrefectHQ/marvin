@@ -1,13 +1,15 @@
 import inspect
 import re
 from datetime import datetime
-from typing import Any, Self, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Pattern, Self, Union
 from zoneinfo import ZoneInfo
 
 import pydantic
 from jinja2 import Environment as JinjaEnvironment
 from jinja2 import StrictUndefined, select_autoescape
 from jinja2 import Template as BaseTemplate
+
+from marvin.requests import BaseMessage as Message
 
 
 class BaseEnvironment(pydantic.BaseModel):
@@ -75,3 +77,32 @@ def split_text_by_tokens(
     paired = [(token.replace(":", ""), text) for token, text in paired if text]
 
     return paired
+
+
+class Transcript(pydantic.BaseModel):
+    content: str
+    roles: list[str] = pydantic.Field(default=["system", "user"])
+    environment: ClassVar[BaseEnvironment] = Environment
+
+    @property
+    def role_regex(self) -> Pattern[str]:
+        return re.compile("|".join([f"\n\n{role}:" for role in self.roles]))
+
+    def render(self: Self, **kwargs: Any) -> str:
+        return self.environment.render(self.content, **kwargs)
+
+    def render_to_messages(
+        self: Self,
+        **kwargs: Any,
+    ) -> list[Message]:
+        pairs = split_text_by_tokens(
+            text=self.render(**kwargs),
+            split_tokens=[f"\n{role}" for role in self.roles],
+        )
+        return [
+            Message(
+                role=pair[0].strip(),
+                content=pair[1],
+            )
+            for pair in pairs
+        ]
