@@ -20,8 +20,10 @@ with Assistant(name="Marvin", instructions="You are Marvin, the Paranoid Android
     # pretty-print all messages on the ai's default thread
     pprint_messages(ai.default_thread.messages)
 ```
-
-![](readme_imgs/quickstart.png)
+This will print:
+<p align="center">
+  <img src="readme_imgs/quickstart.png" style="width: 75%;"/>
+</p>
 
 # Using Tools
 
@@ -50,8 +52,11 @@ with Assistant(name="Marvin", tools=[CodeInterpreter, visit_url]) as ai:
     # pretty-print the run, including tool use
     pprint_run(response)
 ```
+This will print:
+<p align="center">
+  <img src="readme_imgs/using_tools.png" style="width: 75%;"/>
+</p>
 
-![](readme_imgs/using_tools.png)
 
 # Upload Files
 
@@ -72,7 +77,11 @@ with Assistant(tools=[CodeInterpreter]) as ai:
     pprint_messages(run.messages)
 ```
 
-![](readme_imgs/image.png)
+This will print:
+<p align="center">
+  <img src="readme_imgs/upload_files.png" style="width: 75%;"/>
+</p>
+
 
 # Advanced control
 
@@ -108,4 +117,7 @@ with Assistant(name="Marvin", tools=[roll_dice]) as ai:
     thread.run(ai)
     pprint_messages(thread.messages)
 ```
-![](readme_imgs/advanced.png)
+This will print:
+<p align="center">
+  <img src="readme_imgs/advanced.png" style="width: 75%;"/>
+</p>
