@@ -101,8 +101,19 @@ class Run(BaseModel):
                 + "\n\n"
                 + self.additional_instructions
             )
+
         if self.tools is not None:
             create_kwargs["tools"] = self.tools
+        # Check if 'self.additional_tools' is not None
+        if self.additional_tools is not None:
+            # If 'create_kwargs' already has a 'tools' key, use its value;
+            # otherwise, use 'self.assistant.tools' or an empty list if it's None
+            existing_tools = create_kwargs.get("tools", self.assistant.tools or [])
+
+            # Combine 'existing_tools' with 'self.additional_tools'
+            # and update 'create_kwargs' under the key 'tools'
+            create_kwargs["tools"] = existing_tools + self.additional_tools
+
         self.run = await client.beta.threads.runs.create(
             thread_id=self.thread.id, assistant_id=self.assistant.id, **create_kwargs
         )
