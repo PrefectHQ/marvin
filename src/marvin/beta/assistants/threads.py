@@ -134,23 +134,26 @@ class ThreadMonitor(BaseModel, ExposeSyncMethodsMixin):
         super().__init__(**kwargs)
         self._thread = Thread(id=kwargs["thread_id"])
 
-    @expose_sync_method("refresh")
-    async def refresh_async(self):
+    @expose_sync_method("run_once")
+    async def run_once_async(self):
         messages = await self.get_latest_messages()
         for msg in messages:
             if self.on_new_message:
                 self.on_new_message(msg)
 
-    @expose_sync_method("refresh_interval")
-    async def refresh_interval_async(self, interval_seconds: int = None):
+    @expose_sync_method("run")
+    async def run_async(self, interval_seconds: int = None):
         if interval_seconds is None:
-            interval_seconds = 2
+            interval_seconds = 1
         if interval_seconds < 1:
             raise ValueError("Interval must be at least 1 second.")
 
         while True:
             try:
-                await self.refresh_async()
+                await self.run_once_async()
+            except KeyboardInterrupt:
+                logger.debug("Keyboard interrupt received; exiting thread monitor.")
+                break
             except Exception as exc:
                 logger.error(f"Error refreshing thread: {exc}")
             await asyncio.sleep(interval_seconds)
@@ -163,12 +166,25 @@ class ThreadMonitor(BaseModel, ExposeSyncMethodsMixin):
             messages = await self.thread.get_messages_async(
                 after_message=self.last_message_id, limit=limit
             )
-            if messages:
-                self.last_message_id = messages[-1].id
+
+            # often the API will retrieve messages that have been created but
+            # not populated with text. We filter out these empty messages.
+            filtered_messages = []
+            for i, msg in enumerate(messages):
+                skip_message = False
+                for c in msg.content:
+                    if getattr(getattr(c, "text", None), "value", None) == "":
+                        skip_message = True
+                if not skip_message:
+                    filtered_messages.append(msg)
+
+            if filtered_messages:
+                self.last_message_id = filtered_messages[-1].id
+
             if len(messages) < limit:
                 break
 
-        return messages
+        return filtered_messages
 
     # async def refresh_messages_async(self) -> list[ThreadMessage]:
     #     """
