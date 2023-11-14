@@ -17,14 +17,12 @@ import pydantic
 from pydantic import BaseModel
 
 from marvin.requests import BaseMessage as Message
-from marvin.requests import ChatRequest, Tool
+from marvin.requests import Tool
 from marvin.serializers import create_tool_from_type
-from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import (
     BaseEnvironment,
     Transcript,
 )
-from marvin.utilities.openai import get_client
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -41,12 +39,13 @@ class Prompt(pydantic.BaseModel, Generic[U]):
     def serialize(self) -> dict[str, Any]:
         return self.model_dump(exclude_unset=True)
 
-    def call(self) -> Any:
-        return run_sync(self.acall())
 
-    async def acall(self) -> Any:
-        payload = ChatRequest(**self.serialize()).model_dump(exclude_none=True)
-        return await get_client().chat.completions.create(**payload)  # type: ignore
+class PromptFn(Prompt[U]):
+    messages: list[Message]
+    tools: Optional[list[Tool[U]]] = pydantic.Field(default=None)
+    tool_choice: Optional[dict[str, Any]] = pydantic.Field(default=None)
+    logit_bias: Optional[dict[int, float]] = pydantic.Field(default=None)
+    max_tokens: Optional[int] = pydantic.Field(default=None)
 
     @overload
     @classmethod
@@ -151,7 +150,7 @@ def prompt_fn(
     def wrapper(
         func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs
     ) -> dict[str, Any]:
-        return Prompt.as_decorator(
+        return PromptFn.as_decorator(
             fn=func,
             environment=environment,
             prompt=prompt,

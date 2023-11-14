@@ -1,4 +1,5 @@
 from enum import Enum
+from importlib import metadata
 from types import GenericAlias
 from typing import Any, Callable, Literal, Union, get_args, get_origin
 
@@ -25,6 +26,12 @@ def create_tool_from_type(
     field_description: str,
     **kwargs: Any,
 ) -> Tool[BaseModel]:
+    annotated_metadata = getattr(_type, "__metadata__", [])
+    if isinstance(next(iter(annotated_metadata), None), FieldInfo):
+        metadata = next(iter(annotated_metadata))
+    else:
+        metadata = FieldInfo(description=field_description)
+
     model: type[BaseModel] = create_model(
         model_name,
         __config__=None,
@@ -32,7 +39,7 @@ def create_tool_from_type(
         __module__=__name__,
         __validators__=None,
         __cls_kwargs__=None,
-        **{field_name: (_type, FieldInfo(description=field_description))},
+        **{field_name: (_type, metadata)},
     )
     return Tool[BaseModel](
         type="function",

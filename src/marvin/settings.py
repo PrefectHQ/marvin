@@ -7,7 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import partial
 
 if TYPE_CHECKING:
-    from openai import AsyncClient
+    from openai import AsyncClient, Client
+    from openai.types.chat import ChatCompletion
 
 
 class ChatCompletionSettings(BaseModel):
@@ -21,12 +22,18 @@ class ChatCompletionSettings(BaseModel):
         arbitrary_types_allowed=True,
     )
 
-    def acreate(self, **kwargs: Any) -> Any:
+    async def acreate(self, **kwargs: Any) -> "ChatCompletion":
         from marvin.settings import settings
 
-        return partial(
-            settings.openai.client.chat.completions.create,
-            **kwargs | self.model_dump(),
+        return await settings.openai.async_client.chat.completions.create(
+            **kwargs | self.model_dump()
+        )
+
+    def create(self, **kwargs: Any) -> "ChatCompletion":
+        from marvin.settings import settings
+
+        return settings.openai.client.chat.completions.create(
+            **kwargs | self.model_dump()
         )
 
     @property
@@ -58,11 +65,33 @@ class OpenAISettings(BaseSettings):
     chat: ChatSettings = Field(default_factory=ChatSettings)
 
     @property
-    def client(self, api_key: Optional[str] = None, **kwargs: Any) -> "AsyncClient":
+    def async_client(
+        self, api_key: Optional[str] = None, **kwargs: Any
+    ) -> "AsyncClient":
         from openai import AsyncClient
 
+        if not (api_key or self.api_key):
+            raise ValueError("No API key provided.")
+        elif not api_key and self.api_key:
+            api_key = self.api_key.get_secret_value()
+
         return AsyncClient(
-            api_key=api_key or self.api_key.get_secret_value(),
+            api_key=api_key,
+            organization=self.organization,
+            **kwargs,
+        )
+
+    @property
+    def client(self, api_key: Optional[str] = None, **kwargs: Any) -> "Client":
+        from openai import Client
+
+        if not (api_key or self.api_key):
+            raise ValueError("No API key provided.")
+        elif not api_key and self.api_key:
+            api_key = self.api_key.get_secret_value()
+
+        return Client(
+            api_key=api_key,
             organization=self.organization,
             **kwargs,
         )

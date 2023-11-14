@@ -1,5 +1,5 @@
 import inspect
-from functools import partial, wraps
+from functools import partial
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -11,11 +11,11 @@ from typing import (
     Union,
     overload,
 )
-
+from functools import wraps
 from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec, Self
 
-from marvin.components.prompt_function import PromptFn
+from marvin.components.prompt_function import Prompt
 from marvin.serializers import create_tool_from_type
 from marvin.utilities.jinja import (
     BaseEnvironment,
@@ -75,7 +75,7 @@ class AIFunction(BaseModel, Generic[P, T]):
         arguments = tool_calls[0].function.arguments
 
         tool = create_tool_from_type(
-            _type=self.fn.__annotations__["return"],
+            _type=inspect.signature(self.fn).return_annotation,
             model_name=self.name,
             model_description=self.description,
             field_name=self.field_name,
@@ -90,8 +90,8 @@ class AIFunction(BaseModel, Generic[P, T]):
         self,
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> PromptFn[BaseModel]:
-        return PromptFn[BaseModel].as_decorator(
+    ) -> Prompt[BaseModel]:
+        return Prompt[BaseModel].as_decorator(
             fn=self.fn,
             environment=self.environment,
             prompt=self.prompt,
@@ -240,7 +240,7 @@ def ai_fn(
 
 
 @ai_fn
-def list_fruits(n: int = 10) -> list[str]:  # type: ignore #
+def list_fruits(n: int = 10) -> list[str]:  # type: ignore[return]
     """Returns a list of fruits."""
 
 
