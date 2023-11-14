@@ -120,3 +120,17 @@ This will print:
 <p align="center">
   <img src="readme_imgs/advanced.png" style="width: 75%;"/>
 </p>
+
+
+# Monitoring a thread
+
+To monitor a thread, start a `ThreadMonitor`. By default, `ThreadMonitors` print any new messages added to the thread, but you can customize that behavior by changing the `on_new_message` callback.
+
+```python
+from marvin.beta.assistants import ThreadMonitor
+
+monitor = ThreadMonitor(thread_id=...)
+
+# blocking call, also available async as monitor.refresh_interval_async
+monitor.refresh_interval()
+```

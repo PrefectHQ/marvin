@@ -1,8 +1,10 @@
-from typing import TYPE_CHECKING, Optional
+import asyncio
+from typing import TYPE_CHECKING, Callable, Optional
 
-from openai.types.beta.threads import ThreadMessage as OpenAIMessage
+from openai.types.beta.threads import ThreadMessage
 from pydantic import BaseModel, Field
 
+from marvin.beta.assistants.formatting import pprint_message
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -21,7 +23,7 @@ if TYPE_CHECKING:
 class Thread(BaseModel, ExposeSyncMethodsMixin):
     id: Optional[str] = None
     metadata: dict = {}
-    messages: list[OpenAIMessage] = Field([], repr=False)
+    messages: list[ThreadMessage] = Field([], repr=False)
 
     def __enter__(self):
         self.create()
@@ -50,7 +52,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
     @expose_sync_method("add")
     async def add_async(
         self, message: str, file_paths: Optional[list[str]] = None
-    ) -> OpenAIMessage:
+    ) -> ThreadMessage:
         """
         Add a user message to the thread.
         """
@@ -70,7 +72,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         response = await client.beta.threads.messages.create(
             thread_id=self.id, role="user", content=message, file_ids=file_ids
         )
-        return OpenAIMessage.model_validate(response.model_dump())
+        return ThreadMessage.model_validate(response.model_dump())
 
     @expose_sync_method("get_messages")
     async def get_messages_async(
@@ -93,7 +95,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             order="desc",
         )
 
-        return parse_as(list[OpenAIMessage], reversed(response.model_dump()["data"]))
+        return parse_as(list[ThreadMessage], reversed(response.model_dump()["data"]))
 
     @expose_sync_method("delete")
     async def delete_async(self):
@@ -118,10 +120,11 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         return await Run(assistant=assistant, thread=self, **run_kwargs).run_async()
 
 
-class ThreadMonitor(BaseModel):
+class ThreadMonitor(BaseModel, ExposeSyncMethodsMixin):
     thread_id: str
     _thread: Thread
-    messages: list[OpenAIMessage] = Field([], repr=False)
+    last_message_id: Optional[str] = None
+    on_new_message: Callable = Field(default=pprint_message)
 
     @property
     def thread(self):
@@ -129,65 +132,106 @@ class ThreadMonitor(BaseModel):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._thread = Thread(**kwargs["thread_id"])
+        self._thread = Thread(id=kwargs["thread_id"])
 
-    async def refresh_messages_async(self):
-        """
-        Asynchronously refreshes and updates the message list.
+    @expose_sync_method("refresh")
+    async def refresh_async(self):
+        messages = await self.get_latest_messages()
+        for msg in messages:
+            if self.on_new_message:
+                self.on_new_message(msg)
 
-        This function fetches the latest messages up to a specified limit and
-        checks if the latest message in the current message list
-        (`self.messages`) is included in the new batch. If the latest message is
-        missing, it continues to fetch additional messages in batches, up to a
-        maximum count, using pagination. The function then updates
-        `self.messages` with these new messages, ensuring any existing messages
-        are updated with their latest versions and new messages are appended in
-        their original order.
-        """
-        # fetch up to 100 messages
-        max_fetched = 100
-        limit = 50
-        max_attempts = max_fetched / limit + 2
+    @expose_sync_method("refresh_interval")
+    async def refresh_interval_async(self, interval_seconds: int = None):
+        if interval_seconds is None:
+            interval_seconds = 2
+        if interval_seconds < 1:
+            raise ValueError("Interval must be at least 1 second.")
 
-        # Fetch the latest messages
-        messages = await self.get_messages_async(limit=limit)
+        while True:
+            try:
+                await self.refresh_async()
+            except Exception as exc:
+                logger.error(f"Error refreshing thread: {exc}")
+            await asyncio.sleep(interval_seconds)
 
-        if not messages:
-            return
+    async def get_latest_messages(self) -> list[ThreadMessage]:
+        limit = 20
 
-        # Check if the latest message in self.messages is in the new messages
-        latest_message_id = self.messages[-1].id if self.messages else None
-        missing_latest = (
-            latest_message_id not in {m.id for m in messages}
-            if latest_message_id
-            else True
-        )
-
-        # If the latest message is missing, fetch additional messages
-        total_fetched = len(messages)
-        attempts = 0
-        while (
-            messages
-            and missing_latest
-            and total_fetched < max_fetched
-            and attempts < max_attempts
-        ):
-            attempts += 1
-            paginated_messages = await self.get_messages_async(
-                limit=limit, before_message=messages[0].id
+        # Loop to get all new messages in batches of 20
+        while True:
+            messages = await self.thread.get_messages_async(
+                after_message=self.last_message_id, limit=limit
             )
-            total_fetched += len(paginated_messages)
-            # prepend messages
-            messages = paginated_messages + messages
-            if any(m.id == latest_message_id for m in paginated_messages):
-                missing_latest = False
-
-        # Update self.messages with the latest data
-        new_messages_dict = {m.id: m for m in messages}
-        for i in range(len(self.messages) - 1, -1, -1):
-            if self.messages[i].id in new_messages_dict:
-                self.messages[i] = new_messages_dict.pop(self.messages[i].id)
-            else:
+            if messages:
+                self.last_message_id = messages[-1].id
+            if len(messages) < limit:
                 break
-        # Append remaining new messages at the end in their original order
-        self.messages.extend(new_messages_dict.values())
+
+        return messages
+
+    # async def refresh_messages_async(self) -> list[ThreadMessage]:
+    #     """
+    #     Asynchronously refreshes and updates the message list.
+
+    #     This function fetches the latest messages up to a specified limit and
+    #     checks if the latest message in the current message list
+    #     (`self.messages`) is included in the new batch. If the latest message is
+    #     missing, it continues to fetch additional messages in batches, up to a
+    #     maximum count, using pagination. The function then updates
+    #     `self.messages` with these new messages, ensuring any existing messages
+    #     are updated with their latest versions and new messages are appended in
+    #     their original order.
+    #     """
+
+    #     new_messages = []
+
+    #     # fetch up to 100 messages
+    #     max_fetched = 100
+    #     limit = 50
+    #     max_attempts = max_fetched / limit + 2
+
+    #     # Fetch the latest messages
+    #     messages = await self.get_messages_async(limit=limit)
+
+    #     if not messages:
+    #         return
+
+    #     # Check if the latest message in self.messages is in the new messages
+    #     latest_message_id = self.messages[-1].id if self.messages else None
+    #     missing_latest = (
+    #         latest_message_id not in {m.id for m in messages}
+    #         if latest_message_id
+    #         else True
+    #     )
+
+    #     # If the latest message is missing, fetch additional messages
+    #     total_fetched = len(messages)
+    #     attempts = 0
+    #     while (
+    #         messages
+    #         and missing_latest
+    #         and total_fetched < max_fetched
+    #         and attempts < max_attempts
+    #     ):
+    #         attempts += 1
+    #         paginated_messages = await self.get_messages_async(
+    #             limit=limit, before_message=messages[0].id
+    #         )
+    #         total_fetched += len(paginated_messages)
+    #         # prepend messages
+    #         messages = paginated_messages + messages
+    #         if any(m.id == latest_message_id for m in paginated_messages):
+    #             missing_latest = False
+
+    #     # Update self.messages with the latest data
+    #     new_messages_dict = {m.id: m for m in messages}
+    #     for i in range(len(self.messages) - 1, -1, -1):
+    #         if self.messages[i].id in new_messages_dict:
+    #             self.messages[i] = new_messages_dict.pop(self.messages[i].id)
+    #         else:
+    #             break
+    #     # Append remaining new messages at the end in their original order
+    #     self.messages.extend(new_messages_dict.values())
+
+    #     return messages
