@@ -8,7 +8,7 @@ from rich import box
 from rich.console import Console
 from rich.panel import Panel
 
-from marvin.beta.assistants.assistants import Run
+from marvin.beta.assistants import Run
 
 
 def pprint_run(run: Run):
