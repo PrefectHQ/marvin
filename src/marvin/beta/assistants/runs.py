@@ -1,10 +1,9 @@
 import asyncio
 from typing import Any, Callable, Optional, Union
 
-from openai.types.beta.threads import ThreadMessage as OpenAIMessage
 from openai.types.beta.threads.run import Run as OpenAIRun
 from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 import marvin.utilities.tools
 from marvin.requests import Tool
@@ -38,8 +37,6 @@ class Run(BaseModel):
         description="Additional tools to append to the assistant's tools. ",
     )
     run: OpenAIRun = None
-    steps: list[OpenAIRunStep] = []
-    messages: list[OpenAIMessage] = []
     data: Any = None
 
     @field_validator("tools", "additional_tools", mode="before")
@@ -60,11 +57,95 @@ class Run(BaseModel):
             run_id=self.run.id, thread_id=self.thread.id
         )
 
-        # refresh the thread's messages
-        await self.thread.refresh_messages_async()
-        self.messages = [m for m in self.thread.messages if m.run_id == self.run.id]
+    async def _handle_step_requires_action(self):
+        client = get_client()
+        if self.run.status != "requires_action":
+            return
+        if self.run.required_action.type == "submit_tool_outputs":
+            tool_outputs = []
 
-        await self.refresh_run_steps_async()
+            tools = self.assistant.tools if self.tools is None else self.tools
+            if self.additional_tools:
+                tools = tools + self.additional_tools
+
+            for tool_call in self.run.required_action.submit_tool_outputs.tool_calls:
+                try:
+                    output = marvin.utilities.tools.call_function_tool(
+                        tools=tools,
+                        function_name=tool_call.function.name,
+                        function_arguments_json=tool_call.function.arguments,
+                    )
+                except EndRun as exc:
+                    logger.debug(f"Ending run with data: {exc.data}")
+                    raise
+                except Exception as exc:
+                    output = f"Error calling function {tool_call.function.name}: {exc}"
+                    logger.error(output)
+                tool_outputs.append(
+                    dict(tool_call_id=tool_call.id, output=output or "")
+                )
+
+            await client.beta.threads.runs.submit_tool_outputs(
+                thread_id=self.thread.id, run_id=self.run.id, tool_outputs=tool_outputs
+            )
+
+    async def run_async(self) -> "Run":
+        client = get_client()
+
+        create_kwargs = {}
+        if self.instructions is not None:
+            create_kwargs["instructions"] = self.instructions
+        if self.additional_instructions is not None:
+            create_kwargs["instructions"] = (
+                create_kwargs.get("instructions", self.assistant.instructions or "")
+                + "\n\n"
+                + self.additional_instructions
+            )
+        if self.tools is not None:
+            create_kwargs["tools"] = self.tools
+        self.run = await client.beta.threads.runs.create(
+            thread_id=self.thread.id, assistant_id=self.assistant.id, **create_kwargs
+        )
+
+        try:
+            while self.run.status in ("queued", "in_progress", "requires_action"):
+                if self.run.status == "requires_action":
+                    await self._handle_step_requires_action()
+                await asyncio.sleep(0.1)
+                await self.refresh()
+        except EndRun as exc:
+            logger.debug(f"`EndRun` raised; ending run with data: {exc.data}")
+            await client.beta.threads.runs.cancel(
+                run_id=self.run.id, thread_id=self.thread.id
+            )
+            self.data = exc.data
+            await self.refresh()
+
+        if self.run.status == "failed":
+            logger.debug(f"Run failed. Last error was: {self.run.last_error}")
+
+        return self
+
+
+class RunMonitor(BaseModel):
+    run_id: str
+    thread_id: str
+    _run: Run = PrivateAttr()
+    _thread: Thread = PrivateAttr()
+    steps: list[OpenAIRunStep] = []
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._thread = Thread(**kwargs["thread_id"])
+        self._run = Run(**kwargs["run_id"], thread=self.thread)
+
+    @property
+    def thread(self):
+        return self._thread
+
+    @property
+    def run(self):
+        return self._run
 
     async def refresh_run_steps_async(self):
         """
@@ -140,72 +221,3 @@ class Run(BaseModel):
                 break
         # Append remaining new run steps at the end in their original order
         self.steps.extend(new_steps_dict.values())
-
-    async def _handle_step_requires_action(self):
-        client = get_client()
-        if self.run.status != "requires_action":
-            return
-        if self.run.required_action.type == "submit_tool_outputs":
-            tool_outputs = []
-
-            tools = self.assistant.tools if self.tools is None else self.tools
-            if self.additional_tools:
-                tools = tools + self.additional_tools
-
-            for tool_call in self.run.required_action.submit_tool_outputs.tool_calls:
-                try:
-                    output = marvin.utilities.tools.call_function_tool(
-                        tools=tools,
-                        function_name=tool_call.function.name,
-                        function_arguments_json=tool_call.function.arguments,
-                    )
-                except EndRun as exc:
-                    logger.debug(f"Ending run with data: {exc.data}")
-                    raise
-                except Exception as exc:
-                    output = f"Error calling function {tool_call.function.name}: {exc}"
-                    logger.error(output)
-                tool_outputs.append(
-                    dict(tool_call_id=tool_call.id, output=output or "")
-                )
-
-            await client.beta.threads.runs.submit_tool_outputs(
-                thread_id=self.thread.id, run_id=self.run.id, tool_outputs=tool_outputs
-            )
-
-    async def run_async(self) -> "Run":
-        client = get_client()
-
-        create_kwargs = {}
-        if self.instructions is not None:
-            create_kwargs["instructions"] = self.instructions
-        if self.additional_instructions is not None:
-            create_kwargs["instructions"] = (
-                create_kwargs.get("instructions", self.assistant.instructions or "")
-                + "\n\n"
-                + self.additional_instructions
-            )
-        if self.tools is not None:
-            create_kwargs["tools"] = self.tools
-        self.run = await client.beta.threads.runs.create(
-            thread_id=self.thread.id, assistant_id=self.assistant.id, **create_kwargs
-        )
-
-        try:
-            while self.run.status in ("queued", "in_progress", "requires_action"):
-                if self.run.status == "requires_action":
-                    await self._handle_step_requires_action()
-                await asyncio.sleep(0.1)
-                await self.refresh()
-        except EndRun as exc:
-            logger.debug(f"`EndRun` raised; ending run with data: {exc.data}")
-            await client.beta.threads.runs.cancel(
-                run_id=self.run.id, thread_id=self.thread.id
-            )
-            self.data = exc.data
-            await self.refresh()
-
-        if self.run.status == "failed":
-            logger.debug(f"Run failed. Last error was: {self.run.last_error}")
-
-        return self

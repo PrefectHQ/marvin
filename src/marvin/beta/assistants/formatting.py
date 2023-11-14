@@ -8,39 +8,38 @@ from rich import box
 from rich.console import Console
 from rich.panel import Panel
 
-from marvin.beta.assistants import Run
+# def pprint_run(run: Run):
+#     """
+#     Runs are comprised of steps and messages, which are each in a sorted list
+#     BUT the created_at timestamps only have second-level resolution, so we can't
+#     easily sort the lists. Instead we walk them in order and combine them giving
+#     ties to run steps.
+#     """
+#     index_steps = 0
+#     index_messages = 0
+#     combined = []
 
+#     while index_steps < len(run.steps) and index_messages < len(run.messages):
+#         if (run.steps[index_steps].created_at
+#             <= run.messages[index_messages].created_at):
+#             combined.append(run.steps[index_steps])
+#             index_steps += 1
+#         elif (
+#             run.steps[index_steps].created_at
+#             > run.messages[index_messages].created_at
+#         ):
+#             combined.append(run.messages[index_messages])
+#             index_messages += 1
 
-def pprint_run(run: Run):
-    """
-    Runs are comprised of steps and messages, which are each in a sorted list
-    BUT the created_at timestamps only have second-level resolution, so we can't
-    easily sort the lists. Instead we walk them in order and combine them giving
-    ties to run steps.
-    """
-    index_steps = 0
-    index_messages = 0
-    combined = []
+#     # Add any remaining items from either list
+#     combined.extend(run.steps[index_steps:])
+#     combined.extend(run.messages[index_messages:])
 
-    while index_steps < len(run.steps) and index_messages < len(run.messages):
-        if run.steps[index_steps].created_at <= run.messages[index_messages].created_at:
-            combined.append(run.steps[index_steps])
-            index_steps += 1
-        elif (
-            run.steps[index_steps].created_at > run.messages[index_messages].created_at
-        ):
-            combined.append(run.messages[index_messages])
-            index_messages += 1
-
-    # Add any remaining items from either list
-    combined.extend(run.steps[index_steps:])
-    combined.extend(run.messages[index_messages:])
-
-    for obj in combined:
-        if isinstance(obj, RunStep):
-            pprint_run_step(obj)
-        elif isinstance(obj, ThreadMessage):
-            pprint_message(obj)
+#     for obj in combined:
+#         if isinstance(obj, RunStep):
+#             pprint_run_step(obj)
+#         elif isinstance(obj, ThreadMessage):
+#             pprint_message(obj)
 
 
 def pprint_run_step(run_step: RunStep):

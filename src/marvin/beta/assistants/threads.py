@@ -72,6 +72,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         )
         return OpenAIMessage.model_validate(response.model_dump())
 
+    @expose_sync_method("get_messages")
     async def get_messages_async(
         self,
         limit: int = None,
@@ -93,6 +94,42 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         )
 
         return parse_as(list[OpenAIMessage], reversed(response.model_dump()["data"]))
+
+    @expose_sync_method("delete")
+    async def delete_async(self):
+        client = get_client()
+        await client.beta.threads.delete(thread_id=self.id)
+        self.id = None
+
+    @expose_sync_method("run")
+    async def run_async(
+        self,
+        assistant: "Assistant",
+        **run_kwargs,
+    ) -> "Run":
+        """
+        Creates and returns a `Run` of this thread with the provided assistant.
+        """
+        if self.id is None:
+            await self.create_async()
+
+        from marvin.beta.assistants import Run
+
+        return await Run(assistant=assistant, thread=self, **run_kwargs).run_async()
+
+
+class ThreadMonitor(BaseModel):
+    thread_id: str
+    _thread: Thread
+    messages: list[OpenAIMessage] = Field([], repr=False)
+
+    @property
+    def thread(self):
+        return self._thread
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._thread = Thread(**kwargs["thread_id"])
 
     async def refresh_messages_async(self):
         """
@@ -154,25 +191,3 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
                 break
         # Append remaining new messages at the end in their original order
         self.messages.extend(new_messages_dict.values())
-
-    @expose_sync_method("delete")
-    async def delete_async(self):
-        client = get_client()
-        await client.beta.threads.delete(thread_id=self.id)
-        self.id = None
-
-    @expose_sync_method("run")
-    async def run_async(
-        self,
-        assistant: "Assistant",
-        **run_kwargs,
-    ) -> "Run":
-        """
-        Creates and returns a `Run` of this thread with the provided assistant.
-        """
-        if self.id is None:
-            await self.create_async()
-
-        from marvin.beta.assistants import Run
-
-        return await Run(assistant=assistant, thread=self, **run_kwargs).run_async()

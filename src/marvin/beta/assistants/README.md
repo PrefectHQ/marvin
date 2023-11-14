@@ -17,8 +17,8 @@ with Assistant(name="Marvin", instructions="You are Marvin, the Paranoid Android
     # Example of sending a message and receiving a response
     response = ai.say('Hello, Marvin!')
 
-    # pretty-print all messages on the ai's default thread
-    pprint_messages(ai.default_thread.messages)
+    # pretty-print all messages on the thread
+    pprint_messages(response.thread.get_messages())
 ```
 This will print:
 <p align="center">
@@ -31,7 +31,7 @@ Assistants can use OpenAI's built-in tools, such as the code interpreter or file
 
 ```python
 from marvin.beta.assistants import Assistant, CodeInterpreter
-from marvin.beta.assistants.formatting import pprint_run
+from marvin.beta.assistants.formatting import pprint_messages
 import requests
 
 
@@ -43,14 +43,14 @@ def visit_url(url: str):
 # Integrate custom tools with the assistant
 with Assistant(name="Marvin", tools=[CodeInterpreter, visit_url]) as ai:
 
-    # Interact with the assistant and receive a 'Run' object as a response
+    # Give the assistant an objective
     response = ai.say(
         "Please collect the hacker news home page and compute how many titles"
         " mention AI"
     )
 
-    # pretty-print the run, including tool use
-    pprint_run(response)
+    # pretty-print the response
+    pprint_messages(response.thread.get_messages())
 ```
 This will print:
 <p align="center">
@@ -61,7 +61,6 @@ This will print:
 # Upload Files
 
 ```python
-import pprint
 from marvin.beta.assistants import Assistant, CodeInterpreter
 from marvin.beta.assistants.formatting import pprint_messages
 
@@ -70,11 +69,11 @@ from marvin.beta.assistants.formatting import pprint_messages
 with Assistant(tools=[CodeInterpreter]) as ai:
 
     # convenience method for request/response interaction
-    run = ai.say(
+    response = ai.say(
         "Can you analyze this employee data csv?",
         file_paths=["./Downloads/people_department_roles.csv"],
     )
-    pprint_messages(run.messages)
+    pprint_messages(response.thread.get_messages())
 ```
 
 This will print:
@@ -115,7 +114,7 @@ with Assistant(name="Marvin", tools=[roll_dice]) as ai:
     thread.add("actually roll five dice")
 
     thread.run(ai)
-    pprint_messages(thread.messages)
+    pprint_messages(thread.get_messages())
 ```
 This will print:
 <p align="center">
