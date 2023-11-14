@@ -1,5 +1,5 @@
 import asyncio
-from typing import Callable, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from openai.types.beta.threads import ThreadMessage as OpenAIMessage
 from openai.types.beta.threads.run import Run as OpenAIRun
@@ -21,6 +21,15 @@ logger = get_logger("Assistants")
 
 
 AssistantTools = list[Union[FunctionTool, RetrievalTool, CodeInterpreterTool, Tool]]
+
+
+class EndRun(Exception):
+    """
+    A special exception that can be raised in a tool to end the run.
+    """
+
+    def __init__(self, data: Any = None):
+        self.data = data
 
 
 class Thread(BaseModel, ExposeSyncMethodsMixin):
@@ -283,12 +292,19 @@ class Run(BaseModel):
             "Additional instructions to append to the assistant's instructions."
         ),
     )
-    tools: Optional[AssistantTools] = None
+    tools: Optional[AssistantTools] = Field(
+        None, description="Replacement tools to use for the run."
+    )
+    additional_tools: Optional[AssistantTools] = Field(
+        None,
+        description="Additional tools to append to the assistant's tools. ",
+    )
     run: OpenAIRun = None
     steps: list[OpenAIRunStep] = []
     messages: list[OpenAIMessage] = []
+    data: Any = None
 
-    @field_validator("tools", mode="before")
+    @field_validator("tools", "additional_tools", mode="before")
     def format_tools(cls, tools: Union[None, list[Union[Tool, Callable]]]):
         if tools is not None:
             return [
@@ -393,15 +409,21 @@ class Run(BaseModel):
             return
         if self.run.required_action.type == "submit_tool_outputs":
             tool_outputs = []
+
+            tools = self.assistant.tools if self.tools is None else self.tools
+            if self.additional_tools:
+                tools = tools + self.additional_tools
+
             for tool_call in self.run.required_action.submit_tool_outputs.tool_calls:
                 try:
                     output = marvin.utilities.tools.call_function_tool(
-                        tools=(
-                            self.assistant.tools if self.tools is None else self.tools
-                        ),
+                        tools=tools,
                         function_name=tool_call.function.name,
                         function_arguments_json=tool_call.function.arguments,
                     )
+                except EndRun as exc:
+                    logger.debug(f"Ending run with data: {exc.data}")
+                    raise
                 except Exception as exc:
                     output = f"Error calling function {tool_call.function.name}: {exc}"
                     logger.error(output)
@@ -421,7 +443,7 @@ class Run(BaseModel):
             create_kwargs["instructions"] = self.instructions
         if self.additional_instructions is not None:
             create_kwargs["instructions"] = (
-                create_kwargs.get("instructions", self.assistant.instructions)
+                create_kwargs.get("instructions", self.assistant.instructions or "")
                 + "\n\n"
                 + self.additional_instructions
             )
@@ -431,10 +453,18 @@ class Run(BaseModel):
             thread_id=self.thread.id, assistant_id=self.assistant.id, **create_kwargs
         )
 
-        while self.run.status in ("queued", "in_progress", "requires_action"):
-            if self.run.status == "requires_action":
-                await self._handle_step_requires_action()
-            await asyncio.sleep(0.1)
+        try:
+            while self.run.status in ("queued", "in_progress", "requires_action"):
+                if self.run.status == "requires_action":
+                    await self._handle_step_requires_action()
+                await asyncio.sleep(0.1)
+                await self.refresh()
+        except EndRun as exc:
+            logger.debug(f"`EndRun` raised; ending run with data: {exc.data}")
+            await client.beta.threads.runs.cancel(
+                run_id=self.run.id, thread_id=self.thread.id
+            )
+            self.data = exc.data
             await self.refresh()
 
         if self.run.status == "failed":
