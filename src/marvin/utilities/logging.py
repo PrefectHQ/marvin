@@ -52,8 +52,8 @@ def setup_logging(
     logger.propagate = False
 
 
-def add_logging_methods(logger):
-    def log_style(level: int, message: str, style: str = None):
+def add_logging_methods(logger: logging.Logger) -> None:
+    def log_style(level: int, message: str, style: Optional[str] = None):
         if not style:
             style = "default on default"
         message = f"[{style}]{escape(str(message))}[/]"
@@ -73,17 +73,17 @@ def add_logging_methods(logger):
             extra={"markup": True},
         )
 
-    logger.debug_style = partial(log_style, logging.DEBUG)
-    logger.info_style = partial(log_style, logging.INFO)
-    logger.warning_style = partial(log_style, logging.WARNING)
-    logger.error_style = partial(log_style, logging.ERROR)
-    logger.critical_style = partial(log_style, logging.CRITICAL)
+    setattr(logger, "debug_style", partial(log_style, logging.DEBUG))
+    setattr(logger, "info_style", partial(log_style, logging.INFO))
+    setattr(logger, "warning_style", partial(log_style, logging.WARNING))
+    setattr(logger, "error_style", partial(log_style, logging.ERROR))
+    setattr(logger, "critical_style", partial(log_style, logging.CRITICAL))
 
-    logger.debug_kv = partial(log_kv, logging.DEBUG)
-    logger.info_kv = partial(log_kv, logging.INFO)
-    logger.warning_kv = partial(log_kv, logging.WARNING)
-    logger.error_kv = partial(log_kv, logging.ERROR)
-    logger.critical_kv = partial(log_kv, logging.CRITICAL)
+    setattr(logger, "debug_kv", partial(log_kv, logging.DEBUG))
+    setattr(logger, "info_kv", partial(log_kv, logging.INFO))
+    setattr(logger, "warning_kv", partial(log_kv, logging.WARNING))
+    setattr(logger, "error_kv", partial(log_kv, logging.ERROR))
+    setattr(logger, "critical_kv", partial(log_kv, logging.CRITICAL))
 
 
 setup_logging(level=marvin.settings.log_level)
