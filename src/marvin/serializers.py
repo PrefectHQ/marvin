@@ -1,14 +1,24 @@
 from enum import Enum
-from importlib import metadata
 from types import GenericAlias
-from typing import Any, Callable, Literal, Union, get_args, get_origin
+from typing import (
+    Any,
+    Callable,
+    Literal,
+    Optional,
+    TypeVar,
+    Union,
+    get_args,
+    get_origin,
+)
 
 from pydantic import BaseModel, create_model
 from pydantic.fields import FieldInfo
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
 
 from marvin import settings
-from marvin.requests import Function, LogitBias, Tool
+from marvin.requests import Function, LogitBias, Tool, Grammar
+
+U = TypeVar("U", bound=BaseModel)
 
 
 class FunctionSchema(GenerateJsonSchema):
@@ -52,32 +62,34 @@ def create_tool_from_type(
     )
 
 
-def to_logit_bias(
-    _type: Union[GenericAlias, type, list[str]],
-    encoder: Callable[..., list[int]] = settings.openai.chat.completions.encoder,
-    _enumerate: bool = True,
-    **kwargs: Any,
-) -> LogitBias:
-    if get_origin(_type) == Literal:
-        return {
-            encoding: 100
-            for i, token in enumerate(get_args(_type))
-            for encoding in encoder(str(i) if _enumerate else token)
-        }
-    elif isinstance(_type, type) and issubclass(_type, Enum):
-        return {
-            encoding: 100
-            for i, token in enumerate(list(_type.__members__.keys()))
-            for encoding in encoder(str(i) if _enumerate else token)
-        }
-    elif isinstance(_type, list) and next(iter(get_args(list[str])), None) == str:
-        return {
-            encoding: 100
-            for i, token in enumerate(_type)
-            for encoding in encoder(str(i) if _enumerate else token)
-        }
+def create_vocabulary_from_type(
+    vocabulary: Union[GenericAlias, type, list[str]],
+) -> list[str]:
+    if get_origin(vocabulary) == Literal:
+        return [str(token) for token in get_args(vocabulary)]
+    elif isinstance(vocabulary, type) and issubclass(vocabulary, Enum):
+        return [str(token) for token in list(vocabulary.__members__.keys())]
+    elif isinstance(vocabulary, list) and next(iter(get_args(list[str])), None) == str:
+        return [str(token) for token in vocabulary]
     else:
         raise TypeError(
-            f"Expected Literal or Enum or list[str], got {type(_type)} with value"
-            f" {_type}"
+            f"Expected Literal or Enum or list[str], got {type(vocabulary)} with value"
+            f" {vocabulary}"
         )
+
+
+def create_grammar_from_vocabulary(
+    vocabulary: list[str],
+    encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+    max_tokens: Optional[int] = None,
+    _enumerate: bool = True,
+    **kwargs: Any,
+) -> Grammar:
+    return Grammar(
+        max_tokens=max_tokens,
+        logit_bias={
+            str(encoding): 100
+            for i, token in enumerate(vocabulary)
+            for encoding in encoder(str(i) if _enumerate else token)
+        },
+    )

@@ -1,5 +1,5 @@
 import inspect
-from functools import partial
+from functools import partial, wraps
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -11,12 +11,13 @@ from typing import (
     Union,
     overload,
 )
-from functools import wraps
+
 from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec, Self
 
-from marvin.components.prompt_function import Prompt
+from marvin.components.prompt_function import PromptFn
 from marvin.serializers import create_tool_from_type
+from marvin.settings import settings
 from marvin.utilities.jinja import (
     BaseEnvironment,
 )
@@ -29,7 +30,7 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
-class AIFunction(BaseModel, Generic[P, T]):
+class AIClassifier(BaseModel, Generic[P, T]):
     fn: Optional[Callable[P, T]] = None
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = Field(default=inspect.cleandoc("""
@@ -48,57 +49,56 @@ class AIFunction(BaseModel, Generic[P, T]):
 
         What is its output?
     """))
-    name: str = "FormatResponse"
-    description: str = "Formats the response."
-    field_name: str = "data"
-    field_description: str = "The data to format."
+    enumerate: bool = True
+    encoder: Callable[[str], list[int]] = Field(default=None)
+    max_tokens: Optional[int] = 1
     render_kwargs: dict[str, Any] = Field(default_factory=dict)
 
     create: Optional[Callable[..., "ChatCompletion"]] = Field(default=None)
 
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
-        create = self.create
-        if self.fn is None:
-            raise NotImplementedError
-        if create is None:
-            from marvin.settings import settings
+    # def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
+    #     create = self.create
+    #     if self.fn is None:
+    #         raise NotImplementedError
+    #     if create is None:
+    #         from marvin.settings import settings
 
-            create = settings.openai.chat.completions.create
-        return self.parse(create(**self.as_prompt(*args, **kwargs).serialize()))
+    #         create = settings.openai.chat.completions.create
+    #     return self.parse(create(**self.as_prompt(*args, **kwargs).serialize()))
 
     def parse(self, response: "ChatCompletion") -> T:
-        tool_calls = response.choices[0].message.tool_calls
-        if tool_calls is None:
-            raise NotImplementedError
-        if self.fn is None:
-            raise NotImplementedError
-        arguments = tool_calls[0].function.arguments
+        return "whoops"
+        # tool_calls = response.choices[0].message.tool_calls
+        # if tool_calls is None:
+        #     raise NotImplementedError
+        # if self.fn is None:
+        #     raise NotImplementedError
+        # arguments = tool_calls[0].function.arguments
 
-        tool = create_tool_from_type(
-            _type=inspect.signature(self.fn).return_annotation,
-            model_name=self.name,
-            model_description=self.description,
-            field_name=self.field_name,
-            field_description=self.field_description,
-        ).function.model
-        if not tool:
-            raise NotImplementedError
+        # tool = create_tool_from_type(
+        #     _type=self.fn.__annotations__["return"],
+        #     model_name=self.name,
+        #     model_description=self.description,
+        #     field_name=self.field_name,
+        #     field_description=self.field_description,
+        # ).function.model
+        # if not tool:
+        #     raise NotImplementedError
 
-        return getattr(tool.model_validate_json(arguments), self.field_name)
+        # return getattr(tool.model_validate_json(arguments), self.field_name)
 
     def as_prompt(
         self,
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> Prompt[BaseModel]:
-        return Prompt[BaseModel].as_decorator(
+    ) -> PromptFn[BaseModel]:
+        return PromptFn[BaseModel].as_grammar(
             fn=self.fn,
             environment=self.environment,
             prompt=self.prompt,
-            model_name=self.name,
-            model_description=self.description,
-            field_name=self.field_name,
-            field_description=self.field_description,
+            enumerate=self.enumerate,
+            encoder=self.encoder,
+            max_tokens=self.max_tokens,
             **self.render_kwargs,
         )(*args, **kwargs)
 
@@ -109,10 +109,9 @@ class AIFunction(BaseModel, Generic[P, T]):
         *,
         environment: Optional[BaseEnvironment] = None,
         prompt: Optional[str] = None,
-        model_name: str = "FormatResponse",
-        model_description: str = "Formats the response.",
-        field_name: str = "data",
-        field_description: str = "The data to format.",
+        enumerate: bool = True,
+        encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+        max_tokens: Optional[int] = 1,
         acreate: Optional[Callable[..., Awaitable[Any]]] = None,
         **render_kwargs: Any,
     ) -> Callable[P, Self]:
@@ -126,10 +125,9 @@ class AIFunction(BaseModel, Generic[P, T]):
         *,
         environment: Optional[BaseEnvironment] = None,
         prompt: Optional[str] = None,
-        model_name: str = "FormatResponse",
-        model_description: str = "Formats the response.",
-        field_name: str = "data",
-        field_description: str = "The data to format.",
+        enumerate: bool = True,
+        encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+        max_tokens: Optional[int] = 1,
         acreate: Optional[Callable[..., Awaitable[Any]]] = None,
         **render_kwargs: Any,
     ) -> Self:
@@ -142,10 +140,9 @@ class AIFunction(BaseModel, Generic[P, T]):
         *,
         environment: Optional[BaseEnvironment] = None,
         prompt: Optional[str] = None,
-        model_name: str = "FormatResponse",
-        model_description: str = "Formats the response.",
-        field_name: str = "data",
-        field_description: str = "The data to format.",
+        enumerate: bool = True,
+        encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+        max_tokens: Optional[int] = 1,
         acreate: Optional[Callable[..., Awaitable[Any]]] = None,
         **render_kwargs: Any,
     ) -> Union[Self, Callable[[Callable[P, T]], Self]]:
@@ -154,10 +151,9 @@ class AIFunction(BaseModel, Generic[P, T]):
                 cls,
                 environment=environment,
                 prompt=prompt,
-                model_name=model_name,
-                model_description=model_description,
-                field_name=field_name,
-                field_description=field_description,
+                enumerate=enumerate,
+                encoder=encoder,
+                max_tokens=max_tokens,
                 acreate=acreate,
                 **({"prompt": prompt} if prompt else {}),
                 **render_kwargs,
@@ -166,17 +162,16 @@ class AIFunction(BaseModel, Generic[P, T]):
         return cls(
             fn=fn,
             environment=environment,
-            name=model_name,
-            description=model_description,
-            field_name=field_name,
-            field_description=field_description,
+            enumerate=enumerate,
+            encoder=encoder,
+            max_tokens=max_tokens,
             **({"prompt": prompt} if prompt else {}),
             **render_kwargs,
         )
 
 
 @overload
-def ai_fn(
+def ai_classifier(
     *,
     environment: Optional[BaseEnvironment] = None,
     prompt: Optional[str] = None,
@@ -190,7 +185,7 @@ def ai_fn(
 
 
 @overload
-def ai_fn(
+def ai_classifier(
     fn: Callable[P, T],
     *,
     environment: Optional[BaseEnvironment] = None,
@@ -204,7 +199,7 @@ def ai_fn(
     pass
 
 
-def ai_fn(
+def ai_classifier(
     fn: Optional[Callable[P, T]] = None,
     *,
     environment: Optional[BaseEnvironment] = None,
@@ -219,7 +214,7 @@ def ai_fn(
     Callable[P, T],
 ]:
     def wrapper(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
-        return AIFunction[P, T].as_decorator(
+        return AIClassifier[P, T].as_decorator(
             func,
             environment=environment,
             prompt=prompt,
@@ -237,14 +232,3 @@ def ai_fn(
         return wraps(fn)(partial(wrapper, fn))
 
     return decorator
-
-
-@ai_fn
-def list_fruits(n: int = 10) -> list[str]:  # type: ignore[return]
-    """Returns a list of fruits."""
-
-
-def list_vegetables(n: int = 10) -> list[str]:
-    """Returns a list of vegetables."""
-    result = ai_fn(list_vegetables)(n)
-    return result

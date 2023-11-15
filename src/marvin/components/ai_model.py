@@ -1,3 +1,4 @@
+import inspect
 from functools import partial
 from typing import Any, Callable, Optional, TypeVar, Union, overload
 
@@ -5,7 +6,6 @@ from marvin.components.ai_function import ai_fn
 from marvin.utilities.jinja import (
     BaseEnvironment,
 )
-import inspect
 
 T = TypeVar("T")
 

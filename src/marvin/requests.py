@@ -12,7 +12,7 @@ class ResponseFormat(BaseModel):
     type: str
 
 
-LogitBias = dict[int, float]
+LogitBias = dict[str, float]
 
 
 class Function(BaseModel, Generic[T]):
@@ -32,6 +32,11 @@ class Tool(BaseModel, Generic[T]):
     function: Function[T]
 
 
+class ToolSet(BaseModel, Generic[T]):
+    tools: Optional[list[Tool[T]]] = None
+    tool_choice: Optional[Union[Literal["auto"], dict[str, Any]]] = None
+
+
 class FunctionCall(BaseModel):
     name: str
 
@@ -41,12 +46,14 @@ class BaseMessage(BaseModel):
     role: str
 
 
-class Prompt(BaseModel, Generic[T]):
-    messages: list[BaseMessage] = Field(default_factory=list)
-    tools: Optional[list[Tool[T]]] = None
-    tool_choice: Optional[Union[Literal["auto"], dict[str, Any]]] = None
+class Grammar(BaseModel):
     logit_bias: Optional[LogitBias] = None
     max_tokens: Optional[Annotated[int, Field(strict=True, ge=1)]] = None
+    response_format: Optional[ResponseFormat] = None
+
+
+class Prompt(Grammar, ToolSet[T], Generic[T]):
+    messages: list[BaseMessage] = Field(default_factory=list)
 
 
 class ResponseModel(BaseModel):
@@ -64,7 +71,6 @@ class ChatRequest(Prompt[T]):
     presence_penalty: Optional[
         Annotated[float, Field(strict=True, ge=-2.0, le=2.0)]
     ] = 0
-    response_format: Optional[ResponseFormat] = None
     seed: Optional[int] = None
     stop: Optional[Union[str, list[str]]] = None
     stream: Optional[bool] = False

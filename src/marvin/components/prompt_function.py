@@ -1,6 +1,7 @@
 import inspect
 import re
 from functools import partial, wraps
+from types import GenericAlias
 from typing import (
     Any,
     Callable,
@@ -17,8 +18,13 @@ import pydantic
 from pydantic import BaseModel
 
 from marvin.requests import BaseMessage as Message
-from marvin.requests import Tool
-from marvin.serializers import create_tool_from_type
+from marvin.requests import Prompt
+from marvin.serializers import (
+    create_grammar_from_vocabulary,
+    create_tool_from_type,
+    create_vocabulary_from_type,
+)
+from marvin.settings import settings
 from marvin.utilities.jinja import (
     BaseEnvironment,
     Transcript,
@@ -29,27 +35,99 @@ T = TypeVar("T")
 U = TypeVar("U", bound=BaseModel)
 
 
-class Prompt(pydantic.BaseModel, Generic[U]):
-    messages: list[Message]
-    tools: Optional[list[Tool[U]]] = pydantic.Field(default=None)
-    tool_choice: Optional[dict[str, Any]] = pydantic.Field(default=None)
-    logit_bias: Optional[dict[int, float]] = pydantic.Field(default=None)
-    max_tokens: Optional[int] = pydantic.Field(default=None)
+class PromptFn(Prompt[U]):
+    messages: list[Message] = pydantic.Field(default_factory=list)
 
     def serialize(self) -> dict[str, Any]:
-        return self.model_dump(exclude_unset=True)
-
-
-class PromptFn(Prompt[U]):
-    messages: list[Message]
-    tools: Optional[list[Tool[U]]] = pydantic.Field(default=None)
-    tool_choice: Optional[dict[str, Any]] = pydantic.Field(default=None)
-    logit_bias: Optional[dict[int, float]] = pydantic.Field(default=None)
-    max_tokens: Optional[int] = pydantic.Field(default=None)
+        return self.model_dump(exclude_unset=True, exclude_none=True)
 
     @overload
     @classmethod
-    def as_decorator(
+    def as_grammar(
+        cls: type[Self],
+        *,
+        environment: Optional[BaseEnvironment] = None,
+        prompt: Optional[str] = None,
+        enumerate: bool = True,
+        encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+        max_tokens: Optional[int] = 1,
+    ) -> Callable[[Callable[P, Any]], Callable[P, Self]]:
+        pass
+
+    @overload
+    @classmethod
+    def as_grammar(
+        cls: type[Self],
+        fn: Optional[Callable[P, Any]] = None,
+        *,
+        environment: Optional[BaseEnvironment] = None,
+        prompt: Optional[str] = None,
+        enumerate: bool = True,
+        encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+        max_tokens: Optional[int] = 1,
+    ) -> Callable[P, Self]:
+        pass
+
+    @classmethod
+    def as_grammar(
+        cls: type[Self],
+        fn: Optional[Callable[P, Any]] = None,
+        *,
+        environment: Optional[BaseEnvironment] = None,
+        prompt: Optional[str] = None,
+        enumerate: bool = True,
+        encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+        max_tokens: Optional[int] = 1,
+        **kwargs: Any,
+    ) -> Union[
+        Callable[[Callable[P, Any]], Callable[P, Self]],
+        Callable[P, Self],
+    ]:
+        def wrapper(func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> Self:
+            # Get the signature of the function
+            signature = inspect.signature(func)
+            params = signature.bind(*args, **kwargs)
+            params.apply_defaults()
+
+            vocabulary = create_vocabulary_from_type(
+                inspect.signature(func).return_annotation
+            )
+
+            grammar = create_grammar_from_vocabulary(
+                vocabulary=vocabulary,
+                encoder=encoder,
+                _enumerate=enumerate,
+                max_tokens=max_tokens,
+            )
+
+            messages = Transcript(
+                content=prompt or func.__doc__ or ""
+            ).render_to_messages(
+                **kwargs,
+                **params.arguments,
+                _arguments=params.arguments,
+                _options=vocabulary,
+                _source_code=(
+                    "\ndef" + "def".join(re.split("def", inspect.getsource(func))[1:])
+                ),
+            )
+
+            return cls(
+                messages=messages,
+                **grammar.model_dump(exclude_unset=True, exclude_none=True),
+            )
+
+        if fn is not None:
+            return wraps(fn)(partial(wrapper, fn))
+
+        def decorator(fn: Callable[P, Any]) -> Callable[P, Self]:
+            return wraps(fn)(partial(wrapper, fn))
+
+        return decorator
+
+    @overload
+    @classmethod
+    def as_function_call(
         cls: type[Self],
         *,
         environment: Optional[BaseEnvironment] = None,
@@ -63,7 +141,7 @@ class PromptFn(Prompt[U]):
 
     @overload
     @classmethod
-    def as_decorator(
+    def as_function_call(
         cls: type[Self],
         fn: Optional[Callable[P, Any]] = None,
         *,
@@ -77,7 +155,7 @@ class PromptFn(Prompt[U]):
         pass
 
     @classmethod
-    def as_decorator(
+    def as_function_call(
         cls: type[Self],
         fn: Optional[Callable[P, Any]] = None,
         *,
@@ -93,6 +171,11 @@ class PromptFn(Prompt[U]):
         Callable[P, Self],
     ]:
         def wrapper(func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> Self:
+            # Get the signature of the function
+            signature = inspect.signature(func)
+            params = signature.bind(*args, **kwargs)
+            params.apply_defaults()
+
             tool = create_tool_from_type(
                 _type=inspect.signature(func).return_annotation,
                 model_name=model_name,
@@ -101,22 +184,20 @@ class PromptFn(Prompt[U]):
                 field_description=field_description,
             )
 
-            signature = inspect.signature(func)
-            params = signature.bind(*args, **kwargs)
-            params.apply_defaults()
-            return cls(
-                messages=Transcript(
-                    content=prompt or func.__doc__ or ""
-                ).render_to_messages(
-                    **kwargs,
-                    **params.arguments,
-                    _arguments=params.arguments,
-                    _response_model=tool,
-                    _source_code=(
-                        "\ndef"
-                        + "def".join(re.split("def", inspect.getsource(func))[1:])
-                    ),
+            messages = Transcript(
+                content=prompt or func.__doc__ or ""
+            ).render_to_messages(
+                **kwargs,
+                **params.arguments,
+                _arguments=params.arguments,
+                _response_model=tool,
+                _source_code=(
+                    "\ndef" + "def".join(re.split("def", inspect.getsource(func))[1:])
                 ),
+            )
+
+            return cls(
+                messages=messages,
                 tool_choice={
                     "type": "function",
                     "function": {"name": tool.function.name},
@@ -150,7 +231,7 @@ def prompt_fn(
     def wrapper(
         func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs
     ) -> dict[str, Any]:
-        return PromptFn.as_decorator(
+        return PromptFn.as_function_call(
             fn=func,
             environment=environment,
             prompt=prompt,
