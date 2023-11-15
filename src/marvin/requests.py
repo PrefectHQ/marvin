@@ -20,7 +20,7 @@ class Function(BaseModel, Generic[T]):
     description: Optional[str]
     parameters: dict[str, Any]
 
-    model: Optional[type[T]] = Field(exclude=True, repr=False)
+    model: Optional[type[T]] = Field(default=None, exclude=True, repr=False)
     python_fn: Optional[Callable[..., Any]] = Field(
         default=None,
         description="Private field that holds the executable function, if available",
