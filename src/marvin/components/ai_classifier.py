@@ -21,7 +21,7 @@ from typing import (
 from pydantic import BaseModel, Field, TypeAdapter
 from typing_extensions import ParamSpec, Self
 
-from marvin.components.prompt_function import PromptFn
+from marvin.components.prompt import PromptFunction
 from marvin.serializers import create_vocabulary_from_type
 from marvin.settings import settings
 from marvin.utilities.jinja import (
@@ -98,8 +98,8 @@ class AIClassifier(BaseModel, Generic[P, T]):
         self,
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> PromptFn[BaseModel]:
-        return PromptFn[BaseModel].as_grammar(
+    ) -> PromptFunction[BaseModel]:
+        return PromptFunction[BaseModel].as_grammar(
             fn=self.fn,
             environment=self.environment,
             prompt=self.prompt,

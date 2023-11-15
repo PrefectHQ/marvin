@@ -16,7 +16,7 @@ from typing import (
 from pydantic import BaseModel, Field, ValidationError
 from typing_extensions import ParamSpec, Self
 
-from marvin.components.prompt_function import PromptFn
+from marvin.components.prompt import PromptFunction
 from marvin.serializers import create_tool_from_type
 from marvin.utilities.jinja import (
     BaseEnvironment,
@@ -98,8 +98,8 @@ class AIFunction(BaseModel, Generic[P, T]):
         self,
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> PromptFn[BaseModel]:
-        return PromptFn[BaseModel].as_function_call(
+    ) -> PromptFunction[BaseModel]:
+        return PromptFunction[BaseModel].as_function_call(
             fn=self.fn,
             environment=self.environment,
             prompt=self.prompt,

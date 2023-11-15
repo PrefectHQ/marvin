@@ -33,7 +33,7 @@ T = TypeVar("T")
 U = TypeVar("U", bound=BaseModel)
 
 
-class PromptFn(Prompt[U]):
+class PromptFunction(Prompt[U]):
     messages: list[Message] = pydantic.Field(default_factory=list)
 
     def serialize(self) -> dict[str, Any]:
@@ -223,7 +223,7 @@ def prompt_fn(
     def wrapper(
         func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs
     ) -> dict[str, Any]:
-        return PromptFn.as_function_call(
+        return PromptFunction.as_function_call(
             fn=func,
             environment=environment,
             prompt=prompt,
