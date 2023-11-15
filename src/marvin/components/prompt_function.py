@@ -102,6 +102,7 @@ class PromptFn(Prompt[U]):
                 **params.arguments,
                 _arguments=params.arguments,
                 _options=vocabulary,
+                _doc=func.__doc__,
                 _source_code=(
                     "\ndef" + "def".join(re.split("def", inspect.getsource(func))[1:])
                 ),
@@ -175,12 +176,12 @@ class PromptFn(Prompt[U]):
                 field_name=field_name,
                 field_description=field_description,
             )
-
             messages = Transcript(
                 content=prompt or func.__doc__ or ""
             ).render_to_messages(
                 **kwargs,
                 **params.arguments,
+                _doc=func.__doc__,
                 _arguments=params.arguments,
                 _response_model=tool,
                 _source_code=(
