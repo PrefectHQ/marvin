@@ -52,6 +52,13 @@ class ChatSettings(MarvinSettings):
     completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
 
 
+class AssistantSettings(MarvinSettings):
+    model: str = Field(
+        default="gpt-4-1106-preview",
+        description="The default assistant model to use.",
+    )
+
+
 class OpenAISettings(MarvinSettings):
     model_config = SettingsConfigDict(env_prefix="marvin_openai_")
 
@@ -66,6 +73,7 @@ class OpenAISettings(MarvinSettings):
     )
 
     chat: ChatSettings = Field(default_factory=ChatSettings)
+    assistants: AssistantSettings = Field(default_factory=AssistantSettings)
 
     @property
     def async_client(
