@@ -16,7 +16,7 @@ from pydantic.fields import FieldInfo
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
 
 from marvin import settings
-from marvin.requests import Function, LogitBias, Tool, Grammar
+from marvin.requests import Function, Grammar, Tool
 
 U = TypeVar("U", bound=BaseModel)
 
