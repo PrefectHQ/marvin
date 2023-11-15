@@ -1,0 +1,48 @@
+import json
+
+from marvin.requests import FunctionTool, Tool
+from marvin.utilities.logging import get_logger
+from marvin.utilities.pydantic import cast_callable_to_model
+
+logger = get_logger("Tools")
+
+
+def tool_from_function(fn: callable, name: str = None, description: str = None):
+    model = cast_callable_to_model(fn)
+    return FunctionTool(
+        type="function",
+        function=dict(
+            name=name or fn.__name__,
+            description=description or fn.__doc__,
+            # use deprecated schema because this is based on a pydantic v1
+            # validate_arguments
+            parameters=model.schema(),
+            python_fn=fn,
+        ),
+    )
+
+
+def call_function_tool(
+    tools: list[Tool], function_name: str, function_arguments_json: str
+):
+    tool = next(
+        (
+            tool
+            for tool in tools
+            if isinstance(tool, FunctionTool) and tool.function.name == function_name
+        ),
+        None,
+    )
+    if not tool:
+        raise ValueError(f"Could not find function '{function_name}'")
+
+    arguments = json.loads(function_arguments_json)
+    logger.debug(f"Calling {tool.function.name} with arguments: {arguments}")
+    output = tool.function.python_fn(**arguments)
+    truncated_output = str(output)[:100]
+    if len(truncated_output) < len(str(output)):
+        truncated_output += "..."
+    logger.debug(f"{tool.function.name} returned: {truncated_output}")
+    if not isinstance(output, str):
+        output = json.dumps(output)
+    return output

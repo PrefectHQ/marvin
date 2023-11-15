@@ -1,13 +1,10 @@
-import asyncio
-import json
-from typing import Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
-from openai.types.beta.threads import ThreadMessage as OpenAIMessage
-from openai.types.beta.threads.run import Run as OpenAIRun
-from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
 from pydantic import BaseModel, Field, field_validator
 
-from marvin.beta.assistants.types import Tool
+import marvin.utilities.tools
+from marvin.requests import Tool
+from marvin.tools.assistants import AssistantTools
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -15,175 +12,62 @@ from marvin.utilities.asyncio import (
 )
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_client
-from marvin.utilities.pydantic import parse_as
 
-logger = get_logger("Assistant")
+from .threads import Thread
+
+if TYPE_CHECKING:
+    from .runs import Run
+
+logger = get_logger("Assistants")
 
 
-class Thread(BaseModel, ExposeSyncMethodsMixin):
+class Assistant(BaseModel, ExposeSyncMethodsMixin):
     id: Optional[str] = None
-    metadata: dict = {}
-    messages: list[OpenAIMessage] = []
+    name: str = "Assistant"
+    model: str = "gpt-4-1106-preview"
+    instructions: Optional[str] = Field(None, repr=False)
+    tools: AssistantTools = []
+    file_ids: list[str] = []
+    metadata: dict[str, str] = {}
 
-    def __enter__(self):
-        self.create()
-        return self
+    default_thread: Thread = Field(
+        default_factory=Thread,
+        repr=False,
+        description="A default thread for the assistant.",
+    )
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.delete()
-        # If an exception has occurred, you might want to handle it or pass it through
-        # Returning False here will re-raise any exception that occurred in the context
-        return False
-
-    @expose_sync_method("create")
-    async def create_async(self, messages: list[str] = None):
-        """
-        Creates a thread.
-        """
-        if self.id is not None:
-            raise ValueError("Thread has already been created.")
-        if messages is not None:
-            messages = [{"role": "user", "content": message} for message in messages]
-        client = get_client()
-        response = await client.beta.threads.create(messages=messages)
-        self.id = response.id
-        return self
-
-    @expose_sync_method("add")
-    async def add_async(self, message: str) -> OpenAIMessage:
-        """
-        Add a user message to the thread.
-        """
-        client = get_client()
-
-        if self.id is None:
-            await self.create_async()
-        response = await client.beta.threads.messages.create(
-            thread_id=self.id, role="user", content=message
-        )
-        return OpenAIMessage.model_validate(response.model_dump())
-
-    @expose_sync_method("refresh_messages")
-    async def refresh_messages_async(
-        self,
-        limit: int = None,
-        before_message: Optional[str] = None,
-        after_message: Optional[str] = None,
-    ) -> list[OpenAIMessage]:
-        """
-        Refresh the messages in the thread.
-
-        Stores the updated messages list on the Thread and returns any new
-        messages.
-        """
-        if limit is None:
-            limit = 20
-        if after_message is None and self.messages:
-            after_message = self.messages[-1].id
-
-        if self.id is None:
-            await self.create_async()
-        client = get_client()
-        response = await client.beta.threads.messages.list(
-            thread_id=self.id,
-            # note that because messages are returned in descending order,
-            # we reverse "before" and "after" to the API
-            before=after_message,
-            after=before_message,
-            limit=limit,
-        )
-        messages = parse_as(list[OpenAIMessage], response.model_dump()["data"])
-
-        # combine messages with existing messages
-        # in ascending order
-        current_messages = {m.id for m in self.messages}
-        all_messages = list(
-            sorted(self.messages + messages, key=lambda m: m.created_at)
-        )
-
-        # ensure messages are unique
-        all_messages = {m.id: m for m in all_messages}.values()
-
-        # keep the last 100 messages locally
-        self.messages = list(all_messages)[-100:]
-
-        # return the new messages
-        return [m for m in reversed(messages) if m.id not in current_messages]
-
-    @expose_sync_method("delete")
-    async def delete_async(self):
-        client = get_client()
-        await client.beta.threads.delete(thread_id=self.id)
-        self.id = None
-
-    @expose_sync_method("run")
-    async def run_async(
-        self,
-        assistant: "Assistant",
-        instructions: str = None,
-        additional_instructions: str = None,
-    ) -> "Run":
-        """
-        Creates and returns a `Run` of this thread with the provided assistant.
-
-        Arguments:
-            assistant: The assistant to run.
-            instructions: Replacement instructions to use for the assistant.
-            additional_instructions: Additional instructions to append to the
-            assistant's instructions.
-        """
-        if self.id is None:
-            await self.create_async()
-
-        return await Run(
-            assistant=assistant,
-            thread=self,
-            instructions=instructions,
-            additional_instructions=additional_instructions,
-        ).run_async()
+    def clear_default_thread(self):
+        self.default_thread = Thread()
 
     @expose_sync_method("say")
     async def say_async(
         self,
         message: str,
-        assistant: "Assistant",
-        instructions: str = None,
-        additional_instructions: str = None,
-    ) -> list[OpenAIMessage]:
+        file_paths: Optional[list[str]] = None,
+        **run_kwargs,
+    ) -> "Run":
         """
-        A convenience method for adding a user message, running an assistant,
-        and returning the assistant's messages.
-
-        Arguments:
-            message: The message to send to the assistant.
-            assistant: The assistant to run.
-            instructions: Replacement instructions to use for the assistant.
-            additional_instructions: Additional instructions to append to the
-                assistant's instructions.
+        A convenience method for adding a user message to the assistant's
+        default thread, running the assistant, and returning the assistant's
+        messages.
         """
         if message:
-            await self.add_async(message)
-        run = await self.run_async(
-            assistant=assistant,
-            instructions=instructions,
-            additional_instructions=additional_instructions,
+            await self.default_thread.add_async(message, file_paths=file_paths)
+
+        run = await self.default_thread.run_async(
+            assistant=self,
+            **run_kwargs,
         )
-        return run.messages
+        return run
 
-
-class Assistant(BaseModel, ExposeSyncMethodsMixin):
-    id: Optional[str] = None
-    name: str
-    model: str = "gpt-4-1106-preview"
-    instructions: Optional[str] = None
-    tools: list[Tool] = []
-    file_ids: list[str] = []
-    metadata: dict[str, str] = {}
-
-    @field_validator("tools")
+    @field_validator("tools", mode="before")
     def format_tools(cls, tools: list[Union[Tool, Callable]]):
         return [
-            tool if isinstance(tool, Tool) else Tool.from_function(tool)
+            (
+                tool
+                if isinstance(tool, Tool)
+                else marvin.utilities.tools.tool_from_function(tool)
+            )
             for tool in tools
         ]
 
@@ -203,15 +87,18 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             raise ValueError("Assistant has already been created.")
         client = get_client()
         response = await client.beta.assistants.create(
-            **self.model_dump(exclude={"id"}),
+            **self.model_dump(exclude={"id", "default_thread"}),
         )
         self.id = response.id
+        self.clear_default_thread()
 
     @expose_sync_method("delete")
     async def delete_async(self):
-        if self.id:
-            client = get_client()
-            await client.beta.assistants.delete(assistant_id=self.id)
+        if not self.id:
+            raise ValueError("Assistant has not been created.")
+        client = get_client()
+        await client.beta.assistants.delete(assistant_id=self.id)
+        self.id = None
 
     @classmethod
     def load(cls, assistant_id: str):

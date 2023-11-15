@@ -1,5 +1,5 @@
 from types import FunctionType, GenericAlias
-from typing import Annotated, Any, Callable, Optional, Union, cast, get_origin, TypeVar
+from typing import Annotated, Any, Callable, Optional, Union, cast, get_origin
 
 from pydantic import BaseModel, TypeAdapter, create_model
 from pydantic.v1 import validate_arguments

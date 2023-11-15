@@ -1,14 +1,11 @@
 import inspect
 import re
 from functools import partial, wraps
-from types import GenericAlias
 from typing import (
     Any,
     Callable,
-    Generic,
     Optional,
     ParamSpec,
-    Self,
     TypeVar,
     Union,
     overload,
@@ -16,7 +13,9 @@ from typing import (
 
 import pydantic
 from pydantic import BaseModel
+from typing_extensions import Self
 
+from marvin import settings
 from marvin.requests import BaseMessage as Message
 from marvin.requests import Prompt
 from marvin.serializers import (
@@ -24,7 +23,6 @@ from marvin.serializers import (
     create_tool_from_type,
     create_vocabulary_from_type,
 )
-from marvin.settings import settings
 from marvin.utilities.jinja import (
     BaseEnvironment,
     Transcript,

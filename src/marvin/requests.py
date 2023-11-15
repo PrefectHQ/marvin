@@ -1,4 +1,4 @@
-from typing import Any, Generic, Literal, Optional, TypeVar, Union
+from typing import Any, Callable, Generic, Literal, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated, Self
@@ -19,7 +19,13 @@ class Function(BaseModel, Generic[T]):
     name: str
     description: Optional[str]
     parameters: dict[str, Any]
+
     model: Optional[type[T]] = Field(exclude=True, repr=False)
+    python_fn: Callable[..., Any] = Field(
+        None,
+        description="Private field that holds the executable function, if available",
+        exclude=True,
+    )
 
     def validate_json(self: Self, json_data: str | bytes | bytearray) -> T:
         if self.model is None:
@@ -35,6 +41,19 @@ class Tool(BaseModel, Generic[T]):
 class ToolSet(BaseModel, Generic[T]):
     tools: Optional[list[Tool[T]]] = None
     tool_choice: Optional[Union[Literal["auto"], dict[str, Any]]] = None
+
+
+class FunctionTool(Tool[T]):
+    type: str = Field(default="function")
+    function: Function[T]
+
+
+class RetrievalTool(Tool[T]):
+    type: str = Field(default="retrieval")
+
+
+class CodeInterpreterTool(Tool[T]):
+    type: str = Field(default="code_interpreter")
 
 
 class FunctionCall(BaseModel):
