@@ -88,10 +88,7 @@ class PromptFn(Prompt[U]):
         field_name: str = "data",
         field_description: str = "The data to format.",
         **kwargs: Any,
-    ) -> Union[
-        Callable[[Callable[P, Any]], Callable[P, Self]],
-        Callable[P, Self],
-    ]:
+    ) -> Union[Callable[[Callable[P, Any]], Callable[P, Self]], Callable[P, Self],]:
         def wrapper(func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> Self:
             tool = create_tool_from_type(
                 _type=inspect.signature(func).return_annotation,
