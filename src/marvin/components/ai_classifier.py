@@ -1,21 +1,28 @@
 import inspect
+from enum import Enum
 from functools import partial, wraps
+from types import GenericAlias
 from typing import (
     TYPE_CHECKING,
     Any,
     Awaitable,
     Callable,
     Generic,
+    Literal,
     Optional,
     TypeVar,
     Union,
+    cast,
+    get_args,
+    get_origin,
     overload,
 )
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, TypeAdapter
 from typing_extensions import ParamSpec, Self
 
 from marvin.components.prompt_function import PromptFn
+from marvin.serializers import create_vocabulary_from_type
 from marvin.settings import settings
 from marvin.utilities.jinja import (
     BaseEnvironment,
@@ -24,7 +31,7 @@ from marvin.utilities.jinja import (
 if TYPE_CHECKING:
     from openai.types.chat import ChatCompletion
 
-T = TypeVar("T")
+T = TypeVar("T", bound=Union[GenericAlias, type, list[str]])
 
 P = ParamSpec("P")
 
@@ -33,20 +40,13 @@ class AIClassifier(BaseModel, Generic[P, T]):
     fn: Optional[Callable[P, T]] = None
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = Field(default=inspect.cleandoc("""
-        Your job is to generate likely outputs for a Python function with the
-        following signature and docstring:
-
-        {{_source_code}}
-
-        The user will provide function inputs (if any) and you must respond with
-        the most likely result, which must be valid, double-quoted JSON.
-
-        user: The function was called with the following inputs:
-        {%for (arg, value) in _arguments.items()%}
-        - {{ arg }}: {{ value }}
-        {% endfor %}
-
-        What is its output?
+        You are an expert classifier that always choose correctly. 
+        - {{_doc}} 
+        - You must classify `{{text}}` into one of the following classes:
+        {% for option in _options %}
+            Class {{ loop.index - 1}} (value: {{ option }})
+        {% endfor %}    
+        ASSISTANT: The correct class label is Class                                                                                                                                                          
     """))
     enumerate: bool = True
     encoder: Callable[[str], list[int]] = Field(default=None)
@@ -55,7 +55,7 @@ class AIClassifier(BaseModel, Generic[P, T]):
 
     create: Optional[Callable[..., "ChatCompletion"]] = Field(default=None)
 
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> list[T]:
         create = self.create
         if self.fn is None:
             raise NotImplementedError
@@ -65,8 +65,32 @@ class AIClassifier(BaseModel, Generic[P, T]):
             create = settings.openai.chat.completions.create
         return self.parse(create(**self.as_prompt(*args, **kwargs).serialize()))
 
-    def parse(self, response: "ChatCompletion") -> T:
-        pass
+    def parse(self, response: "ChatCompletion") -> list[T]:
+        if not response.choices[0].message.content:
+            raise ValueError(
+                f"Expected a response, got {response.choices[0].message.content}"
+            )
+        _response: list[int] = [
+            int(index) for index in list(response.choices[0].message.content)
+        ]
+        _return: T = cast(T, self.fn.__annotations__.get("return"))
+        _vocabulary: list[str] = create_vocabulary_from_type(_return)
+        if isinstance(_return, list) and next(iter(get_args(list[str])), None) == str:
+            return cast(list[T], [_vocabulary[int(index)] for index in _response])
+        elif get_origin(_return) == Literal:
+            return [
+                TypeAdapter(_return).validate_python(_vocabulary[int(index)])
+                for index in _response
+            ]
+        elif isinstance(_return, type) and issubclass(_return, Enum):
+            return [
+                TypeAdapter(_return).validate_python(1 + int(index))
+                for index in _response
+            ]
+        raise TypeError(
+            f"Expected Literal or Enum or list[str], got {type(_return)} with value"
+            f" {_return}"
+        )
 
     def as_prompt(
         self,
@@ -161,7 +185,7 @@ def ai_classifier(
     field_name: str = "data",
     field_description: str = "The data to format.",
     **render_kwargs: Any,
-) -> Callable[[Callable[P, T]], Callable[P, T]]:
+) -> Callable[[Callable[P, T]], Callable[P, list[T]]]:
     pass
 
 
@@ -176,7 +200,7 @@ def ai_classifier(
     field_name: str = "data",
     field_description: str = "The data to format.",
     **render_kwargs: Any,
-) -> Callable[P, T]:
+) -> Callable[P, list[T]]:
     pass
 
 
@@ -190,8 +214,8 @@ def ai_classifier(
     field_name: str = "data",
     field_description: str = "The data to format.",
     **render_kwargs: Any,
-) -> Union[Callable[[Callable[P, T]], Callable[P, T]], Callable[P, T],]:
-    def wrapper(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
+) -> Union[Callable[[Callable[P, T]], Callable[P, list[T]]], Callable[P, list[T]]]:
+    def wrapper(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> list[T]:
         return AIClassifier[P, T].as_decorator(
             func,
             environment=environment,
@@ -206,7 +230,7 @@ def ai_classifier(
     if fn is not None:
         return wraps(fn)(partial(wrapper, fn))
 
-    def decorator(fn: Callable[P, T]) -> Callable[P, T]:
+    def decorator(fn: Callable[P, T]) -> Callable[P, list[T]]:
         return wraps(fn)(partial(wrapper, fn))
 
     return decorator
