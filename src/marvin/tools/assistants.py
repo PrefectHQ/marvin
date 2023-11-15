@@ -8,9 +8,9 @@ CodeInterpreter = CodeInterpreterTool()
 AssistantTools = list[Union[FunctionTool, RetrievalTool, CodeInterpreterTool, Tool]]
 
 
-class EndRun(Exception):
+class CancelRun(Exception):
     """
-    A special exception that can be raised in a tool to end the run.
+    A special exception that can be raised in a tool to end the run immediately.
     """
 
     def __init__(self, data: Any = None):

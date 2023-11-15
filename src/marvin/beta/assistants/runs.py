@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 import marvin.utilities.tools
 from marvin.requests import Tool
-from marvin.tools.assistants import AssistantTools, EndRun
+from marvin.tools.assistants import AssistantTools, CancelRun
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_client
 
@@ -75,7 +75,7 @@ class Run(BaseModel):
                         function_name=tool_call.function.name,
                         function_arguments_json=tool_call.function.arguments,
                     )
-                except EndRun as exc:
+                except CancelRun as exc:
                     logger.debug(f"Ending run with data: {exc.data}")
                     raise
                 except Exception as exc:
@@ -124,8 +124,8 @@ class Run(BaseModel):
                     await self._handle_step_requires_action()
                 await asyncio.sleep(0.1)
                 await self.refresh()
-        except EndRun as exc:
-            logger.debug(f"`EndRun` raised; ending run with data: {exc.data}")
+        except CancelRun as exc:
+            logger.debug(f"`CancelRun` raised; ending run with data: {exc.data}")
             await client.beta.threads.runs.cancel(
                 run_id=self.run.id, thread_id=self.thread.id
             )
