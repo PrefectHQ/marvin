@@ -21,10 +21,11 @@ class Function(BaseModel, Generic[T]):
     parameters: dict[str, Any]
 
     model: Optional[type[T]] = Field(exclude=True, repr=False)
-    python_fn: Callable[..., Any] = Field(
-        None,
+    python_fn: Optional[Callable[..., Any]] = Field(
+        default=None,
         description="Private field that holds the executable function, if available",
         exclude=True,
+        repr=False,
     )
 
     def validate_json(self: Self, json_data: str | bytes | bytearray) -> T:
