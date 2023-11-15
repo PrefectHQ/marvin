@@ -1,4 +1,5 @@
 import inspect
+import json
 from functools import partial, wraps
 from typing import (
     TYPE_CHECKING,
@@ -12,7 +13,7 @@ from typing import (
     overload,
 )
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 from typing_extensions import ParamSpec, Self
 
 from marvin.components.prompt_function import PromptFn
@@ -64,7 +65,9 @@ class AIFunction(BaseModel, Generic[P, T]):
             from marvin.settings import settings
 
             create = settings.openai.chat.completions.create
-        return self.parse(create(**self.as_prompt(*args, **kwargs).serialize()))
+        _response = create(**self.as_prompt(*args, **kwargs).serialize())
+        print(_response)
+        return self.parse(_response)
 
     def parse(self, response: "ChatCompletion") -> T:
         tool_calls = response.choices[0].message.tool_calls
@@ -83,8 +86,13 @@ class AIFunction(BaseModel, Generic[P, T]):
         ).function
         if not tool or not tool.model:
             raise NotImplementedError
-
-        return getattr(tool.model.model_validate_json(arguments), self.field_name)
+        try:
+            return getattr(tool.model.model_validate_json(arguments), self.field_name)
+        except ValidationError:
+            # When the user provides a dict obj as a type hint, the arguments
+            # are returned usually as an object and not a nested dict.
+            _arguments: str = json.dumps({self.field_name: json.loads(arguments)})
+            return getattr(tool.model.model_validate_json(_arguments), self.field_name)
 
     def as_prompt(
         self,
