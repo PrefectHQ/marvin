@@ -98,8 +98,7 @@ class PromptFn(Prompt[U]):
             messages = Transcript(
                 content=prompt or func.__doc__ or ""
             ).render_to_messages(
-                **kwargs,
-                **params.arguments,
+                **kwargs | params.arguments,
                 _arguments=params.arguments,
                 _options=vocabulary,
                 _doc=func.__doc__,
@@ -180,8 +179,7 @@ class PromptFn(Prompt[U]):
             messages = Transcript(
                 content=prompt or func.__doc__ or ""
             ).render_to_messages(
-                **kwargs,
-                **params.arguments,
+                **kwargs | params.arguments,
                 _doc=func.__doc__,
                 _arguments=params.arguments,
                 _response_model=tool,
