@@ -1,7 +1,7 @@
 import inspect
 import re
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Pattern, Self, Union
+from typing import Any, ClassVar, Pattern, Self, Union
 from zoneinfo import ZoneInfo
 
 import pydantic

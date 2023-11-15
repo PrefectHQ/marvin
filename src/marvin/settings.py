@@ -1,10 +1,9 @@
 import os
 from contextlib import contextmanager
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from functools import partial
 
 if TYPE_CHECKING:
     from openai import AsyncClient, Client
@@ -13,7 +12,7 @@ if TYPE_CHECKING:
 
 class ChatCompletionSettings(BaseModel):
     model: str = Field(
-        default="gpt-4-1106-preview",
+        default="gpt-3.5-turbo-1106",
         description="The default chat model to use.",
     )
 

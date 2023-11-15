@@ -1,5 +1,4 @@
 from enum import Enum
-from importlib import metadata
 from types import GenericAlias
 from typing import Any, Callable, Literal, Union, get_args, get_origin
 

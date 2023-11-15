@@ -1,5 +1,5 @@
 import inspect
-from functools import partial
+from functools import partial, wraps
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -11,7 +11,7 @@ from typing import (
     Union,
     overload,
 )
-from functools import wraps
+
 from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec, Self
 
@@ -214,10 +214,7 @@ def ai_fn(
     field_name: str = "data",
     field_description: str = "The data to format.",
     **render_kwargs: Any,
-) -> Union[
-    Callable[[Callable[P, T]], Callable[P, T]],
-    Callable[P, T],
-]:
+) -> Union[Callable[[Callable[P, T]], Callable[P, T]], Callable[P, T],]:
     def wrapper(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
         return AIFunction[P, T].as_decorator(
             func,

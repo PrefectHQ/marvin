@@ -1,3 +1,4 @@
+import inspect
 from functools import partial
 from typing import Any, Callable, Optional, TypeVar, Union, overload
 
@@ -5,7 +6,6 @@ from marvin.components.ai_function import ai_fn
 from marvin.utilities.jinja import (
     BaseEnvironment,
 )
-import inspect
 
 T = TypeVar("T")
 
@@ -58,10 +58,7 @@ def ai_model(
     field_name: str = "data",
     field_description: str = "The data to format.",
     **render_kwargs: Any,
-) -> Union[
-    Callable[[T], Callable[[str], T]],
-    Callable[[str], T],
-]:
+) -> Union[Callable[[T], Callable[[str], T]], Callable[[str], T],]:
     def wrapper(_type_: T, text: str) -> T:
         @ai_fn(
             environment=environment,
