@@ -18,6 +18,10 @@ class MarvinSettings(BaseSettings):
         arbitrary_types_allowed=True,
     )
 
+
+class MarvinModelSettings(MarvinSettings):
+    model: str
+
     @property
     def encoder(self):
         import tiktoken
@@ -25,7 +29,7 @@ class MarvinSettings(BaseSettings):
         return tiktoken.encoding_for_model(self.model).encode
 
 
-class ChatCompletionSettings(MarvinSettings):
+class ChatCompletionSettings(MarvinModelSettings):
     model: str = Field(
         default="gpt-4-1106-preview",
         description="The default chat model to use.",
@@ -34,29 +38,29 @@ class ChatCompletionSettings(MarvinSettings):
     async def acreate(self, **kwargs: Any) -> "ChatCompletion":
         from marvin.settings import settings
 
-        oai_settings = dict(model=self.model)
+        _settings = dict(model=self.model)
 
         return await settings.openai.async_client.chat.completions.create(
-            **oai_settings | kwargs
+            model=self.model, **kwargs
         )
 
     def create(self, **kwargs: Any) -> "ChatCompletion":
         from marvin.settings import settings
 
-        oai_settings = dict(model=self.model)
-
-        return settings.openai.client.chat.completions.create(**oai_settings | kwargs)
-
-
-class ChatSettings(MarvinSettings):
-    completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
+        return settings.openai.client.chat.completions.create(
+            model=self.model, **kwargs
+        )
 
 
-class AssistantSettings(MarvinSettings):
+class AssistantSettings(MarvinModelSettings):
     model: str = Field(
         default="gpt-4-1106-preview",
         description="The default assistant model to use.",
     )
+
+
+class ChatSettings(MarvinSettings):
+    completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
 
 
 class OpenAISettings(MarvinSettings):
