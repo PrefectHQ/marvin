@@ -6,8 +6,6 @@ from typing import (
     Callable,
     Generic,
     Optional,
-    ParamSpec,
-    Self,
     TypeVar,
     Union,
     overload,
@@ -15,6 +13,7 @@ from typing import (
 
 import pydantic
 from pydantic import BaseModel
+from typing_extensions import ParamSpec, Self
 
 from marvin.requests import BaseMessage as Message
 from marvin.requests import Tool

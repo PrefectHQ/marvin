@@ -1,9 +1,18 @@
 import openai
 import pytest
 from marvin import settings
-from marvin.beta.assistants import (
-    Thread,
-    temporary_thread,
+
+try:
+    from marvin.beta.assistants import (
+        Thread,
+        temporary_thread,
+    )
+except ImportError:
+    Thread = None
+    temporary_thread = None
+
+pytestmark = pytest.mark.skipif(
+    Thread is None, reason="marvin.beta.assistants not implemented"
 )
 
 

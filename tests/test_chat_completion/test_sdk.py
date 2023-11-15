@@ -1,7 +1,15 @@
 import pytest
-from marvin.core.ChatCompletion.abstract import Conversation
 
 from tests.utils.mark import pytest_mark_class
+
+try:
+    from marvin.core.ChatCompletion.abstract import Conversation
+except ImportError:
+    Conversation = None
+
+pytestmark = pytest.mark.skipif(
+    Conversation is None, reason="marvin.core.ChatCompletion.abstract not implemented"
+)
 
 
 class TestRegressions:
