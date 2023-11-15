@@ -18,20 +18,6 @@ class MarvinSettings(BaseSettings):
         arbitrary_types_allowed=True,
     )
 
-    async def acreate(self, **kwargs: Any) -> "ChatCompletion":
-        from marvin.settings import settings
-
-        return await settings.openai.async_client.chat.completions.create(
-            **kwargs | self.model_dump()
-        )
-
-    def create(self, **kwargs: Any) -> "ChatCompletion":
-        from marvin.settings import settings
-
-        return settings.openai.client.chat.completions.create(
-            **kwargs | self.model_dump()
-        )
-
     @property
     def encoder(self):
         import tiktoken
@@ -44,6 +30,22 @@ class ChatCompletionSettings(MarvinSettings):
         default="gpt-4-1106-preview",
         description="The default chat model to use.",
     )
+
+    async def acreate(self, **kwargs: Any) -> "ChatCompletion":
+        from marvin.settings import settings
+
+        oai_settings = dict(model=self.model)
+
+        return await settings.openai.async_client.chat.completions.create(
+            **oai_settings | kwargs
+        )
+
+    def create(self, **kwargs: Any) -> "ChatCompletion":
+        from marvin.settings import settings
+
+        oai_settings = dict(model=self.model)
+
+        return settings.openai.client.chat.completions.create(**oai_settings | kwargs)
 
 
 class ChatSettings(MarvinSettings):

@@ -1,11 +1,11 @@
 from typing import Any, Union
 
-from marvin.requests import CodeInterpreterTool, FunctionTool, RetrievalTool, Tool
+from marvin.requests import CodeInterpreterTool, RetrievalTool, Tool
 
 Retrieval = RetrievalTool()
 CodeInterpreter = CodeInterpreterTool()
 
-AssistantTools = list[Union[FunctionTool, RetrievalTool, CodeInterpreterTool, Tool]]
+AssistantTools = list[Union[RetrievalTool, CodeInterpreterTool, Tool]]
 
 
 class CancelRun(Exception):
