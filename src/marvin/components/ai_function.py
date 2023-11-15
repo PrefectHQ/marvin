@@ -214,10 +214,7 @@ def ai_fn(
     field_name: str = "data",
     field_description: str = "The data to format.",
     **render_kwargs: Any,
-) -> Union[
-    Callable[[Callable[P, T]], Callable[P, T]],
-    Callable[P, T],
-]:
+) -> Union[Callable[[Callable[P, T]], Callable[P, T]], Callable[P, T],]:
     def wrapper(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
         return AIFunction[P, T].as_decorator(
             func,

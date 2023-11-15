@@ -1,10 +1,9 @@
 import os
 from contextlib import contextmanager
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from functools import partial
 
 if TYPE_CHECKING:
     from openai import AsyncClient, Client

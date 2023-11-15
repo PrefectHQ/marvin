@@ -16,7 +16,6 @@ from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec, Self
 
 from marvin.components.prompt_function import PromptFn
-from marvin.serializers import create_tool_from_type
 from marvin.settings import settings
 from marvin.utilities.jinja import (
     BaseEnvironment,
@@ -56,36 +55,18 @@ class AIClassifier(BaseModel, Generic[P, T]):
 
     create: Optional[Callable[..., "ChatCompletion"]] = Field(default=None)
 
-    # def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
-    #     create = self.create
-    #     if self.fn is None:
-    #         raise NotImplementedError
-    #     if create is None:
-    #         from marvin.settings import settings
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        create = self.create
+        if self.fn is None:
+            raise NotImplementedError
+        if create is None:
+            from marvin.settings import settings
 
-    #         create = settings.openai.chat.completions.create
-    #     return self.parse(create(**self.as_prompt(*args, **kwargs).serialize()))
+            create = settings.openai.chat.completions.create
+        return self.parse(create(**self.as_prompt(*args, **kwargs).serialize()))
 
     def parse(self, response: "ChatCompletion") -> T:
-        return "whoops"
-        # tool_calls = response.choices[0].message.tool_calls
-        # if tool_calls is None:
-        #     raise NotImplementedError
-        # if self.fn is None:
-        #     raise NotImplementedError
-        # arguments = tool_calls[0].function.arguments
-
-        # tool = create_tool_from_type(
-        #     _type=self.fn.__annotations__["return"],
-        #     model_name=self.name,
-        #     model_description=self.description,
-        #     field_name=self.field_name,
-        #     field_description=self.field_description,
-        # ).function.model
-        # if not tool:
-        #     raise NotImplementedError
-
-        # return getattr(tool.model_validate_json(arguments), self.field_name)
+        pass
 
     def as_prompt(
         self,
@@ -209,10 +190,7 @@ def ai_classifier(
     field_name: str = "data",
     field_description: str = "The data to format.",
     **render_kwargs: Any,
-) -> Union[
-    Callable[[Callable[P, T]], Callable[P, T]],
-    Callable[P, T],
-]:
+) -> Union[Callable[[Callable[P, T]], Callable[P, T]], Callable[P, T],]:
     def wrapper(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
         return AIClassifier[P, T].as_decorator(
             func,
