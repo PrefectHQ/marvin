@@ -35,17 +35,12 @@ class Function(BaseModel, Generic[T]):
 
 class Tool(BaseModel, Generic[T]):
     type: str
-    function: Function[T]
+    function: Optional[Function[T]] = None
 
 
 class ToolSet(BaseModel, Generic[T]):
     tools: Optional[list[Tool[T]]] = None
     tool_choice: Optional[Union[Literal["auto"], dict[str, Any]]] = None
-
-
-class FunctionTool(Tool[T]):
-    type: str = Field(default="function")
-    function: Function[T]
 
 
 class RetrievalTool(Tool[T]):

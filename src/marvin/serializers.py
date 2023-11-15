@@ -16,7 +16,7 @@ from pydantic.fields import FieldInfo
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
 
 from marvin import settings
-from marvin.requests import Function, LogitBias, Tool, Grammar
+from marvin.requests import Function, Grammar, Tool
 
 U = TypeVar("U", bound=BaseModel)
 
@@ -34,6 +34,7 @@ def create_tool_from_type(
     model_description: str,
     field_name: str,
     field_description: str,
+    python_function: Optional[Callable[..., Any]] = None,
     **kwargs: Any,
 ) -> Tool[BaseModel]:
     annotated_metadata = getattr(_type, "__metadata__", [])
@@ -58,6 +59,7 @@ def create_tool_from_type(
             description=model_description,
             parameters=model.model_json_schema(schema_generator=FunctionSchema),
             model=model,
+            python_function=python_function,
         ),
     )
 

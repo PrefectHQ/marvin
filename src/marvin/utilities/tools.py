@@ -1,6 +1,6 @@
 import json
 
-from marvin.requests import FunctionTool, Tool
+from marvin.requests import Tool
 from marvin.utilities.logging import get_logger
 from marvin.utilities.pydantic import cast_callable_to_model
 
@@ -9,7 +9,7 @@ logger = get_logger("Tools")
 
 def tool_from_function(fn: callable, name: str = None, description: str = None):
     model = cast_callable_to_model(fn)
-    return FunctionTool(
+    return Tool(
         type="function",
         function=dict(
             name=name or fn.__name__,
@@ -29,7 +29,9 @@ def call_function_tool(
         (
             tool
             for tool in tools
-            if isinstance(tool, FunctionTool) and tool.function.name == function_name
+            if isinstance(tool, Tool)
+            and tool.function
+            and tool.function.name == function_name
         ),
         None,
     )
