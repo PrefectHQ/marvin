@@ -234,14 +234,3 @@ def ai_fn(
         return wraps(fn)(partial(wrapper, fn))
 
     return decorator
-
-
-@ai_fn
-def list_fruits(n: int = 10) -> list[str]:  # type: ignore #
-    """Returns a list of fruits."""
-
-
-def list_vegetables(n: int = 10) -> list[str]:
-    """Returns a list of vegetables."""
-    result = ai_fn(list_vegetables)(n)
-    return result
