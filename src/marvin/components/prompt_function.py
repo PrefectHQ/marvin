@@ -15,7 +15,6 @@ import pydantic
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from marvin import settings
 from marvin.requests import BaseMessage as Message
 from marvin.requests import Prompt
 from marvin.serializers import (
@@ -23,6 +22,7 @@ from marvin.serializers import (
     create_tool_from_type,
     create_vocabulary_from_type,
 )
+from marvin.settings import settings
 from marvin.utilities.jinja import (
     BaseEnvironment,
     Transcript,
@@ -176,6 +176,7 @@ class PromptFn(Prompt[U]):
                 field_name=field_name,
                 field_description=field_description,
             )
+
             messages = Transcript(
                 content=prompt or func.__doc__ or ""
             ).render_to_messages(
@@ -193,7 +194,7 @@ class PromptFn(Prompt[U]):
                 messages=messages,
                 tool_choice={
                     "type": "function",
-                    "function": {"name": tool.function.name},
+                    "function": {"name": getattr(tool.function, "name", model_name)},
                 },
                 tools=[tool],
             )

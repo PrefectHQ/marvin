@@ -80,11 +80,11 @@ class AIFunction(BaseModel, Generic[P, T]):
             model_description=self.description,
             field_name=self.field_name,
             field_description=self.field_description,
-        ).function.model
-        if not tool:
+        ).function
+        if not tool or not tool.model:
             raise NotImplementedError
 
-        return getattr(tool.model_validate_json(arguments), self.field_name)
+        return getattr(tool.model.model_validate_json(arguments), self.field_name)
 
     def as_prompt(
         self,
