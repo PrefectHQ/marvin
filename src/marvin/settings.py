@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 if TYPE_CHECKING:
     from openai import AsyncClient, Client
+    from openai._base_client import HttpxBinaryResponseContent
     from openai.types.chat import ChatCompletion
     from openai.types.images_response import ImagesResponse
 
@@ -89,6 +90,40 @@ class ImageSettings(MarvinModelSettings):
         )
 
 
+class SpeechSettings(MarvinModelSettings):
+    model: str = Field(
+        default="tts-1-hd",
+        description="The default image model to use.",
+    )
+    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = Field(
+        default="alloy",
+    )
+    response_format: Literal["mp3", "opus", "aac", "flac"] = Field(default="mp3")
+    speed: float = Field(default=1.0)
+
+    async def acreate(self, input: str, **kwargs: Any) -> "HttpxBinaryResponseContent":
+        from marvin.settings import settings
+
+        return await settings.openai.async_client.audio.speech.create(
+            model=kwargs.get("model", self.model),
+            input=input,
+            voice=kwargs.get("voice", self.voice),
+            response_format=kwargs.get("response_format", self.response_format),
+            speed=kwargs.get("speed", self.speed),
+        )
+
+    def create(self, input: str, **kwargs: Any) -> "HttpxBinaryResponseContent":
+        from marvin.settings import settings
+
+        return settings.openai.client.audio.speech.create(
+            model=kwargs.get("model", self.model),
+            input=input,
+            voice=kwargs.get("voice", self.voice),
+            response_format=kwargs.get("response_format", self.response_format),
+            speed=kwargs.get("speed", self.speed),
+        )
+
+
 class AssistantSettings(MarvinModelSettings):
     model: str = Field(
         default="gpt-4-1106-preview",
@@ -98,6 +133,10 @@ class AssistantSettings(MarvinModelSettings):
 
 class ChatSettings(MarvinSettings):
     completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
+
+
+class AudioSettings(MarvinSettings):
+    speech: SpeechSettings = Field(default_factory=SpeechSettings)
 
 
 class OpenAISettings(MarvinSettings):
@@ -115,6 +154,7 @@ class OpenAISettings(MarvinSettings):
 
     chat: ChatSettings = Field(default_factory=ChatSettings)
     images: ImageSettings = Field(default_factory=ImageSettings)
+    audio: AudioSettings = Field(default_factory=AudioSettings)
     assistants: AssistantSettings = Field(default_factory=AssistantSettings)
 
     @property
