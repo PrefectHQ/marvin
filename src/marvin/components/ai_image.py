@@ -30,10 +30,6 @@ class AIImage(BaseModel, Generic[P]):
     fn: Optional[Callable[P, Any]] = None
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = Field(default=None)
-    name: str = "FormatResponse"
-    description: str = "Formats the response."
-    field_name: str = "data"
-    field_description: str = "The data to format."
     render_kwargs: dict[str, Any] = Field(default_factory=dict)
 
     generate: Optional[Callable[..., "ImagesResponse"]] = Field(default=None)
@@ -143,3 +139,16 @@ def ai_image(
         return wraps(fn)(partial(wrapper, fn))
 
     return decorator
+
+
+def create_image(
+    prompt: str,
+    environment: Optional[BaseEnvironment] = None,
+    generate: Optional[Callable[..., "ImagesResponse"]] = None,
+    **model_kwargs: Any,
+) -> "ImagesResponse":
+    if generate is None:
+        from marvin.settings import settings
+
+        generate = settings.openai.images.generate
+    return generate(prompt=prompt, **model_kwargs)
