@@ -5,7 +5,7 @@ import pytest
 from marvin import ai_fn
 from pydantic import BaseModel
 
-from tests.utils.mark import pytest_mark_class
+from tests.utils import pytest_mark_class
 
 
 @ai_fn

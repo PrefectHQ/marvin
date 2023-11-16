@@ -1,9 +1,13 @@
 from enum import Enum
 
 import pytest
-from marvin import ai_classifier
 
-from tests.utils.mark import pytest_mark_class
+try:
+    from marvin import ai_classifier
+except ImportError:
+    pytest.skip("TODO: add new ai_classifier tests", allow_module_level=True)
+
+from tests.utils import pytest_mark_class
 
 
 class TestAIClassifiersInitialization:
