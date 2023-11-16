@@ -66,7 +66,6 @@ class AIFunction(BaseModel, Generic[P, T]):
 
             create = settings.openai.chat.completions.create
         _response = create(**self.as_prompt(*args, **kwargs).serialize())
-        print(_response)
         return self.parse(_response)
 
     def parse(self, response: "ChatCompletion") -> T:

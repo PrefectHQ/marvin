@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 if TYPE_CHECKING:
     from openai import AsyncClient, Client
     from openai.types.chat import ChatCompletion
+    from openai.types.images_response import ImagesResponse
 
 
 class MarvinSettings(BaseSettings):
@@ -52,6 +53,42 @@ class ChatCompletionSettings(MarvinModelSettings):
         )
 
 
+class ImageSettings(MarvinModelSettings):
+    model: str = Field(
+        default="dall-e-3",
+        description="The default image model to use.",
+    )
+    size: Literal["1024x1024", "1792x1024", "1024x1792"] = Field(
+        default="1024x1024",
+    )
+    response_format: Literal["url", "b64_json"] = Field(default="url")
+    style: Literal["vivid", "natural"] = Field(default="vivid")
+
+    async def agenerate(self, prompt: str, **kwargs: Any) -> "ImagesResponse":
+        from marvin.settings import settings
+
+        return await settings.openai.async_client.images.generate(
+            model=self.model,
+            prompt=prompt,
+            size=self.size,
+            response_format=self.response_format,
+            style=self.style,
+            **kwargs,
+        )
+
+    def generate(self, prompt: str, **kwargs: Any) -> "ImagesResponse":
+        from marvin.settings import settings
+
+        return settings.openai.client.images.generate(
+            model=self.model,
+            prompt=prompt,
+            size=self.size,
+            response_format=self.response_format,
+            style=self.style,
+            **kwargs,
+        )
+
+
 class AssistantSettings(MarvinModelSettings):
     model: str = Field(
         default="gpt-4-1106-preview",
@@ -77,6 +114,7 @@ class OpenAISettings(MarvinSettings):
     )
 
     chat: ChatSettings = Field(default_factory=ChatSettings)
+    images: ImageSettings = Field(default_factory=ImageSettings)
     assistants: AssistantSettings = Field(default_factory=AssistantSettings)
 
     @property
