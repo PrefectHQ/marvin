@@ -28,7 +28,7 @@ class Function(BaseModel, Generic[T]):
         repr=False,
     )
 
-    def validate_json(self: Self, json_data: str | bytes | bytearray) -> T:
+    def validate_json(self: Self, json_data: Union[str, bytes, bytearray]) -> T:
         if self.model is None:
             raise ValueError("This Function was not initialized with a model.")
         return self.model.model_validate_json(json_data)
