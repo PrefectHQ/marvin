@@ -62,28 +62,14 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
 
     create: Optional[Callable[..., "ChatCompletion"]] = Field(default=None)
 
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Union[T, Awaitable[T]]:
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        create = self.create
         if self.fn is None:
             raise NotImplementedError
+        if create is None:
+            from marvin.settings import settings
 
-        from marvin import settings
-
-        is_async_fn = asyncio.iscoroutinefunction(self.fn)
-
-        call = "async_call" if is_async_fn else "sync_call"
-        create = (
-            self.create or settings.openai.chat.completions.acreate
-            if is_async_fn
-            else settings.openai.chat.completions.create
-        )
-
-        return getattr(self, call)(create, *args, **kwargs)
-
-    async def async_call(self, acreate, *args: P.args, **kwargs: P.kwargs) -> T:
-        _response = await acreate(**self.as_prompt(*args, **kwargs).serialize())
-        return self.parse(_response)
-
-    def sync_call(self, create, *args: P.args, **kwargs: P.kwargs) -> T:
+            create = settings.openai.chat.completions.create
         _response = create(**self.as_prompt(*args, **kwargs).serialize())
         return self.parse(_response)
 
@@ -128,24 +114,18 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
         fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2, x='b')].
         """
         tasks: list[Any] = []
-        if map_args and map_kwargs:
-            max_length = max(
-                len(arg) for arg in (map_args + tuple(map_kwargs.values()))
-            )
-        elif map_args:
+        if map_args:
             max_length = max(len(arg) for arg in map_args)
         else:
             max_length = max(len(v) for v in map_kwargs.values())
 
         for i in range(max_length):
             call_args = [arg[i] if i < len(arg) else None for arg in map_args]
-            call_kwargs = (
-                {k: v[i] if i < len(v) else None for k, v in map_kwargs.items()}
-                if map_kwargs
-                else {}
-            )
+            call_kwargs = {k: v[i] if i < len(v) else None for k, v in map_kwargs.items()} if map_kwargs else {}
 
-            tasks.append(run_async(self, *call_args, **call_kwargs))
+            # Use the run_async utility to run __call__ asynchronously
+            task = run_async(self.__call__, *call_args, **call_kwargs)
+            tasks.append(task)
 
         return await asyncio.gather(*tasks)
 

@@ -39,8 +39,6 @@ class ChatCompletionSettings(MarvinModelSettings):
     async def acreate(self, **kwargs: Any) -> "ChatCompletion":
         from marvin.settings import settings
 
-        _settings = dict(model=self.model)
-
         return await settings.openai.async_client.chat.completions.create(
             model=self.model, **kwargs
         )
