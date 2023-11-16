@@ -16,6 +16,10 @@ p {
     margin-bottom: 15px;
 }
 
+h1 {
+    display: none
+}
+
 h2 {
     margin-top: 16px !important;
 }

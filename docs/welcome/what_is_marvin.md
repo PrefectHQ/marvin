@@ -1,16 +1,29 @@
-# Hello, Marvin!
+# What is Marvin
 
-!!! Example 
+!!! Info "What is Marvin"
+    Marvin is a simple and elegant library to make working with Large Language Models easy, reliable, and scalable. Thousands of developers rely on Marvin in production to
+   
+    - Extract structured data from unstructured text, webpages, and documents
+    - Classify or score text quickly and robustly
+    - Create workflow automations or automate business logic in simple English
 
-```python
-from marvin import ai_fn
+    If you know Python, you already know Marvin.
 
-@ai_fn
-def quote_marvin(topic: str) -> str:
-    """Quote Marvin the robot from Hitchhiker's Guide on a topic"""
+!!! Example "Here's what using Marvin looks like."
 
-quote_marvin(topic="humans") # "I've seen it. It's rubbish."
-```
+    Marvin exposes a number of high level components to simplify working with AI. Below we use AI to evaluate a Python function. 
+
+    ```python
+    from marvin import ai_fn
+
+    def list_fruits(n: int, color: str = 'red') -> list[str]:
+        """Generates a list of {{n}} {{color}} fruits"""
+        return ai_fn(list_fruits)(n)
+
+    list_fruits(3) # "['Apple', 'Cherry', 'Strawberry']"
+    ```
+    Notice `list_fruits` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
+    parses its response. Of course, every part of Marvin is full customizable. 
 
 Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.
 
