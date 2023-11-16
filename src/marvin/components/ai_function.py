@@ -79,11 +79,15 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
 
         return getattr(self, call)(create, *args, **kwargs)
 
-    async def async_call(self, acreate, *args: P.args, **kwargs: P.kwargs) -> T:
+    async def async_call(
+        self, acreate: Callable[..., Awaitable[Any]], *args: P.args, **kwargs: P.kwargs
+    ) -> T:
         _response = await acreate(**self.as_prompt(*args, **kwargs).serialize())
         return self.parse(_response)
 
-    def sync_call(self, create, *args: P.args, **kwargs: P.kwargs) -> T:
+    def sync_call(
+        self, create: Callable[..., Any], *args: P.args, **kwargs: P.kwargs
+    ) -> T:
         _response = create(**self.as_prompt(*args, **kwargs).serialize())
         return self.parse(_response)
 
@@ -213,7 +217,7 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
         field_name: str = "data",
         field_description: str = "The data to format.",
         **render_kwargs: Any,
-    ) -> Callable[..., Self]:
+    ) -> Union[Callable[[Callable[P, T]], Self], Self]:
         def decorator(func: Callable[P, T]) -> Self:
             return cls(
                 fn=func,
@@ -271,9 +275,9 @@ def ai_fn(
     field_name: str = "data",
     field_description: str = "The data to format.",
     **render_kwargs: Any,
-) -> Union[Callable[[Callable[P, T]], AIFunction[P, T]], AIFunction[P, T]]:
+) -> Union[Callable[[Callable[P, T]], Callable[P, T]], Callable[P, T]]:
     if fn is not None:
-        return AIFunction.as_decorator(
+        return AIFunction.as_decorator(  # type: ignore
             fn=fn,
             environment=environment,
             prompt=prompt,
@@ -284,8 +288,8 @@ def ai_fn(
             **render_kwargs,
         )
 
-    def decorator(func: Callable[P, T]) -> AIFunction[P, T]:
-        return AIFunction.as_decorator(
+    def decorator(func: Callable[P, T]) -> Callable[P, T]:
+        return AIFunction.as_decorator(  # type: ignore
             fn=func,
             environment=environment,
             prompt=prompt,
