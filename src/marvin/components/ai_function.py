@@ -117,11 +117,14 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
         """
         Map the AI function over a sequence of arguments. Runs concurrently.
 
+        A `map` twin method is provided by the `expose_sync_method` decorator.
+
+        You can use `map` or `amap` synchronously or asynchronously, respectively,
+        regardless of whether the user function is synchronous or asynchronous.
+
         Arguments should be provided as if calling the function normally, but
         each argument must be a list. The function is called once for each item
         in the list, and the results are returned in a list.
-
-        This method should be called synchronously.
 
         For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
 
