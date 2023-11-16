@@ -10,6 +10,7 @@ from marvin.requests import Tool
 from marvin.tools.assistants import AssistantTools, CancelRun
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_client
+from src.marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
 
 from .assistants import Assistant
 from .threads import Thread
@@ -17,7 +18,7 @@ from .threads import Thread
 logger = get_logger("Runs")
 
 
-class Run(BaseModel):
+class Run(BaseModel, ExposeSyncMethodsMixin):
     thread: Thread
     assistant: Assistant
     instructions: Optional[str] = Field(
@@ -51,9 +52,17 @@ class Run(BaseModel):
                 for tool in tools
             ]
 
-    async def refresh(self):
+    @expose_sync_method("refresh")
+    async def refresh_async(self):
         client = get_client()
         self.run = await client.beta.threads.runs.retrieve(
+            run_id=self.run.id, thread_id=self.thread.id
+        )
+
+    @expose_sync_method("cancel")
+    async def cancel_async(self):
+        client = get_client()
+        await client.beta.threads.runs.cancel(
             run_id=self.run.id, thread_id=self.thread.id
         )
 
@@ -123,14 +132,14 @@ class Run(BaseModel):
                 if self.run.status == "requires_action":
                     await self._handle_step_requires_action()
                 await asyncio.sleep(0.1)
-                await self.refresh()
+                await self.refresh_async()
         except CancelRun as exc:
             logger.debug(f"`CancelRun` raised; ending run with data: {exc.data}")
             await client.beta.threads.runs.cancel(
                 run_id=self.run.id, thread_id=self.thread.id
             )
             self.data = exc.data
-            await self.refresh()
+            await self.refresh_async()
 
         if self.run.status == "failed":
             logger.debug(f"Run failed. Last error was: {self.run.last_error}")
