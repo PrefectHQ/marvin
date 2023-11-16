@@ -5,7 +5,6 @@ from typing import (
     Any,
     Callable,
     Optional,
-    ParamSpec,
     TypeVar,
     Union,
     overload,
@@ -13,7 +12,7 @@ from typing import (
 
 import pydantic
 from pydantic import BaseModel
-from typing_extensions import Self
+from typing_extensions import ParamSpec, Self
 
 from marvin.requests import BaseMessage as Message
 from marvin.requests import Prompt
