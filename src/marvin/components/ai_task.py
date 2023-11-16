@@ -22,11 +22,20 @@ P = ParamSpec("P")
 
 thread_context = ScopedContext()
 
-
 INSTRUCTIONS = """
+# Workflow
+
 You are an assistant working with a user to complete a series of tasks. The
 tasks will change from time to time, which is why you may see messages that
-appear unrelated to the current task. Just know that 
+appear unrelated to the current task. Each task will be part of a continuous
+conversation, so do not continue to reintroduce yourself each time.
+
+## Progress
+{% for task in tasks -%}
+- {{ task.name }}: {{ task.status }}
+{% endfor %}}}
+
+# Task
 
 ## Current task
 
@@ -111,6 +120,7 @@ class AITask(BaseModel, Generic[P, T]):
     def __call__(self, *args: P.args, _thread_id: str = None, **kwargs: P.kwargs) -> T:
         if _thread_id is None:
             _thread_id = thread_context.get("thread_id")
+
         return run_sync(self.call(*args, _thread_id=_thread_id, **kwargs))
 
     async def call(self, *args, _thread_id: str = None, **kwargs):
@@ -118,6 +128,8 @@ class AITask(BaseModel, Generic[P, T]):
         if _thread_id is None:
             thread.create()
         iterations = 0
+
+        thread_context.get("tasks", []).append(self)
 
         self.status = Status.IN_PROGRESS
 
@@ -128,7 +140,10 @@ class AITask(BaseModel, Generic[P, T]):
                     raise ValueError("Max run iterations exceeded")
 
                 instructions = self.get_instructions(
-                    iterations=iterations, *args, **kwargs
+                    tasks=thread_context.get("tasks", []),
+                    iterations=iterations,
+                    *args,
+                    **kwargs,
                 )
 
                 if iterations > 1:
@@ -158,10 +173,11 @@ class AITask(BaseModel, Generic[P, T]):
         return self.result
 
     def get_instructions(
-        self, iterations: int, *args: P.args, **kwargs: P.kwargs
+        self, tasks: list["AITask"], iterations: int, *args: P.args, **kwargs: P.kwargs
     ) -> str:
         return JinjaEnvironment.render(
             INSTRUCTIONS,
+            tasks=tasks,
             first_message=(iterations == 1),
             name=self.name,
             instructions=self.instructions,
@@ -186,12 +202,7 @@ class AITask(BaseModel, Generic[P, T]):
         def task_completed(result: T):
             self.status = Status.COMPLETED
             self.result = result
-            # raise CancelRun()
-            return (
-                "The task has been marked as completed. You may confirm or acknowledge"
-                " that with the user, but do not invite them to continue the"
-                " conversation yet."
-            )
+            raise CancelRun()
 
         tool.function.python_fn = task_completed
 
