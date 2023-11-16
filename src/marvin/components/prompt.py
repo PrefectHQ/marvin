@@ -15,7 +15,6 @@ import pydantic
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from marvin import settings
 from marvin.requests import BaseMessage as Message
 from marvin.requests import Prompt
 from marvin.serializers import (
@@ -23,6 +22,7 @@ from marvin.serializers import (
     create_tool_from_type,
     create_vocabulary_from_type,
 )
+from marvin.settings import settings
 from marvin.utilities.jinja import (
     BaseEnvironment,
     Transcript,
@@ -33,7 +33,7 @@ T = TypeVar("T")
 U = TypeVar("U", bound=BaseModel)
 
 
-class PromptFn(Prompt[U]):
+class PromptFunction(Prompt[U]):
     messages: list[Message] = pydantic.Field(default_factory=list)
 
     def serialize(self) -> dict[str, Any]:
@@ -98,8 +98,7 @@ class PromptFn(Prompt[U]):
             messages = Transcript(
                 content=prompt or func.__doc__ or ""
             ).render_to_messages(
-                **kwargs,
-                **params.arguments,
+                **kwargs | params.arguments,
                 _arguments=params.arguments,
                 _options=vocabulary,
                 _doc=func.__doc__,
@@ -176,11 +175,11 @@ class PromptFn(Prompt[U]):
                 field_name=field_name,
                 field_description=field_description,
             )
+
             messages = Transcript(
                 content=prompt or func.__doc__ or ""
             ).render_to_messages(
-                **kwargs,
-                **params.arguments,
+                **kwargs | params.arguments,
                 _doc=func.__doc__,
                 _arguments=params.arguments,
                 _response_model=tool,
@@ -193,7 +192,7 @@ class PromptFn(Prompt[U]):
                 messages=messages,
                 tool_choice={
                     "type": "function",
-                    "function": {"name": tool.function.name},
+                    "function": {"name": getattr(tool.function, "name", model_name)},
                 },
                 tools=[tool],
             )
@@ -224,7 +223,7 @@ def prompt_fn(
     def wrapper(
         func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs
     ) -> dict[str, Any]:
-        return PromptFn.as_function_call(
+        return PromptFunction.as_function_call(
             fn=func,
             environment=environment,
             prompt=prompt,

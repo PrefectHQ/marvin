@@ -21,7 +21,7 @@ from typing import (
 from pydantic import BaseModel, Field, TypeAdapter
 from typing_extensions import ParamSpec, Self
 
-from marvin.components.prompt_function import PromptFn
+from marvin.components.prompt import PromptFunction
 from marvin.serializers import create_vocabulary_from_type
 from marvin.settings import settings
 from marvin.utilities.jinja import (
@@ -39,15 +39,17 @@ P = ParamSpec("P")
 class AIClassifier(BaseModel, Generic[P, T]):
     fn: Optional[Callable[P, T]] = None
     environment: Optional[BaseEnvironment] = None
-    prompt: Optional[str] = Field(default=inspect.cleandoc("""
-        You are an expert classifier that always choose correctly. 
-        - {{_doc}} 
-        - You must classify `{{text}}` into one of the following classes:
-        {% for option in _options %}
-            Class {{ loop.index - 1}} (value: {{ option }})
-        {% endfor %}    
-        ASSISTANT: The correct class label is Class                                                                                                                                                          
-    """))
+    prompt: Optional[str] = Field(
+        default=inspect.cleandoc(
+            "You are an expert classifier that always choose correctly."
+            " \n- {{_doc}}"
+            " \n- You must classify `{{text}}` into one of the following classes:"
+            "{% for option in _options %}"
+            "    Class {{ loop.index - 1}} (value: {{ option }})"
+            "{% endfor %}"
+            "ASSISTANT: The correct class label is Class"
+        )
+    )
     enumerate: bool = True
     encoder: Callable[[str], list[int]] = Field(default=None)
     max_tokens: Optional[int] = 1
@@ -96,8 +98,8 @@ class AIClassifier(BaseModel, Generic[P, T]):
         self,
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> PromptFn[BaseModel]:
-        return PromptFn[BaseModel].as_grammar(
+    ) -> PromptFunction[BaseModel]:
+        return PromptFunction[BaseModel].as_grammar(
             fn=self.fn,
             environment=self.environment,
             prompt=self.prompt,
@@ -180,12 +182,11 @@ def ai_classifier(
     *,
     environment: Optional[BaseEnvironment] = None,
     prompt: Optional[str] = None,
-    model_name: str = "FormatResponse",
-    model_description: str = "Formats the response.",
-    field_name: str = "data",
-    field_description: str = "The data to format.",
+    enumerate: bool = True,
+    encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+    max_tokens: Optional[int] = 1,
     **render_kwargs: Any,
-) -> Callable[[Callable[P, T]], Callable[P, list[T]]]:
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
     pass
 
 
@@ -195,12 +196,11 @@ def ai_classifier(
     *,
     environment: Optional[BaseEnvironment] = None,
     prompt: Optional[str] = None,
-    model_name: str = "FormatResponse",
-    model_description: str = "Formats the response.",
-    field_name: str = "data",
-    field_description: str = "The data to format.",
+    enumerate: bool = True,
+    encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+    max_tokens: Optional[int] = 1,
     **render_kwargs: Any,
-) -> Callable[P, list[T]]:
+) -> Callable[P, T]:
     pass
 
 
@@ -209,28 +209,26 @@ def ai_classifier(
     *,
     environment: Optional[BaseEnvironment] = None,
     prompt: Optional[str] = None,
-    model_name: str = "FormatResponse",
-    model_description: str = "Formats the response.",
-    field_name: str = "data",
-    field_description: str = "The data to format.",
+    enumerate: bool = True,
+    encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+    max_tokens: Optional[int] = 1,
     **render_kwargs: Any,
-) -> Union[Callable[[Callable[P, T]], Callable[P, list[T]]], Callable[P, list[T]]]:
-    def wrapper(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> list[T]:
+) -> Union[Callable[[Callable[P, T]], Callable[P, T]], Callable[P, T]]:
+    def wrapper(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
         return AIClassifier[P, T].as_decorator(
             func,
             environment=environment,
             prompt=prompt,
-            model_name=model_name,
-            model_description=model_description,
-            field_name=field_name,
-            field_description=field_description,
+            enumerate=enumerate,
+            encoder=encoder,
+            max_tokens=max_tokens,
             **render_kwargs,
-        )(*args, **kwargs)
+        )(*args, **kwargs)[0]
 
     if fn is not None:
         return wraps(fn)(partial(wrapper, fn))
 
-    def decorator(fn: Callable[P, T]) -> Callable[P, list[T]]:
+    def decorator(fn: Callable[P, T]) -> Callable[P, T]:
         return wraps(fn)(partial(wrapper, fn))
 
     return decorator

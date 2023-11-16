@@ -59,7 +59,6 @@ def create_tool_from_type(
             description=model_description,
             parameters=model.model_json_schema(schema_generator=FunctionSchema),
             model=model,
-            python_function=python_function,
         ),
     )
 
