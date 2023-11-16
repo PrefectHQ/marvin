@@ -1,5 +1,4 @@
 import functools
-from contextlib import contextmanager
 from enum import Enum, auto
 from typing import Any, Callable, Generic, Optional, TypeVar
 
@@ -29,8 +28,11 @@ INSTRUCTIONS = """
 
 You are an assistant working to complete a series of tasks. The
 tasks will change from time to time, which is why you may see messages that
-appear unrelated to the current task. Each task will be part of a continuous
-conversation, so do not continue to reintroduce yourself each time.
+appear unrelated to the current task. Each task is part of a continuous
+conversation with the same user.
+
+Your ONLY job is to complete your current task, no matter what the user says or
+conversation history suggests.
 
 Note: Sometimes you will be able to complete a task without user input; other
 times you will need to engage the user in conversation. Pay attention to your
@@ -51,6 +53,11 @@ Your job is to complete the "{{ name }}" task.
 ## Current task instructions
 
 {{ instructions }}
+
+{% if not accept_user_input -%}
+You may send messages to the user, but they are not allowed to respond. Do not
+ask questions or invite them to speak or ask anything.
+{% endif %}
 
 {% if first_message -%}
 Please note: you are seeing this instruction for the first time, and the user
@@ -83,7 +90,9 @@ communicate with the user.
 It may take you a few tries to complete the task. However, if you are ultimately
 unable to work with the user to complete it, call the `task_failed` tool to mark
 the task as failed and move on to the next one. The payload to `task_failed` is
-a string describing why the task failed.
+a string describing why the task failed. Do not fail tasks for trivial or
+invented reasons. Only fail a task if you are unable to achieve it explicitly.
+Remember that your job is to work with the user to achieve the goal.
 
 {% if args or kwargs -%}
 ## Task inputs
@@ -123,6 +132,7 @@ class AITask(BaseModel, Generic[P, T]):
     tools: list[AssistantTools] = []
     max_run_iterations: int = 15
     result: Optional[T] = None
+    accept_user_input: bool = True
 
     def __call__(self, *args: P.args, _thread_id: str = None, **kwargs: P.kwargs) -> T:
         if _thread_id is None:
@@ -155,7 +165,7 @@ class AITask(BaseModel, Generic[P, T]):
                     kwargs=kwargs,
                 )
 
-                if iterations > 1:
+                if iterations > 1 and self.accept_user_input:
                     user_input = Prompt.ask("Your message")
                     msg = thread.add(user_input)
                     pprint_message(msg)
@@ -191,9 +201,10 @@ class AITask(BaseModel, Generic[P, T]):
         return JinjaEnvironment.render(
             INSTRUCTIONS,
             tasks=tasks,
-            first_message=(iterations == 1),
             name=self.name,
             instructions=self.instructions,
+            accept_user_input=self.accept_user_input,
+            first_message=(iterations == 1),
             func=self.fn,
             args=args,
             kwargs=kwargs,
@@ -201,6 +212,18 @@ class AITask(BaseModel, Generic[P, T]):
 
     @property
     def _task_completed_tool(self):
+        # if the function has no return annotation, then task completed can be
+        # called without arguments
+        if self.fn.__annotations__.get("return") is None:
+
+            def task_completed():
+                self.status = Status.COMPLETED
+                raise CancelRun()
+
+            return task_completed
+
+        # otherwise we need to create a tool with the correct parameter signature
+
         tool = create_tool_from_type(
             _type=self.fn.__annotations__["return"],
             model_name="task_completed",
@@ -211,12 +234,12 @@ class AITask(BaseModel, Generic[P, T]):
             field_description="The task result",
         )
 
-        def task_completed(result: T):
+        def task_completed_with_result(result: T):
             self.status = Status.COMPLETED
             self.result = result
             raise CancelRun()
 
-        tool.function.python_fn = task_completed
+        tool.function.python_fn = task_completed_with_result
 
         return tool
 
@@ -231,7 +254,14 @@ class AITask(BaseModel, Generic[P, T]):
         return tool_from_function(task_failed)
 
 
-def ai_task(*args, name=None, instructions=None, tools: list[AssistantTools] = None):
+def ai_task(
+    fn: Callable = None,
+    *,
+    name=None,
+    instructions=None,
+    tools: list[AssistantTools] = None,
+    **kwargs,
+):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*func_args, **func_kwargs):
@@ -240,40 +270,42 @@ def ai_task(*args, name=None, instructions=None, tools: list[AssistantTools] = N
                 name=name or func.__name__,
                 instructions=instructions or func.__doc__,
                 tools=tools or [],
+                **kwargs,
             )
             return ai_task_instance(*func_args, **func_kwargs)
 
         return wrapper
 
-    if args and callable(args[0]):
-        return decorator(args[0])
+    if fn is not None:
+        return decorator(fn)
 
     return decorator
-
-
-@contextmanager
-def ai_flow_context(thread_id: str = None, tasks: list[AITask] = None, **kwargs):
-    # create a new thread for the flow
-    thread = Thread(id=thread_id)
-    if thread_id is None:
-        thread.create()
-
-    # create a holder for the tasks
-    tasks = tasks or []
-
-    # enter the thread context
-    with thread_context(thread_id=thread.id, tasks=tasks, **kwargs):
-        yield
 
 
 class AIFlow(BaseModel):
     name: Optional[str] = None
     fn: Callable
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, thread_id: str = None, message: str = None, **kwargs):
         pflow = prefect_flow(name=self.name)(self.fn)
+
         # Set up the thread context and execute the flow
-        with ai_flow_context():
+
+        # create a new thread for the flow
+        thread = Thread(id=thread_id)
+        if thread_id is None:
+            thread.create()
+
+        # post the initial message
+        if message is not None:
+            msg = thread.add(message)
+            pprint_message(msg)
+
+        # create a holder for the tasks
+        tasks = []
+
+        # enter the thread context
+        with thread_context(thread_id=thread.id, tasks=tasks, **kwargs):
             return pflow(*args, **kwargs)
 
 
