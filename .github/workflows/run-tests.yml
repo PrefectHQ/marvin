@@ -67,6 +67,6 @@ jobs:
       - name: Install Marvin
         run: pip install ".[tests]"
 
-      - name: Run ${{ matrix.test-type }} tests $MARVIN_OPENAI_CHAT_COMPLETION_MODEL
+      - name: Run ${{ matrix.test-type }} tests
         run: pytest -vv -m "${{ matrix.test-type }}"
         if: ${{ !(github.event.pull_request.head.repo.fork && matrix.test-type == 'llm') }}
