@@ -7,6 +7,7 @@ from typing import (
     Any,
     Awaitable,
     Callable,
+    Coroutine,
     Generic,
     Literal,
     Optional,
@@ -37,6 +38,39 @@ P = ParamSpec("P")
 
 
 class AIClassifier(BaseModel, Generic[P, T]):
+    """An AI application is a stateful, autonomous, natural language
+        interface to an application.
+
+    Attributes:
+        fn: A function whose return type is a Literal or Enum or list[str].
+        environment: A description of the application.
+        prompt: The application's state - this can be any JSON-serializable object.
+        enumerate: The AI's plan in service of the application - this can be any
+            JSON-serializable object.
+        encoder: A list of tools that the AI can use to interact with
+            application or outside world.
+        max_tokens: A history of all messages sent and received by the AI.
+        create:
+        acreate:
+        render_kwargs: A list of additional prompts that will be
+            added to the prompt stack for rendering.
+
+    Example:
+        Create a simple todo app where AI manages its own state and plan.
+        ```python
+        from marvin import AIApplication
+
+        todo_app = AIApplication(
+            name="Todo App",
+            description="A simple todo app.",
+        )
+
+        todo_app("I need to go to the store.")
+
+        print(todo_app.state, todo_app.plan)
+        ```
+    """
+
     fn: Optional[Callable[P, T]] = None
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = Field(
@@ -56,6 +90,9 @@ class AIClassifier(BaseModel, Generic[P, T]):
     render_kwargs: dict[str, Any] = Field(default_factory=dict)
 
     create: Optional[Callable[..., "ChatCompletion"]] = Field(default=None)
+    acreate: Optional[Callable[..., Coroutine[Any, Any, "ChatCompletion"]]] = Field(
+        default=None
+    )
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> list[T]:
         create = self.create
