@@ -115,9 +115,10 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         if self.id is None:
             await self.create_async()
 
-        from marvin.beta.assistants import Run
+        from marvin.beta.assistants.runs import Run
 
-        return await Run(assistant=assistant, thread=self, **run_kwargs).run_async()
+        run = Run(assistant=assistant, thread=self, **run_kwargs)
+        return await run.run_async()
 
 
 class ThreadMonitor(BaseModel, ExposeSyncMethodsMixin):
