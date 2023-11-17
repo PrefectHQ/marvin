@@ -1,13 +1,56 @@
-# What is Marvin
+# What is Marvin?
 
-!!! Info "What is Marvin"
-    Marvin is a simple and elegant library to make working with Large Language Models easy, reliable, and scalable. Thousands of developers rely on Marvin in production to
-   
-    - Extract structured data from unstructured text, webpages, and documents
-    - Classify or score text quickly and robustly
-    - Create workflow automations or automate business logic in simple English
+Marvin is a simple library that lets you use Large Language Models by writing code, not prompts. It's open source,
+free to use, and built with love by the engineering team at Prefect. 
 
-    If you know Python, you already know Marvin.
+??? Question "Explain Like I'm Five"
+    === "I'm not technical"
+
+        Marvin lets engineers who know Python use Generative AI without needing to write prompts.
+
+        It turns out that ChatGPT and other Large Language Models are good at performing boring but incredibly valuable
+        business-critical tasks beyond being a chatbot: you can use them to classify emails as spam, extract key figures
+        from a report, etc. When you use something like ChatGPT you spend a lot of time crafting the right prompt or
+        context to get it to write your email, plan your date night, etc.
+        
+        If you want your software to use ChatGPT, you need to let it turn its objective into English. Marvin handles this
+        'translation' for you, so you get to just write code like you normally would. Engineers like using Marvin because it
+        lets them write software like they're used to.
+        
+        Simply put, it lets you use Generative AI without feeling like you have to learn a framework.
+
+    === "I'm technical"
+
+        Marvin is a simple and elegant library to make working with Large Language Models easy, reliable, and scalable. Thousands of developers rely on Marvin in production to
+    
+        - Extract structured data from unstructured text, webpages, and documents
+        - Classify or score text quickly and robustly
+        - Create workflow automations or automate business logic in simple English
+
+        If you know Python, you already know Marvin.
+
+
+
+!!! Info "What is Marvin?"
+    === "I write code"
+
+        Marvin is a simple and elegant library that makes working with Large Language Models providers like OpenAI easy, reliable, and transparent. Thousands of engineers use Marvin in production to
+    
+        - Extract structured data from unstructured text, webpages, and documents
+        - Classify or score text quickly and robustly
+        - Create workflow automations or automate business logic in simple English
+
+        If you know Python, you already know Marvin.
+
+    === "I don't write code"
+
+        Marvin is a simple and elegant library to make working with Large Language Models easy, reliable, and scalable. Thousands of developers rely on Marvin in production to
+    
+        - Extract structured data from unstructured text, webpages, and documents
+        - Classify or score text quickly and robustly
+        - Create workflow automations or automate business logic in simple English
+
+        If you know Python, you already know Marvin.
 
 !!! Example "Here's what using Marvin looks like."
 
