@@ -60,7 +60,13 @@ def ai_model(
     **render_kwargs: Any,
 ) -> Union[Callable[[T], Callable[[str], T]], Callable[[str], T],]:
     def wrapper(_type_: T, text: str) -> T:
-        @ai_fn(
+        def extract(text: str) -> T:  # type: ignore
+            pass
+
+        extract.__annotations__["return"] = _type_
+
+        return ai_fn(
+            extract,
             environment=environment,
             prompt=prompt,
             model_name=model_name,
@@ -68,13 +74,7 @@ def ai_model(
             field_name=field_name,
             field_description=field_description,
             **render_kwargs,
-        )
-        def extract(text: str) -> T:  # type: ignore
-            pass
-
-        extract.__annotations__["return"] = _type_
-
-        return extract(text)
+        )(text)
 
     if _type is not None:
         return partial(wrapper, _type)
