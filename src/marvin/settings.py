@@ -1,6 +1,6 @@
 import os
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Literal, Optional
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,6 +20,20 @@ class MarvinSettings(BaseSettings):
         arbitrary_types_allowed=True,
     )
 
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Preserve SecretStr type when setting values."""
+        field = self.model_fields.get(name)
+        if field:
+            annotation = field.annotation
+            base_types = (
+                annotation.__args__
+                if getattr(annotation, "__origin__", None) is Union
+                else (annotation,)
+            )
+            if SecretStr in base_types and not isinstance(value, SecretStr):
+                value = SecretStr(value)
+        super().__setattr__(name, value)
+
 
 class MarvinModelSettings(MarvinSettings):
     model: str
@@ -33,14 +47,12 @@ class MarvinModelSettings(MarvinSettings):
 
 class ChatCompletionSettings(MarvinModelSettings):
     model: str = Field(
-        default="gpt-4-1106-preview",
+        default="gpt-3.5-turbo-1106",
         description="The default chat model to use.",
     )
 
     async def acreate(self, **kwargs: Any) -> "ChatCompletion":
         from marvin.settings import settings
-
-        _settings = dict(model=self.model)
 
         return await settings.openai.async_client.chat.completions.create(
             model=self.model, **kwargs

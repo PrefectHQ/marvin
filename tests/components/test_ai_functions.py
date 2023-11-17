@@ -71,7 +71,7 @@ class TestAIFunctions:
         def test_plain_dict_return_type(self):
             @ai_fn
             def get_fruit(name: str) -> dict:
-                """Returns a fruit with the provided name and color"""
+                """Returns the name and color of the mentioned fruit"""
 
             fruit = get_fruit("banana")
             assert fruit["name"].lower() == "banana"
@@ -82,32 +82,32 @@ class TestAIFunctions:
             def get_fruit(name: str) -> dict[str, str]:
                 """Returns a fruit with the provided name and color"""
 
-            fruit = get_fruit("banana")
+            fruit = get_fruit("loved by monkeys")
             assert fruit["name"].lower() == "banana"
             assert fruit["color"].lower() == "yellow"
 
         def test_generic_dict_return_type(self):
             @ai_fn
-            def get_fruit(name: str) -> Dict[str, str]:
-                """Returns a fruit with the provided name and color"""
+            def describe_fruit(name: str) -> Dict[str, str]:
+                """Returns the name and color of the mentioned fruit"""
 
-            fruit = get_fruit("banana")
+            fruit = describe_fruit("loved by monkeys")
             assert fruit["name"].lower() == "banana"
             assert fruit["color"].lower() == "yellow"
 
         def test_int_return_type(self):
             @ai_fn
             def get_fruit(name: str) -> int:
-                """Returns the number of letters in the provided fruit name"""
+                """Returns the number of letters in the alluded fruit name"""
 
-            assert get_fruit("banana") == 6
+            assert get_fruit("loved by monkeys") == 6
 
         def test_float_return_type(self):
             @ai_fn
             def get_fruit(name: str) -> float:
-                """Returns the number of letters in the provided fruit name"""
+                """Returns the number of letters in the alluded fruit name"""
 
-            assert get_fruit("banana") == 6.0
+            assert get_fruit("loved by monkeys") == 6.0
 
         def test_tuple_return_type(self):
             @ai_fn
@@ -120,7 +120,7 @@ class TestAIFunctions:
                 "cherry",
             )
 
-        @pytest.skip(reason="TODO")
+        @pytest.mark.skip(reason="TODO")
         def test_set_return_type(self):
             @ai_fn
             def get_fruit_letters(name: str) -> set:
@@ -128,7 +128,7 @@ class TestAIFunctions:
 
             assert get_fruit_letters("banana") == {"a", "b", "n"}
 
-        @pytest.skip(reason="TODO")
+        @pytest.mark.skip(reason="TODO")
         def test_frozenset_return_type(self):
             @ai_fn
             def get_fruit_letters(name: str) -> frozenset:

@@ -48,6 +48,7 @@ tests = [
     "pytest-rerunfailures>=10,<13",
     "pytest-sugar~=0.9",
     "pytest~=7.3.1",
+    "pytest-timeout",
 ]
 
 [project.urls]
@@ -67,7 +68,7 @@ write_to = "src/marvin/_version.py"
 # pytest configuration
 [tool.pytest.ini_options]
 markers = ["llm: indicates that a test calls an LLM (may be slow)."]
-
+timeout = 20
 testpaths = ["tests"]
 
 norecursedirs = [
@@ -87,10 +88,9 @@ filterwarnings = [
 ]
 env = [
     "MARVIN_TEST_MODE=1",
-    "MARVIN_LOG_CONSOLE_WIDTH=120",
     # use 3.5 for tests by default
-    'D:MARVIN_LLM_MODEL=gpt-3.5-turbo',
-    'MARVIN_LLM_TEMPERATURE=0.0',
+    'D:MARVIN_OPENAI_CHAT_COMPLETIONS_MODEL=gpt-3.5-turbo-1106',
+    'PYTEST_TIMEOUT=20',
 ]
 
 # black configuration

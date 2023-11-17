@@ -26,6 +26,7 @@ from marvin.utilities.asyncio import (
 from marvin.utilities.jinja import (
     BaseEnvironment,
 )
+from marvin.utilities.logging import get_logger
 
 if TYPE_CHECKING:
     from openai.types.chat import ChatCompletion
@@ -45,7 +46,7 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
         {{_source_code}}
 
         The user will provide function inputs (if any) and you must respond with
-        the most likely result, which must be valid, double-quoted JSON.
+        the most likely result.
 
         user: The function was called with the following inputs:
         {%for (arg, value) in _arguments.items()%}
@@ -68,6 +69,14 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
 
         from marvin import settings
 
+        logger = get_logger("marvin.ai_fn")
+
+        logger.debug_kv(
+            "AI Function Call",
+            f"Calling {self.fn.__name__} with {args} and {kwargs}",
+            "blue",
+        )
+
         is_async_fn = asyncio.iscoroutinefunction(self.fn)
 
         call = "async_call" if is_async_fn else "sync_call"
@@ -77,7 +86,11 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
             else settings.openai.chat.completions.create
         )
 
-        return getattr(self, call)(create, *args, **kwargs)
+        result = getattr(self, call)(create, *args, **kwargs)
+
+        logger.debug_kv("AI Function Call", f"Returned {result}", "blue")
+
+        return result
 
     async def async_call(
         self, acreate: Callable[..., Awaitable[Any]], *args: P.args, **kwargs: P.kwargs

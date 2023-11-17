@@ -85,10 +85,7 @@ class AIClassifier(BaseModel, Generic[P, T]):
                 for index in _response
             ]
         elif isinstance(_return, type) and issubclass(_return, Enum):
-            return [
-                TypeAdapter(_return).validate_python(1 + int(index))
-                for index in _response
-            ]
+            return [list(_return)[int(index)] for index in _response]
         raise TypeError(
             f"Expected Literal or Enum or list[str], got {type(_return)} with value"
             f" {_return}"
