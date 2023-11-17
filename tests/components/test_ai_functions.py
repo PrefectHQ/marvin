@@ -5,7 +5,7 @@ import pytest
 from marvin import ai_fn
 from pydantic import BaseModel
 
-from tests.utils.mark import pytest_mark_class
+from tests.utils import pytest_mark_class
 
 
 @ai_fn
@@ -20,23 +20,24 @@ def list_fruit_color(n: int, color: str = None) -> list[str]:
 
 @pytest_mark_class("llm")
 class TestAIFunctions:
-    def test_list_fruit(self):
-        result = list_fruit()
-        assert len(result) == 2
+    class TestBasics:
+        def test_list_fruit(self):
+            result = list_fruit()
+            assert len(result) == 2
 
-    def test_list_fruit_argument(self):
-        result = list_fruit(5)
-        assert len(result) == 5
+        def test_list_fruit_argument(self):
+            result = list_fruit(5)
+            assert len(result) == 5
 
-    async def test_list_fruit_async(self):
-        @ai_fn
-        async def list_fruit(n: int) -> list[str]:
-            """Returns a list of `n` fruit"""
+        async def test_list_fruit_async(self):
+            @ai_fn
+            async def list_fruit(n: int) -> list[str]:
+                """Returns a list of `n` fruit"""
 
-        coro = list_fruit(3)
-        assert inspect.iscoroutine(coro)
-        result = await coro
-        assert len(result) == 3
+            coro = list_fruit(3)
+            assert inspect.iscoroutine(coro)
+            result = await coro
+            assert len(result) == 3
 
     class TestAnnotations:
         def test_list_fruit_with_generic_type_hints(self):
@@ -71,43 +72,43 @@ class TestAIFunctions:
         def test_plain_dict_return_type(self):
             @ai_fn
             def get_fruit(name: str) -> dict:
-                """Returns a fruit with the provided name and color"""
+                """Returns the name and color of the mentioned fruit"""
 
-            fruit = get_fruit("banana")
+            fruit = get_fruit("the one thats loved by monkeys")
             assert fruit["name"].lower() == "banana"
             assert fruit["color"].lower() == "yellow"
 
         def test_annotated_dict_return_type(self):
             @ai_fn
             def get_fruit(name: str) -> dict[str, str]:
-                """Returns a fruit with the provided name and color"""
+                """Returns the name and color of the mentioned fruit"""
 
-            fruit = get_fruit("banana")
+            fruit = get_fruit("the one thats loved by monkeys")
             assert fruit["name"].lower() == "banana"
             assert fruit["color"].lower() == "yellow"
 
         def test_generic_dict_return_type(self):
             @ai_fn
-            def get_fruit(name: str) -> Dict[str, str]:
-                """Returns a fruit with the provided name and color"""
+            def describe_fruit(name: str) -> Dict[str, str]:
+                """Returns the name and color of the mentioned fruit"""
 
-            fruit = get_fruit("banana")
+            fruit = describe_fruit("the one thats loved by monkeys")
             assert fruit["name"].lower() == "banana"
             assert fruit["color"].lower() == "yellow"
 
         def test_int_return_type(self):
             @ai_fn
             def get_fruit(name: str) -> int:
-                """Returns the number of letters in the provided fruit name"""
+                """Returns the number of letters in the alluded fruit name"""
 
             assert get_fruit("banana") == 6
 
         def test_float_return_type(self):
             @ai_fn
             def get_fruit(name: str) -> float:
-                """Returns the number of letters in the provided fruit name"""
+                """Returns the number of letters in the alluded fruit name"""
 
-            assert get_fruit("banana") == 6.0
+            assert get_fruit("the one thats loved by monkeys") == 6.0
 
         def test_tuple_return_type(self):
             @ai_fn
@@ -120,7 +121,7 @@ class TestAIFunctions:
                 "cherry",
             )
 
-        @pytest.skip(reason="TODO")
+        @pytest.mark.skip(reason="TODO")
         def test_set_return_type(self):
             @ai_fn
             def get_fruit_letters(name: str) -> set:
@@ -128,7 +129,7 @@ class TestAIFunctions:
 
             assert get_fruit_letters("banana") == {"a", "b", "n"}
 
-        @pytest.skip(reason="TODO")
+        @pytest.mark.skip(reason="TODO")
         def test_frozenset_return_type(self):
             @ai_fn
             def get_fruit_letters(name: str) -> frozenset:

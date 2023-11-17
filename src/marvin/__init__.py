@@ -1,6 +1,6 @@
 from .settings import settings
 
-from .components import ai_fn
+from .components import ai_fn, ai_model, ai_classifier
 
 try:
     from ._version import version as __version__

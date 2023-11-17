@@ -2,10 +2,9 @@ from typing import List, Literal, Optional
 
 import pytest
 from marvin import ai_model
-from marvin.utilities.messages import Message, Role
 from pydantic import BaseModel, Field
 
-from tests.utils.mark import pytest_mark_class
+from tests.utils import pytest_mark_class
 
 
 @pytest_mark_class("llm")
@@ -162,22 +161,6 @@ class TestAIModels:
         fruit = await Fruit.acall("loved by monkeys")
 
         assert isinstance(fruit, Fruit)
-
-
-@pytest_mark_class("llm")
-class TestAIModelsMessage:
-    @pytest.mark.skip(reason="old behavior, may revisit")
-    def test_arithmetic_message(self):
-        @ai_model
-        class Arithmetic(BaseModel):
-            sum: float = Field(
-                ..., description="The resolved sum of provided arguments"
-            )
-
-        x = Arithmetic("One plus six")
-        assert x.sum == 7
-        assert isinstance(x._message, Message)
-        assert x._message.role == Role.FUNCTION_RESPONSE
 
 
 @pytest_mark_class("llm")
