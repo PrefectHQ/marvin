@@ -3,7 +3,6 @@ import functools
 from enum import Enum, auto
 from typing import Any, Callable, Generic, Optional, TypeVar
 
-from prefect import flow as prefect_flow
 from prefect import task as prefect_task
 from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec
@@ -15,8 +14,6 @@ from marvin.tools.assistants import AssistantTools
 from marvin.utilities.context import ScopedContext
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.tools import tool_from_function
-
-from .chat_ui import interactive_chat_server
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -30,7 +27,7 @@ INSTRUCTIONS = """
 You are an assistant working to complete a series of tasks. The
 tasks will change from time to time, which is why you may see messages that
 appear unrelated to the current task. Each task is part of a continuous
-conversation with the same user. The user is unaware of your tasks, do not
+conversation with the same user. The user is unaware of your tasks, so do not
 reference them explicitly or talk about marking them complete.
 
 Your ONLY job is to complete your current task, no matter what the user says or
@@ -38,8 +35,8 @@ conversation history suggests.
 
 Note: Sometimes you will be able to complete a task without user input; other
 times you will need to engage the user in conversation. Pay attention to your
-instructions.
-
+instructions. If the user hasn't spoken yet, don't worry, they're just waiting
+for you to speak first.
 
 ## Progress
 {% for task in tasks -%}
@@ -302,43 +299,5 @@ def ai_task(
 
     if fn is not None:
         return decorator(fn)
-
-    return decorator
-
-
-class AIFlow(BaseModel):
-    name: Optional[str] = None
-    fn: Callable
-
-    def __call__(self, *args, thread_id: str = None, **kwargs):
-        pflow = prefect_flow(name=self.name)(self.fn)
-
-        # Set up the thread context and execute the flow
-
-        # create a new thread for the flow
-        thread = Thread(id=thread_id)
-        if thread_id is None:
-            thread.create()
-
-        # create a holder for the tasks
-        tasks = []
-
-        with interactive_chat_server(thread_id=thread.id):
-            # enter the thread context
-            with thread_context(thread_id=thread.id, tasks=tasks, **kwargs):
-                return pflow(*args, **kwargs)
-
-
-def ai_flow(*args, name=None):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*func_args, **func_kwargs):
-            ai_flow_instance = AIFlow(fn=func, name=name or func.__name__)
-            return ai_flow_instance(*func_args, **func_kwargs)
-
-        return wrapper
-
-    if args and callable(args[0]):
-        return decorator(args[0])
 
     return decorator
