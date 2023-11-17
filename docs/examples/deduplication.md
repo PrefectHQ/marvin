@@ -84,53 +84,60 @@ def get_cities(text: str) -> list[City]:
             "content": "Expertly deduce and infer all cities from the follwing text: Chicago, The Windy City, New York City, the Big Apple, SF, San Fran, San Francisco."
             }
         ],
-        "functions": [
+        "tools": [
             {
-            "parameters": {
+            "type": "function",
+            "function": {
+                "name": "FormatResponse",
+                "description": "Formats the response.",
+                "parameters": {
                 "$defs": {
-                "City": {
+                    "City": {
                     "description": "A model to represent a city.",
                     "properties": {
-                    "text": {
+                        "text": {
                         "description": "The city name as it appears",
                         "title": "Text",
                         "type": "string"
-                    },
-                    "inferred_city": {
+                        },
+                        "inferred_city": {
                         "description": "The inferred and normalized city name.",
                         "title": "Inferred City",
                         "type": "string"
-                    }
+                        }
                     },
                     "required": [
-                    "text",
-                    "inferred_city"
+                        "text",
+                        "inferred_city"
                     ],
                     "title": "City",
                     "type": "object"
-                }
+                    }
                 },
                 "properties": {
-                "output": {
+                    "data": {
+                    "description": "The data to format.",
                     "items": {
-                    "$ref": "#/$defs/City"
+                        "$ref": "#/$defs/City"
                     },
-                    "title": "Output",
+                    "title": "Data",
                     "type": "array"
-                }
+                    }
                 },
                 "required": [
-                "output"
+                    "data"
                 ],
                 "type": "object"
-            },
-            "name": "Output",
-            "description": ""
+                }
+            }
             }
         ],
-        "function_call": {
-            "name": "Output"
-        }
+        "tool_choice": {
+            "type": "function",
+            "function": {
+            "name": "FormatResponse"
+            }
+        },
         }
         ```
 
@@ -189,13 +196,12 @@ response = openai.ChatCompletion.create(
 We can parse the raw response and mine out the relevant responses, 
 
 ```python
-[
-    City.parse_obj(city) 
-    for city in 
-    json.loads(
-        response.choices[0].message.function_call.arguments
-    ).get('output')
-]
+from pydantic import TypeAdapter
+
+TypeAdapter(list[City]).validate_json(
+    tool_calls[0].function.arguments
+)
+
 ```
 
 what we'll get now is the pairs of raw, observed city and cleaned deduplicated city.
@@ -255,12 +261,8 @@ one place, you can copy the cell below.
         )
     )
 
-    [
-        City.parse_obj(city) 
-        for city in 
-        json.loads(
-            response.choices[0].message.function_call.arguments
-        ).get('output')
-    ]
+    TypeAdapter(list[City]).validate_json(
+        tool_calls[0].function.arguments
+    )
 
     ```

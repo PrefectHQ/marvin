@@ -1,25 +1,39 @@
 # Quickstart
 
-![](/img/heroes/dont_panic.png)
+## Basic Installation
 
-After [installing Marvin](../installation), the fastest way to get started is by using one of Marvin's high-level [AI components](../../components/overview). These components are designed to integrate AI into abstractions you already know well, creating the best possible opt-in developer experience.
+You can install Marvin with `pip` (note that Marvin requires Python 3.9+):
 
-## Configure LLM Provider
+```shell
+pip install marvin
+``` 
 
-Marvin is a high-level interface for working with LLMs. In order to use it, you must configure an LLM provider. At this time, Marvin supports OpenAI's GPT-3.5 and GPT-4 models, Anthropic's Claude 1 and Claude 2 models, and the Azure OpenAI Service. The default model is OpenAI's `gpt-4`.
+You can upgrade to the latest released version at any time:
 
-To use the default model, provide an API key:
+```shell
+pip install marvin -U
+```
+
+!!! warning "Breaking changes in 2.0"
+    Please note that Marvin 2.0 introduces a number of breaking changes and is not compatible with Marvin 1.X.
+
+The fastest way to get started is by using one of Marvin's high-level components. These components are designed to integrate AI into abstractions you already know well, creating the best possible opt-in developer experience.
+
+### Configure LLM Provider
+
+Marvin is a high-level interface for working with LLMs. At this time, Marvin supports OpenAI's GPT-3.5 and GPT-4 models, and the Azure OpenAI Service. The default model is OpenAI's `gpt-3.5-turbo`. To use the default model, provide an API key:
 
 ```python
-import marvin
+from marvin.settings import settings
 
 # to use an OpenAI model (if not specified, defaults to gpt-4)
 marvin.settings.openai.api_key = YOUR_API_KEY
 ```
 
-To use another provider or model, please see the [configuration docs](../../configuration/settings/#llm-providers).
 
-## AI Models
+## High Level Components
+
+### AI Models
 
 Marvin's most basic component is the AI Model, a drop-in replacement for Pydantic's `BaseModel`. AI Models can be instantiated from any string, making them ideal for structuring data, entity extraction, and synthetic data generation:
 
@@ -39,36 +53,35 @@ Location("The Big Apple")
 
     Location(city='New York', state='NY')
 
-## AI Classifiers
+### AI Classifiers
 
 AI Classifiers let you build multi-label classifiers with no code and no training data. Given user input, each classifier uses a [clever logit bias trick](https://twitter.com/AAAzzam/status/1669753721574633473) to force an LLM to deductively choose the best option. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
 
 ```python
-from marvin import ai_classifier
+from marvin.components import ai_classifier
 from enum import Enum
 
-
-@ai_classifier
 class AppRoute(Enum):
-    """Represents distinct routes command bar for a different application"""
-
-    USER_PROFILE = "/user-profile"
-    SEARCH = "/search"
     NOTIFICATIONS = "/notifications"
     SETTINGS = "/settings"
     HELP = "/help"
     CHAT = "/chat"
     DOCS = "/docs"
     PROJECTS = "/projects"
-    WORKSPACES = "/workspaces"
 
+@ai_classifier
+def classify_user_intent(text: str) -> AppRoute:
+    '''
+        Chooses the most likely route
+    '''
 
-AppRoute("update my name")
+classify_user_intent("change my username") #<AppRoute.SETTINGS: '/settings'>
+
 ```
 
     <AppRoute.USER_PROFILE: '/user-profile'>
 
-## AI Functions
+### AI Functions
 
 AI Functions look like regular functions, but have no source code. Instead, an AI uses their description and inputs to generate their outputs, making them ideal for NLP applications like sentiment analysis.
 
@@ -84,12 +97,9 @@ def sentiment(text: str) -> float:
     """
 
 
-print("Text 1:", sentiment("I love working with Marvin!"))
-print("Text 2:", sentiment("These examples could use some work..."))
+sentiment("I love working with Marvin!") #.8
+sentiment("These examples could use some work...") #-.2
 ```
-
-    Text 1: 0.8
-    Text 2: -0.2
 
 Because AI functions are just like regular functions, you can quickly modify them for your needs. Here, we modify the above example to work with multiple strings at once:
 
@@ -110,95 +120,100 @@ sentiment_list(
         "That was surprisingly easy!",
         "Oh no, not again.",
     ]
-)
+) # 0.7, -0.5]
 ```
+## Lower Level Components
 
-    [0.7, -0.5]
+### Prompt Functions
 
-## AI Applications
-
-AI Applications are the base class for interactive use cases. They are designed to be invoked one or more times, and automatically maintain three forms of state:
-
-- `state`: a structured application state
-- `plan`: high-level planning for the AI assistant to keep the application "on-track" across multiple invocations
-- `history`: a history of all LLM interactions
-
-AI Applications can be used to implement many "classic" LLM use cases, such as chatbots, tool-using agents, developer assistants, and more. In addition, thanks to their persistent state and planning, they can implement applications that don't have a traditional chat UX, such as a ToDo app. Here's an example:
+Marvin's prompt_fn only creates a prompt to send to a large language model. It does not call any external service, it's simply responsible for translating your query into something that a large language model will understand. It follows OpenAI's function calling syntax.
 
 ```python
-from datetime import datetime
-from pydantic import BaseModel, Field
-from marvin import AIApplication
+import pydantic
+from marvin import prompt_fn
 
+class City(pydantic.BaseModel):
+    '''
+        A model to represent a city.
+    '''
 
-# create models to represent the state of our ToDo app
-class ToDo(BaseModel):
-    title: str
-    description: str = None
-    due_date: datetime = None
-    done: bool = False
+    text: str = pydantic.Field(
+        description = 'The city name as it appears'
+    )
 
+    inferred_city: str = pydantic.Field(
+            description = 'The inferred and normalized city name.'
+        )
 
-class ToDoState(BaseModel):
-    todos: list[ToDo] = []
+@prompt_fn
+def get_cities(text: str) -> list[City]:
+    '''
+        Expertly deduce and infer all cities from the follwing text: {{ text }}
+    '''
 
-
-# create the app with an initial state and description
-todo_app = AIApplication(
-    state=ToDoState(),
-    description=(
-        "A simple todo app. Users will provide instructions for creating and updating"
-        " their todo lists."
-    ),
-)
 ```
 
-Now we can invoke the app directly to add a to-do item. Note that the app understands that it is supposed to manipulate state, not just respond conversationally.
+Here's the output when we plug in a few cities.
 
 ```python
-# invoke the application by adding a todo
-response = todo_app("I need to go to the store tomorrow at 5pm")
-
-
-print(
-    f"Response: {response.content}\n",
-)
-print(f"App state: {todo_app.state.json(indent=2)}")
+get_cities("Chicago, The Windy City, New York City, the Big Apple.")
 ```
+??? "Click to see output"
 
-    Response: Sure! I've added a new task to your to-do list. You need to go to the store tomorrow at 5pm.
-
-    App state: {
-      "todos": [
+    ```json
+    {
+    "messages": [
         {
-          "title": "Go to the store",
-          "description": null,
-          "due_date": "2023-07-12T17:00:00",
-          "done": false
+        "role": "system",
+        "content": "Expertly deduce and infer all cities from the follwing text: Chicago, The Windy City, New York City, the Big Apple, SF, San Fran, San Francisco."
         }
-      ]
-    }
-
-We can inform the app that we already finished the task, and it updates state appropriately
-
-```python
-# complete the task
-response = todo_app("I already went")
-
-
-print(f"Response: {response.content}\n")
-print(f"App state: {todo_app.state.json(indent=2)}")
-```
-
-    Response: Great! I've marked the task "Go to the store" as completed. Is there anything else you need help with?
-
-    App state: {
-      "todos": [
+    ],
+    "functions": [
         {
-          "title": "Go to the store",
-          "description": null,
-          "due_date": "2023-07-12T17:00:00",
-          "done": true
+        "parameters": {
+            "$defs": {
+            "City": {
+                "description": "A model to represent a city.",
+                "properties": {
+                "text": {
+                    "description": "The city name as it appears",
+                    "title": "Text",
+                    "type": "string"
+                },
+                "inferred_city": {
+                    "description": "The inferred and normalized city name.",
+                    "title": "Inferred City",
+                    "type": "string"
+                }
+                },
+                "required": [
+                "text",
+                "inferred_city"
+                ],
+                "title": "City",
+                "type": "object"
+            }
+            },
+            "properties": {
+            "output": {
+                "items": {
+                "$ref": "#/$defs/City"
+                },
+                "title": "Output",
+                "type": "array"
+            }
+            },
+            "required": [
+            "output"
+            ],
+            "type": "object"
+        },
+        "name": "Output",
+        "description": ""
         }
-      ]
+    ],
+    "function_call": {
+        "name": "Output"
     }
+    }
+    ```

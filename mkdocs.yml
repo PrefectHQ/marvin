@@ -8,8 +8,13 @@ repo_url: https://github.com/prefecthq/marvin
 nav:
   - Getting Started:
     - welcome/what_is_marvin.md
+    - welcome/quickstart.md
   - Use Cases:
-    - Entity Deduplication: examples/deduplication.md
+    - Entity Deduplication: 
+      - Location: examples/deduplication.md
+    - Extraction:
+      - Financial Figures: examples/financial_extraction.md
+      - Meeting Notes and Action Items: examples/meeting_notes.md
 
 
 theme:
