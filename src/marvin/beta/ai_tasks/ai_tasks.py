@@ -1,3 +1,4 @@
+import asyncio
 import functools
 from enum import Enum, auto
 from typing import Any, Callable, Generic, Optional, TypeVar
@@ -5,17 +6,17 @@ from typing import Any, Callable, Generic, Optional, TypeVar
 from prefect import flow as prefect_flow
 from prefect import task as prefect_task
 from pydantic import BaseModel, Field
-from rich.prompt import Prompt
 from typing_extensions import ParamSpec
 
 from marvin.beta.assistants import Assistant, Run, Thread
-from marvin.beta.assistants.formatting import pprint_message, pprint_messages
 from marvin.beta.assistants.runs import CancelRun
 from marvin.serializers import create_tool_from_type
 from marvin.tools.assistants import AssistantTools
 from marvin.utilities.context import ScopedContext
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.tools import tool_from_function
+
+from .chat_ui import interactive_chat_server
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -29,7 +30,8 @@ INSTRUCTIONS = """
 You are an assistant working to complete a series of tasks. The
 tasks will change from time to time, which is why you may see messages that
 appear unrelated to the current task. Each task is part of a continuous
-conversation with the same user.
+conversation with the same user. The user is unaware of your tasks, do not
+reference them explicitly or talk about marking them complete.
 
 Your ONLY job is to complete your current task, no matter what the user says or
 conversation history suggests.
@@ -140,7 +142,36 @@ class AITask(BaseModel, Generic[P, T]):
 
         ptask = prefect_task(name=self.name)(self.call)
 
-        return ptask(*args, _thread_id=_thread_id, **kwargs)
+        state = ptask(*args, _thread_id=_thread_id, **kwargs, return_state=True)
+
+        # will raise exceptions if the task failed
+        return state.result()
+
+    async def wait_for_user_input(self, thread: Thread):
+        # user_input = Prompt.ask("Your message")
+        # thread.add(user_input)
+        # pprint_message(msg)
+
+        # initialize the last message ID to None
+        last_message_id = None
+
+        # loop until the user provides input
+        while True:
+            # get all messages after the last message ID
+            messages = await thread.get_messages_async(after_message=last_message_id)
+
+            # if there are messages, check if the last message was sent by the user
+            if messages:
+                if messages[-1].role == "user":
+                    # if the last message was sent by the user, break
+                    break
+                else:
+                    # if the last message was not sent by the user, update the
+                    # last message ID
+                    last_message_id = messages[-1].id
+
+            # wait for a short period of time before checking for new messages again
+            await asyncio.sleep(0.3)
 
     async def call(self, *args, _thread_id: str = None, **kwargs):
         thread = Thread(id=_thread_id)
@@ -166,11 +197,7 @@ class AITask(BaseModel, Generic[P, T]):
                 )
 
                 if iterations > 1 and self.accept_user_input:
-                    user_input = Prompt.ask("Your message")
-                    msg = thread.add(user_input)
-                    pprint_message(msg)
-                else:
-                    msg = None
+                    await self.wait_for_user_input(thread=thread)
 
                 run = Run(
                     assistant=assistant,
@@ -182,9 +209,6 @@ class AITask(BaseModel, Generic[P, T]):
                     ],
                 )
                 await run.run_async()
-
-                messages = thread.get_messages(after_message=msg.id if msg else None)
-                pprint_messages(messages)
 
             if self.status == Status.FAILED:
                 raise ValueError(f"Objective failed: {self.result}")
@@ -286,7 +310,7 @@ class AIFlow(BaseModel):
     name: Optional[str] = None
     fn: Callable
 
-    def __call__(self, *args, thread_id: str = None, message: str = None, **kwargs):
+    def __call__(self, *args, thread_id: str = None, **kwargs):
         pflow = prefect_flow(name=self.name)(self.fn)
 
         # Set up the thread context and execute the flow
@@ -296,17 +320,13 @@ class AIFlow(BaseModel):
         if thread_id is None:
             thread.create()
 
-        # post the initial message
-        if message is not None:
-            msg = thread.add(message)
-            pprint_message(msg)
-
         # create a holder for the tasks
         tasks = []
 
-        # enter the thread context
-        with thread_context(thread_id=thread.id, tasks=tasks, **kwargs):
-            return pflow(*args, **kwargs)
+        with interactive_chat_server(thread_id=thread.id):
+            # enter the thread context
+            with thread_context(thread_id=thread.id, tasks=tasks, **kwargs):
+                return pflow(*args, **kwargs)
 
 
 def ai_flow(*args, name=None):
