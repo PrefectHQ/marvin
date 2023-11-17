@@ -1,7 +1,7 @@
 # What is Marvin?
 
 Marvin is a simple library that lets you use Large Language Models by writing code, not prompts. It's open source,
-free to use, used by thousands of engineers, and built with love by the engineering team at Prefect. 
+free to use, used by thousands of engineers, and built with love by the engineering team at [Prefect](https://github.com/prefecthq/prefect). 
 
 ??? Question "Explain Like I'm Five"
     === "I'm not technical"
@@ -32,10 +32,10 @@ free to use, used by thousands of engineers, and built with love by the engineer
 
         Extracting, generating, cleaning, or classifying data is as simple as writing a function or a data model.
 
-Marvin is built for incremental option. You can use it purely as a serialization library and bring your open Large Language Model,
+Marvin is built for incremental adoption. You can use it purely as a serialization library and bring your own stack,
 or fully use its engine to work with OpenAI and other providers. 
 
-!!! Example "What Marvin feels like: a few use cases."
+!!! Example "What Marvin feels like."
 
     === "Extracting structured data"
         Marvin exposes a number of high level components to simplify working with AI. 
@@ -65,14 +65,14 @@ or fully use its engine to work with OpenAI and other providers.
 
         @ai_classifier
         def customer_intent(n: int, color: str = 'red') -> Literal['Store Hours', 'Pharmacy', 'Returns']
-            """Generates a list of {{n}} {{color}} fruits"""
+            """Classifies incoming customer intent"""
 
-        list_fruits(3) # "['Apple', 'Cherry', 'Strawberry']"
+        customer_intent("I need to pick up my prescription") # "Pharmacy"
         ```
-        Notice `list_fruits` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
+        Notice `customer_intent` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
         parses its response.
     
-    === "Generating Synthetic Data"
+    === "Generating synthetic data"
 
         Marvin exposes a number of high level components to simplify working with AI. 
 
@@ -88,24 +88,24 @@ or fully use its engine to work with OpenAI and other providers.
         Notice `list_fruits` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
         parses its response.
 
-Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.
-
-Sometimes the most challenging part of working with generative AI is remembering that it's not magic; it's software. It's new, it's nondeterministic, and it's incredibly powerful - but still software.
-
 Marvin's goal is to bring the best practices for building dependable, observable software to generative AI. As the team behind [Prefect](https://github.com/prefecthq/prefect), which does something very similar for data engineers, we've poured years of open-source developer tool experience and lessons into Marvin's design.
 
-## Core Components
+## What models do we support?
 
-🧩 [**AI Models**](/components/ai_model) for structuring text into type-safe schemas
+Marvin officially supports OpenAI's suite of models. It's the easiest way to use OpenAI Function Calling. We run (and pay for!) a public evaluation test suite to ensure that our library does what we say it does. If you're a community member who wants to build an maintain an integration with another provider, get in touch. 
 
-🏷️ [**AI Classifiers**](/components/ai_classifier) for bulletproof classification and routing
+Note that Marvin can be used as a serialization library, so you can bring your own Large Language Models and exclusively use Marvin to generate prompts from your code.
 
-🪄 [**AI Functions**](/components/ai_function) for complex business logic and transformations
+## Why are we building Marvin?
 
-🤝 [**AI Applications**](/components/ai_application) for interactive use and persistent state
+At Prefect we support thousands of engineers in workflow orchestration, from small startups to huge enterprise. In late 2022 we
+started working with our community to adopt AI into their workflows and found there wasn't a sane option for teams looking
+to build simple, quickly, and durable with Generative AI. 
 
-## Ambient AI
+## Why Marvin over X?
 
-With Marvin, we’re taking the first steps on a journey to deliver [Ambient AI](https://twitter.com/DrJimFan/status/1657782710344249344): omnipresent but unobtrusive autonomous routines that act as persistent translators for noisy, real-world data. Ambient AI makes unstructured data universally accessible to traditional software, allowing the entire software stack to embrace AI technology without interrupting the development workflow. Marvin brings simplicity and stability to AI engineering through abstractions that are reliable and easy to trust.
+There's a whole fleet of frameworks to work with Large Language Models, but we're not smart enough to understand them. We
+try to fight abstractions wherever we can so that users can easily understand and customize what's going on. 
 
-Interested? [Join our community](../../community)!
+At Prefect we've worked for years to find a developer experience that engineers find inuitive and pleasant to work with. We're porting our
+lessons from Prefect to working with Generative AI.  
