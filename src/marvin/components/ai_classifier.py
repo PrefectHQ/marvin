@@ -47,7 +47,7 @@ class AIClassifier(BaseModel, Generic[P, T]):
             "{% for option in _options %}"
             "    Class {{ loop.index - 1}} (value: {{ option }})"
             "{% endfor %}"
-            "ASSISTANT: The correct class label is Class"
+            "\n\nASSISTANT: The correct class label is Class"
         )
     )
     enumerate: bool = True
@@ -65,6 +65,7 @@ class AIClassifier(BaseModel, Generic[P, T]):
             from marvin.settings import settings
 
             create = settings.openai.chat.completions.create
+
         return self.parse(create(**self.as_prompt(*args, **kwargs).serialize()))
 
     def parse(self, response: "ChatCompletion") -> list[T]:
@@ -86,7 +87,7 @@ class AIClassifier(BaseModel, Generic[P, T]):
             ]
         elif isinstance(_return, type) and issubclass(_return, Enum):
             return [
-                TypeAdapter(_return).validate_python(1 + int(index))
+                TypeAdapter(_return).validate_python(list(_return)[int(index)])
                 for index in _response
             ]
         raise TypeError(
