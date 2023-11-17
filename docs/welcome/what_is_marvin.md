@@ -1,12 +1,12 @@
 # What is Marvin?
 
 Marvin is a simple library that lets you use Large Language Models by writing code, not prompts. It's open source,
-free to use, and built with love by the engineering team at Prefect. 
+free to use, used by thousands of engineers, and built with love by the engineering team at Prefect. 
 
 ??? Question "Explain Like I'm Five"
     === "I'm not technical"
 
-        Marvin lets engineers who know Python use Generative AI without needing to write prompts.
+        Marvin lets engineers who know Python use Large Language Models without needing to write prompts.
 
         It turns out that ChatGPT and other Large Language Models are good at performing boring but incredibly valuable
         business-critical tasks beyond being a chatbot: you can use them to classify emails as spam, extract key figures
@@ -21,52 +21,72 @@ free to use, and built with love by the engineering team at Prefect.
 
     === "I'm technical"
 
-        Marvin is a simple and elegant library to make working with Large Language Models easy, reliable, and scalable. Thousands of developers rely on Marvin in production to
+        Marvin lets your software speak English and ask questions to LLMs.
+
+        It introspects the types and docstrings of your functions and data models, and lets you cast them
+        to prompts automatically to pass to a Large Language Model. This lets you write code as you normally would
+        instead of writing prompts, and we handle the translation back and forth for you. 
+
+        This lets you focus on what you've always focused on: writing clean, versioned, reusable *code* and *data models*, 
+        and not scrutinizing whether you begged your LLM hard enough to output JSON. 
+
+        Extracting, generating, cleaning, or classifying data is as simple as writing a function or a data model.
+
+Marvin is built for incremental option. You can use it purely as a serialization library and bring your open Large Language Model,
+or fully use its engine to work with OpenAI and other providers. 
+
+!!! Example "What Marvin feels like: a few use cases."
+
+    === "Extracting structured data"
+        Marvin exposes a number of high level components to simplify working with AI. 
+
+        ```python
+        from marvin.components import ai_model
+        from pydantic import BaseModel
+
+        class Location(BaseModel):
+            city: str
+            state: str
+            latitude: float
+            longitude: float
+
+        ai_model(Location)("They say they're from the Windy City!")
+        # Location(city='Chicago', state='Illinois', latitude=41.8781, longitude=-87.6298)
+        ```
+        Marvin's components turn your function into a prompt, ask AI for its most likely output, and parses its response.
     
-        - Extract structured data from unstructured text, webpages, and documents
-        - Classify or score text quickly and robustly
-        - Create workflow automations or automate business logic in simple English
-
-        If you know Python, you already know Marvin.
-
-
-
-!!! Info "What is Marvin?"
-    === "I write code"
-
-        Marvin is a simple and elegant library that makes working with Large Language Models providers like OpenAI easy, reliable, and transparent. Thousands of engineers use Marvin in production to
+    === "Building text classifiers"
     
-        - Extract structured data from unstructured text, webpages, and documents
-        - Classify or score text quickly and robustly
-        - Create workflow automations or automate business logic in simple English
+        Marvin exposes a number of high level components to simplify working with AI. 
 
-        If you know Python, you already know Marvin.
+        ```python
+        from marvin import ai_classifier
+        from typing import Literal
 
-    === "I don't write code"
+        @ai_classifier
+        def customer_intent(n: int, color: str = 'red') -> Literal['Store Hours', 'Pharmacy', 'Returns']
+            """Generates a list of {{n}} {{color}} fruits"""
 
-        Marvin is a simple and elegant library to make working with Large Language Models easy, reliable, and scalable. Thousands of developers rely on Marvin in production to
+        list_fruits(3) # "['Apple', 'Cherry', 'Strawberry']"
+        ```
+        Notice `list_fruits` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
+        parses its response.
     
-        - Extract structured data from unstructured text, webpages, and documents
-        - Classify or score text quickly and robustly
-        - Create workflow automations or automate business logic in simple English
+    === "Generating Synthetic Data"
 
-        If you know Python, you already know Marvin.
+        Marvin exposes a number of high level components to simplify working with AI. 
 
-!!! Example "Here's what using Marvin looks like."
+        ```python
+        from marvin import ai_fn
 
-    Marvin exposes a number of high level components to simplify working with AI. Below we use AI to evaluate a Python function. 
+        @ai_fn
+        def list_fruits(n: int, color: str = 'red') -> list[str]:
+            """Generates a list of {{n}} {{color}} fruits"""
 
-    ```python
-    from marvin import ai_fn
-
-    def list_fruits(n: int, color: str = 'red') -> list[str]:
-        """Generates a list of {{n}} {{color}} fruits"""
-        return ai_fn(list_fruits)(n)
-
-    list_fruits(3) # "['Apple', 'Cherry', 'Strawberry']"
-    ```
-    Notice `list_fruits` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
-    parses its response. Of course, every part of Marvin is full customizable. 
+        list_fruits(3) # "['Apple', 'Cherry', 'Strawberry']"
+        ```
+        Notice `list_fruits` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
+        parses its response.
 
 Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.
 
