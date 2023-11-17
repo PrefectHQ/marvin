@@ -193,7 +193,7 @@ class PromptFunction(Prompt[U]):
                     "type": "function",
                     "function": {"name": getattr(tool.function, "name", model_name)},
                 },
-                tools=[Tool[U](**tool.model_dump())],
+                tools=[Tool[BaseModel](**tool.model_dump())],
             )
 
         if fn is not None:
