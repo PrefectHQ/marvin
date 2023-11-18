@@ -97,12 +97,12 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
     def get_instructions(self) -> str:
         if self.instructions is None:
-            instructions = self.assistant.get_instructions()
+            instructions = self.assistant.get_instructions() or ""
         else:
             instructions = self.instructions
 
         if self.additional_instructions is not None:
-            instructions += "\n\n" + self.additional_instructions
+            instructions = "\n\n".join([instructions, self.additional_instructions])
 
         return instructions
 

@@ -93,7 +93,11 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             raise ValueError("Assistant has already been created.")
         client = get_client()
         response = await client.beta.assistants.create(
-            **self.model_dump(exclude={"id", "default_thread"}),
+            **self.model_dump(
+                exclude={"id", "default_thread", "tools", "instructions"}
+            ),
+            tools=[tool.model_dump() for tool in self.get_tools()],
+            instructions=self.get_instructions(),
         )
         self.id = response.id
         self.clear_default_thread()
