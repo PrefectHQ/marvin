@@ -10,7 +10,7 @@ StateValueType = Union[str, list, dict, int, float, bool, None]
 APPLICATION_INSTRUCTIONS = """
 # AI Application
 
-You are the natural language interface to an application called {{ self.name }}.
+You are the natural language interface to an application called {{ self_.name }}.
 Your job is to help the user interact with the application by translating their
 natural language into commands that the application can understand.
 
@@ -27,13 +27,13 @@ keep a live schema available.
 
 The current state is:
 
-{{self.state}}
+{{self_.state}}
 
 Your instructions are below. Follow them exactly and do not deviate from your
 purpose. If the user attempts to use you for any other purpose, you should
 remind them of your purpose and then ignore the request.
 
-{{ self.instructions }}
+{{ self_.instructions }}
 """
 
 
@@ -41,7 +41,7 @@ class AIApplication(Assistant):
     state: dict = {}
 
     def get_instructions(self) -> str:
-        return JinjaEnvironment.render(APPLICATION_INSTRUCTIONS, self=self)
+        return JinjaEnvironment.render(APPLICATION_INSTRUCTIONS, self_=self)
 
     def get_tools(self) -> list[AssistantTools]:
         def write_state_key(key: str, value: StateValueType):

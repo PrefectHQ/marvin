@@ -25,18 +25,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     // Use marked to parse Markdown into HTML
     const parsedText = marked.parse(messageText);
-  
+
     const messageDiv = document.createElement('div');
     messageDiv.innerHTML = parsedText; // Use innerHTML since parsedText is HTML
-  
+
     // Add general message class and conditional class based on the message sender
     messageDiv.classList.add('message');
     messageDiv.classList.add(isUser ? 'user-message' : 'assistant-message');
-  
+
     chatContainer.appendChild(messageDiv);
   }
   // Function to load messages from the thread
-  async function loadMessages() {
+  async function loadMessages(scrollDown = false) {
     const response = await fetch(`http://127.0.0.1:${serverPort}/api/messages/`);
     if (response.ok) {
       const messages = await response.json();
@@ -45,7 +45,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const isUser = message.role === 'user';
         appendMessage(message, isUser);
       });
-      chatContainer.scrollTop = chatContainer.scrollHeight; // Scroll to the bottom of the chat
+      if (scrollDown) {
+        chatContainer.scrollTop = chatContainer.scrollHeight; // Scroll to the bottom of the chat
+      }
     } else {
       console.error('Failed to load messages:', response.statusText);
     }
@@ -81,6 +83,6 @@ document.addEventListener('DOMContentLoaded', function () {
   sendButton.addEventListener('click', sendChatMessage);
 
   // Initial loading of messages
-  loadMessages();
+  loadMessages(scrollDown = true);
   setInterval(loadMessages, 1250); // Polling to refresh messages
 });

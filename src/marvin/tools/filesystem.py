@@ -3,6 +3,12 @@ import pathlib
 import shutil
 
 
+def _safe_create_file(path: str) -> None:
+    file_path = pathlib.Path(path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.touch(exist_ok=True)
+
+
 def getcwd() -> str:
     """Returns the current working directory"""
     return os.getcwd()
@@ -10,6 +16,8 @@ def getcwd() -> str:
 
 def write(filename: str, contents: str) -> str:
     """Creates or overwrites a file with the given contents"""
+
+    _safe_create_file(filename)
     with open(filename, "w") as f:
         f.write(contents)
     return f'Successfully wrote "{filename}"'
@@ -31,6 +39,7 @@ def write_lines(
     Returns:
         str: A message indicating whether the write was successful.
     """
+    _safe_create_file(filename)
     with open(filename, "r") as f:
         lines = f.readlines()
         if insert_line < 0:
