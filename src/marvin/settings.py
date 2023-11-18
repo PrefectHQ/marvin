@@ -196,16 +196,87 @@ class OpenAISettings(MarvinSettings):
             api_key = self.api_key.get_secret_value()
 
         return Client(
+            api_key=api_key, organization=self.organization, **kwargs, **kwargs
+        )
+
+
+class AzureAISettings(MarvinSettings):
+    model_config = SettingsConfigDict(env_prefix="marvin_azure_openai_")
+
+    api_key: Optional[SecretStr] = Field(
+        default=None,
+        description="Your Azure OpenAI API key.",
+    )
+
+    api_version: Optional[str] = Field(
+        default=None,
+        description="Your OpenAI API version.",
+    )
+
+    api_base: Optional[str] = Field(
+        default=None,
+        description="Your Azure endpoint.",
+    )
+
+    azure_deployment: Optional[str] = Field(
+        default=None,
+        description="Your Azure resource deployment name.",
+    )
+
+    organization: Optional[str] = Field(
+        default=None,
+        description="Your OpenAI organization ID.",
+    )
+
+    chat: ChatSettings = Field(default_factory=ChatSettings)
+    images: ImageSettings = Field(default_factory=ImageSettings)
+    audio: AudioSettings = Field(default_factory=AudioSettings)
+    assistants: AssistantSettings = Field(default_factory=AssistantSettings)
+
+    @property
+    def async_client(
+        self, api_key: Optional[str] = None, **kwargs: Any
+    ) -> "AsyncClient":
+        from openai import AsyncClient
+
+        if not (api_key or self.api_key):
+            raise ValueError("No API key provided.")
+        elif not api_key and self.api_key:
+            api_key = self.api_key.get_secret_value()
+
+        return AsyncClient(
             api_key=api_key,
             organization=self.organization,
             **kwargs,
+        )
+
+    @property
+    def client(self, api_key: Optional[str] = None, **kwargs: Any) -> "Client":
+        from openai import AzureOpenAI
+
+        # Ensure API key is available
+        if not self.api_key:
+            raise ValueError("No API key provided.")
+
+        # Use get_secret_value to retrieve the API key
+        api_key_value = self.api_key.get_secret_value()
+
+        # Create and return the AzureOpenAI client object
+        return AzureOpenAI(
+            api_key=api_key_value,
+            api_version=self.api_version,
+            azure_endpoint=self.api_base,
+            azure_deployment=self.azure_deployment,
         )
 
 
 class Settings(MarvinSettings):
     model_config = SettingsConfigDict(env_prefix="marvin_")
 
-    openai: OpenAISettings = Field(default_factory=OpenAISettings)
+    if os.environ.get("MARVIN_LLM_PROVIDER", "openai") == "azure_openai":
+        openai: AzureAISettings = Field(default_factory=AzureAISettings)
+    else:  # Default to OpenAISettings
+        openai: OpenAISettings = Field(default_factory=OpenAISettings)
 
     log_level: str = Field(
         default="DEBUG",
