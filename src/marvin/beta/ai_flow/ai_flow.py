@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from marvin.beta.assistants import Thread
 
 from .ai_task import thread_context
-from .chat_ui import interactive_chat_server
+from .chat_ui import interactive_chat
 
 
 class AIFlow(BaseModel):
@@ -27,7 +27,7 @@ class AIFlow(BaseModel):
         # create a holder for the tasks
         tasks = []
 
-        with interactive_chat_server(thread_id=thread.id):
+        with interactive_chat(thread_id=thread.id):
             # enter the thread context
             with thread_context(thread_id=thread.id, tasks=tasks, **kwargs):
                 return pflow(*args, **kwargs)

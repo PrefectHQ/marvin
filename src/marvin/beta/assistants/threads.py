@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import TYPE_CHECKING, Callable, Optional
 
 from openai.types.beta.threads import ThreadMessage
@@ -120,6 +121,26 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         run = Run(assistant=assistant, thread=self, **run_kwargs)
         return await run.run_async()
 
+    def chat(self, assistant: "Assistant"):
+        """
+        Starts an interactive chat session with the provided assistant.
+        """
+
+        from marvin.beta.chat_ui import interactive_chat
+
+        if self.id is None:
+            self.create()
+
+        def callback(message):
+            assistant.default_thread.run(assistant=assistant)
+
+        with interactive_chat(thread_id=self.id, message_callback=callback):
+            while True:
+                try:
+                    time.sleep(0.2)
+                except KeyboardInterrupt:
+                    break
+
 
 class ThreadMonitor(BaseModel, ExposeSyncMethodsMixin):
     thread_id: str
@@ -186,69 +207,3 @@ class ThreadMonitor(BaseModel, ExposeSyncMethodsMixin):
                 break
 
         return filtered_messages
-
-    # async def refresh_messages_async(self) -> list[ThreadMessage]:
-    #     """
-    #     Asynchronously refreshes and updates the message list.
-
-    #     This function fetches the latest messages up to a specified limit and
-    #     checks if the latest message in the current message list
-    #     (`self.messages`) is included in the new batch. If the latest message is
-    #     missing, it continues to fetch additional messages in batches, up to a
-    #     maximum count, using pagination. The function then updates
-    #     `self.messages` with these new messages, ensuring any existing messages
-    #     are updated with their latest versions and new messages are appended in
-    #     their original order.
-    #     """
-
-    #     new_messages = []
-
-    #     # fetch up to 100 messages
-    #     max_fetched = 100
-    #     limit = 50
-    #     max_attempts = max_fetched / limit + 2
-
-    #     # Fetch the latest messages
-    #     messages = await self.get_messages_async(limit=limit)
-
-    #     if not messages:
-    #         return
-
-    #     # Check if the latest message in self.messages is in the new messages
-    #     latest_message_id = self.messages[-1].id if self.messages else None
-    #     missing_latest = (
-    #         latest_message_id not in {m.id for m in messages}
-    #         if latest_message_id
-    #         else True
-    #     )
-
-    #     # If the latest message is missing, fetch additional messages
-    #     total_fetched = len(messages)
-    #     attempts = 0
-    #     while (
-    #         messages
-    #         and missing_latest
-    #         and total_fetched < max_fetched
-    #         and attempts < max_attempts
-    #     ):
-    #         attempts += 1
-    #         paginated_messages = await self.get_messages_async(
-    #             limit=limit, before_message=messages[0].id
-    #         )
-    #         total_fetched += len(paginated_messages)
-    #         # prepend messages
-    #         messages = paginated_messages + messages
-    #         if any(m.id == latest_message_id for m in paginated_messages):
-    #             missing_latest = False
-
-    #     # Update self.messages with the latest data
-    #     new_messages_dict = {m.id: m for m in messages}
-    #     for i in range(len(self.messages) - 1, -1, -1):
-    #         if self.messages[i].id in new_messages_dict:
-    #             self.messages[i] = new_messages_dict.pop(self.messages[i].id)
-    #         else:
-    #             break
-    #     # Append remaining new messages at the end in their original order
-    #     self.messages.extend(new_messages_dict.values())
-
-    #     return messages

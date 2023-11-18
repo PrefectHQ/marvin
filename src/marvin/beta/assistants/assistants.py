@@ -94,7 +94,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         client = get_client()
         response = await client.beta.assistants.create(
             **self.model_dump(
-                exclude={"id", "default_thread", "tools", "instructions"}
+                include={"name", "model", "metadata", "file_ids", "metadata"}
             ),
             tools=[tool.model_dump() for tool in self.get_tools()],
             instructions=self.get_instructions(),
@@ -119,3 +119,8 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         client = get_client()
         response = await client.beta.assistants.retrieve(assistant_id=assistant_id)
         return cls.model_validate(response)
+
+    def chat(self, thread: Thread = None):
+        if thread is None:
+            thread = self.default_thread
+        return thread.chat(assistant=self)
