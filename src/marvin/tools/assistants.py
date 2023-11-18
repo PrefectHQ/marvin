@@ -5,7 +5,7 @@ from marvin.requests import CodeInterpreterTool, RetrievalTool, Tool
 Retrieval = RetrievalTool()
 CodeInterpreter = CodeInterpreterTool()
 
-AssistantTools = list[Union[RetrievalTool, CodeInterpreterTool, Tool]]
+AssistantTools = Union[RetrievalTool, CodeInterpreterTool, Tool]
 
 
 class CancelRun(Exception):

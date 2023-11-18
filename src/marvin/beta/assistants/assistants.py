@@ -26,7 +26,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     name: str = "Assistant"
     model: str = "gpt-4-1106-preview"
     instructions: Optional[str] = Field(None, repr=False)
-    tools: AssistantTools = []
+    tools: list[AssistantTools] = []
     file_ids: list[str] = []
     metadata: dict[str, str] = {}
 

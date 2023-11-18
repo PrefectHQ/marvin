@@ -30,10 +30,10 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             "Additional instructions to append to the assistant's instructions."
         ),
     )
-    tools: Optional[AssistantTools] = Field(
+    tools: Optional[list[Union[AssistantTools, Callable]]] = Field(
         None, description="Replacement tools to use for the run."
     )
-    additional_tools: Optional[AssistantTools] = Field(
+    additional_tools: Optional[list[AssistantTools]] = Field(
         None,
         description="Additional tools to append to the assistant's tools. ",
     )
