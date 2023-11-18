@@ -39,6 +39,12 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     def clear_default_thread(self):
         self.default_thread = Thread()
 
+    def get_tools(self) -> list[AssistantTools]:
+        return self.tools
+
+    def get_instructions(self) -> str:
+        return self.instructions or ""
+
     @expose_sync_method("say")
     async def say_async(
         self,

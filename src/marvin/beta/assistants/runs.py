@@ -72,10 +72,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             return
         if self.run.required_action.type == "submit_tool_outputs":
             tool_outputs = []
-
-            tools = self.assistant.tools if self.tools is None else self.tools
-            if self.additional_tools:
-                tools = tools + self.additional_tools
+            tools = self.get_tools()
 
             for tool_call in self.run.required_action.submit_tool_outputs.tool_calls:
                 try:
@@ -98,30 +95,37 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 thread_id=self.thread.id, run_id=self.run.id, tool_outputs=tool_outputs
             )
 
+    def get_instructions(self) -> str:
+        if self.instructions is None:
+            instructions = self.assistant.get_instructions()
+        else:
+            instructions = self.instructions
+
+        if self.additional_instructions is not None:
+            instructions += "\n\n" + self.additional_instructions
+
+        return instructions
+
+    def get_tools(self) -> list[AssistantTools]:
+        tools = []
+        if self.tools is None:
+            tools.extend(self.assistant.get_tools())
+        else:
+            tools.extend(self.tools)
+        if self.additional_tools is not None:
+            tools.extend(self.additional_tools)
+        return tools
+
     async def run_async(self) -> "Run":
         client = get_client()
 
         create_kwargs = {}
-        if self.instructions is not None:
-            create_kwargs["instructions"] = self.instructions
-        if self.additional_instructions is not None:
-            create_kwargs["instructions"] = (
-                create_kwargs.get("instructions", self.assistant.instructions or "")
-                + "\n\n"
-                + self.additional_instructions
-            )
 
-        if self.tools is not None:
-            create_kwargs["tools"] = self.tools
-        # Check if 'self.additional_tools' is not None
-        if self.additional_tools is not None:
-            # If 'create_kwargs' already has a 'tools' key, use its value;
-            # otherwise, use 'self.assistant.tools' or an empty list if it's None
-            existing_tools = create_kwargs.get("tools", self.assistant.tools or [])
+        if self.instructions is not None or self.additional_instructions is not None:
+            create_kwargs["instructions"] = self.get_instructions()
 
-            # Combine 'existing_tools' with 'self.additional_tools'
-            # and update 'create_kwargs' under the key 'tools'
-            create_kwargs["tools"] = existing_tools + self.additional_tools
+        if self.tools is not None or self.additional_tools is not None:
+            create_kwargs["tools"] = self.get_tools()
 
         self.run = await client.beta.threads.runs.create(
             thread_id=self.thread.id, assistant_id=self.assistant.id, **create_kwargs
