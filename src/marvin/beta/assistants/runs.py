@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field, PrivateAttr, field_validator
 import marvin.utilities.tools
 from marvin.requests import Tool
 from marvin.tools.assistants import AssistantTools, CancelRun
+from marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_client
-from src.marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
 
 from .assistants import Assistant
 from .threads import Thread
