@@ -61,8 +61,11 @@ class ChatCompletionSettings(MarvinModelSettings):
     def create(self, **kwargs: Any) -> "ChatCompletion":
         from marvin.settings import settings
 
+        print(kwargs)
         return settings.openai.client.chat.completions.create(
-            model=self.model, **kwargs
+            model=self.model,
+            temperature=0,
+            **kwargs,
         )
 
 
@@ -262,11 +265,14 @@ class AzureAISettings(MarvinSettings):
         api_key_value = self.api_key.get_secret_value()
 
         # Create and return the AzureOpenAI client object
+        print("Creating AzureOpenAI client object...")
+        print(**kwargs)
         return AzureOpenAI(
             api_key=api_key_value,
             api_version=self.api_version,
             azure_endpoint=self.api_base,
             azure_deployment=self.azure_deployment,
+            **kwargs,
         )
 
 
@@ -278,10 +284,7 @@ class Settings(MarvinSettings):
     else:  # Default to OpenAISettings
         openai: OpenAISettings = Field(default_factory=OpenAISettings)
 
-    log_level: str = Field(
-        default="DEBUG",
-        description="The log level to use.",
-    )
+    log_level: str = Field(default="DEBUG", description="The log level to use.")
 
 
 settings = Settings()
