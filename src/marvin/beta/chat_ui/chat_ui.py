@@ -55,7 +55,7 @@ def create_app(thread_id: str, message_queue: multiprocessing.Queue):
 
 def server_process(host, port, thread_id, message_queue):
     app = create_app(thread_id, message_queue)
-    config = uvicorn.Config(app, host=host, port=port, log_level="info")
+    config = uvicorn.Config(app, host=host, port=port, log_level="warning")
     server = uvicorn.Server(config)
     server.run()
 

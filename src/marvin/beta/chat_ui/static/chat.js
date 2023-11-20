@@ -35,8 +35,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     chatContainer.appendChild(messageDiv);
   }
-  // Function to load messages from the thread
-  async function loadMessages(scrollDown = false) {
+  
+  async function loadMessages() {
+    const shouldScroll = chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight - 1;
+
     const response = await fetch(`http://127.0.0.1:${serverPort}/api/messages/`);
     if (response.ok) {
       const messages = await response.json();
@@ -45,13 +47,18 @@ document.addEventListener('DOMContentLoaded', function () {
         const isUser = message.role === 'user';
         appendMessage(message, isUser);
       });
-      if (scrollDown) {
-        chatContainer.scrollTop = chatContainer.scrollHeight; // Scroll to the bottom of the chat
+
+      // Scroll after messages are appended
+      if (shouldScroll) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
       }
     } else {
       console.error('Failed to load messages:', response.statusText);
     }
-  }
+}
+
+// Rest of your JavaScript code
+
 
   // Function to post a new message to the thread
   async function sendChatMessage() {
@@ -83,6 +90,6 @@ document.addEventListener('DOMContentLoaded', function () {
   sendButton.addEventListener('click', sendChatMessage);
 
   // Initial loading of messages
-  loadMessages(scrollDown = true);
+  loadMessages();
   setInterval(loadMessages, 1250); // Polling to refresh messages
 });
