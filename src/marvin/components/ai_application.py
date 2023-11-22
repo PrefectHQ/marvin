@@ -251,14 +251,14 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             v = cls.__name__
         return v
 
-    def __call__(self, input_text: str = None, model: str = None):
-        return run_sync(self.run(input_text=input_text, model=model))
+    def __call__(self, input_text: str = None, model: str = None, **model_kwargs):
+        return run_sync(self.run(input_text=input_text, model=model, **model_kwargs))
 
     async def entrypoint(self, q: str) -> str:
         response = await self.run(input_text=q)
         return response.content
 
-    async def run(self, input_text: str = None, model: str = None) -> Message:
+    async def run(self, input_text: str = None, model: str = None, **model_kwargs) -> Message:
         if model is None:
             model = marvin.settings.llm_model or "openai/gpt-4"
 
@@ -295,6 +295,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             model=model,
             functions=tools,
             stream_handler=self.stream_handler,
+            **model_kwargs,
         ).achain(messages=message_list)
 
         last_message = conversation.history[-1]
