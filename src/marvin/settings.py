@@ -93,9 +93,9 @@ class AzureOpenAI(MarvinBaseSettings):
     # "The endpoint of the Azure OpenAI API. This should have the form https://YOUR_RESOURCE_NAME.openai.azure.com" # noqa
     api_base: Optional[str] = None
     api_version: Optional[str] = "2023-07-01-preview"
-    # `deployment_name` will correspond to the custom name you chose for your deployment when # noqa
+    # `deployment_id` will correspond to the custom name you chose for your deployment when # noqa
     # you deployed a model.
-    deployment_name: Optional[str] = None
+    deployment_id: Optional[str] = None
 
     def get_defaults(self, settings: "Settings") -> dict[str, Any]:
         import os
