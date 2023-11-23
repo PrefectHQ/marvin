@@ -251,14 +251,14 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             v = cls.__name__
         return v
 
-    def __call__(self, input_text: str = None, model: str = None, **model_kwargs):
-        return run_sync(self.run(input_text=input_text, model=model, **model_kwargs))
+    def __call__(self, input_text: str = None, model: str = None, tools: list[Tool] = None, **model_kwargs):
+        return run_sync(self.run(input_text=input_text, model=model, tools=tools, **model_kwargs))
 
     async def entrypoint(self, q: str) -> str:
         response = await self.run(input_text=q)
         return response.content
 
-    async def run(self, input_text: str = None, model: str = None, **model_kwargs) -> Message:
+    async def run(self, input_text: str = None, model: str = None, tools: list[Tool] = None, **model_kwargs) -> Message:
         if model is None:
             model = marvin.settings.llm_model or "openai/gpt-4"
 
@@ -285,7 +285,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         )
 
         # set up tools
-        tools = self.tools.copy()
+        tools = tools.copy() if tools else self.tools.copy()
         if self.state_enabled:
             tools.append(UpdateState(app=self).as_function())
         if self.plan_enabled:
