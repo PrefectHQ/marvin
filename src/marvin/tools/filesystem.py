@@ -59,15 +59,47 @@ def write_lines(
     return f'Successfully wrote to "{path}"'
 
 
-def read(path: str) -> str:
-    """Reads a file and returns the contents"""
+def read(path: str, include_line_numbers: bool = False) -> str:
+    """Reads a file and returns the contents.
+
+    Args:
+        path (str): The path to the file.
+        include_line_numbers (bool, optional): Whether to include line numbers
+            in the returned contents. Defaults to False.
+
+    Returns:
+        str: The contents of the file.
+    """
     path = os.path.expanduser(path)
     with open(path, "r") as f:
-        return f.read()
+        if include_line_numbers:
+            lines = f.readlines()
+            lines_with_numbers = [f"{i+1}: {line}" for i, line in enumerate(lines)]
+            return "".join(lines_with_numbers)
+        else:
+            return f.read()
 
 
-def read_lines(path: str, start_line: int = 0, end_line: int = -1) -> str:
-    """Reads a partial file and returns the contents"""
+def read_lines(
+    path: str,
+    start_line: int = 0,
+    end_line: int = -1,
+    include_line_numbers: bool = False,
+) -> str:
+    """Reads a partial file and returns the contents with optional line numbers.
+
+    Args:
+        path (str): The path to the file.
+        start_line (int, optional): The starting line number to read. Defaults
+            to 0.
+        end_line (int, optional): The ending line number to read. Defaults to
+            -1, which means read until the end of the file.
+        include_line_numbers (bool, optional): Whether to include line numbers
+            in the returned contents. Defaults to False.
+
+    Returns:
+        str: The contents of the file.
+    """
     path = os.path.expanduser(path)
     with open(path, "r") as f:
         lines = f.readlines()
@@ -75,7 +107,13 @@ def read_lines(path: str, start_line: int = 0, end_line: int = -1) -> str:
             start_line = len(lines) + start_line
         if end_line < 0:
             end_line = len(lines) + end_line
-        return "".join(lines[start_line:end_line])
+        if include_line_numbers:
+            lines_with_numbers = [
+                f"{i+1}: {line}" for i, line in enumerate(lines[start_line:end_line])
+            ]
+            return "".join(lines_with_numbers)
+        else:
+            return "".join(lines[start_line:end_line])
 
 
 def mkdir(path: str) -> str:
