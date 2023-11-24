@@ -1,12 +1,20 @@
 # 🚨 WARNING 🚨
 # These functions allow ARBITRARY code execution and should be used with caution.
 
+import json
 import subprocess
 
 
 def shell(command: str) -> str:
     """executes a shell command on your local machine and returns the output"""
-    return subprocess.check_output(command, shell=True).decode("utf-8")
+
+    result = subprocess.run(command, shell=True, text=True, capture_output=True)
+
+    # Output and error
+    output = result.stdout
+    error = result.stderr
+
+    return json.dumps(dict(command_output=output, command_error=error))
 
 
 def python(code: str) -> str:
