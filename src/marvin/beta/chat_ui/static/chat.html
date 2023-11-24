@@ -21,6 +21,7 @@
         padding: 10px;
         font-size: 1rem;
       }
+
       .send-button {
         padding: 10px 20px;
         font-size: 1rem;
@@ -38,14 +39,25 @@
       .bg-gray-200 {
         background-color: #e5e7eb;
       }
-      /* Add this inside a <style> tag in the head of your HTML, or in a separate CSS file */
       .message {
         padding: 8px 16px;
         margin: 4px;
         border-radius: 8px;
         max-width: 80%;
+        white-space: pre-wrap; /* Preserves whitespace and line breaks */
       }
 
+      .message ol {
+        list-style-type: decimal; /* For ordered lists */
+        padding-left: 18px; /* Adjust as needed */ 
+        
+      }
+      
+      .message ul {
+        list-style-type: disc; /* For unordered lists */
+        padding-left: 18px; /* Adjust as needed */
+      }
+      
       .user-message {
         background-color: #b0ebff;
         align-self: end;

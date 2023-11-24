@@ -21,11 +21,13 @@ document.addEventListener('DOMContentLoaded', function () {
   function appendMessage(message, isUser) {
     let messageText = message.content[0].text.value;
     if (messageText === '') {
-      messageText = '...';  // Replace blank messages with '...'
+      messageText = '[Writing...]';  // Replace blank messages 
     }
-    // Use marked to parse Markdown into HTML
-    const parsedText = marked.parse(messageText);
 
+    
+    // Use marked to parse Markdown into HTML
+    const parsedText = marked.parse(messageText.trim()).trim();
+    
     const messageDiv = document.createElement('div');
     messageDiv.innerHTML = parsedText; // Use innerHTML since parsedText is HTML
 
@@ -39,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function () {
   async function loadMessages() {
     const shouldScroll = chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight - 1;
 
-    const response = await fetch(`http://127.0.0.1:${serverPort}/api/messages/`);
+    const response = await fetch(`http://127.0.0.1:${serverPort}/api/messages/?thread_id=${threadId}`);
     if (response.ok) {
       const messages = await response.json();
       chatContainer.innerHTML = ''; // Clear chat container before loading new messages
@@ -65,7 +67,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const content = inputBox.value.trim();
     if (!content) return;
 
-    const response = await fetch(`http://127.0.0.1:${serverPort}/api/messages/`, {
+    const response = await fetch(`http://127.0.0.1:${serverPort}/api/messages/?thread_id=${threadId}`,
+    {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: content })
@@ -83,11 +86,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Event listeners
   inputBox.addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();  // Prevent default to avoid newline in textarea
       sendChatMessage();
+    } else if (e.key === 'Enter' && e.shiftKey) {
+      // Allow Shift+Enter to insert newline
+      let start = this.selectionStart;
+      let end = this.selectionEnd;
+  
+      // Insert newline at cursor position
+      this.value = this.value.substring(0, start) + "\n" + this.value.substring(end);
+  
+      // Move cursor to right after inserted newline
+      this.selectionStart = this.selectionEnd = start + 1;
     }
-  });
-  sendButton.addEventListener('click', sendChatMessage);
+  });  sendButton.addEventListener('click', sendChatMessage);
 
   // Initial loading of messages
   loadMessages();

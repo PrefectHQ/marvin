@@ -131,8 +131,9 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         if self.id is None:
             self.create()
 
-        def callback(message):
-            assistant.default_thread.run(assistant=assistant)
+        def callback(thread_id: str, message: str):
+            thread = Thread(id=thread_id)
+            thread.run(assistant=assistant)
 
         with interactive_chat(thread_id=self.id, message_callback=callback):
             while True:
