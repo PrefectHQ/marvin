@@ -1,6 +1,8 @@
+import inspect
 import json
 
 from marvin.requests import Tool
+from marvin.utilities.asyncio import run_sync
 from marvin.utilities.logging import get_logger
 from marvin.utilities.pydantic import cast_callable_to_model
 
@@ -41,6 +43,8 @@ def call_function_tool(
     arguments = json.loads(function_arguments_json)
     logger.debug(f"Calling {tool.function.name} with arguments: {arguments}")
     output = tool.function.python_fn(**arguments)
+    if inspect.isawaitable(output):
+        output = run_sync(output)
     truncated_output = str(output)[:100]
     if len(truncated_output) < len(str(output)):
         truncated_output += "..."
