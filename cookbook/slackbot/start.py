@@ -8,82 +8,49 @@ from marvin import Assistant
 from marvin.beta.assistants import Thread
 from marvin.tools.github import search_github_issues
 from marvin.tools.retrieval import multi_query_chroma
-from marvin.utilities.logging import get_logger
 from marvin.utilities.slack import post_slack_message
 
-CACHE = TTLCache(maxsize=100, ttl=86_400 * 7)
+CACHE = TTLCache(maxsize=100, ttl=86400 * 7)
 app = FastAPI()
-SLACK_MENTION_REGEX = r"<@(\w+)>"
+MENTION_REGEX = r"<@(\w+)>"
 
 
-def get_options_for(event: dict) -> dict:
-    """eventually a switch for the best assistant to use based on the event"""
-    return {
-        "name": "marvin",
-        "tools": [
-            multi_query_chroma,
-            search_github_issues,
-        ],
-    }
+def select_assistant_given_some(event: dict) -> dict:
+    """eventually use the event to select the assistant"""
+    return {"name": "marvin", "tools": [multi_query_chroma, search_github_issues]}
 
 
-async def handle(payload: dict):
+async def handle_message(payload: dict):
     event = payload.get("event", {})
-    message = event.get("text", "")
-    mentioned_user = re.search(SLACK_MENTION_REGEX, message)
-    if not mentioned_user or mentioned_user.group(1) != payload.get(
-        "authorizations", [{}]
-    )[0].get("user_id", ""):
-        get_logger().info("Message not for bot")
-        return
+    if (user := re.search(MENTION_REGEX, event.get("text", ""))) and user.group(
+        1
+    ) == payload.get("authorizations", [{}])[0].get("user_id"):
+        clean_message = re.sub(MENTION_REGEX, "", event["text"]).strip()
+        thread = event.get("thread_ts", event.get("ts", ""))
+        assistant_thread = CACHE.get(thread, Thread())
+        CACHE[thread] = assistant_thread
 
-    clean_message = re.sub(SLACK_MENTION_REGEX, "", message).strip()
-    thread = event.get("thread_ts", event.get("ts", ""))
-
-    with Assistant(**get_options_for(event)) as assistant:
-        if thread in CACHE:
-            assistant_thread = CACHE[thread]
-        else:
-            assistant_thread = Thread()
-            CACHE[thread] = assistant_thread
-
-        await assistant_thread.add_async(clean_message)
-
-        run = await assistant_thread.run_async(assistant)
-
-        ai_response_content = run.thread.get_messages()[-1].content[0].text.value
-        await post_slack_message(
-            message=ai_response_content,
-            channel_id=event.get("channel"),
-            thread_ts=thread,
-        )
-
-
-"""
-set event subscription url, e.g. https://{NGROK_SUBDOMAIN}.ngrok.io/chat
-see ngrok docs for easiest start https://ngrok.com/docs/getting-started/
-
-tl;dr:
-```console
-brew install ngrok/ngrok/ngrok
-ngrok http 4200 # optionally, --subdomain $NGROK_SUBDOMAIN
-```
-
-to deploy this to cloudrun, see:
-- Dockerfile.slackbot
-- .github/workflows/image-build-and-push-community.yaml
-"""
+        with Assistant(**select_assistant_given_some(event)) as assistant:
+            await assistant_thread.add_async(clean_message)
+            response = await assistant_thread.run_async(assistant)
+            await post_slack_message(
+                response.thread.get_messages()[-1].content[0].text.value,
+                event["channel"],
+                thread,
+            )
 
 
 @app.post("/chat")
-async def message_endpoint(request: Request):
-    payload = await request.json()
-    if payload.get("type") == "event_callback":
-        asyncio.create_task(handle(payload))
-        return {"status": "ok"}
-    if payload.get("type") == "url_verification":
-        return {"challenge": payload.get("challenge", "")}
-    raise HTTPException(status_code=400, detail="Invalid event type")
+async def chat_endpoint(request: Request):
+    match (payload := await request.json()).get("type"):
+        case "event_callback":
+            asyncio.create_task(handle_message(payload))
+        case "url_verification":
+            return {"challenge": payload.get("challenge", "")}
+        case _:
+            raise HTTPException(400, "Invalid event type")
+
+    return {"status": "ok"}
 
 
 if __name__ == "__main__":
