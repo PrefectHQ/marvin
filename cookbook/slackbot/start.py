@@ -23,7 +23,7 @@ async def handle_message(payload: SlackPayload):
     logger = get_logger("slackbot")
     user_message = (event := payload.event).text
     cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
-    logger.debug_kv(f"Received, {user_message=}", user_message, "green")
+    logger.debug_kv("Handling slack message:", user_message, "green")
     if (user := re.search(BOT_MENTION, user_message)) and user.group(
         1
     ) == payload.authorizations[0].user_id:
