@@ -6,7 +6,7 @@ import httpx
 import marvin
 
 
-async def get_token(name: str = "slack-api-token") -> str:
+async def get_token() -> str:
     """Get the Slack bot token from the environment."""
     try:
         return marvin.settings.slack_api_token
