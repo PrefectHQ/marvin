@@ -7,7 +7,7 @@ import marvin
 
 
 async def get_token(name: str = "slack-api-token") -> str:
-    """Get the Slack bot token from Prefect Secrets."""
+    """Get the Slack bot token from the environment."""
     try:
         return marvin.settings.slack_api_token
     except AttributeError:
