@@ -1,5 +1,5 @@
 import re
-from typing import Literal
+from typing import Union
 
 import httpx
 from prefect.blocks.core import Block
@@ -42,8 +42,6 @@ async def post_slack_message(
                 "thread_ts": thread_ts,
             },
         )
-
-    print(response.json())
 
     response.raise_for_status()
     return response
@@ -109,8 +107,8 @@ async def edit_slack_message(
     new_text: str,
     channel_id: str,
     thread_ts: str,
-    mode: Literal["append", "replace"] = "append",
-    delimiter: str | None = None,
+    mode: str = "append",  # Using str directly as Literal is not necessary here
+    delimiter: Union[str, None] = None,
 ) -> httpx.Response:
     """Edit an existing Slack message by appending new text or replacing it.
 
@@ -118,26 +116,24 @@ async def edit_slack_message(
         channel (str): The Slack channel ID.
         ts (str): The timestamp of the message to edit.
         new_text (str): The new text to append or replace in the message.
-        mode (Literal['append', 'replace']): The mode of text editing, 'append'
-            (default) or 'replace'.
+        mode (str): The mode of text editing, 'append' (default) or 'replace'.
 
     Returns:
         httpx.Response: The response from the Slack API.
     """
-    match mode:
-        case "append":
-            current_text = await fetch_current_message_text(channel_id, thread_ts)
-            delimiter = "\n\n" if delimiter is None else delimiter
-            updated_text = f"{current_text}{delimiter}{convert_md_links_to_slack(new_text)}"  # noqa: E501
-        case "replace":
-            updated_text = convert_md_links_to_slack(new_text)
-        case _:
-            raise ValueError("Invalid mode. Use 'append' or 'replace'.")
+    if mode == "append":
+        current_text = await fetch_current_message_text(channel_id, thread_ts)
+        delimiter = "\n\n" if delimiter is None else delimiter
+        updated_text = f"{current_text}{delimiter}{convert_md_links_to_slack(new_text)}"
+    elif mode == "replace":
+        updated_text = convert_md_links_to_slack(new_text)
+    else:
+        raise ValueError("Invalid mode. Use 'append' or 'replace'.")
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://slack.com/api/chat.update",
-            headers={"Authorization": f"Bearer {await get_token()}"},  # noqa: E501
+            headers={"Authorization": f"Bearer {await get_token()}"},
             json={"channel": channel_id, "ts": thread_ts, "text": updated_text},
         )
 

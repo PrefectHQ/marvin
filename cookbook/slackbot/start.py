@@ -16,6 +16,7 @@ SLACK_MENTION_REGEX = r"<@(\w+)>"
 
 
 def get_options_for(event: dict) -> dict:
+    """eventually a switch for the best assistant to use based on the event"""
     return {
         "name": "marvin",
         "tools": [
