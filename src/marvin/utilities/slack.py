@@ -11,7 +11,7 @@ async def get_token(name: str = "slack-api-token") -> str:
     try:
         return marvin.settings.slack_api_token
     except AttributeError:
-        raise ValueError("Slack API token not found in `~/.marvin/.env`.")
+        raise ValueError("`MARVIN_SLACK_API_TOKEN` not found in `~/.marvin/.env`.")
 
 
 def convert_md_links_to_slack(text):
