@@ -11,6 +11,7 @@ from marvin.tools.retrieval import multi_query_chroma
 from marvin.utilities.logging import get_logger
 from marvin.utilities.slack import post_slack_message
 
+CACHE = TTLCache(maxsize=100, ttl=86_400 * 7)
 app = FastAPI()
 SLACK_MENTION_REGEX = r"<@(\w+)>"
 
@@ -24,9 +25,6 @@ def get_options_for(event: dict) -> dict:
             search_github_issues,
         ],
     }
-
-
-CACHE = TTLCache(maxsize=100, ttl=86_400 * 7)
 
 
 async def handle(payload: dict):
@@ -59,6 +57,22 @@ async def handle(payload: dict):
             channel_id=event.get("channel"),
             thread_ts=thread,
         )
+
+
+"""
+set event subscription url, e.g. https://{NGROK_SUBDOMAIN}.ngrok.io/chat
+see ngrok docs for easiest start https://ngrok.com/docs/getting-started/
+
+tl;dr:
+```console
+brew install ngrok/ngrok/ngrok
+ngrok http 4200 # optionally, --subdomain $NGROK_SUBDOMAIN
+```
+
+to deploy this to cloudrun, see:
+- Dockerfile.slackbot
+- .github/workflows/image-build-and-push-community.yaml
+"""
 
 
 @app.post("/chat")
