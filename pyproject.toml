@@ -52,6 +52,8 @@ tests = [
     "pytest-timeout",
 ]
 
+prefect = ["prefect>=2.14.5"]
+
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"
 Documentation = "https://www.askmarvin.ai"

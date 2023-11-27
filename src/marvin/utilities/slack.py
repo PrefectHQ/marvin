@@ -1,9 +1,63 @@
 import re
-from typing import Union
+from typing import List, Optional, Union
 
 import httpx
+from pydantic import BaseModel
 
 import marvin
+
+
+class EventBlockElement(BaseModel):
+    type: str
+    text: Optional[str] = None
+    user_id: Optional[str] = None
+
+
+class EventBlockElementGroup(BaseModel):
+    type: str
+    elements: List[EventBlockElement]
+
+
+class EventBlock(BaseModel):
+    type: str
+    block_id: str
+    elements: List[Union[EventBlockElement, EventBlockElementGroup]]
+
+
+class SlackEvent(BaseModel):
+    client_msg_id: Optional[str] = None
+    type: str
+    text: str
+    user: str
+    ts: str
+    team: str
+    channel: str
+    event_ts: str
+    thread_ts: Optional[str] = None
+    parent_user_id: Optional[str] = None
+    blocks: Optional[List[EventBlock]] = None
+
+
+class EventAuthorization(BaseModel):
+    enterprise_id: Optional[str] = None
+    team_id: str
+    user_id: str
+    is_bot: bool
+    is_enterprise_install: bool
+
+
+class SlackPayload(BaseModel):
+    token: str
+    team_id: str
+    api_app_id: str
+    event: SlackEvent
+    type: str
+    event_id: str
+    event_time: int
+    authorizations: List[EventAuthorization]
+    is_ext_shared_channel: bool
+    event_context: str
+    challenge: Optional[str] = None
 
 
 async def get_token() -> str:

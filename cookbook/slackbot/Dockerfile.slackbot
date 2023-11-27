@@ -13,8 +13,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip install . && \
-    pip install -U prefect
+RUN pip install ".[prefect]"
 
 EXPOSE 4200
 

@@ -8,26 +8,32 @@ from marvin import Assistant
 from marvin.beta.assistants import Thread
 from marvin.tools.github import search_github_issues
 from marvin.tools.retrieval import multi_query_chroma
-from marvin.utilities.slack import post_slack_message
+from marvin.utilities.logging import get_logger
+from marvin.utilities.slack import SlackPayload, post_slack_message
+from prefect import flow, task
+from prefect.states import Completed
 
 app = FastAPI()
-BOT_MENTION_REGEX = r"<@(\w+)>"
+BOT_MENTION = r"<@(\w+)>"
 CACHE = TTLCache(maxsize=100, ttl=86400 * 7)
 
 
-async def handle_message(payload: dict):
-    event = payload.get("event", {})
-    user_msg = event.get("text", "")
-    if (user := re.search(BOT_MENTION_REGEX, user_msg)) and user.group(
+@flow
+async def handle_message(payload: SlackPayload):
+    logger = get_logger("slackbot")
+    user_message = (event := payload.event).text
+    cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
+    logger.debug_kv(f"Received, {user_message=}", user_message, "green")
+    if (user := re.search(BOT_MENTION, user_message)) and user.group(
         1
-    ) == payload.get("authorizations", [{}])[0].get("user_id"):
-        thread = event.get("thread_ts", event.get("ts", ""))
+    ) == payload.authorizations[0].user_id:
+        thread = event.thread_ts or event.ts
         assistant_thread = CACHE.get(thread, Thread())
         CACHE[thread] = assistant_thread
 
         with Assistant(
             name="Marvin (from Hitchhiker's Guide to the Galaxy)",
-            tools=[multi_query_chroma, search_github_issues],
+            tools=[task(multi_query_chroma), task(search_github_issues)],
             instructions=(
                 "use chroma to search docs and github to search"
                 " issues and answer questions about prefect 2.x."
@@ -35,24 +41,37 @@ async def handle_message(payload: dict):
                 " the user simply wants to converse with you."
             ),
         ) as assistant:
-            await assistant_thread.add_async(
-                re.sub(BOT_MENTION_REGEX, "", user_msg).strip()
-            )
-            response = await assistant_thread.run_async(assistant)
-            await post_slack_message(
-                response.thread.get_messages()[-1].content[0].text.value,
-                event["channel"],
+            await assistant_thread.add_async(cleaned_message)
+            run = await assistant_thread.run_async(assistant)
+            await task(post_slack_message)(
+                ai_response_text := run.thread.get_messages()[-1].content[0].text.value,
+                channel := event.channel,
                 thread,
             )
+            logger.debug_kv(
+                success_msg := f"Responded in {channel=}, {thread=}",
+                ai_response_text,
+                "green",
+            )
+            return Completed(message=success_msg)
+    else:
+        return Completed(
+            message="Skipping handling for message not directed at bot", name="SKIPPED"
+        )
 
 
 @app.post("/chat")
 async def chat_endpoint(request: Request):
-    match (payload := await request.json()).get("type"):
+    payload = SlackPayload(**await request.json())
+    match payload.type:
         case "event_callback":
-            asyncio.create_task(handle_message(payload))  # background the work
+            options = dict(
+                flow_run_name=f"respond in {payload.event.channel}",
+                retries=1,
+            )
+            asyncio.create_task(handle_message.with_options(**options)(payload))
         case "url_verification":
-            return {"challenge": payload.get("challenge", "")}
+            return {"challenge": payload.challenge}
         case _:
             raise HTTPException(400, "Invalid event type")
 
