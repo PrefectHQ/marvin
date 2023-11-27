@@ -1,3 +1,4 @@
+import asyncio
 import json
 from typing import Optional
 
@@ -19,7 +20,7 @@ async def create_openai_embeddings(texts: list[str]) -> list[list[float]]:
     except ImportError:
         raise ImportError(
             "The numpy package is required to create OpenAI embeddings. Please install"
-            " it with `pip install numpy` or `pip install 'marvin[slackbot]'`."
+            " it with `pip install numpy`."
         )
     from openai import AsyncOpenAI
 
@@ -55,15 +56,11 @@ async def query_chroma(
     include: Optional[list[QueryResultType]] = None,
     max_characters: int = 2000,
 ) -> str:
-    """Query a knowledge base for documents similar to a given query.
+    """Query Chroma.
 
-    Args:
-        query: The query to use.
-        n_results: The number of results to return.
-
-    Examples:
-        >>> User: What is the meaning of life?
-        >>> query_chroma("the meaning of life")
+    Example:
+        User: "What are prefect blocks?"
+        Assistant: >>> query_chroma("What are prefect blocks?")
     """
     query_embedding = await create_openai_embeddings([query])
 
@@ -96,10 +93,8 @@ async def query_chroma(
     response.raise_for_status()
 
     return "\n".join(
-        [
-            f"{i+1}. {', '.join(excerpt)}"
-            for i, excerpt in enumerate(response.json()["documents"])
-        ]
+        f"{i+1}. {', '.join(excerpt)}"
+        for i, excerpt in enumerate(response.json()["documents"])
     )[:max_characters]
 
 
@@ -112,47 +107,25 @@ async def multi_query_chroma(
     include: Optional[list[QueryResultType]] = None,
     max_characters: int = 2000,
 ) -> str:
-    """Query a knowledge base for documents similar to a set of given queries.
+    """Query Chroma with multiple queries.
 
-    Args:
-        queries: The queries to use.
-        n_results: The number of results to return.
-
-    Examples:
-        >>> User: What are prefect blocks and tasks?
-        >>> multi_query_chroma(["prefect blocks", "prefect tasks"])
-    """
-    query_embeddings = await create_openai_embeddings(queries)
-
-    collection_ids = [
-        c["id"] for c in await list_collections() if c["name"] == collection
-    ]
-
-    if len(collection_ids) == 0:
-        return f"Collection {collection} not found."
-
-    collection_id = collection_ids[0]
-
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            f"http://{HOST}:{PORT}/api/v1/collections/{collection_id}/query",
-            data=json.dumps(
-                {
-                    "query_embeddings": [query_embeddings],
-                    "n_results": n_results,
-                    "where": where or {},
-                    "where_document": where_document or {},
-                    "include": include or ["documents"],
-                }
-            ),
-            headers={"Content-Type": "application/json"},
+    Example:
+        User: "What are prefect blocks and tasks?"
+        Assistant: >>> multi_query_chroma(
+            ["What are prefect blocks?", "What are prefect tasks?"]
         )
+    """
 
-    response.raise_for_status()
-
-    return "\n".join(
-        [
-            f"{i+1}. {', '.join(excerpt)}"
-            for i, excerpt in enumerate(response.json()["documents"])
-        ]
-    )[:max_characters]
+    coros = [
+        query_chroma(
+            query,
+            collection,
+            n_results,
+            where,
+            where_document,
+            include,
+            max_characters // len(queries),
+        )
+        for query in queries
+    ]
+    return "\n".join(await asyncio.gather(*coros))[:max_characters]

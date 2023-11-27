@@ -26,7 +26,7 @@ def get_options_for(event: dict) -> dict:
     }
 
 
-CACHE = TTLCache(maxsize=1000, ttl=86400)
+CACHE = TTLCache(maxsize=100, ttl=86_400 * 7)
 
 
 async def handle(payload: dict):
