@@ -2,12 +2,16 @@ import re
 from typing import Union
 
 import httpx
-from prefect.blocks.core import Block
+
+import marvin
 
 
 async def get_token(name: str = "slack-api-token") -> str:
     """Get the Slack bot token from Prefect Secrets."""
-    return (await Block.load(f"secret/{name}")).get()
+    try:
+        return marvin.settings.slack_api_token
+    except AttributeError:
+        raise ValueError("Slack API token not found in `~/.marvin/.env`.")
 
 
 def convert_md_links_to_slack(text):
@@ -26,8 +30,8 @@ def convert_md_links_to_slack(text):
 async def post_slack_message(
     message: str,
     channel_id: str,
-    thread_ts: str | None = None,
-    auth_token: str | None = None,
+    thread_ts: Union[str, None] = None,
+    auth_token: Union[str, None] = None,
 ) -> httpx.Response:
     if not auth_token:
         auth_token = await get_token()
@@ -107,7 +111,7 @@ async def edit_slack_message(
     new_text: str,
     channel_id: str,
     thread_ts: str,
-    mode: str = "append",  # Using str directly as Literal is not necessary here
+    mode: str = "append",
     delimiter: Union[str, None] = None,
 ) -> httpx.Response:
     """Edit an existing Slack message by appending new text or replacing it.
@@ -144,8 +148,8 @@ async def edit_slack_message(
 async def search_slack_messages(
     query: str,
     max_messages: int = 3,
-    channel: str | None = None,
-    user_auth_token: str | None = "community-bot-slack-user-token",
+    channel: Union[str, None] = None,
+    user_auth_token: Union[str, None] = None,
 ) -> list:
     """
     Search for messages in Slack workspace based on a query.
@@ -162,9 +166,7 @@ async def search_slack_messages(
     all_messages = []
     next_cursor = None
 
-    if user_auth_token and not user_auth_token.startswith("xoxb-"):
-        user_auth_token = (await Block.load(f"secret/{user_auth_token}")).get()
-    elif not user_auth_token:
+    if not user_auth_token:
         user_auth_token = await get_token()
 
     async with httpx.AsyncClient() as client:
@@ -204,7 +206,7 @@ async def search_slack_messages(
     return all_messages[:max_messages]
 
 
-async def get_workspace_info(slack_bot_token: str | None = None) -> dict:
+async def get_workspace_info(slack_bot_token: Union[str, None] = None) -> dict:
     if not slack_bot_token:
         slack_bot_token = await get_token()
 
