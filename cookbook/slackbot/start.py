@@ -2,8 +2,11 @@ import asyncio
 import re
 
 import uvicorn
+from cachetools import TTLCache
 from fastapi import FastAPI, HTTPException, Request
 from marvin import Assistant
+from marvin.beta.assistants import Thread
+from marvin.tools.github import search_github_issues
 from marvin.tools.retrieval import multi_query_chroma
 from marvin.utilities.logging import get_logger
 from marvin.utilities.slack import post_slack_message
@@ -13,7 +16,16 @@ SLACK_MENTION_REGEX = r"<@(\w+)>"
 
 
 def get_options_for(event: dict) -> dict:
-    return {"name": "marvin", "tools": [multi_query_chroma]}
+    return {
+        "name": "marvin",
+        "tools": [
+            multi_query_chroma,
+            search_github_issues,
+        ],
+    }
+
+
+CACHE = TTLCache(maxsize=1000, ttl=86400)
 
 
 async def handle(payload: dict):
@@ -29,8 +41,17 @@ async def handle(payload: dict):
     clean_message = re.sub(SLACK_MENTION_REGEX, "", message).strip()
     thread = event.get("thread_ts", event.get("ts", ""))
 
-    with Assistant(**get_options_for(event)) as bot:
-        run = await bot.say_async(clean_message)
+    with Assistant(**get_options_for(event)) as assistant:
+        if thread in CACHE:
+            assistant_thread = CACHE[thread]
+        else:
+            assistant_thread = Thread()
+            CACHE[thread] = assistant_thread
+
+        await assistant_thread.add_async(clean_message)
+
+        run = await assistant_thread.run_async(assistant)
+
         ai_response_content = run.thread.get_messages()[-1].content[0].text.value
         await post_slack_message(
             message=ai_response_content,
