@@ -10,28 +10,34 @@ from marvin.tools.github import search_github_issues
 from marvin.tools.retrieval import multi_query_chroma
 from marvin.utilities.slack import post_slack_message
 
-CACHE = TTLCache(maxsize=100, ttl=86400 * 7)
 app = FastAPI()
-MENTION_REGEX = r"<@(\w+)>"
-
-
-def select_assistant_given_some(event: dict) -> dict:
-    """eventually use the event to select the assistant"""
-    return {"name": "marvin", "tools": [multi_query_chroma, search_github_issues]}
+BOT_MENTION_REGEX = r"<@(\w+)>"
+CACHE = TTLCache(maxsize=100, ttl=86400 * 7)
 
 
 async def handle_message(payload: dict):
     event = payload.get("event", {})
-    if (user := re.search(MENTION_REGEX, event.get("text", ""))) and user.group(
+    user_msg = event.get("text", "")
+    if (user := re.search(BOT_MENTION_REGEX, user_msg)) and user.group(
         1
     ) == payload.get("authorizations", [{}])[0].get("user_id"):
-        clean_message = re.sub(MENTION_REGEX, "", event["text"]).strip()
         thread = event.get("thread_ts", event.get("ts", ""))
         assistant_thread = CACHE.get(thread, Thread())
         CACHE[thread] = assistant_thread
 
-        with Assistant(**select_assistant_given_some(event)) as assistant:
-            await assistant_thread.add_async(clean_message)
+        with Assistant(
+            name="Marvin (from Hitchhiker's Guide to the Galaxy)",
+            tools=[multi_query_chroma, search_github_issues],
+            instructions=(
+                "use chroma to search docs and github to search"
+                " issues and answer questions about prefect 2.x."
+                " you must use your tools in all cases except where"
+                " the user simply wants to converse with you."
+            ),
+        ) as assistant:
+            await assistant_thread.add_async(
+                re.sub(BOT_MENTION_REGEX, "", user_msg).strip()
+            )
             response = await assistant_thread.run_async(assistant)
             await post_slack_message(
                 response.thread.get_messages()[-1].content[0].text.value,
@@ -44,7 +50,7 @@ async def handle_message(payload: dict):
 async def chat_endpoint(request: Request):
     match (payload := await request.json()).get("type"):
         case "event_callback":
-            asyncio.create_task(handle_message(payload))
+            asyncio.create_task(handle_message(payload))  # background the work
         case "url_verification":
             return {"challenge": payload.get("challenge", "")}
         case _:
