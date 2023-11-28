@@ -1,5 +1,7 @@
 from .settings import settings
 
+from .beta.assistants import Assistant
+
 from .components import ai_fn, ai_model, ai_classifier
 
 try:
@@ -10,4 +12,5 @@ except ImportError:
 __all__ = [
     "ai_fn",
     "settings",
+    "Assistant",
 ]
