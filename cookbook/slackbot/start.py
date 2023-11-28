@@ -23,7 +23,7 @@ async def handle_message(payload: SlackPayload):
     logger = get_logger("slackbot")
     user_message = (event := payload.event).text
     cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
-    logger.debug_kv("Handling slack message:", user_message, "green")
+    logger.debug_kv("Handling slack message", user_message, "green")
     if (user := re.search(BOT_MENTION, user_message)) and user.group(
         1
     ) == payload.authorizations[0].user_id:
@@ -41,15 +41,20 @@ async def handle_message(payload: SlackPayload):
                 " the user simply wants to converse with you."
             ),
         ) as assistant:
-            await assistant_thread.add_async(cleaned_message)
-            run = await assistant_thread.run_async(assistant)
+            user_thread_message = await assistant_thread.add_async(cleaned_message)
+            await assistant_thread.run_async(assistant)
+            ai_messages = assistant_thread.get_messages(
+                after_message=user_thread_message.id
+            )
             await task(post_slack_message)(
-                ai_response_text := run.thread.get_messages()[-1].content[0].text.value,
+                ai_response_text := "\n\n".join(
+                    m.content[0].text.value for m in ai_messages
+                ),
                 channel := event.channel,
                 thread,
             )
             logger.debug_kv(
-                success_msg := f"Responded in {channel=}, {thread=}",
+                success_msg := f"Responded in {channel}/{thread}",
                 ai_response_text,
                 "green",
             )
