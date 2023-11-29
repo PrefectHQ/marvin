@@ -60,9 +60,7 @@ async def handle_message(payload: SlackPayload):
             )
             return Completed(message=success_msg)
     else:
-        return Completed(
-            message="Skipping handling for message not directed at bot", name="SKIPPED"
-        )
+        return Completed(message="Skipping message not directed at bot", name="SKIPPED")
 
 
 @app.post("/chat")
