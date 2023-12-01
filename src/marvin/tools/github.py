@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from typing import List, Optional
 
@@ -6,6 +7,13 @@ from pydantic import BaseModel, Field, field_validator
 
 import marvin
 from marvin.utilities.strings import slice_tokens
+
+
+def get_token() -> str:
+    try:
+        return marvin.settings.github_token
+    except AttributeError:
+        return os.environ.get("MARVIN_GITHUB_TOKEN", "")
 
 
 class GitHubUser(BaseModel):
@@ -60,8 +68,7 @@ async def search_github_issues(
     """
     headers = {"Accept": "application/vnd.github.v3+json"}
 
-    if token := marvin.settings.github_token:
-        headers["Authorization"] = f"Bearer {token}"
+    headers["Authorization"] = f"Bearer {get_token()}"
 
     async with httpx.AsyncClient() as client:
         response = await client.get(

@@ -34,7 +34,9 @@ async def create_openai_embeddings(texts: list[str]) -> list[list[float]]:
 
     return (
         (
-            await AsyncOpenAI().embeddings.create(
+            await AsyncOpenAI(
+                api_key=marvin.settings.openai.api_key.get_secret_value()
+            ).embeddings.create(
                 input=[text.replace("\n", " ") for text in texts],
                 model="text-embedding-ada-002",
             )
