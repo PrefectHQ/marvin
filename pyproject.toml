@@ -27,6 +27,7 @@ dependencies = [
 
 [project.optional-dependencies]
 generator = ["datamodel-code-generator>=0.20.0"]
+prefect = ["prefect>=2.14.9"]
 dev = [
     "marvin[tests]",
     "black[jupyter]",
@@ -43,7 +44,6 @@ dev = [
     "ruff",
 ]
 tests = [
-    "marvin[openai,anthropic]",
     "pytest-asyncio~=0.20",
     "pytest-env>=0.8,<2.0",
     "pytest-rerunfailures>=10,<13",
@@ -51,8 +51,7 @@ tests = [
     "pytest~=7.3.1",
     "pytest-timeout",
 ]
-
-prefect = ["prefect>=2.14.5"]
+slackbot = ["marvin[prefect]", "numpy"]
 
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"
