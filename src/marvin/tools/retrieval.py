@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 from typing import Optional
 
 import httpx
@@ -7,7 +8,14 @@ from typing_extensions import Literal
 
 import marvin
 
-HOST, PORT = marvin.settings.chroma_server_host, marvin.settings.chroma_server_http_port
+try:
+    HOST, PORT = (
+        marvin.settings.chroma_server_host,
+        marvin.settings.chroma_server_http_port,
+    )
+except AttributeError:
+    HOST = os.environ.get("MARVIN_CHROMA_SERVER_HOST", "localhost")
+    PORT = os.environ.get("MARVIN_CHROMA_SERVER_HTTP_PORT", 8000)
 
 QueryResultType = Literal["documents", "distances", "metadatas"]
 
