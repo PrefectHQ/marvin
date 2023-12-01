@@ -1,8 +1,9 @@
+import os
 import re
 from typing import List, Optional, Union
 
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 import marvin
 
@@ -48,27 +49,39 @@ class EventAuthorization(BaseModel):
 
 class SlackPayload(BaseModel):
     token: str
-    team_id: str
-    api_app_id: str
-    event: SlackEvent
     type: str
-    event_id: str
-    event_time: int
-    authorizations: List[EventAuthorization]
-    is_ext_shared_channel: bool
-    event_context: str
+    team_id: Optional[str] = None
+    api_app_id: Optional[str] = None
+    event: Optional[SlackEvent] = None
+    event_id: Optional[str] = None
+    event_time: Optional[int] = None
+    authorizations: Optional[List[EventAuthorization]] = None
+    is_ext_shared_channel: Optional[bool] = None
+    event_context: Optional[str] = None
     challenge: Optional[str] = None
+
+    @field_validator("event")
+    def validate_event(cls, v: Optional[SlackEvent]) -> Optional[SlackEvent]:
+        if v.type != "url_verification" and v is None:
+            raise ValueError("event is required")
+        return v
 
 
 async def get_token() -> str:
     """Get the Slack bot token from the environment."""
     try:
-        return marvin.settings.slack_api_token
+        token = marvin.settings.slack_api_token
     except AttributeError:
-        raise ValueError("`MARVIN_SLACK_API_TOKEN` not found in `~/.marvin/.env`.")
+        token = os.getenv("MARVIN_SLACK_API_TOKEN")
+        if not token:
+            raise ValueError(
+                "`MARVIN_SLACK_API_TOKEN` not found in environment."
+                " Please set it in `~/.marvin/.env` or as an environment variable."
+            )
+    return token
 
 
-def convert_md_links_to_slack(text):
+def convert_md_links_to_slack(text) -> str:
     md_link_pattern = r"\[(?P<text>[^\]]+)]\((?P<url>[^\)]+)\)"
 
     # converting Markdown links to Slack-style links
