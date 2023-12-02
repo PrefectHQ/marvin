@@ -26,16 +26,6 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
     metadata: dict = {}
     messages: list[ThreadMessage] = Field([], repr=False)
 
-    def __enter__(self):
-        self.create()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.delete()
-        # If an exception has occurred, you might want to handle it or pass it through
-        # Returning False here will re-raise any exception that occurred in the context
-        return False
-
     @expose_sync_method("create")
     async def create_async(self, messages: list[str] = None):
         """
