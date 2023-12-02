@@ -31,8 +31,6 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         """
         Creates a thread.
         """
-        if self.id is not None:
-            raise ValueError("Thread has already been created.")
         if messages is not None:
             messages = [{"role": "user", "content": message} for message in messages]
         client = get_client()
