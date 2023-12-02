@@ -101,8 +101,13 @@ def roll_dice(n_dice: int) -> list[int]:
 # otherwise call ai.create() and ai.delete()
 with Assistant(name="Marvin", tools=[roll_dice]) as ai:
 
-    # create a new thread to track history
+    # create a new thread
     thread = Thread()
+    thread.create()
+
+    # OR: get a thread by ID
+    thread = Thread("123")
+    thread.get()
 
     # add any number of user messages to the thread
     thread.add("Hello")
