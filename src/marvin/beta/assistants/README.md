@@ -101,8 +101,8 @@ def roll_dice(n_dice: int) -> list[int]:
 # otherwise call ai.create() and ai.delete()
 with Assistant(name="Marvin", tools=[roll_dice]) as ai:
 
-    # create a new thread
-    thread = Thread()
+    # create a new thread with or without an ID
+    thread = Thread() # or: thread=Thread("123")
     thread.create()
 
     # OR: get a thread by ID
