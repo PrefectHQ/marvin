@@ -26,6 +26,16 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
     metadata: dict = {}
     messages: list[ThreadMessage] = Field([], repr=False)
 
+    @expose_sync_method("get")
+    async def get_async(self):
+        """
+        Gets a thread.
+        """
+        client = get_client()
+        response = await client.beta.threads.retrieve(thread_id=self.id)
+        self.id = response.id
+        return self
+
     @expose_sync_method("create")
     async def create_async(self, messages: list[str] = None):
         """
