@@ -64,22 +64,17 @@ def create_tool_from_type(
 
 
 def create_vocabulary_from_type(
-    vocabulary: Union[GenericAlias, type, list[str]]
+    vocabulary: Union[GenericAlias, type, list[str]],
 ) -> list[str]:
     if get_origin(vocabulary) == Literal:
         return [str(token) for token in get_args(vocabulary)]
     elif isinstance(vocabulary, type) and issubclass(vocabulary, Enum):
         return [str(token) for token in list(vocabulary.__members__.keys())]
-    elif get_origin(vocabulary) == list:
-        # Extract the inner type of the list
-        inner_type = next(iter(get_args(vocabulary)), None)
-        if inner_type == str:
-            return vocabulary
-        else:
-            raise TypeError(f"Unsupported inner list type: {inner_type}")
+    elif isinstance(vocabulary, list) and next(iter(get_args(list[str])), None) == str:
+        return [str(token) for token in vocabulary]
     else:
         raise TypeError(
-            f"Expected Literal, Enum, or list[str], got {type(vocabulary)} with value"
+            f"Expected Literal or Enum or list[str], got {type(vocabulary)} with value"
             f" {vocabulary}"
         )
 

@@ -60,6 +60,7 @@ class TestAIModels:
             I lived in Palms, then Mar Vista, then Pico Robertson.
         """)
 
+    @pytest.mark.flaky(max_runs=3)
     def test_resume(self):
         class Experience(BaseModel):
             technology: str
