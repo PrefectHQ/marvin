@@ -18,6 +18,7 @@ class GitHubIssueTag(Enum):
 
 @pytest_mark_class("llm")
 class TestAIClassifer:
+    @pytest.mark.flaky(reruns=3)
     class TestLiteral:
         def test_ai_classifier_literal_return_type(self):
             @ai_classifier
@@ -28,7 +29,6 @@ class TestAIClassifer:
 
             assert result == "Positive"
 
-        @pytest.mark.flaky(reruns=3)
         def test_ai_classifier_literal_return_type_with_docstring(self):
             @ai_classifier
             def sentiment(text: str) -> Sentiment:
