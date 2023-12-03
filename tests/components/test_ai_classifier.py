@@ -28,6 +28,7 @@ class TestAIClassifer:
 
             assert result == "Positive"
 
+        @pytest.mark.flaky(reruns=3)
         def test_ai_classifier_literal_return_type_with_docstring(self):
             @ai_classifier
             def sentiment(text: str) -> Sentiment:

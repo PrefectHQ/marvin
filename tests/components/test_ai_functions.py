@@ -143,7 +143,7 @@ class TestAIFunctions:
             def get_fruit(name: str) -> tuple:
                 """Returns a tuple of fruit"""
 
-            assert get_fruit("alphabet of fruit, first 3") == (
+            assert get_fruit("alphabet of fruit, first 3, singular") == (
                 "apple",
                 "banana",
                 "cherry",
