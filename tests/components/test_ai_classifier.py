@@ -47,8 +47,8 @@ class TestAIClassifer:
 
             assert result == GitHubIssueTag.DOCS
 
+    @pytest.mark.skip(reason="TODO: fix this")
     class TestList:
-        @pytest.mark.skip(reason="TODO: fix this")
         def test_ai_classifier_list_return_type(self):
             @ai_classifier
             def labeler(text: str) -> list[str]:

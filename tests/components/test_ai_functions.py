@@ -1,6 +1,7 @@
 import inspect
 from typing import Dict, List
 
+import marvin
 import pytest
 from marvin import ai_fn
 from pydantic import BaseModel
@@ -69,28 +70,55 @@ class TestAIFunctions:
 
             assert is_fruit(name) == expected
 
+        @pytest.mark.skipif(
+            marvin.settings.openai.chat.completions.model == "gpt-3.5-turbo-1106",
+            reason="3.5 turbo doesn't do well with unknown schemas",
+        )
         def test_plain_dict_return_type(self):
             @ai_fn
-            def get_fruit(name: str) -> dict:
-                """Returns the name and color of the mentioned fruit"""
+            def describe_fruit(description: str) -> dict:
+                """guess the fruit and return the name and color"""
 
-            fruit = get_fruit("the one thats loved by monkeys")
+            fruit = describe_fruit("the one thats loved by monkeys")
             assert fruit["name"].lower() == "banana"
             assert fruit["color"].lower() == "yellow"
 
+        @pytest.mark.skipif(
+            marvin.settings.openai.chat.completions.model == "gpt-3.5-turbo-1106",
+            reason="3.5 turbo doesn't do well with unknown schemas",
+        )
         def test_annotated_dict_return_type(self):
             @ai_fn
-            def get_fruit(name: str) -> dict[str, str]:
-                """Returns the name and color of the mentioned fruit"""
+            def describe_fruit(description: str) -> dict[str, str]:
+                """guess the fruit and return the name and color"""
 
-            fruit = get_fruit("the one thats loved by monkeys")
+            fruit = describe_fruit("the one thats loved by monkeys")
             assert fruit["name"].lower() == "banana"
             assert fruit["color"].lower() == "yellow"
 
+        @pytest.mark.skipif(
+            marvin.settings.openai.chat.completions.model == "gpt-3.5-turbo-1106",
+            reason="3.5 turbo doesn't do well with unknown schemas",
+        )
         def test_generic_dict_return_type(self):
             @ai_fn
-            def describe_fruit(name: str) -> Dict[str, str]:
-                """Returns the name and color of the mentioned fruit"""
+            def describe_fruit(description: str) -> Dict[str, str]:
+                """guess the fruit and return the name and color"""
+
+            fruit = describe_fruit("the one thats loved by monkeys")
+            assert fruit["name"].lower() == "banana"
+            assert fruit["color"].lower() == "yellow"
+
+        def test_typed_dict_return_type(self):
+            from typing_extensions import TypedDict
+
+            class Fruit(TypedDict):
+                name: str
+                color: str
+
+            @ai_fn
+            def describe_fruit(description: str) -> Fruit:
+                """guess the fruit and return the name and color"""
 
             fruit = describe_fruit("the one thats loved by monkeys")
             assert fruit["name"].lower() == "banana"
@@ -105,10 +133,10 @@ class TestAIFunctions:
 
         def test_float_return_type(self):
             @ai_fn
-            def get_fruit(name: str) -> float:
-                """Returns the number of letters in the alluded fruit name"""
+            def get_pi(n: int) -> float:
+                """Return the first n digits of pi"""
 
-            assert get_fruit("the one thats loved by monkeys") == 6.0
+            assert get_pi(5) == 3.14159
 
         def test_tuple_return_type(self):
             @ai_fn
@@ -121,7 +149,6 @@ class TestAIFunctions:
                 "cherry",
             )
 
-        @pytest.mark.skip(reason="TODO")
         def test_set_return_type(self):
             @ai_fn
             def get_fruit_letters(name: str) -> set:
@@ -129,7 +156,6 @@ class TestAIFunctions:
 
             assert get_fruit_letters("banana") == {"a", "b", "n"}
 
-        @pytest.mark.skip(reason="TODO")
         def test_frozenset_return_type(self):
             @ai_fn
             def get_fruit_letters(name: str) -> frozenset:

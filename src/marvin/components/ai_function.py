@@ -112,6 +112,8 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
             raise NotImplementedError
         arguments = tool_calls[0].function.arguments
 
+        print(arguments)
+
         tool = create_tool_from_type(
             _type=self.fn.__annotations__["return"],
             model_name=self.name,
