@@ -25,18 +25,30 @@ class EventBlock(BaseModel):
     elements: List[Union[EventBlockElement, EventBlockElementGroup]]
 
 
+class ReactionAddedEvent(BaseModel):
+    type: str
+    user: str
+    reaction: str
+    item_user: str
+    item: dict  # You can further define this field if needed
+    event_ts: str
+
+
 class SlackEvent(BaseModel):
     client_msg_id: Optional[str] = None
     type: str
-    text: str
-    user: str
-    ts: str
-    team: str
-    channel: str
-    event_ts: str
+    text: Optional[str] = None
+    user: Optional[str] = None
+    ts: Optional[str] = None
+    team: Optional[str] = None
+    channel: Optional[str] = None
+    event_ts: Optional[str] = None
     thread_ts: Optional[str] = None
     parent_user_id: Optional[str] = None
     blocks: Optional[List[EventBlock]] = None
+    reaction: Optional[str] = None
+    item_user: Optional[str] = None
+    item: Optional[dict] = None  # You can further define this field if needed
 
 
 class EventAuthorization(BaseModel):
@@ -52,7 +64,7 @@ class SlackPayload(BaseModel):
     type: str
     team_id: Optional[str] = None
     api_app_id: Optional[str] = None
-    event: Optional[SlackEvent] = None
+    event: Optional[Union[SlackEvent, ReactionAddedEvent]] = None
     event_id: Optional[str] = None
     event_time: Optional[int] = None
     authorizations: Optional[List[EventAuthorization]] = None

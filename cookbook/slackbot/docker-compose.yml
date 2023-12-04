@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ../../
+      dockerfile: cookbook/slackbot/Dockerfile.slackbot
+    ports:
+      - "4200:4200"
+    env_file:
+      - ../../.env
+    environment:
+      - REDIS_HOST=redis
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
