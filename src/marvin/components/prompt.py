@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from typing_extensions import ParamSpec, Self
 
 from marvin.requests import BaseMessage as Message
-from marvin.requests import Prompt, Tool
+from marvin.requests import Prompt
 from marvin.serializers import (
     create_grammar_from_vocabulary,
     create_tool_from_type,
@@ -193,7 +193,7 @@ class PromptFunction(Prompt[U]):
                     "type": "function",
                     "function": {"name": getattr(tool.function, "name", model_name)},
                 },
-                tools=[Tool[BaseModel](**tool.model_dump())],
+                tools=[tool],
             )
 
         if fn is not None:
