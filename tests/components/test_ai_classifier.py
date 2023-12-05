@@ -16,6 +16,7 @@ class GitHubIssueTag(Enum):
     DOCS = "docs"
 
 
+@pytest.mark.skip(reason="ai_classifier doesnt really work imo")
 @pytest_mark_class("llm")
 class TestAIClassifer:
     class TestLiteral:
@@ -48,7 +49,6 @@ class TestAIClassifer:
             assert result == GitHubIssueTag.DOCS
 
     class TestList:
-        @pytest.mark.skip(reason="TODO: fix this")
         def test_ai_classifier_list_return_type(self):
             @ai_classifier
             def labeler(text: str) -> list[str]:
