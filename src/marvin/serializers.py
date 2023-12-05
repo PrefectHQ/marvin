@@ -63,6 +63,20 @@ def create_tool_from_type(
     )
 
 
+def create_tool_from_model(
+    model: type[BaseModel],
+) -> Tool[BaseModel]:
+    return Tool[BaseModel](
+        type="function",
+        function=Function[BaseModel](
+            name=model.__name__,
+            description=model.__doc__,
+            parameters=model.model_json_schema(schema_generator=FunctionSchema),
+            model=model,
+        ),
+    )
+
+
 def create_vocabulary_from_type(
     vocabulary: Union[GenericAlias, type, list[str]],
 ) -> list[str]:
