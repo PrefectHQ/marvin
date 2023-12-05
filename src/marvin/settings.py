@@ -202,6 +202,25 @@ class OpenAISettings(MarvinSettings):
         )
 
 
+class RedisSettings(MarvinSettings):
+    host: str = Field(
+        default="redis",
+        description="The host of the Redis server.",
+    )
+    port: int = Field(
+        default=6379,
+        description="The port of the Redis server.",
+    )
+    db: int = Field(
+        default=0,
+        description="The database of the Redis server.",
+    )
+    decode_responses: bool = Field(
+        default=True,
+        description="Whether to decode responses from the Redis server.",
+    )
+
+
 class Settings(MarvinSettings):
     model_config = SettingsConfigDict(env_prefix="marvin_")
 
@@ -211,6 +230,8 @@ class Settings(MarvinSettings):
         default="DEBUG",
         description="The log level to use.",
     )
+
+    redis: RedisSettings = Field(default_factory=RedisSettings)
 
 
 settings = Settings()

@@ -9,23 +9,36 @@ Define a map between keywords and the relationships we want to check for
 in a given message related to that keyword.
 """
 
-keywords = (
+DEFAULT_KEYWORDS = (
     ("429", "rate limit"),
     ("SSO", "Single Sign On", "RBAC", "Roles", "Role Based Access Controls"),
 )
 
-relationships = (
+DEFAULT_RELATIONSHIPS = (
     "The user is getting rate limited",
     "The user is asking about a paid feature",
 )
 
 
-async def get_reduced_kw_relationship_map() -> dict:
-    try:
-        json_map = (await JSON.load("keyword-relationship-map")).value
-    except (ObjectNotFound, ValueError):
+async def get_keyword_relationship_map(
+    keywords: tuple | None = None,
+    relationships: tuple | None = None,
+    use_cache: bool = True,
+    save_cache: bool = True,
+):
+    keywords = keywords or DEFAULT_KEYWORDS
+    relationships = relationships or DEFAULT_RELATIONSHIPS
+
+    if use_cache:
+        try:
+            json_map = (await JSON.load("keyword-relationship-map")).value
+        except (ObjectNotFound, ValueError):
+            json_map = {"keywords": keywords, "relationships": relationships}
+    else:
         json_map = {"keywords": keywords, "relationships": relationships}
-        await JSON(value=json_map).save("keyword-relationship-map")
+
+    if save_cache:
+        await JSON(value=json_map).save("keyword-relationship-map", overwrite=True)
 
     return {
         keyword: relationship
@@ -44,7 +57,7 @@ def activation_score(message: str, keyword: str, target_relationship: str) -> fl
 
 @task
 async def handle_keywords(message: str, channel_name: str, asking_user: str, link: str):
-    keyword_relationships = await get_reduced_kw_relationship_map()
+    keyword_relationships = await get_keyword_relationship_map()
     keywords = [
         keyword for keyword in keyword_relationships.keys() if keyword in message
     ]

@@ -10,44 +10,35 @@ from starlette.responses import JSONResponse
 
 app = FastAPI()
 logger = get_logger("slackbot.app")
-
 redis_client = redis.StrictRedis(host="redis", port=6379, db=0, decode_responses=True)
 
 
 async def reacted_to_bot(ts: str | None) -> bool:
-    """Check if a given timestamp is in the Redis cache."""
-    print(ts)
-    print(redis_client.get(ts))
-    if ts is None:
-        return False
-    return redis_client.exists(ts)
+    """Check if a reaction is to a message sent by the bot."""
+    logger.debug_kv("Checking if reacted to bot", ts, "green")
+    return ts is not None and redis_client.get(f"message:{ts}") == "true"
 
 
 @app.post("/chat")
-async def chat_endpoint(request: Request):
+async def chat_endpoint(request: Request) -> JSONResponse:
     payload = SlackPayload(**await request.json())
-
     logger.debug_kv("Handling slack message", payload, "green")
 
     match payload.type:
         case "event_callback":
-            if payload.event.type == "reaction_added":
-                if await reacted_to_bot(payload.event.item.get("ts")):
-                    options = dict(
-                        flow_run_name="handle reaction event",
-                        retries=1,
+            if payload.event.type == "reaction_added" and await reacted_to_bot(
+                payload.event.item.get("ts")
+            ):
+                asyncio.create_task(
+                    handle_reaction_added.with_options(flow_run_name="reaction added")(
+                        payload, payload.event.reaction
                     )
-                    emoji_name = payload.event.reaction
-                    asyncio.create_task(
-                        handle_reaction_added.with_options(**options)(
-                            payload, emoji_name
-                        )
-                    )
-            else:
-                options = dict(
-                    flow_run_name=f"respond in {payload.event.channel}",
-                    retries=1,
                 )
+            elif payload.event.type != "reaction_added" and payload.mentions_bot():
+                options = {
+                    "flow_run_name": f"respond in {payload.event.channel}",
+                    "retries": 1,
+                }
                 asyncio.create_task(handle_message.with_options(**options)(payload))
         case "url_verification":
             return JSONResponse({"challenge": payload.challenge})

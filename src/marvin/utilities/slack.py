@@ -6,6 +6,9 @@ import httpx
 from pydantic import BaseModel, field_validator
 
 import marvin
+from marvin.utilities.logging import get_logger
+
+SLACKBOT_MENTION = r"<@(\w+)>"
 
 
 class EventBlockElement(BaseModel):
@@ -77,6 +80,14 @@ class SlackPayload(BaseModel):
         if v.type != "url_verification" and v is None:
             raise ValueError("event is required")
         return v
+
+    def mentions_bot(self, bot_mention_pattern: str = SLACKBOT_MENTION) -> bool:
+        """Check if the message is addressed to the bot."""
+        if self.event:
+            user = re.search(bot_mention_pattern, self.event.text or "")
+            if user and user.group(1) == self.authorizations[0].user_id:
+                return True
+        return False
 
 
 async def get_token() -> str:
@@ -296,3 +307,31 @@ async def get_workspace_info(slack_bot_token: Union[str, None] = None) -> dict:
         )
         response.raise_for_status()
         return response.json().get("team", {})
+
+
+async def get_emoji(emoji_name: str, token: str | None = None) -> str:
+    try:
+        import emoji
+
+        standard_emoji = emoji.emojize(f":{emoji_name}:", language="alias")
+        if standard_emoji != f":{emoji_name}:":
+            return standard_emoji
+    except ImportError:
+        get_logger("marvin.utilities.slack").debug_kv(
+            "ImportError", "install `emoji` via `pip install emoji`", "red"
+        )
+        pass
+
+    if not token:
+        token = await get_token()
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://slack.com/api/emoji.list",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        emojis = response.json().get("emoji", {})
+        custom_emoji = emojis.get(emoji_name, "")
+        if custom_emoji:
+            return custom_emoji
+
+    raise ValueError(f"Emoji {emoji_name} not found.")
