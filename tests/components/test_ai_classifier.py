@@ -1,5 +1,6 @@
 from enum import Enum
 
+import pytest
 from marvin import ai_classifier
 from typing_extensions import Literal
 
