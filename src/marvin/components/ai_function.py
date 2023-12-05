@@ -2,7 +2,6 @@ import asyncio
 import inspect
 import json
 from typing import (
-    TYPE_CHECKING,
     Any,
     Awaitable,
     Callable,
@@ -13,11 +12,12 @@ from typing import (
     overload,
 )
 
-from pydantic import BaseModel, Field, ValidationError
+from openai.types.chat import ChatCompletion
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from typing_extensions import ParamSpec, Self
 
+from marvin.client.openai import MarvinAsyncClient, MarvinClient
 from marvin.components.prompt import PromptFunction
-from marvin.serializers import create_tool_from_type
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -28,16 +28,13 @@ from marvin.utilities.jinja import (
 )
 from marvin.utilities.logging import get_logger
 
-if TYPE_CHECKING:
-    from openai.types.chat import ChatCompletion
-
 T = TypeVar("T")
 
 P = ParamSpec("P")
 
 
 class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
-    fn: Optional[Callable[P, T]] = None
+    fn: Optional[Callable[P, Union[T, Awaitable[T]]]] = None
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = Field(default=inspect.cleandoc("""
         Your job is to generate likely outputs for a Python function with the
@@ -59,75 +56,77 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
     description: str = "Formats the response."
     field_name: str = "data"
     field_description: str = "The data to format."
-    render_kwargs: dict[str, Any] = Field(default_factory=dict)
+    create: Callable[..., "ChatCompletion"] = Field(
+        default_factory=lambda: MarvinClient().chat
+    )
+    acreate: Callable[..., Awaitable["ChatCompletion"]] = Field(
+        default_factory=lambda: MarvinAsyncClient().chat
+    )
 
-    create: Optional[Callable[..., "ChatCompletion"]] = Field(default=None)
+    @field_validator("create", mode="before")
+    def validate_create(cls, v: Any) -> Any:
+        if not v:
+            v = MarvinClient().chat
+        return v
+
+    @field_validator("acreate", mode="before")
+    def validate_acreate(cls, v: Any) -> Any:
+        if not v:
+            v = MarvinAsyncClient().chat
+        return v
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Union[T, Awaitable[T]]:
         if self.fn is None:
             raise NotImplementedError
-
-        from marvin import settings
-
         logger = get_logger("marvin.ai_fn")
-
-        logger.debug_kv(
-            "AI Function Call",
-            f"Calling {self.fn.__name__} with {args} and {kwargs}",
-            "blue",
-        )
-
-        is_async_fn = asyncio.iscoroutinefunction(self.fn)
-
-        call = "async_call" if is_async_fn else "sync_call"
-        create = (
-            self.create or settings.openai.chat.completions.acreate
-            if is_async_fn
-            else settings.openai.chat.completions.create
-        )
-
-        result = getattr(self, call)(create, *args, **kwargs)
-
-        logger.debug_kv("AI Function Call", f"Returned {result}", "blue")
-
+        logger.debug_kv("AI Function Call", f"Calling {self.fn.__name__} with {args} and {kwargs}", "blue")  # type: ignore # noqa: E501
+        if asyncio.iscoroutinefunction(self.fn):
+            result = self.acall(self.acreate, *args, **kwargs)
+        else:
+            result = self.call(self.create, *args, **kwargs)
+        logger.debug_kv("AI Function Call", f"Returned {result}", "blue")  # type: ignore # noqa: E501
         return result
 
-    async def async_call(
+    async def acall(
         self, acreate: Callable[..., Awaitable[Any]], *args: P.args, **kwargs: P.kwargs
     ) -> T:
+        prompt = self.as_prompt(*args, **kwargs)
+        if (
+            not prompt.tools
+            or not prompt.tools[0].function
+            or not prompt.tools[0].function.model
+        ):
+            raise AttributeError("Prompt must have at least one tool.")
+        _model = prompt.tools[0].function.model
         _response = await acreate(**self.as_prompt(*args, **kwargs).serialize())
-        return self.parse(_response)
+        return self.parse(_response, model=_model)
 
-    def sync_call(
-        self, create: Callable[..., Any], *args: P.args, **kwargs: P.kwargs
-    ) -> T:
-        _response = create(**self.as_prompt(*args, **kwargs).serialize())
-        return self.parse(_response)
+    def call(self, create: Callable[..., Any], *args: P.args, **kwargs: P.kwargs) -> T:
+        prompt = self.as_prompt(*args, **kwargs)
+        if (
+            not prompt.tools
+            or not prompt.tools[0].function
+            or not prompt.tools[0].function.model
+        ):
+            raise AttributeError("Prompt must have at least one tool.")
+        _model = prompt.tools[0].function.model
+        _response = create(**prompt.serialize())
+        return self.parse(_response, model=_model)
 
-    def parse(self, response: "ChatCompletion") -> T:
+    def parse(self, response: "ChatCompletion", model: type[BaseModel]) -> T:
         tool_calls = response.choices[0].message.tool_calls
         if tool_calls is None:
             raise NotImplementedError
         if self.fn is None:
             raise NotImplementedError
         arguments = tool_calls[0].function.arguments
-
-        tool = create_tool_from_type(
-            _type=self.fn.__annotations__["return"],
-            model_name=self.name,
-            model_description=self.description,
-            field_name=self.field_name,
-            field_description=self.field_description,
-        ).function
-        if not tool or not tool.model:
-            raise NotImplementedError
         try:
-            return getattr(tool.model.model_validate_json(arguments), self.field_name)
+            return getattr(model.model_validate_json(arguments), self.field_name)
         except ValidationError:
             # When the user provides a dict obj as a type hint, the arguments
             # are returned usually as an object and not a nested dict.
             _arguments: str = json.dumps({self.field_name: json.loads(arguments)})
-            return getattr(tool.model.model_validate_json(_arguments), self.field_name)
+            return getattr(model.model_validate_json(_arguments), self.field_name)
 
     @expose_sync_method("map")
     async def amap(self, *map_args: list[Any], **map_kwargs: list[Any]) -> list[T]:
@@ -182,7 +181,6 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
             model_description=self.description,
             field_name=self.field_name,
             field_description=self.field_description,
-            **self.render_kwargs,
         )(*args, **kwargs)
 
     @overload
@@ -196,8 +194,8 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
         model_description: str = "Formats the response.",
         field_name: str = "data",
         field_description: str = "The data to format.",
+        create: Optional[Callable[..., ChatCompletion]] = None,
         acreate: Optional[Callable[..., Awaitable[Any]]] = None,
-        **render_kwargs: Any,
     ) -> Callable[P, Self]:
         pass
 
@@ -205,7 +203,7 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
     @classmethod
     def as_decorator(
         cls: type[Self],
-        fn: Callable[P, T],
+        fn: Callable[P, Union[T, Awaitable[T]]],
         *,
         environment: Optional[BaseEnvironment] = None,
         prompt: Optional[str] = None,
@@ -213,15 +211,15 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
         model_description: str = "Formats the response.",
         field_name: str = "data",
         field_description: str = "The data to format.",
+        create: Optional[Callable[..., ChatCompletion]] = None,
         acreate: Optional[Callable[..., Awaitable[Any]]] = None,
-        **render_kwargs: Any,
     ) -> Self:
         pass
 
     @classmethod
     def as_decorator(
         cls: type[Self],
-        fn: Optional[Callable[P, T]] = None,
+        fn: Optional[Callable[P, Union[T, Awaitable[T]]]] = None,
         *,
         environment: Optional[BaseEnvironment] = None,
         prompt: Optional[str] = None,
@@ -230,8 +228,8 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
         field_name: str = "data",
         field_description: str = "The data to format.",
         **render_kwargs: Any,
-    ) -> Union[Callable[[Callable[P, T]], Self], Self]:
-        def decorator(func: Callable[P, T]) -> Self:
+    ) -> Union[Callable[[Callable[P, Union[T, Awaitable[T]]]], Self], Self]:
+        def decorator(func: Callable[P, Union[T, Awaitable[T]]]) -> Self:
             return cls(
                 fn=func,
                 environment=environment,
@@ -258,7 +256,8 @@ def ai_fn(
     model_description: str = "Formats the response.",
     field_name: str = "data",
     field_description: str = "The data to format.",
-    **render_kwargs: Any,
+    create: Optional[Callable[..., ChatCompletion]] = None,
+    acreate: Optional[Callable[..., Awaitable[ChatCompletion]]] = None,
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     pass
 
@@ -273,13 +272,14 @@ def ai_fn(
     model_description: str = "Formats the response.",
     field_name: str = "data",
     field_description: str = "The data to format.",
-    **render_kwargs: Any,
+    create: Optional[Callable[..., ChatCompletion]] = None,
+    acreate: Optional[Callable[..., Awaitable[ChatCompletion]]] = None,
 ) -> Callable[P, T]:
     pass
 
 
 def ai_fn(
-    fn: Optional[Callable[P, T]] = None,
+    fn: Optional[Callable[P, Union[T, Awaitable[T]]]] = None,
     *,
     environment: Optional[BaseEnvironment] = None,
     prompt: Optional[str] = None,
@@ -287,10 +287,16 @@ def ai_fn(
     model_description: str = "Formats the response.",
     field_name: str = "data",
     field_description: str = "The data to format.",
-    **render_kwargs: Any,
-) -> Union[Callable[[Callable[P, T]], Callable[P, T]], Callable[P, T]]:
+    create: Optional[Callable[..., ChatCompletion]] = None,
+    acreate: Optional[Callable[..., Awaitable[ChatCompletion]]] = None,
+) -> Union[
+    Callable[
+        [Callable[P, Union[T, Awaitable[T]]]], Callable[P, Union[T, Awaitable[T]]]
+    ],
+    Callable[P, Union[T, Awaitable[T]]],
+]:
     if fn is not None:
-        return AIFunction.as_decorator(  # type: ignore
+        return AIFunction[P, T].as_decorator(
             fn=fn,
             environment=environment,
             prompt=prompt,
@@ -298,11 +304,14 @@ def ai_fn(
             model_description=model_description,
             field_name=field_name,
             field_description=field_description,
-            **render_kwargs,
+            create=create,
+            acreate=acreate,
         )
 
-    def decorator(func: Callable[P, T]) -> Callable[P, T]:
-        return AIFunction.as_decorator(  # type: ignore
+    def decorator(
+        func: Callable[P, Union[T, Awaitable[T]]]
+    ) -> Callable[P, Union[T, Awaitable[T]]]:
+        return AIFunction[P, T].as_decorator(
             fn=func,
             environment=environment,
             prompt=prompt,
@@ -310,7 +319,8 @@ def ai_fn(
             model_description=model_description,
             field_name=field_name,
             field_description=field_description,
-            **render_kwargs,
+            create=create,
+            acreate=acreate,
         )
 
     return decorator
