@@ -1,11 +1,11 @@
+import asyncio
 import inspect
 from functools import partial
 from typing import Any, Callable, Optional, TypeVar, Union, overload
 
 from marvin.components.ai_function import ai_fn
-from marvin.utilities.jinja import (
-    BaseEnvironment,
-)
+from marvin.utilities.asyncio import run_sync
+from marvin.utilities.jinja import BaseEnvironment
 
 T = TypeVar("T")
 
@@ -76,10 +76,30 @@ def ai_model(
             **render_kwargs,
         )(text)
 
+    async def async_wrapper(_type_: T, text: str) -> T:
+        return wrapper(_type_, text)
+
+    async def amap(inputs: list[str]) -> list[T]:
+        return await asyncio.gather(
+            *[
+                asyncio.create_task(async_wrapper(_type, input_text))
+                for input_text in inputs
+            ]
+        )
+
+    def map(inputs: list[str]) -> list[T]:
+        return run_sync(amap(inputs))
+
     if _type is not None:
-        return partial(wrapper, _type)
+        wrapper_with_map = partial(wrapper, _type)
+        wrapper_with_map.amap = amap
+        wrapper_with_map.map = map
+        return wrapper_with_map
 
     def decorator(_type_: T) -> Callable[[str], T]:
-        return partial(wrapper, _type)
+        decorated = partial(wrapper, _type_)
+        decorated.amap = amap
+        decorated.map = map
+        return decorated
 
     return decorator

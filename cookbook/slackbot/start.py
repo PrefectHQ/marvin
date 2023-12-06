@@ -4,12 +4,18 @@ import re
 import uvicorn
 from cachetools import TTLCache
 from fastapi import FastAPI, HTTPException, Request
+from keywords import handle_keywords
 from marvin import Assistant
 from marvin.beta.assistants import Thread
 from marvin.tools.github import search_github_issues
 from marvin.tools.retrieval import multi_query_chroma
 from marvin.utilities.logging import get_logger
-from marvin.utilities.slack import SlackPayload, post_slack_message
+from marvin.utilities.slack import (
+    SlackPayload,
+    get_channel_name,
+    get_workspace_info,
+    post_slack_message,
+)
 from prefect import flow, task
 from prefect.states import Completed
 
@@ -30,6 +36,16 @@ async def handle_message(payload: SlackPayload):
         thread = event.thread_ts or event.ts
         assistant_thread = CACHE.get(thread, Thread())
         CACHE[thread] = assistant_thread
+
+        await handle_keywords.submit(
+            message=cleaned_message,
+            channel_name=await get_channel_name(event.channel),
+            asking_user=event.user,
+            link=(  # to user's message
+                f"{(await get_workspace_info()).get('url')}archives/"
+                f"{event.channel}/p{event.ts.replace('.', '')}"
+            ),
+        )
 
         with Assistant(
             name="Marvin (from Hitchhiker's Guide to the Galaxy)",

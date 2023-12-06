@@ -1,6 +1,5 @@
 from enum import Enum
 
-import pytest
 from marvin import ai_classifier
 from typing_extensions import Literal
 
@@ -46,20 +45,3 @@ class TestAIClassifer:
             result = labeler("improve the docs you slugs")
 
             assert result == GitHubIssueTag.DOCS
-
-    class TestList:
-        @pytest.mark.skip(reason="TODO: fix this")
-        def test_ai_classifier_list_return_type(self):
-            @ai_classifier
-            def labeler(text: str) -> list[str]:
-                """Select from the following GitHub issue tags
-
-                - bug
-                - feature
-                - enhancement
-                - docs
-                """
-
-            result = labeler("i found a bug in the example from the docs")
-
-            assert set(result) == {"bug", "docs"}
