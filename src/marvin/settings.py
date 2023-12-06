@@ -12,10 +12,11 @@ MARVIN_OPENAI_API_KEY=sk-...
 import os
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Literal, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing_extensions import Literal
 
 if TYPE_CHECKING:
     from openai import AsyncClient, Client
