@@ -42,6 +42,6 @@ class TestAIClassifer:
             def labeler(text: str) -> GitHubIssueTag:
                 """Classify GitHub issue tags"""
 
-            result = labeler("improve the docs you slugs")
+            result = labeler("the docs are trash, you slugs")
 
             assert result == GitHubIssueTag.DOCS
