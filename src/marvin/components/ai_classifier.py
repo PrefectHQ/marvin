@@ -8,7 +8,6 @@ from typing import (
     Awaitable,
     Callable,
     Generic,
-    Literal,
     Optional,
     TypeVar,
     Union,
@@ -19,7 +18,7 @@ from typing import (
 )
 
 from pydantic import BaseModel, Field, TypeAdapter
-from typing_extensions import ParamSpec, Self
+from typing_extensions import Literal, ParamSpec, Self
 
 from marvin.components.prompt import PromptFunction
 from marvin.serializers import create_vocabulary_from_type

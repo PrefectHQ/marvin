@@ -3,7 +3,6 @@ from types import GenericAlias
 from typing import (
     Any,
     Callable,
-    Literal,
     Optional,
     TypeVar,
     Union,
@@ -14,6 +13,7 @@ from typing import (
 from pydantic import BaseModel, create_model
 from pydantic.fields import FieldInfo
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
+from typing_extensions import Literal
 
 from marvin import settings
 from marvin.requests import Function, Grammar, Tool
