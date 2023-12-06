@@ -19,49 +19,34 @@ nav:
     - Overview: welcome/overview.md
     - Configuration: 
       - Settings: configuration/settings.md
-      - Providers: configuration/providers.md
-    - Prompting:
-      - Prompt Function: prompting/prompt_function.md
+
     - Components: 
       - Overview: components/overview.md
       - AI Function: components/ai_function.md
       - AI Model: components/ai_model.md
       - AI Classifier: components/ai_classifier.md
-      - AI Application: components/ai_application.md
-    - OpenAI API Utilities: 
-      - Calling LLMs: llms/llms.md
-      - Building Prompts: llms/prompt.md
-    - Deployment: 
-      - FastAPI: 
-        - deployment/index.md
+
     - Examples:
       - Slackbot: examples/slackbot.md
       - GitHub Digest: examples/github_digest.md
   - API Reference:
-    # - src/api_reference/index.md
+    - api_reference/index.md
     - AI Components:
-      - ai_application: api_reference/components/ai_application.md
       - ai_classifier: api_reference/components/ai_classifier.md
       - ai_function: api_reference/components/ai_function.md
       - ai_model: api_reference/components/ai_model.md
-    - LLM Engines:
-      - base: api_reference/engine/language_models/base.md
-      - openai: api_reference/engine/language_models/openai.md
-      - anthropic: api_reference/engine/language_models/anthropic.md
-    - Prompts:
-      - base: api_reference/prompts/base.md
-      - library: api_reference/prompts/library.md
     - Settings:
       - settings: api_reference/settings.md
     - Utilities:
-      - async_utils: api_reference/utilities/async_utils.md
-      - collections: api_reference/utilities/collections.md
-      - embeddings: api_reference/utilities/embeddings.md
-      - history: api_reference/utilities/history.md
+      - asyncio: api_reference/utilities/asyncio.md
+      - context: api_reference/utilities/context.md
+      - jinja: api_reference/utilities/jinja.md
       - logging: api_reference/utilities/logging.md
-      - messages: api_reference/utilities/messages.md
+      - openai: api_reference/utilities/openai.md
+      - pydantic: api_reference/utilities/pydantic.md
+      - slack: api_reference/utilities/slack.md
       - strings: api_reference/utilities/strings.md
-      - types: api_reference/utilities/types.md
+      - tools: api_reference/utilities/tools.md
   - Community:
     - community/index.md
     - Feedback 💙: community/feedback.md
@@ -112,6 +97,10 @@ plugins:
             show_signature: False
             heading_level: 2
             filters: ["!^_"]
+watch:
+  - src
+  - docs
+  - mkdocs.yml
 
 hooks:
   - docs/hooks.py
@@ -139,8 +128,8 @@ extra:
     title: 'The AI Engineering Framework'
     description: 'Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.'
   announcement:
-    title: "Marvin 1.3 makes agents easy to debug"
-    url: https://github.com/PrefectHQ/marvin/releases/tag/v1.3.0
+    title: "Marvin 2.0 is here!"
+    url: https://github.com/PrefectHQ/marvin/releases/tag/v2.0.0
   analytics:
     provider: google
     property: G-2MWKMDJ9CM

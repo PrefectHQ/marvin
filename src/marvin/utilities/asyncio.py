@@ -1,3 +1,5 @@
+"""Utilities for working with asyncio."""
+
 import asyncio
 import functools
 from concurrent.futures import ThreadPoolExecutor
@@ -17,6 +19,15 @@ async def run_async(fn: Callable[..., T], *args: Any, **kwargs: Any) -> T:
 
     Returns:
         The return value of the function.
+
+    Example:
+        Basic usage:
+        ```python
+        def my_sync_function(x: int) -> int:
+            return x + 1
+
+        await run_async(my_sync_function, 1)
+        ```
     """
 
     async def wrapper() -> T:
@@ -40,6 +51,20 @@ def run_sync(coroutine: Coroutine[Any, Any, T]) -> T:
     necessary, which allows coroutines to run in environments like Jupyter
     notebooks where the event loop runs on the main thread.
 
+    Args:
+        coroutine: The coroutine to run.
+
+    Returns:
+        The return value of the coroutine.
+
+    Example:
+        Basic usage:
+        ```python
+        async def my_async_function(x: int) -> int:
+            return x + 1
+
+        run_sync(my_async_function(1))
+        ```
     """
     try:
         loop = asyncio.get_running_loop()
@@ -55,21 +80,8 @@ def run_sync(coroutine: Coroutine[Any, Any, T]) -> T:
 
 class ExposeSyncMethodsMixin:
     """
-    A mixin class that can take functions decorated with `expose_sync_method` and
-    automatically create synchronous versions.
-
-
-    Example:
-
-    class MyClass(ExposeSyncMethodsMixin):
-
-        @expose_sync_method("my_method")
-        async def my_method_async(self):
-            return 42
-
-    my_instance = MyClass()
-    await my_instance.my_method_async() # returns 42
-    my_instance.my_method()  # returns 42
+    A mixin that can take functions decorated with `expose_sync_method`
+    and automatically create synchronous versions.
     """
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
@@ -85,17 +97,25 @@ def expose_sync_method(name: str) -> Callable[..., Any]:
     Decorator that automatically exposes synchronous versions of async methods.
     Note it doesn't work with classmethods.
 
+    Args:
+        name: The name of the synchronous method.
+
+    Returns:
+        The decorated function.
+
     Example:
+        Basic usage:
+        ```python
+        class MyClass(ExposeSyncMethodsMixin):
 
-    class MyClass(ExposeSyncMethodsMixin):
+            @expose_sync_method("my_method")
+            async def my_method_async(self):
+                return 42
 
-        @expose_sync_method("my_method")
-        async def my_method_async(self):
-            return 42
-
-    my_instance = MyClass()
-    await my_instance.my_method_async() # returns 42
-    my_instance.my_method()  # returns 42
+        my_instance = MyClass()
+        await my_instance.my_method_async() # returns 42
+        my_instance.my_method()  # returns 42
+        ```
     """
 
     def decorator(
