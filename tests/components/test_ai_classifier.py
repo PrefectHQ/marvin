@@ -1,6 +1,5 @@
 from enum import Enum
 
-import pytest
 from marvin import ai_classifier
 from typing_extensions import Literal
 
@@ -16,7 +15,6 @@ class GitHubIssueTag(Enum):
     DOCS = "docs"
 
 
-@pytest.mark.skip(reason="ai_classifier doesnt really work imo")
 @pytest_mark_class("llm")
 class TestAIClassifer:
     class TestLiteral:
