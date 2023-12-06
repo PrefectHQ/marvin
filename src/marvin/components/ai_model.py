@@ -60,8 +60,8 @@ def ai_model(
     **render_kwargs: Any,
 ) -> Union[Callable[[T], Callable[[str], T]], Callable[[str], T],]:
     def wrapper(_type_: T, text: str) -> T:
-        def extract(text: str) -> T:  # type: ignore
-            pass
+        def extract(text: str) -> T:
+            return _type_
 
         extract.__annotations__["return"] = _type_
 
