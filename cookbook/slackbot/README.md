@@ -41,4 +41,4 @@ python cookbook/slackbot/start.py # in another terminal
 
 to deploy this to cloudrun, see:
 - [Dockerfile.slackbot](/cookbook/slackbot/Dockerfile.slackbot)
-- [image build CI](.github/workflows/image-build-and-push-community.yaml)
+- [image build CI](/.github/workflows/image-build-and-push-community.yaml)
