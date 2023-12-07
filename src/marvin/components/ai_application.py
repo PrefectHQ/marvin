@@ -258,7 +258,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         response = await self.run(input_text=q)
         return response.content
 
-    async def run(self, input_text: str = None, model: str = None, tools: list[Tool] = None, **model_kwargs) -> Message:
+    async def run(self, input_text: str = None, model: str = None, tools: list[Tool] = None, extra_prompts: list[Prompt] = [], **model_kwargs) -> Message:
         if model is None:
             model = marvin.settings.llm_model or "openai/gpt-4"
 
@@ -268,9 +268,10 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             prompt_library.System(content=SYSTEM_PROMPT),
             # add current datetime
             prompt_library.Now(),
+            *self.additional_prompts,
+            *extra_prompts,
             # get the history of messages between user and assistant
             prompt_library.MessageHistory(history=self.history),
-            *self.additional_prompts,
         ]
 
         # get latest user input
