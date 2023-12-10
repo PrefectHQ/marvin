@@ -203,6 +203,8 @@ class OpenAISettings(MarvinSettings):
 
 
 class RedisSettings(MarvinSettings):
+    model_config = SettingsConfigDict(env_prefix="marvin_redis_")
+
     host: str = Field(
         default="redis",
         description="The host of the Redis server.",

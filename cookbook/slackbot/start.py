@@ -1,11 +1,17 @@
 import asyncio
+import json
 
 import redis
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
-from flows import handle_message, handle_reaction_added
+from flows import handle_dalle_slash_command, handle_message, handle_reaction_added
 from marvin.utilities.logging import get_logger
-from marvin.utilities.slack import SlackPayload
+from marvin.utilities.slack import (
+    SlackInteractionPayload,
+    SlackPayload,
+    SlackSlashCommandPayload,
+    post_slack_message,
+)
 from starlette.responses import JSONResponse
 
 app = FastAPI()
@@ -46,6 +52,44 @@ async def chat_endpoint(request: Request) -> JSONResponse:
             raise HTTPException(status_code=400, detail="Invalid event type")
 
     return JSONResponse({"status": "ok"})
+
+
+@app.post("/dalle")
+async def generate_dalle_image(request: Request) -> str:
+    payload = SlackSlashCommandPayload.from_form(await request.form())
+    logger.debug_kv("Handling dalle request", payload, "green")
+
+    if not payload.command == "/dalle":
+        raise HTTPException(status_code=400, detail="Invalid command")
+
+    asyncio.create_task(handle_dalle_slash_command(payload))
+
+    return "Generating image(s)..."
+
+
+@app.post("/slack/interactions")
+async def handle_slack_interactions(request: Request) -> JSONResponse:
+    form_data = await request.form()
+    interaction_data = SlackInteractionPayload.from_json(form_data["payload"])
+
+    action = interaction_data.actions[0]
+    selected_image_url = action.value
+
+    if action.action_id.startswith("select_image_"):
+        private_metadata = json.loads(interaction_data.view.private_metadata)
+        channel_id = private_metadata.get("channel_id")
+        user_prompt = private_metadata.get("user_prompt")
+
+        if channel_id:
+            await post_slack_message(
+                message=f"[{user_prompt}]({selected_image_url})",
+                channel_id=channel_id,
+            )
+            return JSONResponse({"response_action": "close"})
+        else:
+            raise HTTPException(status_code=400, detail="Channel ID not found")
+
+    raise HTTPException(status_code=400, detail="Invalid action")
 
 
 if __name__ == "__main__":

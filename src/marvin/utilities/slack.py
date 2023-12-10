@@ -1,6 +1,7 @@
+import json
 import os
 import re
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import httpx
 from pydantic import BaseModel, field_validator
@@ -19,13 +20,13 @@ class EventBlockElement(BaseModel):
 
 class EventBlockElementGroup(BaseModel):
     type: str
-    elements: List[EventBlockElement]
+    elements: list[EventBlockElement]
 
 
 class EventBlock(BaseModel):
     type: str
     block_id: str
-    elements: List[Union[EventBlockElement, EventBlockElementGroup]]
+    elements: list[Union[EventBlockElement, EventBlockElementGroup]]
 
 
 class ReactionAddedEvent(BaseModel):
@@ -48,7 +49,7 @@ class SlackEvent(BaseModel):
     event_ts: Optional[str] = None
     thread_ts: Optional[str] = None
     parent_user_id: Optional[str] = None
-    blocks: Optional[List[EventBlock]] = None
+    blocks: Optional[list[EventBlock]] = None
     reaction: Optional[str] = None
     item_user: Optional[str] = None
     item: Optional[dict] = None  # You can further define this field if needed
@@ -70,7 +71,7 @@ class SlackPayload(BaseModel):
     event: Optional[Union[SlackEvent, ReactionAddedEvent]] = None
     event_id: Optional[str] = None
     event_time: Optional[int] = None
-    authorizations: Optional[List[EventAuthorization]] = None
+    authorizations: Optional[list[EventAuthorization]] = None
     is_ext_shared_channel: Optional[bool] = None
     event_context: Optional[str] = None
     challenge: Optional[str] = None
@@ -88,6 +89,87 @@ class SlackPayload(BaseModel):
             if user and user.group(1) == self.authorizations[0].user_id:
                 return True
         return False
+
+
+class SlackSlashCommandPayload(BaseModel):
+    token: str
+    team_id: str
+    team_domain: str
+    enterprise_id: Optional[str] = None
+    enterprise_name: Optional[str] = None
+    channel_id: str
+    channel_name: str
+    user_id: str
+    user_name: str
+    command: str
+    text: str
+    response_url: str
+    trigger_id: str
+    api_app_id: str
+
+    @classmethod
+    def from_form(cls, formdata):
+        return cls(**dict(formdata))
+
+
+class SlackInteractionUser(BaseModel):
+    id: str
+    username: Optional[str] = None
+    name: Optional[str] = None
+    team_id: str
+
+
+class SlackInteractionTeam(BaseModel):
+    id: str
+    domain: Optional[str] = None
+
+
+class SlackInteractionAction(BaseModel):
+    action_id: str
+    block_id: str
+    value: str
+    type: str
+    action_ts: Optional[str] = None
+
+
+class SlackInteractionView(BaseModel):
+    id: str
+    team_id: str
+    type: str
+    blocks: Optional[list[dict]] = None
+    private_metadata: Optional[str] = None
+    callback_id: Optional[str] = None
+    state: Optional[dict] = None
+    hash: Optional[str] = None
+    title: Optional[dict] = None
+    clear_on_close: Optional[bool] = None
+    notify_on_close: Optional[bool] = None
+    close: Optional[dict] = None
+    submit: Optional[dict] = None
+    previous_view_id: Optional[str] = None
+    root_view_id: Optional[str] = None
+    app_id: Optional[str] = None
+    external_id: Optional[str] = None
+    app_installed_team_id: Optional[str] = None
+    bot_id: Optional[str] = None
+
+
+class SlackInteractionPayload(BaseModel):
+    type: str
+    token: str
+    user: SlackInteractionUser
+    team: SlackInteractionTeam
+    api_app_id: str
+    trigger_id: str
+    actions: list[SlackInteractionAction]
+    view: SlackInteractionView
+    container: Optional[dict[str, str]] = None
+    enterprise: Optional[dict[str, str]] = None
+    is_enterprise_install: Optional[bool] = None
+
+    @classmethod
+    def from_json(cls, json_data: str):
+        return cls(**json.loads(json_data))
 
 
 async def get_token() -> str:
@@ -335,3 +417,78 @@ async def get_emoji(emoji_name: str, token: str | None = None) -> str:
             return custom_emoji
 
     raise ValueError(f"Emoji {emoji_name} not found.")
+
+
+async def open_modal(
+    trigger_id: str,
+    blocks: list[dict],
+    private_metadata: Optional[str] = None,
+    title: str = "Modal",
+) -> httpx.Response:
+    """
+    Opens a modal in Slack using the views.open method.
+
+    Args:
+        trigger_id (str): The trigger ID received from the slash command payload.
+        blocks (list[dict]): The blocks to display in the modal.
+
+    Returns:
+        httpx.Response: The response from the Slack API.
+    """
+    modal_view = {
+        "type": "modal",
+        "callback_id": (
+            "modal-identifier"
+        ),  # You can customize this ID for handling in your interactions endpoint
+        "title": {"type": "plain_text", "text": title},
+        "blocks": blocks,
+        **({"private_metadata": private_metadata} if private_metadata else {}),
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://slack.com/api/views.open",
+            headers={"Authorization": f"Bearer {await get_token()}"},
+            json={"trigger_id": trigger_id, "view": modal_view},
+        )
+
+    response.raise_for_status()
+    return response
+
+
+async def update_modal(
+    view_id: str,
+    blocks: list[dict],
+    private_metadata: Optional[str] = None,
+    title: str = "Updated Modal",
+) -> httpx.Response:
+    """
+    Update an existing modal in Slack using the views.update method.
+
+    Args:
+        view_id (str): The ID of the view (modal) to be updated.
+        blocks (list[dict]): The blocks to display in the updated modal.
+        token (str): Slack Bot User OAuth Access Token.
+
+    Returns:
+        httpx.Response: The response from the Slack API.
+    """
+    update_payload = {
+        "view_id": view_id,
+        "view": {
+            "type": "modal",
+            "title": {"type": "plain_text", "text": title},
+            "blocks": blocks,
+            **({"private_metadata": private_metadata} if private_metadata else {}),
+        },
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://slack.com/api/views.update",
+            headers={"Authorization": f"Bearer {await get_token()}"},
+            json=update_payload,
+        )
+
+    response.raise_for_status()
+    return response

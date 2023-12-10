@@ -55,7 +55,8 @@ slackbot = [
     "marvin[prefect]",
     "numpy",
     "redis",
-    "emoji"
+    "emoji",
+    "python-multipart",
 ]
 
 [project.urls]
