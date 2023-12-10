@@ -1,11 +1,11 @@
 import asyncio
 import json
 
-import redis
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from flows import handle_dalle_slash_command, handle_message, handle_reaction_added
 from marvin.utilities.logging import get_logger
+from marvin.utilities.redis import redis_client
 from marvin.utilities.slack import (
     SlackInteractionPayload,
     SlackPayload,
@@ -16,13 +16,17 @@ from starlette.responses import JSONResponse
 
 app = FastAPI()
 logger = get_logger("slackbot.app")
-redis_client = redis.StrictRedis(host="redis", port=6379, db=0, decode_responses=True)
 
 
 async def reacted_to_bot(ts: str | None) -> bool:
     """Check if a reaction is to a message sent by the bot."""
-    logger.debug_kv("Checking if reacted to bot", ts, "green")
-    return ts is not None and redis_client.get(f"message:{ts}") == "true"
+    try:
+        async with redis_client() as _redis:
+            logger.debug_kv("Checking if reacted to bot", ts, "green")
+            return ts is not None and _redis.get(f"message:{ts}") == "true"
+    except Exception as e:
+        logger.error_kv("Failed to check if reacted to bot", e, "red")
+        return False
 
 
 @app.post("/chat")

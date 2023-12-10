@@ -63,8 +63,18 @@ logger = get_logger("slackbot.handlers")
 
 def cache_bot_message(ts: str):
     """Cache the timestamp of a bot message in Redis."""
-    with redis_client() as redis:
-        redis.set(f"message:{ts}", "true", ex=DEFAULT_EXPIRATION)
+    try:
+        with redis_client() as redis:
+            redis.set(f"message:{ts}", "true", ex=DEFAULT_EXPIRATION)
+    except Exception as e:
+        if "nodename nor servname provided" in str(e):
+            logger.error_kv(
+                "Failed to connect to redis. Is it running?",
+                e,
+                "red",
+            )
+        else:
+            raise e
 
 
 @flow
@@ -74,17 +84,28 @@ async def handle_message(payload: SlackPayload):
     logger.debug_kv("Handling slack message", user_message, "green")
     thread = event.thread_ts or event.ts
 
-    with redis_client() as redis:
-        if assistant_thread_data := redis.get(f"thread:{thread}"):
-            assistant_thread = parse_as(Thread, assistant_thread_data, mode="json")
-        else:
-            assistant_thread = Thread()
+    try:
+        with redis_client() as redis:
+            if assistant_thread_data := redis.get(f"thread:{thread}"):
+                assistant_thread = parse_as(Thread, assistant_thread_data, mode="json")
+            else:
+                assistant_thread = Thread()
 
-        redis.set(
-            f"thread:{thread}",
-            assistant_thread.model_dump_json(),
-            ex=DEFAULT_EXPIRATION,
-        )
+            redis.set(
+                f"thread:{thread}",
+                assistant_thread.model_dump_json(),
+                ex=DEFAULT_EXPIRATION,
+            )
+    except Exception as e:
+        if "nodename nor servname provided" in str(e):
+            logger.error_kv(
+                "Failed to connect to redis. Is it running?",
+                e,
+                "red",
+            )
+            assistant_thread = Thread()
+        else:
+            raise e
 
         await handle_keywords.submit(
             message=cleaned_message,
