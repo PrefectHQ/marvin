@@ -251,7 +251,7 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
             v = cls.__name__
         return v
 
-    def __call__(self, input_text: str = None, model: str = None, tools: list[Tool] = None, extra_prompts: list[Prompt], **model_kwargs):
+    def __call__(self, input_text: str = None, model: str = None, tools: list[Tool] = None, extra_prompts: list[Prompt] = [], **model_kwargs):
         return run_sync(self.run(input_text=input_text, model=model, tools=tools, extra_prompts=extra_prompts, **model_kwargs))
 
     async def entrypoint(self, q: str) -> str:
