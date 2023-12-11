@@ -3,8 +3,6 @@ name: Publish Docs
 on:
   push:
     branches: ["main"]
-    tags: 
-      - 'v*'
   workflow_dispatch:
 
 env:
@@ -13,7 +11,6 @@ env:
 
 permissions:
   contents: write
-
 jobs:
   publish-docs:
     runs-on: ubuntu-latest
@@ -26,6 +23,7 @@ jobs:
         with:
           key: ${{ github.ref }}
           path: .cache
+      # for now, only install mkdocs. In the future may need to install Marvin itself.
       - name: Install dependencies for MKDocs Material
         run: pip install \
           mkdocs-material \
@@ -35,14 +33,6 @@ jobs:
           mkdocs-markdownextradata-plugin \
           mkdocs-jupyter \
           pillow \
-          cairosvg \
-          mike
-      - name: Publish docs from `main` to dev
-        if: github.ref == 'refs/heads/main'
-        run: mike deploy dev --push --update-aliases
-
-      - name: Publish versioned docs
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          VERSION=$(echo $GITHUB_REF | sed 's/refs\/tags\/v//')
-          mike deploy $VERSION latest --push --update-aliases
+          cairosvg
+      - name: Publish docs
+        run: mkdocs gh-deploy --force 
