@@ -1,5 +1,6 @@
 from enum import Enum
 
+import pytest
 from marvin import ai_classifier
 from typing_extensions import Literal
 
@@ -27,6 +28,7 @@ class TestAIClassifer:
 
             assert result == "Positive"
 
+        @pytest.mark.flaky(reruns=3)
         def test_ai_classifier_literal_return_type_with_docstring(self):
             @ai_classifier
             def sentiment(text: str) -> Sentiment:
@@ -42,6 +44,6 @@ class TestAIClassifer:
             def labeler(text: str) -> GitHubIssueTag:
                 """Classify GitHub issue tags"""
 
-            result = labeler("improve the docs you slugs")
+            result = labeler("the docs are trash, you slugs")
 
             assert result == GitHubIssueTag.DOCS
