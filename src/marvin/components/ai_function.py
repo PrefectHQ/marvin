@@ -75,14 +75,14 @@ class AIFunction(
 
     def map(self, *arg_list: list[Any], **kwarg_list: list[Any]) -> list[T]:
         return [
-            self.call(args, {k: v[i] for k, v in kwarg_list.items()})
+            self.call(*args, **{k: v[i] for k, v in kwarg_list.items()})
             for i, args in enumerate(zip(*arg_list))
         ]
 
     async def amap(self, *arg_list: list[Any], **kwarg_list: list[Any]) -> list[T]:
         return await asyncio.gather(
             *[
-                self.acall(args, {k: v[i] for k, v in kwarg_list.items()})
+                self.acall(*args, **{k: v[i] for k, v in kwarg_list.items()})
                 for i, args in enumerate(zip(*arg_list))
             ]
         )
