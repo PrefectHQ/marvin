@@ -6,8 +6,7 @@
 ### An engineering framework
 ... made with 💙 by the team at [Prefect](https://www.prefect.io/)
 
-[![PyPI version](https://badge.fury.io/py/marvin-ai.svg)](https://badge.fury.io/py/marvin-ai)
-[![Discord](https://img.shields.io/discord/874247845104941578?color=blue&label=Discord&logo=discord&logoColor=white)](https://discord.gg/Kgw4HpcuYG)
+[![PyPI version](https://badge.fury.io/py/marvin.svg)](https://badge.fury.io/py/marvin)
 [![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
 
 ## Documentation
