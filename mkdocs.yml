@@ -151,9 +151,7 @@ extra:
       link: https://discord.gg/Kgw4HpcuYG
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/askmarvinai
-  version:
-    mike:
-      canonical_version: latest
+
 
 extra_css:
   - /static/css/global.css

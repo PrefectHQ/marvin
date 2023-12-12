@@ -32,7 +32,6 @@ dev = [
     "marvin[tests]",
     "black[jupyter]",
     "ipython",
-    "mike @ git+https://github.com/jimporter/mike.git",
     "mkdocs-autolinks-plugin~=0.7",
     "mkdocs-awesome-pages-plugin~=2.8",
     "mkdocs-markdownextradata-plugin~=0.2",
