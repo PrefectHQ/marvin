@@ -1,0 +1,56 @@
+#!/bin/bash
+
+# Setup a temporary directory for cloning
+temp_dir=$(mktemp -d)
+echo "Using temporary directory: $temp_dir"
+
+cleanup() {
+    echo "Cleaning up..."
+    if [[ "$VIRTUAL_ENV" != "" ]]; then
+        deactivate
+    fi
+    rm -rf "$temp_dir"
+    trap - INT EXIT
+    exit
+}
+
+trap cleanup INT EXIT
+
+command_exists() {
+    type "$1" &> /dev/null ;
+}
+
+if command_exists git && command_exists python && command_exists pip; then
+    echo "All necessary tools are installed."
+else
+    echo "Please ensure Git, Python, and pip are installed."
+    exit 1
+fi
+
+REPO_URL="https://github.com/PrefectHQ/marvin.git"
+TAG="${1:-v1.5.6}"
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    export DYLD_FALLBACK_LIBRARY_PATH=/opt/homebrew/lib
+fi
+
+# Clone the repository into the temporary directory
+git clone "$REPO_URL" "$temp_dir/marvin"
+cd "$temp_dir/marvin"
+
+# Check if the tag exists
+if git rev-parse "tags/$TAG" >/dev/null 2>&1; then
+    git checkout "tags/$TAG"
+else
+    echo "Error: Tag '$TAG' not found in the repository."
+    exit 1
+fi
+
+# Create and activate a temporary virtual environment
+python -m venv temp_env
+source temp_env/bin/activate
+
+pip install "mkdocs-material[imaging]"
+pip install -e ".[dev,docs]"
+open http://localhost:8000
+mkdocs serve -a localhost:8000
