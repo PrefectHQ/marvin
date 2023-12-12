@@ -52,7 +52,7 @@ sentiment("I love working with Marvin!") # 0.8
 sentiment("These examples could use some work...") # -0.2
 ```
 
-💡 You can define your own types for AI Functions to return, using things like:
+🎬 You can define your own types for AI Functions to return, using things like:
 - Pydantic [BaseModel](https://pydantic-docs.helpmanual.io/usage/models/)
 - [TypedDict](https://docs.python.org/3/library/typing.html#typing.TypedDict)
 - [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal) types
@@ -131,10 +131,6 @@ with Assistant(tools=[multiply, divide]) as assistant:
 Read more about [our SDK](/src/marvin/beta/assistants/README.md) and/or the [OpenAI docs](https://platform.openai.com/docs/assistants/overview).
 
 ## Reach out!
-**Have an idea for a feature?**
+💡 **Have an idea for a feature?** toss it in `#development` in [our Discord](https://discord.com/invite/Kgw4HpcuYG)
 
-throw it in `#development` in [our Discord](https://discord.com/invite/Kgw4HpcuYG)
-
-**Found a bug?**
-
-[Open an issue](https://github.com/PrefectHQ/marvin/issues/new/choose)
+🐛 **found a bug?** feel free to [open an issue](https://github.com/PrefectHQ/marvin/issues/new/choose)
