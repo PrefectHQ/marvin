@@ -9,9 +9,10 @@
 [![PyPI version](https://badge.fury.io/py/marvin.svg)](https://badge.fury.io/py/marvin)
 [![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
 
-⚠️ Marvin is a work in progress. We're actively developing it, and we'd love your [feedback](https://github.com/PrefectHQ/marvin/discussions)! ⚠️
+⚠️ Marvin is a work in progress, and we'd love your [feedback](https://github.com/PrefectHQ/marvin/discussions)! ⚠️
 
-## Documentation
+> [Looking for info on Marvin 1.x?](/docs/help/legacy_docs.md)
+
 Marvin's docs are available at [askmarvin.ai](https://www.askmarvin.ai), including concepts, tutorials, and an API reference.
 
 ```bash
@@ -44,9 +45,8 @@ from marvin import ai_fn
 
 @ai_fn
 def sentiment(text: str) -> float:
-    """
-    Given `text`, returns a number between 1 (positive) and -1 (negative)
-    indicating its sentiment score.
+    """Given `text`, returns a number between 1 (positive) and -1 (negative)
+        indicating its sentiment score.
     """
 
 
@@ -63,8 +63,7 @@ sentiment("These examples could use some work...") # -0.2
 from typing_extensions import TypedDict
 
 class DetailedSentiment(TypedDict):
-    """
-    A detailed sentiment analysis result.
+    """A detailed sentiment analysis result.
 
     - `sentiment_score` is a number between 1 (positive) and -1 (negative)
     - `summary_in_a_word` is a one-word summary of the general sentiment, 
@@ -80,7 +79,7 @@ def detailed_sentiment(text: str) -> DetailedSentiment:
     Use your theory of mind to put yourself in the shoes of its author.
     """
 
-detailed_sentiment("I'ma Mario, I'ma gonna wiiiiin!")
+detailed_sentiment("I'ma Mario, and I'ma gonna wiiiiin!")
 # {'sentiment_score': 0.8, 'summary_in_a_word': 'energetic'}
 ```
 
