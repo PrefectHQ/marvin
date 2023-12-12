@@ -3,6 +3,9 @@
 </p>
 
 # Marvin
+[![PyPI version](https://badge.fury.io/py/marvin.svg)](https://badge.fury.io/py/marvin)
+[![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
+[![Docs](https://img.shields.io/badge/docs-askmarvin.ai-blue)](https://www.askmarvin.ai)
 ### An engineering framework
 ... made with 💙 by the team at [Prefect](https://www.prefect.io/).
 
@@ -12,10 +15,6 @@ pip install marvin
 Getting started? Head over to our [setup guide](https://www.askmarvin.ai/welcome/installation/).
 
 ---
-
-[![PyPI version](https://badge.fury.io/py/marvin.svg)](https://badge.fury.io/py/marvin)
-[![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
-[![Docs](https://img.shields.io/badge/docs-askmarvin.ai-blue)](https://www.askmarvin.ai)
 
 ⚠️ Marvin is a work in progress, and we'd love your [feedback](https://github.com/PrefectHQ/marvin/discussions)! ⚠️
 
