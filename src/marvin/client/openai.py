@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -111,13 +112,19 @@ class MarvinClient(pydantic.BaseModel):
 
     def speak(
         self,
+        input: str,
+        file: Optional[Path] = None,
         **kwargs: Any,
-    ) -> "HttpxBinaryResponseContent":
+    ) -> Optional["HttpxBinaryResponseContent"]:
         from marvin import settings
 
-        return self.client.audio.speech.create(
-            **settings.openai.audio.speech.model_dump() | kwargs
+        response = self.client.audio.speech.create(
+            input=input, **settings.openai.audio.speech.model_dump() | kwargs
         )
+        if file:
+            response.stream_to_file(file)
+            return None
+        return response
 
 
 def paint(
@@ -133,12 +140,13 @@ def paint(
 
 def speak(
     input: str,
+    file: Path,
     client: Optional[Client] = None,
     **kwargs: Any,
-) -> "HttpxBinaryResponseContent":
+) -> Optional["HttpxBinaryResponseContent"]:
     if client is None:
-        return MarvinClient().speak(input=input, **kwargs)
-    return MarvinClient(client=client).speak(input=input, **kwargs)
+        return MarvinClient().speak(input=input, file=file, **kwargs)
+    return MarvinClient(client=client).speak(input=input, file=file, **kwargs)
 
 
 class MarvinChatCompletion(pydantic.BaseModel):
