@@ -20,10 +20,23 @@ command_exists() {
     type "$1" &> /dev/null ;
 }
 
-if command_exists git && command_exists python && command_exists pip; then
+# Determine the Python command to use
+PYTHON_CMD=""
+if command_exists python3; then
+    PYTHON_CMD="python3"
+elif command_exists python && [[ $(python --version 2>&1) == Python\ 3* ]]; then
+    PYTHON_CMD="python"
+fi
+
+if [[ -z $PYTHON_CMD ]]; then
+    echo "Python 3 is not installed."
+    exit 1
+fi
+
+if command_exists git && command_exists pip; then
     echo "All necessary tools are installed."
 else
-    echo "Please ensure Git, Python, and pip are installed."
+    echo "Please ensure Git and pip are installed."
     exit 1
 fi
 
@@ -47,7 +60,7 @@ else
 fi
 
 # Create and activate a temporary virtual environment
-python -m venv temp_env
+$PYTHON_CMD -m venv temp_env
 source temp_env/bin/activate
 
 pip install "mkdocs-material[imaging]"

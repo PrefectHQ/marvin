@@ -9,7 +9,7 @@
 ## Automated Script for Legacy Documentation
 To build and view the docs for a specific version of Marvin, you can use [this script](/scripts/serve_legacy_docs).
 
-You can either clone this repository and run the script locally, or copy the script and run it directly in your terminal after making it executable:
+You can either clone the [Marvin repo](https://github.com/PrefectHQ/marvin.git) and run the script locally, or copy the script and run it directly in your terminal after making it executable:
 ```bash
 # unix
 chmod +x scripts/serve_legacy_docs
@@ -69,7 +69,3 @@ If you prefer to manually perform the steps or need to tailor them for your spec
    ```bash
    rm -rf venv
    ```
-
----
-
-This expanded section now provides users with both an automated and a manual method to access the legacy documentation, offering flexibility based on individual preferences or requirements.
