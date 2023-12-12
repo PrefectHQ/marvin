@@ -120,10 +120,40 @@ class MarvinClient(pydantic.BaseModel):
         )
 
 
+def paint(
+    prompt: str,
+    *,
+    client: Optional[Client] = None,
+    **kwargs: Any,
+) -> "ImagesResponse":
+    if client is None:
+        return MarvinClient().paint(prompt=prompt, **kwargs)
+    return MarvinClient(client=client).paint(prompt=prompt, **kwargs)
+
+
+def speak(
+    input: str,
+    client: Optional[Client] = None,
+    **kwargs: Any,
+) -> "HttpxBinaryResponseContent":
+    if client is None:
+        return MarvinClient().speak(input=input, **kwargs)
+    return MarvinClient(client=client).speak(input=input, **kwargs)
+
+
 class MarvinChatCompletion(pydantic.BaseModel):
     create: Callable[..., "ChatCompletion"] = pydantic.Field(
         default_factory=lambda: MarvinClient().chat
     )
     acreate: Callable[..., Coroutine[Any, Any, "ChatCompletion"]] = pydantic.Field(
         default_factory=lambda: MarvinClient().chat
+    )
+
+
+class MarvinImage(pydantic.BaseModel):
+    generate: Callable[..., "ImagesResponse"] = pydantic.Field(
+        default_factory=lambda: MarvinClient().paint
+    )
+    agenerate: Callable[..., Coroutine[Any, Any, "ImagesResponse"]] = pydantic.Field(
+        default_factory=lambda: MarvinClient().paint
     )

@@ -32,7 +32,7 @@ def ai_model(
 
 @overload
 def ai_model(
-    _type: Optional[T],
+    _type: Optional[type[T]] = None,
     *,
     environment: Optional[BaseEnvironment] = None,
     prompt: Optional[str] = prompt,
@@ -46,7 +46,7 @@ def ai_model(
 
 
 def ai_model(
-    _type: Optional[T] = None,
+    _type: Optional[type[T]] = None,
     *,
     environment: Optional[BaseEnvironment] = None,
     prompt: Optional[str] = prompt,
@@ -75,7 +75,7 @@ def ai_model(
 
     def decorator(__type__: T) -> Callable[[str], T]:
         def extract(text: str) -> T:
-            return _type
+            return __type__
 
         extract.__annotations__["return"] = _type
         return ai_fn(
