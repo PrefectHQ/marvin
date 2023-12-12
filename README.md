@@ -9,6 +9,8 @@
 [![PyPI version](https://badge.fury.io/py/marvin.svg)](https://badge.fury.io/py/marvin)
 [![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
 
+⚠️ Marvin is a work in progress. We're actively developing it, and we'd love your [feedback](https://github.com/PrefectHQ/marvin/discussions)! ⚠️
+
 ## Documentation
 Marvin's docs are available at [askmarvin.ai](https://www.askmarvin.ai), including concepts, tutorials, and an API reference.
 
@@ -33,11 +35,9 @@ Marvin's high-level abstractions are familiar Python interfaces that make it eas
 ___
 
 ### 🪄 AI Functions
-
-AI Functions look like regular functions, but have no source code. Instead, an AI uses their description and inputs to generate their outputs, making them ideal for NLP applications like sentiment analysis. 
+AI Functions look like regular functions, but have no source code. Instead, an AI interprets their description and inputs to generate their outputs, making them ideal for general NLP applications like sentiment analysis. 
 
 You can learn more about AI Functions [here](https://www.askmarvin.ai/components/ai_function/).
-
 
 ```python
 from marvin import ai_fn
@@ -80,8 +80,7 @@ detailed_sentiment("I'ma Mario, I'ma gonna wiiiiin!") # {'sentiment_score': 0.8,
 ```
 
 ### 🧩 AI Models
-
-Marvin's most basic component is the AI Model, a drop-in replacement for Pydantic's `BaseModel`. AI Models can be instantiated from any string, making them ideal for structuring data, entity extraction, and synthetic data generation. 
+AI models are based on Pydantic's [BaseModel](https://pydantic-docs.helpmanual.io/usage/models/), but with a twist: they are instantiated with plain text, and will use an LLM to infer their values.
 
 You can learn more about AI models [here](https://www.askmarvin.ai/components/ai_model/).
 
@@ -92,6 +91,7 @@ from pydantic import BaseModel, Field
 
 @ai_model
 class Location(BaseModel):
+    """A city in the United States"""
     city: str
     state: str = Field(..., description="The two-letter state abbreviation")
 
