@@ -10,6 +10,7 @@ nav:
     - welcome/what_is_marvin.md
     - welcome/installation.md
     - welcome/quickstart.md
+    - help/legacy_docs.md
   - Cookbook:
     - Entity Deduplication: examples/deduplication.md
     - Deploying an API:
