@@ -129,3 +129,10 @@ with Assistant(tools=[multiply, divide]) as assistant:
 ```
 
 Read more about [our SDK](/src/marvin/beta/assistants/README.md) and/or the [OpenAI docs](https://platform.openai.com/docs/assistants/overview).
+
+# Contribute / Report Issues
+**Have an idea for a feature?**
+throw it in `#development` in [our Discord](https://discord.com/invite/Kgw4HpcuYG)
+
+**Found a bug?**
+[Open an issue](https://github.com/PrefectHQ/marvin/issues/new/choose)
