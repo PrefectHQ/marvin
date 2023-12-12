@@ -34,6 +34,7 @@ dev = [
     "ipython",
     "mkdocs-autolinks-plugin~=0.7",
     "mkdocs-awesome-pages-plugin~=2.8",
+    "mkdocs-livereload",
     "mkdocs-markdownextradata-plugin~=0.2",
     "mkdocs-jupyter>=0.24.1",
     "mkdocs-material>=9.1.17",
@@ -44,7 +45,7 @@ dev = [
     "ruff",
 ]
 tests = [
-    "pytest-asyncio~=0.20",
+    "pytest-asyncio>=0.18.2,!=0.22.0,<0.23.0",
     "pytest-env>=0.8,<2.0",
     "pytest-rerunfailures>=10,<13",
     "pytest-sugar~=0.9",

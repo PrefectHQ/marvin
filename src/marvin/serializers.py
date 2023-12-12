@@ -3,7 +3,6 @@ from types import GenericAlias
 from typing import (
     Any,
     Callable,
-    Literal,
     Optional,
     TypeVar,
     Union,
@@ -14,6 +13,7 @@ from typing import (
 from pydantic import BaseModel, create_model
 from pydantic.fields import FieldInfo
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
+from typing_extensions import Literal
 
 from marvin import settings
 from marvin.requests import Function, Grammar, Tool
@@ -63,19 +63,30 @@ def create_tool_from_type(
     )
 
 
+def create_tool_from_model(
+    model: type[BaseModel],
+) -> Tool[BaseModel]:
+    return Tool[BaseModel](
+        type="function",
+        function=Function[BaseModel](
+            name=model.__name__,
+            description=model.__doc__,
+            parameters=model.model_json_schema(schema_generator=FunctionSchema),
+            model=model,
+        ),
+    )
+
+
 def create_vocabulary_from_type(
-    vocabulary: Union[GenericAlias, type, list[str]],
+    vocabulary: Union[GenericAlias, type],
 ) -> list[str]:
     if get_origin(vocabulary) == Literal:
         return [str(token) for token in get_args(vocabulary)]
     elif isinstance(vocabulary, type) and issubclass(vocabulary, Enum):
         return [str(token) for token in list(vocabulary.__members__.keys())]
-    elif isinstance(vocabulary, list) and next(iter(get_args(list[str])), None) == str:
-        return [str(token) for token in vocabulary]
     else:
         raise TypeError(
-            f"Expected Literal or Enum or list[str], got {type(vocabulary)} with value"
-            f" {vocabulary}"
+            f"Expected Literal or Enum, got {type(vocabulary)} with value {vocabulary}"
         )
 
 

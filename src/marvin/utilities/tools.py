@@ -1,3 +1,4 @@
+"""Module for NLI tool utilities."""
 import inspect
 import json
 
@@ -18,7 +19,7 @@ def tool_from_function(fn: callable, name: str = None, description: str = None):
             description=description or fn.__doc__,
             # use deprecated schema because this is based on a pydantic v1
             # validate_arguments
-            parameters=model.schema(),
+            parameters=model.model_json_schema(),
             python_fn=fn,
         ),
     )

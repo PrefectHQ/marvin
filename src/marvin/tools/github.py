@@ -6,14 +6,33 @@ import httpx
 from pydantic import BaseModel, Field, field_validator
 
 import marvin
+from marvin.utilities.logging import get_logger
 from marvin.utilities.strings import slice_tokens
 
 
-def get_token() -> str:
+async def get_token() -> str:
+    try:
+        from prefect.blocks.system import Secret
+
+        return (await Secret.load("github-token")).get()
+    except (ImportError, ValueError) as exc:
+        get_logger("marvin").debug_kv(
+            (
+                "Prefect Secret for GitHub token not retrieved. "
+                f"{exc.__class__.__name__}: {exc}"
+                "red"
+            ),
+        )
+
     try:
         return marvin.settings.github_token
     except AttributeError:
-        return os.environ.get("MARVIN_GITHUB_TOKEN", "")
+        pass
+
+    if token := os.environ.get("MARVIN_GITHUB_TOKEN", ""):
+        return token
+
+    raise RuntimeError("GitHub token not found")
 
 
 class GitHubUser(BaseModel):
@@ -68,7 +87,7 @@ async def search_github_issues(
     """
     headers = {"Accept": "application/vnd.github.v3+json"}
 
-    headers["Authorization"] = f"Bearer {get_token()}"
+    headers["Authorization"] = f"Bearer {await get_token()}"
 
     async with httpx.AsyncClient() as client:
         response = await client.get(
