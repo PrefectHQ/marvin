@@ -55,9 +55,9 @@ sentiment("These examples could use some work...") # -0.2
 ```
 
 💡 You can define your own types for AI Functions to return, using things like:
-- [Pydantic models](https://pydantic-docs.helpmanual.io/usage/models/)
-- [TypedDicts](https://docs.python.org/3/library/typing.html#typing.TypedDict)
-- [Literal types](https://docs.python.org/3/library/typing.html#typing.Literal)
+- Pydantic [BaseModel](https://pydantic-docs.helpmanual.io/usage/models/)
+- [TypedDict](https://docs.python.org/3/library/typing.html#typing.TypedDict)
+- [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal) types
 
 ```python
 from typing_extensions import TypedDict
