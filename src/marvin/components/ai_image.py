@@ -13,7 +13,7 @@ from typing import (
 from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec, Self
 
-from marvin.components.prompt import PromptFunction
+from marvin.components.prompt.fn import PromptFunction
 from marvin.utilities.jinja import (
     BaseEnvironment,
 )
@@ -54,7 +54,7 @@ class AIImage(BaseModel, Generic[P]):
     ) -> str:
         return (
             PromptFunction[BaseModel]
-            .as_function_call(
+            .as_tool_call(
                 fn=self.fn,
                 environment=self.environment,
                 prompt=self.prompt,

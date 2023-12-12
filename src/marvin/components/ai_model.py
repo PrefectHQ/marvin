@@ -1,10 +1,7 @@
-import asyncio
 import inspect
-from functools import partial
 from typing import Any, Callable, Optional, TypeVar, Union, overload
 
 from marvin.components.ai_function import ai_fn
-from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import BaseEnvironment
 
 T = TypeVar("T")
@@ -59,12 +56,12 @@ def ai_model(
     field_description: str = "The data to format.",
     **render_kwargs: Any,
 ) -> Union[Callable[[T], Callable[[str], T]], Callable[[str], T],]:
-    def wrapper(_type_: T, text: str) -> T:
-        def extract(text: str) -> T:  # type: ignore
-            pass
+    if _type is not None:
 
-        extract.__annotations__["return"] = _type_
+        def extract(text: str) -> T:
+            return _type
 
+        extract.__annotations__["return"] = _type
         return ai_fn(
             extract,
             environment=environment,
@@ -74,32 +71,21 @@ def ai_model(
             field_name=field_name,
             field_description=field_description,
             **render_kwargs,
-        )(text)
-
-    async def async_wrapper(_type_: T, text: str) -> T:
-        return wrapper(_type_, text)
-
-    async def amap(inputs: list[str]) -> list[T]:
-        return await asyncio.gather(
-            *[
-                asyncio.create_task(async_wrapper(_type, input_text))
-                for input_text in inputs
-            ]
         )
 
-    def map(inputs: list[str]) -> list[T]:
-        return run_sync(amap(inputs))
+    def decorator(__type__: T) -> Callable[[str], T]:
+        def extract(text: str) -> T:
+            return _type
 
-    if _type is not None:
-        wrapper_with_map = partial(wrapper, _type)
-        wrapper_with_map.amap = amap
-        wrapper_with_map.map = map
-        return wrapper_with_map
-
-    def decorator(_type_: T) -> Callable[[str], T]:
-        decorated = partial(wrapper, _type_)
-        decorated.amap = amap
-        decorated.map = map
-        return decorated
+        extract.__annotations__["return"] = _type
+        return ai_fn(
+            environment=environment,
+            prompt=prompt,
+            model_name=model_name,
+            model_description=model_description,
+            field_name=field_name,
+            field_description=field_description,
+            **render_kwargs,
+        )
 
     return decorator
