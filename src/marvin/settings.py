@@ -20,17 +20,25 @@ class MarvinSettings(BaseSettings):
         if field:
             annotation = field.annotation
             base_types = (
-                annotation.__args__
+                getattr(annotation, "__args__", None)
                 if getattr(annotation, "__origin__", None) is Union
                 else (annotation,)
             )
-            if SecretStr in base_types and not isinstance(value, SecretStr):
+            if SecretStr in base_types and not isinstance(value, SecretStr):  # type: ignore # noqa: E501
                 value = SecretStr(value)
         super().__setattr__(name, value)
 
 
-class MarvinModelSettings(MarvinSettings):
-    model: str
+class ChatCompletionSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="marvin_llm_",
+        env_file="~/.marvin/.env",
+        extra="allow",
+        arbitrary_types_allowed=True,
+    )
+    model: str = Field(
+        description="The default chat model to use.", default="gpt-3.5-turbo"
+    )
 
     @property
     def encoder(self):
@@ -39,14 +47,13 @@ class MarvinModelSettings(MarvinSettings):
         return tiktoken.encoding_for_model(self.model).encode
 
 
-class ChatCompletionSettings(MarvinModelSettings):
-    model: str = Field(
-        default="gpt-3.5-turbo-1106",
-        description="The default chat model to use.",
+class ImageSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="marvin_image_",
+        env_file="~/.marvin/.env",
+        extra="allow",
+        arbitrary_types_allowed=True,
     )
-
-
-class ImageSettings(MarvinModelSettings):
     model: str = Field(
         default="dall-e-3",
         description="The default image model to use.",
@@ -58,7 +65,13 @@ class ImageSettings(MarvinModelSettings):
     style: Literal["vivid", "natural"] = Field(default="vivid")
 
 
-class SpeechSettings(MarvinModelSettings):
+class SpeechSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="marvin_speech_",
+        env_file="~/.marvin/.env",
+        extra="allow",
+        arbitrary_types_allowed=True,
+    )
     model: str = Field(
         default="tts-1-hd",
         description="The default image model to use.",
@@ -70,22 +83,28 @@ class SpeechSettings(MarvinModelSettings):
     speed: float = Field(default=1.0)
 
 
-class AssistantSettings(MarvinModelSettings):
+class AssistantSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="marvin_llm_",
+        env_file="~/.marvin/.env",
+        extra="allow",
+        arbitrary_types_allowed=True,
+    )
     model: str = Field(
         default="gpt-4-1106-preview",
         description="The default assistant model to use.",
     )
 
 
-class ChatSettings(MarvinSettings):
+class ChatSettings(BaseSettings):
     completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
 
 
-class AudioSettings(MarvinSettings):
+class AudioSettings(BaseSettings):
     speech: SpeechSettings = Field(default_factory=SpeechSettings)
 
 
-class OpenAISettings(MarvinSettings):
+class OpenAISettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="marvin_openai_")
 
     api_key: Optional[SecretStr] = Field(
@@ -104,7 +123,7 @@ class OpenAISettings(MarvinSettings):
     assistants: AssistantSettings = Field(default_factory=AssistantSettings)
 
 
-class Settings(MarvinSettings):
+class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="marvin_")
 
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
