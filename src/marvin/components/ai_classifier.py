@@ -1,95 +1,102 @@
+import asyncio
 import inspect
-from enum import Enum
-from functools import partial, wraps
-from types import GenericAlias
 from typing import (
     TYPE_CHECKING,
     Any,
-    Awaitable,
     Callable,
+    Coroutine,
     Generic,
-    Literal,
+    NotRequired,
     Optional,
+    TypedDict,
     TypeVar,
     Union,
-    cast,
-    get_args,
-    get_origin,
+    Unpack,
     overload,
 )
 
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec, Self
 
-from marvin.components.prompt import PromptFunction
-from marvin.serializers import create_vocabulary_from_type
-from marvin.settings import settings
-from marvin.utilities.jinja import (
-    BaseEnvironment,
-)
+from marvin._mappings.chat_completion import chat_completion_to_type
+from marvin.client.openai import MarvinChatCompletion
+from marvin.components.prompt.fn import PromptFunction
+from marvin.utilities.jinja import BaseEnvironment
 
 if TYPE_CHECKING:
     from openai.types.chat import ChatCompletion
 
-T = TypeVar("T", bound=Union[GenericAlias, type, list[str]])
+T = TypeVar("T")
 
 P = ParamSpec("P")
 
 
-class AIClassifier(BaseModel, Generic[P, T]):
-    fn: Optional[Callable[P, T]] = None
+class AIClassifierKwargs(TypedDict):
+    environment: NotRequired[BaseEnvironment]
+    prompt: NotRequired[str]
+    encoder: NotRequired[Callable[[str], list[int]]]
+    create: NotRequired[Callable[..., "ChatCompletion"]]
+    acreate: NotRequired[Callable[..., Coroutine[Any, Any, "ChatCompletion"]]]
+
+
+class AIClassifier(
+    MarvinChatCompletion,
+    Generic[P, T],
+):
+    fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None
     environment: Optional[BaseEnvironment] = None
-    prompt: Optional[str] = Field(
-        default=inspect.cleandoc(
-            "You are an expert classifier that always choose correctly."
-            " \n- {{_doc}}"
-            " \n- You must classify `{{text}}` into one of the following classes:"
-            "{% for option in _options %}"
-            "    Class {{ loop.index - 1}} (value: {{ option }})"
-            "{% endfor %}"
-            "\n\nASSISTANT: The correct class label is Class"
-        )
-    )
-    enumerate: bool = True
+    prompt: Optional[str] = Field(default=inspect.cleandoc("""
+        ## Expert Classifier
+
+        **Objective**: You are an expert classifier that always chooses correctly.
+
+        ### Description
+        {{ _doc }}
+
+        ### Data
+        {% for arg, value in _arguments.items() %}
+        - **{{ arg }}**: {{ value }}
+        {% endfor %}
+
+        ### Response Format
+        You must classify into one of the following classes:
+        {% for option in _options %}
+        - Class {{ loop.index0 }} (value: {{ option }})
+        {% endfor %}
+    """))
     encoder: Callable[[str], list[int]] = Field(default=None)
-    max_tokens: Optional[int] = 1
-    render_kwargs: dict[str, Any] = Field(default_factory=dict)
+    max_tokens: int = 1
+    temperature: float = 0.0
 
-    create: Optional[Callable[..., "ChatCompletion"]] = Field(default=None)
+    def __call__(
+        self, *args: P.args, **kwargs: P.kwargs
+    ) -> Union[T, Coroutine[Any, Any, T]]:
+        if asyncio.iscoroutinefunction(self.fn):
+            return self.acall(*args, **kwargs)
+        return self.call(*args, **kwargs)
 
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> list[T]:
-        create = self.create
-        if self.fn is None:
-            raise NotImplementedError
-        if create is None:
-            from marvin.settings import settings
+    def call(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        prompt = self.as_prompt(*args, **kwargs)
+        response = self.create(**prompt.serialize())
+        return chat_completion_to_type(self.fn.__annotations__["return"], response)
 
-            create = settings.openai.chat.completions.create
+    async def acall(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        prompt = self.as_prompt(*args, **kwargs)
+        response = await self.acreate(**prompt.serialize())
+        return chat_completion_to_type(self.fn.__annotations__["return"], response)
 
-        return self.parse(create(**self.as_prompt(*args, **kwargs).serialize()))
-
-    def parse(self, response: "ChatCompletion") -> list[T]:
-        if not response.choices[0].message.content:
-            raise ValueError(
-                f"Expected a response, got {response.choices[0].message.content}"
-            )
-        _response: list[int] = [
-            int(index) for index in list(response.choices[0].message.content)
+    def map(self, *arg_list: list[Any], **kwarg_list: list[Any]) -> list[T]:
+        return [
+            self.call(*args, **{k: v[i] for k, v in kwarg_list.items()})
+            for i, args in enumerate(zip(*arg_list))
         ]
-        _return: T = cast(T, self.fn.__annotations__.get("return"))
-        _vocabulary: list[str] = create_vocabulary_from_type(_return)
-        if isinstance(_return, list) and next(iter(get_args(list[str])), None) == str:
-            return cast(list[T], [_vocabulary[int(index)] for index in _response])
-        elif get_origin(_return) == Literal:
-            return [
-                TypeAdapter(_return).validate_python(_vocabulary[int(index)])
-                for index in _response
+
+    async def amap(self, *arg_list: list[Any], **kwarg_list: list[Any]) -> list[T]:
+        return await asyncio.gather(
+            *[
+                self.acall(*args, **{k: v[i] for k, v in kwarg_list.items()})
+                for i, args in enumerate(zip(*arg_list))
             ]
-        elif isinstance(_return, type) and issubclass(_return, Enum):
-            return [list(_return)[int(index)] for index in _response]
-        raise TypeError(
-            f"Expected Literal or Enum or list[str], got {type(_return)} with value"
-            f" {_return}"
         )
 
     def as_prompt(
@@ -99,26 +106,21 @@ class AIClassifier(BaseModel, Generic[P, T]):
     ) -> PromptFunction[BaseModel]:
         return PromptFunction[BaseModel].as_grammar(
             fn=self.fn,
-            environment=self.environment,
-            prompt=self.prompt,
-            enumerate=self.enumerate,
-            encoder=self.encoder,
-            max_tokens=self.max_tokens,
-            **self.render_kwargs,
+            **self.model_dump(exclude={"create", "acreate", "fn"}, exclude_none=True),
         )(*args, **kwargs)
+
+    def dict(
+        self,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> dict[str, Any]:
+        return self.as_prompt(*args, **kwargs).serialize()
 
     @overload
     @classmethod
     def as_decorator(
         cls: type[Self],
-        *,
-        environment: Optional[BaseEnvironment] = None,
-        prompt: Optional[str] = None,
-        enumerate: bool = True,
-        encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
-        max_tokens: Optional[int] = 1,
-        acreate: Optional[Callable[..., Awaitable[Any]]] = None,
-        **render_kwargs: Any,
+        **kwargs: Unpack[AIClassifierKwargs],
     ) -> Callable[P, Self]:
         pass
 
@@ -126,64 +128,36 @@ class AIClassifier(BaseModel, Generic[P, T]):
     @classmethod
     def as_decorator(
         cls: type[Self],
-        fn: Callable[P, T],
-        *,
-        environment: Optional[BaseEnvironment] = None,
-        prompt: Optional[str] = None,
-        enumerate: bool = True,
-        encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
-        max_tokens: Optional[int] = 1,
-        acreate: Optional[Callable[..., Awaitable[Any]]] = None,
-        **render_kwargs: Any,
+        fn: Callable[P, Union[T, Coroutine[Any, Any, T]]],
+        **kwargs: Unpack[AIClassifierKwargs],
     ) -> Self:
         pass
 
     @classmethod
     def as_decorator(
         cls: type[Self],
-        fn: Optional[Callable[P, T]] = None,
-        *,
-        environment: Optional[BaseEnvironment] = None,
-        prompt: Optional[str] = None,
-        enumerate: bool = True,
-        encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
-        max_tokens: Optional[int] = 1,
-        acreate: Optional[Callable[..., Awaitable[Any]]] = None,
-        **render_kwargs: Any,
-    ) -> Union[Self, Callable[[Callable[P, T]], Self]]:
-        if fn is None:
-            return partial(
-                cls,
-                environment=environment,
-                prompt=prompt,
-                enumerate=enumerate,
-                encoder=encoder,
-                max_tokens=max_tokens,
-                acreate=acreate,
-                **({"prompt": prompt} if prompt else {}),
-                **render_kwargs,
+        fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None,
+        **kwargs: Unpack[AIClassifierKwargs],
+    ) -> Union[Callable[[Callable[P, Union[T, Coroutine[Any, Any, T]]]], Self], Self]:
+        passed_kwargs: dict[str, Any] = {
+            k: v for k, v in kwargs.items() if v is not None
+        }
+
+        def decorator(func: Callable[P, Union[T, Coroutine[Any, Any, T]]]) -> Self:
+            return cls(
+                fn=func,
+                **passed_kwargs,
             )
 
-        return cls(
-            fn=fn,
-            environment=environment,
-            enumerate=enumerate,
-            encoder=encoder,
-            max_tokens=max_tokens,
-            **({"prompt": prompt} if prompt else {}),
-            **render_kwargs,
-        )
+        if fn is not None:
+            return decorator(fn)
+
+        return decorator
 
 
 @overload
 def ai_classifier(
-    *,
-    environment: Optional[BaseEnvironment] = None,
-    prompt: Optional[str] = None,
-    enumerate: bool = True,
-    encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
-    max_tokens: Optional[int] = 1,
-    **render_kwargs: Any,
+    **kwargs: Unpack[AIClassifierKwargs],
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     pass
 
@@ -191,42 +165,34 @@ def ai_classifier(
 @overload
 def ai_classifier(
     fn: Callable[P, T],
-    *,
-    environment: Optional[BaseEnvironment] = None,
-    prompt: Optional[str] = None,
-    enumerate: bool = True,
-    encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
-    max_tokens: Optional[int] = 1,
-    **render_kwargs: Any,
+    **kwargs: Unpack[AIClassifierKwargs],
 ) -> Callable[P, T]:
     pass
 
 
 def ai_classifier(
-    fn: Optional[Callable[P, T]] = None,
-    *,
-    environment: Optional[BaseEnvironment] = None,
-    prompt: Optional[str] = None,
-    enumerate: bool = True,
-    encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
-    max_tokens: Optional[int] = 1,
-    **render_kwargs: Any,
-) -> Union[Callable[[Callable[P, T]], Callable[P, T]], Callable[P, T]]:
-    def wrapper(func: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
-        return AIClassifier[P, T].as_decorator(
-            func,
-            environment=environment,
-            prompt=prompt,
-            enumerate=enumerate,
-            encoder=encoder,
-            max_tokens=max_tokens,
-            **render_kwargs,
-        )(*args, **kwargs)[0]
-
+    fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None,
+    **kwargs: Unpack[AIClassifierKwargs],
+) -> Union[
+    Callable[
+        [Callable[P, Union[T, Coroutine[Any, Any, T]]]],
+        Callable[P, Union[T, Coroutine[Any, Any, T]]],
+    ],
+    Callable[P, Union[T, Coroutine[Any, Any, T]]],
+]:
+    passed_kwargs: dict[str, Any] = {k: v for k, v in kwargs.items() if v is not None}
     if fn is not None:
-        return wraps(fn)(partial(wrapper, fn))
+        return AIClassifier[P, T].as_decorator(
+            fn=fn,
+            **passed_kwargs,
+        )
 
-    def decorator(fn: Callable[P, T]) -> Callable[P, T]:
-        return wraps(fn)(partial(wrapper, fn))
+    def decorator(
+        func: Callable[P, Union[T, Coroutine[Any, Any, T]]]
+    ) -> Callable[P, Union[T, Coroutine[Any, Any, T]]]:
+        return AIClassifier[P, T].as_decorator(
+            fn=func,
+            **passed_kwargs,
+        )
 
     return decorator
