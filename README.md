@@ -4,25 +4,24 @@
 
 # Marvin
 ### An engineering framework
-... made with 💙 by the team at [Prefect](https://www.prefect.io/)
-
-[![PyPI version](https://badge.fury.io/py/marvin.svg)](https://badge.fury.io/py/marvin)
-[![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
-
-⚠️ Marvin is a work in progress, and we'd love your [feedback](https://github.com/PrefectHQ/marvin/discussions)! ⚠️
-
-> [Looking for info on Marvin 1.x?](/docs/help/legacy_docs.md)
-
-Marvin's docs are available at [askmarvin.ai](https://www.askmarvin.ai), including concepts, tutorials, and an API reference.
+... made with 💙 by the team at [Prefect](https://www.prefect.io/).
 
 ```bash
 pip install marvin
 ```
 Getting started? Head over to our [setup guide](https://www.askmarvin.ai/welcome/installation/).
 
-## Community
-To ask questions, share ideas, or just chat with like-minded developers, join us on [Discord](https://discord.gg/Kgw4HpcuYG) or [Twitter](https://twitter.com/AskMarvinAI)!
+---
 
+[![PyPI version](https://badge.fury.io/py/marvin.svg)](https://badge.fury.io/py/marvin)
+[![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
+[![Docs](https://img.shields.io/badge/docs-askmarvin.ai-blue)](https://www.askmarvin.ai)
+
+⚠️ Marvin is a work in progress, and we'd love your [feedback](https://github.com/PrefectHQ/marvin/discussions)! ⚠️
+
+> [Looking for info on Marvin 1.x?](/docs/help/legacy_docs.md)
+
+---
 
 ## Offerings
 
