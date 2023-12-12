@@ -1,22 +1,44 @@
+"""Module for Jinja utilities."""
 import inspect
 import re
 from datetime import datetime
 from typing import Any, ClassVar, Pattern, Union
 from zoneinfo import ZoneInfo
 
-import pydantic
 from jinja2 import Environment as JinjaEnvironment
 from jinja2 import StrictUndefined, select_autoescape
 from jinja2 import Template as BaseTemplate
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
 
 from marvin.requests import BaseMessage as Message
 
 
-class BaseEnvironment(pydantic.BaseModel):
-    model_config = pydantic.ConfigDict(arbitrary_types_allowed=True)
+class BaseEnvironment(BaseModel):
+    """
+    BaseEnvironment provides a configurable environment for rendering Jinja templates.
 
-    environment: JinjaEnvironment = pydantic.Field(
+    This class encapsulates a Jinja environment with customizable global functions and
+    template settings, allowing for flexible template rendering.
+
+    Attributes:
+        environment: The Jinja environment for template rendering.
+        globals: A dictionary of global functions and variables available in templates.
+
+    Example:
+        Basic Usage of BaseEnvironment
+        ```python
+        env = BaseEnvironment()
+
+        rendered = env.render("Hello, {{ name }}!", name="World")
+        print(rendered)  # Output: Hello, World!
+
+        ```
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    environment: JinjaEnvironment = Field(
         default=JinjaEnvironment(
             autoescape=select_autoescape(default_for_string=False),
             trim_blocks=True,
@@ -26,19 +48,37 @@ class BaseEnvironment(pydantic.BaseModel):
         )
     )
 
-    globals: dict[str, Any] = pydantic.Field(
+    globals: dict[str, Any] = Field(
         default_factory=lambda: {
             "now": lambda: datetime.now(ZoneInfo("UTC")),
             "inspect": inspect,
         }
     )
 
-    @pydantic.model_validator(mode="after")
+    @model_validator(mode="after")
     def setup_globals(self: Self) -> Self:
         self.environment.globals.update(self.globals)  # type: ignore
         return self
 
     def render(self, template: Union[str, BaseTemplate], **kwargs: Any) -> str:
+        """Renders a given template `str` or `BaseTemplate` with provided context.
+
+        Args:
+            template: The template to be rendered.
+            **kwargs: Context variables to be passed to the template.
+
+        Returns:
+            The rendered template as a string.
+
+        Example:
+            Basic Usage of `BaseEnvironment.render`
+            ```python
+            from marvin.utilities.jinja import Environment as jinja_env
+
+            rendered = jinja_env.render("Hello, {{ name }}!", name="World")
+            print(rendered) # Output: Hello, World!
+            ```
+        """
         if isinstance(template, str):
             return self.environment.from_string(template).render(**kwargs)
         return template.render(**kwargs)
@@ -47,11 +87,28 @@ class BaseEnvironment(pydantic.BaseModel):
 Environment = BaseEnvironment()
 
 
-def split_text_by_tokens(
-    text: str,
-    split_tokens: list[str],
-    environment: JinjaEnvironment = Environment.environment,
-) -> list[tuple[str, str]]:
+def split_text_by_tokens(text: str, split_tokens: list[str]) -> list[tuple[str, str]]:
+    """
+    Splits a given text by a list of tokens.
+
+    Args:
+        text: The text to be split.
+        split_tokens: The tokens to split the text by.
+
+    Returns:
+        A list of tuples containing the token and the text following it.
+
+    Example:
+        Basic Usage of `split_text_by_tokens`
+        ```python
+        from marvin.utilities.jinja import split_text_by_tokens
+
+        text = "Hello, World!"
+        split_tokens = ["Hello", "World"]
+        pairs = split_text_by_tokens(text, split_tokens)
+        print(pairs) # Output: [("Hello", ", "), ("World", "!")]
+        ```
+    """
     cleaned_text = inspect.cleandoc(text)
 
     # Find all positions of tokens in the text
@@ -80,9 +137,33 @@ def split_text_by_tokens(
     return paired
 
 
-class Transcript(pydantic.BaseModel):
+class Transcript(BaseModel):
+    """Transcript is a model representing a conversation involving multiple roles.
+
+    Attributes:
+        content: The content of the transcript.
+        roles: The roles involved in the transcript.
+        environment: The jinja environment to use for rendering the transcript.
+
+    Example:
+        Basic Usage of Transcript:
+        ```python
+        from marvin.utilities.jinja import Transcript
+
+        transcript = Transcript(
+            content="system: Hello, there! user: Hello, yourself!",
+            roles=["system", "user"],
+        )
+        print(transcript.render_to_messages())
+        # [
+        #   BaseMessage(content='system: Hello, there!', role='system'),
+        #   BaseMessage(content='Hello, yourself!', role='user')
+        # ]
+        ```
+    """
+
     content: str
-    roles: list[str] = pydantic.Field(default=["system", "user"])
+    roles: list[str] = Field(default=["system", "user"])
     environment: ClassVar[BaseEnvironment] = Environment
 
     @property

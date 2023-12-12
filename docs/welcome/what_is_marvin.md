@@ -24,7 +24,6 @@ Marvin's goal is to bring the best practices for building dependable, observable
 
 🪄 [**AI Functions**](/components/ai_function) for complex business logic and transformations
 
-🤝 [**AI Applications**](/components/ai_application) for interactive use and persistent state
 
 ## Ambient AI
 

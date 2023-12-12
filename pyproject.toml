@@ -34,6 +34,7 @@ dev = [
     "ipython",
     "mkdocs-autolinks-plugin~=0.7",
     "mkdocs-awesome-pages-plugin~=2.8",
+    "mkdocs-livereload",
     "mkdocs-markdownextradata-plugin~=0.2",
     "mkdocs-jupyter>=0.24.1",
     "mkdocs-material>=9.1.17",

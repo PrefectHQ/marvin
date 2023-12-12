@@ -1,3 +1,4 @@
+"""Module for string utilities."""
 import tiktoken
 
 

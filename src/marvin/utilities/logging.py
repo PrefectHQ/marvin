@@ -1,3 +1,4 @@
+"""Module for logging utilities."""
 import logging
 from functools import lru_cache, partial
 from typing import Optional
@@ -12,6 +13,27 @@ import marvin
 def get_logger(
     name: Optional[str] = None,
 ) -> logging.Logger:
+    """
+    Retrieves a logger with the given name, or the root logger if no name is given.
+
+    Args:
+        name: The name of the logger to retrieve.
+
+    Returns:
+        The logger with the given name, or the root logger if no name is given.
+
+    Example:
+        Basic Usage of `get_logger`
+        ```python
+        from marvin.utilities.logging import get_logger
+
+        logger = get_logger("marvin.test")
+        logger.info("This is a test") # Output: marvin.test: This is a test
+
+        debug_logger = get_logger("marvin.debug")
+        debug_logger.debug_kv("TITLE", "log message", "green")
+        ```
+    """
     parent_logger = logging.getLogger("marvin")
 
     if name:
@@ -40,11 +62,7 @@ def setup_logging(
 
     logger.handlers.clear()
 
-    handler = RichHandler(
-        rich_tracebacks=True,
-        markup=False,
-        # console=Console(width=marvin.settings.log_console_width),
-    )
+    handler = RichHandler(rich_tracebacks=True, markup=False)
     formatter = logging.Formatter("%(name)s: %(message)s")
     handler.setFormatter(formatter)
 

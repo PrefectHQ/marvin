@@ -1,3 +1,4 @@
+"""Module for working with OpenAI."""
 import asyncio
 from functools import lru_cache
 from typing import Optional
@@ -6,6 +7,20 @@ from openai import AsyncClient
 
 
 def get_client() -> AsyncClient:
+    """
+    Retrieves an OpenAI client with the given api key and organization.
+
+    Returns:
+        The OpenAI client with the given api key and organization.
+
+    Example:
+        Retrieving an OpenAI client
+        ```python
+        from marvin.utilities.openai import get_client
+
+        client = get_client()
+        ```
+    """
     from marvin import settings
 
     api_key: Optional[str] = (

@@ -4,12 +4,11 @@ from typing import (
     Any,
     Callable,
     Coroutine,
-    Literal,
     Optional,
     TypeVar,
 )
 
-from typing_extensions import ParamSpec
+from typing_extensions import Literal, ParamSpec
 
 if TYPE_CHECKING:
     from openai._base_client import HttpxBinaryResponseContent

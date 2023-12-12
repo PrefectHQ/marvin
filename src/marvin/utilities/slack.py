@@ -1,3 +1,4 @@
+"""Module for Slack-related utilities."""
 import os
 import re
 from typing import List, Optional, Union
