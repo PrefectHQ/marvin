@@ -42,7 +42,6 @@ You can learn more about AI Functions [here](https://www.askmarvin.ai/components
 ```python
 from marvin import ai_fn
 
-
 @ai_fn
 def sentiment(text: str) -> float:
     """
@@ -54,6 +53,11 @@ def sentiment(text: str) -> float:
 sentiment("I love working with Marvin!") # 0.8
 sentiment("These examples could use some work...") # -0.2
 ```
+
+💡 You can define your own types for AI Functions to return, using things like:
+- [Pydantic models](https://pydantic-docs.helpmanual.io/usage/models/)
+- [TypedDicts](https://docs.python.org/3/library/typing.html#typing.TypedDict)
+- [Literal types](https://docs.python.org/3/library/typing.html#typing.Literal)
 
 ```python
 from typing_extensions import TypedDict
@@ -76,7 +80,8 @@ def detailed_sentiment(text: str) -> DetailedSentiment:
     Use your theory of mind to put yourself in the shoes of its author.
     """
 
-detailed_sentiment("I'ma Mario, I'ma gonna wiiiiin!") # {'sentiment_score': 0.8, 'summary_in_a_word': 'energetic'}
+detailed_sentiment("I'ma Mario, I'ma gonna wiiiiin!")
+# {'sentiment_score': 0.8, 'summary_in_a_word': 'energetic'}
 ```
 
 ### 🧩 AI Models
