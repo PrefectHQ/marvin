@@ -33,6 +33,10 @@ U = TypeVar("U", bound=BaseModel)
 
 
 class PromptFunction(Prompt[U]):
+    model_config = pydantic.ConfigDict(
+        extra="allow",
+    )
+    temperature: Optional[float] = pydantic.Field(default=None)
     messages: list[Message] = pydantic.Field(default_factory=list)
 
     def serialize(self) -> dict[str, Any]:
@@ -57,6 +61,7 @@ class PromptFunction(Prompt[U]):
         enumerate: bool = True,
         encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
         max_tokens: Optional[int] = 1,
+        temperature: Optional[float] = 0,
     ) -> Callable[[Callable[P, Any]], Callable[P, Self]]:
         pass
 
@@ -71,6 +76,7 @@ class PromptFunction(Prompt[U]):
         enumerate: bool = True,
         encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
         max_tokens: Optional[int] = 1,
+        temperature: Optional[float] = 0,
     ) -> Callable[P, Self]:
         pass
 
@@ -84,7 +90,7 @@ class PromptFunction(Prompt[U]):
         enumerate: bool = True,
         encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
         max_tokens: Optional[int] = 1,
-        **kwargs: Any,
+        temperature: Optional[float] = 0,
     ) -> Union[Callable[[Callable[P, Any]], Callable[P, Self]], Callable[P, Self],]:
         def wrapper(func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> Self:
             # Get the signature of the function
@@ -117,6 +123,7 @@ class PromptFunction(Prompt[U]):
 
             return cls(
                 messages=messages,
+                temperature=temperature,
                 **grammar.model_dump(exclude_unset=True, exclude_none=True),
             )
 

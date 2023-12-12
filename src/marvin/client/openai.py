@@ -121,5 +121,9 @@ class MarvinClient(pydantic.BaseModel):
 
 
 class MarvinChatCompletion(pydantic.BaseModel):
-    create: Callable[..., "ChatCompletion"]
-    acreate: Callable[..., Coroutine[Any, Any, "ChatCompletion"]]
+    create: Callable[..., "ChatCompletion"] = pydantic.Field(
+        default_factory=lambda: MarvinClient().chat
+    )
+    acreate: Callable[..., Coroutine[Any, Any, "ChatCompletion"]] = pydantic.Field(
+        default_factory=lambda: MarvinClient().chat
+    )

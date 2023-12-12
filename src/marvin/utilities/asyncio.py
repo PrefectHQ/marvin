@@ -100,7 +100,7 @@ def expose_sync_method(name: str) -> Callable[..., Any]:
 
     def decorator(
         async_method: Callable[..., Coroutine[Any, Any, T]]
-    ) -> Callable[..., T]:
+    ) -> Callable[..., Coroutine[Any, Any, T]]:
         @functools.wraps(async_method)
         def sync_wrapper(*args: Any, **kwargs: Any) -> T:
             coro = async_method(*args, **kwargs)

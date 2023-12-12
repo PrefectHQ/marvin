@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import List, Optional
+from typing import Any, Callable, Coroutine, List, Optional
 
 import httpx
 from pydantic import BaseModel, Field, field_validator
@@ -14,9 +14,12 @@ async def get_token() -> str:
     try:
         from prefect.blocks.system import Secret
 
-        return (await Secret.load("github-token")).get()
+        github: Coroutine[Any, Any, Secret] = Secret.load("github-token")
+        get: Callable[[Secret], Coroutine[Any, Any, str]] = getattr(github, "get")
+        return await get()
+
     except (ImportError, ValueError) as exc:
-        get_logger("marvin").debug_kv(
+        getattr(get_logger("marvin"), "debug_kv")(
             (
                 "Prefect Secret for GitHub token not retrieved. "
                 f"{exc.__class__.__name__}: {exc}"
@@ -25,7 +28,7 @@ async def get_token() -> str:
         )
 
     try:
-        return marvin.settings.github_token
+        return getattr(marvin.settings, "github_token")
     except AttributeError:
         pass
 
@@ -38,7 +41,7 @@ async def get_token() -> str:
 class GitHubUser(BaseModel):
     """GitHub user."""
 
-    login: str
+    login: Optional[str] = None
 
 
 class GitHubComment(BaseModel):
@@ -66,7 +69,7 @@ class GitHubIssue(BaseModel):
     user: GitHubUser = Field(default_factory=GitHubUser)
 
     @field_validator("body")
-    def validate_body(cls, v):
+    def validate_body(cls, v: str) -> str:
         if not v:
             return ""
         return v
