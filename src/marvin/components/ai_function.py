@@ -39,6 +39,8 @@ class AIFunctionKwargs(TypedDict):
     field_description: NotRequired[str]
     client: NotRequired[Client]
     aclient: NotRequired[AsyncClient]
+    model: NotRequired[str]
+    temperature: NotRequired[float]
 
 
 class AIFunctionKwargsDefaults(BaseModel):
@@ -49,8 +51,10 @@ class AIFunctionKwargsDefaults(BaseModel):
     model_description: str = "Formats the response."
     field_name: str = "data"
     field_description: str = "The data to format."
+    model: Optional[str] = None
     client: Optional[Client] = None
     aclient: Optional[AsyncClient] = None
+    temperature: Optional[float] = None
 
 
 class AIFunction(
