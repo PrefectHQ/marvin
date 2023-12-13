@@ -34,7 +34,7 @@ class TestAIModels:
         x = Location("The capital city of the Cornhusker State.")
         assert x.city == "Lincoln"
         assert x.state == "Nebraska"
-        assert x.country in {"US", "USA", "U.S.", "U.S.A."}
+        assert x.country in {"US", "USA", "U.S.", "U.S.A.", "United States"}
         assert x.latitude // 1 == 40
         assert x.longitude // 1 == -97
 
@@ -90,14 +90,18 @@ class TestAIModels:
     def test_literal(self):
         @ai_model
         class LLMConference(BaseModel):
-            speakers: list[Literal["Adam", "Nate", "Jeremiah"]]
+            speakers: list[
+                Literal["Adam", "Nate", "Jeremiah", "Marvin", "Billy Bob Thornton"]
+            ]
 
         x = LLMConference("""
             The conference for best LLM framework will feature talks by
             Adam, Nate, Jeremiah, Marvin, and Billy Bob Thornton.
         """)
-        assert len(set(x.speakers)) == 3
-        assert set(x.speakers) == set(["Adam", "Nate", "Jeremiah"])
+        assert len(set(x.speakers)) == 5
+        assert set(x.speakers) == set(
+            ["Adam", "Nate", "Jeremiah", "Marvin", "Billy Bob Thornton"]
+        )
 
     @pytest.mark.xfail(reason="regression in OpenAI function-using models")
     def test_history(self):

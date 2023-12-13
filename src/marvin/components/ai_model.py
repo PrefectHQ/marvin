@@ -1,4 +1,5 @@
 import inspect
+from functools import partial
 from typing import Callable, Optional, TypeVar, Union, overload
 
 from typing_extensions import Unpack
@@ -28,13 +29,13 @@ class AIModelKwargsDefaults(AIFunctionKwargsDefaults):
 @overload
 def ai_model(
     **kwargs: Unpack[AIFunctionKwargs],
-) -> Callable[[T], Callable[[str], T]]:
+) -> Callable[[Callable[[str], T]], Callable[[str], T]]:
     pass
 
 
 @overload
 def ai_model(
-    _type: Optional[type[T]] = None,
+    _type: type[T],
     **kwargs: Unpack[AIFunctionKwargs],
 ) -> Callable[[str], T]:
     pass
@@ -43,7 +44,19 @@ def ai_model(
 def ai_model(
     _type: Optional[type[T]] = None,
     **kwargs: Unpack[AIFunctionKwargs],
-) -> Union[Callable[[T], Callable[[str], T]], Callable[[str], T],]:
+) -> Union[
+    Callable[
+        [Callable[[str], T]],
+        Callable[[str], T],
+    ],
+    partial[
+        Callable[
+            [Callable[[str], T]],
+            Callable[[str], T],
+        ]
+    ],
+    Callable[[str], T],
+]:
     if _type is not None:
 
         def extract(text: str) -> T:
@@ -51,15 +64,10 @@ def ai_model(
 
         extract.__annotations__["return"] = _type
         return ai_fn(
-            extract,
+            fn=extract,
             **AIModelKwargsDefaults(**kwargs).model_dump(exclude_none=True),
         )
 
-    def decorator(__type__: T) -> Callable[[str], T]:
-        def extract(text: str) -> T:
-            return __type__
-
-        extract.__annotations__["return"] = _type
-        return ai_fn(**AIModelKwargsDefaults(**kwargs).model_dump(exclude_none=True))
-
-    return decorator
+    return partial(
+        ai_model, **AIModelKwargsDefaults(**kwargs).model_dump(exclude_none=True)
+    )

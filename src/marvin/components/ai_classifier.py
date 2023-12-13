@@ -55,20 +55,21 @@ class AIClassifier(
 
         **Objective**: You are an expert classifier that always chooses correctly.
 
-        ### Description
+        ### Context
         {{ _doc }}
-
-        ### Data
-        {% for arg, value in _arguments.items() %}
-        - **{{ arg }}**: {{ value }}
-        {% endfor %}
-
+        
         ### Response Format
-        You must classify into one of the following classes:
+        You must classify the user provided data into one of the following classes:
         {% for option in _options %}
         - Class {{ loop.index0 }} (value: {{ option }})
         {% endfor %}
-    """))
+        \n\nASSISTANT: ### Data
+        The user provided the following data:                                                                                                                     
+        {%for (arg, value) in _arguments.items()%}
+        - {{ arg }}: {{ value }}
+        {% endfor %}
+        \n\nASSISTANT: The most likely class label for the data and context provided above is Class"
+    """))  # noqa
     encoder: Callable[[str], list[int]] = Field(default=None)
     max_tokens: int = 1
     temperature: float = 0.0

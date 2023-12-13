@@ -76,12 +76,14 @@ def cast_type_to_toolset(
 
 
 def cast_type_to_options(
-    _type: Union[Enum, GenericAlias],
+    _type: Union[type, GenericAlias],
 ) -> list[str]:
     if get_origin(_type) == Literal:
         return [str(token) for token in get_args(_type)]
-    elif isinstance(_type, Enum):
-        members: list[str] = list(getattr(_type, "__members__", {}).keys())
+    elif isinstance(_type, type) and issubclass(_type, Enum):
+        members: list[str] = [
+            option.value for option in getattr(_type, "__members__", {}).values()
+        ]
         return members
     else:
         raise TypeError(f"Expected Literal or Enum, got {_type}.")
@@ -105,7 +107,7 @@ def cast_options_to_grammar(
 
 
 def cast_type_to_grammar(
-    _type: Union[Enum, GenericAlias],
+    _type: Union[type, GenericAlias],
     encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
     max_tokens: Optional[int] = None,
     _enumerate: bool = True,

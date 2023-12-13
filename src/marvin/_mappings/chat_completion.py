@@ -1,5 +1,4 @@
 import json
-from enum import Enum
 from types import GenericAlias
 from typing import (
     TYPE_CHECKING,
@@ -7,6 +6,7 @@ from typing import (
     Callable,
     TypeVar,
     Union,
+    cast,
 )
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     )
 
 T = TypeVar("T", bound=BaseModel)
-U = TypeVar("U", bound=Union[Enum, GenericAlias])
+U = TypeVar("U", bound=Union[type, GenericAlias])
 
 
 def chat_completion_to_model(
@@ -41,6 +41,9 @@ def chat_completion_to_model(
         data: dict[str, Any] = {}
         data[field_name] = json.loads(tool_arguments[0])
         return response_model.model_validate_json(json.dumps(data))
+    else:
+        data: dict[str, Any] = json.loads(tool_arguments[0])
+        return cast(T, data)
 
 
 def chat_completion_to_type(response_type: U, completion: "ChatCompletion") -> "U":
