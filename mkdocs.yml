@@ -112,6 +112,8 @@ markdown_extensions:
   - pymdownx.superfences
   - admonition
   - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
