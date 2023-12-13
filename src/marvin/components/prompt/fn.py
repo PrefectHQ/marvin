@@ -63,6 +63,7 @@ class PromptFunction(Prompt[U]):
         encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
         max_tokens: Optional[int] = 1,
         temperature: Optional[float] = 0,
+        model: Optional[str] = None,
     ) -> Callable[[Callable[P, Any]], Callable[P, Self]]:
         pass
 
@@ -78,6 +79,7 @@ class PromptFunction(Prompt[U]):
         encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
         max_tokens: Optional[int] = 1,
         temperature: Optional[float] = 0,
+        model: Optional[str] = None,
     ) -> Callable[P, Self]:
         pass
 
@@ -92,6 +94,7 @@ class PromptFunction(Prompt[U]):
         encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
         max_tokens: Optional[int] = 1,
         temperature: Optional[float] = 0,
+        model: Optional[str] = None,
     ) -> Union[Callable[[Callable[P, Any]], Callable[P, Self]], Callable[P, Self],]:
         def wrapper(func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> Self:
             # Get the signature of the function
@@ -125,6 +128,7 @@ class PromptFunction(Prompt[U]):
             return cls(
                 messages=messages,
                 temperature=temperature,
+                model=model,
                 **grammar.model_dump(exclude_unset=True, exclude_none=True),
             )
 

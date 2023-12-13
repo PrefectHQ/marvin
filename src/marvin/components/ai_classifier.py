@@ -75,6 +75,7 @@ class AIClassifier(
     encoder: Callable[[str], list[int]] = Field(default=None)
     max_tokens: int = 1
     temperature: float = 0.0
+    model: Optional[str] = None
     client: Client = Field(default_factory=lambda: MarvinClient().client)
     aclient: AsyncClient = Field(default_factory=lambda: AsyncMarvinClient().client)
 
@@ -119,7 +120,7 @@ class AIClassifier(
         return PromptFunction[BaseModel].as_grammar(
             fn=self.fn,
             **self.model_dump(
-                exclude={"create", "acreate", "fn", "client", "aclient"},
+                exclude={"fn", "client", "aclient"},
                 exclude_none=True,
             ),
         )(*args, **kwargs)
