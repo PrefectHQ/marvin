@@ -1,7 +1,6 @@
 import asyncio
 import inspect
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     Coroutine,
@@ -13,16 +12,14 @@ from typing import (
     overload,
 )
 
-from pydantic import BaseModel, Field
+from openai import AsyncClient, Client
+from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import NotRequired, ParamSpec, Self, Unpack
 
 from marvin._mappings.chat_completion import chat_completion_to_type
-from marvin.client.openai import MarvinChatCompletion
+from marvin.client.openai import AsyncMarvinClient, MarvinClient
 from marvin.components.prompt.fn import PromptFunction
 from marvin.utilities.jinja import BaseEnvironment
-
-if TYPE_CHECKING:
-    from openai.types.chat import ChatCompletion
 
 T = TypeVar("T")
 
@@ -33,26 +30,24 @@ class AIClassifierKwargs(TypedDict):
     environment: NotRequired[BaseEnvironment]
     prompt: NotRequired[str]
     encoder: NotRequired[Callable[[str], list[int]]]
-    create: NotRequired[Callable[..., "ChatCompletion"]]
-    acreate: NotRequired[Callable[..., Coroutine[Any, Any, "ChatCompletion"]]]
+    client: NotRequired[Client]
+    aclient: NotRequired[AsyncClient]
 
 
 class AIClassifierKwargsDefaults(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = None
     encoder: Optional[Callable[[str], list[int]]] = None
-    create: Optional[Callable[..., "ChatCompletion"]] = Field(
-        default_factory=lambda: MarvinChatCompletion.create
-    )
-    acreate: Optional[Callable[..., Coroutine[Any, Any, "ChatCompletion"]]] = Field(
-        default_factory=lambda: MarvinChatCompletion.acreate
-    )
+    client: Optional[Client] = None
+    aclient: Optional[AsyncClient] = None
 
 
 class AIClassifier(
-    MarvinChatCompletion,
+    BaseModel,
     Generic[P, T],
 ):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = Field(default=inspect.cleandoc("""
@@ -77,6 +72,8 @@ class AIClassifier(
     encoder: Callable[[str], list[int]] = Field(default=None)
     max_tokens: int = 1
     temperature: float = 0.0
+    client: Client = Field(default_factory=lambda: MarvinClient().client)
+    aclient: AsyncClient = Field(default_factory=lambda: AsyncMarvinClient().client)
 
     def __call__(
         self, *args: P.args, **kwargs: P.kwargs
@@ -87,12 +84,14 @@ class AIClassifier(
 
     def call(self, *args: P.args, **kwargs: P.kwargs) -> T:
         prompt = self.as_prompt(*args, **kwargs)
-        response = self.create(**prompt.serialize())
+        response = MarvinClient(client=self.client).chat(**prompt.serialize())
         return chat_completion_to_type(self.fn.__annotations__["return"], response)
 
     async def acall(self, *args: P.args, **kwargs: P.kwargs) -> T:
         prompt = self.as_prompt(*args, **kwargs)
-        response = await self.acreate(**prompt.serialize())
+        response = await AsyncMarvinClient(client=self.aclient).chat(
+            **prompt.serialize()
+        )
         return chat_completion_to_type(self.fn.__annotations__["return"], response)
 
     def map(self, *arg_list: list[Any], **kwarg_list: list[Any]) -> list[T]:
@@ -116,7 +115,10 @@ class AIClassifier(
     ) -> PromptFunction[BaseModel]:
         return PromptFunction[BaseModel].as_grammar(
             fn=self.fn,
-            **self.model_dump(exclude={"create", "acreate", "fn"}, exclude_none=True),
+            **self.model_dump(
+                exclude={"create", "acreate", "fn", "client", "aclient"},
+                exclude_none=True,
+            ),
         )(*args, **kwargs)
 
     def dict(

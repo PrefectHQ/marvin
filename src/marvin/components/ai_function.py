@@ -42,7 +42,7 @@ class AIFunctionKwargs(TypedDict):
 
 
 class AIFunctionKwargsDefaults(BaseModel):
-    model_config = MarvinClient.model_config
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = None
     model_name: str = "FormatResponse"
@@ -95,14 +95,20 @@ class AIFunction(
         response: ChatCompletion = MarvinClient(client=self.client).chat(
             **prompt.serialize()
         )
-        return getattr(chat_completion_to_model(model, response), self.field_name)
+        return getattr(
+            chat_completion_to_model(model, response, field_name=self.field_name),
+            self.field_name,
+        )
 
     async def acall(self, *args: P.args, **kwargs: P.kwargs) -> T:
         prompt, model = self.as_prompt(*args, **kwargs).model_pair()
         response: ChatCompletion = await AsyncMarvinClient(client=self.aclient).chat(
             **prompt.serialize()
         )
-        return getattr(chat_completion_to_model(model, response), self.field_name)
+        return getattr(
+            chat_completion_to_model(model, response, field_name=self.field_name),
+            self.field_name,
+        )
 
     def map(self, *arg_list: list[Any], **kwarg_list: list[Any]) -> list[T]:
         return [
