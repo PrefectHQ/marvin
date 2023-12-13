@@ -32,6 +32,7 @@ class AIClassifierKwargs(TypedDict):
     encoder: NotRequired[Callable[[str], list[int]]]
     client: NotRequired[Client]
     aclient: NotRequired[AsyncClient]
+    model: NotRequired[str]
 
 
 class AIClassifierKwargsDefaults(BaseModel):
@@ -41,6 +42,7 @@ class AIClassifierKwargsDefaults(BaseModel):
     encoder: Optional[Callable[[str], list[int]]] = None
     client: Optional[Client] = None
     aclient: Optional[AsyncClient] = None
+    model: Optional[str] = None
 
 
 class AIClassifier(
