@@ -5,7 +5,6 @@ from typing import (
     Callable,
     Coroutine,
     Generic,
-    NotRequired,
     Optional,
     TypedDict,
     TypeVar,
@@ -15,7 +14,7 @@ from typing import (
 
 from openai.types.images_response import ImagesResponse
 from pydantic import BaseModel, Field
-from typing_extensions import ParamSpec, Self, Unpack
+from typing_extensions import NotRequired, ParamSpec, Self, Unpack
 
 from marvin.client.openai import MarvinImage
 from marvin.components.prompt.fn import PromptFunction
@@ -33,6 +32,17 @@ class AIImageKwargs(TypedDict):
     prompt: NotRequired[str]
     generate: NotRequired[Callable[..., "ImagesResponse"]]
     agenerate: NotRequired[Callable[..., Coroutine[Any, Any, "ImagesResponse"]]]
+
+
+class AIImageKwargsDefaults(BaseModel):
+    environment: Optional[BaseEnvironment] = None
+    prompt: Optional[str] = None
+    generate: Optional[Callable[..., "ImagesResponse"]] = Field(
+        default_factory=lambda: MarvinImage.generate
+    )
+    agenerate: Optional[Callable[..., Coroutine[Any, Any, "ImagesResponse"]]] = Field(
+        default_factory=lambda: MarvinImage.agenerate
+    )
 
 
 class AIImage(MarvinImage, Generic[P]):
@@ -122,12 +132,11 @@ def ai_image(
     Callable[P, Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]],
 ]:
     def wrapper(
-        func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs
+        func: Callable[P, Any], *args_: P.args, **kwargs_: P.kwargs
     ) -> Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]:
-        passed_kwargs: dict[str, Any] = {
-            k: v for k, v in kwargs.items() if v is not None
-        }
-        return AIImage[P].as_decorator(func, **passed_kwargs)(*args, **kwargs)
+        return AIImage[P].as_decorator(
+            func, **AIImageKwargsDefaults(**kwargs).model_dump(exclude_none=True)
+        )(*args_, **kwargs_)
 
     if fn is not None:
         return wraps(fn)(partial(wrapper, fn))

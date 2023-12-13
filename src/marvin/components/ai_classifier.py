@@ -6,17 +6,15 @@ from typing import (
     Callable,
     Coroutine,
     Generic,
-    NotRequired,
     Optional,
     TypedDict,
     TypeVar,
     Union,
-    Unpack,
     overload,
 )
 
 from pydantic import BaseModel, Field
-from typing_extensions import ParamSpec, Self
+from typing_extensions import NotRequired, ParamSpec, Self, Unpack
 
 from marvin._mappings.chat_completion import chat_completion_to_type
 from marvin.client.openai import MarvinChatCompletion
@@ -37,6 +35,18 @@ class AIClassifierKwargs(TypedDict):
     encoder: NotRequired[Callable[[str], list[int]]]
     create: NotRequired[Callable[..., "ChatCompletion"]]
     acreate: NotRequired[Callable[..., Coroutine[Any, Any, "ChatCompletion"]]]
+
+
+class AIClassifierKwargsDefaults(BaseModel):
+    environment: Optional[BaseEnvironment] = None
+    prompt: Optional[str] = None
+    encoder: Optional[Callable[[str], list[int]]] = None
+    create: Optional[Callable[..., "ChatCompletion"]] = Field(
+        default_factory=lambda: MarvinChatCompletion.create
+    )
+    acreate: Optional[Callable[..., Coroutine[Any, Any, "ChatCompletion"]]] = Field(
+        default_factory=lambda: MarvinChatCompletion.acreate
+    )
 
 
 class AIClassifier(
@@ -139,14 +149,10 @@ class AIClassifier(
         fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None,
         **kwargs: Unpack[AIClassifierKwargs],
     ) -> Union[Callable[[Callable[P, Union[T, Coroutine[Any, Any, T]]]], Self], Self]:
-        passed_kwargs: dict[str, Any] = {
-            k: v for k, v in kwargs.items() if v is not None
-        }
-
         def decorator(func: Callable[P, Union[T, Coroutine[Any, Any, T]]]) -> Self:
             return cls(
                 fn=func,
-                **passed_kwargs,
+                **AIClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True),
             )
 
         if fn is not None:
@@ -180,11 +186,9 @@ def ai_classifier(
     ],
     Callable[P, Union[T, Coroutine[Any, Any, T]]],
 ]:
-    passed_kwargs: dict[str, Any] = {k: v for k, v in kwargs.items() if v is not None}
     if fn is not None:
         return AIClassifier[P, T].as_decorator(
-            fn=fn,
-            **passed_kwargs,
+            fn=fn, **AIClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True)
         )
 
     def decorator(
@@ -192,7 +196,7 @@ def ai_classifier(
     ) -> Callable[P, Union[T, Coroutine[Any, Any, T]]]:
         return AIClassifier[P, T].as_decorator(
             fn=func,
-            **passed_kwargs,
+            **AIClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True),
         )
 
     return decorator

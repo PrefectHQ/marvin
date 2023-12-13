@@ -3,18 +3,18 @@ import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
-    Awaitable,
     Callable,
     Coroutine,
     Generic,
     Optional,
+    TypedDict,
     TypeVar,
     Union,
     overload,
 )
 
 from pydantic import BaseModel, Field
-from typing_extensions import ParamSpec, Self
+from typing_extensions import NotRequired, ParamSpec, Self, Unpack
 
 from marvin._mappings.chat_completion import chat_completion_to_model
 from marvin.client.openai import MarvinChatCompletion
@@ -27,6 +27,32 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 P = ParamSpec("P")
+
+
+class AIFunctionKwargs(TypedDict):
+    environment: NotRequired[BaseEnvironment]
+    prompt: NotRequired[str]
+    model_name: NotRequired[str]
+    model_description: NotRequired[str]
+    field_name: NotRequired[str]
+    field_description: NotRequired[str]
+    create: NotRequired[Callable[..., "ChatCompletion"]]
+    acreate: NotRequired[Callable[..., Coroutine[Any, Any, "ChatCompletion"]]]
+
+
+class AIFunctionKwargsDefaults(BaseModel):
+    environment: Optional[BaseEnvironment] = None
+    prompt: Optional[str] = None
+    model_name: str = "FormatResponse"
+    model_description: str = "Formats the response."
+    field_name: str = "data"
+    field_description: str = "The data to format."
+    create: Optional[Callable[..., "ChatCompletion"]] = Field(
+        default_factory=lambda: MarvinChatCompletion.create
+    )
+    acreate: Optional[Callable[..., Coroutine[Any, Any, "ChatCompletion"]]] = Field(
+        default_factory=lambda: MarvinChatCompletion.acreate
+    )
 
 
 class AIFunction(
@@ -113,15 +139,7 @@ class AIFunction(
     @classmethod
     def as_decorator(
         cls: type[Self],
-        *,
-        environment: Optional[BaseEnvironment] = None,
-        prompt: Optional[str] = None,
-        model_name: str = "FormatResponse",
-        model_description: str = "Formats the response.",
-        field_name: str = "data",
-        field_description: str = "The data to format.",
-        create: Optional[Callable[..., "ChatCompletion"]] = None,
-        acreate: Optional[Callable[..., Awaitable[Any]]] = None,
+        **kwargs: Unpack[AIFunctionKwargs],
     ) -> Callable[P, Self]:
         pass
 
@@ -130,15 +148,7 @@ class AIFunction(
     def as_decorator(
         cls: type[Self],
         fn: Callable[P, Union[T, Coroutine[Any, Any, T]]],
-        *,
-        environment: Optional[BaseEnvironment] = None,
-        prompt: Optional[str] = None,
-        model_name: str = "FormatResponse",
-        model_description: str = "Formats the response.",
-        field_name: str = "data",
-        field_description: str = "The data to format.",
-        create: Optional[Callable[..., "ChatCompletion"]] = None,
-        acreate: Optional[Callable[..., Awaitable[Any]]] = None,
+        **kwargs: Unpack[AIFunctionKwargs],
     ) -> Self:
         pass
 
@@ -146,25 +156,12 @@ class AIFunction(
     def as_decorator(
         cls: type[Self],
         fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None,
-        *,
-        environment: Optional[BaseEnvironment] = None,
-        prompt: Optional[str] = None,
-        model_name: str = "FormatResponse",
-        model_description: str = "Formats the response.",
-        field_name: str = "data",
-        field_description: str = "The data to format.",
-        **render_kwargs: Any,
+        **kwargs: Unpack[AIFunctionKwargs],
     ) -> Union[Callable[[Callable[P, Union[T, Coroutine[Any, Any, T]]]], Self], Self]:
         def decorator(func: Callable[P, Union[T, Coroutine[Any, Any, T]]]) -> Self:
             return cls(
                 fn=func,
-                environment=environment,
-                name=model_name,
-                description=model_description,
-                field_name=field_name,
-                field_description=field_description,
-                **({"prompt": prompt} if prompt else {}),
-                **render_kwargs,
+                **AIFunctionKwargsDefaults(**kwargs).model_dump(exclude_none=True),
             )
 
         if fn is not None:
@@ -175,15 +172,7 @@ class AIFunction(
 
 @overload
 def ai_fn(
-    *,
-    environment: Optional[BaseEnvironment] = None,
-    prompt: Optional[str] = None,
-    model_name: str = "FormatResponse",
-    model_description: str = "Formats the response.",
-    field_name: str = "data",
-    field_description: str = "The data to format.",
-    create: Optional[Callable[..., "ChatCompletion"]] = None,
-    acreate: Optional[Callable[..., Awaitable["ChatCompletion"]]] = None,
+    **kwargs: Unpack[AIFunctionKwargs],
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     pass
 
@@ -191,30 +180,14 @@ def ai_fn(
 @overload
 def ai_fn(
     fn: Callable[P, T],
-    *,
-    environment: Optional[BaseEnvironment] = None,
-    prompt: Optional[str] = None,
-    model_name: str = "FormatResponse",
-    model_description: str = "Formats the response.",
-    field_name: str = "data",
-    field_description: str = "The data to format.",
-    create: Optional[Callable[..., "ChatCompletion"]] = None,
-    acreate: Optional[Callable[..., Awaitable["ChatCompletion"]]] = None,
+    **kwargs: Unpack[AIFunctionKwargs],
 ) -> Callable[P, T]:
     pass
 
 
 def ai_fn(
     fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None,
-    *,
-    environment: Optional[BaseEnvironment] = None,
-    prompt: Optional[str] = None,
-    model_name: str = "FormatResponse",
-    model_description: str = "Formats the response.",
-    field_name: str = "data",
-    field_description: str = "The data to format.",
-    create: Optional[Callable[..., "ChatCompletion"]] = None,
-    acreate: Optional[Callable[..., Awaitable["ChatCompletion"]]] = None,
+    **kwargs: Unpack[AIFunctionKwargs],
 ) -> Union[
     Callable[
         [Callable[P, Union[T, Coroutine[Any, Any, T]]]],
@@ -224,15 +197,7 @@ def ai_fn(
 ]:
     if fn is not None:
         return AIFunction[P, T].as_decorator(
-            fn=fn,
-            environment=environment,
-            prompt=prompt,
-            model_name=model_name,
-            model_description=model_description,
-            field_name=field_name,
-            field_description=field_description,
-            create=create,
-            acreate=acreate,
+            fn=fn, **AIFunctionKwargsDefaults(**kwargs).model_dump(exclude_none=True)
         )
 
     def decorator(
@@ -240,14 +205,10 @@ def ai_fn(
     ) -> Callable[P, Union[T, Coroutine[Any, Any, T]]]:
         return AIFunction[P, T].as_decorator(
             fn=func,
-            environment=environment,
-            prompt=prompt,
-            model_name=model_name,
-            model_description=model_description,
-            field_name=field_name,
-            field_description=field_description,
-            create=create,
-            acreate=acreate,
+            **AIFunctionKwargsDefaults(**kwargs).model_dump(exclude_none=True),
         )
 
     return decorator
+
+
+ai_fn()

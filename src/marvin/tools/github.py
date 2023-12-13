@@ -15,7 +15,7 @@ async def get_token() -> str:
         from prefect.blocks.system import Secret
 
         github: Coroutine[Any, Any, Secret] = Secret.load("github-token")
-        get: Callable[[Secret], Coroutine[Any, Any, str]] = getattr(github, "get")
+        get: Callable[..., Coroutine[Any, Any, str]] = getattr(github, "get")
         return await get()
 
     except (ImportError, ValueError) as exc:

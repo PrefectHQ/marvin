@@ -1,8 +1,13 @@
 import inspect
-from typing import Any, Callable, Optional, TypeVar, Union, overload
+from typing import Callable, Optional, TypeVar, Union, overload
 
-from marvin.components.ai_function import ai_fn
-from marvin.utilities.jinja import BaseEnvironment
+from typing_extensions import Unpack
+
+from marvin.components.ai_function import (
+    AIFunctionKwargs,
+    AIFunctionKwargsDefaults,
+    ai_fn,
+)
 
 T = TypeVar("T")
 
@@ -16,16 +21,13 @@ prompt = inspect.cleandoc(
 )
 
 
+class AIModelKwargsDefaults(AIFunctionKwargsDefaults):
+    prompt: Optional[str] = prompt
+
+
 @overload
 def ai_model(
-    *,
-    environment: Optional[BaseEnvironment] = None,
-    prompt: Optional[str] = prompt,
-    model_name: str = "FormatResponse",
-    model_description: str = "Formats the response.",
-    field_name: str = "data",
-    field_description: str = "The data to format.",
-    **render_kwargs: Any,
+    **kwargs: Unpack[AIFunctionKwargs],
 ) -> Callable[[T], Callable[[str], T]]:
     pass
 
@@ -33,28 +35,14 @@ def ai_model(
 @overload
 def ai_model(
     _type: Optional[type[T]] = None,
-    *,
-    environment: Optional[BaseEnvironment] = None,
-    prompt: Optional[str] = prompt,
-    model_name: str = "FormatResponse",
-    model_description: str = "Formats the response.",
-    field_name: str = "data",
-    field_description: str = "The data to format.",
-    **render_kwargs: Any,
+    **kwargs: Unpack[AIFunctionKwargs],
 ) -> Callable[[str], T]:
     pass
 
 
 def ai_model(
     _type: Optional[type[T]] = None,
-    *,
-    environment: Optional[BaseEnvironment] = None,
-    prompt: Optional[str] = prompt,
-    model_name: str = "FormatResponse",
-    model_description: str = "Formats the response.",
-    field_name: str = "data",
-    field_description: str = "The data to format.",
-    **render_kwargs: Any,
+    **kwargs: Unpack[AIFunctionKwargs],
 ) -> Union[Callable[[T], Callable[[str], T]], Callable[[str], T],]:
     if _type is not None:
 
@@ -64,13 +52,7 @@ def ai_model(
         extract.__annotations__["return"] = _type
         return ai_fn(
             extract,
-            environment=environment,
-            prompt=prompt,
-            model_name=model_name,
-            model_description=model_description,
-            field_name=field_name,
-            field_description=field_description,
-            **render_kwargs,
+            **AIModelKwargsDefaults(**kwargs).model_dump(exclude_none=True),
         )
 
     def decorator(__type__: T) -> Callable[[str], T]:
@@ -78,14 +60,6 @@ def ai_model(
             return __type__
 
         extract.__annotations__["return"] = _type
-        return ai_fn(
-            environment=environment,
-            prompt=prompt,
-            model_name=model_name,
-            model_description=model_description,
-            field_name=field_name,
-            field_description=field_description,
-            **render_kwargs,
-        )
+        return ai_fn(**AIModelKwargsDefaults(**kwargs).model_dump(exclude_none=True))
 
     return decorator

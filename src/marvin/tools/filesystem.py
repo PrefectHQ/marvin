@@ -138,14 +138,14 @@ def cp(src: str, dest: str) -> str:
     """Copies a file or directory"""
     src = os.path.expanduser(src)
     dest = os.path.expanduser(dest)
-    src = pathlib.Path(src)
-    dest = pathlib.Path(dest)
-    shutil.copytree(src, dest)
+    _src = pathlib.Path(src)
+    _dest = pathlib.Path(dest)
+    shutil.copytree(_src, _dest)
     return f'Successfully copied "{src}" to "{dest}"'
 
 
 def ls(path: str) -> str:
     """Lists the contents of a directory"""
     path = os.path.expanduser(path)
-    path = pathlib.Path(path)
-    return "\n".join(str(p) for p in path.iterdir())
+    _path = pathlib.Path(path)
+    return "\n".join(str(p) for p in _path.iterdir())
