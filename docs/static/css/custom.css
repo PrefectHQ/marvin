@@ -44,7 +44,13 @@
   padding: 0px !important;
 }
 
+.md-typeset h1 {
+  margin-top: 0px !important;
+}
 
+.md-content__inner {
+  padding-top: 0px !important;
+}
 /* .jp-CodeCell {
   padding: 0px !important;
 } */
