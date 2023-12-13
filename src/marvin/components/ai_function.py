@@ -84,6 +84,8 @@ class AIFunction(
     description: str = "Formats the response."
     field_name: str = "data"
     field_description: str = "The data to format."
+    model: Optional[str] = None
+    temperature: Optional[float] = None
     client: Client = Field(default_factory=lambda: MarvinClient().client)
     aclient: AsyncClient = Field(default_factory=lambda: AsyncMarvinClient().client)
 
@@ -135,15 +137,13 @@ class AIFunction(
     ) -> PromptFunction[BaseModel]:
         return PromptFunction[BaseModel].as_tool_call(
             fn=self.fn,
-            environment=self.environment,
-            prompt=self.prompt,
-            model_name=self.name,
-            model_description=self.description,
-            field_name=self.field_name,
-            field_description=self.field_description,
+            **self.model_dump(
+                exclude={"fn", "client", "aclient", "name", "description"},
+                exclude_none=True,
+            ),
         )(*args, **kwargs)
 
-    def model_dump(
+    def dict(
         self,
         *args: P.args,
         **kwargs: P.kwargs,

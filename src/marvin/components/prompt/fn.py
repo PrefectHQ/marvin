@@ -37,6 +37,7 @@ class PromptFunction(Prompt[U]):
         extra="allow",
     )
     temperature: Optional[float] = pydantic.Field(default=None)
+    model: Optional[str] = pydantic.Field(default=None)
     messages: list[Message] = pydantic.Field(default_factory=list)
 
     def serialize(self) -> dict[str, Any]:
@@ -177,9 +178,9 @@ class PromptFunction(Prompt[U]):
         field_description: str = "The data to format.",
         **kwargs: Any,
     ) -> Union[Callable[[Callable[P, Any]], Callable[P, Self]], Callable[P, Self],]:
-        def wrapper(func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> Self:
+        def wrapper(func: Callable[P, Any], *args: P.args, **kwargs_: P.kwargs) -> Self:
             signature = inspect.signature(func)
-            params = signature.bind(*args, **kwargs)
+            params = signature.bind(*args, **kwargs_)
             params.apply_defaults()
 
             toolset = cast_type_to_toolset(
@@ -193,7 +194,7 @@ class PromptFunction(Prompt[U]):
             messages = Transcript(
                 content=prompt or func.__doc__ or ""
             ).render_to_messages(
-                **kwargs | params.arguments,
+                **kwargs_ | params.arguments,
                 _doc=func.__doc__,
                 _arguments=params.arguments,
                 _response_model=toolset.tools[0],  # type: ignore
@@ -206,6 +207,7 @@ class PromptFunction(Prompt[U]):
                 messages=messages,
                 tool_choice=toolset.tool_choice,
                 tools=toolset.tools,
+                **kwargs,
             )
 
         if fn is not None:
