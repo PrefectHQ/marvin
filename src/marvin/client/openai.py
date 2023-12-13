@@ -14,7 +14,7 @@ import pydantic
 from marvin import settings
 from marvin._mappings.base_model import cast_model_to_toolset
 from marvin._mappings.chat_completion import chat_completion_to_model
-from openai import Client
+from openai import AsyncClient, Client
 from openai.types.chat import (
     ChatCompletion,
 )
@@ -46,20 +46,39 @@ def with_response_model(
     return create_wrapper
 
 
+def async_with_response_model(
+    create: Callable[P, Coroutine[Any, Any, "ChatCompletion"]],
+) -> Callable[
+    Concatenate[
+        type[T],
+        P,
+    ],
+    Coroutine[Any, Any, Union["ChatCompletion", T]],
+]:
+    async def create_wrapper(
+        response_model: type[T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        if response_model:
+            toolset = cast_model_to_toolset(response_model)
+            kwargs.update(**toolset.model_dump())
+        response = await create(*args, **kwargs)
+        return chat_completion_to_model(response_model, response)
+
+    return create_wrapper
+
+
 class MarvinClient(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(
-        arbitrary_types_allowed=True,
-    )
-    client: Client = pydantic.Field(
-        default_factory=lambda: Client(
-            api_key=getattr(settings.openai.api_key, "get_secret_value", lambda: None)()
-        )
+        arbitrary_types_allowed=True, protected_namespaces=()
     )
 
-    @classmethod
-    def wrap(cls, client: Client) -> "Client":
-        client.chat.completions.create = cls(client=client).chat  # type: ignore
-        return client
+    client: Client = pydantic.Field(
+        default_factory=lambda: Client(
+            api_key=getattr(settings.openai.api_key, "get_secret_value", lambda: "")()
+        )
+    )
 
     @overload
     def chat(
@@ -119,6 +138,85 @@ class MarvinClient(pydantic.BaseModel):
         from marvin import settings
 
         response = self.client.audio.speech.create(
+            input=input, **settings.openai.audio.speech.model_dump() | kwargs
+        )
+        if file:
+            response.stream_to_file(file)
+            return None
+        return response
+
+
+class AsyncMarvinClient(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(
+        arbitrary_types_allowed=True, protected_namespaces=()
+    )
+
+    client: AsyncClient = pydantic.Field(
+        default_factory=lambda: AsyncClient(
+            api_key=getattr(settings.openai.api_key, "get_secret_value", lambda: "")()
+        )
+    )
+
+    @classmethod
+    def wrap(cls, client: Client) -> "Client":
+        client.chat.completions.create = cls(client=client).chat  # type: ignore
+        return client
+
+    @overload
+    async def chat(
+        self,
+        *,
+        response_model: None = None,
+        **kwargs: Any,
+    ) -> "ChatCompletion":
+        pass
+
+    @overload
+    async def chat(
+        self,
+        *,
+        response_model: type[T],
+        **kwargs: Any,
+    ) -> T:
+        pass
+
+    async def chat(
+        self,
+        *,
+        response_model: Optional[type[T]] = None,
+        **kwargs: Any,
+    ) -> Union["ChatCompletion", T]:
+        from marvin import settings
+
+        defaults: dict[str, Any] = settings.openai.chat.completions.model_dump()
+        create = self.client.chat.completions.create
+        if not response_model:
+            response: "ChatCompletion" = await create(**defaults | kwargs)
+            return response
+        else:
+            return await async_with_response_model(create)(
+                response_model, **defaults | kwargs
+            )
+
+    async def paint(
+        self,
+        **kwargs: Any,
+    ) -> "ImagesResponse":
+        from marvin import settings
+
+        return await self.client.images.generate(
+            **settings.openai.images.model_dump() | kwargs
+        )
+
+    async def speak(
+        self,
+        input: str,
+        file: Optional[Path] = None,
+        **kwargs: Any,
+    ) -> Optional["HttpxBinaryResponseContent"]:
+        from marvin import settings
+
+        response = await self.client.audio.speech.create(
             input=input, **settings.openai.audio.speech.model_dump() | kwargs
         )
         if file:

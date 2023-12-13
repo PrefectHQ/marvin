@@ -13,11 +13,12 @@ from typing import (
     overload,
 )
 
-from pydantic import BaseModel, Field
+from openai import AsyncClient, Client
+from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import NotRequired, ParamSpec, Self, Unpack
 
 from marvin._mappings.chat_completion import chat_completion_to_model
-from marvin.client.openai import MarvinChatCompletion
+from marvin.client.openai import AsyncMarvinClient, MarvinClient
 from marvin.components.prompt.fn import PromptFunction
 from marvin.utilities.jinja import BaseEnvironment
 
@@ -36,29 +37,27 @@ class AIFunctionKwargs(TypedDict):
     model_description: NotRequired[str]
     field_name: NotRequired[str]
     field_description: NotRequired[str]
-    create: NotRequired[Callable[..., "ChatCompletion"]]
-    acreate: NotRequired[Callable[..., Coroutine[Any, Any, "ChatCompletion"]]]
+    client: NotRequired[Client]
+    aclient: NotRequired[AsyncClient]
 
 
 class AIFunctionKwargsDefaults(BaseModel):
+    model_config = MarvinClient.model_config
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = None
     model_name: str = "FormatResponse"
     model_description: str = "Formats the response."
     field_name: str = "data"
     field_description: str = "The data to format."
-    create: Optional[Callable[..., "ChatCompletion"]] = Field(
-        default_factory=lambda: MarvinChatCompletion.create
-    )
-    acreate: Optional[Callable[..., Coroutine[Any, Any, "ChatCompletion"]]] = Field(
-        default_factory=lambda: MarvinChatCompletion.acreate
-    )
+    client: Optional[Client] = None
+    aclient: Optional[AsyncClient] = None
 
 
 class AIFunction(
-    MarvinChatCompletion,
+    BaseModel,
     Generic[P, T],
 ):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     fn: Optional[Callable[P, T]] = None
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = Field(default=inspect.cleandoc("""
@@ -81,6 +80,8 @@ class AIFunction(
     description: str = "Formats the response."
     field_name: str = "data"
     field_description: str = "The data to format."
+    client: Client = Field(default_factory=lambda: MarvinClient().client)
+    aclient: AsyncClient = Field(default_factory=lambda: AsyncMarvinClient().client)
 
     def __call__(
         self, *args: P.args, **kwargs: P.kwargs
@@ -91,12 +92,16 @@ class AIFunction(
 
     def call(self, *args: P.args, **kwargs: P.kwargs) -> T:
         prompt, model = self.as_prompt(*args, **kwargs).model_pair()
-        response = self.create(**prompt.serialize())
+        response: ChatCompletion = MarvinClient(client=self.client).chat(
+            **prompt.serialize()
+        )
         return getattr(chat_completion_to_model(model, response), self.field_name)
 
     async def acall(self, *args: P.args, **kwargs: P.kwargs) -> T:
         prompt, model = self.as_prompt(*args, **kwargs).model_pair()
-        response = await self.acreate(**prompt.serialize())
+        response: ChatCompletion = await AsyncMarvinClient(client=self.aclient).chat(
+            **prompt.serialize()
+        )
         return getattr(chat_completion_to_model(model, response), self.field_name)
 
     def map(self, *arg_list: list[Any], **kwarg_list: list[Any]) -> list[T]:
@@ -209,6 +214,3 @@ def ai_fn(
         )
 
     return decorator
-
-
-ai_fn()
