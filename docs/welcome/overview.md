@@ -1,30 +1,73 @@
-# The Marvin Docs
+# Marvin Documentation
 
-![](/img/heroes/life_the_universe_and_ai.png)
+Marvin is a Python library that lets you use Large Language Models by writing code, not prompts. It's open source,
+free to use, rigorously type-hinted, used by thousands of engineers, and built by the engineering team at [Prefect](https://prefect.io).
 
-Marvin is a collection of powerful building blocks that are designed to be incrementally adopted. This means that you should be able to use any piece of Marvin without needing to learn too much Marvin-specific information.
+Marvin is lightweight and is built for incremental adoption. You can use it purely as a serialization library and bring your own stack,
+or fully use its engine to work with OpenAI and other providers. 
 
-For most users, this means they'll dive in with the highest-level abstractions, like AI Models and AI Functions, in order to immediately put Marvin to work. However, Marvin's documentation is organized to start with the most basic, low-level components in order to build up a cohesive explanation of how the higher-level objects work.
+??? Example "What Marvin feels like."
 
-## Layout
+    === "Structured Data Extraction"
+        Marvin exposes a number of high level components to simplify working with AI. 
 
-### [Configuration](/configuration/settings/)
+        ```python
+        from marvin.components import ai_model
+        from pydantic import BaseModel
 
-Details on setting up Marvin and configuring various aspects of its behavior, including LLM providers.
+        class Location(BaseModel):
+            city: str
+            state: str
+            latitude: float
+            longitude: float
 
-### [AI Components](/components/overview/)
+        ai_model(Location)("They say they're from the Windy City!")
+        # Location(city='Chicago', state='Illinois', latitude=41.8781, longitude=-87.6298)
+        ```
+        Notice there's no code written, just the expected types. Marvin's components turn your function into a prompt, uses AI to get its most likely output, and parses its response.
+    
+    === "Text Classification"
+    
+        Marvin exposes a number of high level components to simplify working with AI. 
 
-Documentation for Marvin's "AI Building Blocks:" familiar, Pythonic interfaces to AI-powered functionality.
+        ```python
+        from marvin import ai_classifier
+        from typing import Literal
 
-- AI Model: a drop-in replacement for Pydantic's `BaseModel` that can be instantiated from unstructured text
-- AI Classifier: a drop-in replacement for Python's enum that uses an LLM to select the most appopriate value
-- AI Function: a function that uses an LLM to predict its output, making it ideal for NLP tasks
-- AI Application: a stateful application intended for interactive use over multiple invocations
+        @ai_classifier
+        def customer_intent(text: str) -> Literal['Store Hours', 'Pharmacy', 'Returns']:
+            """Classifies incoming customer intent"""
 
-### [OpenAI API Utilities](/llms/llms/)
+        customer_intent("I need to pick up my prescription") # "Pharmacy"
 
-Marvin exposes a simple API for building prompts and calling LLMs, designed to be a drop-in replacement for OpenAI's Python SDK (but with support for other providers).
+        ```
+        Notice `customer_intent` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
+        parses its response.
+    
+    === "Business Logic"
 
-### Examples
+        Marvin exposes a number of high level components to simplify working with AI. 
 
-Finally, for deeper dives into how to use Marvin, check out our examples like the [Slackbot](/examples/slackbot/) or [GitHub Activity Digest](/examples/github-activity-digest/).
+        ```python
+        from marvin import ai_fn
+
+        @ai_fn
+        def list_fruits(n: int, color: str = 'red') -> list[str]:
+            """Generates a list of {{n}} {{color}} fruits"""
+
+        list_fruits(3) # "['Apple', 'Cherry', 'Strawberry']"
+        ```
+        Notice `list_fruits` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
+        parses its response.
+
+!!! info "Learning Marvin"
+    If you know Python, you already know Marvin. There are no fancy abstractions, just a handful of low-level, customizable decorators 
+    to give your existing code superpowers and a number of utilities that make your life as an AI Engineer easier no matter
+    what framework you use. 
+
+    | Sections      | Description                          |
+    | :---------- | :----------------------------------- |
+    | [Configuration](/configuration/settings/)       | Details on setting up Marvin and configuring various aspects of its behavior  |
+    | [AI Components](/components/overview/)       | Documentation for Marvin's familiar, Pythonic interfaces to AI-powered functionality.|
+    | [API Utilities](/llms/llms/)    | Low level API for building prompts and calling LLMs |
+    | Examples    | Deeper dives into how to use Marvin |
