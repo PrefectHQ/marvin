@@ -3,43 +3,86 @@
 </p>
 
 # Marvin
-### The AI engineering framework
-
-Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.
-
-Sometimes the most challenging part of working with generative AI is remembering that it's not magic; it's software. It's new, it's nondeterministic, and it's incredibly powerful - but still software.
-
-Marvin's goal is to bring the best practices for building dependable, observable software to generative AI. As the team behind Prefect, which does something very similar for data engineers, we've poured years of open-source developer tool experience and lessons into Marvin's design.
-
-## Documentation
-Marvin's docs are available at [askmarvin.ai](https://www.askmarvin.ai), including concepts, tutorials, and an API reference.
+[![PyPI version](https://badge.fury.io/py/marvin.svg)](https://badge.fury.io/py/marvin)
+[![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
+[![Docs](https://img.shields.io/badge/docs-askmarvin.ai-blue)](https://www.askmarvin.ai)
+### An engineering framework
+... made with 💙 by the team at [Prefect](https://www.prefect.io/).
 
 ```bash
 pip install marvin
 ```
 Getting started? Head over to our [setup guide](https://www.askmarvin.ai/welcome/installation/).
 
-## Community
-To ask questions, share ideas, or just chat with like-minded developers, join us on [Discord](https://discord.gg/Kgw4HpcuYG) or [Twitter](https://twitter.com/AskMarvinAI)!
+---
 
+⚠️ Marvin is a work in progress, and we'd love your [feedback](https://github.com/PrefectHQ/marvin/discussions)! ⚠️
 
-## Core AI Components
+> [Looking for info on Marvin 1.x?](/docs/help/legacy_docs.md)
+
+---
+
+## Offerings
 
 Marvin's high-level abstractions are familiar Python interfaces that make it easy to leverage AI in your application. These interfaces aim to be simple and self-documenting, adding a touch of AI magic to everyday objects.
 
-🧩 [**AI Models**](https://www.askmarvin.ai/components/ai_model/) for structuring text into type-safe schemas
-
-🏷️ [**AI Classifiers**](https://www.askmarvin.ai/components/ai_classifier/) for bulletproof classification and routing
-
 🪄 [**AI Functions**](https://www.askmarvin.ai/components/ai_function/) for complex business logic and transformations
 
-🤝 [**AI Applications**](https://www.askmarvin.ai/components/ai_application/) for interactive use and persistent state
+🧩 [**AI Models**](https://www.askmarvin.ai/components/ai_model/) for structuring text into type-safe schemas
 
+🤖 (*beta*) [**Assistants**](/src/marvin/beta/assistants/README.md) for building stateful natural language interfaces
 ___
 
-### 🧩 AI Models
+### 🪄 AI Functions
+AI Functions look like regular functions, but have no source code. Instead, an AI interprets their description and inputs to generate their outputs, making them ideal for general NLP applications like sentiment analysis. 
 
-Marvin's most basic component is the AI Model, a drop-in replacement for Pydantic's `BaseModel`. AI Models can be instantiated from any string, making them ideal for structuring data, entity extraction, and synthetic data generation. 
+You can learn more about AI Functions [here](https://www.askmarvin.ai/components/ai_function/).
+
+```python
+from marvin import ai_fn
+
+@ai_fn
+def sentiment(text: str) -> float:
+    """Given `text`, returns a number between 1 (positive) and -1 (negative)
+        indicating its sentiment score.
+    """
+
+
+sentiment("I love working with Marvin!") # 0.8
+sentiment("These examples could use some work...") # -0.2
+```
+
+🎬 You can define your own types for AI Functions to return, using things like:
+- Pydantic [BaseModel](https://pydantic-docs.helpmanual.io/usage/models/)
+- [TypedDict](https://docs.python.org/3/library/typing.html#typing.TypedDict)
+- [`Literal`](https://docs.python.org/3/library/typing.html#typing.Literal) types
+
+```python
+from typing_extensions import TypedDict
+
+class DetailedSentiment(TypedDict):
+    """A detailed sentiment analysis result.
+
+    - `sentiment_score` is a number between 1 (positive) and -1 (negative)
+    - `summary_in_a_word` is a one-word summary of the general sentiment, 
+        use any apt word that captures the nuance of the sentiment
+    """
+    sentiment_score: float
+    summary_in_a_word: str
+
+@ai_fn
+def detailed_sentiment(text: str) -> DetailedSentiment:
+    """What do you think the sentiment of `text` is?
+    
+    Use your theory of mind to put yourself in the shoes of its author.
+    """
+
+detailed_sentiment("I'ma Mario, and I'ma gonna wiiiiin!")
+# {'sentiment_score': 0.8, 'summary_in_a_word': 'energetic'}
+```
+
+### 🧩 AI Models
+AI models are based on Pydantic's [BaseModel](https://pydantic-docs.helpmanual.io/usage/models/), but with a twist: they are instantiated with plain text, and will use an LLM to infer their values.
 
 You can learn more about AI models [here](https://www.askmarvin.ai/components/ai_model/).
 
@@ -50,6 +93,7 @@ from pydantic import BaseModel, Field
 
 @ai_model
 class Location(BaseModel):
+    """A city in the United States"""
     city: str
     state: str = Field(..., description="The two-letter state abbreviation")
 
@@ -58,138 +102,35 @@ Location("The Big Apple")
 # Location(city='New York', state='NY')
 ```
 
-### 🏷️ AI Classifiers
-
-AI Classifiers let you build multi-label classifiers with no code and no training data. Given user input, each classifier uses a [clever logit bias trick](https://twitter.com/AAAzzam/status/1669753721574633473) to force an LLM to deductively choose the best option. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
-
-You can learn more about AI Classifiers [here](https://www.askmarvin.ai/components/ai_classifier/).
-
+## Assistants (Beta)
+Based on OpenAI's Assistant API, Marvin's Assistants are the easiest way to build a stateful natural language interface equipped with familiar tools (i.e. python functions).
 ```python
-from marvin import ai_classifier
-from enum import Enum
+from marvin.beta.assistants import Assistant, Thread
+
+def multiply(x: float, y: float) -> float:
+    return x * y
+
+def divide(x: float, y: float) -> float:
+    return x / y
 
 
-@ai_classifier
-class AppRoute(Enum):
-    """Represents distinct routes command bar for a different application"""
+with Assistant(tools=[multiply, divide]) as assistant:
+    thread = Thread()
+    while True:
+        message = input("You: ")
+        if message.lower() in ["exit", ":q", "bye"]:
+            break
+        thread.add(message)
+        thread.run(assistant)
+        print("\n\n".join(m.content[0].text.value for m in thread.get_messages()))
+        # what is the speed of light (m/s) times the number of days in a year?
 
-    USER_PROFILE = "/user-profile"
-    SEARCH = "/search"
-    NOTIFICATIONS = "/notifications"
-    SETTINGS = "/settings"
-    HELP = "/help"
-    CHAT = "/chat"
-    DOCS = "/docs"
-    PROJECTS = "/projects"
-    WORKSPACES = "/workspaces"
-
-
-AppRoute("update my name")
-# AppRoute.USER_PROFILE
-```
-### 🪄 AI Functions
-
-AI Functions look like regular functions, but have no source code. Instead, an AI uses their description and inputs to generate their outputs, making them ideal for NLP applications like sentiment analysis. 
-
-You can learn more about AI Functions [here](https://www.askmarvin.ai/components/ai_function/).
-
-
-```python
-from marvin import ai_fn
-
-
-@ai_fn
-def sentiment(text: str) -> float:
-    """
-    Given `text`, returns a number between 1 (positive) and -1 (negative)
-    indicating its sentiment score.
-    """
-
-
-sentiment("I love working with Marvin!") # 0.8
-sentiment("These examples could use some work...") # -0.2
+        # what is that number divided by 42?
 ```
 
-### 🤝 AI Applications
+Read more about [our SDK](/src/marvin/beta/assistants/README.md) and/or the [OpenAI docs](https://platform.openai.com/docs/assistants/overview).
 
-AI Applications permit interactive use cases and are designed to be invoked multiple times. They maintain three forms of state: the application's own `state`, the AI's `plan`, and a `history` of interactions. AI Applications can be used to implement many "classic" LLM use cases, such as chatbots, tool-using agents, developer assistants, and more. In addition, thanks to their persistent state and planning, they can implement applications that don't have a traditional chat UX, such as a ToDo app. Here's an example:
+## Reach out!
+💡 **Have an idea for a feature?** toss it in `#development` in [our Discord](https://discord.com/invite/Kgw4HpcuYG)
 
-```python
-from datetime import datetime
-from pydantic import BaseModel, Field
-from marvin import AIApplication
-
-
-# create models to represent the state of our ToDo app
-class ToDo(BaseModel):
-    title: str
-    description: str = None
-    due_date: datetime = None
-    done: bool = False
-
-
-class ToDoState(BaseModel):
-    todos: list[ToDo] = []
-
-
-# create the app with an initial state and description
-todo_app = AIApplication(
-    state=ToDoState(),
-    description=(
-        "A simple todo app. Users will provide instructions for creating and updating"
-        " their todo lists."
-    ),
-)
-
-# invoke the application by adding a todo
-response = todo_app("I need to go to the store tomorrow at 5pm")
-
-
-print(f"Response: {response.content}\n")
-# Response: Got it! I've added a new task to your to-do list. You need to go to the store tomorrow at 5pm.
-
-
-print(f"App state: {todo_app.state.json(indent=2)}")
-# App state: {
-#   "todos": [
-#     {
-#       "title": "Go to the store",
-#       "description": "Buy groceries",
-#       "due_date": "2023-07-12T17:00:00+00:00",
-#       "done": false
-#     }
-#   ]
-# }
-```
-
-
-## Marvin is great for...
-
-### Scalable APIs, data pipelines, and agents:
-
-🏷️ Build bulletproof and lightning-fast classifiers
-
-🧩 Extract structured & type-safe data from unstructured text 
-
-🧪 Generate synthetic data for your applications 
-
-🫡 Solve complex deductive and inferential tasks at scale
-
-🔎 Scrape web data without custom scrapers
-
-
-### AI powered apps with access to tools, data, and the web:
-😍 Customize ChatGPT with system prompts and tools
-
-🎓 Extract relevant insights from your data
-
-🧑‍💻 Add a junior developer to your team
-
-🗣️ Quickly add NLP to your app
-
-### Advanced applications:
-📱 AI applications with persistent state
-
-🕵️ Autonomous agents with high-level planning
-
-💬 Text-to-application: generate stateful applications by describing them
+🐛 **found a bug?** feel free to [open an issue](https://github.com/PrefectHQ/marvin/issues/new/choose)
