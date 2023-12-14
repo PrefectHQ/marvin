@@ -1,51 +1,71 @@
+import asyncio
 from functools import partial, wraps
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
+    Coroutine,
     Generic,
     Optional,
+    TypedDict,
     TypeVar,
     Union,
     overload,
 )
 
+from openai.types.images_response import ImagesResponse
 from pydantic import BaseModel, Field
-from typing_extensions import ParamSpec, Self
+from typing_extensions import NotRequired, ParamSpec, Self, Unpack
 
-from marvin.components.prompt import PromptFunction
+from marvin.client.openai import MarvinImage
+from marvin.components.prompt.fn import PromptFunction
 from marvin.utilities.jinja import (
     BaseEnvironment,
 )
-
-if TYPE_CHECKING:
-    from openai.types.images_response import ImagesResponse
 
 T = TypeVar("T")
 
 P = ParamSpec("P")
 
 
-class AIImage(BaseModel, Generic[P]):
+class AIImageKwargs(TypedDict):
+    environment: NotRequired[BaseEnvironment]
+    prompt: NotRequired[str]
+    generate: NotRequired[Callable[..., "ImagesResponse"]]
+    agenerate: NotRequired[Callable[..., Coroutine[Any, Any, "ImagesResponse"]]]
+
+
+class AIImageKwargsDefaults(BaseModel):
+    environment: Optional[BaseEnvironment] = None
+    prompt: Optional[str] = None
+    generate: Optional[Callable[..., "ImagesResponse"]] = Field(
+        default_factory=lambda: MarvinImage.generate
+    )
+    agenerate: Optional[Callable[..., Coroutine[Any, Any, "ImagesResponse"]]] = Field(
+        default_factory=lambda: MarvinImage.agenerate
+    )
+
+
+class AIImage(MarvinImage, Generic[P]):
     fn: Optional[Callable[P, Any]] = None
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = Field(default=None)
-    render_kwargs: dict[str, Any] = Field(default_factory=dict)
 
-    generate: Optional[Callable[..., "ImagesResponse"]] = Field(default=None)
+    def __call__(
+        self, *args: P.args, **kwargs: P.kwargs
+    ) -> Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]:
+        if asyncio.iscoroutinefunction(self.fn):
+            return self.acall(*args, **kwargs)
+        return self.call(*args, **kwargs)
 
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> "ImagesResponse":
-        generate = self.generate
-        if self.fn is None:
-            raise NotImplementedError
-        if generate is None:
-            from marvin.settings import settings
+    def call(self, *args: P.args, **kwargs: P.kwargs) -> "ImagesResponse":
+        prompt_str = self.as_prompt(*args, **kwargs)
+        response = self.generate(prompt=prompt_str)
+        return response
 
-            generate = settings.openai.images.generate
-
-        _response = generate(prompt=self.as_prompt(*args, **kwargs))
-
-        return _response
+    async def acall(self, *args: P.args, **kwargs: P.kwargs) -> "ImagesResponse":
+        prompt_str = self.as_prompt(*args, **kwargs)
+        response = await self.agenerate(prompt=prompt_str)
+        return response
 
     def as_prompt(
         self,
@@ -54,11 +74,10 @@ class AIImage(BaseModel, Generic[P]):
     ) -> str:
         return (
             PromptFunction[BaseModel]
-            .as_function_call(
+            .as_tool_call(
                 fn=self.fn,
                 environment=self.environment,
                 prompt=self.prompt,
-                **self.render_kwargs,
             )(*args, **kwargs)
             .messages[0]
             .content
@@ -68,10 +87,7 @@ class AIImage(BaseModel, Generic[P]):
     @classmethod
     def as_decorator(
         cls: type[Self],
-        *,
-        environment: Optional[BaseEnvironment] = None,
-        prompt: Optional[str] = None,
-        **render_kwargs: Any,
+        **kwargs: Unpack[AIImageKwargs],
     ) -> Callable[P, Self]:
         pass
 
@@ -80,10 +96,7 @@ class AIImage(BaseModel, Generic[P]):
     def as_decorator(
         cls: type[Self],
         fn: Callable[P, Any],
-        *,
-        environment: Optional[BaseEnvironment] = None,
-        prompt: Optional[str] = None,
-        **render_kwargs: Any,
+        **kwargs: Unpack[AIImageKwargs],
     ) -> Self:
         pass
 
@@ -91,64 +104,46 @@ class AIImage(BaseModel, Generic[P]):
     def as_decorator(
         cls: type[Self],
         fn: Optional[Callable[P, Any]] = None,
-        *,
-        environment: Optional[BaseEnvironment] = None,
-        prompt: Optional[str] = None,
-        **render_kwargs: Any,
+        **kwargs: Unpack[AIImageKwargs],
     ) -> Union[Self, Callable[[Callable[P, Any]], Self]]:
+        passed_kwargs: dict[str, Any] = {
+            k: v for k, v in kwargs.items() if v is not None
+        }
         if fn is None:
             return partial(
                 cls,
-                environment=environment,
-                **({"prompt": prompt} if prompt else {}),
-                **render_kwargs,
+                **passed_kwargs,
             )
 
         return cls(
             fn=fn,
-            environment=environment,
-            **({"prompt": prompt} if prompt else {}),
-            **render_kwargs,
+            **passed_kwargs,
         )
 
 
 def ai_image(
     fn: Optional[Callable[P, Any]] = None,
-    *,
-    environment: Optional[BaseEnvironment] = None,
-    prompt: Optional[str] = None,
-    **render_kwargs: Any,
+    **kwargs: Unpack[AIImageKwargs],
 ) -> Union[
-    Callable[[Callable[P, Any]], Callable[P, "ImagesResponse"]],
-    Callable[P, "ImagesResponse"],
+    Callable[
+        [Callable[P, Any]],
+        Callable[P, Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]],
+    ],
+    Callable[P, Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]],
 ]:
     def wrapper(
-        func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs
-    ) -> "ImagesResponse":
+        func: Callable[P, Any], *args_: P.args, **kwargs_: P.kwargs
+    ) -> Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]:
         return AIImage[P].as_decorator(
-            func,
-            environment=environment,
-            prompt=prompt,
-            **render_kwargs,
-        )(*args, **kwargs)
+            func, **AIImageKwargsDefaults(**kwargs).model_dump(exclude_none=True)
+        )(*args_, **kwargs_)
 
     if fn is not None:
         return wraps(fn)(partial(wrapper, fn))
 
-    def decorator(fn: Callable[P, Any]) -> Callable[P, "ImagesResponse"]:
+    def decorator(
+        fn: Callable[P, Any]
+    ) -> Callable[P, Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]]:
         return wraps(fn)(partial(wrapper, fn))
 
     return decorator
-
-
-def create_image(
-    prompt: str,
-    environment: Optional[BaseEnvironment] = None,
-    generate: Optional[Callable[..., "ImagesResponse"]] = None,
-    **model_kwargs: Any,
-) -> "ImagesResponse":
-    if generate is None:
-        from marvin.settings import settings
-
-        generate = settings.openai.images.generate
-    return generate(prompt=prompt, **model_kwargs)

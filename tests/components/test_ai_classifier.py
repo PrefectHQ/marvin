@@ -32,7 +32,7 @@ class TestAIClassifer:
         def test_ai_classifier_literal_return_type_with_docstring(self):
             @ai_classifier
             def sentiment(text: str) -> Sentiment:
-                """Classify sentiment - also its opposite day"""
+                """Classify sentiment. Keep in mind it's opposite day"""
 
             result = sentiment("Great!")
 

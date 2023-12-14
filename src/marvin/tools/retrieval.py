@@ -1,30 +1,32 @@
 import asyncio
-import json
 import os
-from typing import Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import httpx
 from typing_extensions import Literal
 
 import marvin
 
+if TYPE_CHECKING:
+    from openai.types import CreateEmbeddingResponse
+
 try:
     HOST, PORT = (
-        marvin.settings.chroma_server_host,
-        marvin.settings.chroma_server_http_port,
+        getattr(marvin.settings, "chroma_server_host"),
+        getattr(marvin.settings, "chroma_server_http_port"),
     )
 except AttributeError:
-    HOST = os.environ.get("MARVIN_CHROMA_SERVER_HOST", "localhost")
-    PORT = os.environ.get("MARVIN_CHROMA_SERVER_HTTP_PORT", 8000)
+    HOST = os.environ.get("MARVIN_CHROMA_SERVER_HOST", "localhost")  # type: ignore
+    PORT = os.environ.get("MARVIN_CHROMA_SERVER_HTTP_PORT", 8000)  # type: ignore
 
 QueryResultType = Literal["documents", "distances", "metadatas"]
 
 
-async def create_openai_embeddings(texts: list[str]) -> list[list[float]]:
+async def create_openai_embeddings(texts: list[str]) -> list[float]:
     """Create OpenAI embeddings for a list of texts."""
 
     try:
-        import numpy  # noqa F401
+        import numpy  # noqa F401 # type: ignore
     except ImportError:
         raise ImportError(
             "The numpy package is required to create OpenAI embeddings. Please install"
@@ -32,21 +34,19 @@ async def create_openai_embeddings(texts: list[str]) -> list[list[float]]:
         )
     from openai import AsyncOpenAI
 
-    return (
-        (
-            await AsyncOpenAI(
-                api_key=marvin.settings.openai.api_key.get_secret_value()
-            ).embeddings.create(
-                input=[text.replace("\n", " ") for text in texts],
-                model="text-embedding-ada-002",
-            )
-        )
-        .data[0]
-        .embedding
+    embedding: "CreateEmbeddingResponse" = await AsyncOpenAI(
+        api_key=getattr(
+            marvin.settings.openai.api_key, "get_secret_value", lambda: None
+        )()
+    ).embeddings.create(
+        input=[text.replace("\n", " ") for text in texts],
+        model="text-embedding-ada-002",
     )
 
+    return embedding.data[0].embedding
 
-async def list_collections() -> list[dict]:
+
+async def list_collections() -> list[dict[str, Any]]:
     async with httpx.AsyncClient() as client:
         chroma_api_url = f"http://{HOST}:{PORT}"
         response = await client.get(
@@ -61,8 +61,8 @@ async def query_chroma(
     query: str,
     collection: str = "marvin",
     n_results: int = 5,
-    where: Optional[dict] = None,
-    where_document: Optional[dict] = None,
+    where: Optional[dict[str, Any]] = None,
+    where_document: Optional[dict[str, Any]] = None,
     include: Optional[list[QueryResultType]] = None,
     max_characters: int = 2000,
 ) -> str:
@@ -88,15 +88,13 @@ async def query_chroma(
 
         response = await client.post(
             f"{chroma_api_url}/api/v1/collections/{collection_id}/query",
-            data=json.dumps(
-                {
-                    "query_embeddings": [query_embedding],
-                    "n_results": n_results,
-                    "where": where or {},
-                    "where_document": where_document or {},
-                    "include": include or ["documents"],
-                }
-            ),
+            data={
+                "query_embeddings": [query_embedding],
+                "n_results": n_results,
+                "where": where or {},
+                "where_document": where_document or {},
+                "include": include or ["documents"],
+            },
             headers={"Content-Type": "application/json"},
         )
 
@@ -112,8 +110,8 @@ async def multi_query_chroma(
     queries: list[str],
     collection: str = "marvin",
     n_results: int = 5,
-    where: Optional[dict] = None,
-    where_document: Optional[dict] = None,
+    where: Optional[dict[str, Any]] = None,
+    where_document: Optional[dict[str, Any]] = None,
     include: Optional[list[QueryResultType]] = None,
     max_characters: int = 2000,
 ) -> str:
