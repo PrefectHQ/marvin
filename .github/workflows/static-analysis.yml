@@ -7,7 +7,7 @@ env:
 
 on:
   push:
-    branches: ["main", "marvin-old"]
+    branches: ["main"]
   pull_request:
   workflow_dispatch:
 
