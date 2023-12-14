@@ -17,10 +17,12 @@ from openai import AsyncClient, Client
 from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import NotRequired, ParamSpec, Self, Unpack
 
+import marvin
 from marvin._mappings.chat_completion import chat_completion_to_model
 from marvin.client.openai import AsyncMarvinClient, MarvinClient
 from marvin.components.prompt.fn import PromptFunction
 from marvin.utilities.jinja import BaseEnvironment
+from marvin.utilities.logging import get_logger
 
 if TYPE_CHECKING:
     from openai.types.chat import ChatCompletion
@@ -51,10 +53,10 @@ class AIFunctionKwargsDefaults(BaseModel):
     model_description: str = "Formats the response."
     field_name: str = "data"
     field_description: str = "The data to format."
-    model: Optional[str] = None
+    model: str = marvin.settings.openai.chat.completions.model
     client: Optional[Client] = None
     aclient: Optional[AsyncClient] = None
-    temperature: Optional[float] = None
+    temperature: Optional[float] = marvin.settings.openai.chat.completions.temperature
 
 
 class AIFunction(
@@ -89,6 +91,10 @@ class AIFunction(
     client: Client = Field(default_factory=lambda: MarvinClient().client)
     aclient: AsyncClient = Field(default_factory=lambda: AsyncMarvinClient().client)
 
+    @property
+    def logger(self):
+        return get_logger(self.__class__.__name__)
+
     def __call__(
         self, *args: P.args, **kwargs: P.kwargs
     ) -> Union[T, Coroutine[Any, Any, T]]:
@@ -101,6 +107,7 @@ class AIFunction(
         response: ChatCompletion = MarvinClient(client=self.client).chat(
             **prompt.serialize()
         )
+        self.logger.debug_kv("Calling", f"{self.fn.__name__}({args}, {kwargs})", "blue")
         return getattr(
             chat_completion_to_model(model, response, field_name=self.field_name),
             self.field_name,

@@ -22,6 +22,7 @@ from typing_extensions import Literal
 
 class MarvinSettings(BaseSettings):
     def __setattr__(self, name: str, value: Any) -> None:
+        # wrap bare strings in SecretStr if the field is annotated with SecretStr
         field = self.model_fields.get(name)
         if field:
             annotation = field.annotation
@@ -44,6 +45,10 @@ class ChatCompletionSettings(MarvinSettings):
     )
     model: str = Field(
         description="The default chat model to use.", default="gpt-3.5-turbo"
+    )
+
+    temperature: float = Field(
+        description="The default temperature to use.", default=0.1
     )
 
     @property
