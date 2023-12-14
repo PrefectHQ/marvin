@@ -18,7 +18,7 @@ prompt = inspect.cleandoc(
     " `{{_response_model.function.name}}` function. Use the provided text to extract or"
     " infer any parameters needed by `{{_response_model.function.name}}`, including any"
     " missing data."
-    " user: The text to parse: {{text}}"
+    " \n\nHUMAN: The text to parse: {{text}}"
 )
 
 

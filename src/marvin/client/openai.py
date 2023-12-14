@@ -1,3 +1,4 @@
+from functools import partial
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -83,7 +84,9 @@ class MarvinClient(pydantic.BaseModel):
 
     @classmethod
     def wrap(cls, client: Client) -> "Client":
-        client.chat.completions.create = cls(client=client).chat  # type: ignore
+        client.chat.completions.create = partial(
+            cls(client=client).chat, completion=client.chat.completions.create
+        )  # type: ignore #noqa
         return client
 
     @overload
@@ -165,7 +168,9 @@ class AsyncMarvinClient(pydantic.BaseModel):
 
     @classmethod
     def wrap(cls, client: AsyncClient) -> "AsyncClient":
-        client.chat.completions.create = cls(client=client).chat  # type: ignore
+        client.chat.completions.create = partial(
+            cls(client=client).chat, completion=client.chat.completions.create
+        )  # type: ignore #noqa
         return client
 
     @overload

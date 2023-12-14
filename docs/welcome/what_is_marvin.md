@@ -5,6 +5,19 @@ free to use, rigorously type-hinted, used by thousands of engineers, and built b
 
 
 ??? Question "Explain Like I'm Five"
+    === "I'm technical"
+
+        Marvin lets your software speak English and ask questions to LLMs.
+
+        It introspects the types and docstrings of your functions and data models, and lets you cast them
+        to prompts automatically to pass to a Large Language Model. This lets you write code as you normally would
+        instead of writing prompts, and we handle the translation back and forth for you. 
+
+        This lets you focus on what you've always focused on: writing clean, versioned, reusable *code* and *data models*, 
+        and not scrutinizing whether you begged your LLM hard enough to output JSON. 
+
+        Extracting, generating, cleaning, or classifying data is as simple as writing a function or a data model.
+
     === "I'm not technical"
 
         Marvin lets engineers who know Python use Large Language Models without needing to write prompts.
@@ -20,18 +33,6 @@ free to use, rigorously type-hinted, used by thousands of engineers, and built b
         
         Simply put, it lets you use Generative AI without feeling like you have to learn a framework.
 
-    === "I'm technical"
-
-        Marvin lets your software speak English and ask questions to LLMs.
-
-        It introspects the types and docstrings of your functions and data models, and lets you cast them
-        to prompts automatically to pass to a Large Language Model. This lets you write code as you normally would
-        instead of writing prompts, and we handle the translation back and forth for you. 
-
-        This lets you focus on what you've always focused on: writing clean, versioned, reusable *code* and *data models*, 
-        and not scrutinizing whether you begged your LLM hard enough to output JSON. 
-
-        Extracting, generating, cleaning, or classifying data is as simple as writing a function or a data model.
 
 Marvin is lightweight and is built for incremental adoption. You can use it purely as a serialization library and bring your own stack,
 or fully use its engine to work with OpenAI and other providers. 
@@ -93,7 +94,7 @@ For years we've built open source software used by tens of thousands of data and
 
 ## What models do we support?
 
-Marvin supports any model so long as it adheres to the OpenAI spec. It's the easiest way to use OpenAI Function Calling. We run (and foot the bill for!) a public evaluation test suite to ensure that our library does what we say it does. If you're a community member who wants to build an maintain an integration with another provider, get in touch. 
+Marvin supports any model so long as it adheres to the OpenAI spec. It's the easiest way to use Function Calling and Tool use. We run (and foot the bill for!) a public evaluation test suite to ensure that our library does what we say it does. If you're a community member who wants to build an maintain an integration with another provider, get in touch. 
 
 Note that Marvin can be used as a serialization library, so you can bring your own Large Language Models and exclusively use Marvin to generate prompts from your code.
 
@@ -103,10 +104,11 @@ At Prefect we support thousands of engineers in workflow orchestration, from sma
 started working with our community to adopt AI into their workflows and found there wasn't a sane option for teams looking
 to build simple, quickly, and durable with Generative AI. 
 
-## Why Marvin over X?
+## Why Marvin over alternatives?
+
+Marvin's built and maintained by the team at Prefect. We work with thousands of engineers daily and work backwards from their 
+experiences to build reliable, intuitive and pleasant interfaces to otherwise hard things. 
 
 There's a whole fleet of frameworks to work with Large Language Models, but we're not smart enough to understand them. We
 try to fight abstractions wherever we can so that users can easily understand and customize what's going on. 
 
-At Prefect we've worked for years to find a developer experience that engineers find inuitive and pleasant to work with. We're porting our
-lessons from Prefect to working with Generative AI.  

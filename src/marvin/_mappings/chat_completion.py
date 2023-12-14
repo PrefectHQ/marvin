@@ -46,6 +46,9 @@ def chat_completion_to_model(
         return cast(T, data)
 
 
+cast_chat_completion_to_model = chat_completion_to_model
+
+
 def chat_completion_to_type(response_type: U, completion: "ChatCompletion") -> "U":
     options = cast_type_to_options(response_type)
     message: ChatCompletionMessage = completion.choices[0].message

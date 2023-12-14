@@ -73,7 +73,7 @@ class AIFunction(
         The user will provide function inputs (if any) and you must respond with
         the most likely result.
 
-        user: The function was called with the following inputs:
+        \n\nHUMAN: The function was called with the following inputs:
         {%for (arg, value) in _arguments.items()%}
         - {{ arg }}: {{ value }}
         {% endfor %}

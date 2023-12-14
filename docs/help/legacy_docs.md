@@ -1,10 +1,12 @@
-# Viewing legacy documentation
+# Legacy Documentation
+
+If you want to view documentation of previous versions of Marvin, here's a step by step guide on how to do that.
 
 ## Prerequisites
 
-- Git
+- `Git`
 - `python3`
-- pip
+- `pip`
 
 ## Automated Script for Legacy Documentation
 To build and view the docs for a specific version of Marvin, you can use [this script](/scripts/serve_legacy_docs).

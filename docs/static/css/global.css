@@ -20,6 +20,10 @@ article a {
     margin-top: 8px !important;
 }
 
+.md-typeset .admonition {
+    margin-top: 0px !important;
+}
+
 details .tabbed-set {
     margin-top: 0px !important;
     margin-bottom: 0px !important;
