@@ -198,7 +198,7 @@ def ai_classifier(
         )
 
     def decorator(
-        func: Callable[P, Union[T, Coroutine[Any, Any, T]]]
+        func: Callable[P, Union[T, Coroutine[Any, Any, T]]],
     ) -> Callable[P, Union[T, Coroutine[Any, Any, T]]]:
         return AIClassifier[P, T].as_decorator(
             fn=func,
