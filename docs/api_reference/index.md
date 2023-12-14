@@ -6,7 +6,7 @@
 - [AI Models](/api_reference/components/ai_model/)
 
 ## Settings
-- [settings](/api_reference/settings/)
+- [Settings](/api_reference/settings/)
 
 ## Utilities
 - [`jinja`](/api_reference/utilities/jinja/)
