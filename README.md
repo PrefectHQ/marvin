@@ -6,7 +6,7 @@
 [![PyPI version](https://badge.fury.io/py/marvin.svg)](https://badge.fury.io/py/marvin)
 [![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
 [![Docs](https://img.shields.io/badge/docs-askmarvin.ai-blue)](https://www.askmarvin.ai)
-### An engineering framework
+### An AI engineering framework
 ... made with 💙 by the team at [Prefect](https://www.prefect.io/).
 
 ```bash
