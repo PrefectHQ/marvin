@@ -6,7 +6,6 @@ from typing import (
     Callable,
     TypeVar,
     Union,
-    cast,
 )
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
@@ -41,9 +40,6 @@ def chat_completion_to_model(
         data: dict[str, Any] = {}
         data[field_name] = json.loads(tool_arguments[0])
         return response_model.model_validate_json(json.dumps(data))
-    else:
-        data: dict[str, Any] = json.loads(tool_arguments[0])
-        return cast(T, data)
 
 
 def chat_completion_to_type(response_type: U, completion: "ChatCompletion") -> "U":
