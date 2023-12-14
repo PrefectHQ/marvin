@@ -12,8 +12,42 @@ article a {
     text-decoration: underline !important;
 }
 
+.md-main__inner {
+    margin-top: 8px !important;
+}
+
+.md-main {
+    margin-top: 8px !important;
+}
+
+details .tabbed-set {
+    margin-top: 0px !important;
+    margin-bottom: 0px !important;
+}
+
+details .tabbed-labels {
+    margin-left: -14px !important;
+    width: calc(100% + 28px) !important;
+    max-width: calc(100% + 28px) !important;
+}
+
+.admonition .tabbed-set {
+    margin-top: 0px !important;
+    margin-bottom: 0px !important;
+}
+
+.admonition .tabbed-labels {
+    margin-left: -14px !important;
+    width: calc(100% + 28px);
+    max-width: calc(100% + 28px);
+}
+
 p {
     margin-bottom: 15px;
+}
+
+h1 {
+    margin-top: 0px !important;
 }
 
 h2 {

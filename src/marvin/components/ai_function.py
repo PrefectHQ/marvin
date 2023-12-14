@@ -44,7 +44,7 @@ class AIFunctionKwargs(TypedDict):
 
 
 class AIFunctionKwargsDefaults(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = None
     model_name: str = "FormatResponse"
@@ -61,7 +61,7 @@ class AIFunction(
     BaseModel,
     Generic[P, T],
 ):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     fn: Optional[Callable[P, T]] = None
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = Field(default=inspect.cleandoc("""

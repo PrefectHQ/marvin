@@ -1,7 +1,7 @@
 # What is Marvin?
 
-Marvin is a library that lets you use Large Language Models by writing code, not prompts. It's open source,
-free to use, used by thousands of engineers, and built by the engineering team at [Prefect](https://prefect.io).
+Marvin is a Python library that lets you use Large Language Models by writing code, not prompts. It's open source,
+free to use, rigorously type-hinted, used by thousands of engineers, and built by the engineering team at [Prefect](https://prefect.io).
 
 
 ??? Question "Explain Like I'm Five"
@@ -33,12 +33,12 @@ free to use, used by thousands of engineers, and built by the engineering team a
 
         Extracting, generating, cleaning, or classifying data is as simple as writing a function or a data model.
 
-Marvin is built for incremental adoption. You can use it purely as a serialization library and bring your own stack,
+Marvin is lightweight and is built for incremental adoption. You can use it purely as a serialization library and bring your own stack,
 or fully use its engine to work with OpenAI and other providers. 
 
 !!! Example "What Marvin feels like."
 
-    === "Extracting structured data"
+    === "Structured Data Extraction"
         Marvin exposes a number of high level components to simplify working with AI. 
 
         ```python
@@ -54,9 +54,9 @@ or fully use its engine to work with OpenAI and other providers.
         ai_model(Location)("They say they're from the Windy City!")
         # Location(city='Chicago', state='Illinois', latitude=41.8781, longitude=-87.6298)
         ```
-        Marvin's components turn your function into a prompt, ask AI for its most likely output, and parses its response.
+        Notice there's no code written, just the expected types. Marvin's components turn your function into a prompt, uses AI to get its most likely output, and parses its response.
     
-    === "Building text classifiers"
+    === "Text Classification"
     
         Marvin exposes a number of high level components to simplify working with AI. 
 
@@ -65,15 +65,16 @@ or fully use its engine to work with OpenAI and other providers.
         from typing import Literal
 
         @ai_classifier
-        def customer_intent(n: int, color: str = 'red') -> Literal['Store Hours', 'Pharmacy', 'Returns']
+        def customer_intent(text: str) -> Literal['Store Hours', 'Pharmacy', 'Returns']:
             """Classifies incoming customer intent"""
 
         customer_intent("I need to pick up my prescription") # "Pharmacy"
+
         ```
         Notice `customer_intent` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
         parses its response.
     
-    === "Generating synthetic data"
+    === "Business Logic"
 
         Marvin exposes a number of high level components to simplify working with AI. 
 
@@ -88,12 +89,11 @@ or fully use its engine to work with OpenAI and other providers.
         ```
         Notice `list_fruits` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
         parses its response.
-
-Marvin's goal is to bring the best practices for building dependable, observable software to generative AI. As the team behind [Prefect](https://github.com/prefecthq/prefect), which does something very similar for data engineers, we've poured years of open-source developer tool experience and lessons into Marvin's design.
+For years we've built open source software used by tens of thousands of data and machine learning engineers daily. Marvin brings those best practices for building dependable, observable software to generative AI. 
 
 ## What models do we support?
 
-Marvin officially supports OpenAI's suite of models. It's the easiest way to use OpenAI Function Calling. We run (and pay for!) a public evaluation test suite to ensure that our library does what we say it does. If you're a community member who wants to build an maintain an integration with another provider, get in touch. 
+Marvin supports any model so long as it adheres to the OpenAI spec. It's the easiest way to use OpenAI Function Calling. We run (and foot the bill for!) a public evaluation test suite to ensure that our library does what we say it does. If you're a community member who wants to build an maintain an integration with another provider, get in touch. 
 
 Note that Marvin can be used as a serialization library, so you can bring your own Large Language Models and exclusively use Marvin to generate prompts from your code.
 

@@ -11,14 +11,15 @@ from typing import (
 )
 
 import pydantic
-from marvin import settings
-from marvin._mappings.base_model import cast_model_to_toolset
-from marvin._mappings.chat_completion import chat_completion_to_model
 from openai import AsyncClient, Client
 from openai.types.chat import (
     ChatCompletion,
 )
 from typing_extensions import Concatenate, ParamSpec
+
+from marvin import settings
+from marvin._mappings.base_model import cast_model_to_toolset
+from marvin._mappings.chat_completion import chat_completion_to_model
 
 if TYPE_CHECKING:
     from openai._base_client import HttpxBinaryResponseContent
@@ -79,6 +80,11 @@ class MarvinClient(pydantic.BaseModel):
             api_key=getattr(settings.openai.api_key, "get_secret_value", lambda: "")()
         )
     )
+
+    @classmethod
+    def wrap(cls, client: Client) -> "Client":
+        client.chat.completions.create = cls(client=client).chat  # type: ignore
+        return client
 
     @overload
     def chat(
@@ -158,7 +164,7 @@ class AsyncMarvinClient(pydantic.BaseModel):
     )
 
     @classmethod
-    def wrap(cls, client: Client) -> "Client":
+    def wrap(cls, client: AsyncClient) -> "AsyncClient":
         client.chat.completions.create = cls(client=client).chat  # type: ignore
         return client
 

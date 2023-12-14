@@ -208,6 +208,7 @@ class Settings(MarvinSettings):
         env_file="~/.marvin/.env",
         extra="allow",
         arbitrary_types_allowed=True,
+        protected_namespaces=(),
     )
 
     openai: OpenAISettings = Field(default_factory=OpenAISettings)

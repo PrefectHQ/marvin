@@ -1,54 +1,134 @@
 # Quickstart
 
-![](/img/heroes/dont_panic.png)
-
 After [installing Marvin](../installation), the fastest way to get started is by using one of Marvin's high-level [AI components](../../components/overview). These components are designed to integrate AI into abstractions you already know well, creating the best possible opt-in developer experience.
 
-## Configure LLM Provider
+!!! info "Initializing a Client"
+    To use Marvin you must have an API Key configured for an external model provider, like OpenAI. 
+    
+    ```python
+    from openai import OpenAI
 
-Marvin is a high-level interface for working with LLMs. In order to use it, you must configure an LLM provider. At this time, Marvin supports OpenAI's GPT-3.5 and GPT-4 models, Anthropic's Claude 1 and Claude 2 models, and the Azure OpenAI Service. The default model is OpenAI's `gpt-4`.
+    client = OpenAI(api_key = 'YOUR_API_KEY')
+    ```
 
-To use the default model, provide an API key:
-
-```python
-import marvin
-
-# to use an OpenAI model (if not specified, defaults to gpt-4)
-marvin.settings.openai.api_key = YOUR_API_KEY
-```
-
-To use another provider or model, please see the [configuration docs](../../configuration/settings/#llm-providers).
 
 ## AI Models
 
-Marvin's most basic component is the AI Model, a drop-in replacement for Pydantic's `BaseModel`. AI Models can be instantiated from any string, making them ideal for structuring data, entity extraction, and synthetic data generation:
+Marvin's most basic component is the AI Model, built on Pydantic's `BaseModel`. AI Models can be instantiated from any string, making them ideal for structuring data and entity extraction.
 
-```python
-from marvin import ai_model
-from pydantic import BaseModel, Field
+!!! example "Example"
+    === "As a decorator"
+        `ai_model` can decorate pydantic models to give them parsing powers.
+        ```python
+        from marvin import ai_model
+        from pydantic import BaseModel, Field
+        from openai import OpenAI
+
+        client = OpenAI(api_key = 'YOUR_API_KEY')
+
+        @ai_model(client = client)
+        class Location(BaseModel):
+            city: str
+            state_abbreviation: str = Field(
+                ..., 
+                description="The two-letter state abbreviation"
+            )
 
 
-@ai_model
-class Location(BaseModel):
-    city: str
-    state: str = Field(..., description="The two-letter state abbreviation")
+        Location("The Big Apple")
+        ```
+        ??? info "Generated Prompt"
+            All 
+        !!! success "Result"
+            ```json
+            Location(city='New York', state='NY')
+            ```
 
+    === "As a function"
+        `ai_model` can cast unstructured data to any `type` (or `GenericAlias`).
+        ```python
+        from marvin import ai_model
+        from pydantic import BaseModel, Field
+        from openai import OpenAI
 
-Location("The Big Apple")
-```
+        client = OpenAI(api_key = 'YOUR_API_KEY')
 
-    Location(city='New York', state='NY')
+        class Location(BaseModel):
+            city: str
+            state_abbreviation: str = Field(
+                ..., 
+                description="The two-letter state abbreviation"
+            )
+
+        ai_model(Location, client = client)("The Big Apple")
+        ```
+        !!! success "Result"
+            ```python
+            Location(city='New York', state='NY')
+            ```
 
 ## AI Classifiers
 
 AI Classifiers let you build multi-label classifiers with no code and no training data. Given user input, each classifier uses a [clever logit bias trick](https://twitter.com/AAAzzam/status/1669753721574633473) to force an LLM to deductively choose the best option. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
 
+!!! example "Example"
+    === "As a decorator"
+        `ai_classifier` can decorate python functions whose return annotation is an `Enum` or `Literal`.
+        ```python
+        from marvin import ai_classifier
+        from enum import Enum
+
+        class AppRoute(Enum):
+            """Represents distinct routes command bar for a different application"""
+
+            USER_PROFILE = "/user-profile"
+            SEARCH = "/search"
+            NOTIFICATIONS = "/notifications"
+            SETTINGS = "/settings"
+            HELP = "/help"
+            CHAT = "/chat"
+            DOCS = "/docs"
+            PROJECTS = "/projects"
+            WORKSPACES = "/workspaces"
+
+        @ai_classifier
+        def classify_intent(text: str) -> AppRoute:
+            '''Classifies user's intent into most useful route'''
+
+        AppRoute("update my name")
+        ```
+        !!! success "Result"
+            ```python
+            Location(city='New York', state='NY')
+            ```
+
+    === "As a function"
+        `ai_model` can cast unstructured data to any `type` (or `GenericAlias`).
+        ```python
+        from marvin import ai_model
+        from pydantic import BaseModel, Field
+        from openai import OpenAI
+
+        client = OpenAI(api_key = 'YOUR_API_KEY')
+
+        class Location(BaseModel):
+            city: str
+            state_abbreviation: str = Field(
+                ..., 
+                description="The two-letter state abbreviation"
+            )
+
+        ai_model(Location, client = client)("The Big Apple")
+        ```
+        !!! success "Result"
+            ```python
+            Location(city='New York', state='NY')
+            ```
+
 ```python
 from marvin import ai_classifier
 from enum import Enum
 
-
-@ai_classifier
 class AppRoute(Enum):
     """Represents distinct routes command bar for a different application"""
 
@@ -62,6 +142,9 @@ class AppRoute(Enum):
     PROJECTS = "/projects"
     WORKSPACES = "/workspaces"
 
+@ai_classifier
+def classify_intent(text: str) -> AppRoute:
+    '''Classifies user's intent into most useful route'''
 
 AppRoute("update my name")
 ```
