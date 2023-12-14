@@ -97,9 +97,7 @@ def cast_to_model(
         if hasattr(metadata, "description") and isinstance(metadata.description, str):
             annotated_field_description: Optional[str] = metadata.description  # noqa
         elif isinstance(metadata, dict):
-            annotated_field_description: Optional[str] = metadata.get(
-                "description", ""
-            )  # noqa
+            annotated_field_description: Optional[str] = metadata.get("description", "")  # noqa
         else:
             pass
 

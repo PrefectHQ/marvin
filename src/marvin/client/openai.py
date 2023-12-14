@@ -49,7 +49,14 @@ def with_response_model(
                 cast(type[pydantic.BaseModel], response_model)
             )
             kwargs.update({"tools": [tool.model_dump()]})
-            kwargs.update({"tool_choice": {"type": "function", "function": {"name": tool.function.name}}})  # type: ignore # noqa: E501
+            kwargs.update(
+                {
+                    "tool_choice": {
+                        "type": "function",
+                        "function": {"name": tool.function.name},
+                    }
+                }
+            )  # type: ignore # noqa: E501
         response = create(*args, **kwargs)
         if isinstance(response, ChatCompletion) and parse_response:
             return handle_response_model(
