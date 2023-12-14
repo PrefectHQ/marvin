@@ -57,9 +57,11 @@ class TestAIModels:
         class RentalHistory(BaseModel):
             neighborhood: List[Neighborhood]
 
-        assert RentalHistory("""\
+        assert RentalHistory(
+            """\
             I lived in Palms, then Mar Vista, then Pico Robertson.
-        """)
+        """
+        )
 
     @pytest.mark.flaky(max_runs=3)
     def test_resume(self):
@@ -76,12 +78,14 @@ class TestAIModels:
             greater_than_ten_years_management_experience: bool
             technologies: List[Experience]
 
-        x = Resume("""\
+        x = Resume(
+            """\
             Data Engineering Manager, 2017-2022
             • Managed team of three engineers and data scientists
             • Deployed and maintained internal Apache Kafka pipeline
             • Built tree-based classifier to predict customer churn (xgboost)\
-        """)
+        """
+        )
 
         assert x.greater_than_three_years_management_experience
         assert not x.greater_than_ten_years_management_experience
@@ -94,10 +98,12 @@ class TestAIModels:
                 Literal["Adam", "Nate", "Jeremiah", "Marvin", "Billy Bob Thornton"]
             ]
 
-        x = LLMConference("""
+        x = LLMConference(
+            """
             The conference for best LLM framework will feature talks by
             Adam, Nate, Jeremiah, Marvin, and Billy Bob Thornton.
-        """)
+        """
+        )
         assert len(set(x.speakers)) == 5
         assert set(x.speakers) == set(
             ["Adam", "Nate", "Jeremiah", "Marvin", "Billy Bob Thornton"]

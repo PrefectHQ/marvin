@@ -80,26 +80,24 @@ def cast_to_model(
         annotated_field_name: Optional[str] = field_name
 
         if hasattr(metadata, "extra") and isinstance(metadata.extra, dict):
-            annotated_field_name: Optional[str] = metadata.extra.get("name", "")  # noqa
+            annotated_field_name: Optional[str] = metadata.extra.get("name", "")
         elif hasattr(metadata, "json_schema_extra") and isinstance(
             metadata.json_schema_extra, dict
-        ):  # noqa
+        ):
             annotated_field_name: Optional[str] = metadata.json_schema_extra.get(
                 "name", ""
-            )  # noqa
+            )
         elif isinstance(metadata, dict):
-            annotated_field_name: Optional[str] = metadata.get("name", "")  # noqa
+            annotated_field_name: Optional[str] = metadata.get("name", "")
         elif isinstance(metadata, str):
             annotated_field_name: Optional[str] = metadata
         else:
             pass
         annotated_field_description: Optional[str] = description or ""
         if hasattr(metadata, "description") and isinstance(metadata.description, str):
-            annotated_field_description: Optional[str] = metadata.description  # noqa
+            annotated_field_description: Optional[str] = metadata.description
         elif isinstance(metadata, dict):
-            annotated_field_description: Optional[str] = metadata.get(
-                "description", ""
-            )  # noqa
+            annotated_field_description: Optional[str] = metadata.get("description", "")
         else:
             pass
 

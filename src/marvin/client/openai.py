@@ -33,7 +33,13 @@ T = TypeVar("T", bound=pydantic.BaseModel)
 
 def with_response_model(
     create: Callable[P, "ChatCompletion"],
-) -> Callable[Concatenate[type[T], P,], Union["ChatCompletion", T],]:
+) -> Callable[
+    Concatenate[
+        type[T],
+        P,
+    ],
+    Union["ChatCompletion", T],
+]:
     def create_wrapper(
         response_model: type[T],
         *args: P.args,

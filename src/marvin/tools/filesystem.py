@@ -49,9 +49,9 @@ def write_lines(
         if mode == "insert":
             lines[insert_line:insert_line] = contents.splitlines(True)
         elif mode == "overwrite":
-            lines[insert_line : insert_line + len(contents.splitlines())] = (
-                contents.splitlines(True)
-            )
+            lines[
+                insert_line : insert_line + len(contents.splitlines())
+            ] = contents.splitlines(True)
         else:
             raise ValueError(f"Invalid mode: {mode}")
     with open(path, "w") as f:

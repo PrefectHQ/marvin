@@ -66,7 +66,9 @@ class AIFunction(
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     fn: Optional[Callable[P, T]] = None
     environment: Optional[BaseEnvironment] = None
-    prompt: Optional[str] = Field(default=inspect.cleandoc("""
+    prompt: Optional[str] = Field(
+        default=inspect.cleandoc(
+            """
         Your job is to generate likely outputs for a Python function with the
         following signature and docstring:
 
@@ -81,7 +83,9 @@ class AIFunction(
         {% endfor %}
 
         What is its output?
-    """))
+    """
+        )
+    )
     name: str = "FormatResponse"
     description: str = "Formats the response."
     field_name: str = "data"
@@ -223,7 +227,7 @@ def ai_fn(
         )
 
     def decorator(
-        func: Callable[P, Union[T, Coroutine[Any, Any, T]]]
+        func: Callable[P, Union[T, Coroutine[Any, Any, T]]],
     ) -> Callable[P, Union[T, Coroutine[Any, Any, T]]]:
         return AIFunction[P, T].as_decorator(
             fn=func,
