@@ -26,6 +26,7 @@ def cast_type_to_model(
 
     return create_model(
         model_name,
+        __doc__=model_description,
         __config__=None,
         __base__=None,
         __module__=__name__,
