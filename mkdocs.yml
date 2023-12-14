@@ -39,15 +39,9 @@ nav:
     - Settings:
       - settings: api_reference/settings.md
     - Utilities:
-      - asyncio: api_reference/utilities/asyncio.md
-      - context: api_reference/utilities/context.md
+
       - jinja: api_reference/utilities/jinja.md
       - logging: api_reference/utilities/logging.md
-      - openai: api_reference/utilities/openai.md
-      - pydantic: api_reference/utilities/pydantic.md
-      - slack: api_reference/utilities/slack.md
-      - strings: api_reference/utilities/strings.md
-      - tools: api_reference/utilities/tools.md
   - Community:
     - community/index.md
     - Feedback 💙: community/feedback.md
