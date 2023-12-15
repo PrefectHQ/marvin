@@ -276,7 +276,7 @@ class TestAIModelMapping:
 
         results = City.map(
             [
-                "the windy city",
+                "sometimes called 'the windy city'",
                 "chicago IL",
                 "Chicago",
                 "America's third-largest city",
