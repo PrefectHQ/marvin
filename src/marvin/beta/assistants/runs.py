@@ -87,7 +87,6 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 except Exception as exc:
                     output = f"Error calling function {tool_call.function.name}: {exc}"
                     logger.error(output)
-                    raise
                 tool_outputs.append(
                     dict(tool_call_id=tool_call.id, output=output or "")
                 )
