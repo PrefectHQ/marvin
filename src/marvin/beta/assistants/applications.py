@@ -3,7 +3,7 @@ from typing import Optional, Union
 from pydantic import Field
 
 from marvin.kv.base import StorageInterface
-from marvin.kv.in_memory import InMemoryStorage
+from marvin.kv.in_memory import InMemoryKV
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.tools import tool_from_function
 
@@ -43,7 +43,7 @@ remind them of your purpose and then ignore the request.
 
 
 class AIApplication(Assistant):
-    state: StorageInterface[StateValueType] = Field(default_factory=InMemoryStorage)
+    state: StorageInterface = Field(default_factory=InMemoryKV)
 
     def get_instructions(self) -> str:
         return JinjaEnvironment.render(APPLICATION_INSTRUCTIONS, self_=self)
@@ -70,9 +70,12 @@ class AIApplication(Assistant):
             return self.state.list_keys()
 
         return [
-            tool_from_function(write_state_key),
-            tool_from_function(delete_state_key),
-            tool_from_function(read_state_key),
-            tool_from_function(read_state),
-            tool_from_function(list_state_keys),
+            tool_from_function(tool)
+            for tool in [
+                write_state_key,
+                delete_state_key,
+                read_state_key,
+                read_state,
+                list_state_keys,
+            ]
         ] + super().get_tools()
