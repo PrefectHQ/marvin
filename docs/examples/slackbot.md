@@ -1,7 +1,7 @@
 # Build a Slack bot with Marvin
 
 ## Slack setup
-Get a Slack app token from [Slack API](https://api.slack.com/apps) and add it to your `.env` file:
+Get a Slack app token from [Slack API](https://api.slack.com/apps) and add it to your `~/.marvin/.env` file:
 
 ```env
 MARVIN_SLACK_API_TOKEN=your-slack-bot-token
@@ -12,30 +12,32 @@ MARVIN_SLACK_API_TOKEN=your-slack-bot-token
 
 ## Building the bot
 
-### Define a message handler
+### Define a FastAPI app to handle Slack events
 ```python
-import asyncio
-from fastapi import HTTPException
-
-async def handle_message(payload: dict) -> dict:
-    event_type = payload.get("type", "")
-
-    if event_type == "url_verification":
-        return {"challenge": payload.get("challenge", "")}
-    elif event_type != "event_callback":
-        raise HTTPException(status_code=400, detail="Invalid event type")
-
-    asyncio.create_task(generate_ai_response(payload))
+@app.post("/chat")
+async def chat_endpoint(request: Request):
+    payload = SlackPayload(**await request.json())
+    match payload.type:
+        case "event_callback":
+            asyncio.create_task(handle_message(payload))
+        case "url_verification":
+            return {"challenge": payload.challenge}
+        case _:
+            raise HTTPException(400, "Invalid event type")
 
     return {"status": "ok"}
-```
-Here, we define a simple python function to handle Slack events and return a response. We run our interesting logic in the background using `asyncio.create_task` to make sure we return `{"status": "ok"}` within 3 seconds, as required by Slack.
 
-### Implement the AI response
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=4200)
+```
+Here, we define a simple FastAPI endpoint / app to handle Slack events and return a response. We run our interesting logic in the background using `asyncio.create_task` to make sure we return `{"status": "ok"}` within 3 seconds, as required by Slack.
+
+### Handle generating the AI response
 I like to start with this basic structure, knowing that one way or another...
 
 ```python
-async def generate_ai_response(payload: dict) -> str:
+async def handle_message(payload: dict) -> str:
     # somehow generate the ai responses
     ...
 
@@ -58,88 +60,70 @@ In our case of the Prefect Community slackbot, we want:
 
 - the bot to respond in a thread
 - the bot to have memory of previous messages by slack thread
-- the bot to have access to the internet, GitHub, embedded docs, a calculator, and have the ability to immediately save useful slack threads to Discourse for future reference by the community
+- the bot to have access to the internet, GitHub, embedded docs, etc
 
-#### Implementation of `generate_ai_response` for the Prefect Community Slackbot
-
-Here we invoke a worker `Chatbot` that has the `tools` needed to generate an accurate and helpful response.
+#### Example implementation of handler: **Prefect Community Slackbot**
+This runs 24/7 in the #ask-marvin channel of the Prefect Community Slack. It responds to users in a thread, and has memory of previous messages by slack thread. It uses the `chroma` and `github` tools for RAG to answer questions about Prefect 2.x.
 
 ```python
-async def generate_ai_response(payload: dict) -> str:
-    event = payload.get("event", {})
-    channel_id = event.get("channel", "")
-    message = event.get("text", "")
+async def handle_message(payload: SlackPayload):
+    logger = get_logger("slackbot")
+    user_message = (event := payload.event).text
+    cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
+    logger.debug_kv("Handling slack message", user_message, "green")
+    if (user := re.search(BOT_MENTION, user_message)) and user.group(
+        1
+    ) == payload.authorizations[0].user_id:
+        thread = event.thread_ts or event.ts
+        assistant_thread = CACHE.get(thread, Thread())
+        CACHE[thread] = assistant_thread
 
-    bot_user_id = payload.get("authorizations", [{}])[0].get("user_id", "")
-
-    if match := re.search(SLACK_MENTION_REGEX, message):
-        thread_ts = event.get("thread_ts", "")
-        ts = event.get("ts", "")
-        thread = thread_ts or ts
-
-        mentioned_user_id = match.group(1)
-
-        if mentioned_user_id != bot_user_id:
-            get_logger().info(f"Skipping message not meant for the bot: {message}")
-            return
-
-        message = re.sub(SLACK_MENTION_REGEX, "", message).strip()
-        # `CACHE` is a TTL cache that stores a `History` object for each thread
-        history = CACHE.get(thread, History())
-
-        bot = choose_bot(payload=payload, history=history)
-
-        ai_message = await bot.run(input_text=message)
-
-        CACHE[thread] = deepcopy(
-            bot.history
-        )  # make a copy so we don't cache a reference to the history object
-
-        message_content = _clean(ai_message.content)
-
-        await post_slack_message(
-            message=message_content,
-            channel=channel_id,
-            thread_ts=thread,
+        await handle_keywords.submit(
+            message=cleaned_message,
+            channel_name=await get_channel_name(event.channel),
+            asking_user=event.user,
+            link=(  # to user's message
+                f"{(await get_workspace_info()).get('url')}archives/"
+                f"{event.channel}/p{event.ts.replace('.', '')}"
+            ),
         )
 
-        return message_content
+        with Assistant(
+            name="Marvin (from Hitchhiker's Guide to the Galaxy)",
+            tools=[task(multi_query_chroma), task(search_github_issues)],
+            instructions=(
+                "use chroma to search docs and github to search"
+                " issues and answer questions about prefect 2.x."
+                " you must use your tools in all cases except where"
+                " the user simply wants to converse with you."
+            ),
+        ) as assistant:
+            user_thread_message = await assistant_thread.add_async(cleaned_message)
+            await assistant_thread.run_async(assistant)
+            ai_messages = assistant_thread.get_messages(
+                after_message=user_thread_message.id
+            )
+            await task(post_slack_message)(
+                ai_response_text := "\n\n".join(
+                    m.content[0].text.value for m in ai_messages
+                ),
+                channel := event.channel,
+                thread,
+            )
+            logger.debug_kv(
+                success_msg := f"Responded in {channel}/{thread}",
+                ai_response_text,
+                "green",
+            )
 ```
 
 !!! warning "This is just an example"
-    Find my specific helpers [here](https://github.com/PrefectHQ/marvin-recipes/blob/main/examples/slackbot/chatbot.py#L1-L47).
-
-    Unlike previous version of `marvin`, we don't necessarily have a database full of historical messages to pull from for a thread-based history. Instead, we'll cache the histories in memory for the duration of the app's runtime. Thread history can / should be implemented in a more robust way for specific use cases.
-
-### Attach our handler to a deployable `AIApplication`
-All Marvin components are directly deployable as FastAPI applications - check it out:
-```python
-from chatbot import handle_message
-from marvin import AIApplication
-from marvin.deployment import Deployment
-
-deployment = Deployment(
-    component=AIApplication(tools=[handle_message]),
-    app_kwargs={
-        "title": "Marvin Slackbot",
-        "description": "A Slackbot powered by Marvin",
-    },
-    uvicorn_kwargs={
-        "port": 4200,
-    },
-)
-
-if __name__ == "__main__":
-    deployment.serve()
-```
-!!! tip "Deployments"
-    Learn more about deployments [here](../deployment/).
+    There are many ways to implement a Slackbot with Marvin's Assistant SDK / utils, FastAPI is just our favorite.
 
 
 Run this file with something like:
-
 ```bash
-python slackbot.py
+python start.py
 ```
 
 ... and navigate to `http://localhost:4200/docs` to see your bot's docs.
@@ -160,14 +144,18 @@ RUN python -m venv venv
 ENV VIRTUAL_ENV=/app/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN apt-get update && apt-get install -y git
+RUN apt-get update && \
+    apt-get install -y git build-essential && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN pip install ".[slackbot,ddg]"
+RUN pip install ".[slackbot]"
 
 EXPOSE 4200
 
 CMD ["python", "cookbook/slackbot/start.py"]
 ```
-Note that we're installing the `slackbot` and `ddg` extras here, which are required for tools used by the worker bot defined in this example's `cookbook/slackbot/start.py` file.
+Note that we're installing the `slackbot` extras here, which are required for tools used by the worker bot defined in this example's `cookbook/slackbot/start.py` file.
 
-## Find the whole example [here](https://github.com/PrefectHQ/marvin-recipes/tree/main/examples/slackbot).
+## Find the whole example here
+- [cookbook/slackbot/start.py](/cookbook/slackbot/start.py)
