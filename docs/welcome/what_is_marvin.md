@@ -24,7 +24,7 @@ free to use, rigorously type-hinted, used by thousands of engineers, and built b
 
         It turns out that ChatGPT and other Large Language Models are good at performing boring but incredibly valuable
         business-critical tasks beyond being a chatbot: you can use them to classify emails as spam, extract key figures
-        from a report, etc. When you use something like ChatGPT you spend a lot of time crafting the right prompt or
+        from a report - exactly however you want for your scenario. When you use something like ChatGPT you spend a lot of time crafting the right prompt or
         context to get it to write your email, plan your date night, etc.
         
         If you want your software to use ChatGPT, you need to let it turn its objective into English. Marvin handles this
