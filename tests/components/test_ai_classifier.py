@@ -1,8 +1,8 @@
 from enum import Enum
-from typing import Literal
 
 import pytest
 from marvin import ai_classifier
+from typing_extensions import Literal
 
 from tests.utils import pytest_mark_class
 

@@ -21,6 +21,11 @@ import marvin
 from marvin._mappings.chat_completion import chat_completion_to_model
 from marvin.client.openai import AsyncMarvinClient, MarvinClient
 from marvin.components.prompt.fn import PromptFunction
+from marvin.utilities.asyncio import (
+    ExposeSyncMethodsMixin,
+    expose_sync_method,
+    run_async,
+)
 from marvin.utilities.jinja import BaseEnvironment
 from marvin.utilities.logging import get_logger
 
@@ -59,10 +64,7 @@ class AIFunctionKwargsDefaults(BaseModel):
     temperature: Optional[float] = marvin.settings.openai.chat.completions.temperature
 
 
-class AIFunction(
-    BaseModel,
-    Generic[P, T],
-):
+class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     fn: Optional[Callable[P, T]] = None
     environment: Optional[BaseEnvironment] = None
@@ -127,19 +129,45 @@ class AIFunction(
             self.field_name,
         )
 
-    def map(self, *arg_list: list[Any], **kwarg_list: list[Any]) -> list[T]:
-        return [
-            self.call(*args, **{k: v[i] for k, v in kwarg_list.items()})
-            for i, args in enumerate(zip(*arg_list))
-        ]
+    @expose_sync_method("map")
+    async def amap(self, *map_args: list[Any], **map_kwargs: list[Any]) -> list[T]:
+        """
+        Map the AI function over a sequence of arguments. Runs concurrently.
 
-    async def amap(self, *arg_list: list[Any], **kwarg_list: list[Any]) -> list[T]:
-        return await asyncio.gather(
-            *[
-                self.acall(*args, **{k: v[i] for k, v in kwarg_list.items()})
-                for i, args in enumerate(zip(*arg_list))
-            ]
-        )
+        A `map` twin method is provided by the `expose_sync_method` decorator.
+
+        You can use `map` or `amap` synchronously or asynchronously, respectively,
+        regardless of whether the user function is synchronous or asynchronous.
+
+        Arguments should be provided as if calling the function normally, but
+        each argument must be a list. The function is called once for each item
+        in the list, and the results are returned in a list.
+
+        For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
+
+        fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2, x='b')].
+        """
+        tasks: list[Any] = []
+        if map_args and map_kwargs:
+            max_length = max(
+                len(arg) for arg in (map_args + tuple(map_kwargs.values()))
+            )
+        elif map_args:
+            max_length = max(len(arg) for arg in map_args)
+        else:
+            max_length = max(len(v) for v in map_kwargs.values())
+
+        for i in range(max_length):
+            call_args = [arg[i] if i < len(arg) else None for arg in map_args]
+            call_kwargs = (
+                {k: v[i] if i < len(v) else None for k, v in map_kwargs.items()}
+                if map_kwargs
+                else {}
+            )
+
+            tasks.append(run_async(self, *call_args, **call_kwargs))
+
+        return await asyncio.gather(*tasks)
 
     def as_prompt(
         self,

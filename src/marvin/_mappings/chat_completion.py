@@ -51,5 +51,5 @@ def chat_completion_to_type(response_type: U, completion: "ChatCompletion") -> "
     if message.content is None:
         raise ValueError("content is None")
     content: str = message.content
-    validator: Callable[[str], U] = TypeAdapter(response_type).validate_strings
+    validator: Callable[[str], U] = TypeAdapter(response_type).validate_python
     return validator(options[int(content)])
