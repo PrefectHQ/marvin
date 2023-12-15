@@ -76,7 +76,10 @@ class PromptFunction(Prompt[U]):
         encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
         max_tokens: Optional[int] = 1,
         **kwargs: Any,
-    ) -> Union[Callable[[Callable[P, Any]], Callable[P, Self]], Callable[P, Self],]:
+    ) -> Union[
+        Callable[[Callable[P, Any]], Callable[P, Self]],
+        Callable[P, Self],
+    ]:
         def wrapper(func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> Self:
             # Get the signature of the function
             signature = inspect.signature(func)
@@ -160,7 +163,10 @@ class PromptFunction(Prompt[U]):
         field_name: str = "data",
         field_description: str = "The data to format.",
         **kwargs: Any,
-    ) -> Union[Callable[[Callable[P, Any]], Callable[P, Self]], Callable[P, Self],]:
+    ) -> Union[
+        Callable[[Callable[P, Any]], Callable[P, Self]],
+        Callable[P, Self],
+    ]:
         def wrapper(func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> Self:
             # Get the signature of the function
             signature = inspect.signature(func)

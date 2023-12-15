@@ -39,7 +39,9 @@ P = ParamSpec("P")
 class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
     fn: Optional[Callable[P, T]] = None
     environment: Optional[BaseEnvironment] = None
-    prompt: Optional[str] = Field(default=inspect.cleandoc("""
+    prompt: Optional[str] = Field(
+        default=inspect.cleandoc(
+            """
         Your job is to generate likely outputs for a Python function with the
         following signature and docstring:
 
@@ -54,7 +56,9 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
         {% endfor %}
 
         What is its output?
-    """))
+    """
+        )
+    )
     name: str = "FormatResponse"
     description: str = "Formats the response."
     field_name: str = "data"

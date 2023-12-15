@@ -9,7 +9,9 @@ from prefect import flow, task
 from prefect.artifacts import create_markdown_artifact
 from prefect.blocks.system import Secret
 
-DAILY_DIGEST_TEMPLATE = jinja_env.from_string(inspect.cleandoc("""
+DAILY_DIGEST_TEMPLATE = jinja_env.from_string(
+    inspect.cleandoc(
+        """
         # GitHub Digest: {{ today }}
         
         Hi {{ username }}! Here's what you've been up to on GitHub today:
@@ -40,7 +42,9 @@ DAILY_DIGEST_TEMPLATE = jinja_env.from_string(inspect.cleandoc("""
         {% for repo in committed_repos %}
         - {{ repo.commits|length }} commits to [{{ repo.name }}](github.com/{{ repo.name }})
         {% endfor %}
-        """))  # noqa: E501
+        """
+    )
+)  # noqa: E501
 
 
 @ai_fn
