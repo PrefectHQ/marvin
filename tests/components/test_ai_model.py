@@ -264,14 +264,14 @@ class TestAIModelMapping:
     def test_fix_misspellings(self):
         @ai_model
         class City(BaseModel):
-            """fix any misspellings of a city attributes"""
+            """Standardize misspelled or informal city names"""
 
             name: str = Field(
                 description=(
                     "The OFFICIAL, correctly-spelled name of a city - must be"
                     " capitalized. Do not include the state or country, or use any"
                     " abbreviations."
-                )
+                ),
             )
 
         results = City.map(
