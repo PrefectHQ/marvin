@@ -142,7 +142,7 @@ def ai_image(
         return wraps(fn)(partial(wrapper, fn))
 
     def decorator(
-        fn: Callable[P, Any]
+        fn: Callable[P, Any],
     ) -> Callable[P, Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]]:
         return wraps(fn)(partial(wrapper, fn))
 
