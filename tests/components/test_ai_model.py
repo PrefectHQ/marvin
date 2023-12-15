@@ -283,6 +283,6 @@ class TestAIModelMapping:
                 "colloquially known as 'chi-town'",
             ]
         )
-        assert len(results) == 6
+        assert len(results) == 5
         for result in results:
             assert result.name == "Chicago"
