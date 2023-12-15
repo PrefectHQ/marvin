@@ -119,8 +119,8 @@ def read_lines(
 def mkdir(path: str) -> str:
     """Creates a directory (and any parent directories))"""
     path = os.path.expanduser(path)
-    path = pathlib.Path(path)
-    path.mkdir(parents=True, exist_ok=True)
+    _path = pathlib.Path(path)
+    _path.mkdir(parents=True, exist_ok=True)
     return f'Successfully created directory "{path}"'
 
 
@@ -128,9 +128,9 @@ def mv(src: str, dest: str) -> str:
     """Moves a file or directory"""
     src = os.path.expanduser(src)
     dest = os.path.expanduser(dest)
-    src = pathlib.Path(src)
-    dest = pathlib.Path(dest)
-    src.rename(dest)
+    _src = pathlib.Path(src)
+    _dest = pathlib.Path(dest)
+    _src.rename(dest)
     return f'Successfully moved "{src}" to "{dest}"'
 
 
@@ -138,14 +138,14 @@ def cp(src: str, dest: str) -> str:
     """Copies a file or directory"""
     src = os.path.expanduser(src)
     dest = os.path.expanduser(dest)
-    src = pathlib.Path(src)
-    dest = pathlib.Path(dest)
-    shutil.copytree(src, dest)
+    _src = pathlib.Path(src)
+    _dest = pathlib.Path(dest)
+    shutil.copytree(_src, _dest)
     return f'Successfully copied "{src}" to "{dest}"'
 
 
 def ls(path: str) -> str:
     """Lists the contents of a directory"""
     path = os.path.expanduser(path)
-    path = pathlib.Path(path)
-    return "\n".join(str(p) for p in path.iterdir())
+    _path = pathlib.Path(path)
+    return "\n".join(str(p) for p in _path.iterdir())

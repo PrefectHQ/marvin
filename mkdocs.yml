@@ -39,15 +39,8 @@ nav:
     - Settings:
       - settings: api_reference/settings.md
     - Utilities:
-      - asyncio: api_reference/utilities/asyncio.md
-      - context: api_reference/utilities/context.md
       - jinja: api_reference/utilities/jinja.md
       - logging: api_reference/utilities/logging.md
-      - openai: api_reference/utilities/openai.md
-      - pydantic: api_reference/utilities/pydantic.md
-      - slack: api_reference/utilities/slack.md
-      - strings: api_reference/utilities/strings.md
-      - tools: api_reference/utilities/tools.md
   - Community:
     - community/index.md
     - Feedback 💙: community/feedback.md
@@ -112,6 +105,8 @@ markdown_extensions:
   - pymdownx.superfences
   - admonition
   - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -119,6 +114,9 @@ markdown_extensions:
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - tables
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - toc:
       permalink: true
       title: On this page

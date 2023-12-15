@@ -1,7 +1,7 @@
-from typing import Any, Callable, Generic, Literal, Optional, TypeVar, Union
+from typing import Any, Callable, Generic, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Field
-from typing_extensions import Annotated, Self
+from typing_extensions import Annotated, Literal, Self
 
 from marvin.settings import settings
 

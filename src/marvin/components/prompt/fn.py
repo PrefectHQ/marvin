@@ -14,11 +14,11 @@ import pydantic
 from pydantic import BaseModel
 from typing_extensions import ParamSpec, Self
 
+from marvin._mappings.types import cast_type_to_toolset
 from marvin.requests import BaseMessage as Message
-from marvin.requests import Prompt, Tool
+from marvin.requests import Prompt
 from marvin.serializers import (
     create_grammar_from_vocabulary,
-    create_tool_from_type,
     create_vocabulary_from_type,
 )
 from marvin.settings import settings
@@ -33,10 +33,24 @@ U = TypeVar("U", bound=BaseModel)
 
 
 class PromptFunction(Prompt[U]):
+    model_config = pydantic.ConfigDict(
+        extra="allow",
+    )
+    temperature: Optional[float] = pydantic.Field(default=None)
+    model: Optional[str] = pydantic.Field(default=None)
     messages: list[Message] = pydantic.Field(default_factory=list)
 
     def serialize(self) -> dict[str, Any]:
         return self.model_dump(exclude_unset=True, exclude_none=True)
+
+    def model_pair(self: Self) -> tuple[Self, type[U]]:
+        if (
+            not self.tools
+            or not self.tools[0].function
+            or not self.tools[0].function.model
+        ):
+            raise AttributeError("No model found.")
+        return self, self.tools[0].function.model
 
     @overload
     @classmethod
@@ -48,6 +62,8 @@ class PromptFunction(Prompt[U]):
         enumerate: bool = True,
         encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
         max_tokens: Optional[int] = 1,
+        temperature: Optional[float] = 0,
+        model: Optional[str] = None,
     ) -> Callable[[Callable[P, Any]], Callable[P, Self]]:
         pass
 
@@ -62,6 +78,8 @@ class PromptFunction(Prompt[U]):
         enumerate: bool = True,
         encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
         max_tokens: Optional[int] = 1,
+        temperature: Optional[float] = 0,
+        model: Optional[str] = None,
     ) -> Callable[P, Self]:
         pass
 
@@ -75,7 +93,8 @@ class PromptFunction(Prompt[U]):
         enumerate: bool = True,
         encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
         max_tokens: Optional[int] = 1,
-        **kwargs: Any,
+        temperature: Optional[float] = 0,
+        model: Optional[str] = None,
     ) -> Union[
         Callable[[Callable[P, Any]], Callable[P, Self]],
         Callable[P, Self],
@@ -111,6 +130,8 @@ class PromptFunction(Prompt[U]):
 
             return cls(
                 messages=messages,
+                temperature=temperature,
+                model=model,
                 **grammar.model_dump(exclude_unset=True, exclude_none=True),
             )
 
@@ -124,7 +145,7 @@ class PromptFunction(Prompt[U]):
 
     @overload
     @classmethod
-    def as_function_call(
+    def as_tool_call(
         cls: type[Self],
         *,
         environment: Optional[BaseEnvironment] = None,
@@ -138,7 +159,7 @@ class PromptFunction(Prompt[U]):
 
     @overload
     @classmethod
-    def as_function_call(
+    def as_tool_call(
         cls: type[Self],
         fn: Optional[Callable[P, Any]] = None,
         *,
@@ -152,7 +173,7 @@ class PromptFunction(Prompt[U]):
         pass
 
     @classmethod
-    def as_function_call(
+    def as_tool_call(
         cls: type[Self],
         fn: Optional[Callable[P, Any]] = None,
         *,
@@ -167,13 +188,12 @@ class PromptFunction(Prompt[U]):
         Callable[[Callable[P, Any]], Callable[P, Self]],
         Callable[P, Self],
     ]:
-        def wrapper(func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> Self:
-            # Get the signature of the function
+        def wrapper(func: Callable[P, Any], *args: P.args, **kwargs_: P.kwargs) -> Self:
             signature = inspect.signature(func)
-            params = signature.bind(*args, **kwargs)
+            params = signature.bind(*args, **kwargs_)
             params.apply_defaults()
 
-            tool = create_tool_from_type(
+            toolset = cast_type_to_toolset(
                 _type=inspect.signature(func).return_annotation,
                 model_name=model_name,
                 model_description=model_description,
@@ -184,10 +204,10 @@ class PromptFunction(Prompt[U]):
             messages = Transcript(
                 content=prompt or func.__doc__ or ""
             ).render_to_messages(
-                **kwargs | params.arguments,
+                **kwargs_ | params.arguments,
                 _doc=func.__doc__,
                 _arguments=params.arguments,
-                _response_model=tool,
+                _response_model=toolset.tools[0],  # type: ignore
                 _source_code=(
                     "\ndef" + "def".join(re.split("def", inspect.getsource(func))[1:])
                 ),
@@ -195,11 +215,9 @@ class PromptFunction(Prompt[U]):
 
             return cls(
                 messages=messages,
-                tool_choice={
-                    "type": "function",
-                    "function": {"name": getattr(tool.function, "name", model_name)},
-                },
-                tools=[Tool[BaseModel](**tool.model_dump())],
+                tool_choice=toolset.tool_choice,
+                tools=toolset.tools,
+                **kwargs,
             )
 
         if fn is not None:
@@ -228,16 +246,20 @@ def prompt_fn(
     def wrapper(
         func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs
     ) -> dict[str, Any]:
-        return PromptFunction.as_function_call(
-            fn=func,
-            environment=environment,
-            prompt=prompt,
-            model_name=model_name,
-            model_description=model_description,
-            field_name=field_name,
-            field_description=field_description,
-            **kwargs,
-        )(*args, **kwargs).serialize()
+        return (
+            PromptFunction[BaseModel]
+            .as_tool_call(
+                fn=func,
+                environment=environment,
+                prompt=prompt,
+                model_name=model_name,
+                model_description=model_description,
+                field_name=field_name,
+                field_description=field_description,
+                **kwargs,
+            )(*args, **kwargs)
+            .serialize()
+        )
 
     if fn is not None:
         return wraps(fn)(partial(wrapper, fn))

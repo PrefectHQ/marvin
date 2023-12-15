@@ -1,4 +1,5 @@
 """Module for Jinja utilities."""
+
 import inspect
 import re
 from datetime import datetime
@@ -163,7 +164,14 @@ class Transcript(BaseModel):
     """
 
     content: str
-    roles: list[str] = Field(default=["system", "user"])
+    roles: dict[str, str] = Field(
+        default={
+            "SYSTEM": "system",
+            "HUMAN": "user",
+            "USER": "user",
+            "ASSISTANT": "assistant",
+        }
+    )
     environment: ClassVar[BaseEnvironment] = Environment
 
     @property
@@ -179,11 +187,11 @@ class Transcript(BaseModel):
     ) -> list[Message]:
         pairs = split_text_by_tokens(
             text=self.render(**kwargs),
-            split_tokens=[f"\n{role}" for role in self.roles],
+            split_tokens=[f"\n{role}" for role in self.roles.keys()],
         )
         return [
             Message(
-                role=pair[0].strip(),
+                role=self.roles.get(pair[0].strip(), "system"),
                 content=pair[1],
             )
             for pair in pairs

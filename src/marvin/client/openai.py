@@ -1,20 +1,26 @@
+from functools import partial
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    NewType,
+    Coroutine,
     Optional,
     TypeVar,
     Union,
-    cast,
+    overload,
 )
 
 import pydantic
-from marvin import settings
-from marvin.serializers import create_tool_from_model
 from openai import AsyncClient, Client
-from openai.types.chat import ChatCompletion
+from openai.types.chat import (
+    ChatCompletion,
+)
 from typing_extensions import Concatenate, ParamSpec
+
+from marvin import settings
+from marvin._mappings.base_model import cast_model_to_toolset
+from marvin._mappings.chat_completion import chat_completion_to_model
 
 if TYPE_CHECKING:
     from openai._base_client import HttpxBinaryResponseContent
@@ -23,96 +29,110 @@ if TYPE_CHECKING:
 
 P = ParamSpec("P")
 T = TypeVar("T", bound=pydantic.BaseModel)
-ResponseModel = NewType("ResponseModel", type[pydantic.BaseModel])
-Grammar = NewType("ResponseModel", list[str])
 
 
 def with_response_model(
-    create: Union[Callable[P, "ChatCompletion"], Callable[..., dict[str, Any]]],
-    parse_response: bool = False,
+    create: Callable[P, "ChatCompletion"],
 ) -> Callable[
     Concatenate[
-        Optional[Grammar],
-        Optional[ResponseModel],
+        type[T],
         P,
     ],
-    Union["ChatCompletion", dict[str, Any]],
+    Union["ChatCompletion", T],
 ]:
     def create_wrapper(
-        grammar: Optional[Grammar] = None,
-        response_model: Optional[ResponseModel] = None,
+        response_model: type[T],
         *args: P.args,
         **kwargs: P.kwargs,
-    ) -> Any:
+    ) -> T:
         if response_model:
-            tool = create_tool_from_model(
-                cast(type[pydantic.BaseModel], response_model)
-            )
-            kwargs.update({"tools": [tool.model_dump()]})
-            kwargs.update(
-                {
-                    "tool_choice": {
-                        "type": "function",
-                        "function": {"name": tool.function.name},
-                    }
-                }
-            )  # type: ignore # noqa: E501
+            toolset = cast_model_to_toolset(response_model)
+            kwargs.update(**toolset.model_dump())
         response = create(*args, **kwargs)
-        if isinstance(response, ChatCompletion) and parse_response:
-            return handle_response_model(
-                cast(type[pydantic.BaseModel], response_model), response
-            )
-        elif isinstance(response, ChatCompletion):
-            return response
-        else:
-            return response
+        return chat_completion_to_model(response_model, response)
 
     return create_wrapper
 
 
-def handle_response_model(response_model: type[T], completion: "ChatCompletion") -> T:
-    return [
-        response_model.parse_raw(tool_call.function.arguments)  # type: ignore
-        for tool_call in completion.choices[0].message.tool_calls  # type: ignore
-    ][0]
+def async_with_response_model(
+    create: Callable[P, Coroutine[Any, Any, "ChatCompletion"]],
+) -> Callable[
+    Concatenate[
+        type[T],
+        P,
+    ],
+    Coroutine[Any, Any, Union["ChatCompletion", T]],
+]:
+    async def create_wrapper(
+        response_model: type[T],
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> T:
+        if response_model:
+            toolset = cast_model_to_toolset(response_model)
+            kwargs.update(**toolset.model_dump())
+        response = await create(*args, **kwargs)
+        return chat_completion_to_model(response_model, response)
+
+    return create_wrapper
 
 
 class MarvinClient(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(
-        arbitrary_types_allowed=True,
+        arbitrary_types_allowed=True, protected_namespaces=()
     )
+
     client: Client = pydantic.Field(
         default_factory=lambda: Client(
-            api_key=getattr(settings.openai.api_key, "get_secret_value", lambda: None)()
+            api_key=getattr(settings.openai.api_key, "get_secret_value", lambda: "")()
         )
     )
-    eject: bool = pydantic.Field(
-        default=False,
-        description=(
-            "If local is True, the client will not make any API calls and instead the"
-            " raw request will be returned."
-        ),
-    )
+
+    @classmethod
+    def wrap(cls, client: Client) -> "Client":
+        client.chat.completions.create = partial(
+            cls(client=client).chat, completion=client.chat.completions.create
+        )  # type: ignore #noqa
+        return client
+
+    @overload
+    def chat(
+        self,
+        *,
+        response_model: None = None,
+        completion: Optional[Callable[..., "ChatCompletion"]] = None,
+        **kwargs: Any,
+    ) -> "ChatCompletion":
+        pass
+
+    @overload
+    def chat(
+        self,
+        *,
+        response_model: type[T],
+        completion: Optional[Callable[..., "ChatCompletion"]] = None,
+        **kwargs: Any,
+    ) -> T:
+        pass
 
     def chat(
         self,
-        grammar: Optional[Grammar] = None,
-        response_model: Optional[ResponseModel] = None,
+        *,
+        response_model: Optional[type[T]] = None,
         completion: Optional[Callable[..., "ChatCompletion"]] = None,
         **kwargs: Any,
-    ) -> Union["ChatCompletion", dict[str, Any]]:
-        if not completion:
-            if self.eject:
-                completion = lambda **kwargs: kwargs  # type: ignore # noqa: E731
-            else:
-                completion = self.client.chat.completions.create
+    ) -> Union["ChatCompletion", T]:
         from marvin import settings
 
-        return with_response_model(completion)(  # type: ignore
-            grammar,
-            response_model,
-            **settings.openai.chat.completions.model_dump() | kwargs,
+        defaults: dict[str, Any] = settings.openai.chat.completions.model_dump()
+        create: Callable[..., "ChatCompletion"] = (
+            completion or self.client.chat.completions.create
         )
+        if not response_model:
+            response: "ChatCompletion" = create(**defaults | kwargs)
+            return response
+        else:
+            return with_response_model(create)(response_model, **defaults | kwargs)
 
     def paint(
         self,
@@ -126,68 +146,137 @@ class MarvinClient(pydantic.BaseModel):
 
     def speak(
         self,
+        input: str,
+        file: Optional[Path] = None,
         **kwargs: Any,
-    ) -> "HttpxBinaryResponseContent":
+    ) -> Optional["HttpxBinaryResponseContent"]:
         from marvin import settings
 
-        return self.client.audio.speech.create(
-            **settings.openai.audio.speech.model_dump() | kwargs
+        response = self.client.audio.speech.create(
+            input=input, **settings.openai.audio.speech.model_dump() | kwargs
         )
+        if file:
+            response.stream_to_file(file)
+            return None
+        return response
 
 
-class MarvinAsyncClient(pydantic.BaseModel):
+class AsyncMarvinClient(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(
-        arbitrary_types_allowed=True,
-    )
-    client: Client = pydantic.Field(
-        default_factory=lambda: AsyncClient(
-            api_key=getattr(settings.openai.api_key, "get_secret_value", lambda: None)()
-        )
-    )
-    eject: bool = pydantic.Field(
-        default=False,
-        description=(
-            "If local is True, the client will not make any API calls and instead the"
-            " raw request will be returned."
-        ),
+        arbitrary_types_allowed=True, protected_namespaces=()
     )
 
-    def chat(
+    client: AsyncClient = pydantic.Field(
+        default_factory=lambda: AsyncClient(
+            api_key=getattr(settings.openai.api_key, "get_secret_value", lambda: "")()
+        )
+    )
+
+    @classmethod
+    def wrap(cls, client: AsyncClient) -> "AsyncClient":
+        client.chat.completions.create = partial(
+            cls(client=client).chat, completion=client.chat.completions.create
+        )  # type: ignore #noqa
+        return client
+
+    @overload
+    async def chat(
         self,
-        grammar: Optional[Grammar] = None,
-        response_model: Optional[ResponseModel] = None,
-        completion: Optional[Callable[..., "ChatCompletion"]] = None,
+        *,
+        response_model: None = None,
         **kwargs: Any,
-    ) -> Union["ChatCompletion", dict[str, Any]]:
-        if not completion:
-            if self.eject:
-                completion = lambda **kwargs: kwargs  # type: ignore # noqa: E731
-            else:
-                completion = self.client.chat.completions.create
+    ) -> "ChatCompletion":
+        pass
+
+    @overload
+    async def chat(
+        self,
+        *,
+        response_model: type[T],
+        **kwargs: Any,
+    ) -> T:
+        pass
+
+    async def chat(
+        self,
+        *,
+        response_model: Optional[type[T]] = None,
+        **kwargs: Any,
+    ) -> Union["ChatCompletion", T]:
         from marvin import settings
 
-        return with_response_model(completion)(  # type: ignore
-            grammar,
-            response_model,
-            **settings.openai.chat.completions.model_dump() | kwargs,
-        )
+        defaults: dict[str, Any] = settings.openai.chat.completions.model_dump()
+        create = self.client.chat.completions.create
+        if not response_model:
+            response: "ChatCompletion" = await create(**defaults | kwargs)
+            return response
+        else:
+            return await async_with_response_model(create)(
+                response_model, **defaults | kwargs
+            )
 
-    def paint(
+    async def paint(
         self,
         **kwargs: Any,
     ) -> "ImagesResponse":
         from marvin import settings
 
-        return self.client.images.generate(
+        return await self.client.images.generate(
             **settings.openai.images.model_dump() | kwargs
         )
 
-    def speak(
+    async def speak(
         self,
+        input: str,
+        file: Optional[Path] = None,
         **kwargs: Any,
-    ) -> "HttpxBinaryResponseContent":
+    ) -> Optional["HttpxBinaryResponseContent"]:
         from marvin import settings
 
-        return self.client.audio.speech.create(
-            **settings.openai.audio.speech.model_dump() | kwargs
+        response = await self.client.audio.speech.create(
+            input=input, **settings.openai.audio.speech.model_dump() | kwargs
         )
+        if file:
+            response.stream_to_file(file)
+            return None
+        return response
+
+
+def paint(
+    prompt: str,
+    *,
+    client: Optional[Client] = None,
+    **kwargs: Any,
+) -> "ImagesResponse":
+    if client is None:
+        return MarvinClient().paint(prompt=prompt, **kwargs)
+    return MarvinClient(client=client).paint(prompt=prompt, **kwargs)
+
+
+def speak(
+    input: str,
+    file: Path,
+    client: Optional[Client] = None,
+    **kwargs: Any,
+) -> Optional["HttpxBinaryResponseContent"]:
+    if client is None:
+        return MarvinClient().speak(input=input, file=file, **kwargs)
+    return MarvinClient(client=client).speak(input=input, file=file, **kwargs)
+
+
+class MarvinChatCompletion(pydantic.BaseModel):
+    create: Callable[..., "ChatCompletion"] = pydantic.Field(
+        default_factory=lambda: MarvinClient().chat
+    )
+    acreate: Callable[..., Coroutine[Any, Any, "ChatCompletion"]] = pydantic.Field(
+        default_factory=lambda: MarvinClient().chat
+    )
+
+
+class MarvinImage(pydantic.BaseModel):
+    generate: Callable[..., "ImagesResponse"] = pydantic.Field(
+        default_factory=lambda: MarvinClient().paint
+    )
+    agenerate: Callable[..., Coroutine[Any, Any, "ImagesResponse"]] = pydantic.Field(
+        default_factory=lambda: MarvinClient().paint
+    )

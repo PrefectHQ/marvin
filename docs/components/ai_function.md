@@ -9,25 +9,25 @@ AI Functions are a high-level component, or building block, of Marvin. Like all 
   </p>
 </div>
 
-
-```python
-from marvin import ai_fn
-
-
-@ai_fn
-def generate_recipe(ingredients: list[str]) -> list[str]:
-    """From a list of `ingredients`, generates a
-    complete instruction set to cook a recipe.
-    """
+!!! example 
+    ```python
+    from marvin import ai_fn
 
 
-generate_recipe(["lemon", "chicken", "olives", "coucous"])
-```
+    @ai_fn
+    def generate_recipe(ingredients: list[str]) -> list[str]:
+        """From a list of `ingredients`, generates a
+        complete instruction set to cook a recipe.
+        """
+
+
+    generate_recipe(["lemon", "chicken", "olives", "coucous"])
+    ```
 
 <div class="admonition info">
   <p class="admonition-title">How it works</p>
   <p>
-    AI Functions take your function's name, description, signature, source code, type hints, and provided inputs to predict a likely output. By default, no source code is generated and any existing source code is not executed. The only runtime is the LLM.
+    AI Functions take your function's name, description, signature, source code, type hints, and provided inputs to predict a likely output. By default, no source code is generated and any existing source code is not executed. The only runtime is the large language model.
   </p>
 </div>
 
@@ -128,24 +128,6 @@ generate_synthetic_customer_data.prompt(
 )
 ```
 
-🧪 Code Generation
-
-By default, no code is generated or executed when you call an `ai_fn`. For those who wish to author code, Marvin exposes an experimental API for code generation. Simply call `.code()` on an ai_fn, and Marvin will generate the code for you. By default, Marvin will write python code. You can pass a language keyword to generate code in other languages, i.e. `.code(language = 'rust')`. For best performance give your function a good name, with descriptive docstring, and a signature with type-hints. Provided code will be interpreted as pseudocode. 
-
-
-```python
-from marvin import ai_fn
-
-
-@ai_fn
-def fibonacci(n: int) -> int:
-    """
-    Returns the nth number in the Fibonacci sequence.
-    """
-
-
-fibonacci.code(language="rust")
-```
 
 ## Examples
 

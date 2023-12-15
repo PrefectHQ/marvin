@@ -1,6 +1,8 @@
 """Module for defining context utilities."""
+
 import contextvars
 from contextlib import contextmanager
+from typing import Any, Generator
 
 
 class ScopedContext:
@@ -29,38 +31,16 @@ class ScopedContext:
             "scoped_context_storage", default={}
         )
 
-    def get(self, key, default=None):
-        """Retrieves the value for a given key from the context.
-
-        Args:
-            key: The key to retrieve the value for.
-            default: The default value to return if the key is not found.
-
-        Returns:
-            The value for the key, or the default value if the value is not found.
-        """
+    def get(self, key: str, default: Any = None) -> Any:
         return self._context_storage.get().get(key, default)
 
-    def set(self, **kwargs):
-        """Sets one or more key-value pairs in the context.
-
-        Args:
-            **kwargs: Key-value pairs to set in the context.
-        """
+    def set(self, **kwargs: Any) -> None:
         ctx = self._context_storage.get()
         updated_ctx = {**ctx, **kwargs}
         self._context_storage.set(updated_ctx)
 
     @contextmanager
-    def __call__(self, **kwargs):
-        """Context manager to temporarily set the context for the scope of a with block.
-
-        Args:
-            **kwargs: Key-value pairs to temporarily set in the context.
-
-        Yields:
-            None
-        """
+    def __call__(self, **kwargs: Any) -> Generator[None, None, Any]:
         current_context = self._context_storage.get().copy()
         self.set(**kwargs)
         try:

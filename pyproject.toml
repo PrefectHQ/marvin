@@ -21,6 +21,7 @@ dependencies = [
   "rich>=12",
   "tiktoken>=0.4.0",
   "typer>=0.9.0",
+  "typing_extensions>=4.0.0",
   "tzdata>=2023.3", # need for windows
   "uvicorn>=0.22.0"
 ]

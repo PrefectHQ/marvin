@@ -42,10 +42,6 @@ jobs:
           - python-version: '3.9'
             os: 'ubuntu-latest'
             test-type: 'llm'
-          
-          - python-version: '3.9'
-            os: 'ubuntu-latest'
-            test-type: 'llm'
 
           - python-version: '3.9'
             os: 'ubuntu-latest'
