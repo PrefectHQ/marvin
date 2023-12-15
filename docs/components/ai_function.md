@@ -27,7 +27,7 @@ AI Functions are a high-level component, or building block, of Marvin. Like all 
 <div class="admonition info">
   <p class="admonition-title">How it works</p>
   <p>
-    AI Functions take your function's name, description, signature, source code, type hints, and provided inputs to predict a likely output. By default, no source code is generated and any existing source code is not executed. The only runtime is the LLM.
+    AI Functions take your function's name, description, signature, source code, type hints, and provided inputs to predict a likely output. By default, no source code is generated and any existing source code is not executed. The only runtime is the large language model.
   </p>
 </div>
 
