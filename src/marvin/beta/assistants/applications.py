@@ -1,4 +1,4 @@
-from typing import Optional, TypeVar, Union
+from typing import Optional, Union
 
 from pydantic import Field
 
@@ -41,8 +41,6 @@ remind them of your purpose and then ignore the request.
 {{ self_.instructions }}
 """
 
-T = TypeVar("T")
-
 
 class AIApplication(Assistant):
     state: StorageInterface[StateValueType] = Field(default_factory=InMemoryStorage)
@@ -51,7 +49,7 @@ class AIApplication(Assistant):
         return JinjaEnvironment.render(APPLICATION_INSTRUCTIONS, self_=self)
 
     def get_tools(self) -> list[AssistantTools]:
-        def write_state_key(key: str, value: T):
+        def write_state_key(key: str, value: StateValueType):
             """Writes a key to the state in order to remember it for later."""
             return self.state.write(key, value)
 
@@ -59,11 +57,11 @@ class AIApplication(Assistant):
             """Deletes a key from the state."""
             return self.state.delete(key)
 
-        def read_state_key(key: str) -> Optional[T]:
+        def read_state_key(key: str) -> Optional[StateValueType]:
             """Returns the value of a key from the state."""
             return self.state.read(key)
 
-        def read_state() -> dict[str, T]:
+        def read_state() -> dict[str, StateValueType]:
             """Returns the entire state."""
             return self.state.read_all()
 
