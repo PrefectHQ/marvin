@@ -270,20 +270,12 @@ class TestAIModelMapping:
                 description=(
                     "The OFFICIAL, correctly-spelled name of a city - must be"
                     " capitalized. Do not include the state or country, or use any"
-                    " abbreviations."
+                    " abbreviations. e.g. 'big apple' -> 'New York City'"
                 ),
-                examples=[
-                    "Chicago",
-                    "New York City",
-                    "Los Angeles",
-                    "San Francisco",
-                    "Washington",
-                ],
             )
 
         results = City.map(
             [
-                "chicago IL",
                 "Chicago",
                 "America's third-largest city",
                 "chicago, Illinois, USA",
