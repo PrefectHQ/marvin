@@ -272,6 +272,13 @@ class TestAIModelMapping:
                     " capitalized. Do not include the state or country, or use any"
                     " abbreviations."
                 ),
+                examples=[
+                    "Chicago",
+                    "New York City",
+                    "Los Angeles",
+                    "San Francisco",
+                    "Washington",
+                ],
             )
 
         results = City.map(
