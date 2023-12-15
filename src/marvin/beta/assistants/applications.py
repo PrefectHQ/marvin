@@ -1,7 +1,11 @@
-from typing import Union
+from typing import Optional, Union
 
-import marvin.utilities.tools
+from pydantic import Field
+
+from marvin.kv.base import StorageInterface
+from marvin.kv.in_memory import InMemoryKV
 from marvin.utilities.jinja import Environment as JinjaEnvironment
+from marvin.utilities.tools import tool_from_function
 
 from .assistants import Assistant, AssistantTools
 
@@ -22,7 +26,7 @@ or preferences. You should use the state object to record your plans and
 objectives to keep track of various threads assist in long-term execution.
 
 Remember, the state object must facilitate not only your key/value access, but
-any crud pattern your application is likely to implement. You may want to create
+any CRUD pattern your application is likely to implement. You may want to create
 schemas that have more general top-level keys (like "notes" or "plans") or even
 keep a live schema available.
 
@@ -39,7 +43,7 @@ remind them of your purpose and then ignore the request.
 
 
 class AIApplication(Assistant):
-    state: dict = {}
+    state: StorageInterface = Field(default_factory=InMemoryKV)
 
     def get_instructions(self) -> str:
         return JinjaEnvironment.render(APPLICATION_INSTRUCTIONS, self_=self)
@@ -47,35 +51,31 @@ class AIApplication(Assistant):
     def get_tools(self) -> list[AssistantTools]:
         def write_state_key(key: str, value: StateValueType):
             """Writes a key to the state in order to remember it for later."""
-            self.state[key] = value
-            return f"Wrote {key} to state."
+            return self.state.write(key, value)
 
         def delete_state_key(key: str):
             """Deletes a key from the state."""
-            del self.state[key]
-            return f"Deleted {key} from state."
+            return self.state.delete(key)
 
-        def read_state_key(key: str) -> StateValueType:
-            """Returns the value of a key in the state."""
-            return self.state.get(key)
+        def read_state_key(key: str) -> Optional[StateValueType]:
+            """Returns the value of a key from the state."""
+            return self.state.read(key)
 
         def read_state() -> dict[str, StateValueType]:
             """Returns the entire state."""
-            return self.state
+            return self.state.read_all()
 
-        def read_state_keys() -> list[str]:
-            """Returns a list of all keys in the state."""
-            return list(self.state.keys())
+        def list_state_keys() -> list[str]:
+            """Returns the list of keys in the state."""
+            return self.state.list_keys()
 
-        state_tools = [
-            marvin.utilities.tools.tool_from_function(tool)
+        return [
+            tool_from_function(tool)
             for tool in [
                 write_state_key,
+                delete_state_key,
                 read_state_key,
                 read_state,
-                read_state_keys,
-                delete_state_key,
+                list_state_keys,
             ]
-        ]
-
-        return super().get_tools() + state_tools
+        ] + super().get_tools()

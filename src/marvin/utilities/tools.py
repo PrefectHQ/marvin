@@ -57,14 +57,16 @@ def call_function_tool(
         raise ValueError(f"Could not find function '{function_name}'")
 
     arguments = json.loads(function_arguments_json)
-    logger.debug(f"Calling {tool.function.name} with arguments: {arguments}")
+    logger.debug_kv(
+        f"{tool.function.name}", f"called with arguments: {arguments}", "green"
+    )
     output = tool.function.python_fn(**arguments)
     if inspect.isawaitable(output):
         output = run_sync(output)
     truncated_output = str(output)[:100]
     if len(truncated_output) < len(str(output)):
         truncated_output += "..."
-    logger.debug(f"{tool.function.name} returned: {truncated_output}")
+    logger.debug_kv(f"{tool.function.name}", f"returned: {truncated_output}", "green")
     if not isinstance(output, str):
         output = json.dumps(output)
     return output
