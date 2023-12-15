@@ -52,7 +52,9 @@ class AIClassifier(
     model_config = ConfigDict(arbitrary_types_allowed=True)
     fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None
     environment: Optional[BaseEnvironment] = None
-    prompt: Optional[str] = Field(default=inspect.cleandoc("""
+    prompt: Optional[str] = Field(
+        default=inspect.cleandoc(
+            """
         ## Expert Classifier
 
         **Objective**: You are an expert classifier that always chooses correctly.
@@ -71,7 +73,9 @@ class AIClassifier(
         - {{ arg }}: {{ value }}
         {% endfor %}
         \n\nASSISTANT: The most likely class label for the data and context provided above is Class"
-    """))  # noqa
+    """
+        )
+    )  # noqa
     encoder: Callable[[str], list[int]] = Field(default=None)
     max_tokens: int = 1
     temperature: float = 0.0
@@ -198,7 +202,7 @@ def ai_classifier(
         )
 
     def decorator(
-        func: Callable[P, Union[T, Coroutine[Any, Any, T]]]
+        func: Callable[P, Union[T, Coroutine[Any, Any, T]]],
     ) -> Callable[P, Union[T, Coroutine[Any, Any, T]]]:
         return AIClassifier[P, T].as_decorator(
             fn=func,
