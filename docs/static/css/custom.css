@@ -54,3 +54,13 @@
 /* .jp-CodeCell {
   padding: 0px !important;
 } */
+
+:root {
+  --md-admonition-icon--pied-piper: "1"
+}
+
+.md-typeset .pied-piper > .admonition-title::before,
+.md-typeset .pied-piper > summary::before {
+  -webkit-mask-image: var(--md-admonition-icon--pied-piper);
+          mask-image: var(--md-admonition-icon--pied-piper);
+}
