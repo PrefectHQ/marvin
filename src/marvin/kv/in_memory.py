@@ -16,6 +16,9 @@ class InMemoryStorage(StorageInterface[T]):
     def read(self, key: str) -> Optional[T]:
         return self.store.get(key)
 
+    def read_all(self) -> dict[str, T]:
+        return self.store
+
     def delete(self, key: str) -> None:
         self.store.pop(key, None)
 

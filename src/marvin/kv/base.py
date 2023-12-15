@@ -16,6 +16,10 @@ class StorageInterface(BaseModel, Generic[T], ABC):
         pass
 
     @abstractmethod
+    def read_all(self) -> dict[str, T]:
+        pass
+
+    @abstractmethod
     def delete(self, key: str) -> None:
         pass
 

@@ -52,18 +52,23 @@ class AIApplication(Assistant):
 
     def get_tools(self) -> list[AssistantTools]:
         def write_state_key(key: str, value: T):
+            """Writes a key to the state in order to remember it for later."""
             return self.state.write(key, value)
 
         def delete_state_key(key: str):
+            """Deletes a key from the state."""
             return self.state.delete(key)
 
         def read_state_key(key: str) -> Optional[T]:
+            """Returns the value of a key from the state."""
             return self.state.read(key)
 
         def read_state() -> dict[str, T]:
-            return {key: self.state.read(key) for key in self.state.list_keys()}
+            """Returns the entire state."""
+            return self.state.read_all()
 
         def list_state_keys() -> list[str]:
+            """Returns the list of keys in the state."""
             return self.state.list_keys()
 
         return [
