@@ -4,8 +4,13 @@ from contextlib import asynccontextmanager
 from fastapi import Body, Depends, FastAPI, HTTPException
 from marvin.beta.assistants import Assistant
 from marvin.beta.assistants.applications import AIApplication
+from marvin.kv.disk import DiskKV
 from marvin.utilities.logging import get_logger
-from utils import emit_assistant_completed_event, learn_from_child_interactions
+from utils import (
+    emit_assistant_completed_event,
+    learn_from_child_interactions,
+    query_parent_state,
+)
 
 parent_assistant_options = dict(
     instructions=(
@@ -13,7 +18,8 @@ parent_assistant_options = dict(
         " You will receive excerpts of these interactions as they happen."
         " Develop profiles of the users they interact with and store them in your state."
         " The user profiles should include: {name: str, notes: list[str], n_interactions: int}"
-    )
+    ),
+    state=DiskKV(storage_path="~/.marvin/state"),
 )
 
 
@@ -33,6 +39,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+logger = get_logger("SubAssistant")
 
 
 def get_parent_instance() -> AIApplication:
@@ -51,11 +58,13 @@ async def child_assistant_task(
     parent_app: AIApplication = Depends(get_parent_instance),
 ) -> dict:
     with Assistant(name="SubAssistant", **child_assistant_options) as ai:
+        parent_state_excerpt = await query_parent_state(user_message)
         thread = ai.default_thread
-        thread.add(user_message)
-        thread.run(ai)
+        if parent_state_excerpt:
+            await thread.add_async("here's what I know:\n" + parent_state_excerpt)
+        await thread.add_async(user_message)
+        await thread.run_async(ai)
 
-        thread = ai.default_thread
         event = emit_assistant_completed_event(
             child_assistant=ai,
             parent_app=parent_app,
@@ -64,7 +73,7 @@ async def child_assistant_task(
                 "metadata": thread.metadata,
             },
         )
-        get_logger("SubAssistant").debug_kv("Emitted Event", event.event, "green")
+        logger.debug_kv("🚀  Emitted Event", event.event, "green")
 
         child_thread_messages = await thread.get_messages_async(json_compatible=True)
         return {"messages": child_thread_messages, "metadata": thread.metadata}

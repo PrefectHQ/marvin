@@ -4,8 +4,6 @@ import inspect
 import json
 from typing import Any, Callable, Optional
 
-from pydantic import BaseModel
-
 from marvin.requests import Function, Tool
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.logging import get_logger
@@ -24,7 +22,7 @@ def tool_from_function(
         model, "model_json_schema", getattr(model, "schema")
     )
 
-    return Tool[BaseModel](
+    return Tool(
         type="function",
         function=Function(
             name=name or fn.__name__,
@@ -36,7 +34,7 @@ def tool_from_function(
 
 
 def call_function_tool(
-    tools: list[Tool[BaseModel]], function_name: str, function_arguments_json: str
+    tools: list[Tool], function_name: str, function_arguments_json: str
 ):
     tool = next(
         (

@@ -22,7 +22,7 @@ except AttributeError:
 QueryResultType = Literal["documents", "distances", "metadatas"]
 
 
-async def create_openai_embeddings(texts: list[str]) -> list[float]:
+def create_openai_embeddings(texts: list[str]) -> list[float]:
     """Create OpenAI embeddings for a list of texts."""
 
     try:
@@ -32,13 +32,9 @@ async def create_openai_embeddings(texts: list[str]) -> list[float]:
             "The numpy package is required to create OpenAI embeddings. Please install"
             " it with `pip install numpy`."
         )
-    from openai import AsyncOpenAI
+    from marvin.client.openai import MarvinClient
 
-    embedding: "CreateEmbeddingResponse" = await AsyncOpenAI(
-        api_key=getattr(
-            marvin.settings.openai.api_key, "get_secret_value", lambda: None
-        )()
-    ).embeddings.create(
+    embedding: "CreateEmbeddingResponse" = MarvinClient().client.embeddings.create(
         input=[text.replace("\n", " ") for text in texts],
         model="text-embedding-ada-002",
     )
