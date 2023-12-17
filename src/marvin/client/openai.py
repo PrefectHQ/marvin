@@ -86,7 +86,8 @@ class MarvinClient(pydantic.BaseModel):
         default_factory=lambda: Client(
             **settings.openai.model_dump(
                 exclude={"chat", "images", "audio", "assistants", "api_key"}
-            ) | dict(api_key=settings.openai.api_key.get_secret_value())
+            )
+            | dict(api_key=settings.openai.api_key.get_secret_value())
         )
     )
 
@@ -172,7 +173,8 @@ class AsyncMarvinClient(pydantic.BaseModel):
         default_factory=lambda: AsyncClient(
             **settings.openai.model_dump(
                 exclude={"chat", "images", "audio", "assistants", "api_key"}
-            ) | dict(api_key=settings.openai.api_key.get_secret_value())
+            )
+            | dict(api_key=settings.openai.api_key.get_secret_value())
         )
     )
 
