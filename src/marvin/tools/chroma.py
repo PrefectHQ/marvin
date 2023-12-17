@@ -2,7 +2,15 @@ import asyncio
 import os
 from typing import TYPE_CHECKING, Any, Optional
 
-import httpx
+try:
+    from chromadb import Documents, EmbeddingFunction, Embeddings, HttpClient
+except ImportError:
+    raise ImportError(
+        "The chromadb package is required to query Chroma. Please install"
+        " it with `pip install chromadb` or `pip install marvin[chroma]`."
+    )
+
+
 from typing_extensions import Literal
 
 import marvin
@@ -10,16 +18,22 @@ import marvin
 if TYPE_CHECKING:
     from openai.types import CreateEmbeddingResponse
 
+QueryResultType = Literal["documents", "distances", "metadatas"]
+
 try:
     HOST, PORT = (
         getattr(marvin.settings, "chroma_server_host"),
         getattr(marvin.settings, "chroma_server_http_port"),
     )
+    DEFAULT_COLLECTION_NAME = getattr(
+        marvin.settings, "chroma_default_collection_name", "marvin"
+    )
 except AttributeError:
     HOST = os.environ.get("MARVIN_CHROMA_SERVER_HOST", "localhost")  # type: ignore
     PORT = os.environ.get("MARVIN_CHROMA_SERVER_HTTP_PORT", 8000)  # type: ignore
-
-QueryResultType = Literal["documents", "distances", "metadatas"]
+    DEFAULT_COLLECTION_NAME = os.environ.get(
+        "MARVIN_CHROMA_DEFAULT_COLLECTION_NAME", "marvin"
+    )
 
 
 def create_openai_embeddings(texts: list[str]) -> list[float]:
@@ -42,15 +56,12 @@ def create_openai_embeddings(texts: list[str]) -> list[float]:
     return embedding.data[0].embedding
 
 
-async def list_collections() -> list[dict[str, Any]]:
-    async with httpx.AsyncClient() as client:
-        chroma_api_url = f"http://{HOST}:{PORT}"
-        response = await client.get(
-            f"{chroma_api_url}/api/v1/collections",
-        )
+class OpenAIEmbeddingFunction(EmbeddingFunction):
+    def __call__(self, input: Documents) -> Embeddings:
+        return [create_openai_embeddings(input)]
 
-    response.raise_for_status()
-    return response.json()
+
+client = HttpClient(host=HOST, port=PORT)
 
 
 async def query_chroma(
@@ -62,44 +73,26 @@ async def query_chroma(
     include: Optional[list[QueryResultType]] = None,
     max_characters: int = 2000,
 ) -> str:
-    """Query Chroma.
+    """Query a collection of document excerpts for a query.
 
     Example:
         User: "What are prefect blocks?"
         Assistant: >>> query_chroma("What are prefect blocks?")
     """
-    query_embedding = await create_openai_embeddings([query])
-
-    collection_ids = [
-        c["id"] for c in await list_collections() if c["name"] == collection
+    collection_object = client.get_or_create_collection(
+        name=collection or DEFAULT_COLLECTION_NAME,
+        embedding_function=OpenAIEmbeddingFunction(),
+    )
+    query_result = collection_object.query(
+        query_texts=[query],
+        n_results=n_results,
+        where=where,
+        where_document=where_document,
+        include=include or ["documents"],
+    )
+    return "".join(doc for doclist in query_result["documents"] for doc in doclist)[
+        :max_characters
     ]
-
-    if len(collection_ids) == 0:
-        return f"Collection {collection} not found."
-
-    collection_id = collection_ids[0]
-
-    async with httpx.AsyncClient() as client:
-        chroma_api_url = f"http://{HOST}:{PORT}"
-
-        response = await client.post(
-            f"{chroma_api_url}/api/v1/collections/{collection_id}/query",
-            data={
-                "query_embeddings": [query_embedding],
-                "n_results": n_results,
-                "where": where or {},
-                "where_document": where_document or {},
-                "include": include or ["documents"],
-            },
-            headers={"Content-Type": "application/json"},
-        )
-
-    response.raise_for_status()
-
-    return "\n".join(
-        f"{i+1}. {', '.join(excerpt)}"
-        for i, excerpt in enumerate(response.json()["documents"])
-    )[:max_characters]
 
 
 async def multi_query_chroma(
@@ -111,13 +104,14 @@ async def multi_query_chroma(
     include: Optional[list[QueryResultType]] = None,
     max_characters: int = 2000,
 ) -> str:
-    """Query Chroma with multiple queries.
+    """Retrieve excerpts to aid in answering multifacted questions.
 
     Example:
         User: "What are prefect blocks and tasks?"
         Assistant: >>> multi_query_chroma(
             ["What are prefect blocks?", "What are prefect tasks?"]
         )
+        multi_query_chroma -> document excerpts explaining both blocks and tasks
     """
 
     coros = [

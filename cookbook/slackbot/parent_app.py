@@ -4,7 +4,7 @@ import chromadb
 from chromadb import Collection, Documents, EmbeddingFunction, Embeddings
 from marvin.beta.assistants import Assistant
 from marvin.beta.assistants.applications import AIApplication
-from marvin.tools.retrieval import create_openai_embeddings
+from marvin.tools.chroma import create_openai_embeddings
 from marvin.utilities.logging import get_logger
 from marvin.utilities.strings import count_tokens, slice_tokens
 from prefect.events import Event, emit_event
@@ -20,7 +20,7 @@ class OpenAIEmbeddingFunction(EmbeddingFunction):
 
 client = chromadb.Client()
 collection: Collection = client.get_or_create_collection(
-    name="marvin",
+    name="parent-state",
     embedding_function=OpenAIEmbeddingFunction(),
 )
 
@@ -54,15 +54,6 @@ async def store_state_chunks(app: AIApplication, event: Event):
     logger.debug_kv("🗂️  State chunks stored", len(state_chunks), "blue")
 
 
-async def query_parent_state(query: str, n_results: int = 1) -> str:
-    query_result = collection.query(
-        query_texts=[query],
-        n_results=n_results,
-        where={"type": "app_state"},
-    )
-    return "".join(doc for doclist in query_result["documents"] for doc in doclist)
-
-
 def excerpt_from_event(event: Event) -> str:
     """Create an excerpt from the event."""
     messages = [
@@ -73,7 +64,7 @@ def excerpt_from_event(event: Event) -> str:
         and "text" in content
         and "value" in content["text"]
     ]
-    return f"{event.event}: {json.dumps(messages, indent=2)}"
+    return f"interaction with {event.payload.get('user')}: {json.dumps(messages, indent=2)}"
 
 
 async def store_interaction(event: Event):
@@ -94,7 +85,6 @@ async def fetch_relevant_excerpt(query: str, n_results: int = 1) -> str:
 
 
 async def update_parent_app_state(app: AIApplication, event: Event):
-    # relevant_excerpt = await fetch_relevant_excerpt(app.instructions)
     relevant_excerpt = excerpt_from_event(event)
     logger.debug_kv("Retrieved child event excerpt", relevant_excerpt, "green")
     await app.default_thread.add_async(relevant_excerpt)

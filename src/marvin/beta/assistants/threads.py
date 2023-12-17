@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from openai.types.beta.threads import ThreadMessage
 from pydantic import BaseModel, Field
@@ -82,7 +82,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         before_message: Optional[str] = None,
         after_message: Optional[str] = None,
         json_compatible: bool = False,
-    ):
+    ) -> list[Union[ThreadMessage, dict]]:
         if self.id is None:
             await self.create_async()
         client = get_client()
