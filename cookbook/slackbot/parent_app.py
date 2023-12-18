@@ -7,7 +7,6 @@ from marvin.beta.assistants import Assistant
 from marvin.beta.assistants.applications import AIApplication
 from marvin.kv.json_block import JSONBlockKV
 from marvin.utilities.logging import get_logger
-from prefect import flow
 from prefect.events import Event, emit_event
 from prefect.events.clients import PrefectCloudEventSubscriber
 from prefect.events.filters import EventFilter
@@ -61,11 +60,10 @@ async def update_parent_app_state(app: AIApplication, event: Event):
         event_excerpt, event.payload.get("ai_instructions")
     )
     if lesson["relevance"] >= 0.5 and lesson["heuristic"] is not None:
-        logger.debug_kv("📝 Learned lesson", lesson, "green")
         experience = f"transcript: {event_excerpt}\n\nlesson: {lesson['heuristic']}"
-        logger.debug_kv("💭 ", experience, "green")
+        logger.debug_kv("💡 Learned lesson from excerpt", experience, "green")
         await app.default_thread.add_async(experience)
-        logger.debug_kv("Updating parent app state", "📝", "green")
+        logger.debug_kv("📝", "Updating parent app state", "green")
         await app.default_thread.run_async(app)
     else:
         logger.debug_kv("🥱 ", "nothing special", "green")
@@ -94,9 +92,12 @@ async def learn_from_child_interactions(
             ) as subscriber:
                 async for event in subscriber:
                     logger.debug_kv("📬 Received event", event.event, "green")
-                    await flow(retries=1)(update_parent_app_state)(app, event)
-        except ConnectionClosedError:
-            logger.debug_kv("🚨 Connection closed, reconnecting...", "red")
+                    await update_parent_app_state(app, event)
+        except Exception as e:
+            if isinstance(e, ConnectionClosedError):
+                logger.debug_kv("🚨 Connection closed, reconnecting...", "red")
+            else:  # i know, i know
+                logger.debug_kv("🚨", str(e), "red")
 
 
 parent_assistant_options = dict(

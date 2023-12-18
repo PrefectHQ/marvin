@@ -1,14 +1,15 @@
 import asyncio
 import re
+from typing import Callable
 
 import uvicorn
-from cachetools import TTLCache
 from fastapi import FastAPI, HTTPException, Request
 from jinja2 import Template
 from keywords import handle_keywords
 from marvin import Assistant
 from marvin.beta.assistants import Thread
 from marvin.beta.assistants.applications import AIApplication
+from marvin.kv.json_block import JSONBlockKV
 from marvin.tools.chroma import multi_query_chroma
 from marvin.tools.github import search_github_issues
 from marvin.utilities.logging import get_logger
@@ -26,10 +27,15 @@ from parent_app import (
 )
 from prefect import flow, task
 from prefect.states import Completed
+from prefect.tasks import task_input_hash
 
 BOT_MENTION = r"<@(\w+)>"
-CACHE = TTLCache(maxsize=100, ttl=86400 * 7)
+CACHE = JSONBlockKV(block_name="slackbot-tool-cache")
 USER_MESSAGE_MAX_TOKENS = 300
+
+
+def cached(func: Callable) -> Callable:
+    return task(cache_key_fn=task_input_hash)(func)
 
 
 async def get_notes_for_user(
@@ -95,8 +101,12 @@ async def handle_message(payload: SlackPayload) -> Completed:
     if (user := re.search(BOT_MENTION, user_message)) and user.group(
         1
     ) == payload.authorizations[0].user_id:
-        assistant_thread = CACHE.get(thread, Thread())
-        CACHE[thread] = assistant_thread
+        assistant_thread = (
+            Thread(**stored_thread_data)
+            if (stored_thread_data := CACHE.read(key=thread))
+            else Thread()
+        )
+        CACHE.write(key=thread, value=assistant_thread.model_dump())
 
         await handle_keywords.submit(
             message=cleaned_message,
@@ -110,7 +120,7 @@ async def handle_message(payload: SlackPayload) -> Completed:
 
         with Assistant(
             name="Marvin",
-            tools=[task(multi_query_chroma), task(search_github_issues)],
+            tools=[cached(multi_query_chroma), cached(search_github_issues)],
             instructions=(
                 "You are Marvin, the paranoid android from Hitchhiker's Guide to the Galaxy."
                 " Act subtly in accordance with your character, but remember to be helpful and kind."
