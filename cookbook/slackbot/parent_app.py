@@ -41,8 +41,6 @@ def take_lesson_from_interaction(
 
 logger = get_logger("PrefectEventSubscriber")
 
-MAX_CHUNK_SIZE = 2048
-
 
 def excerpt_from_event(event: Event) -> str:
     """Create an excerpt from the event - TODO jinja this"""
