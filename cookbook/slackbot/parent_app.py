@@ -56,23 +56,14 @@ async def store_state_chunks(app: AIApplication, event: Event):
 
 def excerpt_from_event(event: Event) -> str:
     """Create an excerpt from the event."""
-    messages = [
-        {message.get("role"): content["text"]["value"]}
-        for message in event.payload["messages"]
-        for content in message.get("content", [])
-        if content.get("type") == "text"
-        and "text" in content
-        and "value" in content["text"]
-    ]
-    return f"interaction with {event.payload.get('user')}: {json.dumps(messages, indent=2)}"
+    user_name = event.payload.get("user").get("name")
+    user_id = event.payload.get("user").get("id")
+    user_message = event.payload.get("user_message")
+    ai_response = event.payload.get("ai_response")
 
-
-async def store_interaction(event: Event):
-    excerpt = excerpt_from_event(event)
-    collection.add(
-        documents=[excerpt],
-        metadatas=[{"received": event.occurred.isoformat()}],
-        ids=[str(event.id)],
+    return (
+        f"{user_name} ({user_id}) said: {user_message}"
+        f"\n\nMarvin (the assistant) responded with: {ai_response}"
     )
 
 
@@ -106,7 +97,6 @@ async def learn_from_child_interactions(
             ) as subscriber:
                 async for event in subscriber:
                     logger.debug_kv("📬 Received event", event.event, "green")
-                    await store_interaction(event)
                     await update_parent_app_state(app, event)
                     await store_state_chunks(app, event)
         except ConnectionClosedError:

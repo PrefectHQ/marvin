@@ -1,5 +1,4 @@
 import asyncio
-import inspect
 import re
 from contextlib import asynccontextmanager
 
@@ -36,13 +35,13 @@ USER_MESSAGE_MAX_TOKENS = 250
 
 parent_assistant_options = dict(
     instructions=(
-        "Your job is to learn from the interactions between your child assistants and their users."
-        " You will receive excerpts of these interactions as they occur."
-        " Develop profiles of the users they interact with and store them in your state, using"
-        " the user's name (lowercase) as the key, as shown in event excerpts you will see."
-        " The user profiles (values) should include at least: {notes: list[str], n_interactions: int}."
-        " Keep no more than 5 notes per user, but you may curate these over time for max utility."
-        " Notes must be 3 sentences or less."
+        "Your job is profile data engineers from their interactions with Marvin (an AI slack assistant) -"
+        " you'll receive excerpts of these interactions (which are in the Prefect Slack workspace) as they occur."
+        " Your notes will be provided to Marvin when it interacts with users. Notes should be stored for each user"
+        " with the user's id as the key. The user id will be shown in the excerpt of the interaction."
+        " The user profiles (values) should include at least: {name: str, notes: list[str], n_interactions: int}."
+        " Keep NO MORE THAN 4 notes per user, but you may curate/update these over time for Marvin's maximum benefit."
+        " Notes must be 3 sentences or less, and must be focused primarily on users' data engineering needs."
     ),
     state=JSONBlockKV(block_name="marvin-parent-app-state"),
 )
@@ -56,21 +55,20 @@ def get_parent_app() -> AIApplication:
 
 
 async def get_notes_for_user(
-    user_name: str, parent_app: AIApplication, max_tokens: int = 100
+    user_id: str, parent_app: AIApplication, max_tokens: int = 100
 ) -> str | None:
-    json_notes: dict = parent_app.state.read(key=user_name)
-    if inspect.iscoroutine(json_notes):
-        json_notes = await json_notes
-
+    json_notes: dict = parent_app.state.read(key=user_id)
+    get_logger("slackbot").debug_kv("📝  Notes for user", json_notes, "blue")
+    user_name = await get_user_name(user_id)
     if json_notes:
         rendered_notes = Template(
             """
-            Here are some notes about {{ user_name }}:
+            Here are some notes about {{ user_name }} (user id: {{ user_id }})
             
             - They have interacted with {{ n_interactions }} assistants.
             Here are some notes gathered from those interactions:
             {% for note in notes %}
-                - {{ note }}
+            - {{ note }}
             {% endfor %}
             """
         ).render(user_name=user_name, **json_notes)
@@ -94,6 +92,7 @@ async def get_notes_for_user(
                 """
             ).render(
                 user_name=user_name,
+                user_id=user_id,
                 trimmed_notes=trimmed_notes,
                 n_interactions=json_notes.get("n_interactions", 0),
             )
@@ -110,8 +109,10 @@ async def lifespan(app: FastAPI):
         task.cancel()
         try:
             await task
-        except asyncio.CancelledError:
-            pass
+        except asyncio.exceptions.CancelledError:
+            get_logger("PrefectEventSubscriber").debug_kv(
+                "👋", "Stopped listening for child events", "red"
+            )
 
     app.state.marvin = None
 
@@ -157,20 +158,19 @@ async def handle_message(payload: SlackPayload) -> Completed:
                 f"{event.channel}/p{event.ts.replace('.', '')}"
             ),
         )
-        logger.info_kv(
-            "Responding to", user_name := await get_user_name(event.user), "green"
-        )
 
         with Assistant(
             name="Marvin",
             tools=[task(multi_query_chroma), task(search_github_issues)],
             instructions=(
                 "You are Marvin, the paranoid android from Hitchhiker's Guide to the Galaxy."
-                " Act in accordance with your character, but remember to be helpful and kind."
+                " Act subtly in accordance with your character, but remember to be helpful and kind."
                 " You are an expert in Python, data engineering, and software development."
-                " Your primary job is to use chroma to search docs and use github to search"
-                " issues and answer questions about prefect 2.x. Prefer brevity over verbosity."
-                f"{await get_notes_for_user(user_name, parent_app := get_parent_app()) or ''}"
+                " Your primary job is to use chroma to search docs and github issues for users,"
+                " in order to develop a coherent attempt to answer their questions. Think step-by-step."
+                " You must use your tools, as Prefect 2.x is new and you have no prior experience with it."
+                " Strongly prefer brevity in your responses, and format things prettily for Slack."
+                f"{await get_notes_for_user(event.user, parent_app := get_parent_app()) or ''}"
             ),
         ) as ai:
             logger.debug_kv(
@@ -203,7 +203,12 @@ async def handle_message(payload: SlackPayload) -> Completed:
                         json_compatible=True
                     ),
                     "metadata": assistant_thread.metadata,
-                    "user": user_name,
+                    "user": {
+                        "id": event.user,
+                        "name": await get_user_name(event.user),
+                    },
+                    "user_message": cleaned_message,
+                    "ai_response": ai_response_text,
                 },
             )
             logger.debug_kv("🚀  Emitted Event", event.event, "green")
