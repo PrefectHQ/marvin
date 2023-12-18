@@ -1,14 +1,11 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-import chromadb
-from chromadb import Collection, Documents, EmbeddingFunction, Embeddings
 from fastapi import FastAPI
 from marvin import ai_fn
 from marvin.beta.assistants import Assistant
 from marvin.beta.assistants.applications import AIApplication
 from marvin.kv.json_block import JSONBlockKV
-from marvin.tools.chroma import create_openai_embeddings
 from marvin.utilities.logging import get_logger
 from prefect import flow
 from prefect.events import Event, emit_event
@@ -41,17 +38,6 @@ def take_lesson_from_interaction(
     - if very, relevance >= 0.5, <1 & heuristic = "1 SHORT SENTENCE (max) summary of a generalizable lesson".
     """
 
-
-class OpenAIEmbeddingFunction(EmbeddingFunction):
-    def __call__(self, input: Documents) -> Embeddings:
-        return [create_openai_embeddings(input)]
-
-
-client = chromadb.Client()
-collection: Collection = client.get_or_create_collection(
-    name="parent-state",
-    embedding_function=OpenAIEmbeddingFunction(),
-)
 
 logger = get_logger("PrefectEventSubscriber")
 
