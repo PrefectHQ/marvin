@@ -45,7 +45,7 @@ class JSONBlockKV(StorageInterface[K, V, str]):
     def delete(self, key: K) -> str:
         json_block = run_sync(self._load_json_block())
         if key in json_block.value:
-            del json_block.value[key]
+            json_block.value.pop(key)
             run_sync(json_block.save(name=self.block_name, overwrite=True))
         return f"Deleted {key}"
 

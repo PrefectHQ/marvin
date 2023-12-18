@@ -1,6 +1,5 @@
 import asyncio
 import re
-from contextlib import asynccontextmanager
 
 import uvicorn
 from cachetools import TTLCache
@@ -10,7 +9,6 @@ from keywords import handle_keywords
 from marvin import Assistant
 from marvin.beta.assistants import Thread
 from marvin.beta.assistants.applications import AIApplication
-from marvin.kv.json_block import JSONBlockKV
 from marvin.tools.chroma import multi_query_chroma
 from marvin.tools.github import search_github_issues
 from marvin.utilities.logging import get_logger
@@ -24,34 +22,14 @@ from marvin.utilities.slack import (
 from marvin.utilities.strings import count_tokens, slice_tokens
 from parent_app import (
     emit_assistant_completed_event,
-    learn_from_child_interactions,
+    lifespan,
 )
 from prefect import flow, task
 from prefect.states import Completed
 
 BOT_MENTION = r"<@(\w+)>"
 CACHE = TTLCache(maxsize=100, ttl=86400 * 7)
-USER_MESSAGE_MAX_TOKENS = 250
-
-parent_assistant_options = dict(
-    instructions=(
-        "Your job is profile data engineers from their interactions with Marvin (an AI slack assistant) -"
-        " you'll receive excerpts of these interactions (which are in the Prefect Slack workspace) as they occur."
-        " Your notes will be provided to Marvin when it interacts with users. Notes should be stored for each user"
-        " with the user's id as the key. The user id will be shown in the excerpt of the interaction."
-        " The user profiles (values) should include at least: {name: str, notes: list[str], n_interactions: int}."
-        " Keep NO MORE THAN 4 notes per user, but you may curate/update these over time for Marvin's maximum benefit."
-        " Notes must be 3 sentences or less, and must be focused primarily on users' data engineering needs."
-    ),
-    state=JSONBlockKV(block_name="marvin-parent-app-state"),
-)
-
-
-def get_parent_app() -> AIApplication:
-    marvin = app.state.marvin
-    if not marvin:
-        raise HTTPException(status_code=500, detail="Marvin instance not available")
-    return marvin
+USER_MESSAGE_MAX_TOKENS = 300
 
 
 async def get_notes_for_user(
@@ -60,64 +38,35 @@ async def get_notes_for_user(
     json_notes: dict = parent_app.state.read(key=user_id)
     get_logger("slackbot").debug_kv("📝  Notes for user", json_notes, "blue")
     user_name = await get_user_name(user_id)
+
     if json_notes:
-        rendered_notes = Template(
+        notes_template = Template(
             """
-            Here are some notes about {{ user_name }} (user id: {{ user_id }})
+            Here are some notes about {{ user_name }} (user id: {{ user_id }}):
             
-            - They have interacted with {{ n_interactions }} assistants.
+            - They have interacted with assistants {{ n_interactions }} times.
+            {% if notes_content %}
             Here are some notes gathered from those interactions:
-            {% for note in notes %}
-            - {{ note }}
-            {% endfor %}
+            {{ notes_content }}
+            {% endif %}
             """
-        ).render(user_name=user_name, **json_notes)
+        )
 
-        if count_tokens(rendered_notes) <= max_tokens:
-            return rendered_notes
-        else:
-            trimmed_notes = ""
-            for note in json_notes.get("notes", []):
-                potential_notes = trimmed_notes + f"\n- {note}"
-                if count_tokens(potential_notes) > max_tokens:
-                    break
-                trimmed_notes = potential_notes
+        notes_content = ""
+        for note in json_notes.get("notes", []):
+            potential_addition = f"\n- {note}"
+            if count_tokens(notes_content + potential_addition) > max_tokens:
+                break
+            notes_content += potential_addition
 
-            return Template(
-                """
-                Here are some notes about {{ user_name }}:
-                
-                - They have interacted with {{ n_interactions }} assistants.
-                Here are some notes gathered from those interactions:\n{{ trimmed_notes }}
-                """
-            ).render(
-                user_name=user_name,
-                user_id=user_id,
-                trimmed_notes=trimmed_notes,
-                n_interactions=json_notes.get("n_interactions", 0),
-            )
+        return notes_template.render(
+            user_name=user_name,
+            user_id=user_id,
+            n_interactions=json_notes.get("n_interactions", 0),
+            notes_content=notes_content,
+        )
 
     return None
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    with AIApplication(name="Marvin", **parent_assistant_options) as marvin:
-        app.state.marvin = marvin
-        task = asyncio.create_task(learn_from_child_interactions(marvin))
-        yield
-        task.cancel()
-        try:
-            await task
-        except asyncio.exceptions.CancelledError:
-            get_logger("PrefectEventSubscriber").debug_kv(
-                "👋", "Stopped listening for child events", "red"
-            )
-
-    app.state.marvin = None
-
-
-app = FastAPI(lifespan=lifespan)
 
 
 @flow
@@ -209,12 +158,23 @@ async def handle_message(payload: SlackPayload) -> Completed:
                     },
                     "user_message": cleaned_message,
                     "ai_response": ai_response_text,
+                    "ai_instructions": ai.instructions,
                 },
             )
             logger.debug_kv("🚀  Emitted Event", event.event, "green")
             return Completed(message=success_msg)
     else:
         return Completed(message="Skipping message not directed at bot", name="SKIPPED")
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+def get_parent_app() -> AIApplication:
+    marvin = app.state.marvin
+    if not marvin:
+        raise HTTPException(status_code=500, detail="Marvin instance not available")
+    return marvin
 
 
 @app.post("/chat")

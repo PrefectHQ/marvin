@@ -1,16 +1,45 @@
-import json
+import asyncio
+from contextlib import asynccontextmanager
 
 import chromadb
 from chromadb import Collection, Documents, EmbeddingFunction, Embeddings
+from fastapi import FastAPI
+from marvin import ai_fn
 from marvin.beta.assistants import Assistant
 from marvin.beta.assistants.applications import AIApplication
+from marvin.kv.json_block import JSONBlockKV
 from marvin.tools.chroma import create_openai_embeddings
 from marvin.utilities.logging import get_logger
-from marvin.utilities.strings import count_tokens, slice_tokens
+from prefect import flow
 from prefect.events import Event, emit_event
 from prefect.events.clients import PrefectCloudEventSubscriber
 from prefect.events.filters import EventFilter
+from pydantic import confloat
+from typing_extensions import TypedDict
 from websockets.exceptions import ConnectionClosedError
+
+
+class Lesson(TypedDict):
+    relevance: confloat(ge=0, le=1)
+    heuristic: str | None
+
+
+@ai_fn(model="gpt-3.5-turbo-1106")
+def take_lesson_from_interaction(
+    transcript: str, assistant_instructions: str
+) -> Lesson:
+    """You are an expert counselor, and you are teaching Marvin how to be a better assistant.
+
+    Here is the transcript of an interaction between Marvin and a user:
+    {{ transcript }}
+
+    ... and here is the stated purpose of the assistant:
+    {{ assistant_instructions }}
+
+    how directly relevant to the assistant's purpose is this interaction?
+    - if not at all, relevance = 0 & heuristic = None. (most of the time)
+    - if very, relevance >= 0.5, <1 & heuristic = "1 SHORT SENTENCE (max) summary of a generalizable lesson".
+    """
 
 
 class OpenAIEmbeddingFunction(EmbeddingFunction):
@@ -29,33 +58,8 @@ logger = get_logger("PrefectEventSubscriber")
 MAX_CHUNK_SIZE = 2048
 
 
-def chunk_state(state: dict) -> list[str]:
-    state_str = json.dumps(state)
-    total_tokens = count_tokens(state_str)
-    if total_tokens <= MAX_CHUNK_SIZE:
-        return [state_str]
-    else:
-        chunks = []
-        while state_str:
-            chunk = slice_tokens(state_str, MAX_CHUNK_SIZE)
-            chunks.append(chunk)
-            state_str = state_str[len(chunk) :]
-        return chunks
-
-
-async def store_state_chunks(app: AIApplication, event: Event):
-    state_chunks = chunk_state(app.state.read_all())
-    for i, chunk in enumerate(state_chunks):
-        collection.add(
-            ids=[f"{event.id}-{i}"],
-            documents=[chunk],
-            metadatas=[{"type": "app_state"}],
-        )
-    logger.debug_kv("🗂️  State chunks stored", len(state_chunks), "blue")
-
-
 def excerpt_from_event(event: Event) -> str:
-    """Create an excerpt from the event."""
+    """Create an excerpt from the event - TODO jinja this"""
     user_name = event.payload.get("user").get("name")
     user_id = event.payload.get("user").get("id")
     user_message = event.payload.get("user_message")
@@ -67,20 +71,29 @@ def excerpt_from_event(event: Event) -> str:
     )
 
 
-async def fetch_relevant_excerpt(query: str, n_results: int = 1) -> str:
-    query_result = collection.query(
-        query_texts=[query],
-        n_results=n_results,
-    )
-    return "\n".join(doc for doclist in query_result["documents"] for doc in doclist)
-
-
 async def update_parent_app_state(app: AIApplication, event: Event):
-    relevant_excerpt = excerpt_from_event(event)
-    logger.debug_kv("Retrieved child event excerpt", relevant_excerpt, "green")
-    await app.default_thread.add_async(relevant_excerpt)
-    logger.debug_kv("Updating parent app state", "📝", "green")
-    await app.default_thread.run_async(app)
+    event_excerpt = excerpt_from_event(event)
+    lesson = take_lesson_from_interaction(
+        event_excerpt, event.payload.get("ai_instructions")
+    )
+    if lesson["relevance"] >= 0.5 and lesson["heuristic"] is not None:
+        logger.debug_kv("📝 Learned lesson", lesson, "green")
+        experience = f"transcript: {event_excerpt}\n\nlesson: {lesson['heuristic']}"
+        logger.debug_kv("💭 ", experience, "green")
+        await app.default_thread.add_async(experience)
+        logger.debug_kv("Updating parent app state", "📝", "green")
+        await app.default_thread.run_async(app)
+    else:
+        logger.debug_kv("🥱 ", "nothing special", "green")
+        user_id = event.payload.get("user").get("id")
+        current_user_state = await app.state.read(user_id)
+        await app.state.write(
+            user_id,
+            {
+                **current_user_state,
+                "n_interactions": current_user_state["n_interactions"] + 1,
+            },
+        )
 
 
 async def learn_from_child_interactions(
@@ -97,10 +110,41 @@ async def learn_from_child_interactions(
             ) as subscriber:
                 async for event in subscriber:
                     logger.debug_kv("📬 Received event", event.event, "green")
-                    await update_parent_app_state(app, event)
-                    await store_state_chunks(app, event)
+                    await flow(retries=1)(update_parent_app_state)(app, event)
         except ConnectionClosedError:
             logger.debug_kv("🚨 Connection closed, reconnecting...", "red")
+
+
+parent_assistant_options = dict(
+    instructions=(
+        "Your job is learn from the interactions of data engineers (users) and Marvin (a growing AI assistant)."
+        " You'll receive excerpts of these interactions (which are in the Prefect Slack workspace) as they occur."
+        " Your notes will be provided to Marvin when it interacts with users. Notes should be stored for each user"
+        " with the user's id as the key. The user id will be shown in the excerpt of the interaction."
+        " The user profiles (values) should include at least: {name: str, notes: list[str], n_interactions: int}."
+        " Keep NO MORE THAN 3 notes per user, but you may curate/update these over time for Marvin's maximum benefit."
+        " Notes must be 2 sentences or less, and must be concise and focused primarily on users' data engineering needs."
+        " Notes should not directly mention Marvin as an actor, they should be generally useful observations."
+    ),
+    state=JSONBlockKV(block_name="marvin-parent-app-state"),
+)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    with AIApplication(name="Marvin", **parent_assistant_options) as marvin:
+        app.state.marvin = marvin
+        task = asyncio.create_task(learn_from_child_interactions(marvin))
+        yield
+        task.cancel()
+        try:
+            await task
+        except asyncio.exceptions.CancelledError:
+            get_logger("PrefectEventSubscriber").debug_kv(
+                "👋", "Stopped listening for child events", "red"
+            )
+
+    app.state.marvin = None
 
 
 def emit_assistant_completed_event(
