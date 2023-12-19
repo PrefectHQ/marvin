@@ -12,11 +12,12 @@ from typing import (
     overload,
 )
 
+from openai import AsyncClient, Client
 from openai.types.images_response import ImagesResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import NotRequired, ParamSpec, Self, Unpack
 
-from marvin.client.openai import MarvinImage
+from marvin.client.openai import AsyncMarvinClient, MarvinClient
 from marvin.components.prompt.fn import PromptFunction
 from marvin.utilities.jinja import (
     BaseEnvironment,
@@ -30,25 +31,25 @@ P = ParamSpec("P")
 class AIImageKwargs(TypedDict):
     environment: NotRequired[BaseEnvironment]
     prompt: NotRequired[str]
-    generate: NotRequired[Callable[..., "ImagesResponse"]]
-    agenerate: NotRequired[Callable[..., Coroutine[Any, Any, "ImagesResponse"]]]
+    client: NotRequired[Client]
+    aclient: NotRequired[AsyncClient]
 
 
 class AIImageKwargsDefaults(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = None
-    generate: Optional[Callable[..., "ImagesResponse"]] = Field(
-        default_factory=lambda: MarvinImage.generate
-    )
-    agenerate: Optional[Callable[..., Coroutine[Any, Any, "ImagesResponse"]]] = Field(
-        default_factory=lambda: MarvinImage.agenerate
-    )
+    client: Optional[Client] = None
+    aclient: Optional[AsyncClient] = None
 
 
-class AIImage(MarvinImage, Generic[P]):
+class AIImage(BaseModel, Generic[P]):
+    model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     fn: Optional[Callable[P, Any]] = None
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = Field(default=None)
+    client: Client = Field(default_factory=lambda: MarvinClient().client)
+    aclient: AsyncClient = Field(default_factory=lambda: AsyncMarvinClient().client)
 
     def __call__(
         self, *args: P.args, **kwargs: P.kwargs
@@ -59,12 +60,12 @@ class AIImage(MarvinImage, Generic[P]):
 
     def call(self, *args: P.args, **kwargs: P.kwargs) -> "ImagesResponse":
         prompt_str = self.as_prompt(*args, **kwargs)
-        response = self.generate(prompt=prompt_str)
+        response = MarvinClient(client=self.client).paint(prompt=prompt_str)
         return response
 
     async def acall(self, *args: P.args, **kwargs: P.kwargs) -> "ImagesResponse":
         prompt_str = self.as_prompt(*args, **kwargs)
-        response = await self.agenerate(prompt=prompt_str)
+        response = await AsyncMarvinClient(client=self.aclient).paint(prompt=prompt_str)
         return response
 
     def as_prompt(
