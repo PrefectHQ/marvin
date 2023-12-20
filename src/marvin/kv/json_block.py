@@ -55,11 +55,15 @@ class JSONBlockKV(StorageInterface):
         return f"Deleted {key}"
 
     def read(self, key: K) -> Optional[V]:
-        return self._state.get(key)
+        json_block = run_sync(load_json_block(self.block_name))
+        return json_block.value.get(key)
 
     def read_all(self, limit: Optional[int] = None) -> dict[K, V]:
-        limited_items = dict(list(self._state.items())[:limit])
+        json_block = run_sync(load_json_block(self.block_name))
+
+        limited_items = dict(list(json_block.value.items())[:limit])
         return limited_items
 
     def list_keys(self) -> list[K]:
-        return list(self._state.keys())
+        json_block = run_sync(load_json_block(self.block_name))
+        return list(json_block.value.keys())
