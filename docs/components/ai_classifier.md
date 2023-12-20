@@ -14,6 +14,7 @@ AI Classifiers are a high-level component, or building block, of Marvin. Like al
     from marvin import ai_classifier
     from enum import Enum
 
+    @ai_classifier
     class CustomerIntent(Enum):
         """Classifies the incoming users intent"""
 
@@ -26,11 +27,7 @@ AI Classifiers are a high-level component, or building block, of Marvin. Like al
         ACCOUNT_CANCELLATION = 'ACCOUNT_CANCELLATION'
         OPERATOR_CUSTOMER_SERVICE = 'OPERATOR_CUSTOMER_SERVICE'
 
-    @ai_classifier
-    def classify_intent(text: str) -> CustomerIntent:
-        '''Classifies the most likely intent from user input'''
-
-    classify_intent("I got double charged, can you help me out?")
+    CustomerIntent("I got double charged, can you help me out?")
     ```
     !!! success "Result"
         ```python 
