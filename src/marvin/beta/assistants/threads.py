@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from openai.types.beta.threads import ThreadMessage
 from pydantic import BaseModel, Field
@@ -52,7 +52,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("add")
     async def add_async(
-        self, message: str, file_paths: Optional[list[str]] = None
+        self, message: str, file_paths: Optional[list[str]] = None, role: str = "user"
     ) -> ThreadMessage:
         """
         Add a user message to the thread.
@@ -71,7 +71,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
         # Create the message with the attached files
         response = await client.beta.threads.messages.create(
-            thread_id=self.id, role="user", content=message, file_ids=file_ids
+            thread_id=self.id, role=role, content=message, file_ids=file_ids
         )
         return ThreadMessage.model_validate(response.model_dump())
 
@@ -81,7 +81,8 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         limit: int = None,
         before_message: Optional[str] = None,
         after_message: Optional[str] = None,
-    ):
+        json_compatible: bool = False,
+    ) -> list[Union[ThreadMessage, dict]]:
         if self.id is None:
             await self.create_async()
         client = get_client()
@@ -96,7 +97,9 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             order="desc",
         )
 
-        return parse_as(list[ThreadMessage], reversed(response.model_dump()["data"]))
+        T = dict if json_compatible else ThreadMessage
+
+        return parse_as(list[T], reversed(response.model_dump()["data"]))
 
     @expose_sync_method("delete")
     async def delete_async(self):

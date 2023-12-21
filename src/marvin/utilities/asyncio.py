@@ -2,6 +2,7 @@
 
 import asyncio
 import functools
+import inspect
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Coroutine, TypeVar, cast
 
@@ -76,6 +77,30 @@ def run_sync(coroutine: Coroutine[Any, Any, T]) -> T:
             return asyncio.run(coroutine)
     except RuntimeError:
         return asyncio.run(coroutine)
+
+
+def run_sync_if_awaitable(obj: Any) -> Any:
+    """
+    If the object is awaitable, run it synchronously. Otherwise, return the
+    object.
+
+    Args:
+        obj: The object to run.
+
+    Returns:
+        The return value of the object if it is awaitable, otherwise the object
+        itself.
+
+    Example:
+        Basic usage:
+        ```python
+        async def my_async_function(x: int) -> int:
+            return x + 1
+
+        run_sync_if_awaitable(my_async_function(1))
+        ```
+    """
+    return run_sync(obj) if inspect.isawaitable(obj) else obj
 
 
 class ExposeSyncMethodsMixin:
