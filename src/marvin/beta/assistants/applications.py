@@ -1,3 +1,4 @@
+import types
 from typing import Optional, Union
 
 from pydantic import Field
@@ -7,7 +8,7 @@ from marvin.kv.in_memory import InMemoryKV
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.tools import tool_from_function
 
-from .assistants import Assistant, AssistantTools
+from .assistants import Assistant, AssistantTool
 
 StateValueType = Union[str, list, dict, int, float, bool, None]
 
@@ -48,7 +49,20 @@ class AIApplication(Assistant):
     def get_instructions(self) -> str:
         return JinjaEnvironment.render(APPLICATION_INSTRUCTIONS, self_=self)
 
-    def get_tools(self) -> list[AssistantTools]:
+    def _inject_app(self, tool: AssistantTool) -> AssistantTool:
+        original_function = tool.function.python_fn
+
+        tool.function.python_fn = types.FunctionType(
+            original_function.__code__,
+            dict(original_function.__globals__, _app=self),
+            name=original_function.__name__,
+            argdefs=original_function.__defaults__,
+            closure=original_function.__closure__,
+        )
+
+        return tool
+
+    def get_tools(self) -> list[AssistantTool]:
         def write_state_key(key: str, value: StateValueType):
             """Writes a key to the state in order to remember it for later."""
             return self.state.write(key, value)
@@ -78,4 +92,4 @@ class AIApplication(Assistant):
                 read_state,
                 list_state_keys,
             ]
-        ] + super().get_tools()
+        ] + [self._inject_app(tool) for tool in super().get_tools()]

@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, field_validator
 
 import marvin.utilities.tools
 from marvin.requests import Tool
-from marvin.tools.assistants import AssistantTools
+from marvin.tools.assistants import AssistantTool
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -26,7 +26,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     name: str = "Assistant"
     model: str = "gpt-4-1106-preview"
     instructions: Optional[str] = Field(None, repr=False)
-    tools: list[AssistantTools] = []
+    tools: list[AssistantTool] = []
     file_ids: list[str] = []
     metadata: dict[str, str] = {}
 
@@ -39,7 +39,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     def clear_default_thread(self):
         self.default_thread = Thread()
 
-    def get_tools(self) -> list[AssistantTools]:
+    def get_tools(self) -> list[AssistantTool]:
         return self.tools
 
     def get_instructions(self) -> str:

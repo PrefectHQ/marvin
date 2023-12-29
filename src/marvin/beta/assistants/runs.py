@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 import marvin.utilities.tools
 from marvin.requests import Tool
-from marvin.tools.assistants import AssistantTools, CancelRun
+from marvin.tools.assistants import AssistantTool, CancelRun
 from marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_client
@@ -30,10 +30,10 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             "Additional instructions to append to the assistant's instructions."
         ),
     )
-    tools: Optional[list[Union[AssistantTools, Callable]]] = Field(
+    tools: Optional[list[Union[AssistantTool, Callable]]] = Field(
         None, description="Replacement tools to use for the run."
     )
-    additional_tools: Optional[list[AssistantTools]] = Field(
+    additional_tools: Optional[list[AssistantTool]] = Field(
         None,
         description="Additional tools to append to the assistant's tools. ",
     )
@@ -106,7 +106,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
         return instructions
 
-    def get_tools(self) -> list[AssistantTools]:
+    def get_tools(self) -> list[AssistantTool]:
         tools = []
         if self.tools is None:
             tools.extend(self.assistant.get_tools())
