@@ -38,9 +38,9 @@ def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
 
     if not api_key:
         raise ValueError(
-            "OpenAI API key not set - please set `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env`."
+            "OpenAI API key not found. Please either set `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env`"
+            " or otherwise set `OPENAI_API_KEY` in your environment."
         )
-
     if client_type == "sync":
         return Client(
             **settings.openai.model_dump(
