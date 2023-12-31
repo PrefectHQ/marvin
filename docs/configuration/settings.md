@@ -5,12 +5,13 @@ Marvin makes use of Pydantic's `BaseSettings` to configure, load, and change beh
 ## Environment Variables
 All settings are configurable via environment variables like `MARVIN_<setting name>`.
 
+Please set Marvin specific settings in `~/.marvin/.env`. One exception being `OPENAI_API_KEY`, which may be as a global env var on your system and it will be picked up by Marvin.
+
 !!! example "Setting Environment Variables"
-    For example, in an `.env` file or in your shell config file you might have:
+    For example, in your `~/.marvin/.env` file or in your shell config file you might have:
     ```shell
-    MARVIN_LOG_LEVEL=DEBUG
-    MARVIN_LLM_MODEL=gpt-4
-    MARVIN_LLM_TEMPERATURE=0
+    MARVIN_LOG_LEVEL=INFO
+    MARVIN_OPENAI_CHAT_COMPLETIONS_MODEL=gpt-4
     MARVIN_OPENAI_API_KEY='sk-my-api-key'
     ```
     Settings these values will let you avoid setting an API key every time. 
@@ -23,10 +24,6 @@ A runtime settings object is accessible via `marvin.settings` and can be used to
     ```python
     import marvin
 
-    marvin.settings.llm_model # 'gpt-4'
-
-    marvin.settings.llm_model = 'gpt-3.5-turbo'
-
-    marvin.settings.llm_model # 'gpt-3.5-turbo'
+    marvin.settings.openai_chat_completions_model = 'gpt-4'
     ```
 

@@ -5,6 +5,18 @@ After [installing Marvin](../installation), the fastest way to get started is by
 !!! info "Initializing a Client"
     To use Marvin you must have an API Key configured for an external model provider, like OpenAI. 
     
+    You can pass your API Key to Marvin in one of two ways:
+
+    - Set the environment variable `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env` or as `OPENAI_API_KEY` in your shell config file.
+
+    ```shell
+    » cat ~/.marvin/.env | rg OPENAI
+    MARVIN_OPENAI_API_KEY=sk-xxx
+    MARVIN_OPENAI_ORGANIZATION=org-xxx
+    ```
+
+    - Pass your API Key to Marvin's `OpenAI` client constructor. 
+
     ```python
     from openai import OpenAI
 
@@ -23,11 +35,8 @@ Marvin's most basic component is the AI Model, built on Pydantic's `BaseModel`. 
         ```python
         from marvin import ai_model
         from pydantic import BaseModel, Field
-        from openai import OpenAI
 
-        client = OpenAI(api_key = 'YOUR_API_KEY')
-
-        @ai_model(client = client)
+        @ai_model
         class Location(BaseModel):
             city: str
             state_abbreviation: str = Field(
@@ -120,9 +129,6 @@ Marvin's most basic component is the AI Model, built on Pydantic's `BaseModel`. 
         ```python
         from marvin import ai_model
         from pydantic import BaseModel, Field
-        from openai import OpenAI
-
-        client = OpenAI(api_key = 'YOUR_API_KEY')
 
         class Location(BaseModel):
             city: str
@@ -131,12 +137,12 @@ Marvin's most basic component is the AI Model, built on Pydantic's `BaseModel`. 
                 description="The two-letter state abbreviation"
             )
 
-        ai_model(Location, client = client)("The Big Apple")
+        ai_model(Location)("The Big Apple")
         ```
         ??? info "Generated Prompt"
             You can view and/or eject the generated prompt by simply calling 
             ```python
-            ai_model(Location, client = client)("The Big Apple").as_prompt().serialize()
+            ai_model(Location)("The Big Apple").as_prompt().serialize()
             ```
             When you do you'll see the raw payload that's sent to the LLM. All of the parameters
             below like `FormatResponse` and the prompt you send are fully customizable. 
@@ -358,11 +364,8 @@ AI Functions look like regular functions, but have no source code. Instead, an A
         `ai_fn` can decorate python functions to evlaute them using a Large Language Model.
         ```python
         from marvin import ai_fn
-        from openai import OpenAI
 
-        client = OpenAI(api_key = 'YOUR_API_KEY')
-
-        @ai_fn(client=client)
+        @ai_fn
         def sentiment_list(texts: list[str]) -> list[float]:
             """
             Given a list of `texts`, returns a list of numbers between 1 (positive) and
@@ -437,9 +440,6 @@ AI Functions look like regular functions, but have no source code. Instead, an A
         `ai_fn` can be used as a utility function to evaluate python functions using a Large Language Model.
         ```python
         from marvin import ai_fn
-        from openai import OpenAI
-
-        client = OpenAI(api_key = 'YOUR_API_KEY')
 
         def sentiment_list(texts: list[str]) -> list[float]:
             """
@@ -448,7 +448,7 @@ AI Functions look like regular functions, but have no source code. Instead, an A
             """
 
 
-        ai_fn(sentiment_list, client=client)(
+        ai_fn(sentiment_list)(
             [
                 "That was surprisingly easy!",
                 "Oh no, not again.",
@@ -458,7 +458,7 @@ AI Functions look like regular functions, but have no source code. Instead, an A
         ??? info "Generated Prompt"
             You can view and/or eject the generated prompt by simply calling 
             ```python
-            ai_fn(sentiment_list, client = client)([
+            ai_fn(sentiment_list)([
                 "That was surprisingly easy!",
                 "Oh no, not again.",
             ]).as_prompt().serialize()
