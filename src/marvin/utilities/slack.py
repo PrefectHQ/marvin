@@ -71,8 +71,16 @@ class SlackPayload(BaseModel):
 async def get_token() -> str:
     """Get the Slack bot token from the environment."""
     try:
-        token = marvin.settings.slack_api_token
+        token = (
+            marvin.settings.slack_api_token
+        )  # set `MARVIN_SLACK_API_TOKEN` in `~/.marvin/.env
     except AttributeError:
+        try:  # TODO: clean this up
+            from prefect.blocks.system import Secret
+
+            return (await Secret.load("slack-api-token")).get()
+        except ImportError:
+            pass
         token = os.getenv("MARVIN_SLACK_API_TOKEN")
         if not token:
             raise ValueError(

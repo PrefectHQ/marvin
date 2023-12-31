@@ -28,6 +28,7 @@ dependencies = [
 
 [project.optional-dependencies]
 generator = ["datamodel-code-generator>=0.20.0"]
+chromadb = ["chromadb"]
 prefect = ["prefect>=2.14.9"]
 dev = [
     "marvin[tests]",
@@ -53,7 +54,7 @@ tests = [
     "pytest~=7.3.1",
     "pytest-timeout",
 ]
-slackbot = ["marvin[prefect]", "numpy"]
+slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]"]
 
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"

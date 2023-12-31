@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import Any, Callable, Coroutine, List, Optional
+from typing import List, Optional
 
 import httpx
 from pydantic import BaseModel, Field, field_validator
@@ -14,10 +14,7 @@ async def get_token() -> str:
     try:
         from prefect.blocks.system import Secret
 
-        github: Coroutine[Any, Any, Secret] = Secret.load("github-token")
-        get: Callable[..., Coroutine[Any, Any, str]] = getattr(github, "get")
-        return await get()
-
+        return (await Secret.load(name="github-token")).get()  # type: ignore
     except (ImportError, ValueError) as exc:
         getattr(get_logger("marvin"), "debug_kv")(
             (
@@ -118,5 +115,5 @@ async def search_github_issues(
         f"{issue.title} ({issue.html_url}):\n{issue.body}" for issue in issues
     )
     if not summary.strip():
-        raise ValueError("No issues found.")
+        return "No issues found."
     return summary

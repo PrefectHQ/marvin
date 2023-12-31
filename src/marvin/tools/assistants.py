@@ -1,15 +1,11 @@
 from typing import Any, Union
 
-from pydantic import BaseModel
-
 from marvin.requests import CodeInterpreterTool, RetrievalTool, Tool
 
-Retrieval = RetrievalTool[BaseModel]()
-CodeInterpreter = CodeInterpreterTool[BaseModel]()
+Retrieval = RetrievalTool()
+CodeInterpreter = CodeInterpreterTool()
 
-AssistantTools = Union[
-    RetrievalTool[BaseModel], CodeInterpreterTool[BaseModel], Tool[BaseModel]
-]
+AssistantTools = Union[RetrievalTool, CodeInterpreterTool, Tool]
 
 
 class CancelRun(Exception):
