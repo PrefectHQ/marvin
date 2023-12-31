@@ -8,7 +8,7 @@ All settings are configurable via environment variables like `MARVIN_<setting na
 Please set Marvin specific settings in `~/.marvin/.env`. One exception being `OPENAI_API_KEY`, which may be as a global env var on your system and it will be picked up by Marvin.
 
 !!! example "Setting Environment Variables"
-    For example, in your `~/.marvin/.env` file or in your shell config file you might have:
+    For example, in your `~/.marvin/.env` file you could have:
     ```shell
     MARVIN_LOG_LEVEL=INFO
     MARVIN_OPENAI_CHAT_COMPLETIONS_MODEL=gpt-4
