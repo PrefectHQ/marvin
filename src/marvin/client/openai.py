@@ -37,8 +37,8 @@ def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
     )
     if not api_key:
         raise ValueError(
-            "OpenAI API key not found. Set `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env`"
-            " or `OPENAI_API_KEY` in environment."
+            "OpenAI API key not found. Please either set `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env`"
+            " or otherwise set `OPENAI_API_KEY` in your environment."
         )
     if client_type not in ["sync", "async"]:
         raise ValueError(f"Invalid client type {client_type!r}")
