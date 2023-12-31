@@ -35,28 +35,21 @@ def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
     api_key = (
         settings.openai.api_key.get_secret_value() if settings.openai.api_key else None
     )
-
     if not api_key:
         raise ValueError(
-            "OpenAI API key not found. Please either set `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env`"
-            " or otherwise set `OPENAI_API_KEY` in your environment."
+            "OpenAI API key not found. Set `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env`"
+            " or `OPENAI_API_KEY` in environment."
         )
-    if client_type == "sync":
-        return Client(
-            **settings.openai.model_dump(
-                exclude={"chat", "images", "audio", "assistants", "api_key"}
-            )
-            | dict(api_key=api_key)
-        )
-    elif client_type == "async":
-        return AsyncClient(
-            **settings.openai.model_dump(
-                exclude={"chat", "images", "audio", "assistants", "api_key"}
-            )
-            | dict(api_key=api_key)
-        )
-    else:
+    if client_type not in ["sync", "async"]:
         raise ValueError(f"Invalid client type {client_type!r}")
+
+    client_class = Client if client_type == "sync" else AsyncClient
+    return client_class(
+        **settings.openai.model_dump(
+            exclude={"chat", "images", "audio", "assistants", "api_key"}
+        )
+        | {"api_key": api_key}
+    )
 
 
 def with_response_model(
