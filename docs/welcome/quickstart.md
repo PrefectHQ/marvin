@@ -15,12 +15,19 @@ After [installing Marvin](../installation), the fastest way to get started is by
     MARVIN_OPENAI_ORGANIZATION=org-xxx
     ```
 
-    - Pass your API Key to Marvin's `OpenAI` client constructor. 
+    - Pass your API Key to Marvin's `OpenAI` client constructor and pass it to Marvin's `ai_fn`, `ai_classifier`, or `ai_model` decorators.
 
     ```python
+    from marvin import ai_fn
     from openai import OpenAI
 
     client = OpenAI(api_key = 'YOUR_API_KEY')
+
+    @ai_fn(client = client)
+    def list_fruits(n: int, color: str = 'red') -> list[str]:
+        """
+        Generates a list of {{n}} {{color}} fruits.
+        """
     ```
 
 ## Components 
