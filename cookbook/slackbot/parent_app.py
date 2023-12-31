@@ -115,7 +115,7 @@ parent_assistant_options = dict(
     instructions=(
         "Your job is learn from the interactions of data engineers (users) and Marvin (a growing AI assistant)."
         " You'll receive excerpts of these interactions (which are in the Prefect Slack workspace) as they occur."
-        " Your notes will be provided to Marvin when it interacts with users. Notes should be stored for each user"
+        " Your notes will be provided to Marvin when interacting with users. Notes should be stored for each user"
         " with the user's id as the key. The user id will be shown in the excerpt of the interaction."
         " The user profiles (values) should include at least: {name: str, notes: list[str], n_interactions: int}."
         " Keep NO MORE THAN 3 notes per user, but you may curate/update these over time for Marvin's maximum benefit."

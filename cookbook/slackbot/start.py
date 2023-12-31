@@ -10,7 +10,7 @@ from marvin import Assistant
 from marvin.beta.assistants import Thread
 from marvin.beta.assistants.applications import AIApplication
 from marvin.kv.json_block import JSONBlockKV
-from marvin.tools.chroma import multi_query_chroma
+from marvin.tools.chroma import multi_query_chroma, store_document
 from marvin.tools.github import search_github_issues
 from marvin.utilities.logging import get_logger
 from marvin.utilities.slack import (
@@ -44,9 +44,12 @@ async def get_notes_for_user(
 ) -> dict[str, str | None]:
     user_name = await get_user_name(user_id)
     json_notes: dict = PARENT_APP_STATE.read(key=user_id)
-    get_logger("slackbot").debug_kv(f"📝  Notes for {user_name}", json_notes, "blue")
 
     if json_notes:
+        get_logger("slackbot").debug_kv(
+            f"📝  Notes for {user_name}", json_notes, "blue"
+        )
+
         notes_template = Template(
             """
             START_USER_NOTES
@@ -84,7 +87,7 @@ async def get_notes_for_user(
     return {user_name: None}
 
 
-@flow
+@flow(name="Handle Slack Message")
 async def handle_message(payload: SlackPayload) -> Completed:
     logger = get_logger("slackbot")
     user_message = (event := payload.event).text
@@ -128,6 +131,16 @@ async def handle_message(payload: SlackPayload) -> Completed:
             ),
         )
         user_name, user_notes = (await get_notes_for_user(user_id=event.user)).popitem()
+
+        task(store_document).submit(
+            document=cleaned_message,
+            metadata={
+                "user": f"{user_name} ({event.user})",
+                "user_notes": user_notes or "",
+                "channel": await get_channel_name(event.channel),
+                "thread": thread,
+            },
+        )
 
         with Assistant(
             name="Marvin",
@@ -206,7 +219,9 @@ async def chat_endpoint(request: Request):
     payload = SlackPayload(**await request.json())
     match payload.type:
         case "event_callback":
-            options = dict(flow_run_name=f"respond in {payload.event.channel}")
+            options = dict(
+                flow_run_name=f"respond in {await get_channel_name(payload.event.channel)}/{payload.event.thread_ts}"
+            )
             asyncio.create_task(handle_message.with_options(**options)(payload))
         case "url_verification":
             return {"challenge": payload.challenge}

@@ -153,4 +153,4 @@ def store_document(
         metadatas=[metadata],
     )
 
-    return collection.get(id=doc_id)
+    return collection.get(ids=doc_id)

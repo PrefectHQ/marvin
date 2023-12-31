@@ -50,6 +50,9 @@ class AIApplication(Assistant):
         return JinjaEnvironment.render(APPLICATION_INSTRUCTIONS, self_=self)
 
     def _inject_app(self, tool: AssistantTool) -> AssistantTool:
+        if not ((fn := getattr(tool, "function")) and hasattr(fn, "python_fn")):
+            return tool
+
         original_function = tool.function.python_fn
 
         tool.function.python_fn = types.FunctionType(
