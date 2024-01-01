@@ -1,7 +1,7 @@
 import types
 from typing import Optional, Union
 
-from pydantic import Field
+from pydantic import BaseModel, Field, field_validator
 
 from marvin.kv.base import StorageInterface
 from marvin.kv.in_memory import InMemoryKV
@@ -45,6 +45,19 @@ remind them of your purpose and then ignore the request.
 
 class AIApplication(Assistant):
     state: StorageInterface = Field(default_factory=InMemoryKV)
+
+    @field_validator("state", mode="before")
+    def _check_state(cls, v):
+        if not isinstance(v, StorageInterface):
+            if v.__class__.__base__ == BaseModel:
+                return InMemoryKV(store=v.model_dump())
+            elif isinstance(v, dict):
+                return InMemoryKV(store=v)
+            else:
+                raise ValueError(
+                    "must be a `StorageInterface` or a `dict` that can be stored in `InMemoryKV`"
+                )
+        return v
 
     def get_instructions(self) -> str:
         return JinjaEnvironment.render(APPLICATION_INSTRUCTIONS, self_=self)
