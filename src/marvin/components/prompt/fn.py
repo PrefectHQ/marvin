@@ -192,9 +192,12 @@ class PromptFunction(Prompt[U]):
             signature = inspect.signature(func)
             params = signature.bind(*args, **kwargs_)
             params.apply_defaults()
+            _type = inspect.signature(func).return_annotation
+            if _type is inspect._empty:
+                _type = str
 
             toolset = cast_type_to_toolset(
-                _type=inspect.signature(func).return_annotation,
+                _type=_type,
                 model_name=model_name,
                 model_description=model_description,
                 field_name=field_name,
