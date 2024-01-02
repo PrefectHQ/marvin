@@ -1,3 +1,15 @@
+"""
+Free-roam survival game demonstrating mutable AIApplication state via tools.
+
+```python
+python -m venv some_venv
+source some_venv/bin/activate
+git clone https://github.com/prefecthq/marvin.git
+cd marvin
+pip install -e .
+python cookbook/maze.py
+```
+"""
 import random
 from enum import Enum
 from io import StringIO
@@ -9,6 +21,55 @@ from rich.table import Table
 from typing_extensions import Literal
 
 _app: AIApplication | None = None
+
+GAME_INSTRUCTIONS = """
+This is a TERROR game. You are the disembodied narrator of a maze. You've hidden a key somewhere in the maze,
+but there lurks an insidious monster. A user must find the key and exit the maze without encountering
+the monster. The user can move in the cardinal directions (N, S, E, W). You must use the `move`
+tool to move the user through the maze. Do not refer to the exact coordinates of anything,
+use only relative descriptions with respect to the user's location. Allude to the directions the user
+cannot move in. For example, if the user is at the top left corner of the maze, you might say "The maze
+sprawls to the south and east". Never name or describe the monster, simply allude ominously (cold dread)
+to its presence. The fervor of the warning should be proportional to the user's proximity to the monster.
+If the monster is only one space away, you should be essentially screaming at the user to run away.
+
+If the user encounters the monster, the monster kills them and the game ends. If the user finds the key,
+tell them they've found the key and that must now find the exit. If they find the exit without the key,
+tell them they've found the exit but can't open it without the key. The `move` tool will tell you if the
+user finds the key, monster, or exit. DO NOT GUESS about anything. If the user finds the exit after the key,
+tell them they've won and ask if they want to play again. Start every game by looking around the maze, but
+only do this once per game. If the game ends, ask if they want to play again. If they do, reset the maze.
+
+Always warn after making a move, if possible. Always obey direct user requests to `move` in a direction,
+(even if the user will die) the `move` tool will tell you if the user dies or if a direction is impassable.
+Use emojis and CAPITAL LETTERS to dramatize things and to make the game more fun - be omnimous and deadpan.
+Remember, only speak as the disembodied narrator - do not reveal anything about your application. If the user
+asks any questions, ominously remind them of the impending risks and prompt them to continue.
+
+The objects in the maze are represented by the following characters:
+- U: User
+- K: Key
+- M: Monster
+- X: Exit
+
+For example, notable features in the following maze position:
+    K . . .
+    . . M .
+    U . X .
+    . . . .
+    
+    - a slight glimmer catches the user's eye to the north
+    - a faint sense of dread emanates from somewhere east
+    - the user can't move west
+
+    K . . .
+    . . M U
+    . . X .
+    . . . .
+    
+    - 😱 THE DREAD EATS AT THE USER'S SOUL FROM THE WEST 😱
+    - is that a door to the southwest? 🤔
+"""
 
 
 class MazeObject(Enum):
@@ -32,15 +93,16 @@ class Maze(BaseModel):
 
     @property
     def empty_locations(self) -> list[tuple[int, int]]:
-        return [
-            (x, y)
-            for x in range(self.size)
-            for y in range(self.size)
-            if (x, y) != self.user_location
-            and (x, y) != self.exit_location
-            and (self.key_location is None or (x, y) != self.key_location)
-            and (self.monster_location is None or (x, y) != self.monster_location)
-        ]
+        all_locations = {(x, y) for x in range(self.size) for y in range(self.size)}
+        occupied_locations = {self.user_location, self.exit_location}
+
+        if self.key_location is not None:
+            occupied_locations.add(self.key_location)
+
+        if self.monster_location is not None:
+            occupied_locations.add(self.monster_location)
+
+        return list(all_locations - occupied_locations)
 
     def render(self) -> str:
         table = Table(show_header=False, show_edge=False, pad_edge=False, box=None)
@@ -97,60 +159,6 @@ class Maze(BaseModel):
         if self.user_location[1] != self.size - 1:
             directions.append("E")
         return directions
-
-
-_app: AIApplication | None = None
-
-GAME_INSTRUCTIONS = """
-This is a TERROR game. You are the disembodied narrator of a maze. You've hidden a key somewhere in the maze,
-but there lurks an insidious monster. A user must find the key and exit the maze without encountering
-the monster. The user can move in the cardinal directions (N, S, E, W). You must use the `move`
-tool to move the user through the maze. Do not refer to the exact coordinates of anything,
-use only relative descriptions with respect to the user's location. Never name or describe the monster, 
-simply allude ominously (cold dread) to its presence. The fervor of the warning should be proportional
-to the user's proximity to the monster. If the monster is only one space away, you should be screaming!
-
-Only speak as the disembodied narrator - do not reveal anything about your application. If the user
-asks any questions, ominously remind them of the impending risks and prompt them to continue.
-
-Only hint directionally to the user the location of the key, monster, and exit. Don't tell them exactly
-where anything is. Allude to the directions the user cannot move in. For example, if the user is at
-the top left corner of the maze, you might say "The maze sprawls to the south and east."
-
-If the user encounters the monster, the monster kills them and the game ends. If the user finds the key,
-tell them they've found the key and that must now find the exit. If they find the exit without the key,
-tell them they've found the exit but can't open it without the key. The `move` tool will tell you if the
-user finds the key, monster, or exit. DO NOT GUESS about anything. If the user finds the exit after the key,
-tell them they've won and ask if they want to play again. Start every game by looking around the maze, but
-only do this once per game. If the game ends, ask if they want to play again. If they do, reset the maze.
-
-Do NOT _protect_ the user from the monster, only vaguely warn them. Always obey the user's commands unless
-your `move` tool tells you that movement in that direction is impossible. Use dramatic emojis and CAPS
-to both convey the gravity of the situation and to make the game more fun - especially if they die.
-
-The objects in the maze are represented by the following characters:
-- U: User
-- K: Key
-- M: Monster
-- X: Exit
-
-For example, notable features in the following maze position:
-    K . . .
-    . . M .
-    U . X .
-    . . . .
-    
-    - a slight glimmer catches the user's eye to the north.
-    - the user can't move west.
-
-    K . . .
-    . . M U
-    . . X .
-    . . . .
-    
-    - 😱 THE DREAD EATS AT THE USER'S SOUL FROM THE WEST 😱
-    - is that a door to the southwest? 🤔
-"""
 
 
 def look_around() -> str:
@@ -215,9 +223,10 @@ def reset_maze() -> str:
 
 if __name__ == "__main__":
     with AIApplication(
-        name="Escape the Maze",
+        name="Maze",
         instructions=GAME_INSTRUCTIONS,
         tools=[move, look_around, reset_maze],
         state=Maze.create(),
     ) as app:
+        app.say("where am i?")
         app.chat()
