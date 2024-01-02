@@ -3,13 +3,13 @@ from typing import Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
 
+from marvin.beta.assistants import Assistant
 from marvin.kv.base import StorageInterface
 from marvin.kv.in_memory import InMemoryKV
 from marvin.requests import Tool
+from marvin.tools.assistants import AssistantTool
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.tools import tool_from_function
-
-from .assistants import Assistant, AssistantTool
 
 StateValueType = Union[str, list, dict, int, float, bool, None]
 

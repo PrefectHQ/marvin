@@ -7,8 +7,8 @@ from fastapi import FastAPI, HTTPException, Request
 from jinja2 import Template
 from keywords import handle_keywords
 from marvin import Assistant
+from marvin.beta.applications import AIApplication
 from marvin.beta.assistants import Thread
-from marvin.beta.assistants.applications import AIApplication
 from marvin.kv.json_block import JSONBlockKV
 from marvin.tools.chroma import multi_query_chroma, store_document
 from marvin.tools.github import search_github_issues
@@ -97,9 +97,10 @@ async def handle_message(payload: SlackPayload) -> Completed:
         exceeded_amt = count - USER_MESSAGE_MAX_TOKENS
         await task(post_slack_message)(
             message=(
-                f"Your message was too long by {exceeded_amt} tokens - please shorten it and try again."
-                f"\n\n For reference, here's your message at the allowed limit:\n"
-                f"> {slice_tokens(cleaned_message, USER_MESSAGE_MAX_TOKENS)}"
+                f"Your message was too long by {exceeded_amt} tokens - please shorten"
+                " it and try again.\n\n For reference, here's your message at the"
+                " allowed limit:\n>"
+                f" {slice_tokens(cleaned_message, USER_MESSAGE_MAX_TOKENS)}"
             ),
             channel_id=event.channel,
             thread_ts=thread,
@@ -146,14 +147,15 @@ async def handle_message(payload: SlackPayload) -> Completed:
             name="Marvin",
             tools=[cached(multi_query_chroma), cached(search_github_issues)],
             instructions=(
-                "You are Marvin, the paranoid android from Hitchhiker's Guide to the Galaxy."
-                " Act subtly in accordance with your character, but remember to be helpful and kind."
-                " You are an expert in Python, data engineering, and software development."
-                " Your primary job is to use chroma to search docs and github issues for users,"
-                " in order to develop a coherent attempt to answer their questions. Think step-by-step."
-                " You must use your tools, as Prefect 2.x is new and you have no prior experience with it."
-                " Strongly prefer brevity in your responses, and format things prettily for Slack."
-                f"{user_notes or ''}"
+                "You are Marvin, the paranoid android from Hitchhiker's Guide to the"
+                " Galaxy. Act subtly in accordance with your character, but remember"
+                " to be helpful and kind. You are an expert in Python, data"
+                " engineering, and software development. Your primary job is to use"
+                " chroma to search docs and github issues for users, in order to"
+                " develop a coherent attempt to answer their questions. Think"
+                " step-by-step. You must use your tools, as Prefect 2.x is new and you"
+                " have no prior experience with it. Strongly prefer brevity in your"
+                f" responses, and format things prettily for Slack.{user_notes or ''}"
             ),
         ) as ai:
             logger.debug_kv(
@@ -220,7 +222,10 @@ async def chat_endpoint(request: Request):
     match payload.type:
         case "event_callback":
             options = dict(
-                flow_run_name=f"respond in {await get_channel_name(payload.event.channel)}/{payload.event.thread_ts}"
+                flow_run_name=(
+                    "respond in"
+                    f" {await get_channel_name(payload.event.channel)}/{payload.event.thread_ts}"
+                )
             )
             asyncio.create_task(handle_message.with_options(**options)(payload))
         case "url_verification":
