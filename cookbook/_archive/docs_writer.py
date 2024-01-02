@@ -5,7 +5,7 @@ import marvin.tools
 import marvin.tools.filesystem
 import marvin.tools.python
 import marvin.tools.shell
-from marvin import AIApplication
+from marvin.beta.applications import AIApplication
 
 marvin.settings.log_level = "DEBUG"
 marvin.settings.llm_model = "gpt-4"

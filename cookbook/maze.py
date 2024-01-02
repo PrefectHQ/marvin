@@ -15,7 +15,7 @@ import random
 from enum import Enum
 from io import StringIO
 
-from marvin import AIApplication
+from marvin.beta.applications import AIApplication
 from pydantic import BaseModel
 from rich.console import Console
 from rich.table import Table

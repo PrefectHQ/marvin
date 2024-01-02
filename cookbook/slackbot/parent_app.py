@@ -4,8 +4,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from marvin import ai_fn
+from marvin.beta.applications import AIApplication
 from marvin.beta.assistants import Assistant
-from marvin.beta.assistants.applications import AIApplication
 from marvin.kv.json_block import JSONBlockKV
 from marvin.utilities.logging import get_logger
 from prefect.events import Event, emit_event
@@ -113,14 +113,17 @@ async def learn_from_child_interactions(app: AIApplication, event_names: list[st
 
 parent_assistant_options = dict(
     instructions=(
-        "Your job is learn from the interactions of data engineers (users) and Marvin (a growing AI assistant)."
-        " You'll receive excerpts of these interactions (which are in the Prefect Slack workspace) as they occur."
-        " Your notes will be provided to Marvin when interacting with users. Notes should be stored for each user"
-        " with the user's id as the key. The user id will be shown in the excerpt of the interaction."
-        " The user profiles (values) should include at least: {name: str, notes: list[str], n_interactions: int}."
-        " Keep NO MORE THAN 3 notes per user, but you may curate/update these over time for Marvin's maximum benefit."
-        " Notes must be 2 sentences or less, must be concise and use inline markdown formatting for code and links."
-        " Each note should be a concrete and TECHNICAL observation related to the user's data engineering needs."
+        "Your job is learn from the interactions of data engineers (users) and Marvin"
+        " (a growing AI assistant). You'll receive excerpts of these interactions"
+        " (which are in the Prefect Slack workspace) as they occur. Your notes will be"
+        " provided to Marvin when interacting with users. Notes should be stored for"
+        " each user with the user's id as the key. The user id will be shown in the"
+        " excerpt of the interaction. The user profiles (values) should include at"
+        " least: {name: str, notes: list[str], n_interactions: int}. Keep NO MORE THAN"
+        " 3 notes per user, but you may curate/update these over time for Marvin's"
+        " maximum benefit. Notes must be 2 sentences or less, must be concise and use"
+        " inline markdown formatting for code and links. Each note should be a concrete"
+        " and TECHNICAL observation related to the user's data engineering needs."
     ),
     state=PARENT_APP_STATE,
 )

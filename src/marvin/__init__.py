@@ -14,6 +14,4 @@ __all__ = [
     "ai_classifier",
     "prompt_fn",
     "settings",
-    "AIApplication",
-    "Assistant",
 ]
