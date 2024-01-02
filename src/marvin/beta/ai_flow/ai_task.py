@@ -260,7 +260,7 @@ class AITask(BaseModel, Generic[P, T]):
             self.result = result
             raise CancelRun()
 
-        tool.function.python_fn = task_completed_with_result
+        tool.function._python_fn = task_completed_with_result
 
         return tool
 
