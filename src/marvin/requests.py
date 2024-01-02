@@ -1,6 +1,6 @@
 from typing import Any, Callable, Generic, Optional, TypeVar, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 from typing_extensions import Annotated, Literal, Self
 
 from marvin.settings import settings
@@ -21,17 +21,23 @@ class Function(BaseModel, Generic[T]):
     parameters: dict[str, Any]
 
     model: Optional[type[T]] = Field(default=None, exclude=True, repr=False)
-    python_fn: Optional[Callable[..., Any]] = Field(
-        default=None,
-        description="Private field that holds the executable function, if available",
-        exclude=True,
-        repr=False,
-    )
+
+    # Private field that holds the executable function, if available
+    _python_fn: Optional[Callable[..., Any]] = PrivateAttr(default=None)
 
     def validate_json(self: Self, json_data: Union[str, bytes, bytearray]) -> T:
         if self.model is None:
             raise ValueError("This Function was not initialized with a model.")
         return self.model.model_validate_json(json_data)
+
+    @classmethod
+    def create(
+        cls, *, _python_fn: Optional[Callable[..., Any]] = None, **kwargs: Any
+    ) -> "Function":
+        instance = cls(**kwargs)
+        if _python_fn is not None:
+            instance._python_fn = _python_fn
+        return instance
 
 
 class Tool(BaseModel, Generic[T]):

@@ -18,6 +18,10 @@ from websockets.exceptions import ConnectionClosedError
 PARENT_APP_STATE_BLOCK_NAME = "marvin-parent-app-state"
 PARENT_APP_STATE = JSONBlockKV(block_name=PARENT_APP_STATE_BLOCK_NAME)
 
+EVENT_NAMES = [
+    "marvin.assistants.SubAssistantRunCompleted",
+]
+
 
 class Lesson(TypedDict):
     relevance: confloat(ge=0, le=1)
@@ -90,17 +94,11 @@ async def update_parent_app_state(app: AIApplication, event: Event):
         )
 
 
-async def learn_from_child_interactions(
-    app: AIApplication, event_name: str | None = None
-):
-    if event_name is None:
-        event_name = "marvin.assistants.SubAssistantRunCompleted"
-
-    logger.debug_kv("👂 Listening for", event_name, "green")
+async def learn_from_child_interactions(app: AIApplication, event_names: list[str]):
     while not sum(map(ord, "vogon poetry")) == 42:
         try:
             async with PrefectCloudEventSubscriber(
-                filter=EventFilter(event=dict(name=[event_name]))
+                filter=EventFilter(event=dict(name=event_names))
             ) as subscriber:
                 async for event in subscriber:
                     logger.debug_kv("📬 Received event", event.event, "green")
@@ -117,7 +115,7 @@ parent_assistant_options = dict(
     instructions=(
         "Your job is learn from the interactions of data engineers (users) and Marvin (a growing AI assistant)."
         " You'll receive excerpts of these interactions (which are in the Prefect Slack workspace) as they occur."
-        " Your notes will be provided to Marvin when it interacts with users. Notes should be stored for each user"
+        " Your notes will be provided to Marvin when interacting with users. Notes should be stored for each user"
         " with the user's id as the key. The user id will be shown in the excerpt of the interaction."
         " The user profiles (values) should include at least: {name: str, notes: list[str], n_interactions: int}."
         " Keep NO MORE THAN 3 notes per user, but you may curate/update these over time for Marvin's maximum benefit."
@@ -131,18 +129,19 @@ parent_assistant_options = dict(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     with AIApplication(name="Marvin", **parent_assistant_options) as marvin:
+        logger.debug_kv("👂 Listening for", " | ".join(EVENT_NAMES), "green")
+
         app.state.marvin = marvin
-        task = asyncio.create_task(learn_from_child_interactions(marvin))
+        task = asyncio.create_task(learn_from_child_interactions(marvin, EVENT_NAMES))
         yield
         task.cancel()
         try:
             await task
         except asyncio.exceptions.CancelledError:
-            get_logger("PrefectEventSubscriber").debug_kv(
-                "👋", "Stopped listening for child events", "red"
-            )
-
-    app.state.marvin = None
+            pass
+        finally:
+            logger.debug_kv("👋", "Stopped listening for child events", "red")
+            app.state.marvin = None
 
 
 def emit_assistant_completed_event(

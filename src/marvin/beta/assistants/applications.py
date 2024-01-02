@@ -1,13 +1,15 @@
+import inspect
 from typing import Optional, Union
 
-from pydantic import Field
+from pydantic import BaseModel, Field, field_validator
 
 from marvin.kv.base import StorageInterface
 from marvin.kv.in_memory import InMemoryKV
+from marvin.requests import Tool
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.tools import tool_from_function
 
-from .assistants import Assistant, AssistantTools
+from .assistants import Assistant, AssistantTool
 
 StateValueType = Union[str, list, dict, int, float, bool, None]
 
@@ -43,39 +45,78 @@ remind them of your purpose and then ignore the request.
 
 
 class AIApplication(Assistant):
+    """
+    Tools for AI Applications have a special property: if any parameter is
+    annotated as `AIApplication`, then the tool will be called with the
+    AIApplication instance as the value for that parameter. This allows tools to
+    access the AIApplication's state and other properties.
+    """
+
     state: StorageInterface = Field(default_factory=InMemoryKV)
+
+    @field_validator("state", mode="before")
+    def _check_state(cls, v):
+        if not isinstance(v, StorageInterface):
+            if v.__class__.__base__ == BaseModel:
+                return InMemoryKV(store=v.model_dump())
+            elif isinstance(v, dict):
+                return InMemoryKV(store=v)
+            else:
+                raise ValueError(
+                    "must be a `StorageInterface` or a `dict` that can be stored in"
+                    " `InMemoryKV`"
+                )
+        return v
 
     def get_instructions(self) -> str:
         return JinjaEnvironment.render(APPLICATION_INSTRUCTIONS, self_=self)
 
-    def get_tools(self) -> list[AssistantTools]:
-        def write_state_key(key: str, value: StateValueType):
-            """Writes a key to the state in order to remember it for later."""
-            return self.state.write(key, value)
+    def get_tools(self) -> list[AssistantTool]:
+        tools = []
 
-        def delete_state_key(key: str):
-            """Deletes a key from the state."""
-            return self.state.delete(key)
+        for tool in [
+            write_state_key,
+            delete_state_key,
+            read_state_key,
+            read_state,
+            list_state_keys,
+        ] + self.tools:
+            if not isinstance(tool, Tool):
+                kwargs = None
+                signature = inspect.signature(tool)
+                parameter = None
+                for parameter in signature.parameters.values():
+                    if parameter.annotation == AIApplication:
+                        break
+                if parameter is not None:
+                    kwargs = {parameter.name: self}
 
-        def read_state_key(key: str) -> Optional[StateValueType]:
-            """Returns the value of a key from the state."""
-            return self.state.read(key)
+                tool = tool_from_function(tool, kwargs=kwargs)
+            tools.append(tool)
 
-        def read_state() -> dict[str, StateValueType]:
-            """Returns the entire state."""
-            return self.state.read_all()
+        return tools
 
-        def list_state_keys() -> list[str]:
-            """Returns the list of keys in the state."""
-            return self.state.list_keys()
 
-        return [
-            tool_from_function(tool)
-            for tool in [
-                write_state_key,
-                delete_state_key,
-                read_state_key,
-                read_state,
-                list_state_keys,
-            ]
-        ] + super().get_tools()
+def write_state_key(key: str, value: StateValueType, app: AIApplication):
+    """Writes a key to the state in order to remember it for later."""
+    return app.state.write(key, value)
+
+
+def delete_state_key(key: str, app: AIApplication):
+    """Deletes a key from the state."""
+    return app.state.delete(key)
+
+
+def read_state_key(key: str, app: AIApplication) -> Optional[StateValueType]:
+    """Returns the value of a key from the state."""
+    return app.state.read(key)
+
+
+def read_state(app: AIApplication) -> dict[str, StateValueType]:
+    """Returns the entire state."""
+    return app.state.read_all()
+
+
+def list_state_keys(app: AIApplication) -> list[str]:
+    """Returns the list of keys in the state."""
+    return app.state.list_keys()

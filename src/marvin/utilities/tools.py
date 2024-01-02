@@ -2,7 +2,10 @@
 
 import inspect
 import json
+from functools import update_wrapper
 from typing import Any, Callable, Optional
+
+from pydantic import PydanticInvalidForJsonSchema
 
 from marvin.requests import Function, Tool
 from marvin.utilities.asyncio import run_sync
@@ -12,23 +15,68 @@ from marvin.utilities.pydantic import cast_callable_to_model
 logger = get_logger("Tools")
 
 
+def custom_partial(func: Callable, **fixed_kwargs: Any) -> Callable:
+    """
+    Returns a new function with partial application of the given keyword arguments.
+    The new function has the same __name__ and docstring as the original, and its
+    signature excludes the provided kwargs.
+    """
+
+    # Define the new function with a dynamic signature
+    def wrapper(**kwargs):
+        # Merge the provided kwargs with the fixed ones, prioritizing the former
+        all_kwargs = {**fixed_kwargs, **kwargs}
+        return func(**all_kwargs)
+
+    # Update the wrapper function's metadata to match the original function
+    update_wrapper(wrapper, func)
+
+    # Modify the signature to exclude the fixed kwargs
+    original_sig = inspect.signature(func)
+    new_params = [
+        param
+        for param in original_sig.parameters.values()
+        if param.name not in fixed_kwargs
+    ]
+    wrapper.__signature__ = original_sig.replace(parameters=new_params)
+
+    return wrapper
+
+
 def tool_from_function(
     fn: Callable[..., Any],
     name: Optional[str] = None,
     description: Optional[str] = None,
+    kwargs: Optional[dict[str, Any]] = None,
 ):
+    """
+    Creates an OpenAI-CLI tool from a Python function.
+
+    If any kwargs are provided, they will be stored and provided at runtime.
+    Provided kwargs will be removed from the tool's parameter schema.
+    """
+    if kwargs:
+        fn = custom_partial(fn, **kwargs)
+
     model = cast_callable_to_model(fn)
     serializer: Callable[..., dict[str, Any]] = getattr(
         model, "model_json_schema", getattr(model, "schema")
     )
+    try:
+        parameters = serializer()
+    except PydanticInvalidForJsonSchema:
+        raise TypeError(
+            "Could not create tool from function because annotations could not be"
+            f" serialized to JSON: {fn}"
+        )
 
     return Tool(
         type="function",
-        function=Function(
+        function=Function.create(
             name=name or fn.__name__,
             description=description or fn.__doc__,
-            parameters=serializer(),
-            python_fn=fn,
+            parameters=parameters,
+            _python_fn=fn,
         ),
     )
 
@@ -49,7 +97,7 @@ def call_function_tool(
     if (
         not tool
         or not tool.function
-        or not tool.function.python_fn
+        or not tool.function._python_fn
         or not tool.function.name
     ):
         raise ValueError(f"Could not find function '{function_name}'")
@@ -58,7 +106,7 @@ def call_function_tool(
     logger.debug_kv(
         f"{tool.function.name}", f"called with arguments: {arguments}", "green"
     )
-    output = tool.function.python_fn(**arguments)
+    output = tool.function._python_fn(**arguments)
     if inspect.isawaitable(output):
         output = run_sync(output)
     truncated_output = str(output)[:100]
