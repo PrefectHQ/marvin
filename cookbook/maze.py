@@ -10,6 +10,7 @@ pip install -e .
 python cookbook/maze.py
 ```
 """
+
 import random
 from enum import Enum
 from io import StringIO
@@ -19,8 +20,6 @@ from pydantic import BaseModel
 from rich.console import Console
 from rich.table import Table
 from typing_extensions import Literal
-
-_app: AIApplication | None = None
 
 GAME_INSTRUCTIONS = """
 This is a TERROR game. You are the disembodied narrator of a maze. You've hidden a key somewhere in the
@@ -115,9 +114,9 @@ class Maze(BaseModel):
             self.user_location: MazeObject.USER.value,
             self.exit_location: MazeObject.EXIT.value,
             self.key_location: MazeObject.KEY.value if self.key_location else "",
-            self.monster_location: MazeObject.MONSTER.value
-            if self.monster_location
-            else "",
+            self.monster_location: (
+                MazeObject.MONSTER.value if self.monster_location else ""
+            ),
         }
 
         for row in range(self.size):
@@ -162,18 +161,18 @@ class Maze(BaseModel):
         return directions
 
 
-def look_around() -> str:
-    maze = Maze.model_validate(_app.state.read_all())
+def look_around(app: AIApplication) -> str:
+    maze = Maze.model_validate(app.state.read_all())
     return (
         f"The maze sprawls.\n{maze.render()}"
         f"The user may move {maze.movable_directions()=}"
     )
 
 
-def move(direction: Literal["N", "S", "E", "W"]) -> str:
+def move(app: AIApplication, direction: Literal["N", "S", "E", "W"]) -> str:
     """moves the user in the given direction."""
     print(f"Moving {direction}")
-    maze: Maze = Maze.model_validate(_app.state.read_all())
+    maze: Maze = Maze.model_validate(app.state.read_all())
     prev_location = maze.user_location
     match direction:
         case "N":
@@ -195,18 +194,18 @@ def move(direction: Literal["N", "S", "E", "W"]) -> str:
 
     match maze.user_location:
         case maze.key_location:
-            _app.state.write("key_location", (-1, -1))
-            _app.state.write("user_location", maze.user_location)
+            app.state.write("key_location", (-1, -1))
+            app.state.write("user_location", maze.user_location)
             return "The user found the key! Now they must find the exit."
         case maze.monster_location:
             return "The user encountered the monster and died. Game over."
         case maze.exit_location:
             if maze.key_location != (-1, -1):
-                _app.state.write("user_location", prev_location)
+                app.state.write("user_location", prev_location)
                 return "The user can't exit without the key."
             return "The user found the exit! They win!"
 
-    _app.state.write("user_location", maze.user_location)
+    app.state.write("user_location", maze.user_location)
     if move_monster := random.random() < 0.4:
         maze.shuffle_monster()
     return (
@@ -216,9 +215,9 @@ def move(direction: Literal["N", "S", "E", "W"]) -> str:
     )
 
 
-def reset_maze() -> str:
+def reset_maze(app: AIApplication) -> str:
     """Resets the maze - only to be used when the game is over."""
-    _app.state.store = Maze.create().model_dump()
+    app.state.store = Maze.create().model_dump()
     return "Resetting the maze."
 
 
