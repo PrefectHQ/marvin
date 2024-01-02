@@ -1,26 +1,42 @@
 # AI Application
 
+## Overview
+Marvin's `AIApplication` uses LLMs to store and curate "state" related to the `instructions` you provide the application.
+
+You can think of state as a JSON object that the `AIApplication` will update as it receives new inputs relevant to the application's purpose.
+
+## tl;dr
+
+```python
+from marvin.beta.assistants.applications import AIApplication
+
+def read_gcal() -> list[dict]:
+    return [
+        {
+            "event": "meeting",
+            "time": "tomorrow at 3pm",
+            "participants": ["you", "A big Squirrel"]
+        }
+    ]
+
+with AIApplication(
+    name="Marvin", tools=[read_gcal], instructions="keep track of my todos"
+) as app:
+    app.say("whats on my calendar? update my todos accordingly")
+    # or use the chat UI
+    app.chat()
+```
+
+## Context
 Looking for `AIApplication` from `marvin` 1.x?
 
-After the release of OpenAI's Assistants API, we've decided to make `AIApplication` a type of `Assistant`.
+
+`AIApplication` has changed a bit in `marvin` 2.x.
+
+
 
 !!! Read
     Read more on [how Assistants work](https://platform.openai.com/docs/assistants/how-it-works) in the OpenAI docs.
 
 Both `Assistant` and `AIApplication` are in beta, and are subject to change. You can read the quickstart for `Assistant` [here](https://github.com/PrefectHQ/marvin/tree/main/src/marvin/beta/assistants).
 
-## tl;dr
-
-```python
-from marvin.beta.assistants import Assistant
-
-def get_weather(city: str) -> str:
-    return "It's sunny!"
-
-with Assistant(
-    name="Marvin", tools=[get_weather], instructions="look up the weather for me"
-) as assistant:
-    assistant.say("What's the weather like in New York?")
-    # or use the chat UI
-    assistant.chat()
-```
