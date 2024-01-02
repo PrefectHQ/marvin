@@ -25,6 +25,9 @@ def cast_type_to_model(
     else:
         metadata = FieldInfo(description=field_description)
 
+    if _type is None:
+        raise ValueError("No type provided; unable to create model for casting.")
+
     return create_model(
         model_name,
         __doc__=model_description,
