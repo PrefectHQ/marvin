@@ -31,6 +31,27 @@ P = ParamSpec("P")
 T = TypeVar("T", bound=pydantic.BaseModel)
 
 
+def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
+    api_key = (
+        settings.openai.api_key.get_secret_value() if settings.openai.api_key else None
+    )
+    if not api_key:
+        raise ValueError(
+            "OpenAI API key not found. Please either set `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env`"
+            " or otherwise set `OPENAI_API_KEY` in your environment."
+        )
+    if client_type not in ["sync", "async"]:
+        raise ValueError(f"Invalid client type {client_type!r}")
+
+    client_class = Client if client_type == "sync" else AsyncClient
+    return client_class(
+        **settings.openai.model_dump(
+            exclude={"chat", "images", "audio", "assistants", "api_key"}
+        )
+        | {"api_key": api_key}
+    )
+
+
 def with_response_model(
     create: Callable[P, "ChatCompletion"],
 ) -> Callable[
@@ -82,14 +103,7 @@ class MarvinClient(pydantic.BaseModel):
         arbitrary_types_allowed=True, protected_namespaces=()
     )
 
-    client: Client = pydantic.Field(
-        default_factory=lambda: Client(
-            **settings.openai.model_dump(
-                exclude={"chat", "images", "audio", "assistants", "api_key"}
-            )
-            | dict(api_key=settings.openai.api_key.get_secret_value())
-        )
-    )
+    client: Client = pydantic.Field(default_factory=lambda: _get_default_client("sync"))
 
     @classmethod
     def wrap(cls, client: Client) -> "Client":
@@ -170,12 +184,7 @@ class AsyncMarvinClient(pydantic.BaseModel):
     )
 
     client: AsyncClient = pydantic.Field(
-        default_factory=lambda: AsyncClient(
-            **settings.openai.model_dump(
-                exclude={"chat", "images", "audio", "assistants", "api_key"}
-            )
-            | dict(api_key=settings.openai.api_key.get_secret_value())
-        )
+        default_factory=lambda: _get_default_client("async")
     )
 
     @classmethod

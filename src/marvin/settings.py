@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from typing import Any, Optional, Union
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Literal
 
@@ -186,6 +186,17 @@ class OpenAISettings(MarvinSettings):
     images: ImageSettings = Field(default_factory=ImageSettings)
     audio: AudioSettings = Field(default_factory=AudioSettings)
     assistants: AssistantSettings = Field(default_factory=AssistantSettings)
+
+    @field_validator("api_key")
+    def discover_api_key(cls, v):
+        if v is None:
+            v = SecretStr(os.environ.get("OPENAI_API_KEY"))
+            if v.get_secret_value() is None:
+                raise ValueError(
+                    "OpenAI API key not found. Please either set `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env`"
+                    " or otherwise set `OPENAI_API_KEY` in your environment."
+                )
+        return v
 
 
 class Settings(MarvinSettings):
