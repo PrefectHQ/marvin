@@ -71,6 +71,8 @@ Or, in this maze position, you might say:
     - is that a door to the southwest? 🤔
 """
 
+CardinalDirection = Literal["N", "S", "E", "W"]
+
 
 class MazeObject(Enum):
     """The objects that can be in the maze."""
@@ -131,7 +133,7 @@ class Maze(BaseModel):
         return console.file.getvalue()
 
     @classmethod
-    def create(cls, size: int = 4) -> None:
+    def create(cls, size: int = 4) -> "Maze":
         locations = set()
         while len(locations) < 4:
             locations.add((random.randint(0, size - 1), random.randint(0, size - 1)))
@@ -148,7 +150,7 @@ class Maze(BaseModel):
     def shuffle_monster(self) -> None:
         self.monster_location = random.choice(self.empty_locations)
 
-    def movable_directions(self) -> list[Literal["N", "S", "E", "W"]]:
+    def movable_directions(self) -> list[CardinalDirection]:
         directions = []
         if self.user_location[0] != 0:
             directions.append("N")
@@ -162,17 +164,17 @@ class Maze(BaseModel):
 
 
 def look_around(app: AIApplication) -> str:
-    maze: Maze = app.state.value
+    maze = app.state.value
     return (
         f"The maze sprawls.\n{maze.render()}"
-        f"The user may move {maze.movable_directions()=}"
+        f"The user may move {maze.movable_directions()!r}"
     )
 
 
-def move(app: AIApplication, direction: Literal["N", "S", "E", "W"]) -> str:
+def move(app: AIApplication, direction: CardinalDirection) -> str:
     """moves the user in the given direction."""
-    print(f"Moving {direction}")
     maze: Maze = app.state.value
+    print(f"Moving {direction}")
     prev_location = maze.user_location
     match direction:
         case "N":
@@ -204,7 +206,6 @@ def move(app: AIApplication, direction: Literal["N", "S", "E", "W"]) -> str:
                 return "The user can't exit without the key."
             return "The user found the exit! They win!"
 
-    # app.state.set_state(maze)
     if move_monster := random.random() < 0.4:
         maze.shuffle_monster()
     return (
@@ -214,9 +215,15 @@ def move(app: AIApplication, direction: Literal["N", "S", "E", "W"]) -> str:
     )
 
 
-def reset_maze(app: AIApplication) -> str:
+def reset(app: AIApplication, size: int = 4) -> str:
     """Resets the maze - only to be used when the game is over."""
-    app.state.set_state(Maze.create())
+    maze: Maze = app.state.value
+    maze.size = size
+    new_maze = maze.create(size=size)
+    maze.user_location = new_maze.user_location
+    maze.exit_location = new_maze.exit_location
+    maze.key_location = new_maze.key_location
+    maze.monster_location = new_maze.monster_location
     return "Resetting the maze."
 
 
@@ -224,7 +231,7 @@ if __name__ == "__main__":
     with AIApplication(
         name="Maze",
         instructions=GAME_INSTRUCTIONS,
-        tools=[move, look_around, reset_maze],
+        tools=[look_around, move, reset],
         state=Maze.create(),
     ) as app:
         app.say("where am i?")
