@@ -5,12 +5,11 @@ import json
 from functools import update_wrapper
 from typing import Any, Callable, Optional
 
-from pydantic import PydanticInvalidForJsonSchema
+import pydantic
 
 from marvin.requests import Function, Tool
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.logging import get_logger
-from marvin.utilities.pydantic import cast_callable_to_model
 
 logger = get_logger("Tools")
 
@@ -58,24 +57,16 @@ def tool_from_function(
     if kwargs:
         fn = custom_partial(fn, **kwargs)
 
-    model = cast_callable_to_model(fn)
-    serializer: Callable[..., dict[str, Any]] = getattr(
-        model, "model_json_schema", getattr(model, "schema")
-    )
-    try:
-        parameters = serializer()
-    except PydanticInvalidForJsonSchema:
-        raise TypeError(
-            "Could not create tool from function because annotations could not be"
-            f" serialized to JSON: {fn}"
-        )
+    schema = pydantic.TypeAdapter(
+        fn, config=pydantic.ConfigDict(arbitrary_types_allowed=True)
+    ).json_schema()
 
     return Tool(
         type="function",
         function=Function.create(
             name=name or fn.__name__,
             description=description or fn.__doc__,
-            parameters=parameters,
+            parameters=schema,
             _python_fn=fn,
         ),
     )

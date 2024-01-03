@@ -71,6 +71,8 @@ Or, in this maze position, you might say:
     - is that a door to the southwest? 🤔
 """
 
+CardinalDirection = Literal["N", "S", "E", "W"]
+
 
 class MazeObject(Enum):
     """The objects that can be in the maze."""
@@ -131,7 +133,7 @@ class Maze(BaseModel):
         return console.file.getvalue()
 
     @classmethod
-    def create(cls, size: int = 4) -> None:
+    def create(cls, size: int = 4) -> "Maze":
         locations = set()
         while len(locations) < 4:
             locations.add((random.randint(0, size - 1), random.randint(0, size - 1)))
@@ -148,7 +150,7 @@ class Maze(BaseModel):
     def shuffle_monster(self) -> None:
         self.monster_location = random.choice(self.empty_locations)
 
-    def movable_directions(self) -> list[Literal["N", "S", "E", "W"]]:
+    def movable_directions(self) -> list[CardinalDirection]:
         directions = []
         if self.user_location[0] != 0:
             directions.append("N")
@@ -160,72 +162,71 @@ class Maze(BaseModel):
             directions.append("E")
         return directions
 
+    def look_around(self) -> str:
+        return (
+            f"The maze sprawls.\n{self.render()}"
+            f"The user may move {self.movable_directions()!r}"
+        )
 
-def look_around(app: AIApplication) -> str:
-    maze: Maze = app.state.value
-    return (
-        f"The maze sprawls.\n{maze.render()}"
-        f"The user may move {maze.movable_directions()=}"
-    )
+    def move(self, direction: CardinalDirection) -> str:
+        """moves the user in the given direction."""
+        print(f"Moving {direction}")
+        prev_location = self.user_location
+        match direction:
+            case "N":
+                if self.user_location[0] == 0:
+                    return "The user can't move north."
+                self.user_location = (self.user_location[0] - 1, self.user_location[1])
+            case "S":
+                if self.user_location[0] == self.size - 1:
+                    return "The user can't move south."
+                self.user_location = (self.user_location[0] + 1, self.user_location[1])
+            case "E":
+                if self.user_location[1] == self.size - 1:
+                    return "The user can't move east."
+                self.user_location = (self.user_location[0], self.user_location[1] + 1)
+            case "W":
+                if self.user_location[1] == 0:
+                    return "The user can't move west."
+                self.user_location = (self.user_location[0], self.user_location[1] - 1)
 
+        match self.user_location:
+            case self.key_location:
+                self.key_location = (-1, -1)
+                return "The user found the key! Now they must find the exit."
+            case self.monster_location:
+                return "The user encountered the monster and died. Game over."
+            case self.exit_location:
+                if self.key_location != (-1, -1):
+                    self.user_location = prev_location
+                    return "The user can't exit without the key."
+                return "The user found the exit! They win!"
 
-def move(app: AIApplication, direction: Literal["N", "S", "E", "W"]) -> str:
-    """moves the user in the given direction."""
-    print(f"Moving {direction}")
-    maze: Maze = app.state.value
-    prev_location = maze.user_location
-    match direction:
-        case "N":
-            if maze.user_location[0] == 0:
-                return "The user can't move north."
-            maze.user_location = (maze.user_location[0] - 1, maze.user_location[1])
-        case "S":
-            if maze.user_location[0] == maze.size - 1:
-                return "The user can't move south."
-            maze.user_location = (maze.user_location[0] + 1, maze.user_location[1])
-        case "E":
-            if maze.user_location[1] == maze.size - 1:
-                return "The user can't move east."
-            maze.user_location = (maze.user_location[0], maze.user_location[1] + 1)
-        case "W":
-            if maze.user_location[1] == 0:
-                return "The user can't move west."
-            maze.user_location = (maze.user_location[0], maze.user_location[1] - 1)
+        if move_monster := random.random() < 0.4:
+            self.shuffle_monster()
+        return (
+            f"User moved {direction} and is now at {self.user_location}.\n{self.render()}"
+            f"\nThe user may move in any of the following {self.movable_directions()!r}"
+            f"\n{'The monster moved somewhere.' if move_monster else ''}"
+        )
 
-    match maze.user_location:
-        case maze.key_location:
-            maze.key_location = (-1, -1)
-            return "The user found the key! Now they must find the exit."
-        case maze.monster_location:
-            return "The user encountered the monster and died. Game over."
-        case maze.exit_location:
-            if maze.key_location != (-1, -1):
-                maze.user_location = prev_location
-                return "The user can't exit without the key."
-            return "The user found the exit! They win!"
-
-    # app.state.set_state(maze)
-    if move_monster := random.random() < 0.4:
-        maze.shuffle_monster()
-    return (
-        f"User moved {direction} and is now at {maze.user_location}.\n{maze.render()}"
-        f"\nThe user may move in any of the following {maze.movable_directions()!r}"
-        f"\n{'The monster moved somewhere.' if move_monster else ''}"
-    )
-
-
-def reset_maze(app: AIApplication) -> str:
-    """Resets the maze - only to be used when the game is over."""
-    app.state.set_state(Maze.create())
-    return "Resetting the maze."
+    def reset(self) -> str:
+        """Resets the maze - only to be used when the game is over."""
+        new_maze = Maze.create()
+        self.user_location = new_maze.user_location
+        self.exit_location = new_maze.exit_location
+        self.key_location = new_maze.key_location
+        self.monster_location = new_maze.monster_location
+        return "Resetting the maze."
 
 
 if __name__ == "__main__":
+    maze = Maze.create()
     with AIApplication(
         name="Maze",
         instructions=GAME_INSTRUCTIONS,
-        tools=[move, look_around, reset_maze],
-        state=Maze.create(),
+        tools=[maze.look_around, maze.move, maze.reset],
+        state=maze,
     ) as app:
         app.say("where am i?")
         app.chat()
