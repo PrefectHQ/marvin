@@ -162,77 +162,71 @@ class Maze(BaseModel):
             directions.append("E")
         return directions
 
+    def look_around(self) -> str:
+        return (
+            f"The maze sprawls.\n{self.render()}"
+            f"The user may move {self.movable_directions()!r}"
+        )
 
-def look_around(app: AIApplication) -> str:
-    maze = app.state.value
-    return (
-        f"The maze sprawls.\n{maze.render()}"
-        f"The user may move {maze.movable_directions()!r}"
-    )
+    def move(self, direction: CardinalDirection) -> str:
+        """moves the user in the given direction."""
+        print(f"Moving {direction}")
+        prev_location = self.user_location
+        match direction:
+            case "N":
+                if self.user_location[0] == 0:
+                    return "The user can't move north."
+                self.user_location = (self.user_location[0] - 1, self.user_location[1])
+            case "S":
+                if self.user_location[0] == self.size - 1:
+                    return "The user can't move south."
+                self.user_location = (self.user_location[0] + 1, self.user_location[1])
+            case "E":
+                if self.user_location[1] == self.size - 1:
+                    return "The user can't move east."
+                self.user_location = (self.user_location[0], self.user_location[1] + 1)
+            case "W":
+                if self.user_location[1] == 0:
+                    return "The user can't move west."
+                self.user_location = (self.user_location[0], self.user_location[1] - 1)
 
+        match self.user_location:
+            case self.key_location:
+                self.key_location = (-1, -1)
+                return "The user found the key! Now they must find the exit."
+            case self.monster_location:
+                return "The user encountered the monster and died. Game over."
+            case self.exit_location:
+                if self.key_location != (-1, -1):
+                    self.user_location = prev_location
+                    return "The user can't exit without the key."
+                return "The user found the exit! They win!"
 
-def move(app: AIApplication, direction: CardinalDirection) -> str:
-    """moves the user in the given direction."""
-    maze: Maze = app.state.value
-    print(f"Moving {direction}")
-    prev_location = maze.user_location
-    match direction:
-        case "N":
-            if maze.user_location[0] == 0:
-                return "The user can't move north."
-            maze.user_location = (maze.user_location[0] - 1, maze.user_location[1])
-        case "S":
-            if maze.user_location[0] == maze.size - 1:
-                return "The user can't move south."
-            maze.user_location = (maze.user_location[0] + 1, maze.user_location[1])
-        case "E":
-            if maze.user_location[1] == maze.size - 1:
-                return "The user can't move east."
-            maze.user_location = (maze.user_location[0], maze.user_location[1] + 1)
-        case "W":
-            if maze.user_location[1] == 0:
-                return "The user can't move west."
-            maze.user_location = (maze.user_location[0], maze.user_location[1] - 1)
+        if move_monster := random.random() < 0.4:
+            self.shuffle_monster()
+        return (
+            f"User moved {direction} and is now at {self.user_location}.\n{self.render()}"
+            f"\nThe user may move in any of the following {self.movable_directions()!r}"
+            f"\n{'The monster moved somewhere.' if move_monster else ''}"
+        )
 
-    match maze.user_location:
-        case maze.key_location:
-            maze.key_location = (-1, -1)
-            return "The user found the key! Now they must find the exit."
-        case maze.monster_location:
-            return "The user encountered the monster and died. Game over."
-        case maze.exit_location:
-            if maze.key_location != (-1, -1):
-                maze.user_location = prev_location
-                return "The user can't exit without the key."
-            return "The user found the exit! They win!"
-
-    if move_monster := random.random() < 0.4:
-        maze.shuffle_monster()
-    return (
-        f"User moved {direction} and is now at {maze.user_location}.\n{maze.render()}"
-        f"\nThe user may move in any of the following {maze.movable_directions()!r}"
-        f"\n{'The monster moved somewhere.' if move_monster else ''}"
-    )
-
-
-def reset(app: AIApplication, size: int = 4) -> str:
-    """Resets the maze - only to be used when the game is over."""
-    maze: Maze = app.state.value
-    maze.size = size
-    new_maze = maze.create(size=size)
-    maze.user_location = new_maze.user_location
-    maze.exit_location = new_maze.exit_location
-    maze.key_location = new_maze.key_location
-    maze.monster_location = new_maze.monster_location
-    return "Resetting the maze."
+    def reset(self) -> str:
+        """Resets the maze - only to be used when the game is over."""
+        new_maze = Maze.create()
+        self.user_location = new_maze.user_location
+        self.exit_location = new_maze.exit_location
+        self.key_location = new_maze.key_location
+        self.monster_location = new_maze.monster_location
+        return "Resetting the maze."
 
 
 if __name__ == "__main__":
+    maze = Maze.create()
     with AIApplication(
         name="Maze",
         instructions=GAME_INSTRUCTIONS,
-        tools=[look_around, move, reset],
-        state=Maze.create(),
+        tools=[maze.look_around, maze.move, maze.reset],
+        state=maze,
     ) as app:
         app.say("where am i?")
         app.chat()
