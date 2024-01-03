@@ -57,17 +57,21 @@ class State(BaseModel):
         self.set_state(state)
         return "Application state updated successfully!"
 
-    def as_tool(self) -> "Tool":
+    def as_tool(self, name: str = None) -> "Tool":
+        if name is None:
+            name = "state"
         schema = self.get_schema()
         if schema:
             description = textwrap.dedent(
-                "Update the application state using JSON Patch documents. Updates will"
-                " fail if they do not comply with the state schema. The state schema"
-                " is:\n\n```json\n{schema}\n```"
+                f"Update the {name} object using JSON Patch documents. Updates will"
+                " fail if they do not comply with the following"
+                " schema:\n\n```json\n{schema}\n```"
             ).format(schema=json.dumps(schema, indent=2))
 
         else:
             description = "Update the application state using JSON Patch documents."
         return tool_from_function(
-            self.update_state_jsonpatches, description=description
+            self.update_state_jsonpatches,
+            name=f"update_{name}",
+            description=description,
         )

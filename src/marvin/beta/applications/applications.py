@@ -62,7 +62,7 @@ class AIApplication(Assistant):
     def get_tools(self) -> list[AssistantTool]:
         tools = []
 
-        for tool in [self.state.as_tool()] + self.tools:
+        for tool in [self.state.as_tool(name="state")] + self.tools:
             if not isinstance(tool, Tool):
                 kwargs = None
                 signature = inspect.signature(tool)
