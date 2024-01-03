@@ -10,6 +10,7 @@ You can think of state as a JSON object that the `AIApplication` will update as 
 ```python
 from marvin.beta.applications import AIApplication
 
+# define any functions that you want the AI to be able to call
 def read_gcal() -> list[dict]:
     return [
         {
