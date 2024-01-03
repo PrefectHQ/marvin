@@ -1,4 +1,5 @@
 """Module for Pydantic utilities."""
+
 from types import FunctionType, GenericAlias
 from typing import Annotated, Any, Callable, Optional, Union, cast, get_origin
 
@@ -12,6 +13,8 @@ def cast_callable_to_model(
     name: Optional[str] = None,
     description: Optional[str] = None,
 ) -> type[BaseModel]:
+    # this relies on deprecated behavior. Use TypeAdaptor(type).json_schema() if
+    # possible!
     model = validate_arguments(function).model
     for field in ["args", "kwargs", "v__duplicate_kwargs"]:
         fields = cast(dict[str, Any], model.__fields__)
