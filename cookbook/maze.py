@@ -217,7 +217,7 @@ def move(app: AIApplication, direction: Literal["N", "S", "E", "W"]) -> str:
 
 def reset_maze(app: AIApplication) -> str:
     """Resets the maze - only to be used when the game is over."""
-    app.state.store = Maze.create().model_dump()
+    app.state = Maze.create().model_dump()
     return "Resetting the maze."
 
 
