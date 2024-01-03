@@ -131,6 +131,8 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             thread_id=self.thread.id, assistant_id=self.assistant.id, **create_kwargs
         )
 
+        self.assistant.pre_run_hook(run=self)
+
         try:
             while self.run.status in ("queued", "in_progress", "requires_action"):
                 if self.run.status == "requires_action":
@@ -148,6 +150,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         if self.run.status == "failed":
             logger.debug(f"Run failed. Last error was: {self.run.last_error}")
 
+        self.assistant.post_run_hook(run=self)
         return self
 
 

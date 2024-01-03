@@ -1,15 +1,15 @@
 import asyncio
 import re
+from datetime import timedelta
 from typing import Callable
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from jinja2 import Template
 from keywords import handle_keywords
-from marvin import Assistant
 from marvin.beta.applications import AIApplication
-from marvin.beta.assistants import Thread
-from marvin.kv.json_block import JSONBlockKV
+from marvin.beta.applications.state.json_block import JSONBlockState
+from marvin.beta.assistants import Assistant, Thread
 from marvin.tools.chroma import multi_query_chroma, store_document
 from marvin.tools.github import search_github_issues
 from marvin.utilities.logging import get_logger
@@ -31,19 +31,19 @@ from prefect.states import Completed
 from prefect.tasks import task_input_hash
 
 BOT_MENTION = r"<@(\w+)>"
-CACHE = JSONBlockKV(block_name="slackbot-thread-cache")
+CACHE = JSONBlockState(block_name="marvin-thread-cache")
 USER_MESSAGE_MAX_TOKENS = 300
 
 
 def cached(func: Callable) -> Callable:
-    return task(cache_key_fn=task_input_hash)(func)
+    return task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))(func)
 
 
 async def get_notes_for_user(
     user_id: str, max_tokens: int = 100
 ) -> dict[str, str | None]:
     user_name = await get_user_name(user_id)
-    json_notes: dict = PARENT_APP_STATE.read(key=user_id)
+    json_notes: dict = PARENT_APP_STATE.value.get("user_id")
 
     if json_notes:
         get_logger("slackbot").debug_kv(
@@ -112,8 +112,8 @@ async def handle_message(payload: SlackPayload) -> Completed:
         1
     ) == payload.authorizations[0].user_id:
         assistant_thread = (
-            Thread(**stored_thread_data)
-            if (stored_thread_data := CACHE.read(key=thread))
+            Thread.model_validate_json(stored_thread_data)
+            if (stored_thread_data := CACHE.value.get(thread))
             else Thread()
         )
         logger.debug_kv(
@@ -168,7 +168,8 @@ async def handle_message(payload: SlackPayload) -> Completed:
             ai_messages = await assistant_thread.get_messages_async(
                 after_message=user_thread_message.id
             )
-            CACHE.write(key=thread, value=assistant_thread.model_dump())
+
+            CACHE.set_state(CACHE.value | {thread: assistant_thread.model_dump_json()})
 
             await task(post_slack_message)(
                 ai_response_text := "\n\n".join(
