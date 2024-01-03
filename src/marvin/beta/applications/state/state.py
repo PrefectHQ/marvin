@@ -3,7 +3,7 @@ import textwrap
 from typing import Optional, Union
 
 from jsonpatch import JsonPatch
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 from marvin.requests import Tool
 from marvin.utilities.tools import tool_from_function
@@ -27,6 +27,7 @@ class JSONPatchModel(BaseModel, populate_by_name=True):
 
 class State(BaseModel):
     value: Union[BaseModel, dict] = {}
+    _last_saved_value: Optional[Union[BaseModel, dict]] = PrivateAttr(None)
 
     def render(self) -> str:
         if self.get_schema():
@@ -37,7 +38,15 @@ class State(BaseModel):
         if isinstance(self.value, BaseModel):
             return self.value.model_json_schema()
 
+    def flush_changes(self):
+        """
+        Detects if any changes have been made to the state without saving it (calling "set_state") and saves them.
+        """
+        if self._last_saved_value != self.value:
+            self.set_state(self.value)
+
     def set_state(self, state: Union[BaseModel, dict]):
+        self._last_saved_value = self.value
         self.value = state
 
     def update_state_jsonpatches(self, patches: list[JSONPatchModel]):

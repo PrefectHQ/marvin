@@ -120,3 +120,9 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         if thread is None:
             thread = self.default_thread
         return thread.chat(assistant=self)
+
+    def pre_run_hook(self, run: "Run"):
+        pass
+
+    def post_run_hook(self, run: "Run"):
+        pass

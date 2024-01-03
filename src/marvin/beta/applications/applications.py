@@ -4,6 +4,7 @@ from pydantic import Field, field_validator
 
 from marvin.beta.applications.state import State
 from marvin.beta.assistants import Assistant
+from marvin.beta.assistants.runs import Run
 from marvin.requests import Tool
 from marvin.tools.assistants import AssistantTool
 from marvin.utilities.jinja import Environment as JinjaEnvironment
@@ -51,7 +52,7 @@ class AIApplication(Assistant):
     state: State = Field(default_factory=State)
 
     @field_validator("state", mode="before")
-    def _check_state(cls, v):
+    def _ensure_state_object(cls, v):
         if isinstance(v, State):
             return v
         return State(value=v)
@@ -77,3 +78,7 @@ class AIApplication(Assistant):
             tools.append(tool)
 
         return tools
+
+    def post_run_hook(self, run: Run):
+        self.state.flush_changes()
+        return super().post_run_hook(run)
