@@ -41,6 +41,30 @@ class TestAIFunctions:
             assert len(result) == 3
 
     class TestAnnotations:
+        def test_no_annotations(self):
+            @ai_fn
+            def f(x):
+                """returns x + 1"""
+
+            result = f(3)
+            assert result == "4"
+
+        def test_arg_annotations(self):
+            @ai_fn
+            def f(x: int):
+                """returns x + 1"""
+
+            result = f(3)
+            assert result == "4"
+
+        def test_return_annotations(self):
+            @ai_fn
+            def f(x) -> int:
+                """returns x + 1"""
+
+            result = f("3")
+            assert result == 4
+
         def test_list_fruit_with_generic_type_hints(self):
             @ai_fn
             def list_fruit(n: int) -> List[str]:

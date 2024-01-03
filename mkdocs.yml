@@ -26,6 +26,7 @@ nav:
       - AI Function: components/ai_function.md
       - AI Model: components/ai_model.md
       - AI Classifier: components/ai_classifier.md
+      - AI Application: components/ai_application.md
 
     - Examples:
       - Slackbot: examples/slackbot.md

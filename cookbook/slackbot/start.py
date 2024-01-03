@@ -1,16 +1,16 @@
 import asyncio
 import re
+from datetime import timedelta
 from typing import Callable
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from jinja2 import Template
 from keywords import handle_keywords
-from marvin import Assistant
-from marvin.beta.assistants import Thread
-from marvin.beta.assistants.applications import AIApplication
-from marvin.kv.json_block import JSONBlockKV
-from marvin.tools.chroma import multi_query_chroma
+from marvin.beta.applications import AIApplication
+from marvin.beta.applications.state.json_block import JSONBlockState
+from marvin.beta.assistants import Assistant, Thread
+from marvin.tools.chroma import multi_query_chroma, store_document
 from marvin.tools.github import search_github_issues
 from marvin.utilities.logging import get_logger
 from marvin.utilities.slack import (
@@ -31,22 +31,25 @@ from prefect.states import Completed
 from prefect.tasks import task_input_hash
 
 BOT_MENTION = r"<@(\w+)>"
-CACHE = JSONBlockKV(block_name="slackbot-thread-cache")
+CACHE = JSONBlockState(block_name="marvin-thread-cache")
 USER_MESSAGE_MAX_TOKENS = 300
 
 
 def cached(func: Callable) -> Callable:
-    return task(cache_key_fn=task_input_hash)(func)
+    return task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))(func)
 
 
 async def get_notes_for_user(
     user_id: str, max_tokens: int = 100
 ) -> dict[str, str | None]:
     user_name = await get_user_name(user_id)
-    json_notes: dict = PARENT_APP_STATE.read(key=user_id)
-    get_logger("slackbot").debug_kv(f"📝  Notes for {user_name}", json_notes, "blue")
+    json_notes: dict = PARENT_APP_STATE.value.get("user_id")
 
     if json_notes:
+        get_logger("slackbot").debug_kv(
+            f"📝  Notes for {user_name}", json_notes, "blue"
+        )
+
         notes_template = Template(
             """
             START_USER_NOTES
@@ -84,7 +87,7 @@ async def get_notes_for_user(
     return {user_name: None}
 
 
-@flow
+@flow(name="Handle Slack Message")
 async def handle_message(payload: SlackPayload) -> Completed:
     logger = get_logger("slackbot")
     user_message = (event := payload.event).text
@@ -94,9 +97,10 @@ async def handle_message(payload: SlackPayload) -> Completed:
         exceeded_amt = count - USER_MESSAGE_MAX_TOKENS
         await task(post_slack_message)(
             message=(
-                f"Your message was too long by {exceeded_amt} tokens - please shorten it and try again."
-                f"\n\n For reference, here's your message at the allowed limit:\n"
-                f"> {slice_tokens(cleaned_message, USER_MESSAGE_MAX_TOKENS)}"
+                f"Your message was too long by {exceeded_amt} tokens - please shorten"
+                " it and try again.\n\n For reference, here's your message at the"
+                " allowed limit:\n>"
+                f" {slice_tokens(cleaned_message, USER_MESSAGE_MAX_TOKENS)}"
             ),
             channel_id=event.channel,
             thread_ts=thread,
@@ -108,8 +112,8 @@ async def handle_message(payload: SlackPayload) -> Completed:
         1
     ) == payload.authorizations[0].user_id:
         assistant_thread = (
-            Thread(**stored_thread_data)
-            if (stored_thread_data := CACHE.read(key=thread))
+            Thread.model_validate_json(stored_thread_data)
+            if (stored_thread_data := CACHE.value.get(thread))
             else Thread()
         )
         logger.debug_kv(
@@ -129,18 +133,29 @@ async def handle_message(payload: SlackPayload) -> Completed:
         )
         user_name, user_notes = (await get_notes_for_user(user_id=event.user)).popitem()
 
+        task(store_document).submit(
+            document=cleaned_message,
+            metadata={
+                "user": f"{user_name} ({event.user})",
+                "user_notes": user_notes or "",
+                "channel": await get_channel_name(event.channel),
+                "thread": thread,
+            },
+        )
+
         with Assistant(
             name="Marvin",
             tools=[cached(multi_query_chroma), cached(search_github_issues)],
             instructions=(
-                "You are Marvin, the paranoid android from Hitchhiker's Guide to the Galaxy."
-                " Act subtly in accordance with your character, but remember to be helpful and kind."
-                " You are an expert in Python, data engineering, and software development."
-                " Your primary job is to use chroma to search docs and github issues for users,"
-                " in order to develop a coherent attempt to answer their questions. Think step-by-step."
-                " You must use your tools, as Prefect 2.x is new and you have no prior experience with it."
-                " Strongly prefer brevity in your responses, and format things prettily for Slack."
-                f"{user_notes or ''}"
+                "You are Marvin, the paranoid android from Hitchhiker's Guide to the"
+                " Galaxy. Act subtly in accordance with your character, but remember"
+                " to be helpful and kind. You are an expert in Python, data"
+                " engineering, and software development. Your primary job is to use"
+                " chroma to search docs and github issues for users, in order to"
+                " develop a coherent attempt to answer their questions. Think"
+                " step-by-step. You must use your tools, as Prefect 2.x is new and you"
+                " have no prior experience with it. Strongly prefer brevity in your"
+                f" responses, and format things prettily for Slack.{user_notes or ''}"
             ),
         ) as ai:
             logger.debug_kv(
@@ -153,7 +168,8 @@ async def handle_message(payload: SlackPayload) -> Completed:
             ai_messages = await assistant_thread.get_messages_async(
                 after_message=user_thread_message.id
             )
-            CACHE.write(key=thread, value=assistant_thread.model_dump())
+
+            CACHE.set_state(CACHE.value | {thread: assistant_thread.model_dump_json()})
 
             await task(post_slack_message)(
                 ai_response_text := "\n\n".join(
@@ -206,7 +222,12 @@ async def chat_endpoint(request: Request):
     payload = SlackPayload(**await request.json())
     match payload.type:
         case "event_callback":
-            options = dict(flow_run_name=f"respond in {payload.event.channel}")
+            options = dict(
+                flow_run_name=(
+                    "respond in"
+                    f" {await get_channel_name(payload.event.channel)}/{payload.event.thread_ts}"
+                )
+            )
             asyncio.create_task(handle_message.with_options(**options)(payload))
         case "url_verification":
             return {"challenge": payload.challenge}
