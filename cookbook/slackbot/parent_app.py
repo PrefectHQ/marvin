@@ -5,8 +5,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from marvin import ai_fn
 from marvin.beta.applications import AIApplication
+from marvin.beta.applications.state.json_block import JSONBlockState
 from marvin.beta.assistants import Assistant
-from marvin.kv.json_block import JSONBlockKV
 from marvin.utilities.logging import get_logger
 from prefect.events import Event, emit_event
 from prefect.events.clients import PrefectCloudEventSubscriber
@@ -16,7 +16,7 @@ from typing_extensions import TypedDict
 from websockets.exceptions import ConnectionClosedError
 
 PARENT_APP_STATE_BLOCK_NAME = "marvin-parent-app-state"
-PARENT_APP_STATE = JSONBlockKV(block_name=PARENT_APP_STATE_BLOCK_NAME)
+PARENT_APP_STATE = JSONBlockState(block_name=PARENT_APP_STATE_BLOCK_NAME)
 
 EVENT_NAMES = [
     "marvin.assistants.SubAssistantRunCompleted",
@@ -68,6 +68,7 @@ def excerpt_from_event(event: Event) -> str:
 
 
 async def update_parent_app_state(app: AIApplication, event: Event):
+    app_state = app.state.value
     event_excerpt = excerpt_from_event(event)
     lesson = take_lesson_from_interaction(
         event_excerpt, event.payload.get("ai_instructions").split("START_USER_NOTES")[0]
@@ -83,14 +84,16 @@ async def update_parent_app_state(app: AIApplication, event: Event):
     else:
         logger.debug_kv("🥱 ", "nothing special", "green")
         user_id = event.payload.get("user").get("id")
-        current_user_state = app.state.read(user_id) or dict(
+        current_user_state = app_state.get(user_id) or dict(
             name=event.payload.get("user").get("name"),
             n_interactions=0,
         )
         current_user_state["n_interactions"] += 1
-        app.state.write(user_id, state := current_user_state)
+        app.state.set_state(app_state | {user_id: current_user_state})
         logger.debug_kv(
-            f"📋 Updated state for user {user_id} to", json.dumps(state), "green"
+            f"📋 Updated state for user {user_id} to",
+            json.dumps(current_user_state),
+            "green",
         )
 
 

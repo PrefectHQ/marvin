@@ -195,14 +195,12 @@ def move(app: AIApplication, direction: Literal["N", "S", "E", "W"]) -> str:
     match maze.user_location:
         case maze.key_location:
             maze.key_location = (-1, -1)
-            # app.state.set_state(maze)
             return "The user found the key! Now they must find the exit."
         case maze.monster_location:
             return "The user encountered the monster and died. Game over."
         case maze.exit_location:
             if maze.key_location != (-1, -1):
                 maze.user_location = prev_location
-                # app.state.set_state(maze)
                 return "The user can't exit without the key."
             return "The user found the exit! They win!"
 

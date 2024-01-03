@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Union
 
@@ -22,7 +23,11 @@ class DiskState(State):
     @model_validator(mode="after")
     def get_state(self) -> "DiskState":
         with open(self.path, "r") as file:
-            self.value = file.read() or {}
+            try:
+                self.value = json.load(file)
+            except json.JSONDecodeError:
+                self.value = {}
+        return self
 
     def set_state(self, state: Union[BaseModel, dict]):
         super().set_state(state=state)

@@ -35,9 +35,10 @@ class JSONBlockState(State):
     def get_state(self) -> "JSONBlockState":
         json_block = run_sync(load_json_block(self.block_name))
         self.value = json_block.value or {}
+        return self
 
     def set_state(self, state: Union[BaseModel, dict]):
-        super().set_state()
+        super().set_state(state)
         json_block = run_sync(load_json_block(self.block_name))
         json_block.value = self.value
         run_sync_if_awaitable(json_block.save(name=self.block_name, overwrite=True))
