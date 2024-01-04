@@ -29,8 +29,8 @@ P = ParamSpec("P")
 
 DEFAULT_PROMPT = inspect.cleandoc(
     """
-    {{_doc}}
-    {{_return_value}}
+    {{_doc | default('')}}
+    {{_return_value | default('')}}
     """
 )
 
