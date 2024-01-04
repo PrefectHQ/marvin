@@ -26,7 +26,7 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
-class AIClassifierKwargs(TypedDict):
+class ClassifierKwargs(TypedDict):
     environment: NotRequired[BaseEnvironment]
     prompt: NotRequired[str]
     encoder: NotRequired[Callable[[str], list[int]]]
@@ -35,7 +35,7 @@ class AIClassifierKwargs(TypedDict):
     model: NotRequired[str]
 
 
-class AIClassifierKwargsDefaults(BaseModel):
+class ClassifierKwargsDefaults(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = None
@@ -45,7 +45,7 @@ class AIClassifierKwargsDefaults(BaseModel):
     model: Optional[str] = None
 
 
-class AIClassifier(
+class Classifier(
     BaseModel,
     Generic[P, T],
 ):
@@ -140,7 +140,7 @@ class AIClassifier(
     @classmethod
     def as_decorator(
         cls: type[Self],
-        **kwargs: Unpack[AIClassifierKwargs],
+        **kwargs: Unpack[ClassifierKwargs],
     ) -> Callable[P, Self]:
         pass
 
@@ -149,7 +149,7 @@ class AIClassifier(
     def as_decorator(
         cls: type[Self],
         fn: Callable[P, Union[T, Coroutine[Any, Any, T]]],
-        **kwargs: Unpack[AIClassifierKwargs],
+        **kwargs: Unpack[ClassifierKwargs],
     ) -> Self:
         pass
 
@@ -157,12 +157,12 @@ class AIClassifier(
     def as_decorator(
         cls: type[Self],
         fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None,
-        **kwargs: Unpack[AIClassifierKwargs],
+        **kwargs: Unpack[ClassifierKwargs],
     ) -> Union[Callable[[Callable[P, Union[T, Coroutine[Any, Any, T]]]], Self], Self]:
         def decorator(func: Callable[P, Union[T, Coroutine[Any, Any, T]]]) -> Self:
             return cls(
                 fn=func,
-                **AIClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True),
+                **ClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True),
             )
 
         if fn is not None:
@@ -172,23 +172,23 @@ class AIClassifier(
 
 
 @overload
-def ai_classifier(
-    **kwargs: Unpack[AIClassifierKwargs],
+def classifier(
+    **kwargs: Unpack[ClassifierKwargs],
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     pass
 
 
 @overload
-def ai_classifier(
+def classifier(
     fn: Callable[P, T],
-    **kwargs: Unpack[AIClassifierKwargs],
+    **kwargs: Unpack[ClassifierKwargs],
 ) -> Callable[P, T]:
     pass
 
 
-def ai_classifier(
+def classifier(
     fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None,
-    **kwargs: Unpack[AIClassifierKwargs],
+    **kwargs: Unpack[ClassifierKwargs],
 ) -> Union[
     Callable[
         [Callable[P, Union[T, Coroutine[Any, Any, T]]]],
@@ -197,16 +197,16 @@ def ai_classifier(
     Callable[P, Union[T, Coroutine[Any, Any, T]]],
 ]:
     if fn is not None:
-        return AIClassifier[P, T].as_decorator(
-            fn=fn, **AIClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True)
+        return Classifier[P, T].as_decorator(
+            fn=fn, **ClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True)
         )
 
     def decorator(
         func: Callable[P, Union[T, Coroutine[Any, Any, T]]],
     ) -> Callable[P, Union[T, Coroutine[Any, Any, T]]]:
-        return AIClassifier[P, T].as_decorator(
+        return Classifier[P, T].as_decorator(
             fn=func,
-            **AIClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True),
+            **ClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True),
         )
 
     return decorator

@@ -5,13 +5,13 @@ AI Classifiers are a high-level component, or building block, of Marvin. Like al
 <div class="admonition abstract">
   <p class="admonition-title">What it does</p>
   <p>
-    <code>@ai_classifier</code> is a decorator that lets you use LLMs to choose options, tools, or classify input. 
+    <code>@classifier</code> is a decorator that lets you use LLMs to choose options, tools, or classify input. 
   </p>
 </div>
 
 !!! example 
     ```python
-    from marvin import ai_classifier
+    from marvin import classifier
     from enum import Enum
 
     class CustomerIntent(Enum):
@@ -26,7 +26,7 @@ AI Classifiers are a high-level component, or building block, of Marvin. Like al
         ACCOUNT_CANCELLATION = 'ACCOUNT_CANCELLATION'
         OPERATOR_CUSTOMER_SERVICE = 'OPERATOR_CUSTOMER_SERVICE'
 
-    @ai_classifier
+    @classifier
     def classify_intent(text: str) -> CustomerIntent:
         '''Classifies the most likely intent from user input'''
 
@@ -67,15 +67,15 @@ AI Classifiers are a high-level component, or building block, of Marvin. Like al
 ## Features
 #### 🚅 Bulletproof
 
-`ai_classifier` will always output one of the options you've given it
+`classifier` will always output one of the options you've given it
 
 
 ```python
-from marvin import ai_classifier
+from marvin import classifier
 from enum import Enum
 
 
-@ai_classifier
+@classifier
 class AppRoute(Enum):
     """Represents distinct routes command bar for a different application"""
 
@@ -102,8 +102,8 @@ AppRoute("update my name")
 
 #### 🏃 Fast
 
-`ai_classifier` only asks your LLM to output one token, so it's blazing fast - on the order of ~200ms in testing.
+`classifier` only asks your LLM to output one token, so it's blazing fast - on the order of ~200ms in testing.
 
 #### 🫡 Deterministic
 
-`ai_classifier` will be deterministic so long as the underlying model and options does not change.
+`classifier` will be deterministic so long as the underlying model and options does not change.
