@@ -1,4 +1,5 @@
 import asyncio
+import textwrap
 from functools import partial, wraps
 from typing import (
     Any,
@@ -24,8 +25,14 @@ from marvin.utilities.jinja import (
 )
 
 T = TypeVar("T")
-
 P = ParamSpec("P")
+
+DEFAULT_PROMPT = textwrap.dedent(
+    """
+    {{_doc}}
+    {{_return_value}}
+    """
+)
 
 
 class AIImageKwargs(TypedDict):
@@ -38,7 +45,7 @@ class AIImageKwargs(TypedDict):
 class AIImageKwargsDefaults(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     environment: Optional[BaseEnvironment] = None
-    prompt: Optional[str] = None
+    prompt: Optional[str] = DEFAULT_PROMPT
     client: Optional[Client] = None
     aclient: Optional[AsyncClient] = None
 
@@ -47,7 +54,7 @@ class AIImage(BaseModel, Generic[P]):
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     fn: Optional[Callable[P, Any]] = None
     environment: Optional[BaseEnvironment] = None
-    prompt: Optional[str] = Field(default=None)
+    prompt: Optional[str] = Field(default=DEFAULT_PROMPT)
     client: Client = Field(default_factory=lambda: MarvinClient().client)
     aclient: AsyncClient = Field(default_factory=lambda: AsyncMarvinClient().client)
 
@@ -73,16 +80,12 @@ class AIImage(BaseModel, Generic[P]):
         *args: P.args,
         **kwargs: P.kwargs,
     ) -> str:
-        return (
-            PromptFunction[BaseModel]
-            .as_tool_call(
-                fn=self.fn,
-                environment=self.environment,
-                prompt=self.prompt,
-            )(*args, **kwargs)
-            .messages[0]
-            .content
+        tool_call = PromptFunction[BaseModel].as_tool_call(
+            fn=self.fn,
+            environment=self.environment,
+            prompt=self.prompt,
         )
+        return tool_call(*args, **kwargs).messages[0].content
 
     @overload
     @classmethod
