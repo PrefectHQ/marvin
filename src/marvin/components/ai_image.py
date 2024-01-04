@@ -1,5 +1,5 @@
 import asyncio
-import textwrap
+import inspect
 from functools import partial, wraps
 from typing import (
     Any,
@@ -27,7 +27,7 @@ from marvin.utilities.jinja import (
 T = TypeVar("T")
 P = ParamSpec("P")
 
-DEFAULT_PROMPT = textwrap.dedent(
+DEFAULT_PROMPT = inspect.cleandoc(
     """
     {{_doc}}
     {{_return_value}}
