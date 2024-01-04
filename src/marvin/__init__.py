@@ -1,6 +1,7 @@
 from .settings import settings
 
-from .components import ai_fn, ai_model, ai_classifier, ai_image
+# legacy
+from .components import ai_fn, ai_model, ai_classifier
 from .components.prompt.fn import prompt_fn
 
 try:
@@ -12,7 +13,6 @@ __all__ = [
     "ai_fn",
     "ai_model",
     "ai_classifier",
-    "ai_image",
     "prompt_fn",
     "settings",
 ]
