@@ -1,6 +1,6 @@
 from .settings import settings
 
-from .components import fn, classifier, image, speech
+from .components import fn, classifier, image, speech, model, cast, extract
 from .components.prompt.fn import prompt_fn
 
 # compatibility with Marvin v1
@@ -15,6 +15,9 @@ __all__ = [
     "fn",
     "classifier",
     "image",
+    "model",
+    "cast",
+    "extract",
     "speech",
     "prompt_fn",
     "settings",
