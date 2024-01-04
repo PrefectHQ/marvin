@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 import pytest
-from marvin import ai_model
+from marvin import model
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
@@ -9,9 +9,9 @@ from tests.utils import pytest_mark_class
 
 
 @pytest_mark_class("llm")
-class TestAIModels:
+class TestModels:
     def test_arithmetic(self):
-        @ai_model
+        @model
         class Arithmetic(BaseModel):
             sum: float = Field(
                 ..., description="The resolved sum of provided arguments"
@@ -23,7 +23,7 @@ class TestAIModels:
         assert x.is_odd
 
     def test_geospatial(self):
-        @ai_model
+        @model
         class Location(BaseModel):
             latitude: float
             longitude: float
@@ -53,7 +53,7 @@ class TestAIModels:
             name: str
             city: City
 
-        @ai_model
+        @model
         class RentalHistory(BaseModel):
             neighborhood: List[Neighborhood]
 
@@ -70,7 +70,7 @@ class TestAIModels:
             years_of_experience: int
             supporting_phrase: Optional[str]
 
-        @ai_model
+        @model
         class Resume(BaseModel):
             """Details about a person's work experience."""
 
@@ -92,7 +92,7 @@ class TestAIModels:
         assert len(x.technologies) == 2
 
     def test_literal(self):
-        @ai_model
+        @model
         class LLMConference(BaseModel):
             speakers: list[
                 Literal["Adam", "Nate", "Jeremiah", "Marvin", "Billy Bob Thornton"]
@@ -123,7 +123,7 @@ class TestAIModels:
             campaign_slogan: str
             birthplace: Location
 
-        @ai_model
+        @model
         class Election(BaseModel):
             candidates: List[Candidate]
             winner: Candidate
@@ -150,7 +150,7 @@ class TestAIModels:
 
     @pytest.mark.skip(reason="old behavior, may revisit")
     def test_correct_class_is_returned(self):
-        @ai_model
+        @model
         class Fruit(BaseModel):
             color: str
             name: str
@@ -164,7 +164,7 @@ class TestAIModels:
 @pytest_mark_class("llm")
 class TestInstructions:
     def test_instructions_error(self):
-        @ai_model
+        @model
         class Test(BaseModel):
             text: str
 
@@ -176,7 +176,7 @@ class TestInstructions:
             Test("Hello!", model=None)
 
     def test_instructions(self):
-        @ai_model
+        @model
         class Text(BaseModel):
             text: str
 
@@ -184,7 +184,7 @@ class TestInstructions:
         assert t1.text == "Hello"
 
         # this model is identical except it has an instruction
-        @ai_model(instructions="first translate the text to French")
+        @model(instructions="first translate the text to French")
         class Text(BaseModel):
             text: str
 
@@ -192,7 +192,7 @@ class TestInstructions:
         assert t2.text == "Bonjour"
 
     def test_follow_instance_instructions(self):
-        @ai_model
+        @model
         class Test(BaseModel):
             text: str
 
@@ -200,7 +200,7 @@ class TestInstructions:
         assert t1.text == "Hello"
 
         # this model is identical except it has an instruction
-        @ai_model
+        @model
         class Test(BaseModel):
             text: str
 
@@ -208,7 +208,7 @@ class TestInstructions:
         assert t2.text == "Bonjour"
 
     def test_follow_global_and_instance_instructions(self):
-        @ai_model(instructions="Always set color_1 to 'red'")
+        @model(instructions="Always set color_1 to 'red'")
         class Test(BaseModel):
             color_1: str
             color_2: str
@@ -217,7 +217,7 @@ class TestInstructions:
         assert t1 == Test(color_1="red", color_2="blue")
 
     def test_follow_docstring_and_global_and_instance_instructions(self):
-        @ai_model(instructions="Always set color_1 to 'red'")
+        @model(instructions="Always set color_1 to 'red'")
         class Test(BaseModel):
             """Always set color_3 to 'orange'"""
 
@@ -230,7 +230,7 @@ class TestInstructions:
 
     def test_follow_multiple_instructions(self):
         # ensure that instructions don't bleed to other invocations
-        @ai_model
+        @model
         class Translation(BaseModel):
             """Translates from one language to another language"""
 
@@ -249,9 +249,9 @@ class TestInstructions:
 
 
 @pytest_mark_class("llm")
-class TestAIModelMapping:
+class TestModelMapping:
     def test_arithmetic(self):
-        @ai_model
+        @model
         class Arithmetic(BaseModel):
             sum: float
 
@@ -262,7 +262,7 @@ class TestAIModelMapping:
 
     @pytest.mark.skip(reason="TODO: flaky on 3.5")
     def test_fix_misspellings(self):
-        @ai_model
+        @model
         class City(BaseModel):
             """Standardize misspelled or informal city names"""
 
