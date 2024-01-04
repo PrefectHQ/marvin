@@ -45,10 +45,7 @@ class ClassifierKwargsDefaults(BaseModel):
     model: Optional[str] = None
 
 
-class Classifier(
-    BaseModel,
-    Generic[P, T],
-):
+class Classifier(BaseModel, Generic[P, T]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None
     environment: Optional[BaseEnvironment] = None
