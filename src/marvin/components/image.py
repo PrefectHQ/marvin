@@ -28,14 +28,14 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
-class AIImageKwargs(TypedDict):
+class ImageKwargs(TypedDict):
     environment: NotRequired[BaseEnvironment]
     prompt: NotRequired[str]
     client: NotRequired[Client]
     aclient: NotRequired[AsyncClient]
 
 
-class AIImageKwargsDefaults(BaseModel):
+class ImageKwargsDefaults(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = IMAGE_PROMPT
@@ -43,7 +43,7 @@ class AIImageKwargsDefaults(BaseModel):
     aclient: Optional[AsyncClient] = None
 
 
-class AIImage(BaseModel, Generic[P]):
+class Image(BaseModel, Generic[P]):
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     fn: Optional[Callable[P, Any]] = None
     environment: Optional[BaseEnvironment] = None
@@ -84,7 +84,7 @@ class AIImage(BaseModel, Generic[P]):
     @classmethod
     def as_decorator(
         cls: type[Self],
-        **kwargs: Unpack[AIImageKwargs],
+        **kwargs: Unpack[ImageKwargs],
     ) -> Callable[P, Self]:
         pass
 
@@ -93,7 +93,7 @@ class AIImage(BaseModel, Generic[P]):
     def as_decorator(
         cls: type[Self],
         fn: Callable[P, Any],
-        **kwargs: Unpack[AIImageKwargs],
+        **kwargs: Unpack[ImageKwargs],
     ) -> Self:
         pass
 
@@ -101,7 +101,7 @@ class AIImage(BaseModel, Generic[P]):
     def as_decorator(
         cls: type[Self],
         fn: Optional[Callable[P, Any]] = None,
-        **kwargs: Unpack[AIImageKwargs],
+        **kwargs: Unpack[ImageKwargs],
     ) -> Union[Self, Callable[[Callable[P, Any]], Self]]:
         passed_kwargs: dict[str, Any] = {
             k: v for k, v in kwargs.items() if v is not None
@@ -118,9 +118,9 @@ class AIImage(BaseModel, Generic[P]):
         )
 
 
-def ai_image(
+def image(
     fn: Optional[Callable[P, Any]] = None,
-    **kwargs: Unpack[AIImageKwargs],
+    **kwargs: Unpack[ImageKwargs],
 ) -> Union[
     Callable[
         [Callable[P, Any]],
@@ -131,8 +131,8 @@ def ai_image(
     def wrapper(
         func: Callable[P, Any], *args_: P.args, **kwargs_: P.kwargs
     ) -> Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]:
-        return AIImage[P].as_decorator(
-            func, **AIImageKwargsDefaults(**kwargs).model_dump(exclude_none=True)
+        return Image[P].as_decorator(
+            func, **ImageKwargsDefaults(**kwargs).model_dump(exclude_none=True)
         )(*args_, **kwargs_)
 
     if fn is not None:

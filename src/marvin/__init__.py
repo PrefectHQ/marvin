@@ -1,6 +1,6 @@
 from .settings import settings
 
-from .components import fn, classifier
+from .components import fn, classifier, image
 from .components.prompt.fn import prompt_fn
 
 # compatibility with Marvin v1
