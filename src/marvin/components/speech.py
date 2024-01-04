@@ -28,14 +28,14 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
-class AISpeechKwargs(TypedDict):
+class SpeechKwargs(TypedDict):
     environment: NotRequired[BaseEnvironment]
     prompt: NotRequired[str]
     client: NotRequired[Client]
     aclient: NotRequired[AsyncClient]
 
 
-class AISpeechKwargsDefaults(BaseModel):
+class SpeechKwargsDefaults(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = SPEECH_PROMPT
@@ -43,7 +43,7 @@ class AISpeechKwargsDefaults(BaseModel):
     aclient: Optional[AsyncClient] = None
 
 
-class AISpeech(BaseModel, Generic[P]):
+class Speech(BaseModel, Generic[P]):
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     fn: Optional[Callable[P, Any]] = None
     environment: Optional[BaseEnvironment] = None
@@ -82,7 +82,7 @@ class AISpeech(BaseModel, Generic[P]):
     @classmethod
     def as_decorator(
         cls: type[Self],
-        **kwargs: Unpack[AISpeechKwargs],
+        **kwargs: Unpack[SpeechKwargs],
     ) -> Callable[P, Self]:
         pass
 
@@ -91,7 +91,7 @@ class AISpeech(BaseModel, Generic[P]):
     def as_decorator(
         cls: type[Self],
         fn: Callable[P, Any],
-        **kwargs: Unpack[AISpeechKwargs],
+        **kwargs: Unpack[SpeechKwargs],
     ) -> Self:
         pass
 
@@ -99,7 +99,7 @@ class AISpeech(BaseModel, Generic[P]):
     def as_decorator(
         cls: type[Self],
         fn: Optional[Callable[P, Any]] = None,
-        **kwargs: Unpack[AISpeechKwargs],
+        **kwargs: Unpack[SpeechKwargs],
     ) -> Union[Self, Callable[[Callable[P, Any]], Self]]:
         passed_kwargs: dict[str, Any] = {
             k: v for k, v in kwargs.items() if v is not None
@@ -116,9 +116,9 @@ class AISpeech(BaseModel, Generic[P]):
         )
 
 
-def ai_speech(
+def speech(
     fn: Optional[Callable[P, Any]] = None,
-    **kwargs: Unpack[AISpeechKwargs],
+    **kwargs: Unpack[SpeechKwargs],
 ) -> Union[
     Callable[
         [Callable[P, Any]],
@@ -129,8 +129,8 @@ def ai_speech(
     def wrapper(
         func: Callable[P, Any], *args_: P.args, **kwargs_: P.kwargs
     ) -> Union[AudioResponse, Coroutine[Any, Any, AudioResponse]]:
-        f = AISpeech[P].as_decorator(
-            func, **AISpeechKwargsDefaults(**kwargs).model_dump(exclude_none=True)
+        f = Speech[P].as_decorator(
+            func, **SpeechKwargsDefaults(**kwargs).model_dump(exclude_none=True)
         )
         return f(*args_, **kwargs_)
 
