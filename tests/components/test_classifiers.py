@@ -17,7 +17,7 @@ class GitHubIssueTag(Enum):
 
 
 @pytest_mark_class("llm")
-class TestAIClassifer:
+class TestClassifer:
     class TestLiteral:
         def test_classifier_literal_return_type(self):
             @classifier

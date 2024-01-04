@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from marvin.tools.assistants import AssistantTool
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 
-from .applications import AIApplication, State
+from .applications import Application, State
 
 PLANNER_INSTRUCTIONS = """
 To assist you with long-term planning and keeping track of multiple threads, you
@@ -45,7 +45,7 @@ class TaskList(BaseModel):
     tasks: list[Task] = Field([], description="The list of tasks")
 
 
-class AIPlanner(AIApplication):
+class AIPlanner(Application):
     plan: State = Field(default_factory=lambda: State(value=TaskList()))
 
     def get_instructions(self) -> str:
