@@ -34,7 +34,6 @@ def model(
 
 def model(
     _type: Optional[type[T]] = None,
-    instructions: str = None,
     **kwargs: Unpack[FunctionKwargs],
 ) -> Union[
     Callable[[Callable[[str], T]], Callable[[str], T]],
@@ -46,12 +45,9 @@ def model(
         def extract(text: str, instructions: str = None) -> _type:
             pass
 
-        return partial(
-            fn(
-                fn=extract,
-                **ModelKwargsDefaults(**kwargs).model_dump(exclude_none=True),
-            ),
-            instructions=instructions,
+        return fn(
+            fn=extract,
+            **ModelKwargsDefaults(**kwargs).model_dump(exclude_none=True),
         )
 
     return partial(model, **ModelKwargsDefaults(**kwargs).model_dump(exclude_none=True))

@@ -23,5 +23,7 @@ FUNCTION_PROMPT = inspect.cleandoc(
 
 
     What is its output?
+    
+    The output is
     """
 )

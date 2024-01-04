@@ -8,10 +8,12 @@ MODEL_PROMPT = inspect.cleandoc(
     infer any parameters needed by `{{_response_model.function.name}}`, including any
     missing data.
     
+    
+    HUMAN: The text to parse: {{text}}
+
     {% if instructions %}
     Pay attention to these additional instructions: {{instructions}}
     {% endif %}
-    
-    HUMAN: The text to parse: {{text}}
+
     """
 )

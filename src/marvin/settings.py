@@ -21,6 +21,12 @@ from typing_extensions import Literal
 
 
 class MarvinSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file="" if os.getenv("MARVIN_TEST_MODE") else "~/.marvin/.env",
+        extra="allow",
+        arbitrary_types_allowed=True,
+    )
+
     def __setattr__(self, name: str, value: Any) -> None:
         # wrap bare strings in SecretStr if the field is annotated with SecretStr
         field = self.model_fields.get(name)
@@ -39,9 +45,6 @@ class MarvinSettings(BaseSettings):
 class ChatCompletionSettings(MarvinSettings):
     model_config = SettingsConfigDict(
         env_prefix="marvin_llm_",
-        env_file="~/.marvin/.env",
-        extra="allow",
-        arbitrary_types_allowed=True,
     )
     model: str = Field(
         description="The default chat model to use.", default="gpt-3.5-turbo"
@@ -70,9 +73,6 @@ class ImageSettings(MarvinSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="marvin_image_",
-        env_file="~/.marvin/.env",
-        extra="allow",
-        arbitrary_types_allowed=True,
     )
 
     model: str = Field(
@@ -98,9 +98,6 @@ class SpeechSettings(MarvinSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="marvin_speech_",
-        env_file="~/.marvin/.env",
-        extra="allow",
-        arbitrary_types_allowed=True,
     )
 
     model: str = Field(
@@ -123,9 +120,6 @@ class AssistantSettings(MarvinSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="marvin_llm",
-        env_file="~/.marvin/.env",
-        extra="allow",
-        arbitrary_types_allowed=True,
     )
 
     model: str = Field(
@@ -167,9 +161,6 @@ class OpenAISettings(MarvinSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="marvin_openai_",
-        env_file="~/.marvin/.env",
-        extra="allow",
-        arbitrary_types_allowed=True,
     )
 
     api_key: Optional[SecretStr] = Field(
@@ -193,8 +184,9 @@ class OpenAISettings(MarvinSettings):
             v = SecretStr(os.environ.get("OPENAI_API_KEY"))
             if v.get_secret_value() is None:
                 raise ValueError(
-                    "OpenAI API key not found. Please either set `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env`"
-                    " or otherwise set `OPENAI_API_KEY` in your environment."
+                    "OpenAI API key not found. Please either set"
+                    " `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env` or otherwise set"
+                    " `OPENAI_API_KEY` in your environment."
                 )
         return v
 
@@ -221,9 +213,6 @@ class Settings(MarvinSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="marvin_",
-        env_file="~/.marvin/.env",
-        extra="allow",
-        arbitrary_types_allowed=True,
         protected_namespaces=(),
     )
 

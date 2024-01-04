@@ -1,7 +1,7 @@
 from enum import Enum
 
 import pytest
-from marvin import classifier
+from marvin.components import classifier
 from typing_extensions import Literal
 
 from tests.utils import pytest_mark_class

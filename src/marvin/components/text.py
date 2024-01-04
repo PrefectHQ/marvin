@@ -8,7 +8,7 @@ T = TypeVar("T")
 
 
 def cast(text: str, _type: type[T], instructions: str = None) -> T:
-    return marvin.model(_type, instructions=instructions)(text)
+    return marvin.model(_type)(text, instructions=instructions)
 
 
 def extract(text: str, _type: type[T], instructions: str = None) -> list[T]:
