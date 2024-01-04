@@ -22,4 +22,5 @@ __all__ = [
 
 
 # compatibility with Marvin v1
-from .components import classifier as ai_classifier, fn as ai_fn, model as ai_model
+from .components import fn as ai_fn, model as ai_model
+from .components.classifier import classifier as ai_classifier

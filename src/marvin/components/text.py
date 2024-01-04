@@ -7,17 +7,34 @@ import marvin
 T = TypeVar("T")
 
 
-def cast(text: str, _type: type[T]) -> T:
-    return marvin.model(_type)(text)
+def cast(text: str, _type: type[T], instructions: str = None) -> T:
+    return marvin.model(_type, instructions=instructions)(text)
 
 
-def extract(text: str, _type: type[T]) -> list[T]:
-    return marvin.model(list[_type])(text)
+def extract(text: str, _type: type[T], instructions: str = None) -> list[T]:
+    @marvin.fn
+    def _extract(text: str) -> list[_type]:
+        if instructions:
+            return (
+                "Extract a list of objects from the text, matching the following"
+                f' instructions or guidance: "{instructions}"'
+            )
+        else:
+            return "Extract a list of objects from the text."
+
+    return _extract(text)
+    # return marvin.model(list[_type], instructions=instructions)(text)
 
 
-def classify(text: str, _type: type[T]) -> dict[str, T]:
-    @marvin.classifier
+def classify(text: str, _type: type[T], instructions: str = None) -> dict[str, T]:
+    @marvin.components.classifier
     def _classify(text: str) -> _type:
-        """Classify the text"""
+        if instructions:
+            return (
+                "Extract a list of objects from the text, matching the following"
+                f' instructions or guidance: "{instructions}"'
+            )
+        else:
+            return "Extract a list of objects from the text."
 
     return _classify(text)

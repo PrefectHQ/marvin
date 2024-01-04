@@ -50,6 +50,7 @@ def fn_to_messages(
     params.apply_defaults()
     return_annotation = inspect.signature(fn).return_annotation
     return_value = fn(*fn_args, **fn_kwargs) if call_fn else None
+    function_def = f"def {fn.__name__}{signature} -> {return_annotation}:"
 
     doc = environment.render(inspect.getdoc(fn) or "", **fn_kwargs | params.arguments)
     source = environment.render(
@@ -60,6 +61,7 @@ def fn_to_messages(
     messages = Transcript(content=prompt).render_to_messages(
         **fn_kwargs | params.arguments,
         _arguments=params.arguments,
+        _signature=function_def,
         _doc=doc,
         _return_value=return_value,
         _return_annotation=return_annotation,

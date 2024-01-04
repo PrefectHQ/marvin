@@ -1,5 +1,4 @@
 import asyncio
-import inspect
 from typing import (
     Any,
     Callable,
@@ -19,6 +18,7 @@ from typing_extensions import NotRequired, ParamSpec, Self, Unpack
 from marvin._mappings.chat_completion import chat_completion_to_type
 from marvin.client.openai import AsyncMarvinClient, MarvinClient
 from marvin.components.prompt.fn import PromptFunction
+from marvin.prompts.classifiers import CLASSIFIER_PROMPT
 from marvin.utilities.jinja import BaseEnvironment
 
 T = TypeVar("T")
@@ -49,30 +49,7 @@ class Classifier(BaseModel, Generic[P, T]):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None
     environment: Optional[BaseEnvironment] = None
-    prompt: Optional[str] = Field(
-        default=inspect.cleandoc(
-            """
-        ## Expert Classifier
-
-        **Objective**: You are an expert classifier that always chooses correctly.
-
-        ### Context
-        {{ _doc }}
-        
-        ### Response Format
-        You must classify the user provided data into one of the following classes:
-        {% for option in _options %}
-        - Class {{ loop.index0 }} (value: {{ option }})
-        {% endfor %}
-        \n\nASSISTANT: ### Data
-        The user provided the following data:                                                                                                                     
-        {%for (arg, value) in _arguments.items()%}
-        - {{ arg }}: {{ value }}
-        {% endfor %}
-        \n\nASSISTANT: The most likely class label for the data and context provided above is Class"
-    """
-        )
-    )  # noqa
+    prompt: Optional[str] = Field(default=CLASSIFIER_PROMPT)
     encoder: Callable[[str], list[int]] = Field(default=None)
     max_tokens: int = 1
     temperature: float = 0.0

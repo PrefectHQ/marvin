@@ -1,4 +1,3 @@
-import inspect
 from functools import partial
 from typing import Callable, Optional, TypeVar, Union, overload
 
@@ -9,21 +8,13 @@ from marvin.components.function import (
     FunctionKwargsDefaults,
     fn,
 )
+from marvin.prompts.models import MODEL_PROMPT
 
 T = TypeVar("T")
 
-prompt = inspect.cleandoc(
-    "The user will provide context as text that you need to parse into a structured"
-    " form. To validate your response, you must call the"
-    " `{{_response_model.function.name}}` function. Use the provided text to extract or"
-    " infer any parameters needed by `{{_response_model.function.name}}`, including any"
-    " missing data."
-    " \n\nHUMAN: The text to parse: {{text}}"
-)
-
 
 class ModelKwargsDefaults(FunctionKwargsDefaults):
-    prompt: Optional[str] = prompt
+    prompt: Optional[str] = MODEL_PROMPT
 
 
 @overload
@@ -43,29 +34,24 @@ def model(
 
 def model(
     _type: Optional[type[T]] = None,
+    instructions: str = None,
     **kwargs: Unpack[FunctionKwargs],
 ) -> Union[
-    Callable[
-        [Callable[[str], T]],
-        Callable[[str], T],
-    ],
-    partial[
-        Callable[
-            [Callable[[str], T]],
-            Callable[[str], T],
-        ]
-    ],
+    Callable[[Callable[[str], T]], Callable[[str], T]],
+    partial[Callable[[Callable[[str], T]], Callable[[str], T]]],
     Callable[[str], T],
 ]:
     if _type is not None:
 
-        def extract(text: str) -> T:
-            return _type
+        def extract(text: str, instructions: str = None) -> _type:
+            pass
 
-        extract.__annotations__["return"] = _type
-        return fn(
-            fn=extract,
-            **ModelKwargsDefaults(**kwargs).model_dump(exclude_none=True),
+        return partial(
+            fn(
+                fn=extract,
+                **ModelKwargsDefaults(**kwargs).model_dump(exclude_none=True),
+            ),
+            instructions=instructions,
         )
 
     return partial(model, **ModelKwargsDefaults(**kwargs).model_dump(exclude_none=True))
