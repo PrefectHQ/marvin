@@ -3,24 +3,24 @@ from typing import Dict, List
 
 import marvin
 import pytest
-from marvin import ai_fn
+from marvin import fn
 from pydantic import BaseModel
 
 from tests.utils import pytest_mark_class
 
 
-@ai_fn
+@fn
 def list_fruit(n: int = 2) -> list[str]:
     """Returns a list of `n` fruit"""
 
 
-@ai_fn
+@fn
 def list_fruit_color(n: int, color: str = None) -> list[str]:
     """Returns a list of `n` fruit that all have the provided `color`"""
 
 
 @pytest_mark_class("llm")
-class TestAIFunctions:
+class TestFunctions:
     class TestBasics:
         def test_list_fruit(self):
             result = list_fruit()
@@ -31,7 +31,7 @@ class TestAIFunctions:
             assert len(result) == 5
 
         async def test_list_fruit_async(self):
-            @ai_fn
+            @fn
             async def list_fruit(n: int) -> list[str]:
                 """Returns a list of `n` fruit"""
 
@@ -42,7 +42,7 @@ class TestAIFunctions:
 
     class TestAnnotations:
         def test_no_annotations(self):
-            @ai_fn
+            @fn
             def f(x):
                 """returns x + 1"""
 
@@ -50,7 +50,7 @@ class TestAIFunctions:
             assert result == "4"
 
         def test_arg_annotations(self):
-            @ai_fn
+            @fn
             def f(x: int):
                 """returns x + 1"""
 
@@ -58,7 +58,7 @@ class TestAIFunctions:
             assert result == "4"
 
         def test_return_annotations(self):
-            @ai_fn
+            @fn
             def f(x) -> int:
                 """returns x + 1"""
 
@@ -66,7 +66,7 @@ class TestAIFunctions:
             assert result == 4
 
         def test_list_fruit_with_generic_type_hints(self):
-            @ai_fn
+            @fn
             def list_fruit(n: int) -> List[str]:
                 """Returns a list of `n` fruit"""
 
@@ -78,7 +78,7 @@ class TestAIFunctions:
                 name: str
                 color: str
 
-            @ai_fn
+            @fn
             def get_fruit(description: str) -> Fruit:
                 """Returns a fruit with the provided description"""
 
@@ -88,7 +88,7 @@ class TestAIFunctions:
 
         @pytest.mark.parametrize("name,expected", [("banana", True), ("car", False)])
         def test_bool_return_annotation(self, name, expected):
-            @ai_fn
+            @fn
             def is_fruit(name: str) -> bool:
                 """Returns True if the provided name is a fruit"""
 
@@ -99,7 +99,7 @@ class TestAIFunctions:
             reason="3.5 turbo doesn't do well with unknown schemas",
         )
         def test_plain_dict_return_type(self):
-            @ai_fn
+            @fn
             def describe_fruit(description: str) -> dict:
                 """guess the fruit and return the name and color"""
 
@@ -112,7 +112,7 @@ class TestAIFunctions:
             reason="3.5 turbo doesn't do well with unknown schemas",
         )
         def test_annotated_dict_return_type(self):
-            @ai_fn
+            @fn
             def describe_fruit(description: str) -> dict[str, str]:
                 """guess the fruit and return the name and color"""
 
@@ -125,7 +125,7 @@ class TestAIFunctions:
             reason="3.5 turbo doesn't do well with unknown schemas",
         )
         def test_generic_dict_return_type(self):
-            @ai_fn
+            @fn
             def describe_fruit(description: str) -> Dict[str, str]:
                 """guess the fruit and return the name and color"""
 
@@ -140,7 +140,7 @@ class TestAIFunctions:
                 name: str
                 color: str
 
-            @ai_fn
+            @fn
             def describe_fruit(description: str) -> Fruit:
                 """guess the fruit and return the name and color"""
 
@@ -149,21 +149,21 @@ class TestAIFunctions:
             assert fruit["color"].lower() == "yellow"
 
         def test_int_return_type(self):
-            @ai_fn
+            @fn
             def get_fruit(name: str) -> int:
                 """Returns the number of letters in the alluded fruit name"""
 
             assert get_fruit("banana") == 6
 
         def test_float_return_type(self):
-            @ai_fn
+            @fn
             def get_pi(n: int) -> float:
                 """Return the first n digits of pi"""
 
             assert get_pi(5) == 3.14159
 
         def test_tuple_return_type(self):
-            @ai_fn
+            @fn
             def get_fruit(name: str) -> tuple:
                 """Returns a tuple of fruit"""
 
@@ -174,14 +174,14 @@ class TestAIFunctions:
             )
 
         def test_set_return_type(self):
-            @ai_fn
+            @fn
             def get_fruit_letters(name: str) -> set:
                 """Returns the letters in the provided fruit name"""
 
             assert get_fruit_letters("banana") == {"a", "b", "n"}
 
         def test_frozenset_return_type(self):
-            @ai_fn
+            @fn
             def get_fruit_letters(name: str) -> frozenset:
                 """Returns the letters in the provided fruit name"""
 
@@ -191,7 +191,7 @@ class TestAIFunctions:
 
 
 @pytest_mark_class("llm")
-class TestAIFunctionsMap:
+class TestFunctionsMap:
     def test_map(self):
         result = list_fruit.map([2, 3])
         assert len(result) == 2

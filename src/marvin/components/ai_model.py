@@ -4,10 +4,10 @@ from typing import Callable, Optional, TypeVar, Union, overload
 
 from typing_extensions import Unpack
 
-from marvin.components.ai_function import (
-    AIFunctionKwargs,
-    AIFunctionKwargsDefaults,
-    ai_fn,
+from marvin.components.function import (
+    FunctionKwargs,
+    FunctionKwargsDefaults,
+    fn,
 )
 
 T = TypeVar("T")
@@ -22,13 +22,13 @@ prompt = inspect.cleandoc(
 )
 
 
-class AIModelKwargsDefaults(AIFunctionKwargsDefaults):
+class AIModelKwargsDefaults(FunctionKwargsDefaults):
     prompt: Optional[str] = prompt
 
 
 @overload
 def ai_model(
-    **kwargs: Unpack[AIFunctionKwargs],
+    **kwargs: Unpack[FunctionKwargs],
 ) -> Callable[[Callable[[str], T]], Callable[[str], T]]:
     pass
 
@@ -36,14 +36,14 @@ def ai_model(
 @overload
 def ai_model(
     _type: type[T],
-    **kwargs: Unpack[AIFunctionKwargs],
+    **kwargs: Unpack[FunctionKwargs],
 ) -> Callable[[str], T]:
     pass
 
 
 def ai_model(
     _type: Optional[type[T]] = None,
-    **kwargs: Unpack[AIFunctionKwargs],
+    **kwargs: Unpack[FunctionKwargs],
 ) -> Union[
     Callable[
         [Callable[[str], T]],
@@ -63,7 +63,7 @@ def ai_model(
             return _type
 
         extract.__annotations__["return"] = _type
-        return ai_fn(
+        return fn(
             fn=extract,
             **AIModelKwargsDefaults(**kwargs).model_dump(exclude_none=True),
         )
