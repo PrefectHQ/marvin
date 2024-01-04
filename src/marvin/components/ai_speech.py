@@ -13,13 +13,13 @@ from typing import (
 )
 
 from openai import AsyncClient, Client
-from openai.types.images_response import ImagesResponse
+from openai._base_client import HttpxBinaryResponseContent as AudioResponse
 from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import NotRequired, ParamSpec, Self, Unpack
 
 from marvin.client.openai import AsyncMarvinClient, MarvinClient
 from marvin.components.prompt.fn import PromptFunction
-from marvin.prompts.images import IMAGE_PROMPT
+from marvin.prompts.speech import SPEECH_PROMPT
 from marvin.utilities.jinja import (
     BaseEnvironment,
 )
@@ -28,45 +28,43 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
-class AIImageKwargs(TypedDict):
+class AISpeechKwargs(TypedDict):
     environment: NotRequired[BaseEnvironment]
     prompt: NotRequired[str]
     client: NotRequired[Client]
     aclient: NotRequired[AsyncClient]
 
 
-class AIImageKwargsDefaults(BaseModel):
+class AISpeechKwargsDefaults(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     environment: Optional[BaseEnvironment] = None
-    prompt: Optional[str] = IMAGE_PROMPT
+    prompt: Optional[str] = SPEECH_PROMPT
     client: Optional[Client] = None
     aclient: Optional[AsyncClient] = None
 
 
-class AIImage(BaseModel, Generic[P]):
+class AISpeech(BaseModel, Generic[P]):
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     fn: Optional[Callable[P, Any]] = None
     environment: Optional[BaseEnvironment] = None
-    prompt: Optional[str] = Field(default=IMAGE_PROMPT)
+    prompt: Optional[str] = Field(default=SPEECH_PROMPT)
     client: Client = Field(default_factory=lambda: MarvinClient().client)
     aclient: AsyncClient = Field(default_factory=lambda: AsyncMarvinClient().client)
 
     def __call__(
         self, *args: P.args, **kwargs: P.kwargs
-    ) -> Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]:
+    ) -> Union[AudioResponse, Coroutine[Any, Any, AudioResponse]]:
         if asyncio.iscoroutinefunction(self.fn):
             return self.acall(*args, **kwargs)
         return self.call(*args, **kwargs)
 
-    def call(self, *args: P.args, **kwargs: P.kwargs) -> "ImagesResponse":
+    def call(self, *args: P.args, **kwargs: P.kwargs) -> AudioResponse:
         prompt_str = self.as_prompt(*args, **kwargs)
-        response = MarvinClient(client=self.client).paint(prompt=prompt_str)
-        return response
+        return MarvinClient(client=self.client).speak(input=prompt_str)
 
-    async def acall(self, *args: P.args, **kwargs: P.kwargs) -> "ImagesResponse":
+    async def acall(self, *args: P.args, **kwargs: P.kwargs) -> AudioResponse:
         prompt_str = self.as_prompt(*args, **kwargs)
-        response = await AsyncMarvinClient(client=self.aclient).paint(prompt=prompt_str)
-        return response
+        return await AsyncMarvinClient(client=self.aclient).speak(input=prompt_str)
 
     def as_prompt(
         self,
@@ -84,7 +82,7 @@ class AIImage(BaseModel, Generic[P]):
     @classmethod
     def as_decorator(
         cls: type[Self],
-        **kwargs: Unpack[AIImageKwargs],
+        **kwargs: Unpack[AISpeechKwargs],
     ) -> Callable[P, Self]:
         pass
 
@@ -93,7 +91,7 @@ class AIImage(BaseModel, Generic[P]):
     def as_decorator(
         cls: type[Self],
         fn: Callable[P, Any],
-        **kwargs: Unpack[AIImageKwargs],
+        **kwargs: Unpack[AISpeechKwargs],
     ) -> Self:
         pass
 
@@ -101,7 +99,7 @@ class AIImage(BaseModel, Generic[P]):
     def as_decorator(
         cls: type[Self],
         fn: Optional[Callable[P, Any]] = None,
-        **kwargs: Unpack[AIImageKwargs],
+        **kwargs: Unpack[AISpeechKwargs],
     ) -> Union[Self, Callable[[Callable[P, Any]], Self]]:
         passed_kwargs: dict[str, Any] = {
             k: v for k, v in kwargs.items() if v is not None
@@ -118,29 +116,30 @@ class AIImage(BaseModel, Generic[P]):
         )
 
 
-def ai_image(
+def ai_speech(
     fn: Optional[Callable[P, Any]] = None,
-    **kwargs: Unpack[AIImageKwargs],
+    **kwargs: Unpack[AISpeechKwargs],
 ) -> Union[
     Callable[
         [Callable[P, Any]],
-        Callable[P, Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]],
+        Callable[P, Union[AudioResponse, Coroutine[Any, Any, AudioResponse]]],
     ],
-    Callable[P, Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]],
+    Callable[P, Union[AudioResponse, Coroutine[Any, Any, AudioResponse]]],
 ]:
     def wrapper(
         func: Callable[P, Any], *args_: P.args, **kwargs_: P.kwargs
-    ) -> Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]:
-        return AIImage[P].as_decorator(
-            func, **AIImageKwargsDefaults(**kwargs).model_dump(exclude_none=True)
-        )(*args_, **kwargs_)
+    ) -> Union[AudioResponse, Coroutine[Any, Any, AudioResponse]]:
+        f = AISpeech[P].as_decorator(
+            func, **AISpeechKwargsDefaults(**kwargs).model_dump(exclude_none=True)
+        )
+        return f(*args_, **kwargs_)
 
     if fn is not None:
         return wraps(fn)(partial(wrapper, fn))
 
     def decorator(
         fn: Callable[P, Any],
-    ) -> Callable[P, Union["ImagesResponse", Coroutine[Any, Any, "ImagesResponse"]]]:
+    ) -> Callable[P, Union[AudioResponse, Coroutine[Any, Any, AudioResponse]]]:
         return wraps(fn)(partial(wrapper, fn))
 
     return decorator
