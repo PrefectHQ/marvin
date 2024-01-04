@@ -1,5 +1,4 @@
 import asyncio
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -21,6 +20,7 @@ import marvin
 from marvin._mappings.chat_completion import chat_completion_to_model
 from marvin.client.openai import AsyncMarvinClient, MarvinClient
 from marvin.components.prompt.fn import PromptFunction
+from marvin.prompts.functions import FUNCTION_PROMPT
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -68,28 +68,7 @@ class Function(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     fn: Optional[Callable[P, T]] = None
     environment: Optional[BaseEnvironment] = None
-    prompt: Optional[str] = Field(
-        default=inspect.cleandoc(
-            """
-        Your job is to generate likely outputs for a Python function with the
-        following signature and docstring:
-
-        {{_source_code}}
-
-        The user will provide function inputs (if any) and you must respond with
-        the most likely result.
-
-        \n\nHUMAN: The function was called with the following inputs:
-        {%for (arg, value) in _arguments.items()%}
-        - {{ arg }}: {{ value }}
-        {% endfor %}
-
-
-
-        What is its output?
-    """
-        )
-    )
+    prompt: Optional[str] = Field(FUNCTION_PROMPT)
     name: str = "FormatResponse"
     description: str = "Formats the response."
     field_name: str = "data"

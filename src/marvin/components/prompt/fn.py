@@ -24,6 +24,7 @@ from marvin.serializers import (
 from marvin.settings import settings
 from marvin.utilities.jinja import (
     BaseEnvironment,
+    Environment,
     Transcript,
 )
 
@@ -39,8 +40,10 @@ def fn_to_messages(
     prompt=None,
     render_kwargs=None,
     call_fn: bool = True,
+    environment: Optional[BaseEnvironment] = None,
 ) -> list[Message]:
-    prompt = prompt or fn.__doc__ or ""
+    prompt = prompt or inspect.getdoc(fn) or ""
+    environment = environment or Environment
 
     signature = inspect.signature(fn)
     params = signature.bind(*fn_args, **fn_kwargs)
@@ -48,13 +51,19 @@ def fn_to_messages(
     return_annotation = inspect.signature(fn).return_annotation
     return_value = fn(*fn_args, **fn_kwargs) if call_fn else None
 
+    doc = environment.render(inspect.getdoc(fn) or "", **fn_kwargs | params.arguments)
+    source = environment.render(
+        "\ndef" + "def".join(re.split("def", inspect.getsource(fn))[1:]),
+        **fn_kwargs | params.arguments,
+    )
+
     messages = Transcript(content=prompt).render_to_messages(
         **fn_kwargs | params.arguments,
         _arguments=params.arguments,
-        _doc=inspect.getdoc(fn),
+        _doc=doc,
         _return_value=return_value,
         _return_annotation=return_annotation,
-        _source_code=("\ndef" + "def".join(re.split("def", inspect.getsource(fn))[1:])),
+        _source_code=source,
         **(render_kwargs or {}),
     )
     return messages
