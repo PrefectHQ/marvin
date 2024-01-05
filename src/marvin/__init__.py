@@ -1,7 +1,6 @@
 from .settings import settings
 
-# legacy
-from .components import ai_fn, ai_model, ai_classifier
+from .components import fn, image, speech, model, cast, extract, classify
 from .components.prompt.fn import prompt_fn
 
 try:
@@ -10,9 +9,18 @@ except ImportError:
     __version__ = "unknown"
 
 __all__ = [
-    "ai_fn",
-    "ai_model",
-    "ai_classifier",
+    "fn",
+    "image",
+    "model",
+    "cast",
+    "extract",
+    "classify",
+    "speech",
     "prompt_fn",
     "settings",
 ]
+
+
+# compatibility with Marvin v1
+from .components import fn as ai_fn, model as ai_model
+from .components.classifier import classifier as ai_classifier

@@ -1,1 +1,1 @@
-from .applications import AIApplication
+from .applications import Application

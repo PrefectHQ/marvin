@@ -1,1 +1,1 @@
-::: marvin.components.ai_classifier
+::: marvin.components.classifier

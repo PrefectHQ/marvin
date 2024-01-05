@@ -1,11 +1,10 @@
 """Module for Pydantic utilities."""
 
 from types import FunctionType, GenericAlias
-from typing import Annotated, Any, Callable, Optional, Union, cast, get_origin
+from typing import Annotated, Any, Callable, Literal, Optional, Union, cast, get_origin
 
 from pydantic import BaseModel, TypeAdapter, create_model
 from pydantic.deprecated.decorator import validate_arguments
-from typing_extensions import Literal
 
 
 def cast_callable_to_model(

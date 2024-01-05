@@ -393,7 +393,7 @@ CapTable("""\
 import datetime
 from typing import List
 from pydantic import BaseModel
-from typing_extensions import Literal
+from typing import Literal
 from marvin import ai_model
 
 

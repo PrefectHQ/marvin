@@ -1,4 +1,4 @@
-from marvin import ai_fn
+from marvin import fn
 from marvin.utilities.slack import post_slack_message
 from prefect import task
 from prefect.blocks.system import JSON, Secret, String
@@ -36,7 +36,7 @@ async def get_reduced_kw_relationship_map() -> dict:
     }
 
 
-@ai_fn
+@fn
 def activation_score(message: str, keyword: str, target_relationship: str) -> float:
     """Return a score between 0 and 1 indicating whether the target relationship exists
     between the message and the keyword"""

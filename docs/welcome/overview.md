@@ -31,10 +31,10 @@ or fully use its engine to work with OpenAI and other providers.
         Marvin exposes a number of high level components to simplify working with AI. 
 
         ```python
-        from marvin import ai_classifier
+        from marvin import classifier
         from typing import Literal
 
-        @ai_classifier
+        @classifier
         def customer_intent(text: str) -> Literal['Store Hours', 'Pharmacy', 'Returns']:
             """Classifies incoming customer intent"""
 

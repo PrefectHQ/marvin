@@ -1,10 +1,9 @@
 from enum import Enum
 from types import GenericAlias
-from typing import Any, Callable, Optional, Union, get_args, get_origin
+from typing import Any, Callable, Literal, Optional, Union, get_args, get_origin
 
 from pydantic import BaseModel, create_model
 from pydantic.fields import FieldInfo
-from typing_extensions import Literal
 
 from marvin.requests import Grammar, Tool, ToolSet
 from marvin.settings import settings

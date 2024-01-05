@@ -1,7 +1,7 @@
 # Sections
 
 ## Components
-- [AI Classifiers](/api_reference/components/ai_classifier/)
+- [AI Classifiers](/api_reference/components/classifier/)
 - [AI Functions](/api_reference/components/ai_function/)
 - [AI Models](/api_reference/components/ai_model/)
 

@@ -1,5 +1,4 @@
 import asyncio
-import inspect
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -21,6 +20,7 @@ import marvin
 from marvin._mappings.chat_completion import chat_completion_to_model
 from marvin.client.openai import AsyncMarvinClient, MarvinClient
 from marvin.components.prompt.fn import PromptFunction
+from marvin.prompts.functions import FUNCTION_PROMPT
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -37,7 +37,7 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
-class AIFunctionKwargs(TypedDict):
+class FunctionKwargs(TypedDict):
     environment: NotRequired[BaseEnvironment]
     prompt: NotRequired[str]
     model_name: NotRequired[str]
@@ -50,7 +50,7 @@ class AIFunctionKwargs(TypedDict):
     temperature: NotRequired[float]
 
 
-class AIFunctionKwargsDefaults(BaseModel):
+class FunctionKwargsDefaults(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     environment: Optional[BaseEnvironment] = None
     prompt: Optional[str] = None
@@ -58,38 +58,21 @@ class AIFunctionKwargsDefaults(BaseModel):
     model_description: str = "Formats the response."
     field_name: str = "data"
     field_description: str = "The data to format."
-    model: str = marvin.settings.openai.chat.completions.model
+    model: str = Field(
+        default_factory=lambda: marvin.settings.openai.chat.completions.model
+    )
     client: Optional[Client] = None
     aclient: Optional[AsyncClient] = None
-    temperature: Optional[float] = marvin.settings.openai.chat.completions.temperature
+    temperature: Optional[float] = Field(
+        default_factory=lambda: marvin.settings.openai.chat.completions.temperature
+    )
 
 
-class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
+class Function(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
     model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
     fn: Optional[Callable[P, T]] = None
     environment: Optional[BaseEnvironment] = None
-    prompt: Optional[str] = Field(
-        default=inspect.cleandoc(
-            """
-        Your job is to generate likely outputs for a Python function with the
-        following signature and docstring:
-
-        {{_source_code}}
-
-        The user will provide function inputs (if any) and you must respond with
-        the most likely result.
-
-        \n\nHUMAN: The function was called with the following inputs:
-        {%for (arg, value) in _arguments.items()%}
-        - {{ arg }}: {{ value }}
-        {% endfor %}
-
-
-
-        What is its output?
-    """
-        )
-    )
+    prompt: Optional[str] = Field(FUNCTION_PROMPT)
     name: str = "FormatResponse"
     description: str = "Formats the response."
     field_name: str = "data"
@@ -195,7 +178,7 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
     @classmethod
     def as_decorator(
         cls: type[Self],
-        **kwargs: Unpack[AIFunctionKwargs],
+        **kwargs: Unpack[FunctionKwargs],
     ) -> Callable[P, Self]:
         pass
 
@@ -204,7 +187,7 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
     def as_decorator(
         cls: type[Self],
         fn: Callable[P, Union[T, Coroutine[Any, Any, T]]],
-        **kwargs: Unpack[AIFunctionKwargs],
+        **kwargs: Unpack[FunctionKwargs],
     ) -> Self:
         pass
 
@@ -212,12 +195,12 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
     def as_decorator(
         cls: type[Self],
         fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None,
-        **kwargs: Unpack[AIFunctionKwargs],
+        **kwargs: Unpack[FunctionKwargs],
     ) -> Union[Callable[[Callable[P, Union[T, Coroutine[Any, Any, T]]]], Self], Self]:
         def decorator(func: Callable[P, Union[T, Coroutine[Any, Any, T]]]) -> Self:
             return cls(
                 fn=func,
-                **AIFunctionKwargsDefaults(**kwargs).model_dump(exclude_none=True),
+                **FunctionKwargsDefaults(**kwargs).model_dump(exclude_none=True),
             )
 
         if fn is not None:
@@ -227,23 +210,23 @@ class AIFunction(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
 
 
 @overload
-def ai_fn(
-    **kwargs: Unpack[AIFunctionKwargs],
+def fn(
+    **kwargs: Unpack[FunctionKwargs],
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     pass
 
 
 @overload
-def ai_fn(
+def fn(
     fn: Callable[P, T],
-    **kwargs: Unpack[AIFunctionKwargs],
+    **kwargs: Unpack[FunctionKwargs],
 ) -> Callable[P, T]:
     pass
 
 
-def ai_fn(
+def fn(
     fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None,
-    **kwargs: Unpack[AIFunctionKwargs],
+    **kwargs: Unpack[FunctionKwargs],
 ) -> Union[
     Callable[
         [Callable[P, Union[T, Coroutine[Any, Any, T]]]],
@@ -252,16 +235,16 @@ def ai_fn(
     Callable[P, Union[T, Coroutine[Any, Any, T]]],
 ]:
     if fn is not None:
-        return AIFunction[P, T].as_decorator(
-            fn=fn, **AIFunctionKwargsDefaults(**kwargs).model_dump(exclude_none=True)
+        return Function[P, T].as_decorator(
+            fn=fn, **FunctionKwargsDefaults(**kwargs).model_dump(exclude_none=True)
         )
 
     def decorator(
         func: Callable[P, Union[T, Coroutine[Any, Any, T]]],
     ) -> Callable[P, Union[T, Coroutine[Any, Any, T]]]:
-        return AIFunction[P, T].as_decorator(
+        return Function[P, T].as_decorator(
             fn=func,
-            **AIFunctionKwargsDefaults(**kwargs).model_dump(exclude_none=True),
+            **FunctionKwargsDefaults(**kwargs).model_dump(exclude_none=True),
         )
 
     return decorator

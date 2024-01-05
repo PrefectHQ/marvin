@@ -23,9 +23,9 @@ nav:
 
     - Components: 
       - Overview: components/overview.md
-      - AI Function: components/ai_function.md
+      - Function: components/functions.md
       - AI Model: components/ai_model.md
-      - AI Classifier: components/ai_classifier.md
+      - Classifier: components/ai_classifier.md
       - AI Application: components/ai_application.md
 
     - Examples:
@@ -35,7 +35,7 @@ nav:
     - api_reference/index.md
     - AI Components:
       - ai_classifier: api_reference/components/ai_classifier.md
-      - ai_function: api_reference/components/ai_function.md
+      - function: api_reference/components/functions.md
       - ai_model: api_reference/components/ai_model.md
     - Settings:
       - settings: api_reference/settings.md

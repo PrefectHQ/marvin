@@ -1,8 +1,8 @@
 from enum import Enum
+from typing import Literal
 
 import pytest
-from marvin import ai_classifier
-from typing_extensions import Literal
+from marvin.components import classifier
 
 from tests.utils import pytest_mark_class
 
@@ -17,10 +17,10 @@ class GitHubIssueTag(Enum):
 
 
 @pytest_mark_class("llm")
-class TestAIClassifer:
+class TestClassifer:
     class TestLiteral:
-        def test_ai_classifier_literal_return_type(self):
-            @ai_classifier
+        def test_classifier_literal_return_type(self):
+            @classifier
             def sentiment(text: str) -> Sentiment:
                 """Classify sentiment"""
 
@@ -29,8 +29,8 @@ class TestAIClassifer:
             assert result == "Positive"
 
         @pytest.mark.flaky(reruns=3)
-        def test_ai_classifier_literal_return_type_with_docstring(self):
-            @ai_classifier
+        def test_classifier_literal_return_type_with_docstring(self):
+            @classifier
             def sentiment(text: str) -> Sentiment:
                 """Classify sentiment. Keep in mind it's opposite day"""
 
@@ -39,8 +39,8 @@ class TestAIClassifer:
             assert result == "Negative"
 
     class TestEnum:
-        def test_ai_classifier_enum_return_type(self):
-            @ai_classifier
+        def test_classifier_enum_return_type(self):
+            @classifier
             def labeler(text: str) -> GitHubIssueTag:
                 """Classify GitHub issue tags"""
 

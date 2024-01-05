@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 
 import httpx
 import marvin
-from marvin import ai_fn
+from marvin import fn
 from marvin.utilities.strings import jinja_env
 from prefect import flow, task
 from prefect.artifacts import create_markdown_artifact
@@ -47,7 +47,7 @@ DAILY_DIGEST_TEMPLATE = jinja_env.from_string(
 )  # noqa: E501
 
 
-@ai_fn
+@fn
 async def summarize_digest(markdown_digest: str) -> str:
     """Produce a short story based on the GitHub digest.
 

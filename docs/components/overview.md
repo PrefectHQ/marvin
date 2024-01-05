@@ -264,10 +264,10 @@ AI Classifiers let you build multi-label classifiers with no code and no trainin
 
 !!! example "Example"
     === "As a decorator"
-        `ai_classifier` can decorate python functions whose return annotation is an `Enum` or `Literal`. The prompt is tuned for classification tasks, 
+        `classifier` can decorate python functions whose return annotation is an `Enum` or `Literal`. The prompt is tuned for classification tasks, 
         and uses a form of `constrained sampling` to make guarantee a fast valid choice.
         ```python
-        from marvin import ai_classifier
+        from marvin import classifier
         from enum import Enum
 
         class AppRoute(Enum):
@@ -283,7 +283,7 @@ AI Classifiers let you build multi-label classifiers with no code and no trainin
             PROJECTS = "/projects"
             WORKSPACES = "/workspaces"
 
-        @ai_classifier(client = client)
+        @classifier(client = client)
         def classify_intent(text: str) -> AppRoute:
             '''Classifies user's intent into most useful route'''
 
@@ -329,7 +329,7 @@ AI Classifiers let you build multi-label classifiers with no code and no trainin
 
     === "As a function"
         ```python
-        from marvin import ai_classifier
+        from marvin import classifier
         from enum import Enum
 
         class AppRoute(Enum):
@@ -348,12 +348,12 @@ AI Classifiers let you build multi-label classifiers with no code and no trainin
         def classify_intent(text: str) -> AppRoute:
             '''Classifies user's intent into most useful route'''
 
-        ai_classifier(classify_intent, client = client)("update my name")
+        classifier(classify_intent, client = client)("update my name")
         ```
         ??? info "Generated Prompt"
             You can view and/or eject the generated prompt by simply calling 
             ```python
-            ai_classifier(classify_intent, client = client).as_prompt("update my name").serialize()
+            classifier(classify_intent, client = client).as_prompt("update my name").serialize()
             ```
             When you do you'll see the raw payload that's sent to the LLM. The prompt you send is fully customizable. 
             ```json

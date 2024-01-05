@@ -3,7 +3,7 @@ import json
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from marvin import ai_fn
+from marvin import fn
 from marvin.beta.applications import AIApplication
 from marvin.beta.applications.state.json_block import JSONBlockState
 from marvin.beta.assistants import Assistant
@@ -28,7 +28,7 @@ class Lesson(TypedDict):
     heuristic: str | None
 
 
-@ai_fn(model="gpt-3.5-turbo-1106")
+@fn(model="gpt-3.5-turbo-1106")
 def take_lesson_from_interaction(
     transcript: str,
     assistant_instructions: str,

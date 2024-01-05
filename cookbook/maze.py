@@ -14,12 +14,12 @@ python cookbook/maze.py
 import random
 from enum import Enum
 from io import StringIO
+from typing import Literal
 
 from marvin.beta.applications import AIApplication
 from pydantic import BaseModel
 from rich.console import Console
 from rich.table import Table
-from typing_extensions import Literal
 
 GAME_INSTRUCTIONS = """
 This is a TERROR game. You are the disembodied narrator of a maze. You've hidden a key somewhere in the
@@ -205,7 +205,8 @@ class Maze(BaseModel):
         if move_monster := random.random() < 0.4:
             self.shuffle_monster()
         return (
-            f"User moved {direction} and is now at {self.user_location}.\n{self.render()}"
+            f"User moved {direction} and is now at"
+            f" {self.user_location}.\n{self.render()}"
             f"\nThe user may move in any of the following {self.movable_directions()!r}"
             f"\n{'The monster moved somewhere.' if move_monster else ''}"
         )

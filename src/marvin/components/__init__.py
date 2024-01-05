@@ -1,17 +1,21 @@
-from .ai_function import ai_fn, AIFunction
-from .ai_classifier import ai_classifier, AIClassifier
-from .ai_model import ai_model
-from .ai_image import ai_image, AIImage
+from .function import fn, Function
+from .model import model
+from .text import cast, extract, classify
+from .classifier import classifier
+from .image import image
+from .speech import speech
 from .prompt.fn import prompt_fn, PromptFunction
 
 __all__ = [
-    "ai_fn",
-    "ai_classifier",
-    "ai_model",
-    "ai_image",
+    "fn",
+    "model",
+    "image",
+    "cast",
+    "extract",
+    "classify",
+    "classifier",
+    "speech",
     "prompt_fn",
-    "AIImage",
-    "AIFunction",
-    "AIClassifier",
+    "Function",
     "PromptFunction",
 ]
