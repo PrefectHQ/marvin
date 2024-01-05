@@ -14,27 +14,18 @@ def cast(text: str, _type: type[T], instructions: str = None) -> T:
 def extract(text: str, _type: type[T], instructions: str = None) -> list[T]:
     @marvin.fn
     def _extract(text: str) -> list[_type]:
+        msg = "Extract a list of objects from the text, using inference appropriately."
         if instructions:
-            return (
-                "Extract a list of objects from the text, matching the following"
-                f' instructions or guidance: "{instructions}"'
-            )
-        else:
-            return "Extract a list of objects from the text."
+            msg += f' Follow these instructions for extraction: "{instructions}"'
+        return msg
 
     return _extract(text)
-    # return marvin.model(list[_type], instructions=instructions)(text)
 
 
 def classify(text: str, _type: type[T], instructions: str = None) -> dict[str, T]:
     @marvin.components.classifier
     def _classify(text: str) -> _type:
         if instructions:
-            return (
-                "Extract a list of objects from the text, matching the following"
-                f' instructions or guidance: "{instructions}"'
-            )
-        else:
-            return "Extract a list of objects from the text."
+            return f'Follow these instructions for classification: "{instructions}"'
 
     return _classify(text)
