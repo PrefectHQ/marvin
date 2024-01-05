@@ -2,7 +2,6 @@ from typing import TypeVar
 
 import marvin
 
-
 T = TypeVar("T")
 
 
@@ -13,7 +12,7 @@ def cast(text: str, _type: type[T], instructions: str = None) -> T:
 def extract(text: str, _type: type[T], instructions: str = None) -> list[T]:
     @marvin.fn
     def _extract(text: str) -> list[_type]:
-        msg = "Extract a list of objects from the text, using inference appropriately."
+        msg = "Extract a list of objects from the text, using inference if necessary."
         if instructions:
             msg += f' Follow these instructions for extraction: "{instructions}"'
         return msg
