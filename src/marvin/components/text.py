@@ -2,7 +2,6 @@ from typing import TypeVar
 
 import marvin
 
-# from marvin.components.model import model
 
 T = TypeVar("T")
 
