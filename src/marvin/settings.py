@@ -13,11 +13,10 @@ MARVIN_OPENAI_API_KEY=sk-...
 import os
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing_extensions import Literal
 
 
 class MarvinSettings(BaseSettings):

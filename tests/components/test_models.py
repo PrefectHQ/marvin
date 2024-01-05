@@ -1,9 +1,8 @@
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import pytest
 from marvin import model
 from pydantic import BaseModel, Field
-from typing_extensions import Literal
 
 from tests.utils import pytest_mark_class
 
