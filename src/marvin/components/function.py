@@ -1,3 +1,21 @@
+"""Function component for creating type-safe, functional prompts for LLMs.
+
+```python
+import marvin
+from typing_extensions import TypedDict
+
+class Fruit(TypedDict):
+    name: str
+    color: str
+
+@marvin.fn
+def list_fruit(n: int) -> list[Fruit]:
+    '''Returns a list of `n` fruit'''
+
+list_fruit(2)
+# [{'name': 'apple', 'color': 'red'}, {'name': 'banana', 'color': 'yellow'}]
+```
+"""
 import asyncio
 from typing import (
     TYPE_CHECKING,
@@ -38,6 +56,21 @@ P = ParamSpec("P")
 
 
 class FunctionKwargs(TypedDict):
+    """Keyword arguments for the function decorator.
+
+    Attributes:
+        environment: The jinja environment to use for the function.
+        prompt: The prompt to use for the function.
+        model_name: The model name to use for the function.
+        model_description: The model description to use for the function.
+        field_name: The field name to use for the function.
+        field_description: The field description to use for the function.
+        client: The client to use for the function.
+        aclient: The async client to use for the function.
+        model: The model to use for the function.
+        temperature: The temperature to use for the function.
+    """
+
     environment: NotRequired[BaseEnvironment]
     prompt: NotRequired[str]
     model_name: NotRequired[str]
@@ -117,20 +150,45 @@ class Function(BaseModel, Generic[P, T], ExposeSyncMethodsMixin):
     @expose_sync_method("map")
     async def amap(self, *map_args: list[Any], **map_kwargs: list[Any]) -> list[T]:
         """
-        Map the AI function over a sequence of arguments. Runs concurrently.
+        Map the AI function over a sequence of arguments - runs concurrently.
 
         A `map` twin method is provided by the `expose_sync_method` decorator.
 
         You can use `map` or `amap` synchronously or asynchronously, respectively,
-        regardless of whether the user function is synchronous or asynchronous.
+        regardless of whether the decorated function is synchronous or asynchronous.
 
         Arguments should be provided as if calling the function normally, but
         each argument must be a list. The function is called once for each item
         in the list, and the results are returned in a list.
 
-        For example, fn.map([1, 2]) is equivalent to [fn(1), fn(2)].
+        For example:
 
-        fn.map([1, 2], x=['a', 'b']) is equivalent to [fn(1, x='a'), fn(2, x='b')].
+        - `fn.map([1, 2])` == `[fn(1), fn(2)]`.
+
+        - `fn.map([1, 2], x=['a', 'b'])` == `[fn(1, x='a'), fn(2, x='b')]`.
+
+        Args:
+            *map_args: The positional arguments to map.
+            **map_kwargs: The keyword arguments to map.
+
+        Returns:
+            The results of the mapped function calls.
+
+        Example:
+            ```python
+            import marvin
+
+            @marvin.fn
+            def list_fruit(n: int) -> list[str]:
+                '''Returns a list of `n` fruit'''
+
+            list_of_lists_of_fruit = list_fruit.map([2, 3])
+            print(list_of_lists_of_fruit) # [['apple', 'banana'], ['apple', 'banana', 'cherry']]
+
+            assert len(list_of_lists_of_fruit) == 2
+            assert len(list_of_lists_of_fruit[0]) == 2
+            assert len(list_of_lists_of_fruit[1]) == 3
+            ```
         """
         tasks: list[Any] = []
         if map_args and map_kwargs:
@@ -234,6 +292,25 @@ def fn(
     ],
     Callable[P, Union[T, Coroutine[Any, Any, T]]],
 ]:
+    """Decorator for creating a type-safe, functional prompt for an LLM.
+
+    Args:
+        fn: The function to decorate.
+        **kwargs: Keyword arguments for the function decorator.
+
+    Example:
+        Get first `n` digits of pi:
+        ```python
+        import marvin
+
+        @marvin.fn
+        def get_pi(n: int) -> float:
+            '''Return the first n digits of pi'''
+
+        assert get_pi(5) == 3.14159
+        ```
+    """
+
     if fn is not None:
         return Function[P, T].as_decorator(
             fn=fn, **FunctionKwargsDefaults(**kwargs).model_dump(exclude_none=True)

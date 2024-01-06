@@ -1,3 +1,30 @@
+"""Component for creating prompts from functions.
+
+```python
+from marvin import prompt_fn
+
+@prompt_fn
+def list_fruits(n: int, color: str = 'red') -> list[str]:
+    '''Generates a list of {{ n }} {{ color }} fruits.'''
+
+list_fruits(3, 'blue')
+'''
+{'tools': [{'type': 'function',
+   'function': {'name': 'FormatResponse',
+    'description': 'Formats the response.',
+    'parameters': {'description': 'Formats the response.',
+     'properties': {'data': {'description': 'The data to format.',
+       'items': {'type': 'string'},
+       'title': 'Data',
+       'type': 'array'}},
+     'required': ['data'],
+     'type': 'object'}}}],
+ 'tool_choice': {'type': 'function', 'function': {'name': 'FormatResponse'}},
+ 'messages': [{'content': 'Generates a list of 3 blue fruits.',
+   'role': 'system'}]}
+'''
+```
+"""
 import inspect
 import re
 from functools import partial, wraps
@@ -271,6 +298,18 @@ def prompt_fn(
     Callable[[Callable[P, T]], Callable[P, dict[str, Any]]],
     Callable[P, dict[str, Any]],
 ]:
+    """Decorator for creating prompts from functions.
+
+    Args:
+        fn: The function to decorate.
+        environment: The jinja environment to use for rendering the prompt.
+        prompt: The prompt to use. Defaults to the function's docstring.
+        model_name: The name of the model.
+        model_description: The description of the model.
+        field_name: The name of the output field.
+        field_description: The description of the output field.
+    """
+
     def wrapper(
         func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs
     ) -> dict[str, Any]:

@@ -1,3 +1,19 @@
+"""Component for classifying text.
+
+```python
+from typing import Literal
+import marvin
+
+Mood = Literal["happy", "sad", "passive aggressive", "neutral"]
+
+@marvin.components.classifier
+def classify_mood(text: str) -> Mood:
+    return f"Classify the mood of the text: {text}"
+
+classify_mood("brain the size of a planet and they ask me to classify the mood of the text")
+# "passive aggressive"
+```
+"""
 import asyncio
 from typing import (
     Any,
@@ -27,6 +43,17 @@ P = ParamSpec("P")
 
 
 class ClassifierKwargs(TypedDict):
+    """Keyword arguments for the classifier decorator.
+
+    Attributes:
+        environment: The jinja environment to use for the classifier.
+        prompt: The prompt to use for the classifier.
+        encoder: The encoder to use for the classifier.
+        client: The client to use for the classifier.
+        aclient: The async client to use for the classifier.
+        model: The model to use for the classifier.
+    """
+
     environment: NotRequired[BaseEnvironment]
     prompt: NotRequired[str]
     encoder: NotRequired[Callable[[str], list[int]]]
@@ -170,6 +197,27 @@ def classifier(
     ],
     Callable[P, Union[T, Coroutine[Any, Any, T]]],
 ]:
+    """Decorator that turns a function into a classifier.
+
+    Args:
+        fn: The function to be converted into a classifier.
+        **kwargs: `ClassifierKwargs` to be passed to the classifier.
+
+    Example:
+        Create a functional classifier that returns the most appropriate `Literal` or `Enum` member:
+        ```python
+        from typing import Literal
+        import marvin
+
+        Mood = Literal["happy", "sad", "angry", "neutral"]
+
+        @marvin.components.classifier
+        def classify_mood(text: str) -> Mood:
+            return f"Classify the mood of the text: {text}"
+
+        classify_mood("this pequod's pizza is bussin") # "happy"
+        ```
+    """
     if fn is not None:
         return Classifier[P, T].as_decorator(
             fn=fn, **ClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True)
