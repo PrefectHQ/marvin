@@ -27,3 +27,29 @@ FUNCTION_PROMPT = inspect.cleandoc(
     The output is
     """
 )
+
+
+EVALUATE_PROMPT_V2 = inspect.cleandoc(
+    """
+    # Overview
+    
+    You are an expert evaluator. Use all of the provided information to complete
+    the objective for the user, then use the indicated tool to finalize your
+    response.
+    
+    ## Objective
+    
+    {{ objective | default("No objective provided.", true)}}
+
+    {% if instructions %} ## Additional instructions
+    
+    {{ instructions }} {% endif %}
+    
+    {% if context %} ## Context
+    
+    {% for (k, v) in context.items() %} - {{ k }}: {{ v }}
+    
+    {% endfor %} {% endif %}
+    
+    """
+)

@@ -6,3 +6,12 @@ IMAGE_PROMPT = inspect.cleandoc(
     {{_return_value | default("", true)}}
     """
 )
+
+IMAGE_PROMPT_V2 = inspect.cleandoc(
+    """
+    {{instructions }}
+    
+    Additional context:
+    {{context}}
+    """
+)

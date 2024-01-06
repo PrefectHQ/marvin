@@ -42,16 +42,12 @@ class MarvinSettings(BaseSettings):
 
 
 class ChatCompletionSettings(MarvinSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_llm_",
-    )
+    model_config = SettingsConfigDict(env_prefix="marvin_llm_")
     model: str = Field(
         description="The default chat model to use.", default="gpt-3.5-turbo"
     )
 
-    temperature: float = Field(
-        description="The default temperature to use.", default=0.1
-    )
+    temperature: float = Field(description="The default temperature to use.", default=1)
 
     @property
     def encoder(self):
@@ -70,9 +66,7 @@ class ImageSettings(MarvinSettings):
         style: The default style to use, defaults to `vivid`.
     """
 
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_image_",
-    )
+    model_config = SettingsConfigDict(env_prefix="marvin_image_")
 
     model: str = Field(
         default="dall-e-3",
@@ -83,6 +77,7 @@ class ImageSettings(MarvinSettings):
     )
     response_format: Literal["url", "b64_json"] = Field(default="url")
     style: Literal["vivid", "natural"] = Field(default="vivid")
+    quality: Literal["standard", "hd"] = Field(default="standard")
 
 
 class SpeechSettings(MarvinSettings):
@@ -95,13 +90,11 @@ class SpeechSettings(MarvinSettings):
         speed: The default speed to use, defaults to `1.0`.
     """
 
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_speech_",
-    )
+    model_config = SettingsConfigDict(env_prefix="marvin_speech_")
 
     model: str = Field(
         default="tts-1-hd",
-        description="The default image model to use.",
+        description="The default model to use.",
     )
     voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = Field(
         default="alloy",
@@ -117,9 +110,7 @@ class AssistantSettings(MarvinSettings):
         model: The default assistant model to use, defaults to `gpt-4-1106-preview`.
     """
 
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_llm",
-    )
+    model_config = SettingsConfigDict(env_prefix="marvin_llm")
 
     model: str = Field(
         default="gpt-4-1106-preview",

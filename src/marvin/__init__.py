@@ -1,5 +1,5 @@
 from .settings import settings
-
+import marvin.v2
 from .components import fn, image, speech, model, cast, extract, classify
 from .components.prompt.fn import prompt_fn
 
