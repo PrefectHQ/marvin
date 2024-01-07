@@ -67,11 +67,7 @@ class PythonFunction(BaseModel, arbitrary_types_allowed=True):
             "name": name,
             "docstring": inspect.cleandoc(docstring) if docstring else None,
             "parameters": parameters,
-            "return_annotation": (
-                "<Empty>"
-                if sig.return_annotation is sig.empty
-                else sig.return_annotation
-            ),
+            "return_annotation": sig.return_annotation,
             "source_code": source_code,
         }
 

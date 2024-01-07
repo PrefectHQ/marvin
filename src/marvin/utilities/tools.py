@@ -63,7 +63,7 @@ class ModelSchemaGenerator(GenerateJsonSchema):
         return json_schema
 
 
-def tool_from_type(type_: U) -> Tool[U]:
+def tool_from_type(type_: U, tool_name: str = None) -> Tool[U]:
     annotated_metadata = getattr(type_, "__metadata__", [])
     if isinstance(next(iter(annotated_metadata), None), FieldInfo):
         metadata = next(iter(annotated_metadata))
@@ -71,7 +71,7 @@ def tool_from_type(type_: U) -> Tool[U]:
         metadata = FieldInfo(description="The formatted response")
 
     model = create_model(
-        "FormatResponse",
+        tool_name or "FormatResponse",
         __doc__="Format the response with valid JSON.",
         __module__=__name__,
         **{"value": (type_, metadata)},

@@ -79,7 +79,7 @@ def cast_type_to_toolset(
     )
 
 
-def cast_type_to_options(
+def cast_type_to_labels(
     type_: Union[type, GenericAlias],
 ) -> list[str]:
     if get_origin(type_) == Literal:
@@ -91,12 +91,14 @@ def cast_type_to_options(
         return members
     elif isinstance(type_, list):
         return [str(token) for token in type_]
+    elif type_ is bool:
+        return ["True", "False"]
     else:
         raise TypeError(f"Expected Literal, Enum, or list, got {type_}.")
 
 
-def cast_options_to_grammar(
-    options: list[str],
+def cast_labels_to_grammar(
+    labels: list[str],
     encoder: Callable[[str], list[int]] = None,
     max_tokens: Optional[int] = None,
     enumerate_: bool = True,
@@ -108,7 +110,7 @@ def cast_options_to_grammar(
         max_tokens=max_tokens,
         logit_bias={
             str(encoding): 100
-            for i, token in enumerate(options)
+            for i, token in enumerate(labels)
             for encoding in encoder(str(i) if enumerate_ else token)
         },
     )
@@ -121,8 +123,8 @@ def cast_type_to_grammar(
     enumerate_: bool = True,
     **kwargs: Any,
 ) -> Grammar:
-    return cast_options_to_grammar(
-        options=cast_type_to_options(type_),
+    return cast_labels_to_grammar(
+        labels=cast_type_to_labels(type_),
         encoder=encoder,
         max_tokens=max_tokens,
         enumerate_=enumerate_,

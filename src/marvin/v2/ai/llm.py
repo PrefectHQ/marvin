@@ -1,15 +1,13 @@
+import inspect
 from enum import Enum
 from functools import wraps
-from inspect import cleandoc as cd
 from typing import (
     Any,
     Callable,
     GenericAlias,
-    Literal,
     Type,
     TypeVar,
     Union,
-    get_origin,
 )
 
 from pydantic import BaseModel
@@ -17,14 +15,18 @@ from pydantic import BaseModel
 import marvin
 import marvin.utilities.tools
 from marvin._mappings.types import (
-    cast_options_to_grammar,
-    cast_type_to_options,
+    cast_labels_to_grammar,
+    cast_type_to_labels,
 )
-from marvin.prompts.classifiers import CLASSIFIER_PROMPT_V2
-from marvin.prompts.functions import EVALUATE_PROMPT_V2
 from marvin.requests import ChatRequest, ChatResponse
 from marvin.utilities.jinja import Transcript
 from marvin.utilities.python import PythonFunction
+from marvin.v2.ai.prompt_templates import (
+    CAST_PROMPT,
+    CLASSIFY_PROMPT,
+    EXTRACT_PROMPT,
+    FUNCTION_PROMPT,
+)
 from marvin.v2.client import ChatCompletion, MarvinClient
 
 T = TypeVar("T")
@@ -58,187 +60,128 @@ def get_tool_outputs(request: ChatRequest, response: ChatCompletion) -> list[Any
     return outputs
 
 
-def generate_typed_llm_response(
-    type_: Union[GenericAlias, type[T]],
+def _generate_typed_llm_response_with_tool(
     prompt_template: str,
+    type_: Union[GenericAlias, type[T]],
+    tool_name: str = None,
     prompt_kwargs: dict = None,
     llm_kwargs: dict = None,
 ) -> T:
     llm_kwargs = llm_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
-    tool = marvin.utilities.tools.tool_from_type(type_)
+    tool = marvin.utilities.tools.tool_from_type(type_, tool_name=tool_name)
     tool_choice = tool_choice = {
         "type": "function",
         "function": {"name": tool.function.name},
     }
-
     llm_kwargs.update(tools=[tool], tool_choice=tool_choice)
 
     # adding the tool parameters to the context helps GPT-4 pay attention to field
-    # descriptions. If they are in the tool signature it often ignores them.
-    prompt_kwargs.setdefault("context", {})[
-        "FormatResponse tool signature"
-    ] = tool.function.parameters
+    # descriptions. If they are only in the tool signature it often ignores them.
+    prompt_kwargs["response_format"] = tool.function.parameters
 
     response = generate_llm_response(
         prompt_template=prompt_template,
         prompt_kwargs=prompt_kwargs,
-        llm_kwargs=llm_kwargs,
+        llm_kwargs=llm_kwargs | dict(temperature=0),
     )
 
     return response.tool_outputs[0]
 
 
-def generate_constrained_llm_response(
-    data: str,
-    options: Union[Enum, list[T]],
-    context: dict = None,
+def _generate_typed_llm_response_with_logit_bias(
+    prompt_template: str,
+    prompt_kwargs: dict,
     encoder: Callable[[str], list[int]] = None,
     max_tokens: int = 1,
     llm_kwargs: dict = None,
 ) -> T:
+    """
+    Generates a response to a prompt that is constrained to a set of labels.
+
+    The LLM will be constrained to output a single number representing the
+    0-indexed position of the chosen option. Therefore the labels must be
+    present (and ideally enumerated) in the prompt template, and will be
+    provided as the kwarg `labels`
+    """
     llm_kwargs = llm_kwargs or {}
-    options_list = cast_type_to_options(options)
-    grammar = cast_options_to_grammar(
-        options=options_list, encoder=encoder, max_tokens=max_tokens
+
+    if "labels" not in prompt_kwargs:
+        raise ValueError("Labels must be provided as a kwarg to the prompt template.")
+    labels = prompt_kwargs["labels"]
+    string_labels = cast_type_to_labels(labels)
+    grammar = cast_labels_to_grammar(
+        labels=string_labels, encoder=encoder, max_tokens=max_tokens
     )
     llm_kwargs.update(grammar.model_dump())
     response = generate_llm_response(
-        prompt_template=CLASSIFIER_PROMPT_V2,
-        prompt_kwargs=dict(data=data, options=options_list, context=context),
-        llm_kwargs=llm_kwargs,
+        prompt_template=prompt_template,
+        prompt_kwargs=(prompt_kwargs or {}) | dict(labels=string_labels),
+        llm_kwargs=llm_kwargs | dict(temperature=0),
     )
-    result = options_list[int(response.response.choices[0].message.content)]
-    if isinstance(options, type) and issubclass(options, Enum):
-        result = options(result)
+    # the response contains a single number representing the index of the chosen
+    result = string_labels[int(response.response.choices[0].message.content)]
+    # if the original labels were a type (like enum or bool), we cast the result
+    # back to that type
+    if isinstance(labels, type):
+        if labels is bool:
+            result = result == "True"
+        else:
+            result = labels(result)
     return result
 
 
-def evaluate(
-    objective: str,
-    instructions: str = None,
-    context: dict = None,
-    response_model: Type[T] = None,
-    llm_kwargs: dict = None,
-    coda: str = None,
-):
-    """
-    General-purpose function for evaluating a natural language objective, given
-    instructions and arbitrary context. A response model can be provided to
-    constrain the response to a specific type or set of options.
-    """
-    context = context or {}
-
-    # depending on the response model, we choose a different strategy. For types
-    # (the normal case), we generate a typed LLM response. For
-    # lists/enums/literals, we generate a constrained chat response. For
-    # strings, we use the response model as an instruction.
-
-    # case when the response model is a list of options e.g. Literal, Enum, or List[str]
-    if (
-        isinstance(response_model, list)
-        or get_origin(response_model) == Literal
-        or (isinstance(response_model, type) and issubclass(response_model, Enum))
-    ):
-        return generate_constrained_llm_response(
-            data=objective,
-            options=response_model,
-            context={"Additional instructions": instructions, **context},
-        )
-
-    # case when the response model is a string instruction e.g. "A list of names"
-    elif isinstance(response_model, str):
-        return generate_typed_llm_response(
-            prompt_template=EVALUATE_PROMPT_V2,
-            prompt_kwargs=dict(
-                objective=objective,
-                instructions="\n".join([instructions or "", response_model]),
-                context=context,
-                coda=coda,
-            ),
-            llm_kwargs=llm_kwargs,
-            type_=str,
-        )
-
-    # otherwise treat the response
-    else:
-        return generate_typed_llm_response(
-            prompt_template=EVALUATE_PROMPT_V2,
-            prompt_kwargs=dict(
-                objective=objective,
-                instructions=instructions,
-                context=context,
-                coda=coda,
-            ),
-            type_=response_model or str,
-            llm_kwargs=llm_kwargs,
-        )
-
-
-def cast(text: str, type_: type, instructions: str = None, llm_kwargs: dict = None):
-    """
-    Convert text into the provided type.
-    """
-    return evaluate(
-        objective=(
-            "Your job is to convert the provided text into the requested form. This"
-            " may require you to reinterpret its content or use inference or deduction."
-        ),
-        instructions=instructions,
-        response_model=type_,
-        context=dict(
-            text=text,
-            response_model=(
-                type_.model_json_schema() if isinstance(type, BaseModel) else type_
-            ),
-        ),
-        llm_kwargs={"temperature": 0} | (llm_kwargs or {}),
-    )
-
-
-def extract(
-    text: str, type_: type = str, instructions: str = None, llm_kwargs: dict = None
-):
-    """
-    Extract a list of objects from text that match the provided type(s) or instructions.
-    """
-    return evaluate(
-        objective="""
-            Your job is to convert the provided text into a list of entities
-            that match the requested form. This may require you to reinterpret
-            its content or use inference or deduction. The text may contain
-            multiple entities, and some of the text may be irrelevent to your
-            goal. Return a list of objects.
-            """,
-        instructions=None,
-        response_model=list[type_],
-        context={
-            "Text": text,
-            Type: type_.model_json_schema() if isinstance(type, BaseModel) else type_,
-            "Additional Instructions": instructions,
-        },
-        llm_kwargs={"temperature": 0} | (llm_kwargs or {}),
-    )
-
-
-def classify(
-    text: str,
-    options: Union[Enum, list[T]],
+def cast(
+    data: str,
+    type_: type[T],
     instructions: str = None,
     llm_kwargs: dict = None,
 ) -> T:
     """
-    Classify text as one of the provided options.
+    Convert data into the provided type.
     """
-    return evaluate(
-        objective=(
-            "Classify the text as one of the provided options, accounting for any"
-            " additional instructions."
-        ),
-        instructions=instructions,
-        response_model=options,
-        context=dict(text=text),
-        llm_kwargs={"temperature": 0} | (llm_kwargs or {}),
+    return _generate_typed_llm_response_with_tool(
+        prompt_template=CAST_PROMPT,
+        prompt_kwargs=dict(data=data, instructions=instructions),
+        type_=type_,
+        llm_kwargs=llm_kwargs,
+    )
+
+
+def extract(
+    data: str,
+    type_: type[T],
+    instructions: str = None,
+    llm_kwargs: dict = None,
+) -> list[T]:
+    """
+    Extract entities from the provided data.
+    """
+    return _generate_typed_llm_response_with_tool(
+        prompt_template=EXTRACT_PROMPT,
+        prompt_kwargs=dict(data=data, instructions=instructions),
+        type_=list[type_],
+        llm_kwargs=llm_kwargs,
+    )
+
+
+def classify(
+    data: str,
+    labels: Union[Enum, list[T], type],
+    instructions: str = None,
+    llm_kwargs: dict = None,
+) -> T:
+    """
+    Classify the provided information as of the provided labels.
+
+    This uses a logit bias to constrain the LLM response to a single token. It
+    is highly efficient for classification tasks and will always return one of
+    the provided responses.
+    """
+    return _generate_typed_llm_response_with_logit_bias(
+        prompt_template=CLASSIFY_PROMPT,
+        prompt_kwargs=dict(data=data, labels=labels, instructions=instructions),
+        llm_kwargs=llm_kwargs,
     )
 
 
@@ -256,36 +199,24 @@ def fn(func: Callable):
     @wraps(func)
     def wrapper(*args, **kwargs):
         model = PythonFunction.from_function_call(func, *args, **kwargs)
-        return evaluate(
-            objective=cd(
-                f"""
-                Your job is to generate likely outputs for a Python function
-                with the following signature and docstring:
-                
-                {model.definition}
-                
-                The user will provide function inputs (if any) and you must
-                respond with the most likely result.
-                """
+
+        if (
+            isinstance(model.return_annotation, str)
+            or model.return_annotation is None
+            or model.return_annotation is inspect.Signature.empty
+        ):
+            type_ = str
+        else:
+            type_ = model.return_annotation
+
+        return _generate_typed_llm_response_with_tool(
+            prompt_template=FUNCTION_PROMPT,
+            prompt_kwargs=dict(
+                fn_definition=model.definition,
+                bound_parameters=model.bound_parameters,
+                return_value=model.return_value,
             ),
-            context={
-                "The function definition": model.definition,
-                "The function was called with these arguments": model.bound_parameters,
-                "Additional context": model.return_value,
-            },
-            coda=cd(
-                f"""
-                HUMAN: The function was called with the following inputs:
-                {model.bound_parameters}
-                
-                This context was also provided:
-                {model.return_value}
-                
-                What is its output?
-                
-                ASSISTANT: the output is """
-            ),
-            response_model=model.return_annotation,
+            type_=type_,
         )
 
     return wrapper

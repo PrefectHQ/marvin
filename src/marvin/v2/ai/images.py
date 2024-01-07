@@ -3,10 +3,10 @@ from typing import Callable, TypeVar
 
 from openai.types.images_response import ImagesResponse
 
-from marvin.prompts.images import IMAGE_PROMPT_V2
 from marvin.requests import ImageRequest
 from marvin.utilities.jinja import Environment
 from marvin.utilities.python import PythonFunction
+from marvin.v2.ai.prompt_templates import IMAGE_PROMPT
 from marvin.v2.client import MarvinClient
 
 T = TypeVar("T")
@@ -27,7 +27,7 @@ def generate_image(
 
 def imagine(instructions: str = None, context: dict = None, model_kwargs: dict = None):
     response = generate_image(
-        prompt_template=IMAGE_PROMPT_V2,
+        prompt_template=IMAGE_PROMPT,
         prompt_kwargs=dict(
             instructions=instructions,
             context=context,
