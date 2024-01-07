@@ -44,7 +44,7 @@ EVALUATE_PROMPT_V2 = inspect.cleandoc(
     {% if instructions -%} 
     ## Additional instructions
     
-    {{ instructions }} 
+    Pay attention to these additional instructions: {{ instructions }} 
     {% endif %}
     
     {% if context -%} 

@@ -30,7 +30,7 @@ class TestCast:
             assert result == [1.1, 2.2, 3.3]
 
         def test_cast_text_to_bool(self):
-            result = marvin.v2.cast("nope", bool)
+            result = marvin.v2.cast("no", bool)
             assert result is False
 
         def test_cast_text_to_bool_with_true(self):
@@ -39,7 +39,7 @@ class TestCast:
 
     class TestPydantic:
         @pytest.mark.parametrize("text", ["New York, NY", "NYC", "the big apple"])
-        def test_cast_text_to_location(self, text):
+        def test_cast_text_to_location(self, text, gpt_4):
             result = marvin.v2.cast(f"I live in {text}", Location)
             assert result == Location(city="New York", state="NY")
 

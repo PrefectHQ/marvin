@@ -178,12 +178,18 @@ def cast(text: str, type_: type, instructions: str = None, llm_kwargs: dict = No
     """
     return evaluate(
         objective=(
-            "Convert the text into the provided type or one of the provided options,"
-            " using inference if necessary."
+            "Your job is to convert the provided text into a more structured form. This"
+            " may require you to reinterpret its content or use inference or deduction."
+            " Pay attention to "
         ),
         instructions=instructions,
         response_model=type_,
-        context=dict(text=text),
+        context=dict(
+            text=text,
+            response_model=(
+                type_.model_json_schema() if isinstance(type, BaseModel) else type_
+            ),
+        ),
         llm_kwargs={"temperature": 0} | (llm_kwargs or {}),
     )
 

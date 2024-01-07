@@ -146,7 +146,7 @@ class TestFunctions:
         def test_float_return_type(self):
             @marvin.v2.fn
             def get_pi(n: int) -> float:
-                """Return the first n digits of pi"""
+                """Return the first n decimals of pi"""
 
             assert get_pi(5) == 3.14159
 

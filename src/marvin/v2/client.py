@@ -70,12 +70,11 @@ class MarvinClient(pydantic.BaseModel):
         completion: Optional[Callable[..., "ChatCompletion"]] = None,
         **kwargs: Any,
     ) -> Union["ChatCompletion", T]:
-        defaults: dict[str, Any] = settings.openai.llms.model_dump()
-        # validate request
-        request = ChatRequest(**defaults | kwargs)
         create: Callable[..., "ChatCompletion"] = (
             completion or self.client.chat.completions.create
         )
+        # validate request
+        request = ChatRequest(**kwargs)
         response: "ChatCompletion" = create(**request.model_dump())
         return response
 
@@ -122,9 +121,10 @@ class AsyncMarvinClient(pydantic.BaseModel):
         self,
         **kwargs: Any,
     ) -> Union["ChatCompletion", T]:
-        defaults: dict[str, Any] = settings.openai.llms.model_dump()
         create = self.client.chat.completions.create
-        response: "ChatCompletion" = await create(**defaults | kwargs)
+        # validate request
+        request = ChatRequest(**kwargs)
+        response: "ChatCompletion" = await create(request.model_dump())
         return response
 
     async def generate_image(
