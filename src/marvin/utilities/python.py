@@ -4,6 +4,8 @@ from typing import Any, Callable, List, Optional
 
 from pydantic import BaseModel, Field, computed_field
 
+from marvin.utilities.asyncio import run_sync
+
 
 class ParameterModel(BaseModel):
     name: str
@@ -84,10 +86,14 @@ class PythonFunction(BaseModel, arbitrary_types_allowed=True):
         bound = sig.bind(*args, **kwargs)
         bound.apply_defaults()
 
+        return_value = func(*bound.args, **bound.kwargs)
+        if inspect.iscoroutine(return_value):
+            return_value = run_sync(return_value)
+
         instance = cls.from_function(
             func,
             bound_parameters={k: v for k, v in bound.arguments.items()},
-            return_value=func(*bound.args, **bound.kwargs),
+            return_value=return_value,
         )
 
         return instance

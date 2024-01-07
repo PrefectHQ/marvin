@@ -147,7 +147,7 @@ async def daily_github_digest(username: str, gh_token_secret_name: str):
 if __name__ == "__main__":
     import asyncio
 
-    marvin.settings.openai.chat.completions.model = "gpt-4"
+    marvin.settings.openai.llms.model = "gpt-4"
 
     asyncio.run(
         daily_github_digest(username="zzstoatzz", gh_token_secret_name="github-token")

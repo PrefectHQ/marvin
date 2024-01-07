@@ -37,8 +37,8 @@ def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
     )
     if not api_key:
         raise ValueError(
-            "OpenAI API key not found. Please either set `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env`"
-            " or otherwise set `OPENAI_API_KEY` in your environment."
+            "OpenAI API key not found. Please either set `MARVIN_OPENAI_API_KEY` in"
+            " `~/.marvin/.env` or otherwise set `OPENAI_API_KEY` in your environment."
         )
     if client_type not in ["sync", "async"]:
         raise ValueError(f"Invalid client type {client_type!r}")
@@ -46,7 +46,7 @@ def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
     client_class = Client if client_type == "sync" else AsyncClient
     return client_class(
         **settings.openai.model_dump(
-            exclude={"chat", "images", "audio", "assistants", "api_key"}
+            exclude={"llms", "images", "audio", "assistants", "api_key"}
         )
         | {"api_key": api_key}
     )
@@ -141,7 +141,7 @@ class MarvinClient(pydantic.BaseModel):
     ) -> Union["ChatCompletion", T]:
         from marvin import settings
 
-        defaults: dict[str, Any] = settings.openai.chat.completions.model_dump()
+        defaults: dict[str, Any] = settings.openai.llms.model_dump()
         create: Callable[..., "ChatCompletion"] = (
             completion or self.client.chat.completions.create
         )
@@ -220,7 +220,7 @@ class AsyncMarvinClient(pydantic.BaseModel):
     ) -> Union["ChatCompletion", T]:
         from marvin import settings
 
-        defaults: dict[str, Any] = settings.openai.chat.completions.model_dump()
+        defaults: dict[str, Any] = settings.openai.llms.model_dump()
         create = self.client.chat.completions.create
         if not response_model:
             response: "ChatCompletion" = await create(**defaults | kwargs)

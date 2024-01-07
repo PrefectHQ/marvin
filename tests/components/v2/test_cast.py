@@ -60,6 +60,6 @@ class TestCast:
             result = marvin.v2.cast(
                 "My name is marvin",
                 str,
-                instructions="make names uppercase",
+                instructions="make names (and only names) uppercase",
             )
             assert result == "My name is MARVIN"

@@ -41,7 +41,7 @@ class MarvinSettings(BaseSettings):
         super().__setattr__(name, value)
 
 
-class ChatCompletionSettings(MarvinSettings):
+class LLMSettings(MarvinSettings):
     model_config = SettingsConfigDict(env_prefix="marvin_llm_")
     model: str = Field(
         description="The default chat model to use.", default="gpt-3.5-turbo"
@@ -110,16 +110,12 @@ class AssistantSettings(MarvinSettings):
         model: The default assistant model to use, defaults to `gpt-4-1106-preview`.
     """
 
-    model_config = SettingsConfigDict(env_prefix="marvin_llm")
+    model_config = SettingsConfigDict(env_prefix="marvin_assistant_")
 
     model: str = Field(
         default="gpt-4-1106-preview",
         description="The default assistant model to use.",
     )
-
-
-class ChatSettings(MarvinSettings):
-    completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
 
 
 class AudioSettings(MarvinSettings):
@@ -133,7 +129,7 @@ class OpenAISettings(MarvinSettings):
     Attributes:
         api_key: Your OpenAI API key.
         organization: Your OpenAI organization ID.
-        chat: Settings for the chat API.
+        llms: Settings for the chat API.
         images: Settings for the images API.
         audio: Settings for the audio API.
         assistants: Settings for the assistants API.
@@ -163,7 +159,7 @@ class OpenAISettings(MarvinSettings):
         description="Your OpenAI organization ID.",
     )
 
-    chat: ChatSettings = Field(default_factory=ChatSettings)
+    llms: LLMSettings = Field(default_factory=LLMSettings)
     images: ImageSettings = Field(default_factory=ImageSettings)
     audio: AudioSettings = Field(default_factory=AudioSettings)
     assistants: AssistantSettings = Field(default_factory=AssistantSettings)

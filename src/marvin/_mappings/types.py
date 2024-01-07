@@ -103,7 +103,7 @@ def cast_options_to_grammar(
     **kwargs: Any,
 ) -> Grammar:
     if encoder is None:
-        encoder = settings.openai.chat.completions.encoder
+        encoder = settings.openai.llms.encoder
     return Grammar(
         max_tokens=max_tokens,
         logit_bias={
@@ -116,7 +116,7 @@ def cast_options_to_grammar(
 
 def cast_type_to_grammar(
     type_: Union[type, GenericAlias],
-    encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+    encoder: Callable[[str], list[int]] = settings.openai.llms.encoder,
     max_tokens: Optional[int] = None,
     enumerate_: bool = True,
     **kwargs: Any,

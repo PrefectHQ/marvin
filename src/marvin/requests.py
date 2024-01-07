@@ -85,7 +85,7 @@ class ResponseModel(BaseModel):
 
 
 class ChatRequest(Prompt[T]):
-    model: str = Field(default_factory=lambda: settings.openai.chat.completions.model)
+    model: str = Field(default_factory=lambda: settings.openai.llms.model)
     frequency_penalty: Optional[
         Annotated[float, Field(strict=True, ge=-2.0, le=2.0)]
     ] = 0
@@ -96,7 +96,9 @@ class ChatRequest(Prompt[T]):
     seed: Optional[int] = None
     stop: Optional[Union[str, list[str]]] = None
     stream: Optional[bool] = False
-    temperature: Optional[Annotated[float, Field(strict=True, ge=0, le=2)]] = 1
+    temperature: Optional[Annotated[float, Field(strict=True, ge=0, le=2)]] = Field(
+        default_factory=lambda: settings.openai.llms.temperature
+    )
     top_p: Optional[Annotated[float, Field(strict=True, ge=0, le=1)]] = 1
     user: Optional[str] = None
 

@@ -1,6 +1,6 @@
-import json
 from enum import Enum
 from functools import wraps
+from inspect import cleandoc as cd
 from typing import (
     Any,
     Callable,
@@ -42,8 +42,6 @@ def generate_llm_response(
     request = ChatRequest(messages=messages, **llm_kwargs)
     response = MarvinClient().generate_chat(**request.model_dump())
     tool_outputs = get_tool_outputs(request, response)
-    print(request)
-    print(response)
     return ChatResponse(request=request, response=response, tool_outputs=tool_outputs)
 
 
@@ -78,7 +76,9 @@ def generate_typed_llm_response(
 
     # adding the tool parameters to the context helps GPT-4 pay attention to field
     # descriptions. If they are in the tool signature it often ignores them.
-    prompt_kwargs.setdefault("context", {})["tool_signature"] = tool.function.parameters
+    prompt_kwargs.setdefault("context", {})[
+        "FormatResponse tool signature"
+    ] = tool.function.parameters
 
     response = generate_llm_response(
         prompt_template=prompt_template,
@@ -117,7 +117,7 @@ def evaluate(
     context: dict = None,
     response_model: Type[T] = None,
     llm_kwargs: dict = None,
-    assistant_prefix: str = None,
+    coda: str = None,
 ):
     """
     General-purpose function for evaluating a natural language objective, given
@@ -125,10 +125,6 @@ def evaluate(
     constrain the response to a specific type or set of options.
     """
     context = context or {}
-    for k, v in context.items():
-        # ensure strings are quoted
-        if isinstance(v, str):
-            context[k] = json.dumps(v)
 
     # depending on the response model, we choose a different strategy. For types
     # (the normal case), we generate a typed LLM response. For
@@ -155,7 +151,7 @@ def evaluate(
                 objective=objective,
                 instructions="\n".join([instructions or "", response_model]),
                 context=context,
-                assistant_prefix=assistant_prefix,
+                coda=coda,
             ),
             llm_kwargs=llm_kwargs,
             type_=str,
@@ -169,7 +165,7 @@ def evaluate(
                 objective=objective,
                 instructions=instructions,
                 context=context,
-                assistant_prefix=assistant_prefix,
+                coda=coda,
             ),
             type_=response_model or str,
             llm_kwargs=llm_kwargs,
@@ -243,17 +239,34 @@ def fn(func: Callable):
     def wrapper(*args, **kwargs):
         model = PythonFunction.from_function_call(func, *args, **kwargs)
         return evaluate(
-            objective=(
-                "Your job is to generate likely outputs for a Python function. The"
-                " details of the function and call are provided below."
+            objective=cd(
+                f"""
+                Your job is to generate likely outputs for a Python function
+                with the following signature and docstring:
+                
+                {model.definition}
+                
+                The user will provide function inputs (if any) and you must
+                respond with the most likely result.
+                """
             ),
-            instructions="What is the ouput of the function?",
             context={
                 "The function definition": model.definition,
-                "Arguments": model.bound_parameters,
+                "The function was called with these arguments": model.bound_parameters,
                 "Additional context": model.return_value,
             },
-            assistant_prefix="The output is ",
+            coda=cd(
+                f"""
+                HUMAN: The function was called with the following inputs:
+                {model.bound_parameters}
+                
+                This context was also provided:
+                {model.return_value}
+                
+                What is its output?
+                
+                ASSISTANT: the output is """
+            ),
             response_model=model.return_annotation,
         )
 
@@ -265,6 +278,13 @@ class AIModel(BaseModel):
     A Pydantic model that can be instantiated from a natural language string, in
     addition to keyword arguments.
     """
+
+    @classmethod
+    def from_text(cls, text: str, llm_kwargs: dict = None, **kwargs) -> "AIModel":
+        """Async text constructor"""
+        ai_kwargs = cast(text, cls, llm_kwargs=llm_kwargs, **kwargs)
+        ai_kwargs.update(kwargs)
+        return cls(**ai_kwargs)
 
     def __init__(self, text: str = None, *, llm_kwargs: dict = None, **kwargs):
         ai_kwargs = kwargs

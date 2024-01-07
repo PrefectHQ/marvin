@@ -68,11 +68,11 @@ def tool_from_type(type_: U) -> Tool[U]:
     if isinstance(next(iter(annotated_metadata), None), FieldInfo):
         metadata = next(iter(annotated_metadata))
     else:
-        metadata = FieldInfo(description="The typed value")
+        metadata = FieldInfo(description="The formatted response")
 
     model = create_model(
         "FormatResponse",
-        __doc__="Format the response",
+        __doc__="Format the response with valid JSON.",
         __module__=__name__,
         **{"value": (type_, metadata)},
     )

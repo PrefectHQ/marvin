@@ -103,6 +103,20 @@ def run_sync_if_awaitable(obj: Any) -> Any:
     return run_sync(obj) if inspect.isawaitable(obj) else obj
 
 
+def make_sync(async_func):
+    """
+    Creates a synchronous function from an asynchronous function.
+    """
+
+    @functools.wraps(async_func)
+    def sync_func(*args, **kwargs):
+        return run_sync(async_func(*args, **kwargs))
+
+    sync_func.__signature__ = inspect.signature(async_func)
+    sync_func.__doc__ = async_func.__doc__
+    return sync_func
+
+
 class ExposeSyncMethodsMixin:
     """
     A mixin that can take functions decorated with `expose_sync_method`

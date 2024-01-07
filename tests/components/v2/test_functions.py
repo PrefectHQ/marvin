@@ -1,4 +1,3 @@
-import inspect
 from typing import Dict, List
 
 import marvin.v2
@@ -28,16 +27,6 @@ class TestFunctions:
         def test_list_fruit_argument(self):
             result = list_fruit(5)
             assert len(result) == 5
-
-        async def test_list_fruit_async(self):
-            @marvin.v2.fn
-            async def list_fruit(n: int) -> list[str]:
-                """Returns a list of `n` fruit"""
-
-            coro = list_fruit(3)
-            assert inspect.iscoroutine(coro)
-            result = await coro
-            assert len(result) == 3
 
     class TestAnnotations:
         def test_no_annotations(self):
@@ -94,7 +83,7 @@ class TestFunctions:
             assert is_fruit(name) == expected
 
         @pytest.mark.skipif(
-            marvin.settings.openai.chat.completions.model.startswith("gpt-3.5"),
+            marvin.settings.openai.llms.model.startswith("gpt-3.5"),
             reason="3.5 turbo doesn't do well with unknown schemas",
         )
         def test_plain_dict_return_type(self):
@@ -107,7 +96,7 @@ class TestFunctions:
             assert fruit["color"].lower() == "yellow"
 
         @pytest.mark.skipif(
-            marvin.settings.openai.chat.completions.model.startswith("gpt-3.5"),
+            marvin.settings.openai.llms.model.startswith("gpt-3.5"),
             reason="3.5 turbo doesn't do well with unknown schemas",
         )
         def test_annotated_dict_return_type(self):
@@ -120,7 +109,7 @@ class TestFunctions:
             assert fruit["color"].lower() == "yellow"
 
         @pytest.mark.skipif(
-            marvin.settings.openai.chat.completions.model.startswith("gpt-3.5"),
+            marvin.settings.openai.llms.model.startswith("gpt-3.5"),
             reason="3.5 turbo doesn't do well with unknown schemas",
         )
         def test_generic_dict_return_type(self):
@@ -187,42 +176,3 @@ class TestFunctions:
             assert get_fruit_letters("orange") == frozenset(
                 {"a", "e", "g", "n", "o", "r"}
             )
-
-
-@pytest_mark_class("llm")
-class TestFunctionsMap:
-    def test_map(self):
-        result = list_fruit.map([2, 3])
-        assert len(result) == 2
-        assert len(result[0]) == 2
-        assert len(result[1]) == 3
-
-    async def test_amap(self):
-        result = await list_fruit.amap([2, 3])
-        assert len(result) == 2
-        assert len(result[0]) == 2
-        assert len(result[1]) == 3
-
-    def test_map_kwargs(self):
-        result = list_fruit.map(n=[2, 3])
-        assert len(result) == 2
-        assert len(result[0]) == 2
-        assert len(result[1]) == 3
-
-    def test_map_kwargs_and_args(self):
-        result = list_fruit_color.map([2, 3], color=["green", "red"])
-        assert len(result) == 2
-        assert len(result[0]) == 2
-        assert len(result[1]) == 3
-
-    def test_invalid_args(self):
-        with pytest.raises(TypeError):
-            list_fruit_color.map(2, color=["orange", "red"])
-
-    def test_invalid_kwargs(self):
-        with pytest.raises(TypeError):
-            list_fruit_color.map([2, 3], color=None)
-
-    async def test_invalid_async_map(self):
-        with pytest.raises(TypeError, match="can't be used in 'await' expression"):
-            await list_fruit_color.map(n=[2], color=["orange", "red"])

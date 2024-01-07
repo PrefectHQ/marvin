@@ -58,13 +58,11 @@ class FunctionKwargsDefaults(BaseModel):
     model_description: str = "Formats the response."
     field_name: str = "data"
     field_description: str = "The data to format."
-    model: str = Field(
-        default_factory=lambda: marvin.settings.openai.chat.completions.model
-    )
+    model: str = Field(default_factory=lambda: marvin.settings.openai.llms.model)
     client: Optional[Client] = None
     aclient: Optional[AsyncClient] = None
     temperature: Optional[float] = Field(
-        default_factory=lambda: marvin.settings.openai.chat.completions.temperature
+        default_factory=lambda: marvin.settings.openai.llms.temperature
     )
 
 

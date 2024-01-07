@@ -1,3 +1,4 @@
+# TODO: remove
 from enum import Enum
 from types import GenericAlias
 from typing import (
@@ -92,7 +93,7 @@ def create_vocabulary_from_type(
 
 def create_grammar_from_vocabulary(
     vocabulary: list[str],
-    encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+    encoder: Callable[[str], list[int]] = settings.openai.llms.encoder,
     max_tokens: Optional[int] = None,
     _enumerate: bool = True,
     **kwargs: Any,

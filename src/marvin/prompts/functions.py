@@ -33,23 +33,31 @@ EVALUATE_PROMPT_V2 = inspect.cleandoc(
     """
     # Overview
     
-    You are an expert evaluator. Use all of the provided information to complete
+    You are an expert. Use all of the provided information to complete
     the objective for the user, then use the indicated tool to finalize your
-    response.
+    response. Do not say anything other than the answer.
     
     ## Objective
     
     {{ objective | default("No objective provided.", true)}}
 
-    {% if instructions %} ## Additional instructions
+    {% if instructions -%} 
+    ## Additional instructions
     
-    {{ instructions }} {% endif %}
+    {{ instructions }} 
+    {% endif %}
     
-    {% if context %} ## Context
+    {% if context -%} 
+    ## Context
+    {% for (k, v) in context.items() %} 
+    ### {{ k }}
+    {{ v | safe}}    
+    {% endfor %} 
+    {% endif %}
     
-    {% for (k, v) in context.items() %} - {{ k }}: {{ v }}
-    
-    {% endfor %} {% endif %}
+    {% if coda -%}
+    {{ coda }}
+    {%- endif %}
     
     """
 )
