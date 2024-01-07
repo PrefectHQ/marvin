@@ -55,9 +55,7 @@ EVALUATE_PROMPT_V2 = inspect.cleandoc(
     {% endfor %} 
     {% endif %}
     
-    {% if coda -%}
-    {{ coda }}
-    {%- endif %}
+    {{ coda | default("ASSISTANT: The result is", true)}}
     
     """
 )

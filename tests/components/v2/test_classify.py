@@ -45,6 +45,13 @@ class TestClassify:
             )
             assert result == GitHubIssueTag.DOCS
 
+    class TestList:
+        def classify_bug_tag(self):
+            result = marvin.v2.classify(
+                "This is a bug", ["bug", "feature", "enhancement", "docs"]
+            )
+            assert result == "bug"
+
     class TestInstructions:
         def test_classify_positive_sentiment_with_instructions(self):
             result = marvin.v2.classify(

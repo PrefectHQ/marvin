@@ -91,24 +91,27 @@ def generate_typed_llm_response(
 
 def generate_constrained_llm_response(
     data: str,
-    options,
+    options: Union[Enum, list[T]],
     context: dict = None,
     encoder: Callable[[str], list[int]] = None,
     max_tokens: int = 1,
     llm_kwargs: dict = None,
 ) -> T:
     llm_kwargs = llm_kwargs or {}
-    options = cast_type_to_options(options)
+    options_list = cast_type_to_options(options)
     grammar = cast_options_to_grammar(
-        options=options, encoder=encoder, max_tokens=max_tokens
+        options=options_list, encoder=encoder, max_tokens=max_tokens
     )
     llm_kwargs.update(grammar.model_dump())
     response = generate_llm_response(
         prompt_template=CLASSIFIER_PROMPT_V2,
-        prompt_kwargs=dict(data=data, options=options, context=context),
+        prompt_kwargs=dict(data=data, options=options_list, context=context),
         llm_kwargs=llm_kwargs,
     )
-    return options[int(response.response.choices[0].message.content)]
+    result = options_list[int(response.response.choices[0].message.content)]
+    if isinstance(options, type) and issubclass(options, Enum):
+        result = options(result)
+    return result
 
 
 def evaluate(
@@ -178,7 +181,7 @@ def cast(text: str, type_: type, instructions: str = None, llm_kwargs: dict = No
     """
     return evaluate(
         objective=(
-            "Your job is to convert the provided text into a more structured form. This"
+            "Your job is to convert the provided text into the requested form. This"
             " may require you to reinterpret its content or use inference or deduction."
             " Pay attention to "
         ),
@@ -217,7 +220,12 @@ def extract(
     )
 
 
-def classify(text: str, options, instructions: str = None, llm_kwargs: dict = None):
+def classify(
+    text: str,
+    options: Union[Enum, list[T]],
+    instructions: str = None,
+    llm_kwargs: dict = None,
+) -> T:
     """
     Classify text as one of the provided options.
     """

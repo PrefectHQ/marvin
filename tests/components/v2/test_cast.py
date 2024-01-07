@@ -56,10 +56,10 @@ class TestCast:
             result = marvin.v2.cast("one", int, instructions="return the number 4")
             assert result == 4
 
-        def test_cast_text_with_subtle_instructions(self):
+        def test_cast_text_with_subtle_instructions(self, gpt_4):
             result = marvin.v2.cast(
                 "My name is marvin",
                 str,
-                instructions="make names (and only names) uppercase",
+                instructions="Rewrite with names (and only names) uppercase",
             )
             assert result == "My name is MARVIN"

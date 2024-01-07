@@ -1,3 +1,5 @@
+from typing import Literal
+
 import marvin.v2
 import pytest
 
@@ -23,7 +25,7 @@ class TestEvaluate:
             objective="Generate a list of 3 fruit",
             response_model=list[str],
         )
-        assert result == ["Apple", "Banana", "Orange"]
+        assert result == ["apple", "banana", "orange"]
 
     def test_list_fruit_with_context(self):
         result = marvin.v2.evaluate(
@@ -31,7 +33,7 @@ class TestEvaluate:
             response_model=list[str],
             context=dict(n=3),
         )
-        assert result == ["Apple", "Banana", "Orange"]
+        assert result == ["apple", "banana", "orange"]
 
     def test_list_fruit_with_instructions(self):
         result = marvin.v2.evaluate(
@@ -66,8 +68,8 @@ class TestEvaluate:
 
     def test_classify_sentiment(self):
         result = marvin.v2.evaluate(
-            objective="Classify the sentiment of all of the phrases",
-            response_model=["positive", "negative", "neutral"],
+            objective="Classify the sentiment of each of the phrases",
+            response_model=list[Literal["positive", "negative", "neutral"]],
             context=dict(
                 phrases=[
                     "I hate this",
@@ -88,8 +90,8 @@ class TestEvaluate:
 
     def test_instructions_coordinates(self):
         result = marvin.v2.evaluate(
-            objective="Generate x/y coordinates",
-            instructions="the black queen's starting location",
+            objective="Generate x/y coordinates for the origin",
+            instructions="add one to x and two to y",
             response_model=dict[str, int],
         )
-        assert result == dict(x=4, y=0)
+        assert result == dict(x=1, y=2)
