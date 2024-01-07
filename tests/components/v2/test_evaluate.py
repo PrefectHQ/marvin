@@ -41,7 +41,7 @@ class TestEvaluate:
             response_model=str,
             instructions="only include fruit that are blue",
         )
-        assert result == "Blueberry"
+        assert result == "blueberry"
 
     def test_list_numbers(self):
         result = marvin.v2.evaluate(

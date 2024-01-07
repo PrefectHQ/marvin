@@ -183,7 +183,6 @@ def cast(text: str, type_: type, instructions: str = None, llm_kwargs: dict = No
         objective=(
             "Your job is to convert the provided text into the requested form. This"
             " may require you to reinterpret its content or use inference or deduction."
-            " Pay attention to "
         ),
         instructions=instructions,
         response_model=type_,
@@ -204,18 +203,20 @@ def extract(
     Extract a list of objects from text that match the provided type(s) or instructions.
     """
     return evaluate(
-        objective=(
-            """
-            What values can you extract from this text that match the provided
-            instructions and tool? You are an expert and can use inference when
-            necessary.
-            """
-            # "Read the text and extract any values that match the provided instructions"
-            # f' and are compatible with the tool signature.\n\nText:"{text}"'
-        ),
-        instructions=instructions,
+        objective="""
+            Your job is to convert the provided text into a list of entities
+            that match the requested form. This may require you to reinterpret
+            its content or use inference or deduction. The text may contain
+            multiple entities, and some of the text may be irrelevent to your
+            goal. Return a list of objects.
+            """,
+        instructions=None,
         response_model=list[type_],
-        context=dict(text=text),
+        context={
+            "Text": text,
+            Type: type_.model_json_schema() if isinstance(type, BaseModel) else type_,
+            "Additional Instructions": instructions,
+        },
         llm_kwargs={"temperature": 0} | (llm_kwargs or {}),
     )
 
@@ -230,7 +231,10 @@ def classify(
     Classify text as one of the provided options.
     """
     return evaluate(
-        objective="Classify the text as one of the provided options.",
+        objective=(
+            "Classify the text as one of the provided options, accounting for any"
+            " additional instructions."
+        ),
         instructions=instructions,
         response_model=options,
         context=dict(text=text),
