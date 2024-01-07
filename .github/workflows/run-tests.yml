@@ -64,5 +64,5 @@ jobs:
         run: pip install ".[tests]"
 
       - name: Run ${{ matrix.test-type }} tests
-        run: pytest -vv -m "${{ matrix.test-type }}" -n AUTO
+        run: pytest  -n auto -vv -m "${{ matrix.test-type }}"
         if: ${{ !(github.event.pull_request.head.repo.fork && matrix.test-type == 'llm') }}
