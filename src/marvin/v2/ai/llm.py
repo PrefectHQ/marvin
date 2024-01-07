@@ -253,14 +253,14 @@ def model(
     llm_kwargs = llm_kwargs or {}
 
     def decorator(cls: Type[M]) -> Type[M]:
-        class Wrapped(AIModel, cls):
+        class WrappedModel(AIModel, cls):
             @wraps(cls.__init__)
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, llm_kwargs=llm_kwargs, **kwargs)
 
-        Wrapped.__name__ = cls.__name__
-        Wrapped.__doc__ = cls.__doc__
-        return Wrapped
+        WrappedModel.__name__ = cls.__name__
+        WrappedModel.__doc__ = cls.__doc__
+        return WrappedModel
 
     if type_ is not None:
         return decorator(type_)

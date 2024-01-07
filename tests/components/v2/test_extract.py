@@ -22,7 +22,7 @@ class TestExtract:
                 "I paid $10 for 3 coffees and they gave me back a dollar and 25 cents",
                 float,
             )
-            if marvin.settings.openai.llms.model.startswith("gpt-3.5"):
+            if marvin.settings.openai.chat.completions.model.startswith("gpt-3.5"):
                 assert result == [10.0, 3.0, 1.25]
             else:
                 assert result == [10.0, 1.25]

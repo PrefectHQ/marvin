@@ -41,8 +41,8 @@ class MarvinSettings(BaseSettings):
         super().__setattr__(name, value)
 
 
-class LLMSettings(MarvinSettings):
-    model_config = SettingsConfigDict(env_prefix="marvin_llm_")
+class ChatCompletionSettings(MarvinSettings):
+    model_config = SettingsConfigDict(env_prefix="marvin_chat_completion_")
     model: str = Field(
         description="The default chat model to use.", default="gpt-3.5-turbo"
     )
@@ -54,6 +54,10 @@ class LLMSettings(MarvinSettings):
         import tiktoken
 
         return tiktoken.encoding_for_model(self.model).encode
+
+
+class ChatSettings(MarvinSettings):
+    completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
 
 
 class ImageSettings(MarvinSettings):
@@ -159,7 +163,7 @@ class OpenAISettings(MarvinSettings):
         description="Your OpenAI organization ID.",
     )
 
-    llms: LLMSettings = Field(default_factory=LLMSettings)
+    chat: ChatSettings = Field(default_factory=ChatSettings)
     images: ImageSettings = Field(default_factory=ImageSettings)
     audio: AudioSettings = Field(default_factory=AudioSettings)
     assistants: AssistantSettings = Field(default_factory=AssistantSettings)

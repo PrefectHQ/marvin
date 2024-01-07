@@ -44,12 +44,7 @@ def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
         raise ValueError(f"Invalid client type {client_type!r}")
 
     client_class = Client if client_type == "sync" else AsyncClient
-    return client_class(
-        **settings.openai.model_dump(
-            exclude={"llms", "images", "audio", "assistants", "api_key"}
-        )
-        | {"api_key": api_key}
-    )
+    return client_class(api_key=api_key, organization=settings.openai.organization)
 
 
 def with_response_model(
@@ -141,7 +136,7 @@ class MarvinClient(pydantic.BaseModel):
     ) -> Union["ChatCompletion", T]:
         from marvin import settings
 
-        defaults: dict[str, Any] = settings.openai.llms.model_dump()
+        defaults: dict[str, Any] = settings.openai.chat.completions.model_dump()
         create: Callable[..., "ChatCompletion"] = (
             completion or self.client.chat.completions.create
         )
@@ -220,7 +215,7 @@ class AsyncMarvinClient(pydantic.BaseModel):
     ) -> Union["ChatCompletion", T]:
         from marvin import settings
 
-        defaults: dict[str, Any] = settings.openai.llms.model_dump()
+        defaults: dict[str, Any] = settings.openai.chat.completions.model_dump()
         create = self.client.chat.completions.create
         if not response_model:
             response: "ChatCompletion" = await create(**defaults | kwargs)

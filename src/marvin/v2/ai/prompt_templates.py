@@ -1,34 +1,5 @@
 import inspect
 
-# EVALUATE_PROMPT = inspect.cleandoc("""
-#     # Overview
-
-#     You are an expert. Use all of the provided information to complete
-#     the objective for the user, then use the indicated tool to finalize your
-#     response. Do not say anything other than the answer.
-
-#     ## Objective
-
-#     {{ objective | default("No objective provided.", true)}}
-
-#     {% if instructions -%}
-#     ## Additional instructions
-
-#     Pay attention to these additional instructions: {{ instructions }}
-#     {% endif %}
-
-#     {% if context -%}
-#     ## Context
-#     {% for (k, v) in context.items() %}
-#     ### {{ k }}
-#     {{ v | safe}}
-#     {% endfor %}
-#     {% endif %}
-
-#     {{ coda | default("ASSISTANT: The result is", true)}}
-
-#     """)
-
 CAST_PROMPT = inspect.cleandoc(
     """
     SYSTEM:

@@ -7,14 +7,14 @@ import marvin
 
 def tokenize(text: str, model: str = None) -> list[int]:
     if model is None:
-        model = marvin.settings.openai.llms.model
+        model = marvin.settings.openai.chat.completions.model
     tokenizer = tiktoken.encoding_for_model(model)
     return tokenizer.encode(text)
 
 
 def detokenize(tokens: list[int], model: str = None) -> str:
     if model is None:
-        model = marvin.settings.openai.llms.model
+        model = marvin.settings.openai.chat.completions.model
     tokenizer = tiktoken.encoding_for_model(model)
     return tokenizer.decode(tokens)
 

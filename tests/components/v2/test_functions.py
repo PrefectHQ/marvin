@@ -83,7 +83,7 @@ class TestFunctions:
             assert is_fruit(name) == expected
 
         @pytest.mark.skipif(
-            marvin.settings.openai.llms.model.startswith("gpt-3.5"),
+            marvin.settings.openai.chat.completions.model.startswith("gpt-3.5"),
             reason="3.5 turbo doesn't do well with unknown schemas",
         )
         def test_plain_dict_return_type(self):
@@ -96,7 +96,7 @@ class TestFunctions:
             assert fruit["color"].lower() == "yellow"
 
         @pytest.mark.skipif(
-            marvin.settings.openai.llms.model.startswith("gpt-3.5"),
+            marvin.settings.openai.chat.completions.model.startswith("gpt-3.5"),
             reason="3.5 turbo doesn't do well with unknown schemas",
         )
         def test_annotated_dict_return_type(self):
@@ -109,7 +109,7 @@ class TestFunctions:
             assert fruit["color"].lower() == "yellow"
 
         @pytest.mark.skipif(
-            marvin.settings.openai.llms.model.startswith("gpt-3.5"),
+            marvin.settings.openai.chat.completions.model.startswith("gpt-3.5"),
             reason="3.5 turbo doesn't do well with unknown schemas",
         )
         def test_generic_dict_return_type(self):
