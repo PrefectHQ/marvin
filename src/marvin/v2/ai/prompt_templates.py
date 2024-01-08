@@ -62,6 +62,43 @@ EXTRACT_PROMPT = inspect.cleandoc(
     
 """
 )
+
+GENERATE_PROMPT = inspect.cleandoc(
+    """
+    SYSTEM:
+    
+    # Expert Data Generator
+    
+    You are an expert data generator that always creates high-quality, random
+    examples of a description or type. The data you produce is relied on for
+    testing, examples, demonstrations, and more. You use inference or deduction
+    whenever necessary to supply missing or omitted data. You will be given
+    instructions or a type format, as well as a number of entities to generate. 
+    
+    Unless the user explicitly says otherwise, assume they are
+    request a HIGHLY RANDOM and DIVERSE but EXTREMELY REALISTIC selection of useful outputs that meet their criteria.
+    
+    
+    HUMAN:
+        
+    ## Requested number of entities
+    
+    Generate a list of {{ n }} random entit{{ 'y' if n == 1 else 'ies' }}.
+        
+    {% if instructions -%} 
+    ## Instructions
+    
+    {{ instructions }} 
+    {% endif %}
+    
+    ## Response format
+    
+    Call the `FormatResponse` tool to validate your response, and use the
+    following schema: {{ response_format }}
+    
+"""
+)
+
 CLASSIFY_PROMPT = inspect.cleandoc(
     """
     SYSTEM:

@@ -1,6 +1,7 @@
 import inspect
+import random
 from enum import Enum
-from functools import wraps
+from functools import partial, wraps
 from typing import (
     Any,
     Callable,
@@ -20,17 +21,21 @@ from marvin._mappings.types import (
 )
 from marvin.requests import ChatRequest, ChatResponse
 from marvin.utilities.jinja import Transcript
+from marvin.utilities.logging import get_logger
 from marvin.utilities.python import PythonFunction
 from marvin.v2.ai.prompt_templates import (
     CAST_PROMPT,
     CLASSIFY_PROMPT,
     EXTRACT_PROMPT,
     FUNCTION_PROMPT,
+    GENERATE_PROMPT,
 )
 from marvin.v2.client import ChatCompletion, MarvinClient
 
 T = TypeVar("T")
 M = TypeVar("M", bound=BaseModel)
+
+logger = get_logger(__name__)
 
 
 def generate_llm_response(
@@ -42,7 +47,9 @@ def generate_llm_response(
     prompt_kwargs = prompt_kwargs or {}
     messages = Transcript(content=prompt_template).render_to_messages(**prompt_kwargs)
     request = ChatRequest(messages=messages, **llm_kwargs)
+    logger.debug_kv("Request", request.model_dump_json(indent=2))
     response = MarvinClient().generate_chat(**request.model_dump())
+    logger.debug_kv("Response", response.model_dump_json(indent=2))
     tool_outputs = get_tool_outputs(request, response)
     return ChatResponse(request=request, response=response, tool_outputs=tool_outputs)
 
@@ -83,7 +90,7 @@ def _generate_typed_llm_response_with_tool(
     response = generate_llm_response(
         prompt_template=prompt_template,
         prompt_kwargs=prompt_kwargs,
-        llm_kwargs=llm_kwargs | dict(temperature=0),
+        llm_kwargs=llm_kwargs,
     )
 
     return response.tool_outputs[0]
@@ -140,11 +147,12 @@ def cast(
     """
     Convert data into the provided type.
     """
+    llm_kwargs = llm_kwargs or {}
     return _generate_typed_llm_response_with_tool(
         prompt_template=CAST_PROMPT,
         prompt_kwargs=dict(data=data, instructions=instructions),
         type_=type_,
-        llm_kwargs=llm_kwargs,
+        llm_kwargs=llm_kwargs | dict(temperature=0),
     )
 
 
@@ -157,11 +165,12 @@ def extract(
     """
     Extract entities from the provided data.
     """
+    llm_kwargs = llm_kwargs or {}
     return _generate_typed_llm_response_with_tool(
         prompt_template=EXTRACT_PROMPT,
         prompt_kwargs=dict(data=data, instructions=instructions),
         type_=list[type_],
-        llm_kwargs=llm_kwargs,
+        llm_kwargs=llm_kwargs | dict(temperature=0),
     )
 
 
@@ -178,14 +187,47 @@ def classify(
     is highly efficient for classification tasks and will always return one of
     the provided responses.
     """
+    llm_kwargs = llm_kwargs or {}
     return _generate_typed_llm_response_with_logit_bias(
         prompt_template=CLASSIFY_PROMPT,
         prompt_kwargs=dict(data=data, labels=labels, instructions=instructions),
-        llm_kwargs=llm_kwargs,
+        llm_kwargs=llm_kwargs | dict(temperature=0),
     )
 
 
-def fn(func: Callable):
+def generate(
+    type_: type[T],
+    n: int = 1,
+    instructions: str = None,
+    temperature: float = 1,
+    llm_kwargs: dict = None,
+) -> list[T]:
+    """
+    Generate a list of n items of the provided type or description.
+    """
+
+    # the LLM occaisionally returns a list that isn't the right length.
+    result = [0] * (n + 1)
+    while len(result) != n:
+        result = _generate_typed_llm_response_with_tool(
+            prompt_template=GENERATE_PROMPT,
+            prompt_kwargs=dict(
+                type_=type_,
+                n=n,
+                instructions=instructions,
+                seed=random.randint(0, 1_000_000_000),
+                temperature=temperature,
+            ),
+            type_=list[type_],
+            llm_kwargs=(llm_kwargs or {}) | dict(temperature=temperature),
+        )
+
+        if len(result) > n:
+            result = result[:n]
+    return result
+
+
+def fn(func: Callable = None, llm_kwargs: dict = None):
     """
     A decorator that converts a Python function into an AI function.
 
@@ -195,6 +237,9 @@ def fn(func: Callable):
 
     list_fruit(3) # ['apple', 'banana', 'orange']
     """
+
+    if func is None:
+        return partial(fn, llm_kwargs=llm_kwargs)
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -217,6 +262,7 @@ def fn(func: Callable):
                 return_value=model.return_value,
             ),
             type_=type_,
+            llm_kwargs=llm_kwargs,
         )
 
     return wrapper

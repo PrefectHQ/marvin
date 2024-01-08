@@ -209,7 +209,7 @@ class Settings(MarvinSettings):
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
 
     log_level: str = Field(
-        default="DEBUG",
+        default="INFO",
         description="The log level to use.",
     )
 
