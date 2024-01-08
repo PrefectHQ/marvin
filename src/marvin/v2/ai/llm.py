@@ -1,5 +1,4 @@
 import inspect
-import random
 from enum import Enum
 from functools import partial, wraps
 from typing import (
@@ -215,8 +214,6 @@ def generate(
                 type_=type_,
                 n=n,
                 instructions=instructions,
-                seed=random.randint(0, 1_000_000_000),
-                temperature=temperature,
             ),
             type_=list[type_],
             llm_kwargs=(llm_kwargs or {}) | dict(temperature=temperature),
