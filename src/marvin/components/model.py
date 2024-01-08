@@ -40,6 +40,42 @@ def model(
     partial[Callable[[Callable[[str], T]], Callable[[str], T]]],
     Callable[[str], T],
 ]:
+    """Decorator for creating a Pydantic model type that can be used to cast or extract data.
+
+    Args:
+        _type: The type of the model to create.
+        **kwargs: Keyword arguments to pass to the model.
+
+    Returns:
+        A Pydantic model type that can be used to cast or extract data.
+
+    Example:
+        ```python
+        import marvin
+        from pydantic import BaseModel
+
+        class MenuItem(BaseModel):
+            name: str
+            price: float
+
+        class Order(BaseModel):
+            items: list[MenuItem]
+            total: float
+
+        marvin.model(Order)("can i get 2 $5 footlongs? and 2 cookies from the dollar menu?")
+        '''
+        Order(
+            items=[
+                MenuItem(name='footlong', price=5.0),
+                MenuItem(name='footlong', price=5.0),
+                MenuItem(name='cookie', price=1.0),
+                MenuItem(name='cookie', price=1.0)
+            ],
+            total=12.0
+        )
+        '''
+        ```
+    """
     if _type is not None:
 
         def extract(text: str, instructions: str = None) -> _type:

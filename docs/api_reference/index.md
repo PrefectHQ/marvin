@@ -1,10 +1,11 @@
 # Sections
 
 ## Components
-- [AI Classifiers](/api_reference/components/classifier/)
-- [AI Functions](/api_reference/components/ai_function/)
-- [AI Models](/api_reference/components/ai_model/)
-
+- [Classifier](/api_reference/components/classifier/)
+- [Function](/api_reference/components/function/)
+- [Model](/api_reference/components/model/)
+- [Prompt Function](/api_reference/components/prompt_fn/)
+- [Text](/api_reference/components/text/)
 ## Settings
 - [Settings](/api_reference/settings/)
 

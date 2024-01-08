@@ -66,7 +66,7 @@ In our case of the Prefect Community slackbot, we want:
 This runs 24/7 in the #ask-marvin channel of the Prefect Community Slack. It responds to users in a thread, and has memory of previous messages by slack thread. It uses the `chroma` and `github` tools for RAG to answer questions about Prefect 2.x.
 
 ```python
-async def handle_message(payload: SlackPayload):
+async def handle_message(payload: SlackPayload): # SlackPayload is a pydantic model 
     logger = get_logger("slackbot")
     user_message = (event := payload.event).text
     cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
@@ -158,4 +158,4 @@ CMD ["python", "cookbook/slackbot/start.py"]
 Note that we're installing the `slackbot` extras here, which are required for tools used by the worker bot defined in this example's `cookbook/slackbot/start.py` file.
 
 ## Find the whole example here
-- [cookbook/slackbot/start.py](/cookbook/slackbot/start.py)
+- [cookbook/slackbot/start.py](https://github.com/PrefectHQ/marvin/blob/main/cookbook/slackbot/start.py)
