@@ -239,17 +239,28 @@ def fn(func: Callable = None, model_kwargs: dict = None):
     @wraps(func)
     def wrapper(*args, **kwargs):
         model = PythonFunction.from_function_call(func, *args, **kwargs)
+        post_processor = None
 
+        # written instructions or missing annotations are treated as "-> str"
         if (
             isinstance(model.return_annotation, str)
             or model.return_annotation is None
             or model.return_annotation is inspect.Signature.empty
         ):
             type_ = str
+
+        # convert list annotations into Enums
+        elif isinstance(model.return_annotation, list):
+            type_ = Enum(
+                "Labels",
+                {f"v{i}": label for i, label in enumerate(model.return_annotation)},
+            )
+            post_processor = lambda result: result.value  # noqa E731
+
         else:
             type_ = model.return_annotation
 
-        return _generate_typed_llm_response_with_tool(
+        result = _generate_typed_llm_response_with_tool(
             prompt_template=FUNCTION_PROMPT,
             prompt_kwargs=dict(
                 fn_definition=model.definition,
@@ -259,6 +270,10 @@ def fn(func: Callable = None, model_kwargs: dict = None):
             type_=type_,
             model_kwargs=model_kwargs,
         )
+
+        if post_processor is not None:
+            result = post_processor(result)
+        return result
 
     return wrapper
 

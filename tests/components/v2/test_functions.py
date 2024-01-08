@@ -1,4 +1,5 @@
-from typing import Dict, List
+from enum import Enum
+from typing import Dict, List, Literal
 
 import marvin.v2
 import pytest
@@ -161,6 +162,18 @@ class TestFunctions:
                 "cherry",
             )
 
+        # fails due to incompatibiliy with OpenAPI schemas and OpenAI
+        @pytest.mark.xfail(reason="OpenAPI schemas don't support typed tuples?")
+        def test_typed_tuple_return_type(self):
+            @marvin.v2.fn
+            def get_letter_index(letter: str) -> tuple[str, int]:
+                """
+                returns a tuple of the provided letter and its position in the
+                alphabet. For example, a -> (a, 1); b -> (b, 2); etc.
+                """
+
+            assert get_letter_index("d") == ("d", 4)
+
         def test_set_return_type(self):
             @marvin.v2.fn
             def get_fruit_letters(name: str) -> set:
@@ -176,3 +189,35 @@ class TestFunctions:
             assert get_fruit_letters("orange") == frozenset(
                 {"a", "e", "g", "n", "o", "r"}
             )
+
+        def test_enum_return_type(self):
+            class Fruit(Enum):
+                # fruits of different colors
+                APPLE = "APPLE"
+                BANANA = "BANANA"
+                ORANGE = "ORANGE"
+                BLUEBERRY = "BLUEBERRY"
+
+            @marvin.v2.fn
+            def get_fruit(color: str) -> Fruit:
+                """Returns the fruit with the provided color"""
+
+            assert get_fruit("yellow") == Fruit.BANANA
+
+        def test_literal_return_type(self):
+            @marvin.v2.fn
+            def get_fruit(
+                color: str,
+            ) -> Literal["APPLE", "BANANA", "ORANGE", "BLUEBERRY"]:
+                """Returns the fruit with the provided color"""
+
+            assert get_fruit("yellow") == "BANANA"
+
+        def test_list_instance_return_type(self):
+            @marvin.v2.fn
+            def get_fruit(
+                color: str,
+            ) -> ["APPLE", "BANANA", "ORANGE", "BLUEBERRY"]:  # noqa F821
+                """Returns the fruit with the provided color"""
+
+            assert get_fruit("yellow") == "BANANA"
