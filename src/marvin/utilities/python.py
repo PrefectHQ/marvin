@@ -13,7 +13,8 @@ class ParameterModel(BaseModel):
     default: Optional[str]
 
 
-class PythonFunction(BaseModel, arbitrary_types_allowed=True):
+class PythonFunction(BaseModel):
+    model_config = dict(arbitrary_types_allowed=True)
     function: Callable = Field(description="Original function object")
     signature: inspect.Signature = Field(description="Function signature object")
     name: str = Field(description="Name of the function")

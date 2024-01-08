@@ -103,7 +103,8 @@ class ChatRequest(Prompt[T]):
     user: Optional[str] = None
 
 
-class ChatResponse(BaseModel, arbitrary_types_allowed=True):
+class ChatResponse(BaseModel):
+    model_config = dict(arbitrary_types_allowed=True)
     request: ChatRequest
     response: ChatCompletion
     tool_outputs: list[Any] = []
