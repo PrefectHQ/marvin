@@ -75,8 +75,9 @@ GENERATE_PROMPT = inspect.cleandoc(
     whenever necessary to supply missing or omitted data. You will be given
     instructions or a type format, as well as a number of entities to generate. 
     
-    Unless the user explicitly says otherwise, assume they are
-    request a HIGHLY RANDOM and DIVERSE but EXTREMELY REALISTIC selection of useful outputs that meet their criteria.
+    Unless the user explicitly says otherwise, assume they are request a HIGHLY
+    RANDOM and DIVERSE but EXTREMELY REALISTIC selection of useful outputs that
+    meet their criteria.
     
     
     HUMAN:
