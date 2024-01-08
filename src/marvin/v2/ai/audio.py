@@ -3,12 +3,16 @@ from typing import Callable, TypeVar
 
 from openai._base_client import HttpxBinaryResponseContent
 
+import marvin
 from marvin.requests import SpeechRequest
 from marvin.utilities.jinja import Environment
+from marvin.utilities.logging import get_logger
 from marvin.utilities.python import PythonFunction
 from marvin.v2.client import MarvinClient
 
 T = TypeVar("T")
+
+logger = get_logger(__name__)
 
 
 def generate_speech(
@@ -20,7 +24,11 @@ def generate_speech(
     model_kwargs = model_kwargs or {}
     prompt = Environment.render(prompt_template, **prompt_kwargs)
     request = SpeechRequest(input=prompt, **model_kwargs)
+    if marvin.settings.log_verbose:
+        logger.debug_kv("Request", request.model_dump_json(indent=2))
     response = MarvinClient().generate_speech(**request.model_dump())
+    if marvin.settings.log_verbose:
+        logger.debug_kv("Request", request.model_dump_json(indent=2))
     return response
 
 

@@ -173,9 +173,9 @@ FUNCTION_PROMPT = inspect.cleandoc(
 
 IMAGE_PROMPT = inspect.cleandoc(
     """
-    {{instructions }}
+    {{ instructions }}
     
     Additional context:
-    {{context}}
+    {{ context }}
     """
 )

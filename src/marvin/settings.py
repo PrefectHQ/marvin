@@ -213,6 +213,13 @@ class Settings(MarvinSettings):
         description="The log level to use.",
     )
 
+    log_verbose: bool = Field(
+        default=True,
+        description=(
+            "Whether to log verbose messages, such as full API requests and responses."
+        ),
+    )
+
 
 settings = Settings()
 

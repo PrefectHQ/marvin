@@ -40,15 +40,17 @@ logger = get_logger(__name__)
 def generate_llm_response(
     prompt_template: str,
     prompt_kwargs: dict = None,
-    llm_kwargs: dict = None,
+    model_kwargs: dict = None,
 ) -> ChatResponse:
-    llm_kwargs = llm_kwargs or {}
+    model_kwargs = model_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
     messages = Transcript(content=prompt_template).render_to_messages(**prompt_kwargs)
-    request = ChatRequest(messages=messages, **llm_kwargs)
-    logger.debug_kv("Request", request.model_dump_json(indent=2))
+    request = ChatRequest(messages=messages, **model_kwargs)
+    if marvin.settings.log_verbose:
+        logger.debug_kv("Request", request.model_dump_json(indent=2))
     response = MarvinClient().generate_chat(**request.model_dump())
-    logger.debug_kv("Response", response.model_dump_json(indent=2))
+    if marvin.settings.log_verbose:
+        logger.debug_kv("Response", response.model_dump_json(indent=2))
     tool_outputs = get_tool_outputs(request, response)
     return ChatResponse(request=request, response=response, tool_outputs=tool_outputs)
 
@@ -71,16 +73,16 @@ def _generate_typed_llm_response_with_tool(
     type_: Union[GenericAlias, type[T]],
     tool_name: str = None,
     prompt_kwargs: dict = None,
-    llm_kwargs: dict = None,
+    model_kwargs: dict = None,
 ) -> T:
-    llm_kwargs = llm_kwargs or {}
+    model_kwargs = model_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
     tool = marvin.utilities.tools.tool_from_type(type_, tool_name=tool_name)
     tool_choice = tool_choice = {
         "type": "function",
         "function": {"name": tool.function.name},
     }
-    llm_kwargs.update(tools=[tool], tool_choice=tool_choice)
+    model_kwargs.update(tools=[tool], tool_choice=tool_choice)
 
     # adding the tool parameters to the context helps GPT-4 pay attention to field
     # descriptions. If they are only in the tool signature it often ignores them.
@@ -89,7 +91,7 @@ def _generate_typed_llm_response_with_tool(
     response = generate_llm_response(
         prompt_template=prompt_template,
         prompt_kwargs=prompt_kwargs,
-        llm_kwargs=llm_kwargs,
+        model_kwargs=model_kwargs,
     )
 
     return response.tool_outputs[0]
@@ -100,7 +102,7 @@ def _generate_typed_llm_response_with_logit_bias(
     prompt_kwargs: dict,
     encoder: Callable[[str], list[int]] = None,
     max_tokens: int = 1,
-    llm_kwargs: dict = None,
+    model_kwargs: dict = None,
 ) -> T:
     """
     Generates a response to a prompt that is constrained to a set of labels.
@@ -110,7 +112,7 @@ def _generate_typed_llm_response_with_logit_bias(
     present (and ideally enumerated) in the prompt template, and will be
     provided as the kwarg `labels`
     """
-    llm_kwargs = llm_kwargs or {}
+    model_kwargs = model_kwargs or {}
 
     if "labels" not in prompt_kwargs:
         raise ValueError("Labels must be provided as a kwarg to the prompt template.")
@@ -119,11 +121,11 @@ def _generate_typed_llm_response_with_logit_bias(
     grammar = cast_labels_to_grammar(
         labels=string_labels, encoder=encoder, max_tokens=max_tokens
     )
-    llm_kwargs.update(grammar.model_dump())
+    model_kwargs.update(grammar.model_dump())
     response = generate_llm_response(
         prompt_template=prompt_template,
         prompt_kwargs=(prompt_kwargs or {}) | dict(labels=string_labels),
-        llm_kwargs=llm_kwargs | dict(temperature=0),
+        model_kwargs=model_kwargs | dict(temperature=0),
     )
     # the response contains a single number representing the index of the chosen
     result = string_labels[int(response.response.choices[0].message.content)]
@@ -141,17 +143,17 @@ def cast(
     data: str,
     type_: type[T],
     instructions: str = None,
-    llm_kwargs: dict = None,
+    model_kwargs: dict = None,
 ) -> T:
     """
     Convert data into the provided type.
     """
-    llm_kwargs = llm_kwargs or {}
+    model_kwargs = model_kwargs or {}
     return _generate_typed_llm_response_with_tool(
         prompt_template=CAST_PROMPT,
         prompt_kwargs=dict(data=data, instructions=instructions),
         type_=type_,
-        llm_kwargs=llm_kwargs | dict(temperature=0),
+        model_kwargs=model_kwargs | dict(temperature=0),
     )
 
 
@@ -159,17 +161,17 @@ def extract(
     data: str,
     type_: type[T],
     instructions: str = None,
-    llm_kwargs: dict = None,
+    model_kwargs: dict = None,
 ) -> list[T]:
     """
     Extract entities from the provided data.
     """
-    llm_kwargs = llm_kwargs or {}
+    model_kwargs = model_kwargs or {}
     return _generate_typed_llm_response_with_tool(
         prompt_template=EXTRACT_PROMPT,
         prompt_kwargs=dict(data=data, instructions=instructions),
         type_=list[type_],
-        llm_kwargs=llm_kwargs | dict(temperature=0),
+        model_kwargs=model_kwargs | dict(temperature=0),
     )
 
 
@@ -177,7 +179,7 @@ def classify(
     data: str,
     labels: Union[Enum, list[T], type],
     instructions: str = None,
-    llm_kwargs: dict = None,
+    model_kwargs: dict = None,
 ) -> T:
     """
     Classify the provided information as of the provided labels.
@@ -186,11 +188,11 @@ def classify(
     is highly efficient for classification tasks and will always return one of
     the provided responses.
     """
-    llm_kwargs = llm_kwargs or {}
+    model_kwargs = model_kwargs or {}
     return _generate_typed_llm_response_with_logit_bias(
         prompt_template=CLASSIFY_PROMPT,
         prompt_kwargs=dict(data=data, labels=labels, instructions=instructions),
-        llm_kwargs=llm_kwargs | dict(temperature=0),
+        model_kwargs=model_kwargs | dict(temperature=0),
     )
 
 
@@ -199,24 +201,20 @@ def generate(
     n: int = 1,
     instructions: str = None,
     temperature: float = 1,
-    llm_kwargs: dict = None,
+    model_kwargs: dict = None,
 ) -> list[T]:
     """
     Generate a list of n items of the provided type or description.
     """
 
-    # the LLM occaisionally returns a list that isn't the right length.
+    # make sure we generate at least n items
     result = [0] * (n + 1)
     while len(result) != n:
         result = _generate_typed_llm_response_with_tool(
             prompt_template=GENERATE_PROMPT,
-            prompt_kwargs=dict(
-                type_=type_,
-                n=n,
-                instructions=instructions,
-            ),
+            prompt_kwargs=dict(type_=type_, n=n, instructions=instructions),
             type_=list[type_],
-            llm_kwargs=(llm_kwargs or {}) | dict(temperature=temperature),
+            model_kwargs=(model_kwargs or {}) | dict(temperature=temperature),
         )
 
         if len(result) > n:
@@ -224,7 +222,7 @@ def generate(
     return result
 
 
-def fn(func: Callable = None, llm_kwargs: dict = None):
+def fn(func: Callable = None, model_kwargs: dict = None):
     """
     A decorator that converts a Python function into an AI function.
 
@@ -236,7 +234,7 @@ def fn(func: Callable = None, llm_kwargs: dict = None):
     """
 
     if func is None:
-        return partial(fn, llm_kwargs=llm_kwargs)
+        return partial(fn, model_kwargs=model_kwargs)
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -259,7 +257,7 @@ def fn(func: Callable = None, llm_kwargs: dict = None):
                 return_value=model.return_value,
             ),
             type_=type_,
-            llm_kwargs=llm_kwargs,
+            model_kwargs=model_kwargs,
         )
 
     return wrapper
@@ -272,34 +270,34 @@ class AIModel(BaseModel):
     """
 
     @classmethod
-    def from_text(cls, text: str, llm_kwargs: dict = None, **kwargs) -> "AIModel":
+    def from_text(cls, text: str, model_kwargs: dict = None, **kwargs) -> "AIModel":
         """Async text constructor"""
-        ai_kwargs = cast(text, cls, llm_kwargs=llm_kwargs, **kwargs)
+        ai_kwargs = cast(text, cls, model_kwargs=model_kwargs, **kwargs)
         ai_kwargs.update(kwargs)
         return cls(**ai_kwargs)
 
-    def __init__(self, text: str = None, *, llm_kwargs: dict = None, **kwargs):
+    def __init__(self, text: str = None, *, model_kwargs: dict = None, **kwargs):
         ai_kwargs = kwargs
         if text is not None:
-            ai_kwargs = cast(text, type(self), llm_kwargs=llm_kwargs).model_dump()
+            ai_kwargs = cast(text, type(self), model_kwargs=model_kwargs).model_dump()
             ai_kwargs.update(kwargs)
         super().__init__(**ai_kwargs)
 
 
 def model(
-    type_: Union[Type[M], None] = None, llm_kwargs: dict = None
+    type_: Union[Type[M], None] = None, model_kwargs: dict = None
 ) -> Union[Type[M], Callable[[Type[M]], Type[M]]]:
     """
     Class decorator for instantiating a Pydantic model from a string. Equivalent
     to subclassing AIModel.
     """
-    llm_kwargs = llm_kwargs or {}
+    model_kwargs = model_kwargs or {}
 
     def decorator(cls: Type[M]) -> Type[M]:
         class WrappedModel(AIModel, cls):
             @wraps(cls.__init__)
             def __init__(self, *args, **kwargs):
-                super().__init__(*args, llm_kwargs=llm_kwargs, **kwargs)
+                super().__init__(*args, model_kwargs=model_kwargs, **kwargs)
 
         WrappedModel.__name__ = cls.__name__
         WrappedModel.__doc__ = cls.__doc__
