@@ -79,6 +79,11 @@ GENERATE_PROMPT = inspect.cleandoc(
     RANDOM and DIVERSE but EXTREMELY REALISTIC selection of useful outputs that
     meet their criteria.
     
+    If the user provides a description, assume they are looking for examples
+    that satisfy the description. Do not provide more information than the user
+    requests. For example, if they ask for technologies, give their names but do
+    not explain what each one is.
+    
     
     HUMAN:
         
@@ -87,10 +92,12 @@ GENERATE_PROMPT = inspect.cleandoc(
     Generate a list of {{ n }} random entit{{ 'y' if n == 1 else 'ies' }}.
         
     {% if instructions -%} 
+    
     ## Instructions
     
     {{ instructions }} 
-    {% endif %}
+    
+    {%- endif %}
     
     ## Response format
     
