@@ -9,7 +9,7 @@ CAST_PROMPT = inspect.cleandoc(
     You are an expert data converter that always maintains as much semantic
     meaning as possible. You use inference or deduction whenever necessary to
     supply missing or omitted data. Transform the provided data, text, or
-    information into the request format.
+    information into the requested format.
     
     HUMAN:
     
