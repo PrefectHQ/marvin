@@ -328,7 +328,10 @@ def classifier(cls=None, *, instructions=None, model_kwargs=None):
                 "Only subclasses of Enum can be decorated with @classifier."
             )
 
-        instructions = instructions or cls.__doc__
+        enum_instructions = (
+            f"Labels name: {cls.__name__}\nAdditional instructions: {cls.__doc__}"
+        )
+        instructions = instructions or enum_instructions
 
         def new(cls, value):
             if value in cls.__members__.values():

@@ -1,11 +1,14 @@
 from enum import Enum
-from typing import Literal
 
 import marvin.v2
 
 from tests.utils import pytest_mark_class
 
-Sentiment = Literal["Positive", "Negative"]
+
+@marvin.v2.classifier
+class Color(Enum):
+    RED = "red"
+    GREEN = "green"
 
 
 @marvin.v2.classifier
@@ -16,9 +19,22 @@ class GitHubIssueTag(Enum):
     DOCS = "docs"
 
 
+def test_is_enum(self):
+    """Classifiers are still enums"""
+    assert issubclass(Color, Enum)
+
+
 @pytest_mark_class("llm")
 class TestClassifier:
     class TestSimple:
+        def test_color_red(self):
+            result = Color("rose")
+            assert result == Color.RED
+
+        def test_color_green(self):
+            result = Color("grass")
+            assert result == Color.GREEN
+
         def test_classify_bug_tag(self):
             result = GitHubIssueTag("This is a bug")
             assert result == GitHubIssueTag.BUG
