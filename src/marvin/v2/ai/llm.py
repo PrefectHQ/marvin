@@ -188,6 +188,7 @@ def classify(
     is highly efficient for classification tasks and will always return one of
     the provided responses.
     """
+
     model_kwargs = model_kwargs or {}
     return _generate_typed_llm_response_with_logit_bias(
         prompt_template=CLASSIFY_PROMPT,
@@ -297,6 +298,50 @@ class AIModel(BaseModel):
             ai_kwargs = cast(text, type(self), model_kwargs=model_kwargs).model_dump()
             ai_kwargs.update(kwargs)
         super().__init__(**ai_kwargs)
+
+
+def classifier(cls=None, *, instructions=None, model_kwargs=None):
+    """
+    Class decorator that modifies the behavior of an Enum class to classify a string.
+
+    This decorator modifies the __call__ method of the Enum class to use the
+    `marvin.classify` function instead of the default Enum behavior. This allows
+    the Enum class to classify a string based on its members.
+
+    Args:
+        cls (Enum, optional): The Enum class to be decorated.
+        instructions (str, optional): Instructions for the AI on how to perform the classification.
+        model_kwargs (dict, optional): Additional keyword arguments to pass to the model.
+
+    Returns:
+        Enum: The decorated Enum class with modified __call__ method.
+
+    Raises:
+        AssertionError: If the decorated class is not a subclass of Enum.
+    """
+
+    if cls is None:
+        return partial(classifier, instructions=instructions, model_kwargs=model_kwargs)
+    else:
+        if not (isinstance(cls, type) and issubclass(cls, Enum)):
+            raise TypeError(
+                "Only subclasses of Enum can be decorated with @classifier."
+            )
+
+        instructions = instructions or cls.__doc__
+
+        def new(cls, value):
+            if value in cls.__members__.values():
+                return value
+            elif value in {m.value for m in cls.__members__.values()}:
+                return super(cls, cls).__new__(cls, value)
+            else:
+                return marvin.classify(
+                    value, cls, instructions=instructions, **(model_kwargs or {})
+                )
+
+        cls.__new__ = new
+        return cls
 
 
 def model(
