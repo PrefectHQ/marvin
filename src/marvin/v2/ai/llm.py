@@ -141,7 +141,7 @@ def _generate_typed_llm_response_with_logit_bias(
 
 def cast(
     data: str,
-    type_: type[T],
+    to: type[T],
     instructions: str = None,
     model_kwargs: dict = None,
 ) -> T:
@@ -152,7 +152,7 @@ def cast(
     return _generate_typed_llm_response_with_tool(
         prompt_template=CAST_PROMPT,
         prompt_kwargs=dict(data=data, instructions=instructions),
-        type_=type_,
+        type_=to,
         model_kwargs=model_kwargs | dict(temperature=0),
     )
 
