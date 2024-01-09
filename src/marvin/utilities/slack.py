@@ -29,11 +29,11 @@ class EventBlock(BaseModel):
 class SlackEvent(BaseModel):
     client_msg_id: Optional[str] = None
     type: str
-    text: str
-    user: str
-    ts: str
-    team: str
-    channel: str
+    text: Optional[str] = None
+    user: Optional[str] = None
+    ts: Optional[str] = None
+    team: Optional[str] = None
+    channel: Optional[str] = None
     event_ts: str
     thread_ts: Optional[str] = None
     parent_user_id: Optional[str] = None
