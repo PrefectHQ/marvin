@@ -19,7 +19,7 @@ class GitHubIssueTag(Enum):
     DOCS = "docs"
 
 
-def test_is_enum(self):
+def test_is_enum():
     """Classifiers are still enums"""
     assert issubclass(Color, Enum)
 
