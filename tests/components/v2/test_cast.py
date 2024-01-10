@@ -1,4 +1,6 @@
 import json
+from enum import Enum
+from unittest.mock import patch
 
 import marvin.v2
 import pytest
@@ -87,3 +89,24 @@ class TestCast:
                 instructions="Rewrite with names (and only names) uppercase",
             )
             assert result == "My name is MARVIN"
+
+    class TestCastCallsClassify:
+        @patch("marvin.v2.ai.llm.classify")
+        def test_cast_doesnt_call_classify_for_int(self, mock_classify):
+            marvin.v2.cast("Yes", int)
+            mock_classify.assert_not_called()
+
+        @patch("marvin.v2.ai.llm.classify")
+        def test_cast_calls_classify_for_bool(self, mock_classify):
+            marvin.v2.cast("Yes", bool)
+            mock_classify.assert_called_once()
+
+        @patch("marvin.v2.ai.llm.classify")
+        def test_cast_calls_classify_for_enum(self, mock_classify):
+            class Sentiment(Enum):
+                positive = "Positive"
+                negative = "Negative"
+
+            marvin.v2.cast("Yes", Sentiment)
+
+            mock_classify.assert_called_once()

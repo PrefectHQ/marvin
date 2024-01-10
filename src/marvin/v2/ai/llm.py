@@ -5,9 +5,11 @@ from typing import (
     Any,
     Callable,
     GenericAlias,
+    Literal,
     Type,
     TypeVar,
     Union,
+    get_origin,
 )
 
 from pydantic import BaseModel
@@ -149,6 +151,19 @@ def cast(
     Convert data into the provided type.
     """
     model_kwargs = model_kwargs or {}
+
+    # if the user provided a `to` type that represents a list of labels, we use
+    # `classify()` for performance.
+    if (
+        get_origin(to) == Literal
+        or (isinstance(to, type) and issubclass(to, Enum))
+        or isinstance(to, list)
+        or to is bool
+    ):
+        return classify(
+            data=data, labels=to, instructions=instructions, model_kwargs=model_kwargs
+        )
+
     return _generate_typed_llm_response_with_tool(
         prompt_template=CAST_PROMPT,
         prompt_kwargs=dict(

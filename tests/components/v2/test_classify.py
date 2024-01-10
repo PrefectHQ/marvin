@@ -52,6 +52,19 @@ class TestClassify:
             )
             assert result == "bug"
 
+    class TestBool:
+        def test_classify_positive_sentiment(self):
+            result = marvin.v2.classify("This is a great feature!", bool)
+            assert result is True
+
+        def test_classify_negative_sentiment(self):
+            result = marvin.v2.classify("This feature is terrible!", bool)
+            assert result is False
+
+        def test_classify_falseish(self):
+            result = marvin.v2.classify("nope", bool)
+            assert result is False
+
     class TestInstructions:
         def test_classify_positive_sentiment_with_instructions(self):
             result = marvin.v2.classify(
