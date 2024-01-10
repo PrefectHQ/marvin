@@ -1,3 +1,5 @@
+import json
+
 import marvin.v2
 import pytest
 from pydantic import BaseModel, Field
@@ -36,6 +38,28 @@ class TestCast:
         def test_cast_text_to_bool_with_true(self):
             result = marvin.v2.cast("yes", bool)
             assert result is True
+
+        def test_str_not_json(self):
+            result = marvin.v2.cast(
+                "pink",
+                to=str,
+                instructions="Return the nearest color of the rainbow",
+            )
+            # without instructions, this often results in {'color': 'red'} instead of just a color string
+            assert result == "red"
+
+        def test_str_json(self, gpt_4):
+            result = marvin.v2.cast(
+                "pink",
+                to=str,
+                instructions=(
+                    "Return the nearest color of the rainbow (as a JSON"
+                    " object with a `color` key)"
+                ),
+            )
+
+            assert result == '{"color": "red"}'
+            assert json.loads(result)
 
     class TestPydantic:
         @pytest.mark.parametrize("text", ["New York, NY", "NYC", "the big apple"])

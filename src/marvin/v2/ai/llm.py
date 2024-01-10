@@ -151,7 +151,9 @@ def cast(
     model_kwargs = model_kwargs or {}
     return _generate_typed_llm_response_with_tool(
         prompt_template=CAST_PROMPT,
-        prompt_kwargs=dict(data=data, instructions=instructions),
+        prompt_kwargs=dict(
+            data=data, instructions=instructions, is_str_response=to is str
+        ),
         type_=to,
         model_kwargs=model_kwargs | dict(temperature=0),
     )

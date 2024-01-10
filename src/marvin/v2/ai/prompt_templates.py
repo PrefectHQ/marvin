@@ -28,6 +28,12 @@ CAST_PROMPT = inspect.cleandoc(
     Call the `FormatResponse` tool to validate your response, and use the following schema:
     {{ response_format }}
     
+    {% if is_str_response %}
+    The user expects a string response, but do not return JSON or a quoted
+    string unless they provided instructions requiring it. If you do return
+    JSON, it must be valid and parseable including double quotes.
+    {% endif %}
+    
 """
 )
 
