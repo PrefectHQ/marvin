@@ -119,14 +119,14 @@ def _generate_typed_llm_response_with_logit_bias(
     if "labels" not in prompt_kwargs:
         raise ValueError("Labels must be provided as a kwarg to the prompt template.")
     labels = prompt_kwargs["labels"]
-    string_labels = cast_type_to_labels(labels)
+    label_strings = cast_type_to_labels(labels)
     grammar = cast_labels_to_grammar(
-        labels=string_labels, encoder=encoder, max_tokens=max_tokens
+        labels=label_strings, encoder=encoder, max_tokens=max_tokens
     )
     model_kwargs.update(grammar.model_dump())
     response = generate_llm_response(
         prompt_template=prompt_template,
-        prompt_kwargs=(prompt_kwargs or {}) | dict(labels=string_labels),
+        prompt_kwargs=(prompt_kwargs or {}) | dict(labels=label_strings),
         model_kwargs=model_kwargs | dict(temperature=0),
     )
 
@@ -135,8 +135,9 @@ def _generate_typed_llm_response_with_logit_bias(
 
     if labels is bool:
         return bool(label_index)
-    else:
-        return string_labels[label_index]
+
+    result = label_strings[label_index]
+    return labels(result) if isinstance(labels, type) else result
 
 
 def cast(
