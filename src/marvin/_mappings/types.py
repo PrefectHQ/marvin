@@ -92,9 +92,9 @@ def cast_type_to_labels(
     elif isinstance(type_, list):
         return [str(token) for token in type_]
     elif type_ is bool:
-        return ["True", "False"]
+        return ["false", "true"]
     else:
-        raise TypeError(f"Expected Literal, Enum, or list, got {type_}.")
+        raise TypeError(f"Expected Literal, Enum, bool, or list, got {type_}.")
 
 
 def cast_labels_to_grammar(

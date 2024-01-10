@@ -51,10 +51,11 @@ class TestTemporarySettings:
     def test_temporary_settings_override_and_restore(self, env):
         default_log_level = marvin.settings.log_level
 
-        assert default_log_level == "INFO"
+        # for tests it is debug
+        assert default_log_level == "DEBUG"
 
-        with temporary_settings(log_level="DEBUG"):
-            assert marvin.settings.log_level == "DEBUG"
+        with temporary_settings(log_level="INFO"):
+            assert marvin.settings.log_level == "INFO"
 
         assert marvin.settings.log_level == default_log_level
 
@@ -63,7 +64,8 @@ class TestTemporarySettings:
         initial_api_key = marvin.settings.openai.api_key.get_secret_value()
         default_openai_speech_model = marvin.settings.openai.audio.speech.model
 
-        assert default_log_level == "INFO"
+        # for tests
+        assert default_log_level == "DEBUG"
         assert initial_api_key.startswith("sk-")
         assert default_openai_speech_model == "tts-1-hd"
 

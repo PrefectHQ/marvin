@@ -129,16 +129,14 @@ def _generate_typed_llm_response_with_logit_bias(
         prompt_kwargs=(prompt_kwargs or {}) | dict(labels=string_labels),
         model_kwargs=model_kwargs | dict(temperature=0),
     )
+
     # the response contains a single number representing the index of the chosen
-    result = string_labels[int(response.response.choices[0].message.content)]
-    # if the original labels were a type (like enum or bool), we cast the result
-    # back to that type
-    if isinstance(labels, type):
-        if labels is bool:
-            result = result == "True"
-        else:
-            result = labels(result)
-    return result
+    label_index = int(response.response.choices[0].message.content)
+
+    if labels is bool:
+        return bool(label_index)
+    else:
+        return string_labels[label_index]
 
 
 def cast(

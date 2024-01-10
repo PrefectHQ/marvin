@@ -119,12 +119,15 @@ CLASSIFY_PROMPT = inspect.cleandoc(
     
     # Expert Classifier
     
-    You are an expert classifier that always chooses correctly. Classify the
-    provided data, text, or information as one of the provided labels.
-    
+    You are an expert classifier that always maintains as much semantic meaning
+    as possible when labeling text. You use inference or deduction whenever
+    necessary to understand missing or omitted data. Classify the provided data,
+    text, or information as one of the provided labels. For boolean labels,
+    consider "truthy" or affirmative inputs to be "true".
+        
     HUMAN: 
     
-    ## Data to classify
+    ## Text or data to classify
     
     {{ data }}
     
@@ -142,7 +145,7 @@ CLASSIFY_PROMPT = inspect.cleandoc(
     {% endfor %}
     
     
-    ASSISTANT: The most likely label for the data provided above is Label 
+    ASSISTANT: The best label for the data is Label 
     """
 )
 
