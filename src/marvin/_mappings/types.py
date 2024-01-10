@@ -79,48 +79,54 @@ def cast_type_to_toolset(
     )
 
 
-def cast_type_to_options(
-    _type: Union[type, GenericAlias],
+def cast_type_to_labels(
+    type_: Union[type, GenericAlias],
 ) -> list[str]:
-    if get_origin(_type) == Literal:
-        return [str(token) for token in get_args(_type)]
-    elif isinstance(_type, type) and issubclass(_type, Enum):
+    if get_origin(type_) == Literal:
+        return [str(token) for token in get_args(type_)]
+    elif isinstance(type_, type) and issubclass(type_, Enum):
         members: list[str] = [
-            option.value for option in getattr(_type, "__members__", {}).values()
+            option.value for option in getattr(type_, "__members__", {}).values()
         ]
         return members
+    elif isinstance(type_, list):
+        return [str(token) for token in type_]
+    elif type_ is bool:
+        return ["false", "true"]
     else:
-        raise TypeError(f"Expected Literal or Enum, got {_type}.")
+        raise TypeError(f"Expected Literal, Enum, bool, or list, got {type_}.")
 
 
-def cast_options_to_grammar(
-    vocabulary: list[str],
-    encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
+def cast_labels_to_grammar(
+    labels: list[str],
+    encoder: Callable[[str], list[int]] = None,
     max_tokens: Optional[int] = None,
-    _enumerate: bool = True,
+    enumerate_: bool = True,
     **kwargs: Any,
 ) -> Grammar:
+    if encoder is None:
+        encoder = settings.openai.chat.completions.encoder
     return Grammar(
         max_tokens=max_tokens,
         logit_bias={
             str(encoding): 100
-            for i, token in enumerate(vocabulary)
-            for encoding in encoder(str(i) if _enumerate else token)
+            for i, token in enumerate(labels)
+            for encoding in encoder(str(i) if enumerate_ else token)
         },
     )
 
 
 def cast_type_to_grammar(
-    _type: Union[type, GenericAlias],
+    type_: Union[type, GenericAlias],
     encoder: Callable[[str], list[int]] = settings.openai.chat.completions.encoder,
     max_tokens: Optional[int] = None,
-    _enumerate: bool = True,
+    enumerate_: bool = True,
     **kwargs: Any,
 ) -> Grammar:
-    return cast_options_to_grammar(
-        vocabulary=cast_type_to_options(_type),
+    return cast_labels_to_grammar(
+        labels=cast_type_to_labels(type_),
         encoder=encoder,
         max_tokens=max_tokens,
-        _enumerate=_enumerate,
+        enumerate_=enumerate_,
         **kwargs,
     )

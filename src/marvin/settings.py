@@ -42,22 +42,22 @@ class MarvinSettings(BaseSettings):
 
 
 class ChatCompletionSettings(MarvinSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_llm_",
-    )
+    model_config = SettingsConfigDict(env_prefix="marvin_chat_completion_")
     model: str = Field(
         description="The default chat model to use.", default="gpt-3.5-turbo"
     )
 
-    temperature: float = Field(
-        description="The default temperature to use.", default=0.1
-    )
+    temperature: float = Field(description="The default temperature to use.", default=1)
 
     @property
     def encoder(self):
         import tiktoken
 
         return tiktoken.encoding_for_model(self.model).encode
+
+
+class ChatSettings(MarvinSettings):
+    completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
 
 
 class ImageSettings(MarvinSettings):
@@ -70,9 +70,7 @@ class ImageSettings(MarvinSettings):
         style: The default style to use, defaults to `vivid`.
     """
 
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_image_",
-    )
+    model_config = SettingsConfigDict(env_prefix="marvin_image_")
 
     model: str = Field(
         default="dall-e-3",
@@ -83,6 +81,7 @@ class ImageSettings(MarvinSettings):
     )
     response_format: Literal["url", "b64_json"] = Field(default="url")
     style: Literal["vivid", "natural"] = Field(default="vivid")
+    quality: Literal["standard", "hd"] = Field(default="standard")
 
 
 class SpeechSettings(MarvinSettings):
@@ -95,13 +94,11 @@ class SpeechSettings(MarvinSettings):
         speed: The default speed to use, defaults to `1.0`.
     """
 
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_speech_",
-    )
+    model_config = SettingsConfigDict(env_prefix="marvin_speech_")
 
     model: str = Field(
         default="tts-1-hd",
-        description="The default image model to use.",
+        description="The default model to use.",
     )
     voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = Field(
         default="alloy",
@@ -117,18 +114,12 @@ class AssistantSettings(MarvinSettings):
         model: The default assistant model to use, defaults to `gpt-4-1106-preview`.
     """
 
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_llm",
-    )
+    model_config = SettingsConfigDict(env_prefix="marvin_assistant_")
 
     model: str = Field(
         default="gpt-4-1106-preview",
         description="The default assistant model to use.",
     )
-
-
-class ChatSettings(MarvinSettings):
-    completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
 
 
 class AudioSettings(MarvinSettings):
@@ -142,7 +133,7 @@ class OpenAISettings(MarvinSettings):
     Attributes:
         api_key: Your OpenAI API key.
         organization: Your OpenAI organization ID.
-        chat: Settings for the chat API.
+        llms: Settings for the chat API.
         images: Settings for the images API.
         audio: Settings for the audio API.
         assistants: Settings for the assistants API.
@@ -218,8 +209,15 @@ class Settings(MarvinSettings):
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
 
     log_level: str = Field(
-        default="DEBUG",
+        default="INFO",
         description="The log level to use.",
+    )
+
+    log_verbose: bool = Field(
+        default=True,
+        description=(
+            "Whether to log verbose messages, such as full API requests and responses."
+        ),
     )
 
 

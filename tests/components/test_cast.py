@@ -30,7 +30,7 @@ class TestCast:
             assert result == [1.1, 2.2, 3.3]
 
         def test_cast_text_to_bool(self):
-            result = marvin.cast("nope", bool)
+            result = marvin.cast("no", bool)
             assert result is False
 
         def test_cast_text_to_bool_with_true(self):

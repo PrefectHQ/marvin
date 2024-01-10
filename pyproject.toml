@@ -52,6 +52,7 @@ tests = [
     "pytest-sugar~=0.9",
     "pytest~=7.3.1",
     "pytest-timeout",
+    "pytest-xdist",
 ]
 slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]"]
 
@@ -93,7 +94,10 @@ filterwarnings = [
 env = [
     "MARVIN_TEST_MODE=1",
     # use 3.5 for tests by default
-    'D:MARVIN_OPENAI_CHAT_COMPLETIONS_MODEL=gpt-3.5-turbo-1106',
+    'D:MARVIN_CHAT_COMPLETION_MODEL=gpt-3.5-turbo',
+    'D:MARVIN_CHAT_COMPLETION_TEMPERATURE=0.0',
+    'D:MARVIN_LOG_VERBOSE=1',
+    'D:MARVIN_LOG_LEVEL=DEBUG',
     'PYTEST_TIMEOUT=20',
 ]
 

@@ -1,5 +1,6 @@
 from typing import Any, Callable, Generic, Literal, Optional, TypeVar, Union
 
+from openai.types.chat import ChatCompletion
 from pydantic import BaseModel, Field, PrivateAttr
 from typing_extensions import Annotated, Self
 
@@ -84,7 +85,7 @@ class ResponseModel(BaseModel):
 
 
 class ChatRequest(Prompt[T]):
-    model: str = Field(default=settings.openai.chat.completions.model)
+    model: str = Field(default_factory=lambda: settings.openai.chat.completions.model)
     frequency_penalty: Optional[
         Annotated[float, Field(strict=True, ge=-2.0, le=2.0)]
     ] = 0
@@ -95,9 +96,52 @@ class ChatRequest(Prompt[T]):
     seed: Optional[int] = None
     stop: Optional[Union[str, list[str]]] = None
     stream: Optional[bool] = False
-    temperature: Optional[Annotated[float, Field(strict=True, ge=0, le=2)]] = 1
+    temperature: Optional[Annotated[float, Field(strict=True, ge=0, le=2)]] = Field(
+        default_factory=lambda: settings.openai.chat.completions.temperature
+    )
     top_p: Optional[Annotated[float, Field(strict=True, ge=0, le=1)]] = 1
     user: Optional[str] = None
+
+
+class ChatResponse(BaseModel):
+    model_config = dict(arbitrary_types_allowed=True)
+    request: ChatRequest
+    response: ChatCompletion
+    tool_outputs: list[Any] = []
+
+
+class ImageRequest(BaseModel):
+    prompt: str
+    model: Optional[str] = Field(default_factory=lambda: settings.openai.images.model)
+    n: Optional[int] = 1
+    quality: Optional[Literal["standard", "hd"]] = Field(
+        default_factory=lambda: settings.openai.images.quality
+    )
+    response_format: Optional[Literal["url", "b64_json"]] = Field(
+        default_factory=lambda: settings.openai.images.response_format
+    )
+    size: Optional[
+        Literal["256x256", "512x512", "1024x1024", "1792x1024", "1024x1792"]
+    ] = Field(default_factory=lambda: settings.openai.images.size)
+    style: Optional[Literal["vivid", "natural"]] = Field(
+        default_factory=lambda: settings.openai.images.style
+    )
+
+
+class SpeechRequest(BaseModel):
+    input: str
+    model: Literal["tts-1", "tts-1-hd"] = Field(
+        default_factory=lambda: settings.openai.audio.speech.model
+    )
+    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = Field(
+        default_factory=lambda: settings.openai.audio.speech.voice
+    )
+    response_format: Optional[Literal["mp3", "opus", "aac", "flac"]] = Field(
+        default_factory=lambda: settings.openai.audio.speech.response_format
+    )
+    speed: Optional[float] = Field(
+        default_factory=lambda: settings.openai.audio.speech.speed
+    )
 
 
 class AssistantMessage(BaseMessage):

@@ -1,13 +1,20 @@
 """Module for string utilities."""
+
 import tiktoken
 
+import marvin
 
-def tokenize(text: str, model: str = "gpt-3.5-turbo-1106") -> list[int]:
+
+def tokenize(text: str, model: str = None) -> list[int]:
+    if model is None:
+        model = marvin.settings.openai.chat.completions.model
     tokenizer = tiktoken.encoding_for_model(model)
     return tokenizer.encode(text)
 
 
-def detokenize(tokens: list[int], model: str = "gpt-3.5-turbo-1106") -> str:
+def detokenize(tokens: list[int], model: str = None) -> str:
+    if model is None:
+        model = marvin.settings.openai.chat.completions.model
     tokenizer = tiktoken.encoding_for_model(model)
     return tokenizer.decode(tokens)
 

@@ -10,7 +10,7 @@ from typing import (
 
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
-from .types import cast_type_to_options
+from .types import cast_type_to_labels
 
 if TYPE_CHECKING:
     from openai.types.chat import (
@@ -46,7 +46,7 @@ cast_chat_completion_to_model = chat_completion_to_model
 
 
 def chat_completion_to_type(response_type: U, completion: "ChatCompletion") -> "U":
-    options = cast_type_to_options(response_type)
+    options = cast_type_to_labels(response_type)
     message: ChatCompletionMessage = completion.choices[0].message
     if message.content is None:
         raise ValueError("content is None")
