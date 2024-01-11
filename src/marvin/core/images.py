@@ -4,8 +4,8 @@ from typing import Callable, TypeVar
 from openai.types.images_response import ImagesResponse
 
 import marvin
-from marvin.apis.prompts.image_templates import IMAGE_PROMPT
 from marvin.client.openai import MarvinClient
+from marvin.core.prompts.image_templates import IMAGE_PROMPT
 from marvin.requests import ImageRequest
 from marvin.utilities.jinja import Environment
 from marvin.utilities.logging import get_logger
