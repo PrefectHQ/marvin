@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-import marvin.v2
+import marvin
 
 
 class Assertion(BaseModel):
@@ -25,7 +25,7 @@ def assert_equal(llm_output: Any, expected: Any) -> bool:
     ), f"{result.explanation}\n>> LLM Output: {llm_output}\n>> Expected: {expected}"
 
 
-@marvin.v2.fn(model_kwargs=dict(model="gpt-4-1106-preview"))
+@marvin.fn(model_kwargs=dict(model="gpt-4-1106-preview"))
 def _assert_equal(llm_output: Any, expected: Any) -> Assertion:
     """
     An LLM generated the provided output as part of a unit test. Assert whether

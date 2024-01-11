@@ -1,8 +1,8 @@
-from .llm import fn, model
+from .text import classifier, fn, model
 
 ai_fn = fn
 ai_model = model
-ai_classifier = fn
+ai_classifier = classifier
 
 __all__ = [
     "ai_fn",

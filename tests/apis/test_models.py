@@ -1,7 +1,7 @@
 from typing import List, Literal, Optional
 
+import marvin
 import pytest
-from marvin import model
 from pydantic import BaseModel, Field
 
 from tests.utils import pytest_mark_class
@@ -10,7 +10,7 @@ from tests.utils import pytest_mark_class
 @pytest_mark_class("llm")
 class TestModels:
     def test_arithmetic(self):
-        @model
+        @marvin.model
         class Arithmetic(BaseModel):
             sum: float = Field(
                 ..., description="The resolved sum of provided arguments"
@@ -22,7 +22,7 @@ class TestModels:
         assert x.is_odd
 
     def test_geospatial(self):
-        @model
+        @marvin.model
         class Location(BaseModel):
             latitude: float
             longitude: float
@@ -52,7 +52,7 @@ class TestModels:
             name: str
             city: City
 
-        @model
+        @marvin.model
         class RentalHistory(BaseModel):
             neighborhood: List[Neighborhood]
 
@@ -69,7 +69,7 @@ class TestModels:
             years_of_experience: int
             supporting_phrase: Optional[str]
 
-        @model
+        @marvin.model
         class Resume(BaseModel):
             """Details about a person's work experience."""
 
@@ -91,7 +91,7 @@ class TestModels:
         assert len(x.technologies) == 2
 
     def test_literal(self):
-        @model
+        @marvin.model
         class LLMConference(BaseModel):
             speakers: list[
                 Literal["Adam", "Nate", "Jeremiah", "Marvin", "Billy Bob Thornton"]
@@ -122,7 +122,7 @@ class TestModels:
             campaign_slogan: str
             birthplace: Location
 
-        @model
+        @marvin.model
         class Election(BaseModel):
             candidates: List[Candidate]
             winner: Candidate
@@ -149,7 +149,7 @@ class TestModels:
 
     @pytest.mark.skip(reason="old behavior, may revisit")
     def test_correct_class_is_returned(self):
-        @model
+        @marvin.model
         class Fruit(BaseModel):
             color: str
             name: str
@@ -163,7 +163,7 @@ class TestModels:
 @pytest_mark_class("llm")
 class TestInstructions:
     def test_instructions_error(self):
-        @model
+        @marvin.model
         class Test(BaseModel):
             text: str
 
@@ -175,7 +175,7 @@ class TestInstructions:
             Test("Hello!", model=None)
 
     def test_instructions(self):
-        @model
+        @marvin.model
         class Text(BaseModel):
             text: str
 
@@ -183,7 +183,7 @@ class TestInstructions:
         assert t1.text == "Hello"
 
         # this model is identical except it has an instruction
-        @model(instructions="first translate the text to French")
+        @marvin.model(instructions="first translate the text to French")
         class Text(BaseModel):
             text: str
 
@@ -191,7 +191,7 @@ class TestInstructions:
         assert t2.text == "Bonjour"
 
     def test_follow_instance_instructions(self):
-        @model
+        @marvin.model
         class Test(BaseModel):
             text: str
 
@@ -199,7 +199,7 @@ class TestInstructions:
         assert t1.text == "Hello"
 
         # this model is identical except it has an instruction
-        @model
+        @marvin.model
         class Test(BaseModel):
             text: str
 
@@ -207,7 +207,7 @@ class TestInstructions:
         assert t2.text == "Bonjour"
 
     def test_follow_global_and_instance_instructions(self):
-        @model(instructions="Always set color_1 to 'red'")
+        @marvin.model(instructions="Always set color_1 to 'red'")
         class Test(BaseModel):
             color_1: str
             color_2: str
@@ -216,7 +216,7 @@ class TestInstructions:
         assert t1 == Test(color_1="red", color_2="blue")
 
     def test_follow_docstring_and_global_and_instance_instructions(self):
-        @model(instructions="Always set color_1 to 'red'")
+        @marvin.model(instructions="Always set color_1 to 'red'")
         class Test(BaseModel):
             """Always set color_3 to 'orange'"""
 
@@ -229,7 +229,7 @@ class TestInstructions:
 
     def test_follow_multiple_instructions(self):
         # ensure that instructions don't bleed to other invocations
-        @model
+        @marvin.model
         class Translation(BaseModel):
             """Translates from one language to another language"""
 
@@ -245,42 +245,3 @@ class TestInstructions:
         assert t2 == Translation(
             original_text="Hello, world!", translated_text="Hallo, Welt!"
         )
-
-
-@pytest_mark_class("llm")
-class TestModelMapping:
-    def test_arithmetic(self):
-        @model
-        class Arithmetic(BaseModel):
-            sum: float
-
-        x = Arithmetic.map(["One plus six", "Two plus 100 minus one"])
-        assert len(x) == 2
-        assert x[0].sum == 7
-        assert x[1].sum == 101
-
-    @pytest.mark.skip(reason="TODO: flaky on 3.5")
-    def test_fix_misspellings(self):
-        @model
-        class City(BaseModel):
-            """Standardize misspelled or informal city names"""
-
-            name: str = Field(
-                description=(
-                    "The OFFICIAL, correctly-spelled name of a city - must be"
-                    " capitalized. Do not include the state or country, or use any"
-                    " abbreviations. e.g. 'big apple' -> 'New York City'"
-                ),
-            )
-
-        results = City.map(
-            [
-                "Chicago",
-                "America's third-largest city",
-                "chicago, Illinois, USA",
-                "colloquially known as 'chi-town'",
-            ]
-        )
-        assert len(results) == 4
-        for result in results:
-            assert result.name == "Chicago"
