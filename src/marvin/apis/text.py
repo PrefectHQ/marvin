@@ -20,18 +20,18 @@ from marvin._mappings.types import (
     cast_labels_to_grammar,
     cast_type_to_labels,
 )
-from marvin.requests import ChatRequest, ChatResponse
-from marvin.utilities.jinja import Transcript
-from marvin.utilities.logging import get_logger
-from marvin.utilities.python import PythonFunction
-from marvin.v2.ai.prompt_templates import (
+from marvin.apis.prompts.text_templates import (
     CAST_PROMPT,
     CLASSIFY_PROMPT,
     EXTRACT_PROMPT,
     FUNCTION_PROMPT,
     GENERATE_PROMPT,
 )
-from marvin.v2.client import ChatCompletion, MarvinClient
+from marvin.client.openai import ChatCompletion, MarvinClient
+from marvin.requests import ChatRequest, ChatResponse
+from marvin.utilities.jinja import Transcript
+from marvin.utilities.logging import get_logger
+from marvin.utilities.python import PythonFunction
 
 T = TypeVar("T")
 M = TypeVar("M", bound=BaseModel)
@@ -142,7 +142,7 @@ def _generate_typed_llm_response_with_logit_bias(
 
 def cast(
     data: str,
-    to: type[T],
+    target: type[T],
     instructions: str = None,
     model_kwargs: dict = None,
 ) -> T:
@@ -154,28 +154,29 @@ def cast(
     # if the user provided a `to` type that represents a list of labels, we use
     # `classify()` for performance.
     if (
-        get_origin(to) == Literal
-        or (isinstance(to, type) and issubclass(to, Enum))
-        or isinstance(to, list)
-        or to is bool
+        get_origin(target) == Literal
+        or (isinstance(target, type) and issubclass(target, Enum))
+        or isinstance(target, list)
+        or target is bool
     ):
         return classify(
-            data=data, labels=to, instructions=instructions, model_kwargs=model_kwargs
+            data=data,
+            labels=target,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
         )
 
     return _generate_typed_llm_response_with_tool(
         prompt_template=CAST_PROMPT,
-        prompt_kwargs=dict(
-            data=data, instructions=instructions, is_str_response=to is str
-        ),
-        type_=to,
+        prompt_kwargs=dict(data=data, instructions=instructions),
+        type_=target,
         model_kwargs=model_kwargs | dict(temperature=0),
     )
 
 
 def extract(
     data: str,
-    type_: type[T],
+    target: type[T],
     instructions: str = None,
     model_kwargs: dict = None,
 ) -> list[T]:
@@ -186,7 +187,7 @@ def extract(
     return _generate_typed_llm_response_with_tool(
         prompt_template=EXTRACT_PROMPT,
         prompt_kwargs=dict(data=data, instructions=instructions),
-        type_=list[type_],
+        type_=list[target],
         model_kwargs=model_kwargs | dict(temperature=0),
     )
 
@@ -214,15 +215,23 @@ def classify(
 
 
 def generate(
-    type_: type[T],
-    n: int = 1,
+    type_: type[T] = None,
     instructions: str = None,
+    n: int = 1,
     temperature: float = 1,
     model_kwargs: dict = None,
 ) -> list[T]:
     """
-    Generate a list of n items of the provided type or description.
+    Generate a list of n items of the provided type or instructions.
+
+    Either a type or instructions must be provided. If instructions are
+    provided without a type, the type is assumed to be a string.
     """
+
+    if type_ is None and instructions is None:
+        raise ValueError("Must provide either a type or instructions.")
+    elif type_ is None:
+        type_ = str
 
     # make sure we generate at least n items
     result = [0] * (n + 1)
@@ -295,14 +304,14 @@ def fn(func: Callable = None, model_kwargs: dict = None):
     return wrapper
 
 
-class AIModel(BaseModel):
+class Model(BaseModel):
     """
     A Pydantic model that can be instantiated from a natural language string, in
     addition to keyword arguments.
     """
 
     @classmethod
-    def from_text(cls, text: str, model_kwargs: dict = None, **kwargs) -> "AIModel":
+    def from_text(cls, text: str, model_kwargs: dict = None, **kwargs) -> "Model":
         """Async text constructor"""
         ai_kwargs = cast(text, cls, model_kwargs=model_kwargs, **kwargs)
         ai_kwargs.update(kwargs)
@@ -368,12 +377,12 @@ def model(
 ) -> Union[Type[M], Callable[[Type[M]], Type[M]]]:
     """
     Class decorator for instantiating a Pydantic model from a string. Equivalent
-    to subclassing AIModel.
+    to subclassing Model.
     """
     model_kwargs = model_kwargs or {}
 
     def decorator(cls: Type[M]) -> Type[M]:
-        class WrappedModel(AIModel, cls):
+        class WrappedModel(Model, cls):
             @wraps(cls.__init__)
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, model_kwargs=model_kwargs, **kwargs)
