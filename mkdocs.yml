@@ -18,15 +18,14 @@ nav:
   - Docs:
     - Overview: welcome/overview.md
 
+    - General purpose:
+      - AI Functions: core/function.md
 
-    - LLMs:
+    - Text and data:
       - Structured data: core/casting.md
       - Entity extraction: core/extraction.md
       - Classification: core/classification.md
       - Generating synthetic data: core/generation.md
-
-    - General purpose:
-      - Function: core/function.md
 
     - Images:
       - Generation: core/painting.md
@@ -44,10 +43,11 @@ nav:
     #   - GitHub Digest: examples/github_digest.md
   - API reference:
     - api_reference/index.md
-    - AI components:
-      - classifier: api_reference/components/classifier.md
-      - function: api_reference/components/functions.md
-      - model: api_reference/components/models.md
+    - Core tools:
+      - Text & Data: api_reference/core/text.md
+      - Images: api_reference/core/images.md
+      - Audio: api_reference/core/audio.md
+
     - Settings:
       - settings: api_reference/settings.md
     - Utilities:
@@ -157,3 +157,4 @@ extra_css:
   - /static/css/global.css
   - /static/css/badges.css
   - /static/css/custom.css
+  - /static/css/mkdocstrings.css

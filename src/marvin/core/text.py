@@ -1,3 +1,7 @@
+"""
+Core LLM tools for working with text and structured data.
+"""
+
 import inspect
 from enum import Enum
 from functools import partial, wraps
@@ -44,6 +48,20 @@ def generate_llm_response(
     prompt_kwargs: dict = None,
     model_kwargs: dict = None,
 ) -> ChatResponse:
+    """
+    Generates a language model response based on a provided prompt template.
+
+    This function uses a language model to generate a response based on a provided prompt template.
+    The function supports additional arguments for the prompt and the language model.
+
+    Args:
+        prompt_template (str): The template for the prompt.
+        prompt_kwargs (dict, optional): Additional keyword arguments for the prompt. Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the language model. Defaults to None.
+
+    Returns:
+        ChatResponse: The generated response from the language model.
+    """
     model_kwargs = model_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
     messages = Transcript(content=prompt_template).render_to_messages(**prompt_kwargs)
@@ -53,11 +71,11 @@ def generate_llm_response(
     response = MarvinClient().generate_chat(**request.model_dump())
     if marvin.settings.log_verbose:
         logger.debug_kv("Response", response.model_dump_json(indent=2))
-    tool_outputs = get_tool_outputs(request, response)
+    tool_outputs = _get_tool_outputs(request, response)
     return ChatResponse(request=request, response=response, tool_outputs=tool_outputs)
 
 
-def get_tool_outputs(request: ChatRequest, response: ChatCompletion) -> list[Any]:
+def _get_tool_outputs(request: ChatRequest, response: ChatCompletion) -> list[Any]:
     outputs = []
     tool_calls = response.choices[0].message.tool_calls or []
     for tool_call in tool_calls:
@@ -77,6 +95,28 @@ def _generate_typed_llm_response_with_tool(
     prompt_kwargs: dict = None,
     model_kwargs: dict = None,
 ) -> T:
+    """
+    Generates a language model response based on a provided prompt template and a specific tool.
+
+    This function uses a language model to generate a response based on a
+    provided prompt template. The response is cast to a Python type using a tool
+    call. The function supports additional arguments for the prompt and the
+    language model.
+
+    Args:
+        prompt_template (str): The template for the prompt.
+        type_ (Union[GenericAlias, type[T]]): The type of the response to
+            generate.
+        tool_name (str, optional): The name of the tool to use for the
+            generation. Defaults to None.
+        prompt_kwargs (dict, optional): Additional keyword arguments for the
+            prompt. Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+
+    Returns:
+        T: The generated response from the language model.
+    """
     model_kwargs = model_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
     tool = marvin.utilities.tools.tool_from_type(type_, tool_name=tool_name)
@@ -105,14 +145,34 @@ def _generate_typed_llm_response_with_logit_bias(
     encoder: Callable[[str], list[int]] = None,
     max_tokens: int = 1,
     model_kwargs: dict = None,
-) -> T:
+):
     """
-    Generates a response to a prompt that is constrained to a set of labels.
+    Generates a language model response with logit bias based on a provided
+    prompt template.
+
+    This function uses a language model to generate a response with logit bias
+    based on a provided prompt template. The function supports additional
+    arguments for the prompt. It also allows specifying an encoder function to
+    be used for the generation.
 
     The LLM will be constrained to output a single number representing the
     0-indexed position of the chosen option. Therefore the labels must be
     present (and ideally enumerated) in the prompt template, and will be
     provided as the kwarg `labels`
+
+    Args:
+        prompt_template (str): The template for the prompt.
+        prompt_kwargs (dict): Additional keyword arguments for the prompt.
+        encoder (Callable[[str], list[int]], optional): The encoder function to
+            use for the generation. Defaults to None.
+        max_tokens (int, optional): The maximum number of tokens for the
+            generation. Defaults to 1.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+
+    Returns:
+        ChatResponse: The generated response from the language model.
+
     """
     model_kwargs = model_kwargs or {}
 
@@ -147,7 +207,20 @@ def cast(
     model_kwargs: dict = None,
 ) -> T:
     """
-    Convert data into the provided type.
+    Converts the input data into the specified type.
+
+    This function uses a language model to convert the input data into a specified type.
+    The conversion process can be guided by specific instructions. The function also
+    supports additional arguments for the language model.
+
+    Args:
+        data (str): The data to be converted.
+        target (type): The type to convert the data into.
+        instructions (str, optional): Specific instructions for the conversion. Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the language model. Defaults to None.
+
+    Returns:
+        T: The converted data of the specified type.
     """
     model_kwargs = model_kwargs or {}
 
@@ -181,7 +254,22 @@ def extract(
     model_kwargs: dict = None,
 ) -> list[T]:
     """
-    Extract entities from the provided data.
+    Extracts entities of a specific type from the provided data.
+
+    This function uses a language model to identify and extract entities of the
+    specified type from the input data. The extracted entities are returned as a
+    list.
+
+    Args:
+        data (str): The data from which to extract entities.
+        target (type): The type of entities to extract.
+        instructions (str, optional): Specific instructions for the extraction.
+            Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+
+    Returns:
+        list: A list of extracted entities of the specified type.
     """
     model_kwargs = model_kwargs or {}
     return _generate_typed_llm_response_with_tool(
@@ -199,11 +287,23 @@ def classify(
     model_kwargs: dict = None,
 ) -> T:
     """
-    Classify the provided information as of the provided labels.
+    Classifies the provided data based on the provided labels.
 
-    This uses a logit bias to constrain the LLM response to a single token. It
-    is highly efficient for classification tasks and will always return one of
-    the provided responses.
+    This function uses a language model with a logit bias to classify the input
+    data. The logit bias constrains the language model's response to a single
+    token, making this function highly efficient for classification tasks. The
+    function will always return one of the provided labels.
+
+    Args:
+        data (str): The data to be classified.
+        labels (Union[Enum, list[T], type]): The labels to classify the data into.
+        instructions (str, optional): Specific instructions for the
+            classification. Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+
+    Returns:
+        T: The label that the data was classified into.
     """
 
     model_kwargs = model_kwargs or {}
@@ -222,10 +322,22 @@ def generate(
     model_kwargs: dict = None,
 ) -> list[T]:
     """
-    Generate a list of n items of the provided type or instructions.
+    Generates a list of 'n' items of the provided type or based on instructions.
 
-    Either a type or instructions must be provided. If instructions are
-    provided without a type, the type is assumed to be a string.
+    Either a type or instructions must be provided. If instructions are provided
+    without a type, the type is assumed to be a string. The function generates at
+    least 'n' items.
+
+    Args:
+        type_ (type, optional): The type of items to generate. Defaults to None.
+        instructions (str, optional): Instructions for the generation. Defaults to None.
+        n (int, optional): The number of items to generate. Defaults to 1.
+        temperature (float, optional): The temperature for the generation. Defaults to 1.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+
+    Returns:
+        list: A list of generated items.
     """
 
     if type_ is None and instructions is None:
@@ -250,13 +362,25 @@ def generate(
 
 def fn(func: Callable = None, model_kwargs: dict = None):
     """
-    A decorator that converts a Python function into an AI function.
+    Converts a Python function into an AI function using a decorator.
 
-    @fn
-    def list_fruit(n:int) -> list[str]:
-        '''generates a list of n fruit'''
+    This decorator allows a Python function to be converted into an AI function.
+    The AI function uses a language model to generate its output.
 
-    list_fruit(3) # ['apple', 'banana', 'orange']
+    Args:
+        func (Callable, optional): The function to be converted. Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+
+    Returns:
+        Callable: The converted AI function.
+
+    Example:
+        @fn
+        def list_fruit(n:int) -> list[str]:
+            '''generates a list of n fruit'''
+
+        list_fruit(3) # ['apple', 'banana', 'orange']
     """
 
     if func is None:
@@ -312,12 +436,33 @@ class Model(BaseModel):
 
     @classmethod
     def from_text(cls, text: str, model_kwargs: dict = None, **kwargs) -> "Model":
-        """Async text constructor"""
+        """
+        Class method to create an instance of the model from a natural language string.
+
+        Args:
+            text (str): The natural language string to convert into an instance of the model.
+            model_kwargs (dict, optional): Additional keyword arguments for the
+                language model. Defaults to None.
+            **kwargs: Additional keyword arguments to pass to the model's constructor.
+
+        Returns:
+            Model: An instance of the model.
+        """
         ai_kwargs = cast(text, cls, model_kwargs=model_kwargs, **kwargs)
         ai_kwargs.update(kwargs)
         return cls(**ai_kwargs)
 
     def __init__(self, text: str = None, *, model_kwargs: dict = None, **kwargs):
+        """
+        Initializes an instance of the model.
+
+        Args:
+            text (str, optional): The natural language string to convert into an
+                instance of the model. Defaults to None.
+            model_kwargs (dict, optional): Additional keyword arguments for the
+                language model. Defaults to None.
+            **kwargs: Additional keyword arguments to pass to the model's constructor.
+        """
         ai_kwargs = kwargs
         if text is not None:
             ai_kwargs = cast(text, type(self), model_kwargs=model_kwargs).model_dump()
@@ -335,8 +480,10 @@ def classifier(cls=None, *, instructions=None, model_kwargs=None):
 
     Args:
         cls (Enum, optional): The Enum class to be decorated.
-        instructions (str, optional): Instructions for the AI on how to perform the classification.
-        model_kwargs (dict, optional): Additional keyword arguments to pass to the model.
+        instructions (str, optional): Instructions for the AI on
+            how to perform the classification.
+        model_kwargs (dict, optional): Additional keyword
+            arguments to pass to the model.
 
     Returns:
         Enum: The decorated Enum class with modified __call__ method.
@@ -376,8 +523,19 @@ def model(
     type_: Union[Type[M], None] = None, model_kwargs: dict = None
 ) -> Union[Type[M], Callable[[Type[M]], Type[M]]]:
     """
-    Class decorator for instantiating a Pydantic model from a string. Equivalent
-    to subclassing Model.
+    Class decorator for instantiating a Pydantic model from a string.
+
+    This decorator allows a Pydantic model to be instantiated from a string. It's
+    equivalent to subclassing the Model class.
+
+    Args:
+        type_ (Union[Type[M], None], optional): The type of the Pydantic model.
+            Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+
+    Returns:
+        Union[Type[M], Callable[[Type[M]], Type[M]]]: The decorated Pydantic model.
     """
     model_kwargs = model_kwargs or {}
 
