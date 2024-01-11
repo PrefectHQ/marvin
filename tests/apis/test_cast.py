@@ -60,8 +60,7 @@ class TestCast:
                 ),
             )
 
-            assert result == '{"color": "red"}'
-            assert json.loads(result)
+            assert json.loads(result) == {"color": "red"}
 
         def test_float_to_int(self):
             result = marvin.cast("the number is 3.2", int)
