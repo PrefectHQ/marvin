@@ -36,7 +36,7 @@ class TestSpeechSettings:
     def test_speech_settings_default(self):
         settings = SpeechSettings()
         assert settings.model == "tts-1-hd"
-        assert settings.voice == "alloy"
+        assert settings.voice == "echo"
         assert settings.response_format == "mp3"
         assert settings.speed == 1.0
 
