@@ -1,1 +1,1 @@
-::: marvin.components.classifier
+::: marvin.core.text.classifier

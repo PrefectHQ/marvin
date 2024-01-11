@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Callable, TypeVar
+from typing import Callable, Literal, TypeVar
 
 from openai._base_client import HttpxBinaryResponseContent
 
@@ -32,10 +32,18 @@ def generate_speech(
     return response
 
 
-def speak(text: str, model_kwargs: dict = None):
+def speak(
+    text: str,
+    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = None,
+    model_kwargs: dict = None,
+):
     """
     Use an AI to generate audio from text.
     """
+    model_kwargs = model_kwargs or {}
+    if voice is not None:
+        model_kwargs["voice"] = voice
+
     response = generate_speech(
         prompt_template=text,
         model_kwargs=model_kwargs,

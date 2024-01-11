@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/img/heroes/it_hates_me_hero.png" style="width: 95%; height: auto;"/>
+  <img src="docs/assets/images/heroes/it_hates_me_hero.png" style="width: 95%; height: auto;"/>
 </p>
 
 # Marvin
@@ -26,7 +26,7 @@ Marvin uses OpenAI models, so you'll need to configure an OpenAI API key before 
 
 ## Tools
 
-Marvin contains a variety of useful tools, each designed for independent, incremental use. Despite using AI Magic™️, each one should feel familiar and fit right into your existing workflows.
+Marvin contains a variety of useful tools, each designed for independent, incremental use. Even though they all use AI Magic™️, each one should feel familiar and fit right into your existing workflows.
 
 Each tool in this list is available as a top-level import e.g. `marvin.fn`, `marvin.classify`, etc.
 
@@ -37,8 +37,6 @@ Each tool in this list is available as a top-level import e.g. `marvin.fn`, `mar
 
 🧩 `@model`: use AI to instantiate Pydantic models
 
-🏷️ `@classifier`: use AI to choose Enum values
-
 ### Text
 
 🪄 `cast`: transform text into a structured type
@@ -47,25 +45,24 @@ Each tool in this list is available as a top-level import e.g. `marvin.fn`, `mar
 
 🔍 `extract`: find structured entities in text
 
-🏷️ `classify`: categorize text with labels
+🏷️ `classify` / `@classifier`: categorize text with labels
 
 ### Images
 
-🖼️ `imagine`: generate images from descriptive text
+🖼️ `paint` / `@image`: generate images from text or functions
 
-🖌️ `@image`: generate images from the output of a function
 
 ### Audio
 
-🎙️ `speak`: convert text to speech 
+🎙️ `speak` / `@speech`: generate speech from text or functions
 
-📢 `@speech`: generate speech from the output of a function
 
-### Interactive Use
+### Interaction
 
 🤖 `Assistants` (*beta*): work interactively with AI
 
 🧭 `Applications` (*beta*): manage state through natural language
+
 
 ## Quickstart
 
@@ -126,8 +123,25 @@ marvin.classify('I love this feature', labels=['positive', 'negative'])
 
 ### ✨ Generate data
 Marvin can `generate` data for you:
+```python
+from pydantic import BaseModel
 
-TODO
+class Location(BaseModel):
+    city: str
+    state: str
+
+marvin.generate(
+    Location, 
+    n=4, 
+    instructions="cities in the United States named after famous people"
+)
+# [
+#     Location(city='Washington', state='District of Columbia'),
+#     Location(city='Jackson', state='Mississippi'),
+#     Location(city='Cleveland', state='Ohio'),
+#     Location(city='Lincoln', state='Nebraska'),
+# ]
+```
 
 ### ⚙️ Build AI-powered functions
 

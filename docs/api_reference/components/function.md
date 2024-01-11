@@ -1,1 +1,1 @@
-::: marvin.components.function
+::: marvin.core.text.fn

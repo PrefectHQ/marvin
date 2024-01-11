@@ -18,23 +18,23 @@ nav:
   - Docs:
     - Overview: welcome/overview.md
 
-    - General purpose:
-      - Function: tools/function.md
 
     - LLMs:
-      - Structured data: tools/casting.md
-      - Entity extraction: tools/extraction.md
-      - Classification: tools/classification.md
-      - Generating synthetic data: tools/generation.md
+      - Structured data: core/casting.md
+      - Entity extraction: core/extraction.md
+      - Classification: core/classification.md
+      - Generating synthetic data: core/generation.md
 
+    - General purpose:
+      - Function: core/function.md
 
     - Images:
-      - Generation: tools/function.md
-      - Captioning: tools/function.md
+      - Generation: core/painting.md
+      # - Captioning: core/function.md
 
     - Audio:
-      - Speech: tools/function.md
-      - Transcription: tools/function.md
+      - Speech: core/speech.md
+      # - Transcription: core/function.md
       
     - Configuration: 
       - Settings: configuration/settings.md
@@ -75,8 +75,8 @@ theme:
     primary: custom
   name: material
   custom_dir: docs/overrides
-  logo: img/logos/askmarvin_mascot.jpeg
-  favicon: img/logos/askmarvin_mascot.jpeg
+  logo: assets/images/logos/askmarvin_mascot.jpeg
+  favicon: assets/images/logos/askmarvin_mascot.jpeg
 
 plugins:
   - search

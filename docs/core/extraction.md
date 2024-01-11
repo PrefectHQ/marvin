@@ -1,4 +1,5 @@
 # Entity extraction
+
 Marvin's `extract` function is a robust tool for pulling lists of structured entities from text. It is designed to identify and retrieve many types of data, ranging from primitive data types like integers and strings to complex custom types and Pydantic models. It can also follow nuanced instructions, making it a highly versatile tool for a wide range of extraction tasks.
 
 <div class="admonition abstract">
@@ -15,7 +16,7 @@ Marvin's `extract` function is a robust tool for pulling lists of structured ent
         Extract product features from user feedback:
 
         ```python
-        import marvin.v2 as marvin
+        import marvin
 
         features = marvin.extract(
             "I love my new phone's camera, but the battery life could be improved.",
@@ -35,7 +36,7 @@ Marvin's `extract` function is a robust tool for pulling lists of structured ent
         Suppose you want to extract any people mentioned in some text
         
         ```python
-        import marvin.v2 as marvin
+        import marvin
 
         class Person(BaseModel):
             first_name: str

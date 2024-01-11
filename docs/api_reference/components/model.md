@@ -1,1 +1,1 @@
-::: marvin.components.model
+::: marvin.core.text.model

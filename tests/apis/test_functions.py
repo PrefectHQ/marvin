@@ -20,6 +20,12 @@ def list_fruit_color(n: int, color: str = None) -> list[str]:
 
 @pytest_mark_class("llm")
 class TestFunctions:
+    class TestMeta:
+        def test_docstring_templated(self):
+            @marvin.fn
+            def list_fruit(n: int = 2) -> list[str]:
+                """Returns a list of {{n}} fruit"""
+
     class TestBasics:
         def test_list_fruit(self):
             result = list_fruit()

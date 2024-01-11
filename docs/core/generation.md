@@ -16,7 +16,7 @@ Marvin can generate synthetic data according to a schema and instructions. Gener
         We can generate a variety of names by providing instructions:
 
         ```python
-        import marvin.v2 as marvin
+        import marvin
 
         names = marvin.generate(str, n=4, instructions="first names")
         french_names = marvin.generate(str, n=4, instructions="first names from France")
@@ -57,7 +57,7 @@ Marvin can generate synthetic data according to a schema and instructions. Gener
                 Location(city='Washington', state='District of Columbia'),
                 Location(city='Jackson', state='Mississippi'),
                 Location(city='Cleveland', state='Ohio'),
-                Location(city='Lincoln', state='Nebraska')
+                Location(city='Lincoln', state='Nebraska'),
             ]
             ```
 

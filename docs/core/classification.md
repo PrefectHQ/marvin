@@ -14,7 +14,7 @@ Marvin has a powerful classification tool that can be used to categorize text in
     Categorize user feedback into labels such as "bug", "feature request", or "inquiry":
     
     ```python
-    import marvin.v2 as marvin
+    import marvin
 
     category = marvin.classify(
         "The app crashes when I try to upload a file.", 
@@ -61,7 +61,7 @@ For applications where classification labels are more structured and recurring, 
 
 ```python
 from enum import Enum
-import marvin.v2 as marvin
+import marvin
 
 class RequestType(Enum):
     SUPPORT = "support request"
@@ -79,7 +79,7 @@ This approach not only enhances code readability but also ensures consistency ac
 For cases where the classification is binary, Booleans are a simple and effective solution. As a simple example, you could map natural-language responses to a yes/no question to a Boolean label:
 
 ```python
-import marvin.v2 as marvin
+import marvin
 
 response = marvin.classify('no way', bool)
 assert response is False
@@ -92,7 +92,7 @@ In scenarios where labels are part of the function signatures or need to be infe
 
 ```python
 from typing import Literal
-import marvin.v2 as marvin
+import marvin
 
 RequestType = Literal["support request", "account issue", "general inquiry"]
 

@@ -89,7 +89,7 @@ class SpeechSettings(MarvinSettings):
 
     Attributes:
         model: The default speech model to use, defaults to `tts-1-hd`.
-        voice: The default voice to use, defaults to `alloy`.
+        voice: The default voice to use, defaults to `echo`.
         response_format: The default response format to use, defaults to `mp3`.
         speed: The default speed to use, defaults to `1.0`.
     """
@@ -101,7 +101,7 @@ class SpeechSettings(MarvinSettings):
         description="The default model to use.",
     )
     voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = Field(
-        default="alloy",
+        default="echo",
     )
     response_format: Literal["mp3", "opus", "aac", "flac"] = Field(default="mp3")
     speed: float = Field(default=1.0)
