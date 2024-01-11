@@ -1,26 +1,59 @@
 import inspect
-from typing import Dict, List
+from enum import Enum
+from typing import Dict, List, Literal
+from unittest.mock import patch
 
 import marvin
 import pytest
-from marvin import fn
 from pydantic import BaseModel
 
 from tests.utils import pytest_mark_class
 
 
-@fn
+@marvin.fn
 def list_fruit(n: int = 2) -> list[str]:
     """Returns a list of `n` fruit"""
 
 
-@fn
+@marvin.fn
 def list_fruit_color(n: int, color: str = None) -> list[str]:
     """Returns a list of `n` fruit that all have the provided `color`"""
 
 
 @pytest_mark_class("llm")
 class TestFunctions:
+    class TestMeta:
+        @patch("marvin.core.text.generate_llm_response")
+        def test_entire_signature_provided(self, mock_generate_llm_response):
+            @marvin.fn
+            def list_fruit(n: int) -> list[str]:
+                """Returns a list of n fruit"""
+
+            list_fruit(n=2)
+
+            prompt_kwargs = mock_generate_llm_response.call_args[1]["prompt_kwargs"]
+            # docstring is reformatted
+            signature = inspect.cleandoc(
+                '''
+                def list_fruit(n: int) -> list[str]:
+                    """
+                    Returns a list of n fruit
+                    """
+                '''
+            )
+            assert signature in prompt_kwargs["fn_definition"]
+
+        @patch("marvin.core.text.generate_llm_response")
+        def test_docstring_templated(self, mock_generate_llm_response):
+            @marvin.fn
+            def list_fruit(n: int) -> list[str]:
+                """Returns a list of {{n}} fruit"""
+
+            list_fruit(n=2)
+
+            prompt_kwargs = mock_generate_llm_response.call_args[1]["prompt_kwargs"]
+            assert "Returns a list of 2 fruit" in prompt_kwargs["fn_definition"]
+
     class TestBasics:
         def test_list_fruit(self):
             result = list_fruit()
@@ -30,19 +63,9 @@ class TestFunctions:
             result = list_fruit(5)
             assert len(result) == 5
 
-        async def test_list_fruit_async(self):
-            @fn
-            async def list_fruit(n: int) -> list[str]:
-                """Returns a list of `n` fruit"""
-
-            coro = list_fruit(3)
-            assert inspect.iscoroutine(coro)
-            result = await coro
-            assert len(result) == 3
-
     class TestAnnotations:
         def test_no_annotations(self):
-            @fn
+            @marvin.fn
             def f(x):
                 """returns x + 1"""
 
@@ -50,7 +73,7 @@ class TestFunctions:
             assert result == "4"
 
         def test_arg_annotations(self):
-            @fn
+            @marvin.fn
             def f(x: int):
                 """returns x + 1"""
 
@@ -58,7 +81,7 @@ class TestFunctions:
             assert result == "4"
 
         def test_return_annotations(self):
-            @fn
+            @marvin.fn
             def f(x) -> int:
                 """returns x + 1"""
 
@@ -66,7 +89,7 @@ class TestFunctions:
             assert result == 4
 
         def test_list_fruit_with_generic_type_hints(self):
-            @fn
+            @marvin.fn
             def list_fruit(n: int) -> List[str]:
                 """Returns a list of `n` fruit"""
 
@@ -78,7 +101,7 @@ class TestFunctions:
                 name: str
                 color: str
 
-            @fn
+            @marvin.fn
             def get_fruit(description: str) -> Fruit:
                 """Returns a fruit with the provided description"""
 
@@ -88,7 +111,7 @@ class TestFunctions:
 
         @pytest.mark.parametrize("name,expected", [("banana", True), ("car", False)])
         def test_bool_return_annotation(self, name, expected):
-            @fn
+            @marvin.fn
             def is_fruit(name: str) -> bool:
                 """Returns True if the provided name is a fruit"""
 
@@ -99,7 +122,7 @@ class TestFunctions:
             reason="3.5 turbo doesn't do well with unknown schemas",
         )
         def test_plain_dict_return_type(self):
-            @fn
+            @marvin.fn
             def describe_fruit(description: str) -> dict:
                 """guess the fruit and return the name and color"""
 
@@ -112,7 +135,7 @@ class TestFunctions:
             reason="3.5 turbo doesn't do well with unknown schemas",
         )
         def test_annotated_dict_return_type(self):
-            @fn
+            @marvin.fn
             def describe_fruit(description: str) -> dict[str, str]:
                 """guess the fruit and return the name and color"""
 
@@ -125,7 +148,7 @@ class TestFunctions:
             reason="3.5 turbo doesn't do well with unknown schemas",
         )
         def test_generic_dict_return_type(self):
-            @fn
+            @marvin.fn
             def describe_fruit(description: str) -> Dict[str, str]:
                 """guess the fruit and return the name and color"""
 
@@ -140,7 +163,7 @@ class TestFunctions:
                 name: str
                 color: str
 
-            @fn
+            @marvin.fn
             def describe_fruit(description: str) -> Fruit:
                 """guess the fruit and return the name and color"""
 
@@ -149,21 +172,21 @@ class TestFunctions:
             assert fruit["color"].lower() == "yellow"
 
         def test_int_return_type(self):
-            @fn
+            @marvin.fn
             def get_fruit(name: str) -> int:
                 """Returns the number of letters in the alluded fruit name"""
 
             assert get_fruit("banana") == 6
 
         def test_float_return_type(self):
-            @fn
+            @marvin.fn
             def get_pi(n: int) -> float:
-                """Return the first n digits of pi"""
+                """Return the first n decimals of pi"""
 
             assert get_pi(5) == 3.14159
 
         def test_tuple_return_type(self):
-            @fn
+            @marvin.fn
             def get_fruit(name: str) -> tuple:
                 """Returns a tuple of fruit"""
 
@@ -173,15 +196,27 @@ class TestFunctions:
                 "cherry",
             )
 
+        # fails due to incompatibiliy with OpenAPI schemas and OpenAI
+        @pytest.mark.xfail(reason="OpenAPI schemas don't support typed tuples?")
+        def test_typed_tuple_return_type(self):
+            @marvin.fn
+            def get_letter_index(letter: str) -> tuple[str, int]:
+                """
+                returns a tuple of the provided letter and its position in the
+                alphabet. For example, a -> (a, 1); b -> (b, 2); etc.
+                """
+
+            assert get_letter_index("d") == ("d", 4)
+
         def test_set_return_type(self):
-            @fn
+            @marvin.fn
             def get_fruit_letters(name: str) -> set:
                 """Returns the letters in the provided fruit name"""
 
             assert get_fruit_letters("banana") == {"a", "b", "n"}
 
         def test_frozenset_return_type(self):
-            @fn
+            @marvin.fn
             def get_fruit_letters(name: str) -> frozenset:
                 """Returns the letters in the provided fruit name"""
 
@@ -189,41 +224,34 @@ class TestFunctions:
                 {"a", "e", "g", "n", "o", "r"}
             )
 
+        def test_enum_return_type(self):
+            class Fruit(Enum):
+                # fruits of different colors
+                APPLE = "APPLE"
+                BANANA = "BANANA"
+                ORANGE = "ORANGE"
+                BLUEBERRY = "BLUEBERRY"
 
-@pytest_mark_class("llm")
-class TestFunctionsMap:
-    def test_map(self):
-        result = list_fruit.map([2, 3])
-        assert len(result) == 2
-        assert len(result[0]) == 2
-        assert len(result[1]) == 3
+            @marvin.fn
+            def get_fruit(color: str) -> Fruit:
+                """Returns the fruit with the provided color"""
 
-    async def test_amap(self):
-        result = await list_fruit.amap([2, 3])
-        assert len(result) == 2
-        assert len(result[0]) == 2
-        assert len(result[1]) == 3
+            assert get_fruit("yellow") == Fruit.BANANA
 
-    def test_map_kwargs(self):
-        result = list_fruit.map(n=[2, 3])
-        assert len(result) == 2
-        assert len(result[0]) == 2
-        assert len(result[1]) == 3
+        def test_literal_return_type(self):
+            @marvin.fn
+            def get_fruit(
+                color: str,
+            ) -> Literal["APPLE", "BANANA", "ORANGE", "BLUEBERRY"]:
+                """Returns the fruit with the provided color"""
 
-    def test_map_kwargs_and_args(self):
-        result = list_fruit_color.map([2, 3], color=["green", "red"])
-        assert len(result) == 2
-        assert len(result[0]) == 2
-        assert len(result[1]) == 3
+            assert get_fruit("yellow") == "BANANA"
 
-    def test_invalid_args(self):
-        with pytest.raises(TypeError):
-            list_fruit_color.map(2, color=["orange", "red"])
+        def test_list_instance_return_type(self):
+            @marvin.fn
+            def get_fruit(
+                color: str,
+            ) -> ["APPLE", "BANANA", "ORANGE", "BLUEBERRY"]:  # noqa F821
+                """Returns the fruit with the provided color"""
 
-    def test_invalid_kwargs(self):
-        with pytest.raises(TypeError):
-            list_fruit_color.map([2, 3], color=None)
-
-    async def test_invalid_async_map(self):
-        with pytest.raises(TypeError, match="can't be used in 'await' expression"):
-            await list_fruit_color.map(n=[2], color=["orange", "red"])
+            assert get_fruit("yellow") == "BANANA"

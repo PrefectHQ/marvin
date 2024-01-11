@@ -4,12 +4,12 @@ from typing import Callable, TypeVar
 from openai.types.images_response import ImagesResponse
 
 import marvin
+from marvin.client.openai import MarvinClient
+from marvin.core.prompts.image_templates import IMAGE_PROMPT
 from marvin.requests import ImageRequest
 from marvin.utilities.jinja import Environment
 from marvin.utilities.logging import get_logger
 from marvin.utilities.python import PythonFunction
-from marvin.v2.ai.prompt_templates import IMAGE_PROMPT
-from marvin.v2.client import MarvinClient
 
 T = TypeVar("T")
 
@@ -34,7 +34,7 @@ def generate_image(
     return response
 
 
-def imagine(instructions: str = None, context: dict = None, model_kwargs: dict = None):
+def paint(instructions: str = None, context: dict = None, model_kwargs: dict = None):
     response = generate_image(
         prompt_template=IMAGE_PROMPT,
         prompt_kwargs=dict(
@@ -50,7 +50,7 @@ def image(fn: Callable):
     @wraps(fn)
     def wrapper(*args, **kwargs):
         model = PythonFunction.from_function_call(fn, *args, **kwargs)
-        return imagine(
+        return paint(
             instructions=model.docstring,
             context=dict(
                 prompt_source="function call",

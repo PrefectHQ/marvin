@@ -1,4 +1,4 @@
-import marvin.v2
+import marvin
 import pytest
 from pydantic import BaseModel, Field
 
@@ -14,11 +14,11 @@ class Location(BaseModel):
 class TestExtract:
     class TestBuiltins:
         def test_extract_numbers(self):
-            result = marvin.v2.extract("one, two, three", int)
+            result = marvin.extract("one, two, three", int)
             assert result == [1, 2, 3]
 
         def test_extract_complex_numbers(self):
-            result = marvin.v2.extract(
+            result = marvin.extract(
                 "I paid $10 for 3 coffees and they gave me back a dollar and 25 cents",
                 float,
             )
@@ -28,7 +28,7 @@ class TestExtract:
                 assert result == [10.0, 1.25]
 
         def test_extract_money(self):
-            result = marvin.v2.extract(
+            result = marvin.extract(
                 "I paid $10 for 3 coffees and they gave me back a dollar and 25 cents",
                 float,
                 instructions="dollar amounts",
@@ -36,7 +36,7 @@ class TestExtract:
             assert result == [10.0, 1.25]
 
         def test_extract_names(self):
-            result = marvin.v2.extract(
+            result = marvin.extract(
                 "My name is John, my friend's name is Mary, and my other friend's name"
                 " is Bob",
                 str,
@@ -44,9 +44,13 @@ class TestExtract:
             )
             assert result == ["John", "Mary", "Bob"]
 
+        def test_float_to_int(self):
+            result = marvin.extract("the numbers are 1, 2, and 3.2", int)
+            assert result == [1, 2, 3]
+
     class TestInstructions:
         def test_city_and_state(self):
-            result = marvin.v2.extract(
+            result = marvin.extract(
                 "I live in the big apple",
                 str,
                 instructions="(city, state abbreviation)",
@@ -55,11 +59,11 @@ class TestExtract:
 
     class TestPydantic:
         def test_extract_location(self):
-            result = marvin.v2.extract("I live in New York, NY", Location)
+            result = marvin.extract("I live in New York, NY", Location)
             assert result == [Location(city="New York", state="NY")]
 
         def test_extract_multiple_locations(self):
-            result = marvin.v2.extract(
+            result = marvin.extract(
                 "I live in New York, NY and work in San Francisco, CA", Location
             )
             assert result == [
@@ -68,9 +72,7 @@ class TestExtract:
             ]
 
         def test_extract_multiple_locations_by_nickname(self):
-            result = marvin.v2.extract(
-                "I live in the big apple and work in SF", Location
-            )
+            result = marvin.extract("I live in the big apple and work in SF", Location)
             assert result == [
                 Location(city="New York", state="NY"),
                 Location(city="San Francisco", state="CA"),
@@ -78,7 +80,7 @@ class TestExtract:
 
         @pytest.mark.xfail(reason="tuples aren't working right now")
         def test_extract_complex_pattern(self):
-            result = marvin.v2.extract(
+            result = marvin.extract(
                 "John lives in Boston, Mary lives in NYC, and I live in SF",
                 tuple[str, Location],
                 instructions="pair names and locations",

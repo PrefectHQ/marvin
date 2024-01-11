@@ -5,6 +5,7 @@ from typing import Any, Callable, List, Optional
 from pydantic import BaseModel, Field, computed_field
 
 from marvin.utilities.asyncio import run_sync
+from marvin.utilities.jinja import Environment
 
 
 class ParameterModel(BaseModel):
@@ -87,8 +88,14 @@ class PythonFunction(BaseModel):
         if inspect.iscoroutine(return_value):
             return_value = run_sync(return_value)
 
+        # render the docstring with the bound arguments, if it was supplied as jinja
+        docstring = Environment.render(
+            func.__doc__ or "", **dict(bound.arguments.items())
+        )
+
         instance = cls.from_function(
             func,
+            docstring=docstring,
             bound_parameters={k: v for k, v in bound.arguments.items()},
             return_value=return_value,
         )

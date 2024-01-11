@@ -1,26 +1,34 @@
 from .settings import settings
 
-from .components import fn, image, speech, model, cast, extract, classify
-from .components.prompt.fn import prompt_fn
+from .core.text import fn, cast, extract, classify, classifier, generate, model, Model
+from .core.images import paint, image
+from .core.audio import speak, speech
+
 
 try:
     from ._version import version as __version__
 except ImportError:
     __version__ = "unknown"
 
+
 __all__ = [
-    "fn",
-    "image",
-    "model",
+    # --- text ---
+    "Model",
     "cast",
-    "extract",
     "classify",
+    "classifier",
+    "extract",
+    "fn",
+    "generate",
+    "model",
+    # --- images ---
+    "image",
+    "paint",
+    # --- audio ---
+    "speak",
     "speech",
-    "prompt_fn",
-    "settings",
 ]
 
 
 # compatibility with Marvin v1
-from .components import fn as ai_fn, model as ai_model
-from .components.classifier import classifier as ai_classifier
+from marvin.core._v1_compat import ai_fn, ai_model, ai_classifier

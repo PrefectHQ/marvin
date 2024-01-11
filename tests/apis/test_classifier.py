@@ -1,17 +1,17 @@
 from enum import Enum
 
-import marvin.v2
+import marvin
 
 from tests.utils import pytest_mark_class
 
 
-@marvin.v2.classifier
+@marvin.classifier
 class Color(Enum):
     RED = "red"
     GREEN = "green"
 
 
-@marvin.v2.classifier
+@marvin.classifier
 class GitHubIssueTag(Enum):
     BUG = "bug"
     FEATURE = "feature"
@@ -52,7 +52,7 @@ class TestClassifier:
             assert result == GitHubIssueTag.DOCS
 
     class TestInstructions:
-        @marvin.v2.classifier(instructions="Everything is a bug, no matter what.")
+        @marvin.classifier(instructions="Everything is a bug, no matter what.")
         class GitHubIssueTagInstructions(Enum):
             BUG = "bug"
             FEATURE = "feature"
@@ -64,7 +64,7 @@ class TestClassifier:
             assert result == self.GitHubIssueTagInstructions.BUG
 
     class TestDocstring:
-        @marvin.v2.classifier
+        @marvin.classifier
         class GitHubIssueTagDocstring(Enum):
             """Everything is a bug, no matter what."""
 

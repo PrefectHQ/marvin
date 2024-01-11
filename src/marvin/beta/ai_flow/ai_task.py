@@ -9,11 +9,10 @@ from typing_extensions import ParamSpec
 
 from marvin.beta.assistants import Assistant, Run, Thread
 from marvin.beta.assistants.runs import CancelRun
-from marvin.serializers import create_tool_from_type
 from marvin.tools.assistants import AssistantTool
 from marvin.utilities.context import ScopedContext
 from marvin.utilities.jinja import Environment as JinjaEnvironment
-from marvin.utilities.tools import tool_from_function
+from marvin.utilities.tools import tool_from_function, tool_from_type
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -245,15 +244,7 @@ class AITask(BaseModel, Generic[P, T]):
 
         # otherwise we need to create a tool with the correct parameter signature
 
-        tool = create_tool_from_type(
-            _type=self.fn.__annotations__["return"],
-            model_name="task_completed",
-            model_description=(
-                "Indicate that the task completed and produced the provided `result`."
-            ),
-            field_name="result",
-            field_description="The task result",
-        )
+        tool = tool_from_type(type_=self.fn.__annotations__["return"])
 
         def task_completed_with_result(result: T):
             self.status = Status.COMPLETED

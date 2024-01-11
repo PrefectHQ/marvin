@@ -25,14 +25,17 @@ CAST_PROMPT = inspect.cleandoc(
     
     ## Response format
     
-    Call the `FormatResponse` tool to validate your response, and use the following schema:
-    {{ response_format }}
+    Call the `FormatResponse` tool to validate your response, and use the
+    following schema: {{ response_format }}
     
-    {% if is_str_response %}
-    The user expects a string response, but do not return JSON or a quoted
-    string unless they provided instructions requiring it. If you do return
-    JSON, it must be valid and parseable including double quotes.
-    {% endif %}
+    - When providing integers, do not write out any decimals at all
+    - Use deduction where appropriate e.g. "3 dollars fifty cents" is a single
+      value [3.5] not two values [3, 50] unless the user specifically asks for
+      each part.
+    - When providing a string response, do not return JSON or a quoted string
+      unless they provided instructions requiring it. If you do return JSON, it
+      must be valid and parseable including double quotes.
+ 
     
 """
 )
@@ -65,6 +68,11 @@ EXTRACT_PROMPT = inspect.cleandoc(
     
     Call the `FormatResponse` tool to validate your response, and use the
     following schema: {{ response_format }}
+    
+    - When providing integers, do not write out any decimals at all
+    - Use deduction where appropriate e.g. "3 dollars fifty cents" is a single
+      value [3.5] not two values [3, 50] unless the user specifically asks for
+      each part.
     
 """
 )
