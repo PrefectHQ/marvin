@@ -94,17 +94,17 @@ class TestCast:
             assert result == "My name is MARVIN"
 
     class TestCastCallsClassify:
-        @patch("marvin.apis.text.classify")
+        @patch("marvin.core.text.classify")
         def test_cast_doesnt_call_classify_for_int(self, mock_classify):
             marvin.cast("Yes", int)
             mock_classify.assert_not_called()
 
-        @patch("marvin.apis.text.classify")
+        @patch("marvin.core.text.classify")
         def test_cast_calls_classify_for_bool(self, mock_classify):
             marvin.cast("Yes", bool)
             mock_classify.assert_called_once()
 
-        @patch("marvin.apis.text.classify")
+        @patch("marvin.core.text.classify")
         def test_cast_calls_classify_for_enum(self, mock_classify):
             class Sentiment(Enum):
                 positive = "Positive"

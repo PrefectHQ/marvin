@@ -1,8 +1,8 @@
 from .settings import settings
 
-from .apis.text import fn, cast, extract, classify, classifier, generate, model, Model
-from .apis.images import paint, image
-from .apis.audio import speak, speech
+from .core.text import fn, cast, extract, classify, classifier, generate, model, Model
+from .core.images import paint, image
+from .core.audio import speak, speech
 
 
 try:
@@ -31,4 +31,4 @@ __all__ = [
 
 
 # compatibility with Marvin v1
-from marvin.apis._v1_compat import ai_fn, ai_model, ai_classifier
+from marvin.core._v1_compat import ai_fn, ai_model, ai_classifier
