@@ -7,14 +7,13 @@ a few options to customize the client and completion behavior.
     When using any of Marvin's components, you have two options to customize the client used. 
 
     === "Pass your client"
-        You can explicitly pass a client to a component, like `ai_fn`. 
+        You can explicitly pass a client to a component, like `marvin.fn`. 
 
         ```python
-
         client = OpenAI(api_key = 'sk-my-key')
 
-        @ai_fn(client = client)
-        def my_ai_fn():
+        @marvin.fn(client = client)
+        def my_fn():
             """..."""
         ```
     === "Use runtime settings"
@@ -25,21 +24,21 @@ a few options to customize the client and completion behavior.
         from marvin import settings
         settings.openai.api_key = 'sk-my-key'
 
-        @ai_fn
-        def my_ai_fn():
+        @marvin.fn
+        def my_fn():
             """..."""
         ```
 ??? info "How to: Customize your completion"
     When using any of Marvin's components, you have two options to customize the client used. 
     === "Pass completion keywords"
-        You can explicitly pass a completion keywords to a component, like `ai_fn`. 
+        You can explicitly pass a completion keywords to a component, like `marvin.fn`. 
 
         ```python
 
         client = OpenAI(api_key = 'sk-my-key')
 
-        @ai_fn(client = client, model = 'gpt-3.5-turbo')
-        def my_ai_fn():
+        @marvin.fn(client = client, model = 'gpt-3.5-turbo')
+        def my_fn():
             """..."""
         ```
     === "Use runtime settings"
@@ -50,8 +49,8 @@ a few options to customize the client and completion behavior.
         from marvin import settings
         settings.openai.chat.completions.model = 'gpt-3.5-turbo'
 
-        @ai_fn
-        def my_ai_fn():
+        @marvin.fn
+        def my_fn():
             """..."""
         ```
 
@@ -63,15 +62,15 @@ Marvin's most basic component is the AI Model, built on Pydantic's `BaseModel`. 
 
 !!! example "Example"
     === "As a decorator"
-        `ai_model` can decorate pydantic models to give them parsing powers.
+        `marvin.model` can decorate pydantic models to give them parsing powers.
         ```python
-        from marvin import ai_model
+        import marvin
         from pydantic import BaseModel, Field
         from openai import OpenAI
 
         client = OpenAI(api_key = 'YOUR_API_KEY')
 
-        @ai_model(client = client)
+        @marvin.model(client = client)
         class Location(BaseModel):
             city: str
             state_abbreviation: str = Field(
@@ -160,9 +159,9 @@ Marvin's most basic component is the AI Model, built on Pydantic's `BaseModel`. 
             ```
 
     === "As a function"
-        `ai_model` can cast unstructured data to any `type` (or `GenericAlias`).
+        `marvin.model` can cast unstructured data to any `type` (or `GenericAlias`).
         ```python
-        from marvin import ai_model
+        from marvin import marvin.model
         from pydantic import BaseModel, Field
         from openai import OpenAI
 
@@ -175,12 +174,12 @@ Marvin's most basic component is the AI Model, built on Pydantic's `BaseModel`. 
                 description="The two-letter state abbreviation"
             )
 
-        ai_model(Location, client = client)("The Big Apple")
+        marvin.model(Location, client = client)("The Big Apple")
         ```
         ??? info "Generated Prompt"
             You can view and/or eject the generated prompt by simply calling 
             ```python
-            ai_model(Location, client = client)("The Big Apple").as_prompt().serialize()
+            marvin.model(Location, client = client)("The Big Apple").as_prompt().serialize()
             ```
             When you do you'll see the raw payload that's sent to the LLM. All of the parameters
             below like `FormatResponse` and the prompt you send are fully customizable. 
@@ -258,9 +257,9 @@ Marvin's most basic component is the AI Model, built on Pydantic's `BaseModel`. 
         Location(city='New York', state='NY')
         ```
 
-### AI Classifiers
+### Classifiers
 
-AI Classifiers let you build multi-label classifiers with no code and no training data. Given user input, each classifier uses a [clever logit bias trick](https://twitter.com/AAAzzam/status/1669753721574633473) to force an LLM to deductively choose the best option. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
+Classifiers let you build multi-label classifiers with no code and no training data. Given user input, each classifier uses a [clever logit bias trick](https://twitter.com/AAAzzam/status/1669753721574633473) to force an LLM to deductively choose the best option. It's bulletproof, cost-effective, and lets you build classifiers as quickly as you can write your classes.
 
 !!! example "Example"
     === "As a decorator"
@@ -393,20 +392,20 @@ AI Classifiers let you build multi-label classifiers with no code and no trainin
         <AppRoute.USER_PROFILE: '/user-profile'>
         ```
 
-### AI Functions
+### Functions
 
-AI Functions look like regular functions, but have no source code. Instead, an AI uses their description and inputs to generate their outputs, making them ideal for NLP applications like sentiment analysis.
+Functions look like regular functions, but have no source code. Instead, an AI uses their description and inputs to generate their outputs, making them ideal for NLP applications like sentiment analysis.
 
 !!! example "Example"
     === "As a decorator"
-        `ai_fn` can decorate python functions to evlaute them using a Large Language Model.
+        `marvin.fn` can decorate python functions to evlaute them using a Large Language Model.
         ```python
-        from marvin import ai_fn
+        import marvin
         from openai import OpenAI
 
         client = OpenAI(api_key = 'YOUR_API_KEY')
 
-        @ai_fn(client=client)
+        @marvin.fn(client=client)
         def sentiment_list(texts: list[str]) -> list[float]:
             """
             Given a list of `texts`, returns a list of numbers between 1 (positive) and
@@ -478,9 +477,9 @@ AI Functions look like regular functions, but have no source code. Instead, an A
             ```
 
     === "As a function"
-        `ai_fn` can be used as a utility function to evaluate python functions using a Large Language Model.
+        `marvin.fn` can be used as a utility function to evaluate python functions using a Large Language Model.
         ```python
-        from marvin import ai_fn
+        import marvin
         from openai import OpenAI
 
         client = OpenAI(api_key = 'YOUR_API_KEY')
@@ -492,7 +491,7 @@ AI Functions look like regular functions, but have no source code. Instead, an A
             """
 
 
-        ai_fn(sentiment_list, client=client)(
+        marvin.fn(sentiment_list, client=client)(
             [
                 "That was surprisingly easy!",
                 "Oh no, not again.",
@@ -502,7 +501,7 @@ AI Functions look like regular functions, but have no source code. Instead, an A
         ??? info "Generated Prompt"
             You can view and/or eject the generated prompt by simply calling 
             ```python
-            ai_fn(sentiment_list, client = client)([
+            marvin.fn(sentiment_list, client = client)([
                 "That was surprisingly easy!",
                 "Oh no, not again.",
             ]).as_prompt().serialize()

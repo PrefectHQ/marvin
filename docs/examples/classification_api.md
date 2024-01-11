@@ -22,12 +22,12 @@ In this example, we'll show how to
     When we do, this function will use AI to get its answer.
     
     ```python
-    from marvin import ai_fn, settings
+    import marvin
     from typing import Literal
 
-    settings.openai.api_key = 'API_KEY' 
+    marvin.settings.openai.api_key = 'API_KEY' 
 
-    @ai_fn
+    @marvin.fn
     def classify_text(text: str) -> Literal['sports', 'politics', 'technology']:
         '''
             Correctly classifies the passed `text` into one of the predefined categories. 
@@ -53,18 +53,16 @@ In the following example, we will demonstrate how to deploy the AI function we j
     Now that we have our AI function, let's deploy it as an API using FastAPI. FastAPI is a modern, fast (high-performance), web framework for building APIs.
 
     ```python
+    import marvin
     from fastapi import FastAPI
-    from marvin import ai_fn, settings
     from typing import Literal
 
-    settings.openai.api_key = 'API_KEY' 
+    marvin.settings.openai.api_key = 'API_KEY' 
 
     app = FastAPI()
 
-    settings.openai.api_key = 'API_KEY'
-
     @app.post("/classify_text/")
-    @ai_fn
+    @marvin.fn
     def classify_text(text: str) -> Literal['sports', 'politics', 'technology']:
         '''
             Correctly classifies the passed `text` into one of the predefined categories. 

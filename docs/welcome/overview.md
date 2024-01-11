@@ -12,7 +12,7 @@ or fully use its engine to work with OpenAI and other providers.
         Marvin exposes a number of high level components to simplify working with AI. 
 
         ```python
-        from marvin.components import ai_model
+        import marvin
         from pydantic import BaseModel
 
         class Location(BaseModel):
@@ -21,7 +21,7 @@ or fully use its engine to work with OpenAI and other providers.
             latitude: float
             longitude: float
 
-        ai_model(Location)("They say they're from the Windy City!")
+        marvin.model(Location)("They say they're from the Windy City!")
         # Location(city='Chicago', state='Illinois', latitude=41.8781, longitude=-87.6298)
         ```
         Notice there's no code written, just the expected types. Marvin's components turn your function into a prompt, uses AI to get its most likely output, and parses its response.
@@ -49,9 +49,9 @@ or fully use its engine to work with OpenAI and other providers.
         Marvin exposes a number of high level components to simplify working with AI. 
 
         ```python
-        from marvin import ai_fn
+        import marvin
 
-        @ai_fn
+        @marvin.fn
         def list_fruits(n: int, color: str = 'red') -> list[str]:
             """Generates a list of {{n}} {{color}} fruits"""
 

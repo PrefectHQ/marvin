@@ -83,7 +83,7 @@ class BaseEnvironment(BaseModel):
         """
         if isinstance(template, str):
             return self.environment.from_string(template).render(**kwargs)
-        return template.render(**kwargs)
+        return template.render(**kwargs).strip()
 
 
 Environment = BaseEnvironment()

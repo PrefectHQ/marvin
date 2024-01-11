@@ -21,7 +21,7 @@ from marvin._mappings.types import (
     cast_type_to_labels,
 )
 from marvin.client.openai import ChatCompletion, MarvinClient
-from marvin.core.prompts.text_templates import (
+from marvin.core.prompts.text_prompts import (
     CAST_PROMPT,
     CLASSIFY_PROMPT,
     EXTRACT_PROMPT,

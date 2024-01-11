@@ -1,20 +1,17 @@
-# AI Function
+# Marvin Functions
 
-AI Functions are a high-level component, or building block, of Marvin. Like all Marvin components, they are completely standalone: you're free to use them with or without the rest of Marvin.
+Functions are a high-level component, or building block, of Marvin. Like all Marvin components, they are completely standalone: you're free to use them with or without the rest of Marvin.
 
 <div class="admonition abstract">
   <p class="admonition-title">What it does</p>
   <p>
-    <code>@ai_fn</code> is a decorator that lets you use LLMs to generate outputs for Python functions without source code.
+    <code>@marvin.fn</code> is a decorator that lets you use LLMs to generate outputs for Python functions without source code.
   </p>
 </div>
 
 !!! example 
     ```python
-    from marvin import ai_fn
-
-
-    @ai_fn
+    @marvin.fn
     def generate_recipe(ingredients: list[str]) -> list[str]:
         """From a list of `ingredients`, generates a
         complete instruction set to cook a recipe.
@@ -22,17 +19,17 @@ AI Functions are a high-level component, or building block, of Marvin. Like all 
 
 
     generate_recipe(["lemon", "chicken", "olives", "coucous"])
-    ```
+    ```e
 
 <div class="admonition info">
   <p class="admonition-title">How it works</p>
   <p>
-    AI Functions take your function's name, description, signature, source code, type hints, and provided inputs to predict a likely output. By default, no source code is generated and any existing source code is not executed. The only runtime is the large language model.
+    Functions take your function's name, description, signature, source code, type hints, and provided inputs to predict a likely output. By default, no source code is generated and any existing source code is not executed. The only runtime is the large language model.
   </p>
 </div>
 
 <div class="admonition tip">
-  <p class="admonition-title">When to use</p>
+  <p class="admonition-title">When to use it</p>
   <p>
     <ol>
     <li> Best for generative tasks: creation and summarization of text or data models.
@@ -44,13 +41,13 @@ AI Functions are a high-level component, or building block, of Marvin. Like all 
 
 ## Mapping
 
-AI Functions can be mapped over sequences of arguments. Mapped functions run concurrently, which means they run practically in parallel (since they are IO-bound). Therefore, the map will complete as soon as the slowest function call finishes.
+Functions can be mapped over sequences of arguments. Mapped functions run concurrently, which means they run practically in parallel (since they are IO-bound). Therefore, the map will complete as soon as the slowest function call finishes.
 
 To see how mapping works, consider this AI Function:
 
 
 ```python
-@ai_fn
+@marvin.fn
 def list_fruit(n: int, color: str = None) -> list[str]:
     """
     Returns a list of `n` fruit that all have the provided `color`
@@ -88,12 +85,12 @@ list_fruit.map([2, 3], color=["orange", "red"])
 ## Features
 #### ⚙️ Type Safe
 
-`ai_fn` is fully type-safe. It works out of the box with Pydantic models in your function's parameters or return type.
+`marvin.fn` is fully type-safe. It works out of the box with Pydantic models in your function's parameters or return type.
 
 
 ```python
 from pydantic import BaseModel
-from marvin import ai_fn
+import marvin
 
 
 class SyntheticCustomer(BaseModel):
@@ -102,7 +99,7 @@ class SyntheticCustomer(BaseModel):
     purchase_history: list[str]
 
 
-@ai_fn
+@marvin.fn
 def generate_synthetic_customer_data(
     n: int, locations: list[str], average_purchase_history_length: int
 ) -> list[SyntheticCustomer]:
@@ -119,7 +116,7 @@ customers = generate_synthetic_customer_data(
 
 #### 🗣️ Natural Language API
 
-Marvin exposes an API to prompt an `ai_fn` with natural language. This lets you create a Language API for any function you can write down.
+Marvin exposes an API to prompt a `fn` with natural language. This lets you create a Language API for any function you can write down.
 
 
 ```python
@@ -144,7 +141,7 @@ generate_synthetic_customer_data.prompt(
 
 
 ```python
-@ai_fn
+@marvin.fn
 def analyze_customer_sentiment(reviews: list[str]) -> dict:
     """
     Returns an analysis of customer sentiment, including common
@@ -173,7 +170,7 @@ class FinancialReport(pydantic.BaseModel):
     ...
 
 
-@ai_fn
+@marvin.fn
 def create_drip_email(n: int, market_conditions: str) -> list[FinancialReport]:
     """
     Generates `n` synthetic financial reports based on specified
@@ -187,7 +184,7 @@ class IoTData(pydantic.BaseModel):
     ...
 
 
-@ai_fn
+@marvin.fn
 def generate_synthetic_IoT_data(n: int, device_type: str) -> list[IoTData]:
     """
     Generates `n` synthetic data points mimicking those from a specified

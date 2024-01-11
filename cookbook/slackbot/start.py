@@ -7,7 +7,7 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from jinja2 import Template
 from keywords import handle_keywords
-from marvin.beta.applications import AIApplication
+from marvin.beta.applications import Application
 from marvin.beta.applications.state.json_block import JSONBlockState
 from marvin.beta.assistants import Assistant, Thread
 from marvin.tools.chroma import multi_query_chroma, store_document
@@ -210,7 +210,7 @@ async def handle_message(payload: SlackPayload) -> Completed:
 app = FastAPI(lifespan=lifespan)
 
 
-def get_parent_app() -> AIApplication:
+def get_parent_app() -> Application:
     marvin = app.state.marvin
     if not marvin:
         raise HTTPException(status_code=500, detail="Marvin instance not available")
