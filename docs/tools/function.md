@@ -1,43 +1,45 @@
 # Marvin Functions
 
-Functions are a high-level component, or building block, of Marvin. Like all Marvin components, they are completely standalone: you're free to use them with or without the rest of Marvin.
+
+Marvin introduces AI functions that seamlessly blend into your regular Python code. These functions are designed to map diverse combinations of inputs to outputs, without the need to write any source code.
+
+Marvin's functions leverage the power of LLMs to interpret the function's description and inputs, and generate the appropriate output. It's important to note that Marvin does not generate or execute source code, ensuring safety for a wide range of use cases. Instead, it utilizes the LLM as a "runtime" to predict function outputs, enabling it to handle complex scenarios that would be challenging or even impossible to express as code.
+
+Whether you're analyzing sentiment, generating recipes, or performing other intricate tasks, these functions offer a versatile and powerful tool for your natural language processing needs.
+
 
 <div class="admonition abstract">
   <p class="admonition-title">What it does</p>
   <p>
-    <code>@marvin.fn</code> is a decorator that lets you use LLMs to generate outputs for Python functions without source code.
+    The <code>fn</code> decorator uses AI to generate outputs for Python functions without source code.
   </p>
 </div>
 
 !!! example 
     ```python
+    
     @marvin.fn
-    def generate_recipe(ingredients: list[str]) -> list[str]:
-        """From a list of `ingredients`, generates a
-        complete instruction set to cook a recipe.
+    def sentiment(text: str) -> float:
         """
+        Returns a sentiment score for `text` 
+        between -1 (negative) and 1 (positive).
+        """
+    ```
+        !!! success "Result"
+        
+        ```python
+        sentiment("I love working with Marvin!") # 0.8
+        sentiment("These examples could use some work...") # -0.2
+        ```
 
-
-    generate_recipe(["lemon", "chicken", "olives", "coucous"])
-    ```e
 
 <div class="admonition info">
   <p class="admonition-title">How it works</p>
   <p>
-    Functions take your function's name, description, signature, source code, type hints, and provided inputs to predict a likely output. By default, no source code is generated and any existing source code is not executed. The only runtime is the large language model.
+    Marvin uses your function's name, description, signature, source code, type hints, and provided inputs to predict a likely output. No source code is generated and any existing source code is not executed. The only runtime is the large language model.
   </p>
 </div>
 
-<div class="admonition tip">
-  <p class="admonition-title">When to use it</p>
-  <p>
-    <ol>
-    <li> Best for generative tasks: creation and summarization of text or data models.
-    <li> Best for writing functions that would otherwise be impossible to write.
-    <li> Great for data extraction, though: see AI Models.
-    </ol>
-  </p>
-</div>
 
 ## Mapping
 

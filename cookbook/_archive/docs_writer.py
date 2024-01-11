@@ -5,7 +5,7 @@ import marvin.tools
 import marvin.tools.filesystem
 import marvin.tools.python
 import marvin.tools.shell
-from marvin.beta.applications import AIApplication
+from marvin.beta.applications import Application
 
 marvin.settings.log_level = "DEBUG"
 marvin.settings.llm_model = "gpt-4"
@@ -15,7 +15,7 @@ ROOT_DIR = Path(marvin.__file__).parents[2]
 DOCS_DIR = ROOT_DIR / "docs"
 MKDOCS_FILE = ROOT_DIR / "mkdocs.yml"
 
-docs_app = AIApplication(
+docs_app = Application(
     name="DocsWriter",
     description=f"""
         You are an expert technical writer, responsible for maintaining high

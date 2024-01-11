@@ -1,4 +1,4 @@
-AI Models are a high-level component, or building block, of Marvin. Like all Marvin components, they are completely standalone: you're free to use them with or without the rest of Marvin.
+Models are a high-level component, or building block, of Marvin. Like all Marvin components, they are completely standalone: you're free to use them with or without the rest of Marvin.
 
 !!! abstract "What it does"
     A decorator that lets you extract structured data from unstructured text, documents, or instructions.
@@ -6,11 +6,11 @@ AI Models are a high-level component, or building block, of Marvin. Like all Mar
 
 !!! example "Example"
     ```python
-    from marvin import ai_model
+    import marvin
     from pydantic import BaseModel, Field
 
 
-    @ai_model
+    @marvin.model
     class Location(BaseModel):
         city: str
         state: str = Field(..., description="The two-letter state abbreviation")
@@ -40,11 +40,11 @@ To build a minimal AI model, decorate any standard Pydantic model, like this:
 
 !!! example "Example"
     ```python
-    from marvin import ai_model
+    import marvin
     from pydantic import BaseModel, Field
 
 
-    @ai_model
+    @marvin.model
     class Location(BaseModel):
         """A representation of a US city and state"""
 
@@ -72,7 +72,7 @@ to previous impossible tasks.
 
 
 ```python
-@ai_model
+@marvin.model
 class Location(BaseModel):
     city: str
     state: str
@@ -101,10 +101,10 @@ Location("He says he's from the windy city")
 ```python
 from typing import Optional
 from pydantic import BaseModel
-from marvin import ai_model
+import marvin
 
 
-@ai_model
+@marvin.model
 class Resume(BaseModel):
     first_name: str
     last_name: str
@@ -129,7 +129,7 @@ Resume("Ford Prefect • (555) 5124-5242 • ford@prefect.io").json(indent=2)
 import datetime
 from typing import Optional, List
 from pydantic import BaseModel
-from marvin import ai_model
+import marvin
 
 
 class Destination(pydantic.BaseModel):
@@ -140,7 +140,7 @@ class Destination(pydantic.BaseModel):
     suggested_attractions: list[str]
 
 
-@ai_model
+@marvin.model
 class Trip(pydantic.BaseModel):
     trip_start: datetime.date
     trip_end: datetime.date
@@ -228,7 +228,7 @@ class BloodTest(BaseModel):
     test_date: date
 
 
-@ai_model
+@marvin.model
 class PatientData(BaseModel):
     patient: Patient
     diagnoses: List[Diagnosis]
@@ -326,7 +326,7 @@ class DjangoLookup(BaseModel):
     value: Any
 
 
-@ai_model
+@marvin.model
 class DjangoQuery(BaseModel):
     """A model representing a Django ORM query"""
 
@@ -358,7 +358,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 
-@ai_model
+@marvin.model
 class CapTable(BaseModel):
     total_authorized_shares: int
     total_common_share: int
@@ -393,8 +393,8 @@ CapTable("""\
 import datetime
 from typing import List
 from pydantic import BaseModel
-from typing import Literal
-from marvin import ai_model
+from typing_extensions import Literal
+import marvin
 
 
 class ActionItem(BaseModel):
@@ -404,7 +404,7 @@ class ActionItem(BaseModel):
     time_sensitivity: Literal["low", "medium", "high"]
 
 
-@ai_model
+@marvin.model
 class Conversation(BaseModel):
     """A class representing a team conversation"""
 

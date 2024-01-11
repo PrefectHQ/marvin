@@ -1,42 +1,53 @@
 site_name: Marvin
 site_description: 'The AI Engineering Framework'
-site_copy: Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.
 site_url: https://askmarvin.ai
 docs_dir: docs
 repo_url: https://github.com/prefecthq/marvin
 
 nav:
-  - Getting Started:
+  - Getting started:
     - welcome/what_is_marvin.md
     - welcome/installation.md
     - welcome/quickstart.md
     - help/legacy_docs.md
   - Cookbook:
-    - Entity Deduplication: examples/deduplication.md
+    - Entity deduplication: examples/deduplication.md
     - Deploying an API:
-      - Basic Extraction API: examples/extraction_api.md
-      - Basic Classification API: examples/classification_api.md
+      - Basic extraction API: examples/extraction_api.md
+      - Basic classification API: examples/classification_api.md
   - Docs:
     - Overview: welcome/overview.md
+
+    - General purpose:
+      - Function: tools/function.md
+
+    - LLMs:
+      - Structured data: tools/casting.md
+      - Entity extraction: tools/extraction.md
+      - Classification: tools/classification.md
+      - Generating synthetic data: tools/generation.md
+
+
+    - Images:
+      - Generation: tools/function.md
+      - Captioning: tools/function.md
+
+    - Audio:
+      - Speech: tools/function.md
+      - Transcription: tools/function.md
+      
     - Configuration: 
       - Settings: configuration/settings.md
 
-    - Components: 
-      - Overview: components/overview.md
-      - Function: components/functions.md
-      - AI Model: components/ai_model.md
-      - Classifier: components/ai_classifier.md
-      - AI Application: components/ai_application.md
-
-    - Examples:
-      - Slackbot: examples/slackbot.md
-      - GitHub Digest: examples/github_digest.md
-  - API Reference:
+    # - Examples:
+    #   - Slackbot: examples/slackbot.md
+    #   - GitHub Digest: examples/github_digest.md
+  - API reference:
     - api_reference/index.md
-    - AI Components:
-      - ai_classifier: api_reference/components/ai_classifier.md
+    - AI components:
+      - classifier: api_reference/components/classifier.md
       - function: api_reference/components/functions.md
-      - ai_model: api_reference/components/ai_model.md
+      - model: api_reference/components/models.md
     - Settings:
       - settings: api_reference/settings.md
     - Utilities:

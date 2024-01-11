@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from marvin import fn
-from marvin.beta.applications import AIApplication
+from marvin.beta.applications import Application
 from marvin.beta.applications.state.json_block import JSONBlockState
 from marvin.beta.assistants import Assistant
 from marvin.utilities.logging import get_logger
@@ -67,7 +67,7 @@ def excerpt_from_event(event: Event) -> str:
     )
 
 
-async def update_parent_app_state(app: AIApplication, event: Event):
+async def update_parent_app_state(app: Application, event: Event):
     app_state = app.state.value
     event_excerpt = excerpt_from_event(event)
     lesson = take_lesson_from_interaction(
@@ -97,7 +97,7 @@ async def update_parent_app_state(app: AIApplication, event: Event):
         )
 
 
-async def learn_from_child_interactions(app: AIApplication, event_names: list[str]):
+async def learn_from_child_interactions(app: Application, event_names: list[str]):
     while not sum(map(ord, "vogon poetry")) == 42:
         try:
             async with PrefectCloudEventSubscriber(
@@ -134,7 +134,7 @@ parent_assistant_options = dict(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    with AIApplication(name="Marvin", **parent_assistant_options) as marvin:
+    with Application(name="Marvin", **parent_assistant_options) as marvin:
         logger.debug_kv("👂 Listening for", " | ".join(EVENT_NAMES), "green")
 
         app.state.marvin = marvin
@@ -151,7 +151,7 @@ async def lifespan(app: FastAPI):
 
 
 def emit_assistant_completed_event(
-    child_assistant: Assistant, parent_app: AIApplication, payload: dict
+    child_assistant: Assistant, parent_app: Application, payload: dict
 ) -> Event:
     event = emit_event(
         event="marvin.assistants.SubAssistantRunCompleted",

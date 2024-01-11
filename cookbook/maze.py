@@ -1,5 +1,5 @@
 """
-Free-roam survival game demonstrating mutable AIApplication state via tools.
+Free-roam survival game demonstrating mutable Application state via tools.
 
 ```python
 python -m venv some_venv
@@ -16,7 +16,7 @@ from enum import Enum
 from io import StringIO
 from typing import Literal
 
-from marvin.beta.applications import AIApplication
+from marvin.beta.applications import Application
 from pydantic import BaseModel
 from rich.console import Console
 from rich.table import Table
@@ -223,7 +223,7 @@ class Maze(BaseModel):
 
 if __name__ == "__main__":
     maze = Maze.create()
-    with AIApplication(
+    with Application(
         name="Maze",
         instructions=GAME_INSTRUCTIONS,
         tools=[maze.look_around, maze.move, maze.reset],
