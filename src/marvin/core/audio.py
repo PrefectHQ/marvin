@@ -1,5 +1,5 @@
-from functools import wraps
-from typing import Callable, Literal, TypeVar
+from functools import partial, wraps
+from typing import Callable, Literal, Optional, TypeVar
 
 from openai._base_client import HttpxBinaryResponseContent
 
@@ -38,7 +38,20 @@ def speak(
     model_kwargs: dict = None,
 ):
     """
-    Use an AI to generate audio from text.
+    Generates audio from text using an AI.
+
+    This function uses an AI to generate audio from the provided text. The voice
+    used for the audio can be specified.
+
+    Args:
+        text (str): The text to generate audio from.
+        voice (Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"], optional):
+            The voice to use for the audio. Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+
+    Returns:
+        HttpxBinaryResponseContent: The generated audio.
     """
     model_kwargs = model_kwargs or {}
     if voice is not None:
@@ -51,15 +64,24 @@ def speak(
     return response
 
 
-def speech(fn: Callable):
+def speech(fn: Optional[Callable] = None, *, voice: Optional[str] = None) -> Callable:
     """
     Function decorator that generates audio from the wrapped function's return
-    value.
+    value. The voice used for the audio can be specified.
+
+    Args:
+        fn (Callable, optional): The function to wrap. Defaults to None.
+        voice (str, optional): The voice to use for the audio. Defaults to None.
+
+    Returns:
+        Callable: The wrapped function.
     """
+    if fn is None:
+        return partial(speech, voice=voice)
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
         model = PythonFunction.from_function_call(fn, *args, **kwargs)
-        return speak(text=model.return_value)
+        return speak(text=model.return_value, voice=voice)
 
     return wrapper

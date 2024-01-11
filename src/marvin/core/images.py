@@ -40,10 +40,24 @@ def paint(
     model_kwargs: dict = None,
 ):
     """
-    Generates an image from the provided instructions and context.
+    Generates an image based on the provided instructions and context.
 
-    By default, the DALLE-3 API modifies prompts to add detail and style. To
-    disable this behavior, set `literal=True`.
+    This function uses the DALLE-3 API to generate an image based on the provided
+    instructions and context. By default, the API modifies prompts to add detail
+    and style. This behavior can be disabled by setting `literal=True`.
+
+    Args:
+        instructions (str, optional): The instructions for the image generation.
+            Defaults to None.
+        context (dict, optional): The context for the image generation. Defaults to None.
+        literal (bool, optional): Whether to disable the API's default behavior of
+            modifying prompts. Defaults to False.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+
+    Returns:
+        ImagesResponse: The response from the DALLE-3 API, which includes the
+            generated image.
     """
     response = generate_image(
         prompt_template=IMAGE_PROMPT,
