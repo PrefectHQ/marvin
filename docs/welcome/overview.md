@@ -6,7 +6,7 @@ free to use, rigorously type-hinted, used by thousands of engineers, and built b
 Marvin is lightweight and is built for incremental adoption. You can use it purely as a serialization library and bring your own stack,
 or fully use its engine to work with OpenAI and other providers. 
 
-??? Example "What Marvin feels like."
+??? Example "How Marvin feels"
 
     === "Structured Data Extraction"
         Marvin exposes a number of high level components to simplify working with AI. 
