@@ -10,11 +10,6 @@ nav:
     - welcome/installation.md
     - welcome/quickstart.md
     - help/legacy_docs.md
-  - Cookbook:
-    - Entity deduplication: examples/deduplication.md
-    - Deploying an API:
-      - Basic extraction API: examples/extraction_api.md
-      - Basic classification API: examples/classification_api.md
   - Docs:
     - Overview: welcome/overview.md
 
@@ -43,16 +38,25 @@ nav:
     #   - GitHub Digest: examples/github_digest.md
   - API reference:
     - api_reference/index.md
-    - Core tools:
-      - Text & Data: api_reference/core/text.md
+    - Core AI features:
+      - Text & data: api_reference/core/text.md
       - Images: api_reference/core/images.md
       - Audio: api_reference/core/audio.md
-
+      - V1 compatibility: api_reference/core/_v1_compat.md
+    - Object schemas: 
+      - Object schemas: api_reference/requests.md
     - Settings:
-      - settings: api_reference/settings.md
+      - Settings: api_reference/settings.md
     - Utilities:
+      - asyncio: api_reference/utilities/asyncio.md
       - jinja: api_reference/utilities/jinja.md
       - logging: api_reference/utilities/logging.md
+      - tools: api_reference/utilities/tools.md
+  - Cookbook:
+    - Entity deduplication: examples/deduplication.md
+    - Deploying an API:
+      - Basic extraction API: examples/extraction_api.md
+      - Basic classification API: examples/classification_api.md
   - Community:
     - community/index.md
     - Feedback 💙: community/feedback.md
