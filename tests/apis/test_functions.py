@@ -1,5 +1,7 @@
+import inspect
 from enum import Enum
 from typing import Dict, List, Literal
+from unittest.mock import patch
 
 import marvin
 import pytest
@@ -21,10 +23,36 @@ def list_fruit_color(n: int, color: str = None) -> list[str]:
 @pytest_mark_class("llm")
 class TestFunctions:
     class TestMeta:
-        def test_docstring_templated(self):
+        @patch("marvin.core.text.generate_llm_response")
+        def test_entire_signature_provided(self, mock_generate_llm_response):
             @marvin.fn
-            def list_fruit(n: int = 2) -> list[str]:
+            def list_fruit(n: int) -> list[str]:
+                """Returns a list of n fruit"""
+
+            list_fruit(n=2)
+
+            prompt_kwargs = mock_generate_llm_response.call_args[1]["prompt_kwargs"]
+            # docstring is reformatted
+            signature = inspect.cleandoc(
+                '''
+                def list_fruit(n: int) -> list[str]:
+                    """
+                    Returns a list of n fruit
+                    """
+                '''
+            )
+            assert signature in prompt_kwargs["fn_definition"]
+
+        @patch("marvin.core.text.generate_llm_response")
+        def test_docstring_templated(self, mock_generate_llm_response):
+            @marvin.fn
+            def list_fruit(n: int) -> list[str]:
                 """Returns a list of {{n}} fruit"""
+
+            list_fruit(n=2)
+
+            prompt_kwargs = mock_generate_llm_response.call_args[1]["prompt_kwargs"]
+            assert "Returns a list of 2 fruit" in prompt_kwargs["fn_definition"]
 
     class TestBasics:
         def test_list_fruit(self):
