@@ -10,6 +10,7 @@ from typing import (
     Callable,
     GenericAlias,
     Literal,
+    Optional,
     Type,
     TypeVar,
     Union,
@@ -45,8 +46,8 @@ logger = get_logger(__name__)
 
 def generate_llm_response(
     prompt_template: str,
-    prompt_kwargs: dict = None,
-    model_kwargs: dict = None,
+    prompt_kwargs: Optional[dict] = None,
+    model_kwargs: Optional[dict] = None,
 ) -> ChatResponse:
     """
     Generates a language model response based on a provided prompt template.
@@ -65,6 +66,7 @@ def generate_llm_response(
     model_kwargs = model_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
     messages = Transcript(content=prompt_template).render_to_messages(**prompt_kwargs)
+
     request = ChatRequest(messages=messages, **model_kwargs)
     if marvin.settings.log_verbose:
         logger.debug_kv("Request", request.model_dump_json(indent=2))

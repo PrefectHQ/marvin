@@ -15,18 +15,20 @@ nav:
     # - Overview: welcome/overview.md
 
     - Text and data:
-      - AI functions: ai/function.md
-      - Structured data: ai/casting.md
-      - Entity extraction: ai/extraction.md
-      - Classification: ai/classification.md
-      - Generating synthetic data: ai/generation.md
+      - AI functions: ai/text/function.md
+      - Structured data: ai/text/casting.md
+      - Entity extraction: ai/text/extraction.md
+      - Classification: ai/text/classification.md
+      - Generating synthetic data: ai/text/generation.md
 
     - Images:
-      - Creating images: ai/painting.md
-      # - Captioning: ai/function.md
+      - Creating images: ai/images/painting.md
+    
+    - Vision:
+      - Captioning: ai/vision/captioning.md
 
     - Audio:
-      - Text-to-speech: ai/speech.md
+      - Text-to-speech: ai/audio/speech.md
     # - Transcription: ai/function.md
       
     - Configuration: 
@@ -42,8 +44,11 @@ nav:
       - marvin.ai.images: api_reference/ai/images.md
       - marvin.ai.audio: api_reference/ai/audio.md
       
+    - Beta AI modules:
+      - marvin.ai.beta.vision: api_reference/ai/beta/vision.md
+
     - Object schemas: 
-      - marvin.requests: api_reference/requests.md
+      - marvin.types: api_reference/types.md
     - Settings:
       - marvin.settings: api_reference/settings.md
     - Utilities:
