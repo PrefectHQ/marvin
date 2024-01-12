@@ -24,14 +24,14 @@ from marvin._mappings.types import (
     cast_labels_to_grammar,
     cast_type_to_labels,
 )
-from marvin.client.openai import ChatCompletion, MarvinClient
-from marvin.core.prompts.text_prompts import (
+from marvin.ai.prompts.text_prompts import (
     CAST_PROMPT,
     CLASSIFY_PROMPT,
     EXTRACT_PROMPT,
     FUNCTION_PROMPT,
     GENERATE_PROMPT,
 )
+from marvin.client.openai import ChatCompletion, MarvinClient
 from marvin.requests import ChatRequest, ChatResponse
 from marvin.utilities.jinja import Transcript
 from marvin.utilities.logging import get_logger

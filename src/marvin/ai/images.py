@@ -4,8 +4,8 @@ from typing import TypeVar
 from openai.types.images_response import ImagesResponse
 
 import marvin
+from marvin.ai.prompts.image_prompts import IMAGE_PROMPT
 from marvin.client.openai import MarvinClient
-from marvin.core.prompts.image_prompts import IMAGE_PROMPT
 from marvin.requests import ImageRequest
 from marvin.utilities.jinja import Environment
 from marvin.utilities.logging import get_logger
@@ -20,6 +20,24 @@ def generate_image(
     prompt_kwargs: dict = None,
     model_kwargs: dict = None,
 ) -> ImagesResponse:
+    """
+    Generates an image based on a provided prompt template.
+
+    This function uses the DALL-E API to generate an image based on a provided
+    prompt template. The function supports additional arguments for the prompt
+    and the model.
+
+    Args:
+        prompt_template (str): The template for the prompt.
+        prompt_kwargs (dict, optional): Additional keyword arguments for the
+            prompt. Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+
+    Returns:
+        ImagesResponse: The response from the DALL-E API, which includes the
+            generated image.
+    """
     model_kwargs = model_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
     prompt = Environment.render(prompt_template, **prompt_kwargs)

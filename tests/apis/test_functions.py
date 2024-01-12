@@ -23,7 +23,7 @@ def list_fruit_color(n: int, color: str = None) -> list[str]:
 @pytest_mark_class("llm")
 class TestFunctions:
     class TestMeta:
-        @patch("marvin.core.text.generate_llm_response")
+        @patch("marvin.ai.text.generate_llm_response")
         def test_entire_signature_provided(self, mock_generate_llm_response):
             @marvin.fn
             def list_fruit(n: int) -> list[str]:
@@ -43,7 +43,7 @@ class TestFunctions:
             )
             assert signature in prompt_kwargs["fn_definition"]
 
-        @patch("marvin.core.text.generate_llm_response")
+        @patch("marvin.ai.text.generate_llm_response")
         def test_docstring_templated(self, mock_generate_llm_response):
             @marvin.fn
             def list_fruit(n: int) -> list[str]:
