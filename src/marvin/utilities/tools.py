@@ -17,7 +17,7 @@ from pydantic import BaseModel, TypeAdapter, create_model
 from pydantic.fields import FieldInfo
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
 
-from marvin.requests import Function, Tool
+from marvin.types import Function, Tool
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.logging import get_logger
 

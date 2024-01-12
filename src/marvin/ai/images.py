@@ -6,7 +6,7 @@ from openai.types.images_response import ImagesResponse
 import marvin
 from marvin.ai.prompts.image_prompts import IMAGE_PROMPT
 from marvin.client.openai import MarvinClient
-from marvin.requests import ImageRequest
+from marvin.types import ImageRequest
 from marvin.utilities.jinja import Environment
 from marvin.utilities.logging import get_logger
 

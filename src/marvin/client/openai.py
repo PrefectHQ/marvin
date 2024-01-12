@@ -18,7 +18,7 @@ from typing_extensions import ParamSpec
 
 import marvin
 from marvin import settings
-from marvin.requests import ChatRequest, ImageRequest
+from marvin.types import ChatRequest, ImageRequest
 
 if TYPE_CHECKING:
     from openai._base_client import HttpxBinaryResponseContent

@@ -5,7 +5,7 @@ from openai._base_client import HttpxBinaryResponseContent
 
 import marvin
 from marvin.client.openai import MarvinClient
-from marvin.requests import SpeechRequest
+from marvin.types import SpeechRequest
 from marvin.utilities.jinja import Environment
 from marvin.utilities.logging import get_logger
 from marvin.utilities.python import PythonFunction

@@ -4,7 +4,6 @@ from .ai.text import fn, cast, extract, classify, classifier, generate, model, M
 from .ai.images import paint, image
 from .ai.audio import speak, speech
 
-
 try:
     from ._version import version as __version__
 except ImportError:

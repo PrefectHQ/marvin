@@ -13,7 +13,7 @@ from jinja2 import Template as BaseTemplate
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
 
-from marvin.requests import BaseMessage as Message
+from marvin.types import BaseMessage as Message
 
 
 class BaseEnvironment(BaseModel):

@@ -1,6 +1,6 @@
 from typing import Any, Union
 
-from marvin.requests import CodeInterpreterTool, RetrievalTool, Tool
+from marvin.types import CodeInterpreterTool, RetrievalTool, Tool
 
 Retrieval = RetrievalTool()
 CodeInterpreter = CodeInterpreterTool()

@@ -5,7 +5,7 @@ from typing import Optional, Union
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr
 
-from marvin.requests import Tool
+from marvin.types import Tool
 from marvin.utilities.tools import tool_from_function
 
 

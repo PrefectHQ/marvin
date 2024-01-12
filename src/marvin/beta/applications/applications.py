@@ -5,8 +5,8 @@ from pydantic import Field, field_validator
 from marvin.beta.applications.state import State
 from marvin.beta.assistants import Assistant
 from marvin.beta.assistants.runs import Run
-from marvin.requests import Tool
 from marvin.tools.assistants import AssistantTool
+from marvin.types import Tool
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.tools import tool_from_function
 

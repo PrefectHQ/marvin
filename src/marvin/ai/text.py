@@ -32,7 +32,7 @@ from marvin.ai.prompts.text_prompts import (
     GENERATE_PROMPT,
 )
 from marvin.client.openai import ChatCompletion, MarvinClient
-from marvin.requests import ChatRequest, ChatResponse
+from marvin.types import ChatRequest, ChatResponse
 from marvin.utilities.jinja import Transcript
 from marvin.utilities.logging import get_logger
 from marvin.utilities.python import PythonFunction

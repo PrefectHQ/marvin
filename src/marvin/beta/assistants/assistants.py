@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 from pydantic import BaseModel, Field
 
 import marvin.utilities.tools
-from marvin.requests import Tool
 from marvin.tools.assistants import AssistantTool
+from marvin.types import Tool
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
