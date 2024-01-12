@@ -5,30 +5,29 @@ docs_dir: docs
 repo_url: https://github.com/prefecthq/marvin
 
 nav:
-  - Getting started:
-    - welcome/what_is_marvin.md
-    - welcome/installation.md
-    - welcome/quickstart.md
-    - help/legacy_docs.md
   - Docs:
-    - Overview: welcome/overview.md
+    - welcome/what_is_marvin.md
+    - Getting started:
+      - welcome/installation.md
+      - welcome/quickstart.md
+      # - help/legacy_docs.md
 
-    - General purpose:
-      - AI Functions: core/function.md
+    # - Overview: welcome/overview.md
 
     - Text and data:
+      - AI functions: core/function.md
       - Structured data: core/casting.md
       - Entity extraction: core/extraction.md
       - Classification: core/classification.md
       - Generating synthetic data: core/generation.md
 
     - Images:
-      - Generation: core/painting.md
+      - Creating images: core/painting.md
       # - Captioning: core/function.md
 
     - Audio:
-      - Speech: core/speech.md
-      # - Transcription: core/function.md
+      - Text-to-speech: core/speech.md
+    # - Transcription: core/function.md
       
     - Configuration: 
       - Settings: configuration/settings.md
