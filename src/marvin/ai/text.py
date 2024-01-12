@@ -10,6 +10,7 @@ from typing import (
     Callable,
     GenericAlias,
     Literal,
+    Optional,
     Type,
     TypeVar,
     Union,
@@ -44,7 +45,9 @@ logger = get_logger(__name__)
 
 
 def generate_llm_response(
-    prompt_template: str, prompt_kwargs: Optional[dict] = None, model_kwargs: Optional[dict] = None
+    prompt_template: str,
+    prompt_kwargs: Optional[dict] = None,
+    model_kwargs: Optional[dict] = None,
 ) -> ChatResponse:
     """
     Generates a language model response based on a provided prompt template.
