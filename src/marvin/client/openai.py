@@ -18,7 +18,7 @@ from typing_extensions import ParamSpec
 
 import marvin
 from marvin import settings
-from marvin.types import ChatRequest, ImageRequest
+from marvin.types import ChatRequest, ImageRequest, VisionRequest
 
 if TYPE_CHECKING:
     from openai._base_client import HttpxBinaryResponseContent
@@ -70,7 +70,21 @@ class MarvinClient(pydantic.BaseModel):
         )
         # validate request
         request = ChatRequest(**kwargs)
-        response: "ChatCompletion" = create(**request.model_dump())
+        response: "ChatCompletion" = create(**request.model_dump(exclude_none=True))
+        return response
+
+    def generate_vision(
+        self,
+        *,
+        completion: Optional[Callable[..., "ChatCompletion"]] = None,
+        **kwargs: Any,
+    ) -> Union["ChatCompletion", T]:
+        create: Callable[..., "ChatCompletion"] = (
+            completion or self.client.chat.completions.create
+        )
+        # validate request
+        request = VisionRequest(**kwargs)
+        response: "ChatCompletion" = create(**request.model_dump(exclude_none=True))
         return response
 
     def generate_image(
@@ -79,7 +93,7 @@ class MarvinClient(pydantic.BaseModel):
     ) -> "ImagesResponse":
         # validate request
         request = ImageRequest(**marvin.settings.openai.images.model_dump() | kwargs)
-        return self.client.images.generate(**request.model_dump())
+        return self.client.images.generate(**request.model_dump(exclude_none=True))
 
     def generate_speech(
         self,
@@ -119,7 +133,23 @@ class AsyncMarvinClient(pydantic.BaseModel):
         create = self.client.chat.completions.create
         # validate request
         request = ChatRequest(**kwargs)
-        response: "ChatCompletion" = await create(request.model_dump())
+        response: "ChatCompletion" = await create(request.model_dump(exclude_none=True))
+        return response
+
+    async def generate_vision(
+        self,
+        *,
+        completion: Optional[Callable[..., "ChatCompletion"]] = None,
+        **kwargs: Any,
+    ) -> Union["ChatCompletion", T]:
+        create: Callable[..., "ChatCompletion"] = (
+            completion or self.client.chat.completions.create
+        )
+        # validate request
+        request = VisionRequest(**kwargs)
+        response: "ChatCompletion" = await create(
+            **request.model_dump(exclude_none=True)
+        )
         return response
 
     async def generate_image(
@@ -128,7 +158,9 @@ class AsyncMarvinClient(pydantic.BaseModel):
     ) -> "ImagesResponse":
         # validate request
         request = ImageRequest(**marvin.settings.openai.images.model_dump() | kwargs)
-        return await self.client.images.generate(**request.model_dump())
+        return await self.client.images.generate(
+            **request.model_dump(exclude_none=True)
+        )
 
     async def generate_audio(
         self,
