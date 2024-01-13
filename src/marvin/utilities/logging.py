@@ -1,14 +1,39 @@
+"""Module for logging utilities."""
 import logging
 from functools import lru_cache, partial
+from typing import Optional
 
-from rich.logging import RichHandler
-from rich.markup import escape
+from rich.logging import RichHandler  # type: ignore
+from rich.markup import escape  # type: ignore
 
 import marvin
 
 
 @lru_cache()
-def get_logger(name: str = None) -> logging.Logger:
+def get_logger(
+    name: Optional[str] = None,
+) -> logging.Logger:
+    """
+    Retrieves a logger with the given name, or the root logger if no name is given.
+
+    Args:
+        name: The name of the logger to retrieve.
+
+    Returns:
+        The logger with the given name, or the root logger if no name is given.
+
+    Example:
+        Basic Usage of `get_logger`
+        ```python
+        from marvin.utilities.logging import get_logger
+
+        logger = get_logger("marvin.test")
+        logger.info("This is a test") # Output: marvin.test: This is a test
+
+        debug_logger = get_logger("marvin.debug")
+        debug_logger.debug_kv("TITLE", "log message", "green")
+        ```
+    """
     parent_logger = logging.getLogger("marvin")
 
     if name:
@@ -25,7 +50,9 @@ def get_logger(name: str = None) -> logging.Logger:
     return logger
 
 
-def setup_logging(level: str = None):
+def setup_logging(
+    level: Optional[str] = None,
+) -> None:
     logger = get_logger()
 
     if level is not None:
@@ -35,11 +62,7 @@ def setup_logging(level: str = None):
 
     logger.handlers.clear()
 
-    handler = RichHandler(
-        rich_tracebacks=True,
-        markup=False,
-        # console=Console(width=marvin.settings.log_console_width),
-    )
+    handler = RichHandler(rich_tracebacks=True, markup=False)
     formatter = logging.Formatter("%(name)s: %(message)s")
     handler.setFormatter(formatter)
 
@@ -47,8 +70,8 @@ def setup_logging(level: str = None):
     logger.propagate = False
 
 
-def add_logging_methods(logger):
-    def log_style(level: int, message: str, style: str = None):
+def add_logging_methods(logger: logging.Logger) -> None:
+    def log_style(level: int, message: str, style: Optional[str] = None):
         if not style:
             style = "default on default"
         message = f"[{style}]{escape(str(message))}[/]"
@@ -68,17 +91,17 @@ def add_logging_methods(logger):
             extra={"markup": True},
         )
 
-    logger.debug_style = partial(log_style, logging.DEBUG)
-    logger.info_style = partial(log_style, logging.INFO)
-    logger.warning_style = partial(log_style, logging.WARNING)
-    logger.error_style = partial(log_style, logging.ERROR)
-    logger.critical_style = partial(log_style, logging.CRITICAL)
+    setattr(logger, "debug_style", partial(log_style, logging.DEBUG))
+    setattr(logger, "info_style", partial(log_style, logging.INFO))
+    setattr(logger, "warning_style", partial(log_style, logging.WARNING))
+    setattr(logger, "error_style", partial(log_style, logging.ERROR))
+    setattr(logger, "critical_style", partial(log_style, logging.CRITICAL))
 
-    logger.debug_kv = partial(log_kv, logging.DEBUG)
-    logger.info_kv = partial(log_kv, logging.INFO)
-    logger.warning_kv = partial(log_kv, logging.WARNING)
-    logger.error_kv = partial(log_kv, logging.ERROR)
-    logger.critical_kv = partial(log_kv, logging.CRITICAL)
+    setattr(logger, "debug_kv", partial(log_kv, logging.DEBUG))
+    setattr(logger, "info_kv", partial(log_kv, logging.INFO))
+    setattr(logger, "warning_kv", partial(log_kv, logging.WARNING))
+    setattr(logger, "error_kv", partial(log_kv, logging.ERROR))
+    setattr(logger, "critical_kv", partial(log_kv, logging.CRITICAL))
 
 
 setup_logging(level=marvin.settings.log_level)

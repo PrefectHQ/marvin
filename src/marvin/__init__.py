@@ -1,30 +1,18 @@
 from .settings import settings
 
-from .components import (
-    ai_classifier,
-    ai_fn,
-    ai_model,
-    AIApplication,
-    AIFunction,
-    AIModel,
-    AIModelFactory,
-)
+# legacy
+from .components import ai_fn, ai_model, ai_classifier
+from .components.prompt.fn import prompt_fn
 
 try:
     from ._version import version as __version__
 except ImportError:
     __version__ = "unknown"
 
-
-from .core.ChatCompletion import ChatCompletion
-
 __all__ = [
-    "ai_classifier",
     "ai_fn",
     "ai_model",
-    "AIApplication",
-    "AIFunction",
-    "AIModel",
-    "AIModelFactory",
+    "ai_classifier",
+    "prompt_fn",
     "settings",
 ]

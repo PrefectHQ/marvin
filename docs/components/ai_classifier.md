@@ -9,33 +9,33 @@ AI Classifiers are a high-level component, or building block, of Marvin. Like al
   </p>
 </div>
 
+!!! example 
+    ```python
+    from marvin import ai_classifier
+    from enum import Enum
 
-```python
-from marvin import ai_classifier
-from enum import Enum
+    class CustomerIntent(Enum):
+        """Classifies the incoming users intent"""
 
+        SALES = 'SALES'
+        TECHNICAL_SUPPORT = 'TECHNICAL_SUPPORT'
+        BILLING_ACCOUNTS = 'BILLING_ACCOUNTS'
+        PRODUCT_INFORMATION = 'PRODUCT_INFORMATION'
+        RETURNS_REFUNDS = 'RETURNS_REFUNDS'
+        ORDER_STATUS = 'ORDER_STATUS'
+        ACCOUNT_CANCELLATION = 'ACCOUNT_CANCELLATION'
+        OPERATOR_CUSTOMER_SERVICE = 'OPERATOR_CUSTOMER_SERVICE'
 
-@ai_classifier
-class CustomerIntent(Enum):
-    """Classifies the incoming users intent"""
+    @ai_classifier
+    def classify_intent(text: str) -> CustomerIntent:
+        '''Classifies the most likely intent from user input'''
 
-    SALES = 1
-    TECHNICAL_SUPPORT = 2
-    BILLING_ACCOUNTS = 3
-    PRODUCT_INFORMATION = 4
-    RETURNS_REFUNDS = 5
-    ORDER_STATUS = 6
-    ACCOUNT_CANCELLATION = 7
-    OPERATOR_CUSTOMER_SERVICE = 0
-
-
-CustomerIntent("I got double charged, can you help me out?")
-```
-
-
-
-
-    <CustomerIntent.BILLING_ACCOUNTS: 3>
+    classify_intent("I got double charged, can you help me out?")
+    ```
+    !!! success "Result"
+        ```python 
+        <CustomerIntent.RETURNS_REFUNDS: 'RETURNS_REFUNDS'>
+        ```
 
 
 
@@ -62,153 +62,6 @@ CustomerIntent("I got double charged, can you help me out?")
   <p> The technique that AI Classifiers use for speed and correctness is only available through the OpenAI API at this time. Therefore, AI Classifiers can only be used with OpenAI-compatible LLMs, including the Azure OpenAI service.
   </p>
 </div>
-
-## Creating an AI Classifier
-
-AI Classifiers are Python `Enums`, or classes that can represent one of many possible options. To build an effective AI Classifier, be as specific as possible with your class name, docstring, option names, and option values.
-
-To build a minimal AI Classifier, decorate any standard enum, like this:
-
-
-```python
-from marvin import ai_classifier
-from enum import Enum
-
-
-@ai_classifier
-class Sentiment(Enum):
-    POSITIVE = "POSITIVE"
-    NEGATIVE = "NEGATIVE"
-
-
-Sentiment("That looks great!")
-```
-
-
-
-
-    <Sentiment.POSITIVE: 'POSITIVE'>
-
-
-
-Because AI Classifiers are enums, you can use any enum construction you want, including the all-caps string approach above, integer values, `enum.auto()`, or complex values. The only thing to remember is that the class you build *is* essentially the instruction that gets sent to the LLM, so the more information you provide, the better your classifier will behave.
-
-For example, you may want to have a classifier that has a Python object (like an AI Model!) as its value, but still need to provide instruction hints to the LLM. One way to achieve that is to add descriptions to your classifier's values that will become visible to the LLM:
-
-
-
-```python
-# dummy objects that stand in for complex tools
-WebSearch = lambda: print("Searching!")
-Calculator = lambda: print("Calculating!")
-Translator = lambda: print("Translating!")
-
-
-@ai_classifier
-class Router(Enum):
-    translate = dict(tool=Translator, description="A translator tool")
-    web_search = dict(tool=WebSearch, description="A web search tool")
-    calculator = dict(tool=Calculator, description="A calculator tool")
-
-
-result = Router("Whats 2+2?")
-result.value["tool"]()
-```
-
-    Calculating!
-
-
-## Configuring an AI Classifier
-
-In addition to how you define the AI classifier itself, there are two ways to control its behavior at runtime: `instructions` and `model`.
-
-### Providing instructions
-You can control an AI classifier's behavior by providing instructions. This can either be provided globally as the classifier's docstring or on a per-call basis when you instantiate it.
-
-
-```python
-@ai_classifier
-class Sentiment(Enum):
-    """
-    Score the sentiment of provided text.
-    """
-
-    POSITIVE = 1
-    NEGATIVE = -1
-
-
-Sentiment("Everything is awesome!")
-```
-
-
-
-
-    <Sentiment.POSITIVE: 1>
-
-
-
-
-```python
-@ai_classifier
-class Sentiment(Enum):
-    """
-    How would a very very sad person rate the text?
-    """
-
-    POSITIVE = 1
-    NEGATIVE = -1
-
-
-Sentiment("Everything is awesome!")
-```
-
-
-
-
-    <Sentiment.NEGATIVE: -1>
-
-
-
-Instructions can also be provided for each call:
-
-
-```python
-@ai_classifier
-class Sentiment(Enum):
-    POSITIVE = 1
-    NEGATIVE = -1
-
-
-Sentiment("Everything is awesome!", instructions="It's opposite day!")
-```
-
-
-
-
-    <Sentiment.NEGATIVE: -1>
-
-
-
-### Configuring the LLM
-By default, `@ai_classifier` uses the global LLM settings. To specify a particular LLM, pass it as an argument to the decorator. 
-
-
-```python
-
-@ai_classifier(model="openai/gpt-3.5-turbo-0613", temperature = 0)
-class Sentiment(Enum):
-    POSITIVE = 1
-    NEGATIVE = -1
-
-
-Sentiment("Everything is awesome!")
-```
-
-
-
-
-    <Sentiment.POSITIVE: 1>
-
 
 
 ## Features

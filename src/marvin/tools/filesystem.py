@@ -1,186 +1,151 @@
-import json
-from pathlib import Path
-from typing import Literal
-
-from pydantic import BaseModel, Field, root_validator, validate_arguments, validator
-
-from marvin.tools import Tool
+import os
+import pathlib
+import shutil
 
 
-class FileSystemTool(Tool):
-    root_dir: Path = Field(
-        None,
-        description=(
-            "Root directory for files. If provided, only files nested in or below this"
-            " directory can be read. "
-        ),
-    )
-
-    def validate_paths(self, paths: list[str]) -> list[Path]:
-        """
-        If `root_dir` is set, ensures that all paths are children of `root_dir`.
-        """
-        if self.root_dir:
-            for path in paths:
-                if ".." in path:
-                    raise ValueError(f"Do not use `..` in paths. Got {path}")
-                if not (self.root_dir / path).is_relative_to(self.root_dir):
-                    raise ValueError(f"Path {path} is not relative to {self.root_dir}")
-            return [self.root_dir / path for path in paths]
-        return paths
+def _safe_create_file(path: str) -> None:
+    path = os.path.expanduser(path)
+    file_path = pathlib.Path(path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    file_path.touch(exist_ok=True)
 
 
-class ListFiles(FileSystemTool):
-    description: str = """
-        Lists all files at or optionally under a provided path. {%- if root_dir
-        %} Paths must be relative to {{ root_dir }}. Provide '.' instead of '/'
-        to read root. {%- endif %}}
-        """
-
-    root_dir: Path = Field(
-        None,
-        description=(
-            "Root directory for files. If provided, only files nested in or below this"
-            " directory can be read."
-        ),
-    )
-
-    def run(self, path: str, include_nested: bool = True) -> list[str]:
-        """List all files in `root_dir`, optionally including nested files."""
-        [path] = self.validate_paths([path])
-        if include_nested:
-            files = [str(p) for p in path.rglob("*") if p.is_file()]
-        else:
-            files = [str(p) for p in path.glob("*") if p.is_file()]
-
-        # filter out certain files
-        files = [
-            file
-            for file in files
-            if not (
-                "__pycache__" in file
-                or "/.git/" in file
-                or file.endswith("/.gitignore")
-            )
-        ]
-
-        return files
+def getcwd() -> str:
+    """Returns the current working directory"""
+    return os.getcwd()
 
 
-class ReadFile(FileSystemTool):
-    description: str = """
-    Read the content of a specific file, optionally providing start and end
-    rows.{% if root_dir %} Paths must be relative to {{ root_dir }}. Provide '.'
-    instead of '/' to read root.{%- endif %}}
+def write(path: str, contents: str) -> str:
+    """Creates or overwrites a file with the given contents"""
+    path = os.path.expanduser(path)
+    _safe_create_file(path)
+    with open(path, "w") as f:
+        f.write(contents)
+    return f'Successfully wrote "{path}"'
+
+
+def write_lines(
+    path: str, contents: str, insert_line: int = -1, mode: str = "insert"
+) -> str:
+    """Writes content to a specific line in the file.
+
+    Args:
+        path (str): The name of the file to write to.
+        contents (str): The content to write to the file.
+        insert_line (int, optional): The line number to insert the content at.
+            Negative values count from the end of the file. Defaults to -1.
+        mode (str, optional): The mode to use when writing the content. Can be
+            "insert" or "overwrite". Defaults to "insert".
+
+    Returns:
+        str: A message indicating whether the write was successful.
     """
-
-    def run(self, path: str, start_row: int = 1, end_row: int = -1) -> str:
-        [path] = self.validate_paths([path])
-        with open(path, "r") as f:
-            content = f.readlines()
-
-        if start_row == 0:
-            start_row = 1
-        if start_row > 0:
-            start_row -= 1
-        if end_row < 0:
-            end_row += 1
-
-        if end_row == 0:
-            content = content[start_row:]
+    path = os.path.expanduser(path)
+    _safe_create_file(path)
+    with open(path, "r") as f:
+        lines = f.readlines()
+        if insert_line < 0:
+            insert_line = len(lines) + insert_line + 1
+        if mode == "insert":
+            lines[insert_line:insert_line] = contents.splitlines(True)
+        elif mode == "overwrite":
+            lines[
+                insert_line : insert_line + len(contents.splitlines())
+            ] = contents.splitlines(True)
         else:
-            content = content[start_row:end_row]
+            raise ValueError(f"Invalid mode: {mode}")
+    with open(path, "w") as f:
+        f.writelines(lines)
+    return f'Successfully wrote to "{path}"'
 
-        return "\n".join(content)
 
+def read(path: str, include_line_numbers: bool = False) -> str:
+    """Reads a file and returns the contents.
 
-class ReadFiles(FileSystemTool):
-    description: str = """
-    Read the entire content of multiple files at once. Due to context size
-    limitations, reading too many files at once may cause truncated responses.
-    {% if root_dir %} Paths must be relative to {{ root_dir }}. Provide '.'
-    instead of '/' to read root.{%- endif %}}
+    Args:
+        path (str): The path to the file.
+        include_line_numbers (bool, optional): Whether to include line numbers
+            in the returned contents. Defaults to False.
+
+    Returns:
+        str: The contents of the file.
     """
-
-    def run(self, paths: list[str]) -> dict[str, str]:
-        """Load content of each file into a dictionary of path: content."""
-        content = {}
-        for path in self.validate_paths(paths):
-            with open(path) as f:
-                content[path] = f.read()
-        return content
-
-
-class WriteContent(BaseModel):
-    path: str
-    content: str
-    write_mode: Literal["overwrite", "append", "insert"] = "append"
-    insert_at_row: int = None
-
-    @validator("content", pre=True)
-    def content_must_be_string(cls, v):
-        if v and not isinstance(v, str):
-            try:
-                v = json.dumps(v)
-            except json.JSONDecodeError:
-                raise ValueError("Content must be a string or JSON-serializable.")
-        return v
-
-    @root_validator
-    def check_insert_model(cls, values):
-        if values["insert_at_row"] is None and values["write_mode"] == "insert":
-            raise ValueError("Must provide `insert_at_row` when using `insert` mode.")
-        return values
+    path = os.path.expanduser(path)
+    with open(path, "r") as f:
+        if include_line_numbers:
+            lines = f.readlines()
+            lines_with_numbers = [f"{i+1}: {line}" for i, line in enumerate(lines)]
+            return "".join(lines_with_numbers)
+        else:
+            return f.read()
 
 
-class WriteFile(FileSystemTool):
-    description: str = """
-        Write content to a file.
-        
-        {%if root_dir %} Paths must be relative to {{ root_dir }}.{% endif %}}
-        
-        {%if require_confirmation %} You MUST ask the user to confirm writes by
-        showing them details. {% endif %}
-        """
-    require_confirmation: bool = True
+def read_lines(
+    path: str,
+    start_line: int = 0,
+    end_line: int = -1,
+    include_line_numbers: bool = False,
+) -> str:
+    """Reads a partial file and returns the contents with optional line numbers.
 
-    def run(self, write_content: WriteContent) -> str:
-        [path] = self.validate_paths([write_content.path])
+    Args:
+        path (str): The path to the file.
+        start_line (int, optional): The starting line number to read. Defaults
+            to 0.
+        end_line (int, optional): The ending line number to read. Defaults to
+            -1, which means read until the end of the file.
+        include_line_numbers (bool, optional): Whether to include line numbers
+            in the returned contents. Defaults to False.
 
-        # ensure the parent directory exists
-        path.parent.mkdir(parents=True, exist_ok=True)
+    Returns:
+        str: The contents of the file.
+    """
+    path = os.path.expanduser(path)
+    with open(path, "r") as f:
+        lines = f.readlines()
+        if start_line < 0:
+            start_line = len(lines) + start_line
+        if end_line < 0:
+            end_line = len(lines) + end_line
+        if include_line_numbers:
+            lines_with_numbers = [
+                f"{i+1}: {line}" for i, line in enumerate(lines[start_line:end_line])
+            ]
+            return "".join(lines_with_numbers)
+        else:
+            return "".join(lines[start_line:end_line])
 
-        if write_content.write_mode == "overwrite":
-            with open(path, "w") as f:
-                f.write(write_content.content)
-        elif write_content.write_mode == "append":
-            with open(path, "a") as f:
-                f.write(write_content.content)
-        elif write_content.write_mode == "insert":
-            with open(path, "r") as f:
-                contents = f.readlines()
-            contents[write_content.insert_at_row] = write_content.content
 
-            with open(path, "w") as f:
-                f.writelines(contents)
-
-        return f"Files {write_content.path} written successfully."
+def mkdir(path: str) -> str:
+    """Creates a directory (and any parent directories))"""
+    path = os.path.expanduser(path)
+    _path = pathlib.Path(path)
+    _path.mkdir(parents=True, exist_ok=True)
+    return f'Successfully created directory "{path}"'
 
 
-class WriteFiles(WriteFile):
-    description: str = """
-        Write content to multiple files. Each `WriteContent` object in the
-        `contents` argument is an instruction to write to a specific file.
-        
-        {%if root_dir %} Paths must be relative to {{ root_dir }}.{% endif %}}
-        
-        {%if require_confirmation %} You MUST ask the user to confirm writes by
-        showing them details. {% endif %}
-        """
-    require_confirmation: bool = True
+def mv(src: str, dest: str) -> str:
+    """Moves a file or directory"""
+    src = os.path.expanduser(src)
+    dest = os.path.expanduser(dest)
+    _src = pathlib.Path(src)
+    _dest = pathlib.Path(dest)
+    _src.rename(dest)
+    return f'Successfully moved "{src}" to "{dest}"'
 
-    @validate_arguments
-    def run(self, contents: list[WriteContent]) -> str:
-        for wc in contents:
-            super().run(write_content=wc)
-        return f"Files {[c.path for c in contents]} written successfully."
+
+def cp(src: str, dest: str) -> str:
+    """Copies a file or directory"""
+    src = os.path.expanduser(src)
+    dest = os.path.expanduser(dest)
+    _src = pathlib.Path(src)
+    _dest = pathlib.Path(dest)
+    shutil.copytree(_src, _dest)
+    return f'Successfully copied "{src}" to "{dest}"'
+
+
+def ls(path: str) -> str:
+    """Lists the contents of a directory"""
+    path = os.path.expanduser(path)
+    _path = pathlib.Path(path)
+    return "\n".join(str(p) for p in _path.iterdir())

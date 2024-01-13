@@ -11,22 +11,25 @@ classifiers = [
 keywords = ["ai", "chatbot", "llm"]
 requires-python = ">=3.9"
 dependencies = [
-  "beautifulsoup4>=4.12.2",
-  "fastapi>=0.98.0",
+  "fastapi",
   "httpx>=0.24.1",
   "jinja2>=3.1.2",
   "jsonpatch>=1.33",
-  "openai>=0.27.8",
-  "pydantic[dotenv]>=1.10.7",
+  "openai>=1.1.0",
+  "pydantic>=2.4.2",
+  "pydantic_settings",
   "rich>=12",
   "tiktoken>=0.4.0",
   "typer>=0.9.0",
+  "typing_extensions>=4.0.0",
   "tzdata>=2023.3", # need for windows
   "uvicorn>=0.22.0"
 ]
 
 [project.optional-dependencies]
 generator = ["datamodel-code-generator>=0.20.0"]
+chromadb = ["chromadb"]
+prefect = ["prefect>=2.14.9"]
 dev = [
     "marvin[tests]",
     "black[jupyter]",
@@ -43,28 +46,14 @@ dev = [
     "ruff",
 ]
 tests = [
-    "marvin[openai,anthropic]",
-    "pytest-asyncio~=0.20",
+    "pytest-asyncio>=0.18.2,!=0.22.0,<0.23.0",
     "pytest-env>=0.8,<2.0",
     "pytest-rerunfailures>=10,<13",
     "pytest-sugar~=0.9",
     "pytest~=7.3.1",
+    "pytest-timeout",
 ]
-
-framework = [
-    "aiosqlite>=0.19.0",
-    "alembic>=1.11.1",
-    "bcrypt>=4.0.1",
-    "gunicorn>=20.1.0",
-    "prefect>=2.10.17",
-    "sqlalchemy>=2.0.17"
-]
-openai = ["openai>=0.27.8", "tiktoken>=0.4.0"]
-anthropic = ["anthropic>=0.3"]
-lancedb = ["lancedb>=0.1.8"]
-slackbot = ["cachetools>=5.3.1", "numpy>=1.21.2"]
-ddg = ["duckduckgo_search>=3.8.3"]
-serpapi = ["google-search-results>=2.4.2"]
+slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]"]
 
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"
@@ -83,7 +72,7 @@ write_to = "src/marvin/_version.py"
 # pytest configuration
 [tool.pytest.ini_options]
 markers = ["llm: indicates that a test calls an LLM (may be slow)."]
-
+timeout = 20
 testpaths = ["tests"]
 
 norecursedirs = [
@@ -103,10 +92,9 @@ filterwarnings = [
 ]
 env = [
     "MARVIN_TEST_MODE=1",
-    "MARVIN_LOG_CONSOLE_WIDTH=120",
     # use 3.5 for tests by default
-    'D:MARVIN_LLM_MODEL=gpt-3.5-turbo',
-    'MARVIN_LLM_TEMPERATURE=0.0',
+    'D:MARVIN_OPENAI_CHAT_COMPLETIONS_MODEL=gpt-3.5-turbo-1106',
+    'PYTEST_TIMEOUT=20',
 ]
 
 # black configuration
@@ -116,6 +104,12 @@ preview = true
 # ruff configuration
 [tool.ruff]
 extend-select = ["I"]
+target-version = "py39"
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$" # default, but here in case we want to change it
+
+[tool.ruff.format]
+quote-style = "double"
+skip-magic-trailing-comma = false
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ['I', 'F401', 'E402']

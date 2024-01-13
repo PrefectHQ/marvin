@@ -1,331 +1,212 @@
 import asyncio
 import inspect
-from enum import Enum, EnumMeta  # noqa
-from functools import partial
-from typing import Any, Callable, Literal, Optional, TypeVar
+from typing import (
+    Any,
+    Callable,
+    Coroutine,
+    Generic,
+    Optional,
+    TypedDict,
+    TypeVar,
+    Union,
+    overload,
+)
 
-from typing_extensions import ParamSpec, Self
+from openai import AsyncClient, Client
+from pydantic import BaseModel, ConfigDict, Field
+from typing_extensions import NotRequired, ParamSpec, Self, Unpack
 
-from marvin._compat import BaseModel, Field
-from marvin.core.ChatCompletion import ChatCompletion
-from marvin.core.ChatCompletion.abstract import AbstractChatCompletion
-from marvin.prompts import Prompt, prompt_fn
-from marvin.utilities.async_utils import run_sync
-from marvin.utilities.logging import get_logger
+from marvin._mappings.chat_completion import chat_completion_to_type
+from marvin.client.openai import AsyncMarvinClient, MarvinClient
+from marvin.components.prompt.fn import PromptFunction
+from marvin.utilities.jinja import BaseEnvironment
 
-T = TypeVar("T", bound=BaseModel)
-
-A = TypeVar("A", bound=Any)
+T = TypeVar("T")
 
 P = ParamSpec("P")
 
 
-def ai_classifier_prompt(
-    enum: Enum,
-    ctx: Optional[dict[str, Any]] = None,
-    **kwargs: Any,
-) -> Callable[P, Prompt[P]]:
-    @prompt_fn(
-        ctx={"ctx": ctx or {}, "enum": enum, "inspect": inspect},
-        response_model=int,  # type: ignore
-        response_model_name="Index",
-        response_model_description="The index of the most likely class.",
-        response_model_field_name="index",
-        serialize_on_call=False,
-        **kwargs,
-    )
+class AIClassifierKwargs(TypedDict):
+    environment: NotRequired[BaseEnvironment]
+    prompt: NotRequired[str]
+    encoder: NotRequired[Callable[[str], list[int]]]
+    client: NotRequired[Client]
+    aclient: NotRequired[AsyncClient]
+    model: NotRequired[str]
 
-    #     You are an expert classifier that always chooses correctly.
-    #     {% if enum_class_docstring %}
-    #     Your classification task is: {{ enum_class_docstring }}
-    #     {% endif %}
-    #     {% if instructions %}
-    #     Your instructions are: {{ instructions }}
-    #     {% endif %}
-    #     The user will provide context through text, you will use your expertise
-    #     to choose the best option below based on it:
-    #     {% for option in options %}
-    #         {{ loop.index }}. {{ value_getter(option) }}
-    #     {% endfor %}
-    #     {% if context_fn %}
-    #     You have been provided the following context to perform your task:\n
-    #     {%for (arg, value) in context_fn(value).items()%}
-    #         - {{ arg }}: {{ value }}\n
-    #     {% endfor %}
-    #     {% endif %}\
-    def prompt_wrapper(text: str) -> None:  # type: ignore # noqa
-        """
-        System: You are an expert classifier that always chooses correctly
-        {{ '(note, however: ' + ctx.get('instructions') + ')' if ctx.get('instructions') }}
 
-        {{ 'Also note that: ' + enum.__doc__ if enum.__doc__ }}
+class AIClassifierKwargsDefaults(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    environment: Optional[BaseEnvironment] = None
+    prompt: Optional[str] = None
+    encoder: Optional[Callable[[str], list[int]]] = None
+    client: Optional[Client] = None
+    aclient: Optional[AsyncClient] = None
+    model: Optional[str] = None
 
-        The user will provide text to classify, you will use your expertise
-        to choose the best option below based on it:
-        {% for option in enum %}
-            {{ loop.index }}. {{option.name}} ({{option.value}})
+
+class AIClassifier(
+    BaseModel,
+    Generic[P, T],
+):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None
+    environment: Optional[BaseEnvironment] = None
+    prompt: Optional[str] = Field(
+        default=inspect.cleandoc(
+            """
+        ## Expert Classifier
+
+        **Objective**: You are an expert classifier that always chooses correctly.
+
+        ### Context
+        {{ _doc }}
+        
+        ### Response Format
+        You must classify the user provided data into one of the following classes:
+        {% for option in _options %}
+        - Class {{ loop.index0 }} (value: {{ option }})
         {% endfor %}
-        {% set context = ctx.get('context_fn')(text).items() if ctx.get('context_fn') %}
-        {% if context %}
-        You have been provided the following context to perform your task:
-        {%for (arg, value) in context%}
-            - {{ arg }}: {{ value }}\n
+        \n\nASSISTANT: ### Data
+        The user provided the following data:                                                                                                                     
+        {%for (arg, value) in _arguments.items()%}
+        - {{ arg }}: {{ value }}
         {% endfor %}
-        {% endif %}
-        User: the text to classify: {{text}}
-        """  # noqa
-
-    return prompt_wrapper  # type: ignore
-
-
-class AIEnumMetaData(BaseModel):
-    model: Any = Field(default_factory=ChatCompletion)
-    ctx: Optional[dict[str, Any]] = None
-    instructions: Optional[str] = None
-    mode: Optional[Literal["function", "logit_bias"]] = "logit_bias"
-
-
-class AIEnumMeta(EnumMeta):
+        \n\nASSISTANT: The most likely class label for the data and context provided above is Class"
     """
-
-    A metaclass for the AIEnum class.
-
-    Enables overloading of the __call__ method to permit extra keyword arguments.
-
-    """
-
-    __metadata__ = AIEnumMetaData()
+        )
+    )  # noqa
+    encoder: Callable[[str], list[int]] = Field(default=None)
+    max_tokens: int = 1
+    temperature: float = 0.0
+    model: Optional[str] = None
+    client: Client = Field(default_factory=lambda: MarvinClient().client)
+    aclient: AsyncClient = Field(default_factory=lambda: AsyncMarvinClient().client)
 
     def __call__(
-        cls: Self,
-        value: Any,
-        names: Optional[Any] = None,
-        *args: Any,
-        module: Optional[str] = None,
-        qualname: Optional[str] = None,
-        type: Optional[type] = None,
-        start: int = 1,
-        boundary: Optional[Any] = None,
-        model: Optional[str] = None,
-        ctx: Optional[dict[str, Any]] = None,
-        instructions: Optional[str] = None,
-        mode: Optional[Literal["function", "logit_bias"]] = None,
-        **model_kwargs: Any,
-    ) -> type[Enum]:
-        cls.__metadata__ = AIEnumMetaData(
-            model=ChatCompletion(model=model, **model_kwargs),
-            ctx=ctx,
-            instructions=instructions,
-            mode=mode,
+        self, *args: P.args, **kwargs: P.kwargs
+    ) -> Union[T, Coroutine[Any, Any, T]]:
+        if asyncio.iscoroutinefunction(self.fn):
+            return self.acall(*args, **kwargs)
+        return self.call(*args, **kwargs)
+
+    def call(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        prompt = self.as_prompt(*args, **kwargs)
+        response = MarvinClient(client=self.client).chat(**prompt.serialize())
+        return chat_completion_to_type(self.fn.__annotations__["return"], response)
+
+    async def acall(self, *args: P.args, **kwargs: P.kwargs) -> T:
+        prompt = self.as_prompt(*args, **kwargs)
+        response = await AsyncMarvinClient(client=self.aclient).chat(
+            **prompt.serialize()
         )
-        return super().__call__(
-            value,
-            names,  # type: ignore
-            *args,
-            module=module,
-            qualname=qualname,
-            type=type,
-            start=start,
+        return chat_completion_to_type(self.fn.__annotations__["return"], response)
+
+    def map(self, *arg_list: list[Any], **kwarg_list: list[Any]) -> list[T]:
+        return [
+            self.call(*args, **{k: v[i] for k, v in kwarg_list.items()})
+            for i, args in enumerate(zip(*arg_list))
+        ]
+
+    async def amap(self, *arg_list: list[Any], **kwarg_list: list[Any]) -> list[T]:
+        return await asyncio.gather(
+            *[
+                self.acall(*args, **{k: v[i] for k, v in kwarg_list.items()})
+                for i, args in enumerate(zip(*arg_list))
+            ]
         )
 
-
-class AIEnum(Enum, metaclass=AIEnumMeta):
-    """
-    AIEnum is a class that extends Python's built-in Enum class.
-    It uses the AIEnumMeta metaclass, which allows additional parameters to be passed
-    when creating an enum. These parameters are used to customize the behavior
-    of the AI classifier.
-    """
-
-    @classmethod
-    def _missing_(cls: type[Self], value: object) -> Self:
-        response: int = cls.call(value)
-        return list(cls)[response - 1]
-
-    @classmethod
-    def get_prompt(
-        cls,
-        *,
-        ctx: Optional[dict[str, Any]] = None,
-        instructions: Optional[str] = None,
-        **kwargs: Any,
-    ) -> Callable[..., Prompt[P]]:
-        ctx = ctx or cls.__metadata__.ctx or {}
-        instructions = instructions or cls.__metadata__.instructions
-        ctx["instructions"] = instructions or ctx.get("instructions", None)
-        return ai_classifier_prompt(cls, ctx=ctx, **kwargs)  # type: ignore # noqa
-
-    @classmethod
     def as_prompt(
-        cls,
-        value: Any,
-        *,
-        ctx: Optional[dict[str, Any]] = None,
-        instructions: Optional[str] = None,
-        mode: Optional[Literal["function", "logit_bias"]] = None,
-        model: Optional[str] = None,
-        **model_kwargs: Any,
+        self,
+        *args: P.args,
+        **kwargs: P.kwargs,
+    ) -> PromptFunction[BaseModel]:
+        return PromptFunction[BaseModel].as_grammar(
+            fn=self.fn,
+            **self.model_dump(
+                exclude={"fn", "client", "aclient"},
+                exclude_none=True,
+            ),
+        )(*args, **kwargs)
+
+    def dict(
+        self,
+        *args: P.args,
+        **kwargs: P.kwargs,
     ) -> dict[str, Any]:
-        ctx = ctx or cls.__metadata__.ctx or {}
-        instructions = instructions or cls.__metadata__.instructions
-        ctx["instructions"] = instructions or ctx.get("instructions", None)
-        mode = mode or cls.__metadata__.mode
-        response = cls.get_prompt(instructions=instructions, ctx=ctx)(value).serialize(
-            model=cls.__metadata__.model,
-        )
-        if mode == "logit_bias":
-            import tiktoken
+        return self.as_prompt(*args, **kwargs).serialize()
 
-            response.pop("functions", None)
-            response.pop("function_call", None)
-            response.pop("response_model", None)
-            encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
-            response["logit_bias"] = {
-                encoder.encode(str(j))[0]: 100 for j in range(1, len(cls) + 1)
-            }
-            response["max_tokens"] = 1
-        return response
-
+    @overload
     @classmethod
-    def as_dict(
-        cls,
-        value: Any,
-        ctx: Optional[dict[str, Any]] = None,
-        instructions: Optional[str] = None,
-        mode: Optional[Literal["function", "logit_bias"]] = None,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        ctx = ctx or cls.__metadata__.ctx or {}
-        instructions = instructions or cls.__metadata__.instructions
-        ctx["instructions"] = instructions or ctx.get("instructions", None)
-        mode = mode or cls.__metadata__.mode
+    def as_decorator(
+        cls: type[Self],
+        **kwargs: Unpack[AIClassifierKwargs],
+    ) -> Callable[P, Self]:
+        pass
 
-        response = cls.get_prompt(ctx=ctx, instructions=instructions)(value).to_dict()
-        if mode == "logit_bias":
-            import tiktoken
-
-            response.pop("functions", None)
-            response.pop("function_call", None)
-            response.pop("response_model", None)
-            encoder = tiktoken.encoding_for_model("gpt-3.5-turbo")
-            response["logit_bias"] = {
-                encoder.encode(str(j))[0]: 100 for j in range(1, len(cls) + 1)
-            }
-            response["max_tokens"] = 1
-
-        return response
-
+    @overload
     @classmethod
-    def as_chat_completion(
-        cls,
-        value: Any,
-        ctx: Optional[dict[str, Any]] = None,
-        instructions: Optional[str] = None,
-        mode: Optional[Literal["function", "logit_bias"]] = None,
-    ) -> AbstractChatCompletion[T]:  # type: ignore # noqa
-        ctx = ctx or cls.__metadata__.ctx or {}
-        instructions = instructions or cls.__metadata__.instructions
-        mode = mode or cls.__metadata__.mode
-        ctx["instructions"] = instructions or ctx.get("instructions", None)
-        return cls.__metadata__.model(
-            **cls.as_dict(value, ctx=ctx, instructions=instructions, mode=mode)
-        )
-
-    @classmethod
-    def call(
-        cls,
-        value: Any,
-        ctx: Optional[dict[str, Any]] = None,
-        instructions: Optional[str] = None,
-        mode: Optional[Literal["function", "logit_bias"]] = None,
-    ) -> Any:
-        get_logger("marvin.AIClassifier").debug_kv(
-            f"Calling `AIEnum` {cls.__name__!r}", f" with value {value!r}."
-        )
-
-        ctx = ctx or cls.__metadata__.ctx or {}
-        instructions = instructions or cls.__metadata__.instructions
-        ctx["instructions"] = instructions or ctx.get("instructions", None)
-        mode = mode or cls.__metadata__.mode
-        chat_completion = cls.as_chat_completion(  # type: ignore # noqa
-            value, ctx=ctx, instructions=instructions, mode=mode
-        )
-        if cls.__metadata__.mode == "logit_bias":
-            return int(chat_completion.create().response.choices[0].message.content)  # type: ignore # noqa
-        return getattr(chat_completion.create().to_model(), "index")  # type: ignore
-
-    @classmethod
-    async def acall(
-        cls,
-        value: Any,
-        ctx: Optional[dict[str, Any]] = None,
-        instructions: Optional[str] = None,
-        mode: Optional[Literal["function", "logit_bias"]] = None,
-    ) -> Any:
-        get_logger("marvin.AIClassifier").debug_kv(
-            f"Calling `AIEnum` {cls.__name__!r}", f" with value {value!r}."
-        )
-        ctx = ctx or cls.__metadata__.ctx or {}
-        instructions = instructions or cls.__metadata__.instructions
-        ctx["instructions"] = instructions or ctx.get("instructions", None)
-        mode = mode or cls.__metadata__.mode
-        chat_completion = cls.as_chat_completion(  # type: ignore # noqa
-            value, ctx=ctx, instructions=instructions, mode=mode
-        )
-        if cls.__metadata__.mode == "logit_bias":
-            return int((await chat_completion.acreate()).response.choices[0].message.content)  # type: ignore # noqa
-        return getattr((await chat_completion.acreate()).to_model(), "index")  # type: ignore # noqa
-
-    @classmethod
-    def map(cls, items: list[str], **kwargs: Any) -> list[Any]:
-        """
-        Map the classifier over a list of items.
-        """
-        coros = [cls.acall(item, **kwargs) for item in items]
-
-        # gather returns a future, but run_sync requires a coroutine
-        async def gather_coros() -> list[Any]:
-            return await asyncio.gather(*coros)
-
-        results = run_sync(gather_coros())
-        return [list(cls)[result - 1] for result in results]
+    def as_decorator(
+        cls: type[Self],
+        fn: Callable[P, Union[T, Coroutine[Any, Any, T]]],
+        **kwargs: Unpack[AIClassifierKwargs],
+    ) -> Self:
+        pass
 
     @classmethod
     def as_decorator(
         cls: type[Self],
-        enum: Optional[Enum] = None,
-        ctx: Optional[dict[str, Any]] = None,
-        instructions: Optional[str] = None,
-        mode: Optional[Literal["function", "logit_bias"]] = "logit_bias",
-        model: Optional[str] = None,
-        **model_kwargs: Any,
-    ) -> Self:
-        if not enum:
-            return partial(
-                cls.as_decorator,
-                ctx=ctx,
-                instructions=instructions,
-                mode=mode,
-                model=model,
-                **model_kwargs,
-            )  # type: ignore
-        response = cls(
-            enum.__name__,  # type: ignore
-            {member.name: member.value for member in enum},  # type: ignore
+        fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None,
+        **kwargs: Unpack[AIClassifierKwargs],
+    ) -> Union[Callable[[Callable[P, Union[T, Coroutine[Any, Any, T]]]], Self], Self]:
+        def decorator(func: Callable[P, Union[T, Coroutine[Any, Any, T]]]) -> Self:
+            return cls(
+                fn=func,
+                **AIClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True),
+            )
+
+        if fn is not None:
+            return decorator(fn)
+
+        return decorator
+
+
+@overload
+def ai_classifier(
+    **kwargs: Unpack[AIClassifierKwargs],
+) -> Callable[[Callable[P, T]], Callable[P, T]]:
+    pass
+
+
+@overload
+def ai_classifier(
+    fn: Callable[P, T],
+    **kwargs: Unpack[AIClassifierKwargs],
+) -> Callable[P, T]:
+    pass
+
+
+def ai_classifier(
+    fn: Optional[Callable[P, Union[T, Coroutine[Any, Any, T]]]] = None,
+    **kwargs: Unpack[AIClassifierKwargs],
+) -> Union[
+    Callable[
+        [Callable[P, Union[T, Coroutine[Any, Any, T]]]],
+        Callable[P, Union[T, Coroutine[Any, Any, T]]],
+    ],
+    Callable[P, Union[T, Coroutine[Any, Any, T]]],
+]:
+    if fn is not None:
+        return AIClassifier[P, T].as_decorator(
+            fn=fn, **AIClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True)
         )
-        setattr(
-            response,
-            "__metadata__",
-            AIEnumMetaData(
-                model=ChatCompletion(model=model, **model_kwargs),
-                ctx=ctx,
-                instructions=instructions,
-                mode=mode,
-            ),
+
+    def decorator(
+        func: Callable[P, Union[T, Coroutine[Any, Any, T]]],
+    ) -> Callable[P, Union[T, Coroutine[Any, Any, T]]]:
+        return AIClassifier[P, T].as_decorator(
+            fn=func,
+            **AIClassifierKwargsDefaults(**kwargs).model_dump(exclude_none=True),
         )
 
-        response.__doc__ = enum.__doc__  # type: ignore
-        return response
-
-
-ai_classifier = AIEnum.as_decorator
+    return decorator

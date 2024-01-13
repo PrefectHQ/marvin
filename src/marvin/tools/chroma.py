@@ -1,129 +1,156 @@
 import asyncio
-import json
-from typing import Optional
+import os
+import uuid
+from typing import TYPE_CHECKING, Any, Optional
 
-import httpx
+try:
+    from chromadb import Documents, EmbeddingFunction, Embeddings, GetResult, HttpClient
+except ImportError:
+    raise ImportError(
+        "The chromadb package is required to query Chroma. Please install"
+        " it with `pip install chromadb` or `pip install marvin[chroma]`."
+    )
+
+
 from typing_extensions import Literal
 
 import marvin
-from marvin.tools import Tool
-from marvin.utilities.embeddings import create_openai_embeddings
+
+if TYPE_CHECKING:
+    from openai.types import CreateEmbeddingResponse
 
 QueryResultType = Literal["documents", "distances", "metadatas"]
 
+try:
+    HOST, PORT = (
+        getattr(marvin.settings, "chroma_server_host"),
+        getattr(marvin.settings, "chroma_server_http_port"),
+    )
+    DEFAULT_COLLECTION_NAME = getattr(
+        marvin.settings, "chroma_default_collection_name", "marvin"
+    )
+except AttributeError:
+    HOST = os.environ.get("MARVIN_CHROMA_SERVER_HOST", "localhost")  # type: ignore
+    PORT = os.environ.get("MARVIN_CHROMA_SERVER_HTTP_PORT", 8000)  # type: ignore
+    DEFAULT_COLLECTION_NAME = os.environ.get(
+        "MARVIN_CHROMA_DEFAULT_COLLECTION_NAME", "marvin"
+    )
 
-async def list_collections() -> list[dict]:
-    async with httpx.AsyncClient() as client:
-        chroma_api_url = f"http://{marvin.settings.chroma_server_host}:{marvin.settings.chroma_server_http_port}"
-        response = await client.get(
-            f"{chroma_api_url}/api/v1/collections",
+
+def create_openai_embeddings(texts: list[str]) -> list[float]:
+    """Create OpenAI embeddings for a list of texts."""
+
+    try:
+        import numpy  # noqa F401 # type: ignore
+    except ImportError:
+        raise ImportError(
+            "The numpy package is required to create OpenAI embeddings. Please install"
+            " it with `pip install numpy`."
         )
+    from marvin.client.openai import MarvinClient
 
-    response.raise_for_status()
-    return response.json()
+    embedding: "CreateEmbeddingResponse" = MarvinClient().client.embeddings.create(
+        input=[text.replace("\n", " ") for text in texts],
+        model="text-embedding-ada-002",
+    )
+
+    return embedding.data[0].embedding
+
+
+class OpenAIEmbeddingFunction(EmbeddingFunction):
+    def __call__(self, input: Documents) -> Embeddings:
+        return [create_openai_embeddings(input)]
+
+
+client = HttpClient(host=HOST, port=PORT)
 
 
 async def query_chroma(
     query: str,
     collection: str = "marvin",
     n_results: int = 5,
-    where: Optional[dict] = None,
-    where_document: Optional[dict] = None,
+    where: Optional[dict[str, Any]] = None,
+    where_document: Optional[dict[str, Any]] = None,
     include: Optional[list[QueryResultType]] = None,
     max_characters: int = 2000,
 ) -> str:
-    query_embedding = (await create_openai_embeddings([query]))[0]
+    """Query a collection of document excerpts for a query.
 
-    collection_ids = [
-        c["id"] for c in await list_collections() if c["name"] == collection
+    Example:
+        User: "What are prefect blocks?"
+        Assistant: >>> query_chroma("What are prefect blocks?")
+    """
+    collection_object = client.get_or_create_collection(
+        name=collection or DEFAULT_COLLECTION_NAME,
+        embedding_function=OpenAIEmbeddingFunction(),
+    )
+    query_result = collection_object.query(
+        query_texts=[query],
+        n_results=n_results,
+        where=where,
+        where_document=where_document,
+        include=include or ["documents"],
+    )
+    return "".join(doc for doclist in query_result["documents"] for doc in doclist)[
+        :max_characters
     ]
 
-    if len(collection_ids) == 0:
-        return f"Collection {collection} not found."
 
-    collection_id = collection_ids[0]
+async def multi_query_chroma(
+    queries: list[str],
+    collection: str = "marvin",
+    n_results: int = 5,
+    where: Optional[dict[str, Any]] = None,
+    where_document: Optional[dict[str, Any]] = None,
+    include: Optional[list[QueryResultType]] = None,
+    max_characters: int = 2000,
+) -> str:
+    """Retrieve excerpts to aid in answering multifacted questions.
 
-    async with httpx.AsyncClient() as client:
-        chroma_api_url = f"http://{marvin.settings.chroma_server_host}:{marvin.settings.chroma_server_http_port}"
-
-        response = await client.post(
-            f"{chroma_api_url}/api/v1/collections/{collection_id}/query",
-            data=json.dumps(
-                {
-                    "query_embeddings": [query_embedding],
-                    "n_results": n_results,
-                    "where": where or {},
-                    "where_document": where_document or {},
-                    "include": include or ["documents"],
-                }
-            ),
-            headers={"Content-Type": "application/json"},
+    Example:
+        User: "What are prefect blocks and tasks?"
+        Assistant: >>> multi_query_chroma(
+            ["What are prefect blocks?", "What are prefect tasks?"]
         )
-
-    response.raise_for_status()
-
-    return "\n".join(
-        [
-            f"{i+1}. {', '.join(excerpt)}"
-            for i, excerpt in enumerate(response.json()["documents"])
-        ]
-    )[:max_characters]
-
-
-class QueryChroma(Tool):
-    """Tool for querying a Chroma index."""
-
-    description: str = """
-        Retrieve document excerpts from a knowledge-base given a query.
+        multi_query_chroma -> document excerpts explaining both blocks and tasks
     """
 
-    async def run(
-        self,
-        query: str,
-        collection: str = "marvin",
-        n_results: int = 5,
-        where: Optional[dict] = None,
-        where_document: Optional[dict] = None,
-        include: Optional[list[QueryResultType]] = None,
-        max_characters: int = 2000,
-    ) -> str:
-        return await query_chroma(
-            query, collection, n_results, where, where_document, include, max_characters
+    coros = [
+        query_chroma(
+            query,
+            collection,
+            n_results,
+            where,
+            where_document,
+            include,
+            max_characters // len(queries),
         )
+        for query in queries
+    ]
+    return "\n".join(await asyncio.gather(*coros))[:max_characters]
 
 
-class MultiQueryChroma(Tool):
-    """Tool for querying a Chroma index."""
+def store_document(
+    document: str, metadata: dict[str, Any], collection_name: str = "glacial"
+) -> GetResult:
+    """Store a document in Chroma for future reference.
 
-    description: str = """
-        Retrieve document excerpts from a knowledge-base given a query.
+    Args:
+        document: The document to store.
+        metadata: The metadata to store with the document.
+
+    Returns:
+        The stored document.
     """
+    collection = client.get_or_create_collection(
+        name=collection_name, embedding_function=OpenAIEmbeddingFunction()
+    )
+    doc_id = metadata.get("msg_id", str(uuid.uuid4()))
 
-    async def run(
-        self,
-        queries: list[str],
-        collection: str = "marvin",
-        n_results: int = 5,
-        where: Optional[dict] = None,
-        where_document: Optional[dict] = None,
-        include: Optional[list[QueryResultType]] = None,
-        max_characters: int = 2000,
-        max_queries: int = 5,
-    ) -> str:
-        if len(queries) > max_queries:
-            # make sure excerpts are not too short
-            queries = queries[:max_queries]
+    collection.add(
+        ids=[doc_id],
+        documents=[document],
+        metadatas=[metadata],
+    )
 
-        coros = [
-            query_chroma(
-                query,
-                collection,
-                n_results,
-                where,
-                where_document,
-                include,
-                max_characters // len(queries),
-            )
-            for query in queries
-        ]
-        return "\n\n".join(await asyncio.gather(*coros, return_exceptions=True))
+    return collection.get(ids=doc_id)
