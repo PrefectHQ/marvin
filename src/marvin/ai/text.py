@@ -34,6 +34,7 @@ from marvin.ai.prompts.text_prompts import (
 )
 from marvin.client.openai import ChatCompletion, MarvinClient
 from marvin.types import ChatRequest, ChatResponse
+from marvin.utilities.context import ctx
 from marvin.utilities.jinja import Transcript
 from marvin.utilities.logging import get_logger
 from marvin.utilities.python import PythonFunction
@@ -42,6 +43,12 @@ T = TypeVar("T")
 M = TypeVar("M", bound=BaseModel)
 
 logger = get_logger(__name__)
+
+
+class EjectRequest(Exception):
+    def __init__(self, request):
+        self.request = request
+        super().__init__("Ejected request.")
 
 
 def generate_llm_response(
@@ -68,6 +75,8 @@ def generate_llm_response(
     messages = Transcript(content=prompt_template).render_to_messages(**prompt_kwargs)
 
     request = ChatRequest(messages=messages, **model_kwargs)
+    if ctx.get("eject_request"):
+        raise EjectRequest(request)
     if marvin.settings.log_verbose:
         logger.debug_kv("Request", request.model_dump_json(indent=2))
     response = MarvinClient().generate_chat(**request.model_dump())

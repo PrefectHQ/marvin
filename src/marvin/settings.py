@@ -24,6 +24,7 @@ class MarvinSettings(BaseSettings):
         env_file="" if os.getenv("MARVIN_TEST_MODE") else "~/.marvin/.env",
         extra="allow",
         arbitrary_types_allowed=True,
+        validate_assignment=True,
     )
 
     def __setattr__(self, name: str, value: Any) -> None:
@@ -235,6 +236,17 @@ class Settings(MarvinSettings):
             "Whether to log verbose messages, such as full API requests and responses."
         ),
     )
+
+    @field_validator(
+        "log_level",
+        mode="after",
+    )
+    @classmethod
+    def set_log_level(cls, v):
+        from marvin.utilities.logging import setup_logging
+
+        setup_logging(level=v)
+        return v
 
 
 settings = Settings()

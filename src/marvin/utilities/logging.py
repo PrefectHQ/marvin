@@ -1,4 +1,5 @@
 """Module for logging utilities."""
+
 import logging
 from functools import lru_cache, partial
 from typing import Optional
@@ -102,6 +103,3 @@ def add_logging_methods(logger: logging.Logger) -> None:
     setattr(logger, "warning_kv", partial(log_kv, logging.WARNING))
     setattr(logger, "error_kv", partial(log_kv, logging.ERROR))
     setattr(logger, "critical_kv", partial(log_kv, logging.CRITICAL))
-
-
-setup_logging(level=marvin.settings.log_level)

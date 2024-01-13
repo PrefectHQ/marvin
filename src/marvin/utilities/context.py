@@ -47,3 +47,6 @@ class ScopedContext:
             yield
         finally:
             self._context_storage.set(current_context)
+
+
+ctx = ScopedContext()
