@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   run_tests:
-    name: ${{ matrix.test-type == '' && '(all)' || matrix.test-type }} w/ Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    name: ${{ matrix.test-type == '' && 'all' || matrix.test-type }} w/ Python ${{ matrix.python-version }} on ${{ matrix.os }}
     timeout-minutes: 15
     strategy:
       matrix:
