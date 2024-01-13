@@ -33,7 +33,7 @@ Marvin can use OpenAI's vision API to process images and convert them into struc
 
     We will cast this image to a `Location` type:
 
-    ![](https://upload.wikimedia.org/wikipedia/commons/7/7a/View_of_Empire_State_Building_from_Rockefeller_Center_New_York_City_dllu_%28cropped%29.jpg)
+    ![](https://images.unsplash.com/photo-1568515387631-8b650bbcdb90)
 
     
     ```python
@@ -44,7 +44,7 @@ Marvin can use OpenAI's vision API to process images and convert them into struc
         city: str
         state: str
     
-    img = 'https://upload.wikimedia.org/wikipedia/commons/7/7a/View_of_Empire_State_Building_from_Rockefeller_Center_New_York_City_dllu_%28cropped%29.jpg'
+    img = 'https://images.unsplash.com/photo-1568515387631-8b650bbcdb90'
     result = marvin.cast_vision(img, target=Location)
     ```
 
