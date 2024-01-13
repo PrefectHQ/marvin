@@ -1,3 +1,14 @@
+"""Usage example of Marvin with Azure OpenAI
+
+If you'll be using Azure OpenAI exclusively, you can set the following environment variables in `~/.marvin/.env`:
+```bash
+MARVIN_USE_AZURE_OPENAI=true
+MARVIN_AZURE_OPENAI_API_KEY=...
+MARVIN_AZURE_OPENAI_API_VERSION=...
+MARVIN_AZURE_OPENAI_ENDPOINT=...
+MARVIN_AZURE_OPENAI_DEPLOYMENT_NAME=...
+```
+"""
 from enum import Enum
 
 import marvin
