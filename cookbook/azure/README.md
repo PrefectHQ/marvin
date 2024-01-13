@@ -11,7 +11,7 @@ After setting up your Azure OpenAI account and deployment, it is recommended you
 
 ```bash
 » cat ~/.marvin/.env | rg AZURE
-MARVIN_USE_AZURE_OPENAI=true # must be set to use Azure OpenAI
+MARVIN_USE_AZURE_OPENAI=true
 MARVIN_AZURE_OPENAI_API_KEY=<your-api-key>
 MARVIN_AZURE_OPENAI_ENDPOINT=https://<your-endpoint>.openai.azure.com/
 MARVIN_AZURE_OPENAI_API_VERSION=2023-12-01-preview # or whatever is the latest
