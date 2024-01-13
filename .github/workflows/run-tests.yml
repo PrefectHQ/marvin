@@ -43,6 +43,7 @@ jobs:
           # Run LLM tests on 3.9
           - python-version: '3.9'
             os: 'ubuntu-latest'
+            test-type: ''
         
         
     runs-on: ${{ matrix.os }}
