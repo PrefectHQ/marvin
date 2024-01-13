@@ -25,7 +25,7 @@ Marvin can use OpenAI's vision API to process images as inputs.
     import marvin
     from pathlib import Path
 
-    marvin.caption(image=Path('/path/to/marvin.jpg'))
+    marvin.beta.caption(image=Path('/path/to/marvin.jpg'))
     ```
 
     !!! success "Result"

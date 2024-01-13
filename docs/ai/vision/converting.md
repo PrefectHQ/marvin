@@ -2,6 +2,7 @@
 
 Marvin can use OpenAI's vision API to process images and convert them into structured data, transforming unstructured information into native types that are appropriate for a variety of programmatic use cases.
 
+The `marvin.beta.cast` function is an enhanced version of `marvin.cast` that accepts images as well as text. 
 
 
 
@@ -12,7 +13,7 @@ Marvin can use OpenAI's vision API to process images and convert them into struc
 <div class="admonition abstract">
   <p class="admonition-title">What it does</p>
   <p>
-    The <code>cast_vision</code> function can cast images to structured types.
+    The <code>cast</code> function can cast images to structured types.
   </p>
 </div>
 
@@ -44,8 +45,8 @@ Marvin can use OpenAI's vision API to process images and convert them into struc
         city: str
         state: str
     
-    img = 'https://images.unsplash.com/photo-1568515387631-8b650bbcdb90'
-    result = marvin.cast_vision(img, target=Location)
+    img = marvin.beta.Image('https://images.unsplash.com/photo-1568515387631-8b650bbcdb90')
+    result = marvin.beta.cast(img, target=Location)
     ```
 
     !!! success "Result"
@@ -71,8 +72,8 @@ Marvin can use OpenAI's vision API to process images and convert them into struc
         subtitle: str
         authors: list[str]
     
-    img = 'https://hastie.su.domains/ElemStatLearn/CoverII_small.jpg'
-    result = marvin.cast_vision(img, target=Book)
+    img = marvin.beta.Image('https://hastie.su.domains/ElemStatLearn/CoverII_small.jpg')
+    result = marvin.beta.cast(img, target=Book)
     ```
 
     !!! success "Result"

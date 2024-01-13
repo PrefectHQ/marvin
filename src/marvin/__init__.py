@@ -3,7 +3,7 @@ from .settings import settings
 from .ai.text import fn, cast, extract, classify, classifier, generate, model, Model
 from .ai.images import paint, image
 from .ai.audio import speak, speech
-from .ai.beta.vision import caption, cast_vision, extract_vision, classify_vision
+from . import beta
 
 try:
     from ._version import version as __version__
@@ -27,11 +27,8 @@ __all__ = [
     # --- audio ---
     "speak",
     "speech",
-    # --- vision (beta) ---
-    "caption",
-    "cast_vision",
-    "extract_vision",
-    "classify_vision",
+    # --- beta ---
+    "beta",
 ]
 
 

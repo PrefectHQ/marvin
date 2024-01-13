@@ -2,13 +2,15 @@
 
 Marvin can use OpenAI's vision API to process images and classify them into categories.
 
+The `marvin.beta.classify` function is an enhanced version of `marvin.classify` that accepts images as well as text. 
+
 !!! tip "Beta"
     Please note that vision support in Marvin is still in beta, as OpenAI has not finalized the vision API yet. While it works as expected, it is subject to change.
 
 <div class="admonition abstract">
   <p class="admonition-title">What it does</p>
   <p>
-    The <code>classify_vision</code> function can classify images as one of many labels.
+    The <code>classify</code> function can classify images as one of many labels.
   </p>
 </div>
 
@@ -26,6 +28,7 @@ Marvin can use OpenAI's vision API to process images and classify them into cate
 
 !!! example "Example"
 
+    We will classify the animal in this image, as well as whether it is wet or dry:
 
     ![](https://upload.wikimedia.org/wikipedia/commons/d/d5/Retriever_in_water.jpg)
 
@@ -33,14 +36,14 @@ Marvin can use OpenAI's vision API to process images and classify them into cate
     ```python
     import marvin
 
-    img = 'https://upload.wikimedia.org/wikipedia/commons/d/d5/Retriever_in_water.jpg'
+    img = marvin.beta.Image('https://upload.wikimedia.org/wikipedia/commons/d/d5/Retriever_in_water.jpg')
 
-    animal = marvin.classify_vision(
+    animal = marvin.beta.classify(
         img, 
         labels=['dog', 'cat', 'bird', 'fish', 'deer']
     )
     
-    dry_or_wet = marvin.classify_vision(
+    dry_or_wet = marvin.beta.classify(
         img, 
         labels=['dry', 'wet'], 
         instructions='Is the animal wet?'
