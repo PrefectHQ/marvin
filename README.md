@@ -51,11 +51,11 @@ Each tool in this list is available as a top-level import e.g. `marvin.fn`, `mar
 
 🖼️ `paint` / `@image`: generate images from text or functions
 
-🪄 `cast_vision`: transform images into structured types
+🪄 `cast`: transform images into structured types
 
-🔍 `extract_vision`: find structured entities in images
+🔍 `extract`: find structured entities in images
 
-🏷️ `classify_vision`: categorize images with labels
+🏷️ `classify`: categorize images with labels
 
 ### Audio
 

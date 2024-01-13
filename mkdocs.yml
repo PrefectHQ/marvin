@@ -48,9 +48,9 @@ nav:
       - marvin.ai.text: api_reference/ai/text.md
       - marvin.ai.images: api_reference/ai/images.md
       - marvin.ai.audio: api_reference/ai/audio.md
-      
+
     - Beta AI modules:
-      - marvin.ai.beta.vision: api_reference/ai/beta/vision.md
+      - marvin.beta.vision: api_reference/beta/vision.md
 
     - Object schemas: 
       - marvin.types: api_reference/types.md
