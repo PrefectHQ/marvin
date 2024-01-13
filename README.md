@@ -39,23 +39,27 @@ Each tool in this list is available as a top-level import e.g. `marvin.fn`, `mar
 
 ### Text
 
-🪄 `cast`: transform text into a structured type
-
-✨ `generate`: produce lists of structured data from a schema
+🪄 `cast`: transform text into structured types
 
 🔍 `extract`: find structured entities in text
 
 🏷️ `classify` / `@classifier`: categorize text with labels
 
+✨ `generate`: produce structured data from a schema
+
 ### Images
 
 🖼️ `paint` / `@image`: generate images from text or functions
 
+🪄 `cast_vision`: transform images into structured types
+
+🔍 `extract_vision`: find structured entities in images
+
+🏷️ `classify_vision`: categorize images with labels
 
 ### Audio
 
 🎙️ `speak` / `@speech`: generate speech from text or functions
-
 
 ### Interaction
 
@@ -145,7 +149,7 @@ marvin.generate(
 
 ### ⚙️ Build AI-powered functions
 
-Sometimes your transformation logic is more complex than `cast` or `classify` can handle. For these situations, Marvin introduces AI functions that can take any combination of inputs, instructions, and output types. AI functions are ideal for complex natural language processing or mapping combinations of inputs to outputs.
+Sometimes your transformation logic is more complex than `cast` or `classify` can handle. For these situations, Marvin introduces "AI functions" that can take any combination of inputs, instructions, and output types. AI functions are ideal for complex natural language processing or mapping combinations of inputs to outputs.
 
 Marvin functions look exactly like regular functions, except that you don't have to write any source code. When these functions are called, an AI interprets their description and inputs and generates the output. 
 

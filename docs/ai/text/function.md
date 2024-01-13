@@ -1,7 +1,7 @@
 # AI Functions
 
 
-Marvin introduces AI functions that seamlessly blend into your regular Python code. These functions are designed to map diverse combinations of inputs to outputs, without the need to write any source code.
+Marvin introduces "AI functions" that seamlessly blend into your regular Python code. These functions are designed to map diverse combinations of inputs to outputs, without the need to write any source code.
 
 Marvin's functions leverage the power of LLMs to interpret the function's description and inputs, and generate the appropriate output. It's important to note that Marvin does not generate or execute source code, ensuring safety for a wide range of use cases. Instead, it utilizes the LLM as a "runtime" to predict function outputs, enabling it to handle complex scenarios that would be challenging or even impossible to express as code.
 
