@@ -55,6 +55,7 @@ def generate_llm_response(
     prompt_template: str,
     prompt_kwargs: Optional[dict] = None,
     model_kwargs: Optional[dict] = None,
+    client: Optional[MarvinClient] = None,
 ) -> ChatResponse:
     """
     Generates a language model response based on a provided prompt template.
@@ -70,6 +71,7 @@ def generate_llm_response(
     Returns:
         ChatResponse: The generated response from the language model.
     """
+    client = client or MarvinClient()
     model_kwargs = model_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
     messages = Transcript(content=prompt_template).render_to_messages(**prompt_kwargs)
@@ -79,7 +81,7 @@ def generate_llm_response(
         raise EjectRequest(request)
     if marvin.settings.log_verbose:
         logger.debug_kv("Request", request.model_dump_json(indent=2))
-    response = MarvinClient().generate_chat(**request.model_dump())
+    response = client.generate_chat(**request.model_dump())
     if marvin.settings.log_verbose:
         logger.debug_kv("Response", response.model_dump_json(indent=2))
     tool_outputs = _get_tool_outputs(request, response)
@@ -102,9 +104,10 @@ def _get_tool_outputs(request: ChatRequest, response: ChatCompletion) -> list[An
 def _generate_typed_llm_response_with_tool(
     prompt_template: str,
     type_: Union[GenericAlias, type[T]],
-    tool_name: str = None,
-    prompt_kwargs: dict = None,
-    model_kwargs: dict = None,
+    tool_name: Optional[str] = None,
+    prompt_kwargs: Optional[dict] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[MarvinClient] = None,
 ) -> T:
     """
     Generates a language model response based on a provided prompt template and a specific tool.
@@ -124,6 +127,7 @@ def _generate_typed_llm_response_with_tool(
             prompt. Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
+        client (MarvinClient, optional): The client to use for the AI function.
 
     Returns:
         T: The generated response from the language model.
@@ -145,6 +149,7 @@ def _generate_typed_llm_response_with_tool(
         prompt_template=prompt_template,
         prompt_kwargs=prompt_kwargs,
         model_kwargs=model_kwargs,
+        client=client,
     )
 
     return response.tool_outputs[0]
@@ -156,6 +161,7 @@ def _generate_typed_llm_response_with_logit_bias(
     encoder: Callable[[str], list[int]] = None,
     max_tokens: int = 1,
     model_kwargs: dict = None,
+    client: Optional[MarvinClient] = None,
 ):
     """
     Generates a language model response with logit bias based on a provided
@@ -199,6 +205,7 @@ def _generate_typed_llm_response_with_logit_bias(
         prompt_template=prompt_template,
         prompt_kwargs=(prompt_kwargs or {}) | dict(labels=label_strings),
         model_kwargs=model_kwargs | dict(temperature=0),
+        client=client,
     )
 
     # the response contains a single number representing the index of the chosen
@@ -214,8 +221,9 @@ def _generate_typed_llm_response_with_logit_bias(
 def cast(
     data: str,
     target: type[T],
-    instructions: str = None,
-    model_kwargs: dict = None,
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[MarvinClient] = None,
 ) -> T:
     """
     Converts the input data into the specified type.
@@ -229,6 +237,7 @@ def cast(
         target (type): The type to convert the data into.
         instructions (str, optional): Specific instructions for the conversion. Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the language model. Defaults to None.
+        client (MarvinClient, optional): The client to use for the AI function.
 
     Returns:
         T: The converted data of the specified type.
@@ -248,6 +257,7 @@ def cast(
             labels=target,
             instructions=instructions,
             model_kwargs=model_kwargs,
+            client=client,
         )
 
     return _generate_typed_llm_response_with_tool(
@@ -255,14 +265,16 @@ def cast(
         prompt_kwargs=dict(data=data, instructions=instructions),
         type_=target,
         model_kwargs=model_kwargs | dict(temperature=0),
+        client=client,
     )
 
 
 def extract(
     data: str,
     target: type[T],
-    instructions: str = None,
-    model_kwargs: dict = None,
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[MarvinClient] = None,
 ) -> list[T]:
     """
     Extracts entities of a specific type from the provided data.
@@ -278,6 +290,7 @@ def extract(
             Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
+        client (MarvinClient, optional): The client to use for the AI function.
 
     Returns:
         list: A list of extracted entities of the specified type.
@@ -288,6 +301,7 @@ def extract(
         prompt_kwargs=dict(data=data, instructions=instructions),
         type_=list[target],
         model_kwargs=model_kwargs | dict(temperature=0),
+        client=client,
     )
 
 
@@ -296,6 +310,7 @@ def classify(
     labels: Union[Enum, list[T], type],
     instructions: str = None,
     model_kwargs: dict = None,
+    client: Optional[MarvinClient] = None,
 ) -> T:
     """
     Classifies the provided data based on the provided labels.
@@ -312,6 +327,7 @@ def classify(
             classification. Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
+        client (MarvinClient, optional): The client to use for the AI function.
 
     Returns:
         T: The label that the data was classified into.
@@ -322,15 +338,17 @@ def classify(
         prompt_template=CLASSIFY_PROMPT,
         prompt_kwargs=dict(data=data, labels=labels, instructions=instructions),
         model_kwargs=model_kwargs | dict(temperature=0),
+        client=client,
     )
 
 
 def generate(
-    type_: type[T] = None,
-    instructions: str = None,
+    type_: Optional[type[T]] = None,
+    instructions: Optional[str] = None,
     n: int = 1,
     temperature: float = 1,
-    model_kwargs: dict = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[MarvinClient] = None,
 ) -> list[T]:
     """
     Generates a list of 'n' items of the provided type or based on instructions.
@@ -346,6 +364,7 @@ def generate(
         temperature (float, optional): The temperature for the generation. Defaults to 1.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
+        client (MarvinClient, optional): The client to use for the AI function.
 
     Returns:
         list: A list of generated items.
@@ -364,6 +383,7 @@ def generate(
             prompt_kwargs=dict(type_=type_, n=n, instructions=instructions),
             type_=list[type_],
             model_kwargs=(model_kwargs or {}) | dict(temperature=temperature),
+            client=client,
         )
 
         if len(result) > n:
@@ -371,7 +391,11 @@ def generate(
     return result
 
 
-def fn(func: Callable = None, model_kwargs: dict = None):
+def fn(
+    func: Optional[Callable] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[MarvinClient] = None,
+) -> Callable:
     """
     Converts a Python function into an AI function using a decorator.
 
@@ -382,6 +406,7 @@ def fn(func: Callable = None, model_kwargs: dict = None):
         func (Callable, optional): The function to be converted. Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
+        client (MarvinClient, optional): The client to use for the AI function.
 
     Returns:
         Callable: The converted AI function.
@@ -395,7 +420,7 @@ def fn(func: Callable = None, model_kwargs: dict = None):
     """
 
     if func is None:
-        return partial(fn, model_kwargs=model_kwargs)
+        return partial(fn, model_kwargs=model_kwargs, client=client)
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -430,6 +455,7 @@ def fn(func: Callable = None, model_kwargs: dict = None):
             ),
             type_=type_,
             model_kwargs=model_kwargs,
+            client=client,
         )
 
         if post_processor is not None:
@@ -463,7 +489,14 @@ class Model(BaseModel):
         ai_kwargs.update(kwargs)
         return cls(**ai_kwargs)
 
-    def __init__(self, text: str = None, *, model_kwargs: dict = None, **kwargs):
+    def __init__(
+        self,
+        text: Optional[str] = None,
+        *,
+        model_kwargs: Optional[dict] = None,
+        client: Optional[MarvinClient] = None,
+        **kwargs,
+    ):
         """
         Initializes an instance of the model.
 
@@ -476,7 +509,9 @@ class Model(BaseModel):
         """
         ai_kwargs = kwargs
         if text is not None:
-            ai_kwargs = cast(text, type(self), model_kwargs=model_kwargs).model_dump()
+            ai_kwargs = cast(
+                text, type(self), model_kwargs=model_kwargs, client=client
+            ).model_dump()
             ai_kwargs.update(kwargs)
         super().__init__(**ai_kwargs)
 
@@ -531,7 +566,9 @@ def classifier(cls=None, *, instructions=None, model_kwargs=None):
 
 
 def model(
-    type_: Union[Type[M], None] = None, model_kwargs: dict = None
+    type_: Union[Type[M], None] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[MarvinClient] = None,
 ) -> Union[Type[M], Callable[[Type[M]], Type[M]]]:
     """
     Class decorator for instantiating a Pydantic model from a string.
@@ -554,7 +591,9 @@ def model(
         class WrappedModel(Model, cls):
             @wraps(cls.__init__)
             def __init__(self, *args, **kwargs):
-                super().__init__(*args, model_kwargs=model_kwargs, **kwargs)
+                super().__init__(
+                    *args, model_kwargs=model_kwargs, client=client, **kwargs
+                )
 
         WrappedModel.__name__ = cls.__name__
         WrappedModel.__doc__ = cls.__doc__

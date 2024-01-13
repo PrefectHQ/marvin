@@ -30,6 +30,30 @@ T = TypeVar("T", bound=pydantic.BaseModel)
 
 
 def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
+    if getattr(settings, "use_azure_openai", False):
+        from openai import AsyncAzureOpenAI, AzureOpenAI
+
+        client_class = AsyncAzureOpenAI if client_type == "async" else AzureOpenAI
+
+        try:
+            return client_class(
+                api_key=settings.azure_openai_api_key,
+                api_version=settings.azure_openai_api_version,
+                azure_endpoint=settings.azure_openai_endpoint,
+            )
+        except AttributeError:
+            raise ValueError(
+                "To use Azure OpenAI, please set all of the following environment variables in `~/.marvin/.env`:"
+                "\n\n"
+                "```"
+                "\nMARVIN_USE_AZURE_OPENAI=true"
+                "\nMARVIN_AZURE_OPENAI_API_KEY=..."
+                "\nMARVIN_AZURE_OPENAI_API_VERSION=..."
+                "\nMARVIN_AZURE_OPENAI_ENDPOINT=..."
+                "\nMARVIN_AZURE_OPENAI_DEPLOYMENT_NAME=..."
+                "\n```"
+            )
+
     api_key = (
         settings.openai.api_key.get_secret_value() if settings.openai.api_key else None
     )

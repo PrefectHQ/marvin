@@ -108,7 +108,13 @@ class ResponseModel(BaseModel):
 
 
 class ChatRequest(Prompt[T]):
-    model: str = Field(default_factory=lambda: settings.openai.chat.completions.model)
+    model: str = Field(
+        default_factory=lambda: (
+            settings.openai.chat.completions.model
+            if not getattr(settings, "use_azure_openai", False)
+            else settings.azure_openai_deployment_name
+        )
+    )
     frequency_penalty: Optional[
         Annotated[float, Field(strict=True, ge=-2.0, le=2.0)]
     ] = 0
