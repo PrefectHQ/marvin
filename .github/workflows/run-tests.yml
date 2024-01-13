@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        # run no-llm tests across all python versions and oses
+        # run no_llm tests across all python versions and oses
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.9', '3.10', '3.11', '3.12']
         test-type: ['no_llm']
