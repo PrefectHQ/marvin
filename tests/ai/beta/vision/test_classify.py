@@ -1,27 +1,31 @@
 import marvin
 
-dog_image = "https://upload.wikimedia.org/wikipedia/commons/9/99/Brooks_Chase_Ranger_of_Jolly_Dogs_Jack_Russell.jpg"
+from tests.utils import pytest_mark_class
 
 
+@pytest_mark_class("llm")
 class TestVisionClassify:
     def test_classify_dog(self):
+        img = "https://upload.wikimedia.org/wikipedia/commons/9/99/Brooks_Chase_Ranger_of_Jolly_Dogs_Jack_Russell.jpg"
         result = marvin.classify_vision(
-            images=[dog_image],
+            images=[img],
             labels=["cat", "dog", "horse"],
         )
         assert result == "dog"
 
     def test_classify_dog_color(self):
+        img = "https://upload.wikimedia.org/wikipedia/commons/9/99/Brooks_Chase_Ranger_of_Jolly_Dogs_Jack_Russell.jpg"
         result = marvin.classify_vision(
-            images=[dog_image],
+            images=[img],
             labels=["brown", "black", "blonde", "white", "gray", "golden", "red"],
             instructions="the color of the dog",
         )
         assert result == "white"
 
     def test_classify_background_color(self):
+        img = "https://upload.wikimedia.org/wikipedia/commons/9/99/Brooks_Chase_Ranger_of_Jolly_Dogs_Jack_Russell.jpg"
         result = marvin.classify_vision(
-            images=[dog_image],
+            images=[img],
             labels=["brown", "black", "spotted", "white", "green", "blue"],
             instructions="the color of the background",
         )
