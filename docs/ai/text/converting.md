@@ -1,4 +1,4 @@
-# Structured data
+# Converting text to data
 
 At the heart of Marvin is the ability to convert natural language to native Python types and structured objects. This is one of its simplest but most powerful features, and forms the basis for almost every other tool. 
 
@@ -24,7 +24,7 @@ The primary tool for creating structured data is the `cast` function, which take
         city: str
         state: str
 
-    marvin.cast("the big apple", to=Location)
+    marvin.cast("the big apple", target=Location)
     ```
 
     !!! success "Result"
@@ -53,13 +53,13 @@ Sometimes the cast operation is obvious, as in the "big apple" example above. Ot
 In a simple case, instructions can be used independent of any type-casting. Here, we want to keep the output a string, but get the 2-letter abbreviation of the state.
 
 ```python
-marvin.cast('California', to=str, instruction="The state's abbreviation")
+marvin.cast('California', target=str, instruction="The state's abbreviation")
 # "CA"
 
-marvin.cast('The sunshine state', to=str, instruction="The state's abbreviation")
+marvin.cast('The sunshine state', target=str, instruction="The state's abbreviation")
 # "FL"
 
-marvin.cast('Mass.', to=str, instruction="The state's abbreviation")
+marvin.cast('Mass.', target=str, instruction="The state's abbreviation")
 # MA
 ```
 
@@ -68,7 +68,7 @@ marvin.cast('Mass.', to=str, instruction="The state's abbreviation")
 
 One way of classifying text is by casting it to a contrained type, such as an enum or bool. This forces the LLM to choose one of the provided options. Marvin provides a dedicated `classify` function for this purpose. As a convenience, `cast` will automatically switch to `classify` when given an appropriate target type. However, you may prefer to use the `classify` function to make your intent more clear to other developers.
 
-## AI-enhanced Pydantic models
+## AI models
 
 In addition to providing Pydantic models as `cast` targets, Marvin has a drop-in replacement for Pydantic's `BaseModel` that permits instantiating the model with natural language. These "AI Models" can be created in two different ways:
 

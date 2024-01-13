@@ -164,7 +164,7 @@ def _two_step_vision_response(
     return response.response.choices[0].message.content
 
 
-def cast(
+def cast_vision(
     images: str,
     target: type[T],
     data: str = None,
@@ -173,17 +173,22 @@ def cast(
     llm_model_kwargs: dict = None,
 ) -> T:
     """
-    Converts the input data into the specified type.
+    Converts the input data into the specified type using a vision model.
 
-    This function uses a language model to convert the input data into a specified type.
-    The conversion process can be guided by specific instructions. The function also
-    supports additional arguments for the language model.
+    This function uses a vision model and a language model to convert the input
+    data into a specified type. The conversion process can be guided by specific
+    instructions. The function also supports additional arguments for both models.
 
     Args:
+        images (list[Union[str, Path]]): The images to be processed.
         data (str): The data to be converted.
         target (type): The type to convert the data into.
-        instructions (str, optional): Specific instructions for the conversion. Defaults to None.
-        model_kwargs (dict, optional): Additional keyword arguments for the language model. Defaults to None.
+        instructions (str, optional): Specific instructions for the conversion.
+            Defaults to None.
+        vision_model_kwargs (dict, optional): Additional keyword arguments for
+            the vision model. Defaults to None.
+        llm_model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
 
     Returns:
         T: The converted data of the specified type.
@@ -213,7 +218,7 @@ def cast(
     )
 
 
-def extract(
+def extract_vision(
     images: str,
     target: type[T],
     data: str = None,
@@ -222,20 +227,26 @@ def extract(
     llm_model_kwargs: dict = None,
 ) -> T:
     """
-    Converts the input data into the specified type.
+    Extracts information from the provided images using a vision model.
 
-    This function uses a language model to convert the input data into a specified type.
-    The conversion process can be guided by specific instructions. The function also
-    supports additional arguments for the language model.
+    This function uses a vision model and a language model to extract information
+    from the provided images. The extraction process can be guided by specific
+    instructions. The function also supports additional arguments for both models.
 
     Args:
-        data (str): The data to be converted.
-        target (type): The type to convert the data into.
-        instructions (str, optional): Specific instructions for the conversion. Defaults to None.
-        model_kwargs (dict, optional): Additional keyword arguments for the language model. Defaults to None.
+        images (Union[Union[str, Path], list[Union[str, Path]]]): The images from
+            which to extract information. This can be a single image (URL or local path)
+            or a list of images.
+        data (str, optional): Additional data for the extraction. Defaults to None.
+        instructions (str, optional): Specific instructions for the extraction.
+            Defaults to None.
+        vision_model_kwargs (dict, optional): Additional keyword arguments for
+            the vision model. Defaults to None.
+        llm_model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
 
     Returns:
-        T: The converted data of the specified type.
+        str: The extracted information from the images.
     """
     with ctx(eject_request=True):
         try:
@@ -262,7 +273,7 @@ def extract(
     )
 
 
-def classify(
+def classify_vision(
     images: Union[Union[str, Path], list[Union[str, Path]]],
     labels: Union[Enum, list[T], type],
     data: str = None,
@@ -273,18 +284,21 @@ def classify(
     """
     Classifies the provided images based on the provided labels.
 
-    This function uses a language model with a logit bias to classify the images.
-    The logit bias constrains the language model's response to a single
-    token, making this function highly efficient for classification tasks. The
-    function will always return one of the provided labels.
+    This function uses a vision model and a language model with a logit bias to
+    classify the images. The logit bias constrains the language model's response
+    to a single token, making this function highly efficient for classification
+    tasks. The function will always return one of the provided labels.
 
     Args:
         images (Union[Union[str, Path], list[Union[str, Path]]]): The images to be
             classified. This can be a single image (URL or local path) or a list of images.
         labels (Union[Enum, list[T], type]): The labels to classify the images into.
+        data (str, optional): Additional data for the classification. Defaults to None.
         instructions (str, optional): Specific instructions for the
             classification. Defaults to None.
-        model_kwargs (dict, optional): Additional keyword arguments for the
+        vision_model_kwargs (dict, optional): Additional keyword arguments for
+            the vision model. Defaults to None.
+        llm_model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
 
     Returns:

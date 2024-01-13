@@ -14,22 +14,27 @@ nav:
 
     # - Overview: welcome/overview.md
 
-    - Text and data:
-      - AI functions: ai/text/function.md
-      - Structured data: ai/text/casting.md
-      - Entity extraction: ai/text/extraction.md
+    - Text:
+      - Converting to data: ai/text/converting.md
+      - Extracting entities: ai/text/extraction.md
       - Classification: ai/text/classification.md
       - Generating synthetic data: ai/text/generation.md
+      - AI functions: ai/text/function.md
 
     - Images:
       - Creating images: ai/images/painting.md
-    
-    - Vision:
-      - Captioning: ai/vision/captioning.md
+      - Generating captions: ai/vision/captioning.md
+      - Converting to data: ai/vision/converting.md
+      - Extracting entities: ai/vision/extraction.md
+      - Classification: ai/vision/classification.md
 
     - Audio:
-      - Text-to-speech: ai/audio/speech.md
+      - Generating speech: ai/audio/speech.md
     # - Transcription: ai/function.md
+
+    # - Interactive:
+    #   - Assistants: ai/interactive/assistants.md
+    #   - Applications: ai/interactive/applications.md
       
     - Configuration: 
       - Settings: configuration/settings.md

@@ -20,9 +20,8 @@ Marvin's `extract` function is a robust tool for pulling lists of structured ent
 
         features = marvin.extract(
             "I love my new phone's camera, but the battery life could be improved.",
-            str,
-            instructions='extract product features'
-            
+            target=str,
+            instructions='list any product features',
         )
         ```
 
@@ -44,7 +43,7 @@ Marvin's `extract` function is a robust tool for pulling lists of structured ent
 
         people = marvin.extract(
             "Against all odds, Ford and Arthur were picked up by Zaphod Beeblebrox.",
-            Person
+            target=Person,
         )
         ```
 
@@ -55,14 +54,14 @@ Marvin's `extract` function is a robust tool for pulling lists of structured ent
                 Person(first_name="Ford", last_name="Prefect"), 
                 Person(first_name="Arthur", last_name="Dent"), 
                 Person(first_name="Zaphod", last_name="Beeblebrox")
-                ]
+            ]
             ```
 
 
 <div class="admonition info">
   <p class="admonition-title">How it works</p>
   <p>
-    Similar to [casting](conversion.md), Marvin creates a schema from the provided type and instructs the LLM to use the schema to format its JSON response. Unlike casting, the LLM is told not to use the entire text, but rather to look for any mention that satisfies the schema and any additional instructions.
+    Marvin creates a schema from the provided type and instructs the LLM to use the schema to format its JSON response. Unlike casting, the LLM is told not to use the entire text, but rather to look for any mention that satisfies the schema and any additional instructions.
   </p>
 </div>
 
