@@ -27,7 +27,7 @@ A runtime settings object is accessible via `marvin.settings` and can be used to
     marvin.settings.openai_chat_completions_model = 'gpt-4'
     ```
 
-## Settings for other Azure OpenAI services
+## Settings for using Azure OpenAI models
 _Some_ of Marvin's functionality is supported by Azure OpenAI services.
 
 If you're exclusively using Marvin with Azure OpenAI services, you can set the following environment variables to avoid having to pass `AzureOpenAI` client instances to Marvin's components.
