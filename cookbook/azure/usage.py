@@ -38,8 +38,10 @@ with temporary_settings(
 ):  # or set MARVIN_USE_AZURE_OPENAI=true in `~/.marvin/.env`
     fruits = list_fruits()
     location = marvin.model(Location)("windy city")
+    casted_location = marvin.cast("windy city", Location)
+    extracted_locations = marvin.extract("I live in Chicago", Location)
     sentiment = marvin.classify("I love this movie", Sentiment)
 
 print(fruits)
-print(location)
+print(location, casted_location, extracted_locations)
 print(sentiment)
