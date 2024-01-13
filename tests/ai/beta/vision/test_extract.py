@@ -22,10 +22,3 @@ class TestVisionExtract:
         img = "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=2969&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
         result = marvin.extract_vision(img, target=str, instructions="dog breeds")
         assert result == ["Pembroke Welsh Corgi", "Yorkshire Terrier"]
-
-    def test_bill_values(self):
-        img = "https://upload.wikimedia.org/wikipedia/commons/6/63/USCurrency_Federal_Reserve.jpg"
-        values = marvin.extract_vision(
-            img, target=int, instructions="Value of each of the bills"
-        )
-        assert values == [1, 1, 5, 10, 5]

@@ -44,27 +44,3 @@ Marvin can use OpenAI's vision API to process images and convert them into struc
         ```python
         assert result == ['Pembroke Welsh Corgi', 'Yorkshire Terrier']
         ```    
-
-
-
-!!! example "Example: Identifying money"
-
-    We will extract information about all of the bills in this image:
-
-    ![](https://upload.wikimedia.org/wikipedia/commons/6/63/USCurrency_Federal_Reserve.jpg)
-
-    
-    ```python
-    import marvin
-    
-    img = 'https://upload.wikimedia.org/wikipedia/commons/6/63/USCurrency_Federal_Reserve.jpg'
-    
-    values = marvin.extract_vision(img, target=int, instructions='Value of each of the bills')
-    ```
-
-
-    !!! success "Result"
-        ```python
-        assert values == [1, 1, 5, 10, 5]
-        ```
-
