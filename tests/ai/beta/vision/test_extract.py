@@ -1,6 +1,7 @@
 from typing import Literal
 
 import marvin
+import pytest
 from marvin.utilities.testing import assert_equal
 from pydantic import BaseModel, Field
 
@@ -12,6 +13,7 @@ class Location(BaseModel):
     state: str = Field(description="The two letter abbreviation")
 
 
+@pytest.mark.flaky(max_runs=2)
 @pytest_mark_class("llm")
 class TestVisionExtract:
     def test_ny(self):

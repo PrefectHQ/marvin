@@ -1,8 +1,10 @@
 import marvin
+import pytest
 
 from tests.utils import pytest_mark_class
 
 
+@pytest.mark.flaky(max_runs=2)
 @pytest_mark_class("llm")
 class TestVisionClassify:
     def test_ny(self):

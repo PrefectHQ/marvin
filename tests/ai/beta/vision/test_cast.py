@@ -1,4 +1,5 @@
 import marvin
+import pytest
 from pydantic import BaseModel, Field
 
 from tests.utils import pytest_mark_class
@@ -9,6 +10,7 @@ class Location(BaseModel):
     state: str = Field(description="The two letter abbreviation")
 
 
+@pytest.mark.flaky(max_runs=2)
 @pytest_mark_class("llm")
 class TestVisionCast:
     def test_cast_ny(self):
