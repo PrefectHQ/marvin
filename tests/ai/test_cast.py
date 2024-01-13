@@ -6,15 +6,12 @@ import marvin
 import pytest
 from pydantic import BaseModel, Field
 
-from tests.utils import pytest_mark_class
-
 
 class Location(BaseModel):
     city: str = Field(description="The city's proper name")
     state: str = Field(description="2-letter state abbreviation")
 
 
-@pytest_mark_class("llm")
 class TestCast:
     class TestBuiltins:
         def test_cast_text_to_int(self):

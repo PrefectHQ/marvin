@@ -1,10 +1,7 @@
 import marvin
 from pydantic import BaseModel, Field
 
-from tests.utils import pytest_mark_class
 
-
-@pytest_mark_class("llm")
 class TestVisionCast:
     def test_cast_dog(self):
         class Animal(BaseModel):

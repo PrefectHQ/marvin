@@ -3,15 +3,12 @@ import pytest
 from marvin.utilities.testing import assert_equal
 from pydantic import BaseModel, Field
 
-from tests.utils import pytest_mark_class
-
 
 class Location(BaseModel):
     city: str = Field(description="The city's proper name")
     state: str = Field(description="2-letter state abbreviation")
 
 
-@pytest_mark_class("llm")
 class TestGenerate:
     class TestBuiltins:
         def test_toy_generate(self):

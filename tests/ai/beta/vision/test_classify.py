@@ -1,9 +1,6 @@
 import marvin
 
-from tests.utils import pytest_mark_class
 
-
-@pytest_mark_class("llm")
 class TestVisionClassify:
     def test_classify_dog(self):
         img = "https://upload.wikimedia.org/wikipedia/commons/9/99/Brooks_Chase_Ranger_of_Jolly_Dogs_Jack_Russell.jpg"

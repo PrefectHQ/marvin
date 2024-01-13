@@ -4,10 +4,7 @@ import marvin
 from marvin.utilities.testing import assert_equal
 from pydantic import BaseModel
 
-from tests.utils import pytest_mark_class
 
-
-@pytest_mark_class("llm")
 class TestVisionExtract:
     def test_dog(self):
         class Animal(BaseModel, frozen=True):

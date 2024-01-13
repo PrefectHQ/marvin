@@ -3,8 +3,6 @@ from typing import Literal
 
 import marvin
 
-from tests.utils import pytest_mark_class
-
 Sentiment = Literal["Positive", "Negative"]
 
 
@@ -15,7 +13,6 @@ class GitHubIssueTag(Enum):
     DOCS = "docs"
 
 
-@pytest_mark_class("llm")
 class TestClassify:
     class TestLiteral:
         def test_classify_sentiment(self):
