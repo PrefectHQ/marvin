@@ -1,8 +1,7 @@
 from enum import Enum
 
 import marvin
-
-from tests.utils import pytest_mark_class
+import pytest
 
 
 @marvin.classifier
@@ -19,12 +18,12 @@ class GitHubIssueTag(Enum):
     DOCS = "docs"
 
 
+@pytest.mark.no_llm
 def test_is_enum():
     """Classifiers are still enums"""
     assert issubclass(Color, Enum)
 
 
-@pytest_mark_class("llm")
 class TestClassifier:
     class TestSimple:
         def test_color_red(self):

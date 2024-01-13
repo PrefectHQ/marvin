@@ -34,19 +34,17 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
+        # run no-llm tests across all python versions and oses
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11']
-        test-type: ['not llm']
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+        test-type: ['no_llm']
 
         include:
+          # Run LLM tests on 3.9
           - python-version: '3.9'
             os: 'ubuntu-latest'
-            test-type: 'llm'
-
-          - python-version: '3.9'
-            os: 'ubuntu-latest'
-            test-type: 'not llm'
-
+        
+        
     runs-on: ${{ matrix.os }}
 
     env:
@@ -63,6 +61,10 @@ jobs:
       - name: Install Marvin
         run: pip install ".[tests]"
 
-      - name: Run ${{ matrix.test-type }} tests
+      - name: Run tests without LLMs
         run: pytest -n auto -vv -m "${{ matrix.test-type }}"
-        if: ${{ !(github.event.pull_request.head.repo.fork && matrix.test-type == 'llm') }}
+        if: ${{ !(github.event.pull_request.head.repo.fork) && matrix.test-type != '' }}
+      
+      - name: Run tests
+        run: pytest -n auto -vv
+        if: ${{ !(github.event.pull_request.head.repo.fork) && matrix.test-type == '' }}

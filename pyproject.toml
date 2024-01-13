@@ -72,7 +72,10 @@ write_to = "src/marvin/_version.py"
 
 # pytest configuration
 [tool.pytest.ini_options]
-markers = ["llm: indicates that a test calls an LLM (may be slow)."]
+markers = [
+    "llm: indicates that a test calls an LLM (may be slow).",
+    "no_llm: indicates that a test does not require an LLM."
+    ]
 timeout = 20
 testpaths = ["tests"]
 
