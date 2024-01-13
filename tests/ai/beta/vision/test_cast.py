@@ -49,13 +49,13 @@ class TestVisionCast:
         class Animal(BaseModel):
             type: str = Field(description="The type of animal (cat, bird, etc.)")
             primary_color: str
-            has_spots: bool
+            is_solid_color: bool
 
         img = marvin.beta.Image(
             "https://upload.wikimedia.org/wikipedia/commons/9/99/Brooks_Chase_Ranger_of_Jolly_Dogs_Jack_Russell.jpg"
         )
         result = marvin.beta.cast(img, target=Animal)
-        assert result == Animal(type="dog", primary_color="white", has_spots=True)
+        assert result == Animal(type="dog", primary_color="white", is_solid_color=False)
 
     def test_cast_book(self):
         class Book(BaseModel):
