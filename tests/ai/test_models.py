@@ -4,10 +4,7 @@ import marvin
 import pytest
 from pydantic import BaseModel, Field
 
-from tests.utils import pytest_mark_class
 
-
-@pytest_mark_class("llm")
 class TestModels:
     def test_arithmetic(self):
         @marvin.model
@@ -160,7 +157,6 @@ class TestModels:
 
 
 @pytest.mark.skip(reason="old behavior, may revisit")
-@pytest_mark_class("llm")
 class TestInstructions:
     def test_instructions_error(self):
         @marvin.model

@@ -7,8 +7,6 @@ import marvin
 import pytest
 from pydantic import BaseModel
 
-from tests.utils import pytest_mark_class
-
 
 @marvin.fn
 def list_fruit(n: int = 2) -> list[str]:
@@ -20,7 +18,6 @@ def list_fruit_color(n: int, color: str = None) -> list[str]:
     """Returns a list of `n` fruit that all have the provided `color`"""
 
 
-@pytest_mark_class("llm")
 class TestFunctions:
     class TestMeta:
         @patch("marvin.ai.text.generate_llm_response")

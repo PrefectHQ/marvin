@@ -2,15 +2,12 @@ import marvin
 import pytest
 from pydantic import BaseModel, Field
 
-from tests.utils import pytest_mark_class
-
 
 class Location(BaseModel):
     city: str = Field(description="The city's proper name")
     state: str = Field(description="2-letter abbreviation")
 
 
-@pytest_mark_class("llm")
 class TestExtract:
     class TestBuiltins:
         def test_extract_numbers(self):

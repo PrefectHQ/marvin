@@ -5,8 +5,6 @@ import pytest
 from marvin.utilities.testing import assert_equal
 from pydantic import BaseModel, Field
 
-from tests.utils import pytest_mark_class
-
 
 class Location(BaseModel):
     city: str
@@ -14,7 +12,6 @@ class Location(BaseModel):
 
 
 @pytest.mark.flaky(max_runs=2)
-@pytest_mark_class("llm")
 class TestVisionExtract:
     def test_ny(self):
         img = marvin.beta.Image(
@@ -70,6 +67,6 @@ class TestVisionExtract:
         assert_equal(
             result,
             "A list of two breeds that is roughly [Pembroke Welsh Corgi, Yorkshire"
-            " Terrier] though exact results may vary. 'Terrier mix' or similar is ok,"
-            " as long as Terrier is part of the result.",
+            " Terrier] though exact results may vary. 'Terrier mix', 'mixed breed', or"
+            " similar is ok.",
         )

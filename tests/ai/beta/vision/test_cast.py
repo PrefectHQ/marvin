@@ -2,8 +2,6 @@ import marvin
 import pytest
 from pydantic import BaseModel, Field
 
-from tests.utils import pytest_mark_class
-
 
 class Location(BaseModel):
     city: str
@@ -11,7 +9,6 @@ class Location(BaseModel):
 
 
 @pytest.mark.flaky(max_runs=2)
-@pytest_mark_class("llm")
 class TestVisionCast:
     def test_cast_ny(self):
         img = marvin.beta.Image(

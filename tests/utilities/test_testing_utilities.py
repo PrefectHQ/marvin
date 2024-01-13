@@ -1,10 +1,7 @@
 import pytest
 from marvin.utilities.testing import assert_equal
 
-from tests.utils import pytest_mark_class
 
-
-@pytest_mark_class("llm")
 class TestAssertEqual:
     def test_simple_assert(self):
         assert_equal("hello", "hello")

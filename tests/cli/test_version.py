@@ -1,6 +1,8 @@
+import pytest
 from typer.testing import CliRunner
 
 
+@pytest.mark.no_llm
 def test_marvin_version_command():
     """Test the marvin version command."""
     from marvin.cli import app
