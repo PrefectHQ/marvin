@@ -84,7 +84,6 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         return False
 
     async def __aenter__(self):
-        breakpoint()
         await self.create_async()
         return self
 
