@@ -6,14 +6,11 @@ from marvin.utilities.jinja import BaseTemplate, JinjaEnvironment
 from marvin.utilities.slack import post_slack_message
 from prefect import flow, task
 from prefect.artifacts import create_markdown_artifact
-from prefect.blocks.system import Secret
+from prefect.blocks.system import JSON, Secret
 from prefect.filesystems import GCS
 from utils import fetch_contributor_data
 
-CHANNEL_MAP = {
-    "ask-marvin-tests": "C046WGGKF4P",
-    "testing-slackbots": "C03S3HZ2X3M",
-}
+CHANNEL_MAP = JSON.load("slack-channel-name-to-id-map").value
 
 
 def get_repo_digest_template(**jinja_settings) -> BaseTemplate:
