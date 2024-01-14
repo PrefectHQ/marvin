@@ -18,9 +18,17 @@ Marvin can generate synthetic data according to a schema and instructions. Gener
         ```python
         import marvin
 
-        names = marvin.generate(str, n=4, instructions="first names")
-        french_names = marvin.generate(str, n=4, instructions="first names from France")
-        star_wars_names = marvin.generate(str, n=4, instructions="first names from Star Wars")
+        names = marvin.generate(
+            str, n=4, instructions="first names"
+        )
+        
+        french_names = marvin.generate(
+            str, n=4, instructions="first names from France"
+        )
+        
+        star_wars_names = marvin.generate(
+            str, n=4, instructions="first names from Star Wars"
+        )
         
         ```
 
@@ -28,7 +36,9 @@ Marvin can generate synthetic data according to a schema and instructions. Gener
             
             ```python
             assert names == ['John', 'Emma', 'Michael', 'Sophia']
+
             assert french_names == ['Jean', 'Claire', 'Lucas', 'Emma']
+
             assert star_wars_names == ['Luke', 'Leia', 'Han', 'Anakin']
             ```
 

@@ -32,8 +32,8 @@ nav:
       - Generating speech: ai/audio/speech.md
     # - Transcription: ai/function.md
 
-    # - Interactive:
-    #   - Assistants: ai/interactive/assistants.md
+    - Interactive:
+      - Assistants: ai/interactive/assistants.md
     #   - Applications: ai/interactive/applications.md
       
     - Configuration: 
