@@ -78,7 +78,7 @@ async def get_repo_activity_data(
 
 @task(
     task_run_name="Summarize digest as an epic story",
-    retries=1,
+    retries=3,
     retry_delay_seconds=3,
 )
 @marvin.fn
@@ -159,7 +159,7 @@ async def daily_github_digest(
 
     markdown_digest = await task(
         get_repo_digest_template(enable_async=True).render_async
-    )(
+    ).with_options(task_run_name="Render digest template")(
         today=date.today(),
         since=since,
         owner=owner,
