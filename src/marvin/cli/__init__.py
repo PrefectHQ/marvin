@@ -3,7 +3,7 @@ import typer
 from rich.console import Console
 from typing import Optional
 from marvin.utilities.asyncio import run_sync
-from marvin.utilities.openai import get_client
+from marvin.utilities.openai import get_openai_client
 from marvin.cli.version import display_version
 
 app = typer.Typer()
@@ -27,7 +27,7 @@ def main(
 
 
 async def process_stdin(model: str, max_tokens: int):
-    client = get_client()
+    client = get_openai_client()
     content = sys.stdin.read()
     last_chunk_ended_with_space = False
 
