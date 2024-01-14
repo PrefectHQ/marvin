@@ -57,52 +57,50 @@ print(
     )
 )
 ```
-??? Question "Click for the output"
+??? info "Click for the output"
+    ```python
+    {'San Francisco', 'New York', 'Chicago'}  | len(total_entities)=7
 
-    === "Output"
-        ```python
-        {'San Francisco', 'New York', 'Chicago'}  | len(total_entities)=7
-
-        {
-            "informal_name": "Windy City",
-            "standard_name": "Chicago",
-            "state": "Illinois",
-            "country": "United States"
-        }
-        {
-            "informal_name": "The Windy City",
-            "standard_name": "Chicago",
-            "state": "Illinois",
-            "country": "United States"
-        }
-        {
-            "informal_name": "New York City",
-            "standard_name": "New York",
-            "state": "New York",
-            "country": "United States"
-        }
-        {
-            "informal_name": "The Big Apple",
-            "standard_name": "New York",
-            "state": "New York",
-            "country": "United States"
-        }
-        {
-            "informal_name": "SF",
-            "standard_name": "San Francisco",
-            "state": "California",
-            "country": "United States"
-        }
-        {
-            "informal_name": "San Fran",
-            "standard_name": "San Francisco",
-            "state": "California",
-            "country": "United States"
-        }
-        {
-            "informal_name": "San Francisco",
-            "standard_name": "San Francisco",
-            "state": "California",
-            "country": "United States"
-        }
-        ```
+    {
+        "informal_name": "Windy City",
+        "standard_name": "Chicago",
+        "state": "Illinois",
+        "country": "United States"
+    }
+    {
+        "informal_name": "The Windy City",
+        "standard_name": "Chicago",
+        "state": "Illinois",
+        "country": "United States"
+    }
+    {
+        "informal_name": "New York City",
+        "standard_name": "New York",
+        "state": "New York",
+        "country": "United States"
+    }
+    {
+        "informal_name": "The Big Apple",
+        "standard_name": "New York",
+        "state": "New York",
+        "country": "United States"
+    }
+    {
+        "informal_name": "SF",
+        "standard_name": "San Francisco",
+        "state": "California",
+        "country": "United States"
+    }
+    {
+        "informal_name": "San Fran",
+        "standard_name": "San Francisco",
+        "state": "California",
+        "country": "United States"
+    }
+    {
+        "informal_name": "San Francisco",
+        "standard_name": "San Francisco",
+        "state": "California",
+        "country": "United States"
+    }
+    ```
