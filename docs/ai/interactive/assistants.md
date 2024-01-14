@@ -1,6 +1,6 @@
 # Working with assistants
 
-Many of Marvin's features are standalone functions, without memory. However, interactive conversation is one of the most powerful ways to work with LLMs, allowing collaboration, context discovery, and feedback. OpenAI's assistants API makes this possible while handling stateful complexities like system messages, history, and separate threads. Marvin's assistants API is a Pythonic way to take advantage of those features/
+Many of Marvin's features are standalone functions, without memory. However, interactive conversation is one of the most powerful ways to work with LLMs, allowing collaboration, context discovery, and feedback. OpenAI's assistants API makes this possible while handling stateful complexities like system messages, history, and separate threads. Marvin's assistants API is a Pythonic way to take advantage of those features.
 
 <div class="admonition abstract">
   <p class="admonition-title">What it does</p>
@@ -26,7 +26,7 @@ Many of Marvin's features are standalone functions, without memory. However, int
         ai.say('Hello, Marvin!')
 
         # pretty-print all messages on the thread
-        pprint_messages(response.thread.get_messages())
+        pprint_messages(ai.thread.get_messages())
     ```
 
     !!! success "Result"
@@ -99,7 +99,7 @@ A major advantage of using Marvin's assistants API is that you can add your own 
 
 !!! example "Using custom tools"
 
-    Assistants can not browse the web by default. We can add this capability by giving them a tool that takes a URL and returns the HTML of that page. This assistant uses that tool as well as the code interpreter to count how many titles on Hacker News mention AI:
+    Assistants cannot browse the web by default. We can add this capability by giving them a tool that takes a URL and returns the HTML of that page. This assistant uses that tool as well as the code interpreter to count how many titles on Hacker News mention AI:
 
     ```python
     from marvin.beta.assistants import (
@@ -125,7 +125,7 @@ A major advantage of using Marvin's assistants API is that you can add your own 
         )
 
         # pretty-print the response
-        pprint_messages(response.thread.get_messages())
+        pprint_messages(ai.thread.get_messages())
     ```
     !!! success "Result"
         ![](/assets/images/ai/assistants/using_tools.png)
@@ -309,7 +309,7 @@ To control the output, you can provide the following parameters:
 
 #### Printing messages
 
-Messages are not strings, but structured message objects. Marvin has a few utilities to help you print them in a human-readable way, most notably the `pprint_messages` function used elsewhere in this doc.
+Messages are not strings, but structured `Message` objects. Marvin has a few utilities to help you print them in a human-readable way, most notably the `pprint_messages` function used elsewhere in this doc.
 
 ### Async support
 

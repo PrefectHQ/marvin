@@ -1,0 +1,29 @@
+name: marvin
+prefect-version: 2.14.15
+
+build: null
+
+push: null
+
+pull:
+- prefect.deployments.steps.git_clone:
+    repository: https://github.com/PrefectHQ/marvin.git
+    branch: '2.0'
+- prefect.deployments.steps.run_shell_script:
+    script: pip install .
+
+deployments:
+- name: github-repo-digest
+  tags: ['internal-tools', 'LLM']
+  description: Summarize a repo's activity over a given time period
+  schedule:
+    cron: '0 18 * * 1-5'
+    timezone: America/Chicago
+  entrypoint: cookbook/flows/github_digest/repo_activity.py:daily_github_digest
+  parameters:
+    post_story_to_slack: true
+  work_pool:
+    name: kubernetes-prd-internal-tools
+    job_variables:
+      env:
+        OPENAI_API_KEY: '{{ prefect.blocks.secret.openai-api-key }}'

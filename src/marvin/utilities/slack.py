@@ -1,10 +1,12 @@
 """Module for Slack-related utilities."""
 import os
 import re
+from pathlib import Path
 from typing import List, Optional, Union
 
 import httpx
 from pydantic import BaseModel, field_validator
+from pydantic.networks import AnyHttpUrl
 
 import marvin
 
@@ -106,24 +108,32 @@ def convert_md_links_to_slack(text) -> str:
 async def post_slack_message(
     message: str,
     channel_id: str,
+    attachments: Union[list, None] = None,
     thread_ts: Union[str, None] = None,
     auth_token: Union[str, None] = None,
 ) -> httpx.Response:
     if not auth_token:
         auth_token = await get_token()
 
+    post_data = {
+        "channel": channel_id,
+        "text": convert_md_links_to_slack(message),
+        "attachments": attachments if attachments else [],
+    }
+
+    if thread_ts:
+        post_data["thread_ts"] = thread_ts
+
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://slack.com/api/chat.postMessage",
             headers={"Authorization": f"Bearer {auth_token}"},
-            json={
-                "channel": channel_id,
-                "text": convert_md_links_to_slack(message),
-                "thread_ts": thread_ts,
-            },
+            json=post_data,
         )
+        response_data = response.json()
 
-    response.raise_for_status()
+    if response_data.get("ok") is not True:
+        raise ValueError(f"Error posting Slack message: {response_data.get('error')}")
     return response
 
 
@@ -293,3 +303,33 @@ async def get_workspace_info(slack_bot_token: Union[str, None] = None) -> dict:
         )
         response.raise_for_status()
         return response.json().get("team", {})
+
+
+async def upload_content(
+    file_path: Union[str, Path], channel_ids: List[str]
+) -> AnyHttpUrl:
+    """Upload a file to Slack and return its URL."""
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://slack.com/api/files.upload",
+            headers={"Authorization": f"Bearer {await get_token()}"},
+            data={"channels": ",".join(channel_ids)},
+            files={"file": Path(file_path).open("rb")},
+        )
+    response.raise_for_status()
+    return response.json().get("file", {}).get("url_private_download")
+
+
+async def get_channel_id(channel_name: str, limit: int = 200) -> Optional[str]:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://slack.com/api/conversations.list",
+            headers={"Authorization": f"Bearer {await get_token()}"},
+            params={"limit": limit},
+        )
+        response.raise_for_status()
+        channels = response.json().get("channels", [])
+        for channel in channels:
+            if channel["name"] == channel_name:
+                return channel["id"]
+    return None

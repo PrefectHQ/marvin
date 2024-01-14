@@ -54,7 +54,7 @@ def speak(
     text: str,
     voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = None,
     model_kwargs: dict = None,
-):
+) -> HttpxBinaryResponseContent:
     """
     Generates audio from text using an AI.
 

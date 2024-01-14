@@ -9,7 +9,7 @@ The primary tool for creating structured data is the `cast` function, which take
 <div class="admonition abstract">
   <p class="admonition-title">What it does</p>
   <p>
-    The <code>cast</code> function transforms natural language text into a Python type or structured object. Marvin <code>Models</code> are drop-in replacements for Pydantic models that can be instantiated with natural language.
+    The <code>cast</code> function transforms natural language text into a Python type or structured object.
   </p>
 </div>
 
@@ -37,14 +37,17 @@ The primary tool for creating structured data is the `cast` function, which take
 <div class="admonition info">
   <p class="admonition-title">How it works</p>
   <p>
-    Marvin creates a schema from the provided type and instructs the LLM to use the schema to format its JSON response. In Python, the JSON representation is hydrated into the "full" type.
+    Marvin creates a schema from the provided type and instructs the LLM to use the schema to format its JSON response.
+  </p>
+  <p>
+    In Python, the JSON representation is hydrated into a "full" instance of the type.
   </p>
 </div>
 
 
 ## Supported types
 
-The `cast` function supports conversion almost all builtin Python types, Pydantic models, Python `Literals`, and `TypedDicts`. When called, the LLM will take all available information into account, performing deductive reasoning if necessary, to determine the best output. The result will be a Python object of the provided type.
+The `cast` function supports conversion almost all builtin Python types, plus Pydantic models and Python's `Literal`, and `TypedDict`. When called, the LLM will take all available information into account, performing deductive reasoning if necessary, to determine the best output. The result will be a Python object of the provided type.
 
 ## Instructions
 
@@ -66,7 +69,9 @@ marvin.cast('Mass.', target=str, instruction="The state's abbreviation")
 
 ## Classification
 
-One way of classifying text is by casting it to a contrained type, such as an enum or bool. This forces the LLM to choose one of the provided options. Marvin provides a dedicated `classify` function for this purpose. As a convenience, `cast` will automatically switch to `classify` when given an appropriate target type. However, you may prefer to use the `classify` function to make your intent more clear to other developers.
+One way of classifying text is by casting it to a constrained type, such as an `Enum` or `bool`. This forces the LLM to choose one of the provided options.
+
+Marvin provides a dedicated `classify` function for this purpose. As a convenience, `cast` will automatically switch to `classify` when given a constrained target type. However, you may prefer to use the `classify` function to make your intent more clear to other developers.
 
 ## AI models
 

@@ -89,7 +89,7 @@ def paint(
     return response
 
 
-def image(fn=None, *, literal=False):
+def image(fn=None, *, literal: bool = False):
     """
     A decorator that transforms a function's output into an image.
 
