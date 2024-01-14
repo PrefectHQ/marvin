@@ -8,9 +8,9 @@ push: null
 pull:
 - prefect.deployments.steps.git_clone:
     repository: https://github.com/PrefectHQ/marvin.git
-    branch: '2.0-cleanup-examples'
+    branch: '2.0'
 - prefect.deployments.steps.run_shell_script:
-    script: pip install git+https://github.com/PrefectHQ/marvin.git@2.0-cleanup-examples prefect-gcp
+    script: pip install git+https://github.com/PrefectHQ/marvin.git@2.0 prefect-gcp
 
 deployments:
 - name: github-repo-digest
