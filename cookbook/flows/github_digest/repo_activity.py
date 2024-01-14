@@ -133,6 +133,7 @@ async def daily_github_digest(
     repo: str = "prefect",
     slack_channel: str = "ask-marvin-tests",
     gh_token_secret_name: str = "github-token",
+    slack_token_name: str = "internal-slack-api-token",
     post_story_to_slack: bool = False,
     lookback_days: int | None = None,
 ):
@@ -182,6 +183,7 @@ async def daily_github_digest(
         await task(post_slack_message)(
             message=epic_story + f"\n<{image_url}|cover art>",
             channel_id=CHANNEL_MAP[slack_channel],
+            auth_token=(await Secret.load(slack_token_name)).get(),
         )
 
 

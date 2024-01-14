@@ -27,4 +27,3 @@ deployments:
     job_variables:
       env:
         OPENAI_API_KEY: '{{ prefect.blocks.secret.openai-api-key }}'
-        MARVIN_SLACK_API_TOKEN: '{{ prefect.blocks.secret.internal-slack-api-token }}'
