@@ -52,11 +52,11 @@ class ToolSet(BaseModel, Generic[T]):
 
 
 class RetrievalTool(Tool[T]):
-    type: str = Field(default="retrieval")
+    type: Literal["retrieval"] = "retrieval"
 
 
 class CodeInterpreterTool(Tool[T]):
-    type: str = Field(default="code_interpreter")
+    type: Literal["code_interpreter"] = "code_interpreter"
 
 
 class FunctionCall(BaseModel):

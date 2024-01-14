@@ -127,30 +127,33 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         if self.tools is not None or self.additional_tools is not None:
             create_kwargs["tools"] = self.get_tools()
 
-        self.run = await client.beta.threads.runs.create(
-            thread_id=self.thread.id, assistant_id=self.assistant.id, **create_kwargs
-        )
-
-        self.assistant.pre_run_hook(run=self)
-
-        try:
-            while self.run.status in ("queued", "in_progress", "requires_action"):
-                if self.run.status == "requires_action":
-                    await self._handle_step_requires_action()
-                await asyncio.sleep(0.1)
-                await self.refresh_async()
-        except CancelRun as exc:
-            logger.debug(f"`CancelRun` raised; ending run with data: {exc.data}")
-            await client.beta.threads.runs.cancel(
-                run_id=self.run.id, thread_id=self.thread.id
+        async with self.assistant:
+            self.run = await client.beta.threads.runs.create(
+                thread_id=self.thread.id,
+                assistant_id=self.assistant.id,
+                **create_kwargs,
             )
-            self.data = exc.data
-            await self.refresh_async()
 
-        if self.run.status == "failed":
-            logger.debug(f"Run failed. Last error was: {self.run.last_error}")
+            self.assistant.pre_run_hook(run=self)
 
-        self.assistant.post_run_hook(run=self)
+            try:
+                while self.run.status in ("queued", "in_progress", "requires_action"):
+                    if self.run.status == "requires_action":
+                        await self._handle_step_requires_action()
+                    await asyncio.sleep(0.1)
+                    await self.refresh_async()
+            except CancelRun as exc:
+                logger.debug(f"`CancelRun` raised; ending run with data: {exc.data}")
+                await client.beta.threads.runs.cancel(
+                    run_id=self.run.id, thread_id=self.thread.id
+                )
+                self.data = exc.data
+                await self.refresh_async()
+
+            if self.run.status == "failed":
+                logger.debug(f"Run failed. Last error was: {self.run.last_error}")
+
+            self.assistant.post_run_hook(run=self)
         return self
 
 

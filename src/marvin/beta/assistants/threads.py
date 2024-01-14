@@ -9,6 +9,7 @@ from marvin.beta.assistants.formatting import pprint_message
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
+    run_sync,
 )
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_client
@@ -27,13 +28,17 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
     messages: list[ThreadMessage] = Field([], repr=False)
 
     def __enter__(self):
-        self.create()
-        return self
+        return run_sync(self.__aenter__)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.delete()
-        # If an exception has occurred, you might want to handle it or pass it through
-        # Returning False here will re-raise any exception that occurred in the context
+        return run_sync(self.__aexit__, exc_type, exc_val, exc_tb)
+
+    async def __aenter__(self):
+        await self.create_async()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.delete_async()
         return False
 
     @expose_sync_method("create")
