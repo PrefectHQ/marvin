@@ -190,3 +190,16 @@ async def daily_github_digest(
             message=epic_story + f"\n<{image_url}|cover art>",
             channel_id=CHANNEL_MAP[slack_channel],
         )
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(
+        daily_github_digest(
+            owner="PrefectHQ",
+            repo="prefect",
+            post_story_to_slack=False,
+            lookback_days=1,
+        )
+    )
