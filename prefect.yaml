@@ -10,7 +10,7 @@ pull:
     repository: https://github.com/PrefectHQ/marvin.git
     branch: '2.0-cleanup-examples'
 - prefect.deployments.steps.run_shell_script:
-    script: pip install git+https://github.com/PrefectHQ/marvin.git@2.0-cleanup-examples
+    script: pip install git+https://github.com/PrefectHQ/marvin.git@2.0-cleanup-examples prefect-gcp
 
 deployments:
 - name: github-repo-digest
@@ -27,4 +27,4 @@ deployments:
     job_variables:
       env:
         OPENAI_API_KEY: '{{ prefect.blocks.secret.openai-api-key }}'
-        SLACK_API_TOKEN: '{{ prefect.blocks.secret.slack-api-token }}'
+        SLACK_API_TOKEN: '{{ prefect.blocks.secret.internal-slack-api-token }}'

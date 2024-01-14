@@ -7,6 +7,7 @@ from marvin.utilities.slack import post_slack_message
 from prefect import flow, task
 from prefect.artifacts import create_markdown_artifact
 from prefect.blocks.system import Secret
+from prefect.filesystems import GCS
 from prefect.tasks import task_input_hash
 from utils import fetch_contributor_data
 
@@ -129,7 +130,11 @@ def draw_a_movie_poster(
     """
 
 
-@flow(name="Daily GitHub Digest", flow_run_name="Digest {owner}/{repo}")
+@flow(
+    name="Daily GitHub Digest",
+    flow_run_name="Digest {owner}/{repo}",
+    result_storage=GCS.load("marvin-result-storage"),
+)
 async def daily_github_digest(
     owner: str = "PrefectHQ",
     repo: str = "prefect",
