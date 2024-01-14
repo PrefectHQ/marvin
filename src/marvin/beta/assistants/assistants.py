@@ -13,10 +13,11 @@ from marvin.utilities.asyncio import (
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_openai_client
 
-from .threads import Thread
+from .threads import Thread, ThreadMessage
 
 if TYPE_CHECKING:
     from .runs import Run
+
 
 logger = get_logger("Assistants")
 
@@ -60,8 +61,9 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         message: str,
         file_paths: Optional[list[str]] = None,
         thread: Optional[Thread] = None,
+        return_user_message: bool = False,
         **run_kwargs,
-    ) -> "Run":
+    ) -> list[ThreadMessage]:
         """
         A convenience method for adding a user message to the assistant's
         default thread, running the assistant, and returning the assistant's
@@ -69,22 +71,20 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         """
         thread = thread or self.default_thread
 
-        last_message = await thread.get_messages_async(limit=1)
-        if last_message:
-            last_msg_id = last_message[0].id
-        else:
-            last_msg_id = None
-
         # post the message
-        if message:
-            await thread.add_async(message, file_paths=file_paths)
+        user_message = await thread.add_async(message, file_paths=file_paths)
 
         # run the thread
         async with self:
             await thread.run_async(assistant=self, **run_kwargs)
 
         # load all messages, including the user message
-        response_messages = await thread.get_messages_async(after_message=last_msg_id)
+        response_messages = await thread.get_messages_async(
+            after_message=user_message.id
+        )
+
+        if return_user_message:
+            response_messages = [user_message] + response_messages
         return response_messages
 
     def __enter__(self):

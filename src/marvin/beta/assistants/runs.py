@@ -80,6 +80,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                         tools=tools,
                         function_name=tool_call.function.name,
                         function_arguments_json=tool_call.function.arguments,
+                        return_string=True,
                     )
                 except CancelRun as exc:
                     logger.debug(f"Ending run with data: {exc.data}")

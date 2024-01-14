@@ -1,6 +1,9 @@
 # Working with assistants
 
-Many of Marvin's features are standalone functions, without memory. However, interactive conversation is one of the most powerful ways to work with LLMs, allowing collaboration, context discovery, and feedback. OpenAI's assistants API makes this possible while handling stateful complexities like system messages, history, and separate threads. Marvin's assistants API is a Pythonic way to take advantage of those features/
+Marvin has an extremely intuitive API for working with OpenAI assistants. Assistants are a powerful way to interact with LLMs, allowing you to maintain state, context, and multiple threads of conversation. 
+
+The need to manage all this state makes the assistants API very different from the more familiar "chat" APIs that OpenAI and other providers offer. The benefit of abandoning the more traditional request/response pattern of user messages and AI responses is that assistants can invoke more powerful workflows, including calling custom functions and posting multiple messages related to their progress. Marvin's developer experience is focused on making all that interactive, stateful power as accessible as possible.
+
 
 <div class="admonition abstract">
   <p class="admonition-title">What it does</p>
@@ -17,7 +20,7 @@ Many of Marvin's features are standalone functions, without memory. However, int
     from marvin.beta.assistants import Assistant, pprint_messages
 
     # create an assistant
-    ai = Assistant(name="Marvin",  instructions="You the Paranoid Android.")
+    ai = Assistant(name="Marvin", instructions="You the Paranoid Android.")
 
     # send a message to the assistant and have it respond
     response = ai.say('Hello, Marvin!')
@@ -112,7 +115,7 @@ A major advantage of using Marvin's assistants API is that you can add your own 
 
     # Integrate custom tools with the assistant
     ai = Assistant(name="Marvin", tools=[visit_url])
-    response = ai.say("Count how many HN front page titles mention LLMs")
+    response = ai.say("What's the top story on Hacker News?")
 
     # pretty-print the response
     pprint_messages(response)
@@ -284,45 +287,12 @@ As part of a run, the assistant may decide to use one or more tools to generate 
 
 You can use an assistant's `say` method to simulate a simple request/response pattern against the assistant's default thread. However, for more advanced control, in particular for maintaining multiple conversations at once, you'll want to manage  threads directly.
 
-To run a thread with an assistant, use its `run` method. This will return a `Run` object that represents the OpenAI run. You can use this object to inspect all actions the assistant took, including tool use, messages posted, and more.
+To run a thread with an assistant, use its `run` method: 
+```python
+thread.run(assistant=assistant)
+``` 
 
-
-!!! example "Running a thread"
-    This example creates an assistant with a tool that can roll dice, then instructs the assistant to roll two--no, five--dice:
-
-    ```python
-    from marvin.beta.assistants import Assistant, Thread
-    from marvin.beta.assistants.formatting import pprint_messages
-    import random
-
-    # write a function to be used as a tool
-    def roll_dice(n_dice: int) -> list[int]:
-        return [random.randint(1, 6) for _ in range(n_dice)]
-
-    ai = Assistant(name="Marvin", tools=[roll_dice])
-
-    # create a new thread to track history
-    thread = Thread()
-
-    # add any number of user messages to the thread
-    thread.add("Hello")
-
-    # run the thread with the AI to produce a response
-    thread.run(ai)
-
-    # post more messages
-    thread.add("please roll two dice")
-    thread.add("actually roll five dice")
-
-    # run the thread again with the latest messages
-    thread.run(ai)
-
-    # print the messages
-    pprint_messages(thread.get_messages())
-    ```
-
-    !!! success "Result"
-        ![](/assets/images/ai/assistants/advanced.png)
+This will return a `Run` object that represents the OpenAI run. You can use this object to inspect all actions the assistant took, including tool use, messages posted, and more.
 
 !!! tip "Assistant lifecycle management applies to threads"
     When threads are `run` with an assistant, the same lifecycle management rules apply as when you use the assistant's `say` method. In the above example, lazy lifecycle management is used for conveneince. See [lifecycle management](#lifecycle-management) for more information.
@@ -332,7 +302,7 @@ To run a thread with an assistant, use its `run` method. This will return a `Run
 
 ### Reading messages
 
-To read the messages in a thread, use the `get_messages` method:
+To read the messages in a thread, use its `get_messages` method:
 
 ```python
 messages = thread.get_messages()
@@ -348,6 +318,45 @@ To control the output, you can provide the following parameters:
 #### Printing messages
 
 Messages are not strings, but structured message objects. Marvin has a few utilities to help you print them in a human-readable way, most notably the `pprint_messages` function used throughout in this doc.
+
+### Full example with threads
+
+!!! example "Running a thread"
+    This example creates an assistant with a tool that can roll dice, then instructs the assistant to roll two--no, five--dice:
+
+    ```python
+    from marvin.beta.assistants import Assistant, Thread
+    from marvin.beta.assistants.formatting import pprint_messages
+    import random
+
+    # write a function for the assistant to use
+    def roll_dice(n_dice: int) -> list[int]:
+        return [random.randint(1, 6) for _ in range(n_dice)]
+
+    ai = Assistant(name="Marvin", tools=[roll_dice])
+
+    # create a thread - you could pass an ID to resume a conversation
+    thread = Thread()
+
+    # add a user messages to the thread
+    thread.add("Hello!")
+
+    # run the thread with the AI to produce a response
+    thread.run(ai)
+
+    # post two more user messages
+    thread.add("Please roll two dice")
+    thread.add("Actually--roll five dice")
+
+    # run the thread again to generate a new response
+    thread.run(ai)
+
+    # see all the messages
+    pprint_messages(thread.get_messages())
+    ```
+
+    !!! success "Result"
+        ![](/assets/images/ai/assistants/advanced.png)
 
 ### Async support
 
