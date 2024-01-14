@@ -1,6 +1,6 @@
 # Working with assistants
 
-Many of Marvin's features are standalone functions intended to be invoked a single time. However, interactive conversation is one of the most powerful ways to work with LLMs, allowing collaboration, context discovery, and feedback. OpenAI's assistants API makes this possible while handling stateful complexities like system messages, history, and separate threads. Marvin's assistants API is a Pythonic way to take advantage of those features/
+Many of Marvin's features are standalone functions, without memory. However, interactive conversation is one of the most powerful ways to work with LLMs, allowing collaboration, context discovery, and feedback. OpenAI's assistants API makes this possible while handling stateful complexities like system messages, history, and separate threads. Marvin's assistants API is a Pythonic way to take advantage of those features/
 
 <div class="admonition abstract">
   <p class="admonition-title">What it does</p>
