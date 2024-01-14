@@ -10,7 +10,7 @@ from marvin.tools.assistants import AssistantTool, CancelRun
 from marvin.types import Tool
 from marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
 from marvin.utilities.logging import get_logger
-from marvin.utilities.openai import get_client
+from marvin.utilities.openai import get_openai_client
 
 from .assistants import Assistant
 from .threads import Thread
@@ -54,20 +54,20 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("refresh")
     async def refresh_async(self):
-        client = get_client()
+        client = get_openai_client()
         self.run = await client.beta.threads.runs.retrieve(
             run_id=self.run.id, thread_id=self.thread.id
         )
 
     @expose_sync_method("cancel")
     async def cancel_async(self):
-        client = get_client()
+        client = get_openai_client()
         await client.beta.threads.runs.cancel(
             run_id=self.run.id, thread_id=self.thread.id
         )
 
     async def _handle_step_requires_action(self):
-        client = get_client()
+        client = get_openai_client()
         if self.run.status != "requires_action":
             return
         if self.run.required_action.type == "submit_tool_outputs":
@@ -80,6 +80,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                         tools=tools,
                         function_name=tool_call.function.name,
                         function_arguments_json=tool_call.function.arguments,
+                        return_string=True,
                     )
                 except CancelRun as exc:
                     logger.debug(f"Ending run with data: {exc.data}")
@@ -117,7 +118,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         return tools
 
     async def run_async(self) -> "Run":
-        client = get_client()
+        client = get_openai_client()
 
         create_kwargs = {}
 
@@ -127,30 +128,33 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         if self.tools is not None or self.additional_tools is not None:
             create_kwargs["tools"] = self.get_tools()
 
-        self.run = await client.beta.threads.runs.create(
-            thread_id=self.thread.id, assistant_id=self.assistant.id, **create_kwargs
-        )
-
-        self.assistant.pre_run_hook(run=self)
-
-        try:
-            while self.run.status in ("queued", "in_progress", "requires_action"):
-                if self.run.status == "requires_action":
-                    await self._handle_step_requires_action()
-                await asyncio.sleep(0.1)
-                await self.refresh_async()
-        except CancelRun as exc:
-            logger.debug(f"`CancelRun` raised; ending run with data: {exc.data}")
-            await client.beta.threads.runs.cancel(
-                run_id=self.run.id, thread_id=self.thread.id
+        async with self.assistant:
+            self.run = await client.beta.threads.runs.create(
+                thread_id=self.thread.id,
+                assistant_id=self.assistant.id,
+                **create_kwargs,
             )
-            self.data = exc.data
-            await self.refresh_async()
 
-        if self.run.status == "failed":
-            logger.debug(f"Run failed. Last error was: {self.run.last_error}")
+            self.assistant.pre_run_hook(run=self)
 
-        self.assistant.post_run_hook(run=self)
+            try:
+                while self.run.status in ("queued", "in_progress", "requires_action"):
+                    if self.run.status == "requires_action":
+                        await self._handle_step_requires_action()
+                    await asyncio.sleep(0.1)
+                    await self.refresh_async()
+            except CancelRun as exc:
+                logger.debug(f"`CancelRun` raised; ending run with data: {exc.data}")
+                await client.beta.threads.runs.cancel(
+                    run_id=self.run.id, thread_id=self.thread.id
+                )
+                self.data = exc.data
+                await self.refresh_async()
+
+            if self.run.status == "failed":
+                logger.debug(f"Run failed. Last error was: {self.run.last_error}")
+
+            self.assistant.post_run_hook(run=self)
         return self
 
 
@@ -193,7 +197,7 @@ class RunMonitor(BaseModel):
         max_attempts = max_fetched / limit + 2
 
         # Fetch the latest run steps
-        client = get_client()
+        client = get_openai_client()
 
         response = await client.beta.threads.runs.steps.list(
             run_id=self.run.id,

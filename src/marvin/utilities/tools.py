@@ -143,7 +143,7 @@ def call_function_tool(
     function_name: str,
     function_arguments_json: str,
     return_string: bool = False,
-):
+) -> str:
     tool = next(
         (
             tool
