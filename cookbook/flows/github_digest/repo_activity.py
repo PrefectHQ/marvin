@@ -8,7 +8,6 @@ from prefect import flow, task
 from prefect.artifacts import create_markdown_artifact
 from prefect.blocks.system import Secret
 from prefect.filesystems import GCS
-from prefect.tasks import task_input_hash
 from utils import fetch_contributor_data
 
 CHANNEL_MAP = {
@@ -55,13 +54,7 @@ def get_repo_digest_template(**jinja_settings) -> BaseTemplate:
     )
 
 
-@task(
-    task_run_name="Fetch GitHub Activity for {owner}/{repo} @ {since}",
-    cache_key_fn=lambda c, a: task_input_hash(
-        c, {k: v for k, v in a.items() if k != "since"}
-    ),
-    cache_expiration=timedelta(days=1),
-)
+@task(task_run_name="Fetch GitHub Activity for {owner}/{repo} @ {since}")
 async def get_repo_activity_data(
     owner: str,
     repo: str,
