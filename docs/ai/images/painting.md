@@ -23,7 +23,7 @@ Marvin can generate images from text.
         ```
 
         !!! success "Result"
-            ![](/assets/images/core/images/three_cats.png)
+            ![](/assets/images/ai/images/three_cats.png)
         
     === "From a function"
 
@@ -38,7 +38,7 @@ Marvin can generate images from text.
         ```
 
         !!! success "Result"
-            ![](/assets/images/core/images/two_cats_airport.png)
+            ![](/assets/images/ai/images/two_cats_airport.png)
 
 <div class="admonition info">
   <p class="admonition-title">How it works</p>
@@ -68,7 +68,7 @@ def sunset(style:str, season:str):
         season="summer"
       )
     ```
-    ![](/assets/images/core/images/sunset_summer.png)
+    ![](/assets/images/ai/images/sunset_summer.png)
 
 - **Winter impressionism**
     
@@ -80,7 +80,7 @@ def sunset(style:str, season:str):
         season="winter"
       )
     ```
-    ![](/assets/images/core/images/sunset_winter.png)
+    ![](/assets/images/ai/images/sunset_winter.png)
 
 - **Something else**
     
@@ -92,7 +92,7 @@ def sunset(style:str, season:str):
         season="Christmas in Australia"
       )
     ```
-    ![](/assets/images/core/images/sunset_scifi.png)
+    ![](/assets/images/ai/images/sunset_scifi.png)
 </div>
 
 ## Disabling prompt revision
@@ -158,7 +158,7 @@ Using the original prompt "a teacup", here are the results of calling this funct
     ```
     Final prompt:
 
-    ![](/assets/images/core/images/teacup_revision_0.png)
+    ![](/assets/images/ai/images/teacup_revision_0.png)
     > a teacup
 
 
@@ -172,7 +172,7 @@ Using the original prompt "a teacup", here are the results of calling this funct
     )
     ```
   
-    ![](/assets/images/core/images/teacup_revision_025.png)
+    ![](/assets/images/ai/images/teacup_revision_025.png)
     Final prompt:
     > a porcelain teacup with intricate detailing, sitting on an oak table
     
@@ -187,7 +187,7 @@ Using the original prompt "a teacup", here are the results of calling this funct
     )
     ```
   
-    ![](/assets/images/core/images/teacup_revision_075.png)
+    ![](/assets/images/ai/images/teacup_revision_075.png)
 
     Final prompt:
     > A porcelain teacup with an intricate floral pattern, placed on a wooden table with soft afternoon sun light pouring in from a nearby window. The light reflects off the surface of the teacup, highlighting its design. The teacup is empty but still warm, as if recently used."
@@ -202,7 +202,7 @@ Using the original prompt "a teacup", here are the results of calling this funct
       revision_amount=1
     )
     ```
-    ![](/assets/images/core/images/teacup_revision_1.png)
+    ![](/assets/images/ai/images/teacup_revision_1.png)
 
     Final prompt:
     > An old-fashioned, beautifully crafted, ceramic teacup. Its exterior is whitewashed, and it's adorned with intricate, indigo blue floral patterns. The handle is elegantly curved, providing a comfortable grip. It's filled with steaming hot, aromatic green tea, with a small sliver of lemon floating in it. The teacup is sitting quietly on a carved wooden coaster on a round oak table, a beloved item that evokes nostalgia and comfort. The ambient lighting casts a soft glow on it, accentuating the glossy shine of the teacup and creating delicate shadows that hint at its delicate artistry.

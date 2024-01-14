@@ -30,6 +30,11 @@
   border: none;
 }
 
+/* Default admonition font size is too small */
+.md-typeset .admonition,
+.md-typeset details {
+  font-size: .8rem;
+}
 /* In a notebook, don't add extra padding to admonitions */
 .jupyter-wrapper .admonition {
   /* margin-top: 1em !important; */

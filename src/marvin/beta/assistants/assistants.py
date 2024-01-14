@@ -83,6 +83,17 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         # Returning False here will re-raise any exception that occurred in the context
         return False
 
+    async def __aenter__(self):
+        breakpoint()
+        await self.create_async()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.delete_async()
+        # If an exception has occurred, you might want to handle it or pass it through
+        # Returning False here will re-raise any exception that occurred in the context
+        return False
+
     @expose_sync_method("create")
     async def create_async(self):
         if self.id is not None:
