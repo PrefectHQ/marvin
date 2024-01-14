@@ -10,7 +10,7 @@ from marvin.tools.assistants import AssistantTool, CancelRun
 from marvin.types import Tool
 from marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
 from marvin.utilities.logging import get_logger
-from marvin.utilities.openai import get_client
+from marvin.utilities.openai import get_openai_client
 
 from .assistants import Assistant
 from .threads import Thread
@@ -54,20 +54,20 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("refresh")
     async def refresh_async(self):
-        client = get_client()
+        client = get_openai_client()
         self.run = await client.beta.threads.runs.retrieve(
             run_id=self.run.id, thread_id=self.thread.id
         )
 
     @expose_sync_method("cancel")
     async def cancel_async(self):
-        client = get_client()
+        client = get_openai_client()
         await client.beta.threads.runs.cancel(
             run_id=self.run.id, thread_id=self.thread.id
         )
 
     async def _handle_step_requires_action(self):
-        client = get_client()
+        client = get_openai_client()
         if self.run.status != "requires_action":
             return
         if self.run.required_action.type == "submit_tool_outputs":
@@ -117,7 +117,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         return tools
 
     async def run_async(self) -> "Run":
-        client = get_client()
+        client = get_openai_client()
 
         create_kwargs = {}
 
@@ -196,7 +196,7 @@ class RunMonitor(BaseModel):
         max_attempts = max_fetched / limit + 2
 
         # Fetch the latest run steps
-        client = get_client()
+        client = get_openai_client()
 
         response = await client.beta.threads.runs.steps.list(
             run_id=self.run.id,

@@ -71,16 +71,26 @@ Each assistant can be given a list of `tools` that it can use when responding to
 
 OpenAI provides a small number of built-in tools for assistants. The most useful is the "code interpreter", which lets the assistant write and execute Python code. To use the code interpreter, add it to your assistant's list of tools:
 
-```python
-from marvin.beta import Assistant
-from marvin.beta.assistants import pprint_messages, CodeInterpreter
+!!! example "Using the code interpreter"
 
-ai = Assistant(name='Marvin', tools=[CodeInterpreter])
-response = ai.say('write and test a function that returns 2 + 2')
+    Assistants can not browse the web by default. We can add this capability by giving them a tool that takes a URL and returns the HTML of that page. This assistant uses that tool as well as the code interpreter to count how many titles on Hacker News mention AI:
 
-# pretty-print the response
-pprint_messages(response)
-```
+    ```python
+    from marvin.beta import Assistant
+    from marvin.beta.assistants import pprint_messages, CodeInterpreter
+
+    ai = Assistant(name='Marvin', tools=[CodeInterpreter])
+    response = ai.say(
+      "Write and test a function that multiplies two numbers. "
+      "Show the code and your tests."
+    )
+
+    # pretty-print the response
+    pprint_messages(response)
+    ```
+    !!! success "Result"
+        ![](/assets/images/ai/assistants/code_interpreter.png)
+
 
 #### Custom tools
 
@@ -89,14 +99,10 @@ A major advantage of using Marvin's assistants API is that you can add your own 
 
 !!! example "Using custom tools"
 
-    Assistants can not browse the web by default. We can add this capability by giving them a tool that takes a URL and returns the HTML of that page. This assistant uses that tool as well as the code interpreter to count how many titles on Hacker News mention AI:
+    Assistants can not browse the web by default. We can add this capability by giving them a tool that takes a URL and returns the HTML of that page. This assistant uses that tool to count how many titles on Hacker News mention AI:
 
     ```python
-    from marvin.beta.assistants import (
-        Assistant, 
-        CodeInterpreter, 
-        pprint_messages
-    )
+    from marvin.beta.assistants import Assistant, pprint_messages
     import requests
 
 
@@ -107,18 +113,14 @@ A major advantage of using Marvin's assistants API is that you can add your own 
 
 
     # Integrate custom tools with the assistant
-    ai = Assistant(name="Marvin", tools=[CodeInterpreter, visit_url])
-
-    # Give the assistant an objective
-    response = ai.say(
-        "Go to Hacker News and compute how many titles mention AI"
-    )
+    ai = Assistant(name="Marvin", tools=[visit_url])
+    response = ai.say("Count how many HN front page titles mention LLMs")
 
     # pretty-print the response
     pprint_messages(response)
     ```
     !!! success "Result"
-        ![](/assets/images/ai/assistants/using_tools.png)
+        ![](/assets/images/ai/assistants/custom_tools.png)
 
 ### Talking to an assistant
 

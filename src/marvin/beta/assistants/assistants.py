@@ -11,7 +11,7 @@ from marvin.utilities.asyncio import (
     run_sync,
 )
 from marvin.utilities.logging import get_logger
-from marvin.utilities.openai import get_client
+from marvin.utilities.openai import get_openai_client
 
 from .threads import Thread
 
@@ -69,23 +69,22 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         """
         thread = thread or self.default_thread
 
+        last_message = await thread.get_messages_async(limit=1)
+        if last_message:
+            last_msg_id = last_message[0].id
+        else:
+            last_msg_id = None
+
         # post the message
         if message:
-            api_message = await thread.add_async(message, file_paths=file_paths)
-            msg_id = api_message.id
+            await thread.add_async(message, file_paths=file_paths)
 
-        # if no message, get the ID of the most recent message
-        else:
-            msgs = await thread.get_messages_async(limit=1)
-            if msgs:
-                msg_id = msgs[0].id
-            else:
-                msg_id = None
-
+        # run the thread
         async with self:
             await thread.run_async(assistant=self, **run_kwargs)
 
-        response_messages = await thread.get_messages_async(after_message=msg_id)
+        # load all messages, including the user message
+        response_messages = await thread.get_messages_async(after_message=last_msg_id)
         return response_messages
 
     def __enter__(self):
@@ -114,7 +113,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             raise ValueError(
                 "Assistant has an ID and has already been created in the OpenAI API."
             )
-        client = get_client()
+        client = get_openai_client()
         response = await client.beta.assistants.create(
             **self.model_dump(
                 include={"name", "model", "metadata", "file_ids", "metadata"}
@@ -128,7 +127,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     async def delete_async(self):
         if not self.id:
             raise ValueError("Assistant has no ID and doesn't exist in the OpenAI API.")
-        client = get_client()
+        client = get_openai_client()
         await client.beta.assistants.delete(assistant_id=self.id)
         self.id = None
 
@@ -138,7 +137,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
 
     @classmethod
     async def load_async(cls, assistant_id: str, **kwargs):
-        client = get_client()
+        client = get_openai_client()
         response = await client.beta.assistants.retrieve(assistant_id=assistant_id)
         return cls(**(response.model_dump() | kwargs))
 
