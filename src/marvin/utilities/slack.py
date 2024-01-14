@@ -1,12 +1,10 @@
 """Module for Slack-related utilities."""
 import os
 import re
-from pathlib import Path
 from typing import List, Optional, Union
 
 import httpx
 from pydantic import BaseModel, field_validator
-from pydantic.networks import AnyHttpUrl
 
 import marvin
 
@@ -303,33 +301,3 @@ async def get_workspace_info(slack_bot_token: Union[str, None] = None) -> dict:
         )
         response.raise_for_status()
         return response.json().get("team", {})
-
-
-async def upload_content(
-    file_path: Union[str, Path], channel_ids: List[str]
-) -> AnyHttpUrl:
-    """Upload a file to Slack and return its URL."""
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://slack.com/api/files.upload",
-            headers={"Authorization": f"Bearer {await get_token()}"},
-            data={"channels": ",".join(channel_ids)},
-            files={"file": Path(file_path).open("rb")},
-        )
-    response.raise_for_status()
-    return response.json().get("file", {}).get("url_private_download")
-
-
-async def get_channel_id(channel_name: str, limit: int = 200) -> Optional[str]:
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://slack.com/api/conversations.list",
-            headers={"Authorization": f"Bearer {await get_token()}"},
-            params={"limit": limit},
-        )
-        response.raise_for_status()
-        channels = response.json().get("channels", [])
-        for channel in channels:
-            if channel["name"] == channel_name:
-                return channel["id"]
-    return None
