@@ -11,7 +11,7 @@ Many of Marvin's features are standalone functions intended to be invoked a sing
 
 !!! example "Quickstart"
 
-    Get started with the Assistants API by creating an `Assistant` and talking directly to it. Each assistant is created with a default thread that allows request/response interaction without managing state at all.
+    Get started with the Assistants API by creating an `Assistant` and talking directly to it.
 
     ```python
     from marvin.beta.assistants import Assistant, pprint_messages
@@ -23,7 +23,7 @@ Many of Marvin's features are standalone functions intended to be invoked a sing
     ) as ai:
 
         # Example of sending a message and receiving a response
-        response = ai.say('Hello, Marvin!')
+        ai.say('Hello, Marvin!')
 
         # pretty-print all messages on the thread
         pprint_messages(response.thread.get_messages())
