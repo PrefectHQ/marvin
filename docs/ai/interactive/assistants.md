@@ -69,27 +69,25 @@ Each assistant can be given a list of `tools` that it can use when responding to
 
 #### OpenAI tools
 
-OpenAI provides a small number of built-in tools for assistants. The most useful is the "code interpreter", which lets the assistant write and execute Python code. To use the code interpreter, add it to your assistant's list of tools:
+OpenAI provides a small number of built-in tools for assistants. The most useful is the "code interpreter", which lets the assistant write and execute Python code. To use the code interpreter, add it to your assistant's list of tools.
 
 !!! example "Using the code interpreter"
 
-    Assistants can not browse the web by default. We can add this capability by giving them a tool that takes a URL and returns the HTML of that page. This assistant uses that tool as well as the code interpreter to count how many titles on Hacker News mention AI:
+    This assistant uses the code interpreter to generate a plot of sin(x). Note that Marvin's utility for pretty-printing messages to the terminal can't show the plot inline, but will download it and show a link to the file instead.
 
     ```python
     from marvin.beta import Assistant
     from marvin.beta.assistants import pprint_messages, CodeInterpreter
 
     ai = Assistant(name='Marvin', tools=[CodeInterpreter])
-    response = ai.say(
-      "Write and test a function that multiplies two numbers. "
-      "Show the code and your tests."
-    )
+    response = ai.say("can you generate a plot of sin(x)")
 
     # pretty-print the response
     pprint_messages(response)
     ```
     !!! success "Result"
         ![](/assets/images/ai/assistants/code_interpreter.png)
+        ![](/assets/images/ai/assistants/sin_x.png)
 
 
 #### Custom tools
