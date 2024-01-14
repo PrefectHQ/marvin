@@ -8,7 +8,7 @@ push: null
 pull:
 - prefect.deployments.steps.git_clone:
     repository: https://github.com/PrefectHQ/marvin.git
-    branch: '2.0'
+    branch: '2.0-cleanup-examples'
 - prefect.deployments.steps.run_shell_script:
     script: pip install .
 
