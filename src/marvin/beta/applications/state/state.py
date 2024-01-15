@@ -1,5 +1,5 @@
+import inspect
 import json
-import textwrap
 from typing import Optional, Union
 
 from jsonpatch import JsonPatch
@@ -71,7 +71,7 @@ class State(BaseModel):
             name = "state"
         schema = self.get_schema()
         if schema:
-            description = textwrap.dedent(
+            description = inspect.cleandoc(
                 f"Update the {name} object using JSON Patch documents. Updates will"
                 " fail if they do not comply with the following"
                 " schema:\n\n```json\n{schema}\n```"

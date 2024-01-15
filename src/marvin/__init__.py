@@ -1,5 +1,6 @@
 from .settings import settings
 
+# legacy
 from .components import ai_fn, ai_model, ai_classifier
 from .components.prompt.fn import prompt_fn
 
