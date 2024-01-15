@@ -1,10 +1,17 @@
 import asyncio
 import os
 import uuid
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 try:
-    from chromadb import Documents, EmbeddingFunction, Embeddings, GetResult, HttpClient
+    from chromadb import (
+        Client,
+        Documents,
+        EmbeddingFunction,
+        Embeddings,
+        GetResult,
+        HttpClient,
+    )
 except ImportError:
     raise ImportError(
         "The chromadb package is required to query Chroma. Please install"
@@ -20,6 +27,7 @@ if TYPE_CHECKING:
     from openai.types import CreateEmbeddingResponse
 
 QueryResultType = Literal["documents", "distances", "metadatas"]
+
 
 try:
     HOST, PORT = (
@@ -37,7 +45,18 @@ except AttributeError:
     )
 
 
-def create_openai_embeddings(texts: list[str]) -> list[float]:
+def get_client(
+    client_type: Literal["http", "base"] = "base", **kwargs: Any
+) -> Union[Client, HttpClient]:
+    if client_type == "base":
+        return Client(**kwargs)
+    elif client_type == "http":
+        return HttpClient(host=HOST, port=PORT, **kwargs)
+    else:
+        raise ValueError("client_type must be one of 'base' or 'http'.")
+
+
+def create_openai_embeddings(input: list[str]) -> list[float]:
     """Create OpenAI embeddings for a list of texts."""
 
     try:
@@ -50,7 +69,7 @@ def create_openai_embeddings(texts: list[str]) -> list[float]:
     from marvin.client.openai import MarvinClient
 
     embedding: "CreateEmbeddingResponse" = MarvinClient().client.embeddings.create(
-        input=[text.replace("\n", " ") for text in texts],
+        input=[text.replace("\n", " ") for text in input],
         model="text-embedding-ada-002",
     )
 
@@ -62,7 +81,7 @@ class OpenAIEmbeddingFunction(EmbeddingFunction):
         return [create_openai_embeddings(input)]
 
 
-client = HttpClient(host=HOST, port=PORT)
+client = get_client(client_type="http")
 
 
 async def query_chroma(
