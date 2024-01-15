@@ -383,7 +383,7 @@ def generate(
     elif target is None:
         target = str
 
-    # cache the last 30 responses for each (target, instructions, and temperature)
+    # cache the last 100 responses for each (target, instructions, and temperature)
     # to avoid repetition and encourage variation
     cache_key = (target, instructions, temperature)
     cached_responses = GENERATE_CACHE.setdefault(cache_key, deque(maxlen=100))
