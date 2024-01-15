@@ -9,16 +9,26 @@ from typing import (
     Union,
 )
 
+import openai
+import openai.types.chat.chat_completion
+import openai.types.chat.chat_completion_chunk
 import pydantic
 from openai import AsyncClient, Client, NotFoundError
-from openai.types.chat import (
-    ChatCompletion,
-)
+from openai.types.chat import ChatCompletion
+from pydantic import BaseModel
 from typing_extensions import ParamSpec
 
 import marvin
 from marvin import settings
-from marvin.types import ChatRequest, ImageRequest, VisionRequest
+from marvin.types import (
+    BaseMessage as Message,
+)
+from marvin.types import (
+    ChatRequest,
+    ImageRequest,
+    StreamingChatResponse,
+    VisionRequest,
+)
 from marvin.utilities.logging import get_logger
 
 if TYPE_CHECKING:
@@ -30,6 +40,86 @@ P = ParamSpec("P")
 T = TypeVar("T", bound=pydantic.BaseModel)
 
 FALLBACK_CHAT_COMPLETIONS_MODEL = "gpt-3.5-turbo"
+
+
+def process_streaming_chat_response(
+    completion: Optional[ChatCompletion], chunk: openai.types.chat.ChatCompletionChunk
+) -> StreamingChatResponse:
+    # if no completion is provided, create the initial completion from the chunk
+    if completion is None:
+        completion = ChatCompletion(
+            id=chunk.id,
+            model=chunk.model,
+            choices=[
+                openai.types.chat.chat_completion.Choice(
+                    finish_reason=c.finish_reason or "stop",
+                    index=c.index,
+                    logprobs=c.logprobs,
+                    message=openai.types.chat.ChatCompletionMessage(
+                        content=c.delta.content or "",
+                        role=c.delta.role or "assistant",
+                        tool_calls=c.delta.tool_calls,
+                    ),
+                )
+                for c in chunk.choices
+            ],
+            created=chunk.created,
+            object="chat.completion",
+        )
+
+    # update the completion choices from the chunk, overwriting or append as necessary
+
+    completion = completion.model_copy()
+    choices = []
+    for c, chunk_c in zip(completion.choices, chunk.choices):
+        c = c.model_copy()
+        if chunk_c.finish_reason:
+            c.finish_reason = chunk_c.finish_reason
+        if chunk_c.index is not None:
+            c.index = chunk_c.index
+        if chunk_c.logprobs:
+            c.logprobs = chunk_c.logprobs
+        c.message = openai.types.chat.ChatCompletionMessage(
+            content=c.message.content + (chunk_c.delta.content or ""),
+            role=chunk_c.delta.role or c.message.role,
+            tool_calls=chunk_c.delta.tool_calls or c.message.tool_calls,
+        )
+        choices.append(c)
+    completion.choices = choices
+    return completion
+
+
+class OpenAIStreamHandler(BaseModel):
+    callback: Optional[Callable[[Message], None]] = None
+
+    def handle_streaming_chat(self, api_response: openai.Stream) -> Message:
+        """
+        Accumulate chunk deltas into a full ChatCompletion. Returns the full
+        ChatCompletion. Passes a StreamingChatResponse to the callback.
+        """
+        completion = None
+        for chunk in api_response:
+            completion = process_streaming_chat_response(
+                completion=completion, chunk=chunk
+            )
+            if self.callback:
+                self.callback(StreamingChatResponse(chunk=chunk, completion=completion))
+        return completion
+
+    async def handle_streaming_chat_async(self, api_response: openai.Stream) -> Message:
+        """
+        Accumulate chunk deltas into a full ChatCompletion. Returns the full
+        ChatCompletion. Passes a dict of partial ChatCompletions and chunks to
+        the callback, if provided.
+        """
+        completion = None
+        async for chunk in api_response:
+            completion = process_streaming_chat_response(
+                completion=completion, chunk=chunk
+            )
+            if self.callback:
+                self.callback(StreamingChatResponse(chunk=chunk, completion=completion))
+        return completion
 
 
 async def should_fallback(e: NotFoundError, request: ChatRequest) -> bool:
@@ -111,11 +201,17 @@ class MarvinClient(pydantic.BaseModel):
         self,
         *,
         completion: Optional[Callable[..., "ChatCompletion"]] = None,
+        stream_callback: Optional[Callable[[Message], None]] = None,
         **kwargs: Any,
     ) -> Union["ChatCompletion", T]:
         create: Callable[..., "ChatCompletion"] = (
             completion or self.client.chat.completions.create
         )
+
+        # setup streaming
+        if stream_callback is not None:
+            kwargs.setdefault("stream", True)
+
         # validate request
         request = ChatRequest(**kwargs)
         try:
@@ -128,6 +224,11 @@ class MarvinClient(pydantic.BaseModel):
                 )
             else:
                 raise e
+
+        if request.stream:
+            return OpenAIStreamHandler(callback=stream_callback).handle_streaming_chat(
+                response
+            )
         return response
 
     def generate_vision(
@@ -185,9 +286,15 @@ class AsyncMarvinClient(pydantic.BaseModel):
 
     async def generate_chat(
         self,
+        stream_callback: Optional[Callable[[Message], None]] = None,
         **kwargs: Any,
     ) -> Union["ChatCompletion", T]:
         create = self.client.chat.completions.create
+
+        # setup streaming
+        if stream_callback is not None:
+            kwargs.setdefault("stream", True)
+
         # validate request
         request = ChatRequest(**kwargs)
         try:
@@ -202,6 +309,10 @@ class AsyncMarvinClient(pydantic.BaseModel):
                 )
             else:
                 raise e
+        if request.stream:
+            return await OpenAIStreamHandler(
+                callback=stream_callback
+            ).handle_streaming_chat_async(response)
         return response
 
     async def generate_vision(

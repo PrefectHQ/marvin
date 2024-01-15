@@ -1,7 +1,8 @@
 from typing import Any, Callable, Generic, Literal, Optional, TypeVar, Union
 
+import openai.types.chat
 from openai.types.chat import ChatCompletion
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, computed_field
 from typing_extensions import Annotated, Self
 
 from marvin.settings import settings
@@ -16,7 +17,13 @@ class ResponseFormat(BaseModel):
 LogitBias = dict[str, float]
 
 
-class Function(BaseModel, Generic[T]):
+class MarvinType(BaseModel):
+    # by default, mavin types are not allowed to have extra fields
+    # because they are used for validation throughout the codebase
+    model_config = dict(extra="forbid")
+
+
+class Function(MarvinType, Generic[T]):
     name: str
     description: Optional[str]
     parameters: dict[str, Any]
@@ -41,12 +48,12 @@ class Function(BaseModel, Generic[T]):
         return instance
 
 
-class Tool(BaseModel, Generic[T]):
+class Tool(MarvinType, Generic[T]):
     type: str
     function: Optional[Function[T]] = None
 
 
-class ToolSet(BaseModel, Generic[T]):
+class ToolSet(MarvinType, Generic[T]):
     tools: Optional[list[Tool[T]]] = None
     tool_choice: Optional[Union[Literal["auto"], dict[str, Any]]] = None
 
@@ -59,39 +66,39 @@ class CodeInterpreterTool(Tool[T]):
     type: Literal["code_interpreter"] = "code_interpreter"
 
 
-class FunctionCall(BaseModel):
+class FunctionCall(MarvinType):
     name: str
 
 
-class ImageUrl(BaseModel):
+class ImageUrl(MarvinType):
     url: str = Field(
         description="URL of the image to be sent or a base64 encoded image."
     )
     detail: str = "auto"
 
 
-class MessageImageURLContent(BaseModel):
+class MessageImageURLContent(MarvinType):
     """Schema for messages containing images"""
 
     type: Literal["image_url"] = "image_url"
     image_url: ImageUrl
 
 
-class MessageTextContent(BaseModel):
+class MessageTextContent(MarvinType):
     """Schema for messages containing text"""
 
     type: Literal["text"] = "text"
     text: str
 
 
-class BaseMessage(BaseModel):
+class BaseMessage(MarvinType):
     """Base schema for messages"""
 
     content: Union[str, list[Union[MessageImageURLContent, MessageTextContent]]]
     role: str
 
 
-class Grammar(BaseModel):
+class Grammar(MarvinType):
     logit_bias: Optional[LogitBias] = None
     max_tokens: Optional[Annotated[int, Field(strict=True, ge=1)]] = None
     response_format: Optional[ResponseFormat] = None
@@ -101,7 +108,7 @@ class Prompt(Grammar, ToolSet[T], Generic[T]):
     messages: list[BaseMessage] = Field(default_factory=list)
 
 
-class ResponseModel(BaseModel):
+class ResponseModel(MarvinType):
     model: type
     name: str = Field(default="FormatResponse")
     description: str = Field(default="Response format")
@@ -132,7 +139,7 @@ class ChatRequest(Prompt[T]):
     user: Optional[str] = None
 
 
-class VisionRequest(BaseModel):
+class VisionRequest(MarvinType):
     messages: list[BaseMessage] = Field(default_factory=list)
     model: str = Field(default_factory=lambda: settings.openai.chat.vision.model)
     logit_bias: Optional[LogitBias] = None
@@ -156,14 +163,14 @@ class VisionRequest(BaseModel):
     user: Optional[str] = None
 
 
-class ChatResponse(BaseModel):
+class ChatResponse(MarvinType):
     model_config = dict(arbitrary_types_allowed=True)
     request: Union[ChatRequest, VisionRequest]
     response: ChatCompletion
     tool_outputs: list[Any] = []
 
 
-class ImageRequest(BaseModel):
+class ImageRequest(MarvinType):
     prompt: str
     model: Optional[str] = Field(default_factory=lambda: settings.openai.images.model)
 
@@ -182,7 +189,7 @@ class ImageRequest(BaseModel):
     )
 
 
-class SpeechRequest(BaseModel):
+class SpeechRequest(MarvinType):
     input: str
     model: Literal["tts-1", "tts-1-hd"] = Field(
         default_factory=lambda: settings.openai.audio.speech.model
@@ -208,7 +215,7 @@ class AssistantMessage(BaseMessage):
     metadata: dict[str, Any] = {}
 
 
-class Run(BaseModel, Generic[T]):
+class Run(MarvinType, Generic[T]):
     id: str
     thread_id: str
     created_at: int
@@ -217,3 +224,20 @@ class Run(BaseModel, Generic[T]):
     instructions: Optional[str]
     tools: Optional[list[Tool[T]]] = None
     metadata: dict[str, str]
+
+
+class StreamingChatResponse(MarvinType):
+    chunk: openai.types.chat.ChatCompletionChunk = Field(
+        description="The most recently-received chunk of the response"
+    )
+    completion: openai.types.chat.ChatCompletion = Field(
+        description=(
+            "The reconstructed completion object, through the most recently-received"
+            " chunk"
+        )
+    )
+
+    @computed_field
+    @property
+    def messages(self) -> list[BaseMessage]:
+        return [c.message for c in self.completion.choices]
