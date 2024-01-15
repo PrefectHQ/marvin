@@ -23,6 +23,21 @@ logger = get_logger("Assistants")
 
 
 class Assistant(BaseModel, ExposeSyncMethodsMixin):
+    """
+    The Assistant class represents an AI assistant that can be created, deleted,
+    loaded, and interacted with.
+
+    Attributes:
+        id (str): The unique identifier of the assistant. None if the assistant
+                  hasn't been created yet.
+        name (str): The name of the assistant.
+        model (str): The model used by the assistant.
+        metadata (dict): Additional data about the assistant.
+        file_ids (list): List of file IDs associated with the assistant.
+        tools (list): List of tools used by the assistant.
+        instructions (list): List of instructions for the assistant.
+    """
+
     id: Optional[str] = None
     name: str = "Assistant"
     model: str = "gpt-4-1106-preview"
