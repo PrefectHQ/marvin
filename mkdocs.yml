@@ -150,8 +150,8 @@ markdown_extensions:
 extra:
   get_started: welcome/what_is_marvin
   hero:
-    title: 'The AI Engineering Framework'
-    description: 'Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.'
+    title: 'The AI Engineering Toolkit'
+    description: 'Marvin is a lightweight toolkit for building natural language interfaces that are reliable, scalable, and easy to trust.'
   announcement:
     title: "Marvin 2.0 is here!"
     url: https://github.com/PrefectHQ/marvin/releases/tag/v2.0.0
