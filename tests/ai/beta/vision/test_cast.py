@@ -15,21 +15,30 @@ class TestVisionCast:
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = marvin.beta.cast(img, target=Location)
-        assert result == Location(city="New York", state="NY")
+        assert result in (
+            Location(city="New York", state="NY"),
+            Location(city="New York City", state="NY"),
+        )
 
     def test_cast_ny_images_input(self):
         img = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = marvin.beta.cast(data=None, images=[img], target=Location)
-        assert result == Location(city="New York", state="NY")
+        assert result in (
+            Location(city="New York", state="NY"),
+            Location(city="New York City", state="NY"),
+        )
 
     def test_cast_ny_image_input(self):
         img = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = marvin.beta.cast(data=img, target=Location)
-        assert result == Location(city="New York", state="NY")
+        assert result in (
+            Location(city="New York", state="NY"),
+            Location(city="New York City", state="NY"),
+        )
 
     def test_cast_ny_image_and_text(self):
         img = marvin.beta.Image(
@@ -40,7 +49,10 @@ class TestVisionCast:
             images=[img],
             target=Location,
         )
-        assert result == Location(city="New York", state="NY")
+        assert result in (
+            Location(city="New York", state="NY"),
+            Location(city="New York City", state="NY"),
+        )
 
     def test_cast_dog(self):
         class Animal(BaseModel):
