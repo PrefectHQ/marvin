@@ -205,7 +205,7 @@ class Settings(MarvinSettings):
 
     Attributes:
         openai: Settings for the OpenAI API.
-        log_level: The log level to use, defaults to `DEBUG`.
+        log_level: The log level to use, defaults to `INFO`.
 
     Example:
         Set the log level to `INFO`:
@@ -237,10 +237,7 @@ class Settings(MarvinSettings):
         ),
     )
 
-    @field_validator(
-        "log_level",
-        mode="after",
-    )
+    @field_validator("log_level", mode="after")
     @classmethod
     def set_log_level(cls, v):
         from marvin.utilities.logging import setup_logging
