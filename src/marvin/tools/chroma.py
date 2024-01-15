@@ -56,7 +56,7 @@ def get_client(
         raise ValueError("client_type must be one of 'base' or 'http'.")
 
 
-def create_openai_embeddings(input: list[str]) -> list[float]:
+def create_openai_embeddings(texts: list[str]) -> list[float]:
     """Create OpenAI embeddings for a list of texts."""
 
     try:
@@ -69,7 +69,7 @@ def create_openai_embeddings(input: list[str]) -> list[float]:
     from marvin.client.openai import MarvinClient
 
     embedding: "CreateEmbeddingResponse" = MarvinClient().client.embeddings.create(
-        input=[text.replace("\n", " ") for text in input],
+        input=[text.replace("\n", " ") for text in texts],
         model="text-embedding-ada-002",
     )
 

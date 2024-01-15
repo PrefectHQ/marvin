@@ -1,5 +1,6 @@
 from datetime import timedelta
 from functools import partial
+from typing import Literal
 from unittest.mock import patch
 
 from marvin._rag.documents import Document
@@ -25,12 +26,8 @@ def html_parser(html: str) -> str:
 
 prefect_loaders = [
     SitemapLoader(
-        urls=["https://docs.prefect.io/sitemap.xml"],
-        exclude=["api-ref"],
-    ),
-    SitemapLoader(
-        urls=["https://prefect.io/sitemap.xml"],
-        exclude=["/events/"],
+        urls=["https://docs.prefect.io/sitemap.xml", "https://prefect.io/sitemap.xml"],
+        exclude=["api-ref", "/events/"],
     ),
     GitHubRepoLoader(
         repo="prefecthq/prefect",
@@ -73,8 +70,8 @@ async def run_loader(loader: Loader) -> list[Document]:
 @flow(name="Update Marvin's Knowledge", log_prints=True)
 async def update_marvin_knowledge(
     collection_name: str = "marvin",
-    wipe_collection: bool = True,
     chroma_client_type: str = "base",
+    mode: Literal["upsert", "reset"] = "upsert",
 ):
     """Flow updating Marvin's knowledge with info from the Prefect community."""
     with patch(
@@ -92,9 +89,13 @@ async def update_marvin_knowledge(
     async with Chroma(
         collection_name=collection_name, client_type=chroma_client_type
     ) as chroma:
-        if wipe_collection:
+        if mode == "reset":
             await chroma.reset_collection()
-        docs = await chroma.add(documents)
+            docs = await chroma.add(documents)
+        elif mode == "upsert":
+            docs = await chroma.upsert(documents)
+        else:
+            raise ValueError(f"Unknown mode: {mode!r} (expected 'upsert' or 'reset')")
 
         print(f"Added {len(docs)} documents to the {collection_name} collection.")
 

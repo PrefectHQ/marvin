@@ -3,13 +3,18 @@ from typing import Any, Iterable, Literal, Optional
 
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import Include, QueryResult
-from chromadb.errors import IDAlreadyExistsError
+from prefect.utilities.collections import distinct
 from pydantic import BaseModel, Field, model_validator
 
 import marvin
 from marvin._rag.documents import Document
 from marvin.tools.chroma import OpenAIEmbeddingFunction, get_client
 from marvin.utilities.asyncio import run_async
+
+
+def get_distinct_documents(documents: Iterable[Document]) -> Iterable[Document]:
+    """Return a list of distinct documents."""
+    return distinct(documents, key=lambda doc: doc.hash)
 
 
 class Chroma(BaseModel):
@@ -44,8 +49,9 @@ class Chroma(BaseModel):
         )
 
     async def add(self, documents: list[Document]) -> Iterable[Document]:
+        documents = get_distinct_documents(documents)
         kwargs = dict(
-            ids=[document.hash for document in documents],
+            ids=[document.id for document in documents],
             documents=[document.text for document in documents],
             metadatas=[
                 document.metadata.model_dump(exclude_none=True) or None
@@ -53,10 +59,8 @@ class Chroma(BaseModel):
             ],
             embeddings=[document.embedding or [] for document in documents],
         )
-        try:
-            await run_async(self.collection.add, **kwargs)
-        except IDAlreadyExistsError:
-            await run_async(self.collection.upsert, **kwargs)
+
+        await run_async(self.collection.add, **kwargs)
 
         get_result = await run_async(self.collection.get, ids=kwargs["ids"])
 
@@ -87,12 +91,21 @@ class Chroma(BaseModel):
         return await run_async(self.collection.count)
 
     async def upsert(self, documents: list[Document]):
-        await run_async(
-            self.collection.upsert,
-            ids=[document.hash for document in documents],
+        documents = get_distinct_documents(documents)
+        kwargs = dict(
+            ids=[document.id for document in documents],
             documents=[document.text for document in documents],
-            metadatas=[document.metadata.model_dump() for document in documents],
+            metadatas=[
+                document.metadata.model_dump(exclude_none=True) or None
+                for document in documents
+            ],
+            embeddings=[document.embedding or [] for document in documents],
         )
+        await run_async(self.collection.upsert, **kwargs)
+
+        get_result = await run_async(self.collection.get, ids=kwargs["ids"])
+
+        return get_result.get("documents")
 
     async def reset_collection(self):
         """Delete and recreate the collection."""
