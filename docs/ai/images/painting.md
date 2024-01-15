@@ -53,7 +53,7 @@ In addition to passing prompts directly to the DALLE-3 API via the `paint` funct
 
 ```python
 @marvin.image
-def sunset(style:str, season:str):
+def sunset(style: str, season: str):
     return f"A view of a sunset, in the style of {style}, during {season}"
 ```
 
@@ -66,7 +66,7 @@ def sunset(style:str, season:str):
     sunset(
         style="nature photography", 
         season="summer"
-      )
+    )
     ```
     ![](/assets/images/ai/images/sunset_summer.png)
 
@@ -78,7 +78,7 @@ def sunset(style:str, season:str):
     sunset(
         style="impressionism", 
         season="winter"
-      )
+    )
     ```
     ![](/assets/images/ai/images/sunset_winter.png)
 
@@ -90,7 +90,7 @@ def sunset(style:str, season:str):
     sunset(
         style="sci-fi movie poster", 
         season="Christmas in Australia"
-      )
+    )
     ```
     ![](/assets/images/ai/images/sunset_scifi.png)
 </div>

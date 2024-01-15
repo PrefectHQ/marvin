@@ -263,7 +263,7 @@ def temporary_settings(**kwargs: Any):
         **kwargs: The settings to override, including nested settings.
 
     Example:
-        Temporarily override the OpenAI API key:
+        Temporarily override log level and OpenAI API key:
         ```python
         import marvin
         from marvin.settings import temporary_settings

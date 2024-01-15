@@ -39,11 +39,11 @@ The `marvin.beta.cast` function is an enhanced version of `marvin.cast` that acc
     
     ```python
     import marvin
-    from pydantic import BaseModel
+    from pydantic import BaseModel, Field
 
     class Location(BaseModel):
         city: str
-        state: str
+        state: str = Field(description="2-letter state abbreviation")
     
     img = marvin.beta.Image('https://images.unsplash.com/photo-1568515387631-8b650bbcdb90')
     result = marvin.beta.cast(img, target=Location)
