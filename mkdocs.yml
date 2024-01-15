@@ -32,7 +32,7 @@ nav:
       - Generating speech: ai/audio/speech.md
     # - Transcription: ai/function.md
 
-    - Interactive:
+    - Interactive Tools:
       - Assistants: ai/interactive/assistants.md
       - Applications: ai/interactive/applications.md
       
@@ -48,6 +48,13 @@ nav:
 
     - Beta AI modules:
       - marvin.beta.vision: api_reference/beta/vision.md
+      - marvin.beta.assistants: 
+        - marvin.beta.assistants: api_reference/beta/assistants/index.md
+        - marvin.beta.assistants.assistants: api_reference/beta/assistants/assistants.md
+        - marvin.beta.assistants.threads: api_reference/beta/assistants/threads.md
+        - marvin.beta.assistants.runs: api_reference/beta/assistants/runs.md
+        - marvin.beta.assistants.formatting: api_reference/beta/assistants/formatting.md
+      - marvin.beta.applications: api_reference/beta/applications.md
 
     - Object schemas: 
       - marvin.types: api_reference/types.md
