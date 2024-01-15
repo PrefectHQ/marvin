@@ -94,17 +94,21 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         return run_sync(self.__aexit__(exc_type, exc_val, exc_tb))
 
     async def __aenter__(self):
-        self._context_level += 1
         # if this is the outermost context and no ID is set, create the assistant
-        if self.id is None and self._context_level == 1:
+        if self.id is None and self._context_level == 0:
             await self.create_async()
+
+        self._context_level += 1
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self._context_level > 0:
+            self._context_level -= 1
+
         # If this is the outermost context, delete the assistant
-        if self._context_level == 1:
+        if self._context_level == 0:
             await self.delete_async()
-        self._context_level -= 1
+
         return False
 
     @expose_sync_method("create")
