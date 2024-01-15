@@ -86,7 +86,7 @@ The `generate` function is the primary tool for generating synthetic data. It ac
 
 ## Supported types
 
-`generate` supports almost all builtin Python types, Pydantic models, Python `Literals`, and `TypedDicts`. Pydantic models are especially useful for extracting structured data, such as locations, dates, or more complex types. Builtin types are most useful in conjunction with instructions that provide more precise criteria for extraction. 
+`generate` supports almost all builtin Python types, plus Pydantic models, Python's `Literal`, and `TypedDict`. Pydantic models are especially useful for specifying specific features of the generated data, such as locations, dates, or more complex types. Builtin types are most useful in conjunction with instructions that provide more precise criteria for generation.
 
 Note that `generate` will always return a list of type you provide. 
 

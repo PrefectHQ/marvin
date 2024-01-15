@@ -39,9 +39,6 @@ nav:
     - Configuration: 
       - Settings: configuration/settings.md
 
-    # - Examples:
-    #   - Slackbot: examples/slackbot.md
-    #   - GitHub Digest: examples/github_digest.md
   - API reference:
     - marvin: api_reference/marvin.md
     - AI modules:
@@ -63,9 +60,8 @@ nav:
       - marvin.utilities.tools: api_reference/utilities/tools.md
   - Cookbook:
     - Entity deduplication: examples/deduplication.md
-    - Deploying an API:
-      - Basic extraction API: examples/extraction_api.md
-      - Basic classification API: examples/classification_api.md
+    # - GitHub Activity Digest: examples/github_digest.md
+    - Slackbot: examples/slackbot.md
   - Community:
     - community/index.md
     - Feedback 💙: community/feedback.md
