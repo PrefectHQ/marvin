@@ -257,3 +257,132 @@ State models are instructions, in a sense. If well designed they guide the LLM t
 Like assistants, applications can use tools to perform actions and return results. Applications are always given a built-in tool for updating their own state, which operates by issuing JSON patches to the state object. This is a performant and structure-agnotistic way to update the state. However, users may want to define their own tools for state manipulation in order to codify more complex logic or handle targeted updates without worrying about the LLM's ability to describe them or know where to apply them.
 
 For more information on using tools, see the [assistants documentation](/docs/ai/interactive/assistants.md#Tools).
+
+## Example: ToDo application
+
+Now that we've covered the basics of AI applications, let's build a simple todo application. The application will allow users to create, update, and delete tasks, as well as query the current list of tasks. The LLM will manage the state, ensuring that it always reflects the current situation.
+
+### State
+
+The state of the todo application is a list of tasks, each with a name, due date, and completion status. The state model is defined as follows:
+
+```python
+from pydantic import BaseModel
+import datetime
+
+class ToDo(BaseModel):
+    name: str
+    due: datetime.datetime
+    done: bool = False
+
+
+class ToDoState(BaseModel):
+    todos: list[ToDo] = []
+```
+
+### Instructions
+
+ToDo applications are well understood; there's a reason they're a common example in programming tutorials! As such, the instructions for the application can be quite simple, though we still clearly define the expected behaviors. To make it interesting, we tell our app to always talk like a pirate.
+
+```python
+from marvin.beta.applications import Application
+
+app = Application(
+    name='ToDo App',
+    instructions="""
+        As ToDo App, you are a virtual assistant helping 
+        users manage their tasks. Your role is to understand 
+        user instructions and update the application's state 
+        accordingly. Maintain a friendly and helpful tone, 
+        resembling that of a well-organized friend. Keep track 
+        of user tasks in the application's state, using this 
+        data to continually enhance the personalization of 
+        suggestions. Encourage productivity by reminding users 
+        of upcoming tasks and congratulating them on completed 
+        tasks.
+
+        Always talk like a pirate.
+        """,
+    state=ToDoState(),
+)
+```
+
+### Running the app
+
+Now we can interact with our app. After each command, you can print the resulting message to see the LLM's response, or use the experimental `app.chat()` interface to interact with the application in real time. You can also see the updated application state.
+
+```python
+response = app.say("I need to go to the store tomorrow afternoon")
+```
+
+!!! success "Result"
+
+    ![](/assets/images/ai/applications/todo_1.png)
+
+    ```python
+    State(
+        value=ToDoState(
+            todos=[
+                ToDo(
+                    name="Visit the store",
+                    due=datetime(2024, 1, 16, 12, 0, tzinfo=TzInfo(UTC)),
+                    done=False,
+                )
+            ]
+        )
+    )
+    ```
+
+```python
+response = app.say("I've got to pick up a dozen eggs tomorrow at 9")
+```
+
+!!! success "Result"
+
+    ![](/assets/images/ai/applications/todo_2.png)
+
+    ```python
+    State(
+        value=ToDoState(
+            todos=[
+                ToDo(
+                    name="Visit the store",
+                    due=datetime(2024, 1, 16, 12, 0, tzinfo=TzInfo(UTC)),
+                    done=False,
+                ),
+                ToDo(
+                    name="Pick up a dozen eggs",
+                    due=datetime(2024, 1, 16, 9, 0, tzinfo=TzInfo(UTC)),
+                    done=False,
+                ),
+            ]
+        )
+    )
+    ```
+
+```python
+response = app.say(
+    "I got the eggs but I'm not going to get to the store "
+    "for a while, so just forget about it."
+)
+```
+
+!!! success "Result"
+
+    ![](/assets/images/ai/applications/todo_3.png)
+
+    ```python
+    State(
+        value=ToDoState(
+            todos=[
+                ToDo(
+                    name="Pick up a dozen eggs",
+                    due=datetime(2024, 1, 16, 9, 0, tzinfo=TzInfo(UTC)),
+                    done=True,
+                )
+            ]
+        )
+    )
+    ```
+
+As you can see, the app maintains its structured state in response to user inputs. This state can be serialized and stored in a database, allowing the application to be restarted and continue where it left off. Because it conforms to a well-defined schema, the state can also be used by other applications, services, or UIs.
