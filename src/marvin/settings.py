@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from typing import Any, Literal, Optional, Union
 
-from pydantic import Field, PrivateAttr, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,9 +44,8 @@ class MarvinSettings(BaseSettings):
 
 class ChatCompletionSettings(MarvinSettings):
     model_config = SettingsConfigDict(env_prefix="marvin_chat_completion_")
-    model: str = Field(description="The default chat model to use.", default="gpt-4")
-    _fallback_model: str = PrivateAttr(
-        default="gpt-3.5-turbo",
+    model: str = Field(
+        description="The default chat model to use.", default="gpt-4-1106-preview"
     )
 
     temperature: float = Field(description="The default temperature to use.", default=1)
