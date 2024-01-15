@@ -34,7 +34,7 @@ nav:
 
     - Interactive:
       - Assistants: ai/interactive/assistants.md
-    #   - Applications: ai/interactive/applications.md
+      - Applications: ai/interactive/applications.md
       
     - Configuration: 
       - Settings: configuration/settings.md

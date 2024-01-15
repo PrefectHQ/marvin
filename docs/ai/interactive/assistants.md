@@ -83,7 +83,7 @@ OpenAI provides a small number of built-in tools for assistants. The most useful
     from marvin.beta.assistants import pprint_messages, CodeInterpreter
 
     ai = Assistant(name='Marvin', tools=[CodeInterpreter])
-    response = ai.say("can you generate a plot of sin(x)")
+    response = ai.say("Generate a plot of sin(x)")
 
     # pretty-print the response
     pprint_messages(response)
