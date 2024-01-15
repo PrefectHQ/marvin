@@ -1,10 +1,22 @@
 """Module for Pydantic utilities."""
 
 from types import FunctionType, GenericAlias
-from typing import Annotated, Any, Callable, Literal, Optional, Union, cast, get_origin
+from typing import (
+    Annotated,
+    Any,
+    Callable,
+    Literal,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+    get_origin,
+)
 
 from pydantic import BaseModel, TypeAdapter, create_model
 from pydantic.deprecated.decorator import validate_arguments
+
+T = TypeVar("T")
 
 
 def cast_callable_to_model(
@@ -137,10 +149,10 @@ def cast_to_model(
 
 
 def parse_as(
-    type_: Any,
+    type_: type[T],
     data: Any,
     mode: Literal["python", "json", "strings"] = "python",
-) -> BaseModel:
+) -> T:
     """Parse a given data structure as a Pydantic model via `TypeAdapter`.
 
     Read more about `TypeAdapter` [here](https://docs.pydantic.dev/latest/concepts/type_adapter/).
@@ -191,6 +203,6 @@ def parse_as(
     if get_origin(type_) is list and isinstance(data, dict):
         data = next(iter(data.values()))
 
-    parser = getattr(adapter, f"validate_{mode}")
+    parser: Callable[[Any], T] = getattr(adapter, f"validate_{mode}")
 
     return parser(data)

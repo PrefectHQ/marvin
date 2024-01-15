@@ -10,7 +10,7 @@ from typing import (
 )
 
 import pydantic
-from openai import AsyncClient, Client
+from openai import AsyncClient, Client, NotFoundError
 from openai.types.chat import (
     ChatCompletion,
 )
@@ -19,6 +19,7 @@ from typing_extensions import ParamSpec
 import marvin
 from marvin import settings
 from marvin.types import ChatRequest, ImageRequest, VisionRequest
+from marvin.utilities.logging import get_logger
 
 if TYPE_CHECKING:
     from openai._base_client import HttpxBinaryResponseContent
@@ -27,6 +28,15 @@ if TYPE_CHECKING:
 
 P = ParamSpec("P")
 T = TypeVar("T", bound=pydantic.BaseModel)
+
+FALLBACK_CHAT_COMPLETIONS_MODEL = "gpt-3.5-turbo"
+
+
+def _request_is_using_marvin_default_model(request: ChatRequest) -> bool:
+    return (
+        request.model.startswith("gpt-4")
+        and request.model == marvin.settings.openai.chat.completions.model
+    )
 
 
 def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
@@ -94,7 +104,27 @@ class MarvinClient(pydantic.BaseModel):
         )
         # validate request
         request = ChatRequest(**kwargs)
-        response: "ChatCompletion" = create(**request.model_dump(exclude_none=True))
+        try:
+            response: "ChatCompletion" = create(**request.model_dump(exclude_none=True))
+        except NotFoundError as e:
+            if "you do not have access" in str(
+                e
+            ) and _request_is_using_marvin_default_model(request):
+                get_logger().warning(
+                    f"Marvin's default chat model is {marvin.settings.openai.chat.completions.model!r}, which"
+                    " your API key likely does not give you access to. This API call will fall back to the"
+                    f" {FALLBACK_CHAT_COMPLETIONS_MODEL!r} model. To avoid this warning,"
+                    " please set `MARVIN_OPENAI_CHAT_COMPLETIONS_MODEL=<accessible model>` in `~/.marvin/.env` -"
+                    f" for example, `gpt-3.5-turbo`.\n\n {e}"
+                )
+                return create(
+                    **request.model_dump(
+                        exclude_none=True,
+                    )
+                    | dict(model=FALLBACK_CHAT_COMPLETIONS_MODEL)
+                )
+            else:
+                raise e
         return response
 
     def generate_vision(
@@ -157,7 +187,29 @@ class AsyncMarvinClient(pydantic.BaseModel):
         create = self.client.chat.completions.create
         # validate request
         request = ChatRequest(**kwargs)
-        response: "ChatCompletion" = await create(request.model_dump(exclude_none=True))
+        try:
+            response: "ChatCompletion" = await create(
+                **request.model_dump(exclude_none=True)
+            )
+        except NotFoundError as e:
+            if "you do not have access" in str(
+                e
+            ) and _request_is_using_marvin_default_model(request):
+                get_logger().warning(
+                    f"Marvin's default chat model is {marvin.settings.openai.chat.completions.model!r}, which"
+                    " your API key likely does not give you access to. This API call will fall back to the"
+                    f" {FALLBACK_CHAT_COMPLETIONS_MODEL!r} model. To avoid this warning,"
+                    " please set `MARVIN_OPENAI_CHAT_COMPLETIONS_MODEL=<accessible model>` in `~/.marvin/.env` -"
+                    f" for example, `gpt-3.5-turbo`.\n\n {e}"
+                )
+                return await create(
+                    **request.model_dump(
+                        exclude_none=True,
+                    )
+                    | dict(model=FALLBACK_CHAT_COMPLETIONS_MODEL)
+                )
+            else:
+                raise e
         return response
 
     async def generate_vision(

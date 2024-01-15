@@ -45,7 +45,7 @@ class MarvinSettings(BaseSettings):
 class ChatCompletionSettings(MarvinSettings):
     model_config = SettingsConfigDict(env_prefix="marvin_chat_completion_")
     model: str = Field(
-        description="The default chat model to use.", default="gpt-3.5-turbo"
+        description="The default chat model to use.", default="gpt-4-1106-preview"
     )
 
     temperature: float = Field(description="The default temperature to use.", default=1)
@@ -231,7 +231,7 @@ class Settings(MarvinSettings):
     )
 
     log_verbose: bool = Field(
-        default=True,
+        default=False,
         description=(
             "Whether to log verbose messages, such as full API requests and responses."
         ),
