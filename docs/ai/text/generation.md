@@ -35,11 +35,14 @@ Marvin can generate synthetic data according to a schema and instructions. Gener
         !!! success "Result"
             
             ```python
-            print(names) # ['John', 'Emma', 'Michael', 'Sophia']
+            print(names)
+            ['John', 'Emma', 'Michael', 'Sophia']
 
-            print(french_names) # ['Jean', 'Claire', 'Lucas', 'Emma']
+            print(french_names)
+            ['Jean', 'Claire', 'Lucas', 'Emma']
 
-            print(star_wars_names) # ['Luke', 'Leia', 'Han', 'Anakin']
+            print(star_wars_names)
+            ['Luke', 'Leia', 'Han', 'Anakin']
             ```
 
     === "Locations"
@@ -64,14 +67,12 @@ Marvin can generate synthetic data according to a schema and instructions. Gener
             
             ```python
             print(locations)
-            """
             [
                 Location(city='Washington', state='District of Columbia'),
                 Location(city='Jackson', state='Mississippi'),
                 Location(city='Cleveland', state='Ohio'),
                 Location(city='Lincoln', state='Nebraska'),
             ]
-            """
             ```
 
 
