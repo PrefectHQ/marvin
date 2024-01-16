@@ -2,136 +2,132 @@
   <img src="docs/assets/images/heroes/it_hates_me_hero.png" style="width: 95%; height: auto;"/>
 </p>
 
-# Marvin
 [![PyPI version](https://badge.fury.io/py/marvin.svg)](https://badge.fury.io/py/marvin)
 [![Docs](https://img.shields.io/badge/docs-askmarvin.ai-blue)](https://www.askmarvin.ai)
 [![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
 
+# Marvin
+
 ### The AI engineering toolkit
 
-Marvin is a lightweight AI toolkit for building natural language interfaces that are reliable, scalable, and easy to trust. 
+Marvin is a lightweight AI toolkit for building natural language interfaces that are reliable, scalable, and easy to trust.
 
 Each of Marvin's tools is simple and self-documenting, using AI to solve common but complex challenges like entity extraction, classification, and generating synthetic data. Each tool is independent and incrementally adoptable, so you can use them on their own or in combination with any other library. Marvin is also multi-modal, supporting both image and audio generation as well using images as inputs for extraction and classification.
 
-Marvin is for developers who care more about *using* AI than *building* AI, and we are focused on creating an exceptional developer experience. Marvin users should feel empowered to bring tightly-scoped "AI magic" into any traditional software project with just a few extra lines of code.
+Marvin is for developers who care more about _using_ AI than _building_ AI, and we are focused on creating an exceptional developer experience. Marvin users should feel empowered to bring tightly-scoped "AI magic" into any traditional software project with just a few extra lines of code.
 
-Marvin aims to merge the best practices for building dependable, observable software with the best practices for building with generative AI into a single, easy-to-use library. It's a serious tool, but we hope you have fun with it. 
+Marvin aims to merge the best practices for building dependable, observable software with the best practices for building with generative AI into a single, easy-to-use library. It's a serious tool, but we hope you have fun with it.
 
 Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](https://www.prefect.io/).
 
 ## Installation
 
+Install the latest version with `pip`:
+
 ```bash
-pip install marvin
+pip install marvin -U
 ```
-Install the latest version with `pip`, then check out the [getting started](https://www.askmarvin.ai/welcome/installation/) guide.
 
-Marvin uses OpenAI models, so you'll need to configure an OpenAI API key before using it. 
-
+To verify your installation, run `marvin version` in your terminal.
 
 ## Tools
 
-Marvin contains a variety of useful tools, each designed for independent, incremental use. Even though they all use AI Magic™️, each one should feel familiar and fit right into your existing workflows.
-
-Each tool in this list is available as a top-level import e.g. `marvin.fn`, `marvin.classify`, etc.
-
+Marvin consists of a variety of useful tools, all designed to be used independently. Each one represents a common LLM use case, and is designed to package that power into a simple, self-documenting interface.
 
 ### General
 
-⚙️ `@fn`: use AI to produce any function's output, without generating source code
-
-🧩 `@model`: use AI to instantiate Pydantic models
+🦾 [Write custom AI-powered functions](https://askmarvin.ai/docs/text/functions) without source code
 
 ### Text
 
-🪄 `cast`: transform text into structured types
+🏷️ [Classify text](https://askmarvin.ai/docs/text/classification) into categories
 
-🔍 `extract`: find structured entities in text
+🔍 [Extract structured entities](https://askmarvin.ai/docs/text/extraction) from text
 
-🏷️ `classify` / `@classifier`: categorize text with labels
+🪄 [Transform text](https://askmarvin.ai/docs/text/transforming) into structured data
 
-✨ `generate`: produce structured data from a schema
+✨ [Generate synthetic data](https://askmarvin.ai/docs/text/generation) from a schema
 
 ### Images
 
-🖼️ `paint` / `@image`: generate images from text or functions
+🖼️ [Create images](https://askmarvin.ai/docs/images/generation) from text or functions
 
-🪄 `cast`: transform images into structured types
+📝 [Describe images](https://askmarvin.ai/docs/vision/captioning) with natural language
 
-🔍 `extract`: find structured entities in images
+🏷️ [Classify images](https://askmarvin.ai/docs/vision/classification) into categories
 
-🏷️ `classify`: categorize images with labels
+🔍 [Extract structured entities](https://askmarvin.ai/docs/vision/extraction) from images
+
+🪄 [Transform images](https://askmarvin.ai/docs/vision/transforming) into structured data
 
 ### Audio
 
-🎙️ `speak` / `@speech`: generate speech from text or functions
+🎙️ [Generate speech](https://askmarvin.ai/docs/audio/speech) from text or functions
 
 ### Interaction
 
-🤖 `Assistants` (*beta*): work interactively with AI
+🤖 [Chat with assistants](https://askmarvin.ai/docs/interactive/assistants) and use custom tools
 
-🧭 `Applications` (*beta*): manage state through natural language
-
+🧭 [Build applications](https://askmarvin.ai/docs/interactive/applications) that manage persistent state
 
 ## Quickstart
 
-This is a whirlwind tour of a few of Marvin's main features. For more information, check the docs!
+Here's a whirlwind tour of a few of Marvin's main features. For more information, [check the docs](https://askmarvin.ai/welcome/what_is_marvin/)!
 
-### 🪄 Cast text to types
-Marvin can `cast` arbitrary text to any Python type:
+### 🏷️ Classify text
+
+Marvin can `classify` text using a set of labels:
+
 ```python
 import marvin
 
-marvin.cast("one two three", list[int]) 
-# [1, 2, 3]
+marvin.classify(
+    "Marvin is so easy to use!",
+    labels=["positive", "negative"],
+)
+
+#  "positive"
 ```
 
-Like most Marvin tools, `cast` also supports Pydantic models:
+Learn more about classification [here](https://askmarvin.ai/docs/text/classification).
+
+### 🔍 Extract structured entities
+
+Marvin can `extract` structured entities from text:
 
 ```python
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 class Location(BaseModel):
     city: str
-    state: str = Field(description='2-letter abbreviation')
+    state: str
 
-marvin.cast('The Big Apple', Location) 
-# Location(city="New York", state="NY")
-```
+marvin.extract("I moved from NY to CHI", target=Location)
 
-### 🔍 Extract data from text
-
-Marvin can `extract` items mentioned in text:
-
-
-```python
-marvin.extract('I moved from NY to CHI', Location) 
 # [
-#   Location(city="New York", state="NY"), 
-#   Location(city="Chcago", state="IL")
+#     Location(city="New York", state="New York"),
+#     Location(city="Chcago", state="Illinois")
 # ]
 ```
 
-Almost all Marvin functions can be given `instructions` for more control:
+Almost all Marvin functions can be given `instructions` for more control. Here we extract only monetary values:
+
 ```python
 marvin.extract(
-    'I paid $10 for 3 tacos and got a dollar and 25 cents back.', 
-    float, 
-    instructions='money'
+    "I paid $10 for 3 tacos and got a dollar and 25 cents back.",
+    target=float,
+    instructions="Only extract money"
 )
-# [10.0, 1.25]
+
+#  [10.0, 1.25]
 ```
 
-### 🏷️ Classify text
-Marvin can `classify` text with a set of labels:
-
-```python
-marvin.classify('I love this feature', labels=['positive', 'negative'])
-# 'positive'
-```
+Learn more about entity extraction [here](https://askmarvin.ai/docs/text/extraction).
 
 ### ✨ Generate data
-Marvin can `generate` data for you:
+
+Marvin can `generate` synthetic data for you, following instructions and an optional schema:
+
 ```python
 from pydantic import BaseModel
 
@@ -140,10 +136,11 @@ class Location(BaseModel):
     state: str
 
 marvin.generate(
-    Location, 
-    n=4, 
-    instructions="cities in the United States named after famous people"
+    n=4,
+    target=Location,
+    instructions="cities in the United States named after presidents"
 )
+
 # [
 #     Location(city='Washington', state='District of Columbia'),
 #     Location(city='Jackson', state='Mississippi'),
@@ -152,52 +149,95 @@ marvin.generate(
 # ]
 ```
 
-### ⚙️ Build AI-powered functions
+Learn more about data generation [here](https://askmarvin.ai/docs/text/generation).
 
-Sometimes your transformation logic is more complex than `cast` or `classify` can handle. For these situations, Marvin introduces "AI functions" that can take any combination of inputs, instructions, and output types. AI functions are ideal for complex natural language processing or mapping combinations of inputs to outputs.
+### 🪄 Standardize text by casting to types
 
-Marvin functions look exactly like regular functions, except that you don't have to write any source code. When these functions are called, an AI interprets their description and inputs and generates the output. 
-
-Note that Marvin does NOT generate or execute source code, which would be unsafe for most use cases. Instead, it uses the LLM itself as a "runtime" to predict function outputs. That's actually why it can handle complex use cases that would be difficult or impossible to express as code.
-
-You can learn more about functions [here](https://www.askmarvin.ai/components/functions/).
+Marvin can `cast` arbitrary text to any Python type:
 
 ```python
-@marvin.fn
-def sentiment(text: str) -> float:
-    """
-    Returns a sentiment score for `text` 
-    between -1 (negative) and 1 (positive).
-    """
+marvin.cast("one two three", list[int])
 
-
-sentiment("I love working with Marvin!") # 0.8
-sentiment("These examples could use some work...") # -0.2
+#  [1, 2, 3]
 ```
 
-Functions can also return more complex types, like [Pydantic models](https://pydantic-docs.helpmanual.io/usage/models/), [TypedDicts](https://docs.python.org/3/library/typing.html#typing.TypedDict), and [`Literals`](https://docs.python.org/3/library/typing.html#typing.Literal).
+This is useful for standardizing text inputs or matching natural language to a schema:
 
+```python
+from pydantic import BaseModel
 
-### 🧩  Create AI-powered models
-Marvin AI models are based on Pydantic's [BaseModel](https://pydantic-docs.helpmanual.io/usage/models/), but with a twist: they are instantiated with plain text, and will use an LLM to infer their values. 
+class Location(BaseModel):
+    city: str
+    state: str
 
-You can learn more about AI models [here](https://www.askmarvin.ai/components/models/).
+marvin.cast("The Big Apple", Location)
+
+# Location(city="New York", state="New York")
+```
+
+For a class-based approach, Marvin's `@model` decorator can be applied to any Pydantic model to let it be instantiated from text:
 
 ```python
 @marvin.model
 class Location(BaseModel):
     city: str
-    state: str = Field(description='2-letter abbreviation')
-
+    state: str
 
 Location("The Big Apple")
-# Location(city='New York', state='NY')
+
+# Location(city="New York", state="New York")
 ```
 
-## Continue learning
+Learn more about casting to types [here](https://askmarvin.ai/docs/text/transformation).
 
-To learn more about Marvin, please [read the docs](https://askmarvin.ai).
+### 🦾 Build AI-powered functions
 
+Marvin functions let you combine any inputs, instructions, and output types to create custom AI-powered behaviors... without source code. These functions can can go well beyond the capabilities of `extract` or `classify`, and are ideal for complex natural language processing or mapping combinations of inputs to outputs.
+
+```python
+@marvin.fn
+def sentiment(text: str) -> float:
+    """
+    Returns a sentiment score for `text`
+    between -1 (negative) and 1 (positive).
+    """
+
+sentiment("I love working with Marvin!") # 0.8
+sentiment("These examples could use some work...") # -0.2
+```
+
+Marvin functions look exactly like regular Python functions, except that you don't have to write any source code. When these functions are called, an AI interprets their description and inputs and generates the output.
+
+Note that Marvin does NOT work by generating or executing source code, which would be unsafe for most use cases. Instead, it uses the LLM itself as a "runtime" to predict function outputs. That's actually the source of its power: Marvin functions can handle complex use cases that would be difficult or impossible to express as code.
+
+You can learn more about functions [here](https://www.askmarvin.ai/docs/text/functions/).
+
+### 🖼️ Generate images from text
+
+Marvin can `paint` images from text:
+
+```python
+marvin.paint("a simple cup of coffee, still warm")
+```
+
+<p align="center">
+  <img src="docs/assets/images/docs/images/coffee.png" style="width: 50%; height: auto;"/>
+</p>
+
+Learn more about image generation [here](https://askmarvin.ai/docs/images/generation).
+
+### 🔍 Classify images (beta)
+
+In addition to text, Marvin has beta support for captioning, classifying, transforming, and extracting entities from images using the GPT-4 vision model:
+
+```python
+marvin.beta.classify(
+    marvin.Image("docs/images/coffee.png"),
+    labels=["drink", "food"],
+)
+
+# "drink"
+```
 
 ## Get in touch!
 

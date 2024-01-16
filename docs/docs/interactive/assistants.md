@@ -30,7 +30,7 @@ The need to manage all this state makes the assistants API very different from t
     ```
 
     !!! success "Result"
-        ![](/assets/images/ai/assistants/quickstart.png)
+        ![](/assets/images/docs/assistants/quickstart.png)
 
 <div class="admonition info">
   <p class="admonition-title">How it works</p>
@@ -89,8 +89,8 @@ OpenAI provides a small number of built-in tools for assistants. The most useful
     pprint_messages(response)
     ```
     !!! success "Result"
-        ![](/assets/images/ai/assistants/code_interpreter.png)
-        ![](/assets/images/ai/assistants/sin_x.png)
+        ![](/assets/images/docs/assistants/code_interpreter.png)
+        ![](/assets/images/docs/assistants/sin_x.png)
 
 
 #### Custom tools
@@ -121,7 +121,7 @@ A major advantage of using Marvin's assistants API is that you can add your own 
     pprint_messages(response)
     ```
     !!! success "Result"
-        ![](/assets/images/ai/assistants/custom_tools.png)
+        ![](/assets/images/docs/assistants/custom_tools.png)
 
 ### Talking to an assistant
 
@@ -356,7 +356,7 @@ Messages are not strings, but structured message objects. Marvin has a few utili
     ```
 
     !!! success "Result"
-        ![](/assets/images/ai/assistants/advanced.png)
+        ![](/assets/images/docs/assistants/advanced.png)
 
 ### Async support
 
