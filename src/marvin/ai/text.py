@@ -276,7 +276,7 @@ def cast(
 
 def extract(
     data: str,
-    target: type[T],
+    target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
     client: Optional[MarvinClient] = None,
@@ -288,9 +288,13 @@ def extract(
     specified type from the input data. The extracted entities are returned as a
     list.
 
+    Note that *either* a target type or instructions must be provided (or both).
+    If only instructions are provided, the target type is assumed to be a
+    string.
+
     Args:
         data (str): The data from which to extract entities.
-        target (type): The type of entities to extract.
+        target (type, optional): The type of entities to extract.
         instructions (str, optional): Specific instructions for the extraction.
             Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the
@@ -300,6 +304,10 @@ def extract(
     Returns:
         list: A list of extracted entities of the specified type.
     """
+    if target is None and instructions is None:
+        raise ValueError("Must provide either a target type or instructions.")
+    elif target is None:
+        target = str
     model_kwargs = model_kwargs or {}
     return _generate_typed_llm_response_with_tool(
         prompt_template=EXTRACT_PROMPT,

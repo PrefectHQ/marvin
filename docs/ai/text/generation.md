@@ -112,7 +112,8 @@ The `generate` function is the primary tool for generating synthetic data. It ac
 
 `generate` supports almost all builtin Python types, plus Pydantic models, Python's `Literal`, and `TypedDict`. Pydantic models are especially useful for specifying specific features of the generated data, such as locations, dates, or more complex types. Builtin types are most useful in conjunction with instructions that provide more precise criteria for generation.
 
-To specify the output type, pass it as the `target` argument to `generate`. Generate will always return a list of `n` items of the specified type. If no target is provided, `generate` will return a list of strings.
+To specify the output type, pass it as the `target` argument to `generate`. The function will always return a list of `n` items of the specified type. If no target is provided, `generate` will return a list of strings.
+
 
 !!! warning "Avoid tuples"
     OpenAI models currently have trouble parsing the API representation of tuples. Therefore we recommend using lists or Pydantic models (for more strict typing) instead. Tuple support will be added in a future release.

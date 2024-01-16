@@ -8,11 +8,16 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
 
 ### The AI engineering toolkit
-Marvin is a lightweight AI toolkit for building natural language interfaces that are reliable, scalable, and easy to trust. Marvin lets you use LLMs by writing code, not prompts. It's open source, free to use, rigorously type-hinted, and used by thousands of engineers.
 
-Each of Marvin's tools is simple and self-documenting, using AI to solve common but complex challenges like entity extraction, generating example data, and classifying text. Each tool is independent and incrementally adoptable so you can use it alone or in combination with any other library.  Marvin also has tools for multi-modal use cases like image generation, vision, and speech. 
+Marvin is a lightweight AI toolkit for building natural language interfaces that are reliable, scalable, and easy to trust. 
 
-Marvin is made with 💙 by the team at [Prefect](https://www.prefect.io/).
+Each of Marvin's tools is simple and self-documenting, using AI to solve common but complex challenges like entity extraction, classification, and generating synthetic data. Each tool is independent and incrementally adoptable, so you can use them on their own or in combination with any other library. Marvin is also multi-modal, supporting both image and audio generation as well using images as inputs for extraction and classification.
+
+Marvin is for developers who care more about *using* AI than *building* AI, and we are focused on creating an exceptional developer experience. Marvin users should feel empowered to bring tightly-scoped "AI magic" into any traditional software project with just a few extra lines of code.
+
+Marvin aims to merge the best practices for building dependable, observable software with the best practices for building with generative AI into a single, easy-to-use library. It's a serious tool, but we hope you have fun with it. 
+
+Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](https://www.prefect.io/).
 
 ## Installation
 
