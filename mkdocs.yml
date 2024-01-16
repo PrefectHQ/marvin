@@ -6,7 +6,9 @@ repo_url: https://github.com/prefecthq/marvin
 
 nav:
   - Docs:
+
     - welcome/what_is_marvin.md
+
     - Getting started:
       - welcome/installation.md
       - welcome/quickstart.md
@@ -89,7 +91,8 @@ theme:
     - content.code.select
     - content.code.annotate
   palette:
-    primary: custom
+    primary: blue
+    accent: teal
   name: material
   custom_dir: docs/overrides
   logo: assets/images/logos/askmarvin_mascot.jpeg

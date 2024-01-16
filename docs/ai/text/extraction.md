@@ -20,8 +20,7 @@ Marvin's `extract` function is a robust tool for pulling lists of structured ent
 
         features = marvin.extract(
             "I love my new phone's camera, but the battery life could be improved.",
-            target=str,
-            instructions='list any product features',
+            instructions='get any product features that were mentioned',
         )
         ```
 
@@ -67,9 +66,11 @@ Marvin's `extract` function is a robust tool for pulling lists of structured ent
 
 
 
-## Supported types
+## Supported targets
 
-`extract` supports almost all builtin Python types, plus Pydantic models, Python's `Literal`, and `TypedDict`. Pydantic models are especially useful for extracting structured data, such as locations, dates, or more complex types. Builtin types are most useful in conjunction with instructions that provide more precise criteria for extraction. 
+`extract` supports almost all builtin Python types, plus Pydantic models, Python's `Literal`, and `TypedDict`. Pydantic models are especially useful for specifying specific features of the generated data, such as locations, dates, or more complex types. Builtin types are most useful in conjunction with instructions that provide more precise criteria for generation.
+
+To specify the output type, pass it as the `target` argument to `extract`. The function will always return a list of matching items of the specified type. If no target type is provided, `extract` will return a list of strings.
 
 To extract multiple types in one call, use a `Union` (or `|` in Python 3.10+). Here's a simple example for combining float and int values, but you could do the same for any other types:
 
