@@ -43,6 +43,12 @@ from rich.panel import Panel
 
 
 def pprint_run_step(run_step: RunStep):
+    """
+    Formats and prints a run step with status information.
+
+    Args:
+        run_step: A RunStep object containing the details of the run step.
+    """
     # Timestamp formatting
     timestamp = datetime.fromtimestamp(run_step.created_at).strftime("%l:%M:%S %p")
 
@@ -103,6 +109,17 @@ def pprint_run_step(run_step: RunStep):
 
 
 def download_temp_file(file_id: str, suffix: str = None):
+    """
+    Downloads a file from OpenAI's servers and saves it to a temporary file.
+
+    Args:
+        file_id: The ID of the file to be downloaded.
+        suffix: The file extension to be used for the temporary file.
+
+    Returns:
+        The file path of the downloaded temporary file.
+    """
+
     client = openai.Client()
     # file_info = client.files.retrieve(file_id)
     file_content_response = client.files.with_raw_response.retrieve_content(file_id)
@@ -125,7 +142,7 @@ def pprint_message(message: ThreadMessage):
     timestamp in a panel format.
 
     Args:
-    message (dict): A message object as described in the API documentation.
+        message (ThreadMessage): A message object
     """
     console = Console()
     role_colors = {
@@ -174,5 +191,16 @@ def pprint_message(message: ThreadMessage):
 
 
 def pprint_messages(messages: list[ThreadMessage]):
+    """
+    Iterates over a list of messages and pretty-prints each one.
+
+    Messages are pretty-printed using the rich library, highlighting the
+    speaker's role, the message text, any available images, and the message
+    timestamp in a panel format.
+
+    Args:
+        messages (list[ThreadMessage]): A list of ThreadMessage objects to be
+            printed.
+    """
     for message in messages:
         pprint_message(message)

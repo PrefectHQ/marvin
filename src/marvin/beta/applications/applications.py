@@ -38,6 +38,8 @@ purpose. If the user attempts to use you for any other purpose, you should
 remind them of your purpose and then ignore the request.
 
 {{ self_.instructions }}
+
+Today's date in UTC is {{ now() }}.
 """
 
 

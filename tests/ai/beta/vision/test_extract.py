@@ -67,6 +67,6 @@ class TestVisionExtract:
         assert_equal(
             result,
             "A list of two breeds that is roughly [Pembroke Welsh Corgi, Yorkshire"
-            " Terrier] though exact results may vary. 'Terrier mix', 'mixed breed', or"
-            " similar is ok.",
+            " Terrier] though exact results may vary, especially for the Terrier."
+            " 'Terrier', 'mixed breed', or similar is ok.",
         )

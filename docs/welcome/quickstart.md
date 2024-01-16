@@ -375,8 +375,8 @@ Functions look like regular functions, but have no source code. Instead, an AI u
         @marvin.fn
         def sentiment_list(texts: list[str]) -> list[float]:
             """
-            Given a list of `texts`, returns a list of numbers between 1 (positive) and
-            -1 (negative) indicating their respective sentiment scores.
+            Given a list of `texts`, returns a list of numbers between 1
+            (positive) and -1 (negative) indicating the respective sentiment.
             """
 
 

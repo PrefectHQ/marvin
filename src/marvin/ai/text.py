@@ -3,6 +3,7 @@ Core LLM tools for working with text and structured data.
 """
 
 import inspect
+from collections import deque
 from enum import Enum
 from functools import partial, wraps
 from typing import (
@@ -17,6 +18,7 @@ from typing import (
     get_origin,
 )
 
+from cachetools import LRUCache
 from pydantic import BaseModel
 
 import marvin
@@ -38,11 +40,14 @@ from marvin.utilities.context import ctx
 from marvin.utilities.jinja import Transcript
 from marvin.utilities.logging import get_logger
 from marvin.utilities.python import PythonFunction
+from marvin.utilities.strings import count_tokens
 
 T = TypeVar("T")
 M = TypeVar("M", bound=BaseModel)
 
 logger = get_logger(__name__)
+
+GENERATE_CACHE = LRUCache(maxsize=1000)
 
 
 class EjectRequest(Exception):
@@ -271,7 +276,7 @@ def cast(
 
 def extract(
     data: str,
-    target: type[T],
+    target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
     client: Optional[MarvinClient] = None,
@@ -283,9 +288,13 @@ def extract(
     specified type from the input data. The extracted entities are returned as a
     list.
 
+    Note that *either* a target type or instructions must be provided (or both).
+    If only instructions are provided, the target type is assumed to be a
+    string.
+
     Args:
         data (str): The data from which to extract entities.
-        target (type): The type of entities to extract.
+        target (type, optional): The type of entities to extract.
         instructions (str, optional): Specific instructions for the extraction.
             Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the
@@ -295,6 +304,10 @@ def extract(
     Returns:
         list: A list of extracted entities of the specified type.
     """
+    if target is None and instructions is None:
+        raise ValueError("Must provide either a target type or instructions.")
+    elif target is None:
+        target = str
     model_kwargs = model_kwargs or {}
     return _generate_typed_llm_response_with_tool(
         prompt_template=EXTRACT_PROMPT,
@@ -343,9 +356,10 @@ def classify(
 
 
 def generate(
-    type_: Optional[type[T]] = None,
+    target: Optional[type[T]] = None,
     instructions: Optional[str] = None,
     n: int = 1,
+    use_cache: bool = True,
     temperature: float = 1,
     model_kwargs: Optional[dict] = None,
     client: Optional[MarvinClient] = None,
@@ -358,9 +372,12 @@ def generate(
     least 'n' items.
 
     Args:
-        type_ (type, optional): The type of items to generate. Defaults to None.
+        target (type, optional): The type of items to generate. Defaults to None.
         instructions (str, optional): Instructions for the generation. Defaults to None.
         n (int, optional): The number of items to generate. Defaults to 1.
+        use_cache (bool, optional): If True, the function will cache the last
+            100 responses for each (target, instructions, and temperature) and use
+            those to avoid repetition on subsequent calls. Defaults to True.
         temperature (float, optional): The temperature for the generation. Defaults to 1.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
@@ -370,24 +387,49 @@ def generate(
         list: A list of generated items.
     """
 
-    if type_ is None and instructions is None:
-        raise ValueError("Must provide either a type or instructions.")
-    elif type_ is None:
-        type_ = str
+    if target is None and instructions is None:
+        raise ValueError("Must provide either a target type or instructions.")
+    elif target is None:
+        target = str
+
+    # cache the last 100 responses for each (target, instructions, and temperature)
+    # to avoid repetition and encourage variation
+    cache_key = (target, instructions, temperature)
+    cached_responses = GENERATE_CACHE.setdefault(cache_key, deque(maxlen=100))
+    previous_responses = []
+    tokens = 0
+    model = model_kwargs.get("model", None) if model_kwargs else None
+    # use a token cap to avoid flooding the prompt with previous responses
+    for r in list(cached_responses) if use_cache else []:
+        if tokens > marvin.settings.ai.text.generate_cache_token_cap:
+            continue
+        tokens += count_tokens(str(r), model=model)
+        previous_responses.append(r)
 
     # make sure we generate at least n items
     result = [0] * (n + 1)
     while len(result) != n:
         result = _generate_typed_llm_response_with_tool(
             prompt_template=GENERATE_PROMPT,
-            prompt_kwargs=dict(type_=type_, n=n, instructions=instructions),
-            type_=list[type_],
+            prompt_kwargs=dict(
+                type_=target,
+                n=n,
+                instructions=instructions,
+                previous_responses=previous_responses,
+            ),
+            type_=list[target],
             model_kwargs=(model_kwargs or {}) | dict(temperature=temperature),
             client=client,
         )
 
         if len(result) > n:
             result = result[:n]
+
+    # don't cache the respones if we're not using the cache, because the AI will
+    # see repeats and conclude they're ok
+    if use_cache:
+        for r in result:
+            cached_responses.appendleft(r)
     return result
 
 

@@ -19,6 +19,23 @@ logger = get_logger("Runs")
 
 
 class Run(BaseModel, ExposeSyncMethodsMixin):
+    """
+    The Run class represents a single execution of an assistant.
+
+    Attributes:
+        thread (Thread): The thread in which the run is executed.
+        assistant (Assistant): The assistant that is being run.
+        instructions (str, optional): Replacement instructions for the run.
+        additional_instructions (str, optional): Additional instructions to append
+                                                 to the assistant's instructions.
+        tools (list[Union[AssistantTool, Callable]], optional): Replacement tools
+                                                               for the run.
+        additional_tools (list[AssistantTool], optional): Additional tools to append
+                                                          to the assistant's tools.
+        run (OpenAIRun): The OpenAI run object.
+        data (Any): Any additional data associated with the run.
+    """
+
     thread: Thread
     assistant: Assistant
     instructions: Optional[str] = Field(
@@ -54,6 +71,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("refresh")
     async def refresh_async(self):
+        """Refreshes the run."""
         client = get_openai_client()
         self.run = await client.beta.threads.runs.retrieve(
             run_id=self.run.id, thread_id=self.thread.id
@@ -61,6 +79,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("cancel")
     async def cancel_async(self):
+        """Cancels the run."""
         client = get_openai_client()
         await client.beta.threads.runs.cancel(
             run_id=self.run.id, thread_id=self.thread.id
@@ -118,6 +137,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         return tools
 
     async def run_async(self) -> "Run":
+        """Excutes a run asynchronously."""
         client = get_openai_client()
 
         create_kwargs = {}

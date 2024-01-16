@@ -44,5 +44,5 @@ The `marvin.beta.extract` function is an enhanced version of `marvin.extract` th
 
     !!! success "Result"
         ```python
-        assert result == ['Pembroke Welsh Corgi', 'Yorkshire Terrier']
+        result == ['Pembroke Welsh Corgi', 'Yorkshire Terrier']
         ```    

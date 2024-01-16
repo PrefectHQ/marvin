@@ -198,6 +198,15 @@ class OpenAISettings(MarvinSettings):
         return v
 
 
+class TextAISettings(MarvinSettings):
+    model_config = SettingsConfigDict(env_prefix="marvin_ai_text_")
+    generate_cache_token_cap: int = Field(600)
+
+
+class AISettings(MarvinSettings):
+    text: TextAISettings = Field(default_factory=TextAISettings)
+
+
 class Settings(MarvinSettings):
     """Settings for `marvin`.
 
@@ -205,7 +214,7 @@ class Settings(MarvinSettings):
 
     Attributes:
         openai: Settings for the OpenAI API.
-        log_level: The log level to use, defaults to `DEBUG`.
+        log_level: The log level to use, defaults to `INFO`.
 
     Example:
         Set the log level to `INFO`:
@@ -224,6 +233,7 @@ class Settings(MarvinSettings):
     )
 
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
+    ai: AISettings = Field(default_factory=AISettings)
 
     log_level: str = Field(
         default="INFO",
@@ -237,10 +247,7 @@ class Settings(MarvinSettings):
         ),
     )
 
-    @field_validator(
-        "log_level",
-        mode="after",
-    )
+    @field_validator("log_level", mode="after")
     @classmethod
     def set_log_level(cls, v):
         from marvin.utilities.logging import setup_logging

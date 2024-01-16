@@ -6,7 +6,9 @@ repo_url: https://github.com/prefecthq/marvin
 
 nav:
   - Docs:
+
     - welcome/what_is_marvin.md
+
     - Getting started:
       - welcome/installation.md
       - welcome/quickstart.md
@@ -32,9 +34,9 @@ nav:
       - Generating speech: ai/audio/speech.md
     # - Transcription: ai/function.md
 
-    - Interactive:
+    - Interactive Tools:
       - Assistants: ai/interactive/assistants.md
-    #   - Applications: ai/interactive/applications.md
+      - Applications: ai/interactive/applications.md
       
     - Configuration: 
       - Settings: configuration/settings.md
@@ -48,6 +50,13 @@ nav:
 
     - Beta AI modules:
       - marvin.beta.vision: api_reference/beta/vision.md
+      - marvin.beta.assistants: 
+        - marvin.beta.assistants: api_reference/beta/assistants/index.md
+        - marvin.beta.assistants.assistants: api_reference/beta/assistants/assistants.md
+        - marvin.beta.assistants.threads: api_reference/beta/assistants/threads.md
+        - marvin.beta.assistants.runs: api_reference/beta/assistants/runs.md
+        - marvin.beta.assistants.formatting: api_reference/beta/assistants/formatting.md
+      - marvin.beta.applications: api_reference/beta/applications.md
 
     - Object schemas: 
       - marvin.types: api_reference/types.md
@@ -58,10 +67,13 @@ nav:
       - marvin.utilities.jinja: api_reference/utilities/jinja.md
       - marvin.utilities.logging: api_reference/utilities/logging.md
       - marvin.utilities.tools: api_reference/utilities/tools.md
+      - marvin.utilities.strings: api_reference/utilities/strings.md
   - Cookbook:
     - Entity deduplication: examples/deduplication.md
     # - GitHub Activity Digest: examples/github_digest.md
     - Slackbot: examples/slackbot.md
+    - Python augmented prompts: examples/python_augmented_prompts.md
+    - Being specific about types: examples/being_specific_about_types.md
   - Community:
     - community/index.md
     - Feedback 💙: community/feedback.md
@@ -81,7 +93,8 @@ theme:
     - content.code.select
     - content.code.annotate
   palette:
-    primary: custom
+    primary: blue
+    accent: teal
   name: material
   custom_dir: docs/overrides
   logo: assets/images/logos/askmarvin_mascot.jpeg
@@ -150,8 +163,8 @@ markdown_extensions:
 extra:
   get_started: welcome/what_is_marvin
   hero:
-    title: 'The AI Engineering Framework'
-    description: 'Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.'
+    title: 'The AI Engineering Toolkit'
+    description: 'Marvin is a lightweight toolkit for building natural language interfaces that are reliable, scalable, and easy to trust.'
   announcement:
     title: "Marvin 2.0 is here!"
     url: https://github.com/PrefectHQ/marvin/releases/tag/v2.0.0

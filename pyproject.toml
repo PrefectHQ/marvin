@@ -8,22 +8,23 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-keywords = ["ai", "chatbot", "llm"]
+keywords = ["ai", "chatbot", "llm", "NLP", "natural language processing"]
 requires-python = ">=3.9"
 dependencies = [
-  "fastapi",
-  "httpx>=0.24.1",
-  "jinja2>=3.1.2",
-  "jsonpatch>=1.33",
-  "openai>=1.1.0",
-  "pydantic>=2.4.2",
-  "pydantic_settings",
-  "rich>=12",
-  "tiktoken>=0.4.0",
-  "typer>=0.9.0",
-  "typing_extensions>=4.0.0",
-  "tzdata>=2023.3", # need for windows
-  "uvicorn>=0.22.0"
+    "cachetools>=5",
+    "fastapi",
+    "httpx>=0.24.1",
+    "jinja2>=3.1.2",
+    "jsonpatch>=1.33",
+    "openai>=1.1.0",
+    "pydantic>=2.4.2",
+    "pydantic_settings",
+    "rich>=12",
+    "tiktoken>=0.4.0",
+    "typer>=0.9.0",
+    "typing_extensions>=4.0.0",
+    "tzdata>=2023.3", # need for windows
+    "uvicorn>=0.22.0"
 ]
 
 [project.optional-dependencies]
