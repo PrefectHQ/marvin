@@ -192,7 +192,7 @@ attractions = sightseeing('NYC', 'museums')
 
 !!! success "Result"
     ```python
-    assert attractions == [
+    attractions == [
         Attraction(
             name="Metropolitan Museum of Art",
             category="Art Museum",

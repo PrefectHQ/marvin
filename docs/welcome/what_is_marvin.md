@@ -48,7 +48,7 @@ Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](
         !!! success "Result"
             
             ```python
-            assert features == ['camera', 'battery life']
+            features == ['camera', 'battery life']
             ```
 
     === "Standardize inputs"
@@ -95,7 +95,7 @@ Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](
     
         !!! success "Result"
             ```python
-            assert result == [
+            result == [
                 Location(city="Washington", state="DC"),
                 Location(city="Jefferson City", state="MO"),
                 Location(city="Lincoln", state="NE"),
@@ -120,7 +120,7 @@ Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](
         !!! success "Result"
             
             ```python
-            assert fruits == ["apple", "cherry", "strawberry"]
+            fruits == ["apple", "cherry", "strawberry"]
             ```
 
         Note that `list_fruits` has no source code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and parses its response.
