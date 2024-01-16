@@ -275,7 +275,7 @@ Marvin is multi-modal! In addition to text, Marvin can also work with images. Mo
 
 ### 🎨 Generation
 
-Marvin gives you easy access to the DALL-E 3 image generation model. This model can generate images from text descriptions
+Marvin gives you easy access to the DALL-E 3 image generation model. This model can generate images from text descriptions.
 
 !!! Example "Generating images"
 
@@ -287,7 +287,9 @@ Marvin gives you easy access to the DALL-E 3 image generation model. This model 
 
     !!! success "Result"
 
-        ![](/assets/images/docs/images/coffee.png)
+        A URL that takes you to the generated image:
+
+        ![A cup off coffee](/assets/images/docs/images/coffee.png)
 
 ### 📝 Captioning
 
@@ -327,7 +329,7 @@ These functions are available under `marvin.beta` and work identically to their 
 
     Let's identify the breed of each dog in this image by using the beta `extract` function.
 
-    ![](https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=2969&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)
+    ![Two dogs moving toward the camera](https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=2969&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)
 
     ```python
     import marvin
