@@ -18,7 +18,7 @@ Marvin can use OpenAI's vision API to process images as inputs.
 
     Generate a description of the following image, hypothetically available at `/path/to/marvin.jpg`:
 
-    ![](/assets/images/ai/vision/marvin.webp)
+    ![](/assets/images/docs/vision/marvin.webp)
 
     
     ```python

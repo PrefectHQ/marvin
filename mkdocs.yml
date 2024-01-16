@@ -17,26 +17,26 @@ nav:
     # - Overview: welcome/overview.md
 
     - Text:
-      - Converting to data: ai/text/converting.md
-      - Extracting entities: ai/text/extraction.md
-      - Classification: ai/text/classification.md
-      - Generating synthetic data: ai/text/generation.md
-      - AI functions: ai/text/function.md
+      - Converting to data: docs/text/converting.md
+      - Extracting entities: docs/text/extraction.md
+      - Classification: docs/text/classification.md
+      - Generating synthetic data: docs/text/generation.md
+      - AI functions: docs/text/function.md
 
     - Images:
-      - Creating images: ai/images/painting.md
-      - Generating captions: ai/vision/captioning.md
-      - Converting to data: ai/vision/converting.md
-      - Extracting entities: ai/vision/extraction.md
-      - Classification: ai/vision/classification.md
+      - Creating images: docs/images/painting.md
+      - Generating captions: docs/vision/captioning.md
+      - Converting to data: docs/vision/converting.md
+      - Extracting entities: docs/vision/extraction.md
+      - Classification: docs/vision/classification.md
 
     - Audio:
-      - Generating speech: ai/audio/speech.md
-    # - Transcription: ai/function.md
+      - Generating speech: docs/audio/speech.md
+    # - Transcription: docs/function.md
 
     - Interactive Tools:
-      - Assistants: ai/interactive/assistants.md
-      - Applications: ai/interactive/applications.md
+      - Assistants: docs/interactive/assistants.md
+      - Applications: docs/interactive/applications.md
       
     - Configuration: 
       - Settings: configuration/settings.md

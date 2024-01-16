@@ -57,7 +57,7 @@ Marvin introduces "AI Applications", a new and simple way to build stateful appl
     !!! success "Result"
         The script produced the following natural language interaction:
 
-        ![](/assets/images/ai/applications/todo_conversation.png)
+        ![](/assets/images/docs/applications/todo_conversation.png)
 
         The application's state at the end of the conversation:
         ```python
@@ -317,7 +317,7 @@ response = app.say("I need to go to the store tomorrow afternoon")
 
 !!! success "Result"
 
-    ![](/assets/images/ai/applications/todo_1.png)
+    ![](/assets/images/docs/applications/todo_1.png)
 
     ```python
     State(
@@ -339,7 +339,7 @@ response = app.say("I've got to pick up a dozen eggs tomorrow at 9")
 
 !!! success "Result"
 
-    ![](/assets/images/ai/applications/todo_2.png)
+    ![](/assets/images/docs/applications/todo_2.png)
 
     ```python
     State(
@@ -369,7 +369,7 @@ response = app.say(
 
 !!! success "Result"
 
-    ![](/assets/images/ai/applications/todo_3.png)
+    ![](/assets/images/docs/applications/todo_3.png)
 
     ```python
     State(
