@@ -13,13 +13,13 @@ Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](
 ??? Question "Explain Marvin like I'm 5"
     === "(I'm a technical 5-year-old)"
 
-            Marvin lets your software speak English and ask questions to Large Language Models.
+        Marvin lets your software speak English and ask questions to Large Language Models.
 
-            It introspects the types and docstrings of your functions and data models, and automatically renders them as prompts for an LLM. You write code as you would normally, rather than prompts, and Marvin handles the back-and-forth translation.
+        It introspects the types and docstrings of your functions and data models, and automatically renders them as prompts for an LLM. You write code as you would normally, rather than prompts, and Marvin handles the back-and-forth translation.
 
-            This lets you focus on what you've always focused on: writing clean, versioned, reusable *code* and *data models*, and not scrutinizing whether you begged your LLM hard enough to output JSON or needed to offer it a bigger tip for the right answer.
+        This lets you focus on what you've always focused on: writing clean, versioned, reusable *code* and *data models*, and not scrutinizing whether you begged your LLM hard enough to output JSON or needed to offer it a bigger tip for the right answer.
 
-            Extracting, generating, cleaning, or classifying data is as simple as writing a function or a data model.
+        Extracting, generating, cleaning, or classifying data is as simple as writing a function or a data model.
 
     === "(I'm not technical)"
 
