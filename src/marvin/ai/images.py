@@ -41,7 +41,6 @@ def generate_image(
     model_kwargs = model_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
     prompt = Environment.render(prompt_template, **prompt_kwargs)
-    breakpoint()
     request = ImageRequest(prompt=prompt, **model_kwargs)
     if marvin.settings.log_verbose:
         logger.debug_kv("Request", request.model_dump_json(indent=2))
