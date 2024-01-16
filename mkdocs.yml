@@ -6,7 +6,9 @@ repo_url: https://github.com/prefecthq/marvin
 
 nav:
   - Docs:
+
     - welcome/what_is_marvin.md
+
     - Getting started:
       - welcome/installation.md
       - welcome/quickstart.md
@@ -65,6 +67,7 @@ nav:
       - marvin.utilities.jinja: api_reference/utilities/jinja.md
       - marvin.utilities.logging: api_reference/utilities/logging.md
       - marvin.utilities.tools: api_reference/utilities/tools.md
+      - marvin.utilities.strings: api_reference/utilities/strings.md
   - Cookbook:
     - Entity deduplication: examples/deduplication.md
     # - GitHub Activity Digest: examples/github_digest.md
@@ -90,7 +93,8 @@ theme:
     - content.code.select
     - content.code.annotate
   palette:
-    primary: custom
+    primary: blue
+    accent: teal
   name: material
   custom_dir: docs/overrides
   logo: assets/images/logos/askmarvin_mascot.jpeg

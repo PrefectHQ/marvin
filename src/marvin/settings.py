@@ -198,6 +198,15 @@ class OpenAISettings(MarvinSettings):
         return v
 
 
+class TextAISettings(MarvinSettings):
+    model_config = SettingsConfigDict(env_prefix="marvin_ai_text_")
+    generate_cache_token_cap: int = Field(600)
+
+
+class AISettings(MarvinSettings):
+    text: TextAISettings = Field(default_factory=TextAISettings)
+
+
 class Settings(MarvinSettings):
     """Settings for `marvin`.
 
@@ -224,6 +233,7 @@ class Settings(MarvinSettings):
     )
 
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
+    ai: AISettings = Field(default_factory=AISettings)
 
     log_level: str = Field(
         default="INFO",

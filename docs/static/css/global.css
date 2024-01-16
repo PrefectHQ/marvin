@@ -8,9 +8,6 @@
     --md-primary-fg-color: var(--marvin-blue);
   }
 
-article a {
-    text-decoration: underline !important;
-}
 
 .md-main__inner {
     margin-top: 8px !important;
