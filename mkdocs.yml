@@ -72,6 +72,8 @@ nav:
     - Entity deduplication: examples/deduplication.md
     # - GitHub Activity Digest: examples/github_digest.md
     - Slackbot: examples/slackbot.md
+    - Python augmented prompts: examples/python_augmented_prompts.md
+    - Being specific about types: examples/being_specific_about_types.md
   - Community:
     - community/index.md
     - Feedback 💙: community/feedback.md

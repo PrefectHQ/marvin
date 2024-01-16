@@ -35,11 +35,14 @@ Marvin can generate synthetic data according to a schema and instructions. Gener
         !!! success "Result"
             
             ```python
-            assert names == ['John', 'Emma', 'Michael', 'Sophia']
+            print(names)
+            ['John', 'Emma', 'Michael', 'Sophia']
 
-            assert french_names == ['Jean', 'Claire', 'Lucas', 'Emma']
+            print(french_names)
+            ['Jean', 'Claire', 'Lucas', 'Emma']
 
-            assert star_wars_names == ['Luke', 'Leia', 'Han', 'Anakin']
+            print(star_wars_names)
+            ['Luke', 'Leia', 'Han', 'Anakin']
             ```
 
     === "Populations (`dict[str, int]`)"
@@ -87,7 +90,8 @@ Marvin can generate synthetic data according to a schema and instructions. Gener
         !!! success "Result"
             
             ```python
-            assert locations == [
+            print(locations)
+            [
                 Location(city='Washington', state='District of Columbia'),
                 Location(city='Jackson', state='Mississippi'),
                 Location(city='Cleveland', state='Ohio'),
