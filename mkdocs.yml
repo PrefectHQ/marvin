@@ -65,6 +65,7 @@ nav:
       - marvin.utilities.jinja: api_reference/utilities/jinja.md
       - marvin.utilities.logging: api_reference/utilities/logging.md
       - marvin.utilities.tools: api_reference/utilities/tools.md
+      - marvin.utilities.strings: api_reference/utilities/strings.md
   - Cookbook:
     - Entity deduplication: examples/deduplication.md
     # - GitHub Activity Digest: examples/github_digest.md
