@@ -316,7 +316,7 @@ If you've already got an image, you can convert it to text using the `caption` f
             """
         ```
 
-### 🚀  Transforming, classifying, and extracting
+### 🚀  Transformation, classification, and extraction
 
 Now that you've seen that Marvin can turn images into text, you're probably wondering if we can use that text with the `cast`, `extract`, and `classify` functions we saw earlier. The answer is yes -- but we can do even better. 
 
