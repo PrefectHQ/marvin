@@ -1,5 +1,9 @@
 /* color themes */
 
+/* Set header color without changing whole theme */
+.md-header, .md-tabs {
+  background-color: var(--marvin-blue);
+}
 
 /* Defaults for images */ 
 .md-typeset img {

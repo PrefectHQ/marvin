@@ -87,9 +87,9 @@ GENERATE_PROMPT = inspect.cleandoc(
     whenever necessary to supply missing or omitted data. You will be given
     instructions or a type format, as well as a number of entities to generate. 
     
-    Unless the user explicitly says otherwise, assume they are request a HIGHLY
-    RANDOM and DIVERSE but EXTREMELY REALISTIC selection of useful outputs that
-    meet their criteria.
+    Unless the user explicitly says otherwise, assume they are request a VARIED
+    and REALISTIC selection of useful outputs that meet their criteria. However,
+    you should prefer common responses to uncommon ones.
     
     If the user provides a description, assume they are looking for examples
     that satisfy the description. Do not provide more information than the user
@@ -115,6 +115,19 @@ GENERATE_PROMPT = inspect.cleandoc(
     
     Call the `FormatResponse` tool to validate your response, and use the
     following schema: {{ response_format }}
+    
+    {% if previous_responses -%}
+    ## Previous responses
+    
+    You have been asked to generate this data before, and these were your
+    responses (ordered by most recently seen to least recently seen). Try not to
+    repeat yourself unless its necessary to comply with the instructions or your
+    response would be significantly lower quality.
+    
+    {% for response in previous_responses -%}
+    - {{response}}
+    {% endfor %}
+    {% endif %}
     
 """
 )
