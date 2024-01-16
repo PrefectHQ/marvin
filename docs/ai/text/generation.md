@@ -127,7 +127,7 @@ Instructions are freeform natural language and can be as general or specific as 
 
 Normally, each `generate` call would be independent. For some prompts, this would mean that each call produced very similar results to other calls. That would mean that generating, say, 10 items in a single call would produce a much more varied and high-quality result than generating 10 items in 5 calls of 2 items each.
 
-To mediate this issue, Marvin maintains an in-memory cache of the last 100 results produced by each `generate` prompt. These responses are shown to the LLM during generation to encourage variation. Note that the cache is not persisted across Python sessions.
+To mediate this issue, Marvin maintains an in-memory cache of the last 100 results produced by each `generate` prompt. These responses are shown to the LLM during generation to encourage variation. Note that the cache is not persisted across Python sessions. Cached results are also subject to a token cap to avoid flooding the LLM's context window. The token cap can be set with `MARVIN_AI_TEXT_GENERATE_CACHE_TOKEN_CAP` and defaults to 600.
 
 To disable this behavior, pass `use_cache=False` to `generate`.
 

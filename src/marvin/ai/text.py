@@ -40,6 +40,7 @@ from marvin.utilities.context import ctx
 from marvin.utilities.jinja import Transcript
 from marvin.utilities.logging import get_logger
 from marvin.utilities.python import PythonFunction
+from marvin.utilities.strings import count_tokens
 
 T = TypeVar("T")
 M = TypeVar("M", bound=BaseModel)
@@ -387,7 +388,15 @@ def generate(
     # to avoid repetition and encourage variation
     cache_key = (target, instructions, temperature)
     cached_responses = GENERATE_CACHE.setdefault(cache_key, deque(maxlen=100))
-    previous_responses = list(cached_responses) if use_cache else []
+    previous_responses = []
+    tokens = 0
+    model = model_kwargs.get("model", None) if model_kwargs else None
+    # use a token cap to avoid flooding the prompt with previous responses
+    for r in list(cached_responses) if use_cache else []:
+        if tokens > marvin.settings.ai.text.generate_cache_token_cap:
+            continue
+        tokens += count_tokens(str(r), model=model)
+        previous_responses.append(r)
 
     # make sure we generate at least n items
     result = [0] * (n + 1)
