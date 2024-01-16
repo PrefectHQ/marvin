@@ -3,7 +3,7 @@ toc_depth: 3
 ---
 # Tutorial
 
-![](/docs/assets/images/heroes/dont_panic.png){ width=500 }
+![](/assets/images/heroes/dont_panic.png){ width=500 }
 
 ## Installing Marvin
 
@@ -15,7 +15,7 @@ Before we can start, you'll need to [install Marvin](installation.md). Come back
 
 Marvin uses OpenAI models to power all of its tools. In order to use Marvin, you'll need an OpenAI API key.
 
-You can create an API key [on the OpenAI platform ](https://platform.openai.com/api-keys). Once you've created it, set it as an environment variable called `OPENAI_API_KEY` (for any application on your machine to use) or `MARVIN_OPENAI_API_KEY` (if you only want Marvin to use it). In addition to setting it in your terminal, you can also write the variable to a dotenv file at `~/.marvin/.env`.
+You can create an API key [on the OpenAI platform](https://platform.openai.com/api-keys). Once you've created it, set it as an environment variable called `OPENAI_API_KEY` (for any application on your machine to use) or `MARVIN_OPENAI_API_KEY` (if you only want Marvin to use it). In addition to setting it in your terminal, you can also write the variable to a dotenv file at `~/.marvin/.env`.
 
 For quick use, you can also pass your API key directly to Marvin at runtime. We do **NOT** recommend this for production:
 
@@ -32,7 +32,6 @@ Marvin has a variety of tools that let you use LLMs to solve common but complex 
 
 Classification is one of Marvin's most straightforward features. Given some text and a list of labels, Marvin will choose the label that best fits the text. The `classify` function is great for tasks like sentiment analysis, intent classification, routing, and more.
 
-
 !!! Example "First steps: true/false"
 
     Here is the simplest possible classification example, mapping the word "yes" to the boolean values `True` or `False`:
@@ -48,9 +47,8 @@ Classification is one of Marvin's most straightforward features. Given some text
         assert result is True
         ```
 
-
 !!! Example "A more practical example: sentiment"
-    
+
     A more useful example is to classify text as one of several categories, provided as a list of labels. In this example, we build a basic sentiment classifier for any text:
 
     ```python
@@ -72,10 +70,9 @@ This is a great example of how all Marvin tools should feel. Historically, class
 !!! tip "Structured labels"
     For the `classify` function, you can supply labels as a `list` of labels, a `bool` type, an `Enum` class, or a `Literal` type. This gives you many options for returning structured (non-string) labels.
 
-### 🪄 Transformation 
+### 🪄 Transformation
 
 Classification maps text to a single label, but what if you want to convert text to a more structured form? Marvin's `cast` function lets you do just that. Given some text and a target type, Marvin will return a structured representation of the text.
-
 
 !!! example "Standardization"
 
@@ -174,7 +171,7 @@ The `extract` function can take a target type, just like `cast`. This lets you e
             Location(city="Los Angeles", state="California"),
         ]
         ```
-    
+
 ### ✨ Generation
 
 So far, we've used Marvin to take existing text and convert it to a more structured or modified form that preserves its content but makes it easier to work with. Marvin can also generate synthetic data from a schema or instructions. This is incredibly useful for ideation, testing, data augmentation, populating databases, and more.
@@ -211,7 +208,6 @@ Let's use Marvin's `generate` function to produce synthetic data. The `generate`
             Location(city="Cleveland", state="OH"),
         ]
         ```
-
 
 In addition to structured types, Marvin can generate new text from instructions.
 
@@ -289,7 +285,7 @@ Marvin gives you easy access to the DALL-E 3 image generation model. This model 
 
     !!! success "Result"
 
-        ![](assets/images/docs/images/coffee.png)
+        ![](/assets/images/docs/images/coffee.png)
 
 ### 📝 Captioning
 
@@ -318,14 +314,13 @@ If you've already got an image, you can convert it to text using the `caption` f
 
 ### 🚀  Transformation, classification, and extraction
 
-Now that you've seen that Marvin can turn images into text, you're probably wondering if we can use that text with the `cast`, `extract`, and `classify` functions we saw earlier. The answer is yes -- but we can do even better. 
+Now that you've seen that Marvin can turn images into text, you're probably wondering if we can use that text with the `cast`, `extract`, and `classify` functions we saw earlier. The answer is yes -- but we can do even better.
 
 If you caption an image, the resulting text might not capture the details that are most relevant to the text processing task you want to perform. For example, if you want to classify the breed of dog in an image, you're going to need very specific information that a generic caption might not provide.
 
 Therefore, Marvin has beta versions of `cast`, `extract`, and `classify` that accept images as inputs. Instead of generating generic captions, these functions process the image in a way that is most conducive to the task at hand.
 
 These functions are available under `marvin.beta` and work identically to their text-only counterparts except that they can take images as well as text inputs.
-
 
 !!! example "Identifying dog breeds in an image"
 
@@ -349,7 +344,7 @@ These functions are available under `marvin.beta` and work identically to their 
 
 ## Grab your towel
 
-We hope this tutorial has given you a taste of what Marvin can do. There's a lot more to explore, including tools for interactive use cases (like chatbots and applications), audio generation, and more. 
+We hope this tutorial has given you a taste of what Marvin can do. There's a lot more to explore, including tools for interactive use cases (like chatbots and applications), audio generation, and more.
 
 To learn more, please explore the docs or say hi in our [Discord community](https://discord.gg/Kgw4HpcuYG)!
 
