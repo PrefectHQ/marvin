@@ -16,7 +16,7 @@ Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](
 
     === "Classify text"
 
-        Classify any text against a set of labels:
+        Classify text using a set of labels:
     
         ```python
         import marvin

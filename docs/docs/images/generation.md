@@ -19,11 +19,11 @@ Marvin can generate images from text.
         ```python
         import marvin
 
-        marvin.paint('a picture of 3 cute cats')
+        marvin.paint("A cup of coffee, still warm")
         ```
 
         !!! success "Result"
-            ![](/assets/images/docs/images/three_cats.png)
+            ![](/assets/images/docs/images/coffee.png)
         
     === "From a function"
 
