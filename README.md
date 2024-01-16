@@ -10,13 +10,13 @@
 
 ### The AI engineering toolkit
 
-Marvin is a lightweight AI toolkit for building natural language interfaces that are reliable, scalable, and easy to trust. 
+Marvin is a lightweight AI toolkit for building natural language interfaces that are reliable, scalable, and easy to trust.
 
 Each of Marvin's tools is simple and self-documenting, using AI to solve common but complex challenges like entity extraction, classification, and generating synthetic data. Each tool is independent and incrementally adoptable, so you can use them on their own or in combination with any other library. Marvin is also multi-modal, supporting both image and audio generation as well using images as inputs for extraction and classification.
 
-Marvin is for developers who care more about *using* AI than *building* AI, and we are focused on creating an exceptional developer experience. Marvin users should feel empowered to bring tightly-scoped "AI magic" into any traditional software project with just a few extra lines of code.
+Marvin is for developers who care more about _using_ AI than _building_ AI, and we are focused on creating an exceptional developer experience. Marvin users should feel empowered to bring tightly-scoped "AI magic" into any traditional software project with just a few extra lines of code.
 
-Marvin aims to merge the best practices for building dependable, observable software with the best practices for building with generative AI into a single, easy-to-use library. It's a serious tool, but we hope you have fun with it. 
+Marvin aims to merge the best practices for building dependable, observable software with the best practices for building with generative AI into a single, easy-to-use library. It's a serious tool, but we hope you have fun with it.
 
 Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](https://www.prefect.io/).
 
@@ -28,7 +28,7 @@ Install the latest version with `pip`:
 pip install marvin -U
 ```
 
-
+To verify your installation, run `marvin version` in your terminal.
 
 ## Tools
 
@@ -66,10 +66,9 @@ Marvin consists of a variety of useful tools, all designed to be used independen
 
 ### Interaction
 
-🤖 [Chat with assistants](https://askmarvin.ai/docs/interactive/assistants) and use custom tools 
+🤖 [Chat with assistants](https://askmarvin.ai/docs/interactive/assistants) and use custom tools
 
 🧭 [Build applications](https://askmarvin.ai/docs/interactive/applications) that manage persistent state
-
 
 ## Quickstart
 
@@ -83,7 +82,7 @@ Marvin can `classify` text using a set of labels:
 import marvin
 
 marvin.classify(
-    "Marvin is so easy to use!", 
+    "Marvin is so easy to use!",
     labels=["positive", "negative"],
 )
 
@@ -91,7 +90,6 @@ marvin.classify(
 ```
 
 Learn more about classification [here](https://askmarvin.ai/docs/text/classification).
-
 
 ### 🔍 Extract structured entities
 
@@ -104,10 +102,10 @@ class Location(BaseModel):
     city: str
     state: str
 
-marvin.extract("I moved from NY to CHI", target=Location) 
+marvin.extract("I moved from NY to CHI", target=Location)
 
 # [
-#     Location(city="New York", state="New York"), 
+#     Location(city="New York", state="New York"),
 #     Location(city="Chcago", state="Illinois")
 # ]
 ```
@@ -116,8 +114,8 @@ Almost all Marvin functions can be given `instructions` for more control. Here w
 
 ```python
 marvin.extract(
-    "I paid $10 for 3 tacos and got a dollar and 25 cents back.", 
-    target=float, 
+    "I paid $10 for 3 tacos and got a dollar and 25 cents back.",
+    target=float,
     instructions="Only extract money"
 )
 
@@ -127,6 +125,7 @@ marvin.extract(
 Learn more about entity extraction [here](https://askmarvin.ai/docs/text/extraction).
 
 ### ✨ Generate data
+
 Marvin can `generate` synthetic data for you, following instructions and an optional schema:
 
 ```python
@@ -137,8 +136,8 @@ class Location(BaseModel):
     state: str
 
 marvin.generate(
-    n=4, 
-    target=Location, 
+    n=4,
+    target=Location,
     instructions="cities in the United States named after presidents"
 )
 
@@ -157,7 +156,7 @@ Learn more about data generation [here](https://askmarvin.ai/docs/text/generatio
 Marvin can `cast` arbitrary text to any Python type:
 
 ```python
-marvin.cast("one two three", list[int]) 
+marvin.cast("one two three", list[int])
 
 #  [1, 2, 3]
 ```
@@ -171,7 +170,7 @@ class Location(BaseModel):
     city: str
     state: str
 
-marvin.cast("The Big Apple", Location) 
+marvin.cast("The Big Apple", Location)
 
 # Location(city="New York", state="New York")
 ```
@@ -184,7 +183,7 @@ class Location(BaseModel):
     city: str
     state: str
 
-Location("The Big Apple") 
+Location("The Big Apple")
 
 # Location(city="New York", state="New York")
 ```
@@ -199,7 +198,7 @@ Marvin functions let you combine any inputs, instructions, and output types to c
 @marvin.fn
 def sentiment(text: str) -> float:
     """
-    Returns a sentiment score for `text` 
+    Returns a sentiment score for `text`
     between -1 (negative) and 1 (positive).
     """
 
@@ -207,7 +206,7 @@ sentiment("I love working with Marvin!") # 0.8
 sentiment("These examples could use some work...") # -0.2
 ```
 
-Marvin functions look exactly like regular Python functions, except that you don't have to write any source code. When these functions are called, an AI interprets their description and inputs and generates the output. 
+Marvin functions look exactly like regular Python functions, except that you don't have to write any source code. When these functions are called, an AI interprets their description and inputs and generates the output.
 
 Note that Marvin does NOT work by generating or executing source code, which would be unsafe for most use cases. Instead, it uses the LLM itself as a "runtime" to predict function outputs. That's actually the source of its power: Marvin functions can handle complex use cases that would be difficult or impossible to express as code.
 
@@ -220,6 +219,7 @@ Marvin can `paint` images from text:
 ```python
 marvin.paint("a simple cup of coffee, still warm")
 ```
+
 <p align="center">
   <img src="docs/assets/images/docs/images/coffee.png" style="width: 50%; height: auto;"/>
 </p>
@@ -232,7 +232,7 @@ In addition to text, Marvin has beta support for captioning, classifying, transf
 
 ```python
 marvin.beta.classify(
-    marvin.Image("docs/images/coffee.png"), 
+    marvin.Image("docs/images/coffee.png"),
     labels=["drink", "food"],
 )
 
