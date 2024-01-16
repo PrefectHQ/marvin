@@ -10,8 +10,8 @@ nav:
     - welcome/what_is_marvin.md
 
     - Getting started:
-      - welcome/installation.md
-      - welcome/quickstart.md
+      - Installation: welcome/installation.md
+      - Tutorial: welcome/tutorial.md
       # - help/legacy_docs.md
 
     # - Overview: welcome/overview.md

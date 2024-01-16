@@ -1,5 +1,7 @@
 # Quickstart
 
+0-60 in 60 seconds.
+
 After [installing Marvin](../installation), the fastest way to get started is by using one of Marvin's high-level [AI components](../../components/overview). These components are designed to integrate AI into abstractions you already know well, creating the best possible opt-in developer experience.
 
 !!! info "Initializing a Client"
