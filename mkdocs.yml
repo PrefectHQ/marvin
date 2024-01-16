@@ -1,5 +1,5 @@
 site_name: Marvin
-site_description: 'The AI Engineering Framework'
+site_description: 'The AI Engineering Toolkit'
 site_url: https://askmarvin.ai
 docs_dir: docs
 repo_url: https://github.com/prefecthq/marvin
@@ -17,7 +17,7 @@ nav:
     # - Overview: welcome/overview.md
 
     - Text:
-      - Transforming to data: docs/text/transforming.md
+      - Transforming to data: docs/text/transformation.md
       - Extracting entities: docs/text/extraction.md
       - Classification: docs/text/classification.md
       - Generating synthetic data: docs/text/generation.md
