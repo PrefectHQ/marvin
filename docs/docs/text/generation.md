@@ -35,14 +35,11 @@ Marvin can generate synthetic data according to a schema and instructions. Gener
         !!! success "Result"
             
             ```python
-            print(names)
-            ['John', 'Emma', 'Michael', 'Sophia']
+            names == ['John', 'Emma', 'Michael', 'Sophia']
 
-            print(french_names)
-            ['Jean', 'Claire', 'Lucas', 'Emma']
+            french_names == ['Jean', 'Claire', 'Lucas', 'Emma']
 
-            print(star_wars_names)
-            ['Luke', 'Leia', 'Han', 'Anakin']
+            star_wars_names == ['Luke', 'Leia', 'Han', 'Anakin']
             ```
 
     === "Populations (`dict[str, int]`)"
@@ -62,7 +59,7 @@ Marvin can generate synthetic data according to a schema and instructions. Gener
         !!! success "Result"
             
             ```python
-            assert populations == [
+            populations == [
                 {'China': 1444216107},
                 {'India': 1380004385},
                 {'United States': 331893745},
@@ -90,8 +87,7 @@ Marvin can generate synthetic data according to a schema and instructions. Gener
         !!! success "Result"
             
             ```python
-            print(locations)
-            [
+            locations == [
                 Location(city='Washington', state='District of Columbia'),
                 Location(city='Jackson', state='Mississippi'),
                 Location(city='Cleveland', state='Ohio'),
@@ -149,7 +145,7 @@ The first and second tabs both show high-quality, varied results. The third tab 
 
     !!! success "Result"
         ```python
-        assert cities == [
+        cities == [
             'New York',
             'Los Angeles',
             'Chicago',
@@ -172,7 +168,7 @@ The first and second tabs both show high-quality, varied results. The third tab 
     ```
     !!! success "Result"
         ```python
-        assert cities == [
+        cities == [
             'Chicago',
             'San Francisco',
             'Seattle',
@@ -199,7 +195,7 @@ The first and second tabs both show high-quality, varied results. The third tab 
     ```
     !!! failure "Result"
         ```python
-        assert cities == [
+        cities == [
             'Houston',
             'Seattle',
             'Chicago',

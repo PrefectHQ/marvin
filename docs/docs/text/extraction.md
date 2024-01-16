@@ -27,7 +27,7 @@ Marvin's `extract` function is a robust tool for pulling lists of structured ent
         !!! success "Result"
             
             ```python
-            assert features == ['camera', 'battery life']
+            features == ['camera', 'battery life']
             ```
 
     === "Structured entities"
