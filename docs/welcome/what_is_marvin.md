@@ -10,6 +10,28 @@ Marvin aims to merge the best practices for building dependable, observable soft
 
 Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](https://www.prefect.io/).
 
+??? Question "Explain Marvin like I'm 5"
+    === "(I'm a technical 5-year-old)"
+
+            Marvin lets your software speak English and ask questions to Large Language Models.
+
+            It introspects the types and docstrings of your functions and data models, and automatically renders them as prompts for an LLM. You write code as you would normally, rather than prompts, and Marvin handles the back-and-forth translation.
+
+            This lets you focus on what you've always focused on: writing clean, versioned, reusable *code* and *data models*, and not scrutinizing whether you begged your LLM hard enough to output JSON or needed to offer it a bigger tip for the right answer.
+
+            Extracting, generating, cleaning, or classifying data is as simple as writing a function or a data model.
+
+    === "(I'm not technical)"
+
+        Marvin lets engineers who know Python use Large Language Models without needing to write prompts.
+
+        It turns out that ChatGPT and other Large Language Models are good at performing boring but incredibly valuable business-critical tasks beyond being a chatbot: you can use them to classify emails as spam, extract key figures from a report - exactly however you want for your scenario. When you use something like ChatGPT you spend a lot of time crafting the right prompt or context to get it to write your email, plan your date night, etc.
+
+        If you want your software to use ChatGPT, you need to let it turn its objective into English. Marvin handles this 'translation' for you, so you get to just write code like you normally would. Engineers like using Marvin because it lets them write software like they're used to.
+
+        Simply put, it lets you use Generative AI without feeling like you have to learn a framework.
+
+
 !!! Example "What's it like to use Marvin?"
 
     === "Classify text"
@@ -123,24 +145,3 @@ Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](
 
         Note that `list_fruits` has no source code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and parses its response.
 
-
-??? Question "Explain Marvin like I'm 5"
-=== "(I'm a technical 5-year-old)"
-
-        Marvin lets your software speak English and ask questions to Large Language Models.
-
-        It introspects the types and docstrings of your functions and data models, and automatically renders them as prompts for an LLM. You write code as you would normally, rather than prompts, and Marvin handles the back-and-forth translation.
-
-        This lets you focus on what you've always focused on: writing clean, versioned, reusable *code* and *data models*, and not scrutinizing whether you begged your LLM hard enough to output JSON or needed to offer it a bigger tip for the right answer.
-
-        Extracting, generating, cleaning, or classifying data is as simple as writing a function or a data model.
-
-    === "(I'm not technical)"
-
-        Marvin lets engineers who know Python use Large Language Models without needing to write prompts.
-
-        It turns out that ChatGPT and other Large Language Models are good at performing boring but incredibly valuable business-critical tasks beyond being a chatbot: you can use them to classify emails as spam, extract key figures from a report - exactly however you want for your scenario. When you use something like ChatGPT you spend a lot of time crafting the right prompt or context to get it to write your email, plan your date night, etc.
-
-        If you want your software to use ChatGPT, you need to let it turn its objective into English. Marvin handles this 'translation' for you, so you get to just write code like you normally would. Engineers like using Marvin because it lets them write software like they're used to.
-
-        Simply put, it lets you use Generative AI without feeling like you have to learn a framework.
