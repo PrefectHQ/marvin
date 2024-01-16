@@ -1,9 +1,10 @@
 import asyncio
 import os
+import uuid
 from typing import TYPE_CHECKING, Any, Optional
 
 try:
-    from chromadb import Documents, EmbeddingFunction, Embeddings, HttpClient
+    from chromadb import Documents, EmbeddingFunction, Embeddings, GetResult, HttpClient
 except ImportError:
     raise ImportError(
         "The chromadb package is required to query Chroma. Please install"
@@ -127,3 +128,29 @@ async def multi_query_chroma(
         for query in queries
     ]
     return "\n".join(await asyncio.gather(*coros))[:max_characters]
+
+
+def store_document(
+    document: str, metadata: dict[str, Any], collection_name: str = "glacial"
+) -> GetResult:
+    """Store a document in Chroma for future reference.
+
+    Args:
+        document: The document to store.
+        metadata: The metadata to store with the document.
+
+    Returns:
+        The stored document.
+    """
+    collection = client.get_or_create_collection(
+        name=collection_name, embedding_function=OpenAIEmbeddingFunction()
+    )
+    doc_id = metadata.get("msg_id", str(uuid.uuid4()))
+
+    collection.add(
+        ids=[doc_id],
+        documents=[document],
+        metadatas=[metadata],
+    )
+
+    return collection.get(ids=doc_id)

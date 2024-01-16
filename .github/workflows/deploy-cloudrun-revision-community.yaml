@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Authenticate to google cloud
         uses: google-github-actions/auth@v2
@@ -28,7 +28,7 @@ jobs:
           service_account: marvin-workflow-main@prefect-org-github-actions.iam.gserviceaccount.com
 
       - name: Deploy revision
-        uses: google-github-actions/deploy-cloudrun@v1
+        uses: google-github-actions/deploy-cloudrun@v2
         with:
           image: us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:latest
           project_id: prefect-prd-external-tools

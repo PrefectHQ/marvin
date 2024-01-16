@@ -29,11 +29,11 @@ class EventBlock(BaseModel):
 class SlackEvent(BaseModel):
     client_msg_id: Optional[str] = None
     type: str
-    text: str
-    user: str
-    ts: str
-    team: str
-    channel: str
+    text: Optional[str] = None
+    user: Optional[str] = None
+    ts: Optional[str] = None
+    team: Optional[str] = None
+    channel: Optional[str] = None
     event_ts: str
     thread_ts: Optional[str] = None
     parent_user_id: Optional[str] = None
@@ -75,18 +75,18 @@ async def get_token() -> str:
             marvin.settings.slack_api_token
         )  # set `MARVIN_SLACK_API_TOKEN` in `~/.marvin/.env
     except AttributeError:
+        if token := os.getenv("MARVIN_SLACK_API_TOKEN"):
+            return token
         try:  # TODO: clean this up
             from prefect.blocks.system import Secret
 
             return (await Secret.load("slack-api-token")).get()
         except ImportError:
             pass
-        token = os.getenv("MARVIN_SLACK_API_TOKEN")
-        if not token:
-            raise ValueError(
-                "`MARVIN_SLACK_API_TOKEN` not found in environment."
-                " Please set it in `~/.marvin/.env` or as an environment variable."
-            )
+        raise ValueError(
+            "`MARVIN_SLACK_API_TOKEN` not found in environment."
+            " Please set it in `~/.marvin/.env` or as an environment variable."
+        )
     return token
 
 
