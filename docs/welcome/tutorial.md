@@ -284,6 +284,8 @@ Marvin gives you easy access to the DALL-E 3 image generation model. This model 
 !!! Example "Generating images"
 
     ```python
+    import marvin
+
     marvin.paint("a simple cup of coffee, still warm")
     ```
 
@@ -299,7 +301,6 @@ If you've already got an image, you can convert it to text using the `caption` f
 
     ```python
     import marvin
-
 
     caption = marvin.beta.caption(marvin.beta.Image("path/to/coffee.png"))
     ```
@@ -333,7 +334,6 @@ These functions are available under `marvin.beta` and work identically to their 
 
     ![](https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=2969&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)
 
-    
     ```python
     import marvin
     
@@ -356,6 +356,7 @@ To learn more, please explore the docs or say hi in our [Discord community](http
 And remember:
 
 !!! Example "Don't panic!"
+
     ```python
     import marvin
 
