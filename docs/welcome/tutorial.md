@@ -3,7 +3,8 @@ toc_depth: 3
 ---
 # Tutorial
 
-![](/assets/images/heroes/dont_panic.png){ width=500 }
+![](/assets/images/heroes/dont_panic.png)
+
 
 ## Installing Marvin
 
@@ -286,8 +287,7 @@ Marvin gives you easy access to the DALL-E 3 image generation model. This model 
     ```
 
     !!! success "Result"
-
-        A URL that takes you to the generated image:
+        ( Note: your results may vary)
 
         ![A cup off coffee](/assets/images/docs/images/coffee.png)
 
