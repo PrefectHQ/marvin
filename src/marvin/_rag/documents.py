@@ -122,7 +122,6 @@ async def _create_excerpt(
         **extra_template_kwargs,
     )
     return Document(
-        type="excerpt",
         parent_document_id=document.id,
         text=excerpt_text,
         keywords=keywords,

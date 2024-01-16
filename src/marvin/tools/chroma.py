@@ -1,7 +1,7 @@
 import asyncio
 import os
 import uuid
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 try:
     from chromadb import (
@@ -19,12 +19,9 @@ except ImportError:
     )
 
 
-from typing import Literal
-
 import marvin
-
-if TYPE_CHECKING:
-    from openai.types import CreateEmbeddingResponse
+from marvin._rag.utils import create_openai_embeddings
+from marvin.utilities.asyncio import run_sync
 
 QueryResultType = Literal["documents", "distances", "metadatas"]
 
@@ -56,32 +53,9 @@ def get_client(
         raise ValueError("client_type must be one of 'base' or 'http'.")
 
 
-def create_openai_embeddings(texts: list[str]) -> list[float]:
-    """Create OpenAI embeddings for a list of texts."""
-
-    try:
-        import numpy  # noqa F401 # type: ignore
-    except ImportError:
-        raise ImportError(
-            "The numpy package is required to create OpenAI embeddings. Please install"
-            " it with `pip install numpy`."
-        )
-    from marvin.client.openai import MarvinClient
-
-    embedding: "CreateEmbeddingResponse" = MarvinClient().client.embeddings.create(
-        input=[text.replace("\n", " ") for text in texts],
-        model="text-embedding-ada-002",
-    )
-
-    return embedding.data[0].embedding
-
-
 class OpenAIEmbeddingFunction(EmbeddingFunction):
     def __call__(self, input: Documents) -> Embeddings:
-        return [create_openai_embeddings(input)]
-
-
-client = get_client(client_type="http")
+        return [run_sync(create_openai_embeddings(input))]
 
 
 async def query_chroma(
@@ -99,6 +73,7 @@ async def query_chroma(
         User: "What are prefect blocks?"
         Assistant: >>> query_chroma("What are prefect blocks?")
     """
+    client = get_client(client_type="http")
     collection_object = client.get_or_create_collection(
         name=collection or DEFAULT_COLLECTION_NAME,
         embedding_function=OpenAIEmbeddingFunction(),
@@ -161,6 +136,8 @@ def store_document(
     Returns:
         The stored document.
     """
+    client = get_client(client_type="http")
+
     collection = client.get_or_create_collection(
         name=collection_name, embedding_function=OpenAIEmbeddingFunction()
     )

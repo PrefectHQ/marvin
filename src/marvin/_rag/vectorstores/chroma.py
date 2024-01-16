@@ -3,18 +3,13 @@ from typing import Any, Iterable, Literal, Optional
 
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import Include, QueryResult
-from prefect.utilities.collections import distinct
 from pydantic import BaseModel, Field, model_validator
 
 import marvin
 from marvin._rag.documents import Document
+from marvin._rag.utils import get_distinct_documents
 from marvin.tools.chroma import OpenAIEmbeddingFunction, get_client
 from marvin.utilities.asyncio import run_async
-
-
-def get_distinct_documents(documents: Iterable[Document]) -> Iterable[Document]:
-    """Return a list of distinct documents."""
-    return distinct(documents, key=lambda doc: doc.hash)
 
 
 class Chroma(BaseModel):
@@ -29,8 +24,7 @@ class Chroma(BaseModel):
     @model_validator(mode="after")
     def validate_collection(self):
         if not self.collection:
-            client = get_client(self.client_type)
-            self.collection = client.get_or_create_collection(
+            self.collection = get_client(self.client_type).get_or_create_collection(
                 name="marvin", embedding_function=self.embedding_fn
             )
         return self

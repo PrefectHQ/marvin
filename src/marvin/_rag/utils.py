@@ -3,13 +3,28 @@ import re
 import uuid
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Callable, Iterable, List, Optional, Set, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Optional,
+    Set,
+    TypeVar,
+    Union,
+)
 
 import xxhash
+from openai.types import CreateEmbeddingResponse
+from prefect.utilities.collections import distinct
 
 from marvin.utilities.asyncio import run_sync_if_awaitable
 
 T = TypeVar("T")
+
+if TYPE_CHECKING:
+    from marvin._rag.documents import Document
 
 
 def generate_prefixed_uuid(prefix: str) -> str:
@@ -127,3 +142,43 @@ def extract_keywords(text: str) -> list[str]:
 def hash_text(*text: str) -> str:
     bs = [t.encode() if not isinstance(t, bytes) else t for t in text]
     return xxhash.xxh3_128_hexdigest(b"".join(bs))
+
+
+def get_distinct_documents(documents: Iterable["Document"]) -> Iterable["Document"]:
+    """Return a list of distinct documents."""
+    return distinct(documents, key=lambda doc: doc.hash)
+
+
+async def create_openai_embeddings(
+    input_: Union[str, List[str]],
+    timeout: int = 60,
+    model: str = "text-embedding-ada-002",
+) -> Union[List[float], List[List[float]]]:
+    """Create OpenAI embeddings for a list of texts."""
+
+    try:
+        import numpy  # noqa F401 # type: ignore
+    except ImportError:
+        raise ImportError(
+            "The numpy package is required to create OpenAI embeddings. Please install"
+            " it with `pip install numpy`."
+        )
+    from marvin.client.openai import AsyncMarvinClient
+
+    if isinstance(input_, str):
+        input_ = [input_]
+    elif not isinstance(input_, list):
+        raise TypeError(
+            f"Expected input to be a str or a list of str, got {type(input_).__name__}."
+        )
+
+    embedding: CreateEmbeddingResponse = (
+        await AsyncMarvinClient().client.embeddings.create(
+            input=input_, model=model, timeout=timeout
+        )
+    )
+
+    if len(embedding.data) == 1:
+        return embedding.data[0].embedding
+
+    return [data.embedding for data in embedding.data]

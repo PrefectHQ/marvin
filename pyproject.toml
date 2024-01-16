@@ -56,7 +56,18 @@ tests = [
     "pytest-xdist",
 ]
 slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]"]
-rag = ["bs4", "fake-useragent>=1.4.0", "pypdf", "aiofiles", "chardet", "xxhash", "yake"]
+tpuf = ["turbopuffer[fast]"]
+rag = [
+    "bs4",
+    "fake-useragent>=1.4.0",
+    "pypdf",
+    "aiofiles",
+    "chardet",
+    "xxhash",
+    "yake",
+    "chromadb",
+    "marvin[tpuf]"
+]
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"
 Documentation = "https://www.askmarvin.ai"
