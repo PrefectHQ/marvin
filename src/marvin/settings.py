@@ -1,14 +1,4 @@
-"""Settings for configuring `marvin`.
-
-## Requirements
-All you ***need*** to configure is your OpenAI API key.
-
-You can set this in `~/.marvin/.env` or as an environment variable on your system:
-```
-MARVIN_OPENAI_API_KEY=sk-...
-```
----
-"""
+"""Settings for configuring `marvin`."""
 
 import os
 from contextlib import contextmanager
@@ -188,13 +178,9 @@ class OpenAISettings(MarvinSettings):
     @field_validator("api_key")
     def discover_api_key(cls, v):
         if v is None:
-            v = SecretStr(os.environ.get("OPENAI_API_KEY"))
-            if v.get_secret_value() is None:
-                raise ValueError(
-                    "OpenAI API key not found. Please either set"
-                    " `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env` or otherwise set"
-                    " `OPENAI_API_KEY` in your environment."
-                )
+            # check global OpenAI API key
+            v = os.environ.get("OPENAI_API_KEY")
+
         return v
 
 

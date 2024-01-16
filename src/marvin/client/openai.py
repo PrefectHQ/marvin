@@ -1,3 +1,4 @@
+import inspect
 from functools import partial
 from pathlib import Path
 from typing import (
@@ -156,16 +157,19 @@ def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
             )
         except AttributeError:
             raise ValueError(
-                "To use Azure OpenAI, please set all of the following environment"
-                " variables in `~/.marvin/.env`:"
-                "\n\n"
-                "```"
-                "\nMARVIN_USE_AZURE_OPENAI=true"
-                "\nMARVIN_AZURE_OPENAI_API_KEY=..."
-                "\nMARVIN_AZURE_OPENAI_API_VERSION=..."
-                "\nMARVIN_AZURE_OPENAI_ENDPOINT=..."
-                "\nMARVIN_AZURE_OPENAI_DEPLOYMENT_NAME=..."
-                "\n```"
+                inspect.cleandoc(
+                    """
+                To use Azure OpenAI, please set all of the following environment variables in `~/.marvin/.env`:
+
+                ```
+                MARVIN_USE_AZURE_OPENAI=true
+                MARVIN_AZURE_OPENAI_API_KEY=...
+                MARVIN_AZURE_OPENAI_API_VERSION=...
+                MARVIN_AZURE_OPENAI_ENDPOINT=...
+                MARVIN_AZURE_OPENAI_DEPLOYMENT_NAME=...
+                ```
+                """
+                )
             )
 
     api_key = (
@@ -173,8 +177,17 @@ def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
     )
     if not api_key:
         raise ValueError(
-            "OpenAI API key not found. Please either set `MARVIN_OPENAI_API_KEY` in"
-            " `~/.marvin/.env` or otherwise set `OPENAI_API_KEY` in your environment."
+            inspect.cleandoc(
+                """
+            OpenAI API key not found! Marvin will not work properly without it.
+            
+            You can either:
+                1. Set the `MARVIN_OPENAI_API_KEY` or `OPENAI_API_KEY` environment variables
+                2. Set `marvin.settings.openai.api_key` in your code (not recommended for production)
+                
+            If you do not have an OpenAI API key, you can create one at https://platform.openai.com/api-keys.
+            """
+            )
         )
     if client_type not in ["sync", "async"]:
         raise ValueError(f"Invalid client type {client_type!r}")
