@@ -10,6 +10,7 @@ class ExampleModel(BaseModel):
     name: str
 
 
+@pytest.mark.no_llm
 class TestParseAs:
     class TestParseAsPythonMode:
         def test_coerce_to_native_type(self):

@@ -175,3 +175,8 @@ local_examples/
 
 # Marvin
 src/marvin/_version.py
+
+# Prefect
+.prefect/
+.prefect/*.json
+.prefectignore

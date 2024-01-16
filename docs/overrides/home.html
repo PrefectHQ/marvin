@@ -21,7 +21,7 @@
             <div class="grid grid-cols-2 gap-4">
                 <div class = "flex flex-shrink self-center">
                     <a href="{{ config.extra.get_started | url }}" class="rounded-md bg-indigo-500 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400">
-                        Get started
+                        Read the docs
                     </a>
                 </div>
                 <div class = "flex flex-shrink self-center">
@@ -29,10 +29,10 @@
                         Star us on Github <span aria-hidden="true">→</span>
                     </a>
                 </div>
-                <div class = "flex justify-center col-span-2">
-                    <div id = "pip" class="select-none flex items-center relative w-max text-left font-mono text-gray-500 text-xs leading-6 border-0 bg-transparent cursor-copy px-3 rounded-full">
-                        pip install marvin 
-                        <span id = 'pip-success' class = 'invisible ml-2' aria-hidden="true">✓</span>
+                <div class = "flex justify-center col-span-2 mt-6">
+                    <div id="pip" class="select-none flex items-center relative w-max text-left font-mono text-gray-500 text-xs leading-6 border border-gray-500 rounded-lg cursor-copy px-3.5 py-2.5">
+                        pip install marvin
+                        <span id='pip-success' class='hidden ml-2' aria-hidden="true">✓</span>
                     </div>
                 </div>
               </div>
@@ -52,9 +52,10 @@
             // Handle any errors that occur during the clipboard write here
         });
 
-        // Remove class 'invisible' from the span with id 'pip-success'
+        // Remove class 'hidden' from the span with id 'pip-success'
         var span = document.getElementById('pip-success');
-        span.classList.remove('invisible');
+        span.classList.remove('hidden');
+        
     });
 </script>
 {% endblock %}

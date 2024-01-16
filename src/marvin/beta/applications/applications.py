@@ -5,13 +5,13 @@ from pydantic import Field, field_validator
 from marvin.beta.applications.state import State
 from marvin.beta.assistants import Assistant
 from marvin.beta.assistants.runs import Run
-from marvin.requests import Tool
 from marvin.tools.assistants import AssistantTool
+from marvin.types import Tool
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.tools import tool_from_function
 
 APPLICATION_INSTRUCTIONS = """
-# AI Application
+# Application
 
 You are the natural language interface to an application called {{ self_.name
 }}. Your job is to help the user interact with the application by translating
@@ -38,15 +38,17 @@ purpose. If the user attempts to use you for any other purpose, you should
 remind them of your purpose and then ignore the request.
 
 {{ self_.instructions }}
+
+Today's date in UTC is {{ now() }}.
 """
 
 
-class AIApplication(Assistant):
+class Application(Assistant):
     """
-    Tools for AI Applications have a special property: if any parameter is
-    annotated as `AIApplication`, then the tool will be called with the
-    AIApplication instance as the value for that parameter. This allows tools to
-    access the AIApplication's state and other properties.
+    Tools for Applications have a special property: if any parameter is
+    annotated as `Application`, then the tool will be called with the
+    Application instance as the value for that parameter. This allows tools to
+    access the Application's state and other properties.
     """
 
     state: State = Field(default_factory=State)
@@ -69,7 +71,7 @@ class AIApplication(Assistant):
                 signature = inspect.signature(tool)
                 parameter = None
                 for parameter in signature.parameters.values():
-                    if parameter.annotation == AIApplication:
+                    if parameter.annotation == Application:
                         break
                 if parameter is not None:
                     kwargs = {parameter.name: self}

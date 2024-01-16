@@ -2,22 +2,21 @@ from pathlib import Path
 
 import marvin
 import marvin.tools
-import marvin.tools.filesystem
-import marvin.tools.python
-import marvin.tools.shell
-from marvin.beta.applications import AIApplication
+import marvin.tools.code as cd
+import marvin.tools.filesystem as fs
+from marvin.beta.applications import Application
 
-marvin.settings.log_level = "DEBUG"
-marvin.settings.llm_model = "gpt-4"
+# marvin.settings.log_level = "DEBUG"
+marvin.settings.openai.chat.completions.model = "gpt-4-1106-preview"
 
 
 ROOT_DIR = Path(marvin.__file__).parents[2]
 DOCS_DIR = ROOT_DIR / "docs"
 MKDOCS_FILE = ROOT_DIR / "mkdocs.yml"
 
-docs_app = AIApplication(
+app = Application(
     name="DocsWriter",
-    description=f"""
+    instructions=f"""
         You are an expert technical writer, responsible for maintaining high
         quality documentation for the Marvin library. 
         
@@ -53,18 +52,14 @@ docs_app = AIApplication(
         {MKDOCS_FILE}.
         """,
     tools=[
-        marvin.tools.filesystem.ListFiles(root_dir=ROOT_DIR),
-        marvin.tools.filesystem.ReadFile(root_dir=ROOT_DIR),
-        # marvin.tools.filesystem.ReadFiles(root_dir=ROOT_DIR),
-        # marvin.tools.filesystem.WriteFile(
-        #     root_dir=ROOT_DIR, require_confirmation=False
-        # ),
-        marvin.tools.filesystem.WriteFiles(
-            root_dir=ROOT_DIR, require_confirmation=False
-        ),
-        marvin.tools.python.Python(require_confirmation=False),
-        marvin.tools.shell.Shell(
-            require_confirmation=False, working_directory=ROOT_DIR
-        ),
+        fs.write,
+        fs.read,
+        fs.ls,
+        cd.shell,
+        cd.python,
     ],
 )
+
+if __name__ == "__main__":
+    with app:
+        app.chat()

@@ -1,18 +1,26 @@
 # Installation
 
-You can install Marvin with `pip` (note that Marvin requires Python 3.9+):
+Install Marvin with `pip`:
 
 ```shell
 pip install marvin
 ``` 
 
-To verify your installation, run `marvin --help` in your terminal. 
+To verify your installation, run `marvin version` in your terminal. 
 
-You can upgrade to the latest released version at any time:
+Upgrade to the latest released version at any time:
 
 ```shell
 pip install marvin -U
 ```
+
+## Tutorial
+
+Now that you've installed Marvin, check out the [tutorial](tutorial.md) to learn how to use it.
+
+## Requirements
+
+Marvin requires Python 3.9 or greater, and is tested on all major Python versions and operating systems.
 
 ## Installing for Development
 See the [contributing docs](../../community/development_guide) for instructions on installing Marvin for development.

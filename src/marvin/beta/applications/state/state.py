@@ -3,9 +3,9 @@ import json
 from typing import Optional, Union
 
 from jsonpatch import JsonPatch
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, SerializeAsAny
 
-from marvin.requests import Tool
+from marvin.types import Tool
 from marvin.utilities.tools import tool_from_function
 
 
@@ -26,7 +26,7 @@ class JSONPatchModel(BaseModel, populate_by_name=True):
 
 
 class State(BaseModel):
-    value: Union[BaseModel, dict] = {}
+    value: SerializeAsAny[Union[BaseModel, dict]] = {}
     _last_saved_value: Optional[Union[BaseModel, dict]] = PrivateAttr(None)
 
     def render(self) -> str:

@@ -1,26 +1,22 @@
-"""Settings for configuring `marvin`.
-
-## Requirements
-All you ***need*** to configure is your OpenAI API key.
-
-You can set this in `~/.marvin/.env` or as an environment variable on your system:
-```
-MARVIN_OPENAI_API_KEY=sk-...
-```
----
-"""
+"""Settings for configuring `marvin`."""
 
 import os
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing_extensions import Literal
 
 
 class MarvinSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file="" if os.getenv("MARVIN_TEST_MODE") else "~/.marvin/.env",
+        extra="allow",
+        arbitrary_types_allowed=True,
+        validate_assignment=True,
+    )
+
     def __setattr__(self, name: str, value: Any) -> None:
         # wrap bare strings in SecretStr if the field is annotated with SecretStr
         field = self.model_fields.get(name)
@@ -37,25 +33,38 @@ class MarvinSettings(BaseSettings):
 
 
 class ChatCompletionSettings(MarvinSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_llm_",
-        env_file="~/.marvin/.env",
-        extra="allow",
-        arbitrary_types_allowed=True,
-    )
+    model_config = SettingsConfigDict(env_prefix="marvin_chat_completion_")
     model: str = Field(
-        description="The default chat model to use.", default="gpt-3.5-turbo"
+        description="The default chat model to use.", default="gpt-4-1106-preview"
     )
 
-    temperature: float = Field(
-        description="The default temperature to use.", default=0.1
-    )
+    temperature: float = Field(description="The default temperature to use.", default=1)
 
     @property
     def encoder(self):
         import tiktoken
 
         return tiktoken.encoding_for_model(self.model).encode
+
+
+class ChatVisionSettings(MarvinSettings):
+    model_config = SettingsConfigDict(env_prefix="marvin_chat_vision_")
+    model: str = Field(
+        description="The default vision model to use.", default="gpt-4-vision-preview"
+    )
+    temperature: float = Field(description="The default temperature to use.", default=1)
+    max_tokens: int = 500
+
+    @property
+    def encoder(self):
+        import tiktoken
+
+        return tiktoken.encoding_for_model(self.model).encode
+
+
+class ChatSettings(MarvinSettings):
+    completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
+    vision: ChatVisionSettings = Field(default_factory=ChatVisionSettings)
 
 
 class ImageSettings(MarvinSettings):
@@ -68,12 +77,7 @@ class ImageSettings(MarvinSettings):
         style: The default style to use, defaults to `vivid`.
     """
 
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_image_",
-        env_file="~/.marvin/.env",
-        extra="allow",
-        arbitrary_types_allowed=True,
-    )
+    model_config = SettingsConfigDict(env_prefix="marvin_image_")
 
     model: str = Field(
         default="dall-e-3",
@@ -84,6 +88,7 @@ class ImageSettings(MarvinSettings):
     )
     response_format: Literal["url", "b64_json"] = Field(default="url")
     style: Literal["vivid", "natural"] = Field(default="vivid")
+    quality: Literal["standard", "hd"] = Field(default="standard")
 
 
 class SpeechSettings(MarvinSettings):
@@ -91,24 +96,19 @@ class SpeechSettings(MarvinSettings):
 
     Attributes:
         model: The default speech model to use, defaults to `tts-1-hd`.
-        voice: The default voice to use, defaults to `alloy`.
+        voice: The default voice to use, defaults to `echo`.
         response_format: The default response format to use, defaults to `mp3`.
         speed: The default speed to use, defaults to `1.0`.
     """
 
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_speech_",
-        env_file="~/.marvin/.env",
-        extra="allow",
-        arbitrary_types_allowed=True,
-    )
+    model_config = SettingsConfigDict(env_prefix="marvin_speech_")
 
     model: str = Field(
         default="tts-1-hd",
-        description="The default image model to use.",
+        description="The default model to use.",
     )
     voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = Field(
-        default="alloy",
+        default="echo",
     )
     response_format: Literal["mp3", "opus", "aac", "flac"] = Field(default="mp3")
     speed: float = Field(default=1.0)
@@ -121,21 +121,12 @@ class AssistantSettings(MarvinSettings):
         model: The default assistant model to use, defaults to `gpt-4-1106-preview`.
     """
 
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_llm",
-        env_file="~/.marvin/.env",
-        extra="allow",
-        arbitrary_types_allowed=True,
-    )
+    model_config = SettingsConfigDict(env_prefix="marvin_assistant_")
 
     model: str = Field(
         default="gpt-4-1106-preview",
         description="The default assistant model to use.",
     )
-
-
-class ChatSettings(MarvinSettings):
-    completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
 
 
 class AudioSettings(MarvinSettings):
@@ -149,7 +140,7 @@ class OpenAISettings(MarvinSettings):
     Attributes:
         api_key: Your OpenAI API key.
         organization: Your OpenAI organization ID.
-        chat: Settings for the chat API.
+        llms: Settings for the chat API.
         images: Settings for the images API.
         audio: Settings for the audio API.
         assistants: Settings for the assistants API.
@@ -167,9 +158,6 @@ class OpenAISettings(MarvinSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="marvin_openai_",
-        env_file="~/.marvin/.env",
-        extra="allow",
-        arbitrary_types_allowed=True,
     )
 
     api_key: Optional[SecretStr] = Field(
@@ -190,13 +178,19 @@ class OpenAISettings(MarvinSettings):
     @field_validator("api_key")
     def discover_api_key(cls, v):
         if v is None:
-            v = SecretStr(os.environ.get("OPENAI_API_KEY"))
-            if v.get_secret_value() is None:
-                raise ValueError(
-                    "OpenAI API key not found. Please either set `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env`"
-                    " or otherwise set `OPENAI_API_KEY` in your environment."
-                )
+            # check global OpenAI API key
+            v = os.environ.get("OPENAI_API_KEY")
+
         return v
+
+
+class TextAISettings(MarvinSettings):
+    model_config = SettingsConfigDict(env_prefix="marvin_ai_text_")
+    generate_cache_token_cap: int = Field(600)
+
+
+class AISettings(MarvinSettings):
+    text: TextAISettings = Field(default_factory=TextAISettings)
 
 
 class Settings(MarvinSettings):
@@ -206,7 +200,7 @@ class Settings(MarvinSettings):
 
     Attributes:
         openai: Settings for the OpenAI API.
-        log_level: The log level to use, defaults to `DEBUG`.
+        log_level: The log level to use, defaults to `INFO`.
 
     Example:
         Set the log level to `INFO`:
@@ -221,18 +215,31 @@ class Settings(MarvinSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="marvin_",
-        env_file="~/.marvin/.env",
-        extra="allow",
-        arbitrary_types_allowed=True,
         protected_namespaces=(),
     )
 
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
+    ai: AISettings = Field(default_factory=AISettings)
 
     log_level: str = Field(
-        default="DEBUG",
+        default="INFO",
         description="The log level to use.",
     )
+
+    log_verbose: bool = Field(
+        default=False,
+        description=(
+            "Whether to log verbose messages, such as full API requests and responses."
+        ),
+    )
+
+    @field_validator("log_level", mode="after")
+    @classmethod
+    def set_log_level(cls, v):
+        from marvin.utilities.logging import setup_logging
+
+        setup_logging(level=v)
+        return v
 
 
 settings = Settings()
@@ -249,7 +256,7 @@ def temporary_settings(**kwargs: Any):
         **kwargs: The settings to override, including nested settings.
 
     Example:
-        Temporarily override the OpenAI API key:
+        Temporarily override log level and OpenAI API key:
         ```python
         import marvin
         from marvin.settings import temporary_settings

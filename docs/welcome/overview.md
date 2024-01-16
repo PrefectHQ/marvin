@@ -6,13 +6,13 @@ free to use, rigorously type-hinted, used by thousands of engineers, and built b
 Marvin is lightweight and is built for incremental adoption. You can use it purely as a serialization library and bring your own stack,
 or fully use its engine to work with OpenAI and other providers. 
 
-??? Example "What Marvin feels like."
+??? Example "How Marvin feels"
 
     === "Structured Data Extraction"
         Marvin exposes a number of high level components to simplify working with AI. 
 
         ```python
-        from marvin.components import ai_model
+        import marvin
         from pydantic import BaseModel
 
         class Location(BaseModel):
@@ -21,7 +21,7 @@ or fully use its engine to work with OpenAI and other providers.
             latitude: float
             longitude: float
 
-        ai_model(Location)("They say they're from the Windy City!")
+        marvin.model(Location)("They say they're from the Windy City!")
         # Location(city='Chicago', state='Illinois', latitude=41.8781, longitude=-87.6298)
         ```
         Notice there's no code written, just the expected types. Marvin's components turn your function into a prompt, uses AI to get its most likely output, and parses its response.
@@ -31,10 +31,10 @@ or fully use its engine to work with OpenAI and other providers.
         Marvin exposes a number of high level components to simplify working with AI. 
 
         ```python
-        from marvin import ai_classifier
+        from marvin import classifier
         from typing import Literal
 
-        @ai_classifier
+        @classifier
         def customer_intent(text: str) -> Literal['Store Hours', 'Pharmacy', 'Returns']:
             """Classifies incoming customer intent"""
 
@@ -49,9 +49,9 @@ or fully use its engine to work with OpenAI and other providers.
         Marvin exposes a number of high level components to simplify working with AI. 
 
         ```python
-        from marvin import ai_fn
+        import marvin
 
-        @ai_fn
+        @marvin.fn
         def list_fruits(n: int, color: str = 'red') -> list[str]:
             """Generates a list of {{n}} {{color}} fruits"""
 

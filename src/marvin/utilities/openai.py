@@ -1,4 +1,5 @@
 """Module for working with OpenAI."""
+
 import asyncio
 from functools import lru_cache
 from typing import Optional
@@ -6,7 +7,7 @@ from typing import Optional
 from openai import AsyncClient
 
 
-def get_client() -> AsyncClient:
+def get_openai_client() -> AsyncClient:
     """
     Retrieves an OpenAI client with the given api key and organization.
 

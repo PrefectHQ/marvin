@@ -1,114 +1,147 @@
 # What is Marvin?
 
-Marvin is a Python library that lets you use Large Language Models by writing code, not prompts. It's open source,
-free to use, rigorously type-hinted, used by thousands of engineers, and built by the engineering team at [Prefect](https://prefect.io).
+Marvin is a lightweight AI toolkit for building natural language interfaces that are reliable, scalable, and easy to trust.
 
+Each of Marvin's tools is simple and self-documenting, using AI to solve common but complex challenges like entity extraction, classification, and generating synthetic data. Each tool is independent and incrementally adoptable, so you can use them on their own or in combination with any other library. Marvin is also multi-modal, supporting both image and audio generation as well using images as inputs for extraction and classification.
 
-??? Question "Explain Like I'm Five"
-    === "I'm technical"
+Marvin is for developers who care more about _using_ AI than _building_ AI, and we are focused on creating an exceptional developer experience. Marvin users should feel empowered to bring tightly-scoped "AI magic" into any traditional software project with just a few extra lines of code.
 
-        Marvin lets your software speak English and ask questions to LLMs.
+Marvin aims to merge the best practices for building dependable, observable software with the best practices for building with generative AI into a single, easy-to-use library. It's a serious tool, but we hope you have fun with it.
 
-        It introspects the types and docstrings of your functions and data models, and lets you cast them
-        to prompts automatically to pass to a Large Language Model. This lets you write code as you normally would
-        instead of writing prompts, and we handle the translation back and forth for you. 
+Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](https://www.prefect.io/).
 
-        This lets you focus on what you've always focused on: writing clean, versioned, reusable *code* and *data models*, 
-        and not scrutinizing whether you begged your LLM hard enough to output JSON. 
+??? Question "Explain Marvin like I'm 5"
+    === "(I'm a technical 5-year-old)"
+
+        Marvin lets your software speak English and ask questions to Large Language Models.
+
+        It introspects the types and docstrings of your functions and data models, and automatically renders them as prompts for an LLM. You write code as you would normally, rather than prompts, and Marvin handles the back-and-forth translation.
+
+        This lets you focus on what you've always focused on: writing clean, versioned, reusable *code* and *data models*, and not scrutinizing whether you begged your LLM hard enough to output JSON or needed to offer it a bigger tip for the right answer.
 
         Extracting, generating, cleaning, or classifying data is as simple as writing a function or a data model.
 
-    === "I'm not technical"
+    === "(I'm not technical)"
 
         Marvin lets engineers who know Python use Large Language Models without needing to write prompts.
 
-        It turns out that ChatGPT and other Large Language Models are good at performing boring but incredibly valuable
-        business-critical tasks beyond being a chatbot: you can use them to classify emails as spam, extract key figures
-        from a report - exactly however you want for your scenario. When you use something like ChatGPT you spend a lot of time crafting the right prompt or
-        context to get it to write your email, plan your date night, etc.
-        
-        If you want your software to use ChatGPT, you need to let it turn its objective into English. Marvin handles this
-        'translation' for you, so you get to just write code like you normally would. Engineers like using Marvin because it
-        lets them write software like they're used to.
-        
+        It turns out that ChatGPT and other Large Language Models are good at performing boring but incredibly valuable business-critical tasks beyond being a chatbot: you can use them to classify emails as spam, extract key figures from a report - exactly however you want for your scenario. When you use something like ChatGPT you spend a lot of time crafting the right prompt or context to get it to write your email, plan your date night, etc.
+
+        If you want your software to use ChatGPT, you need to let it turn its objective into English. Marvin handles this 'translation' for you, so you get to just write code like you normally would. Engineers like using Marvin because it lets them write software like they're used to.
+
         Simply put, it lets you use Generative AI without feeling like you have to learn a framework.
 
 
-Marvin is lightweight and is built for incremental adoption. You can use it purely as a serialization library and bring your own stack,
-or fully use its engine to work with OpenAI and other providers. 
+!!! Example "What's it like to use Marvin?"
 
-!!! Example "What Marvin feels like."
+    === "Classify text"
 
-    === "Structured Data Extraction"
-        Marvin exposes a number of high level components to simplify working with AI. 
+        Classify text using a set of labels:
 
         ```python
-        from marvin.components import ai_model
-        from pydantic import BaseModel
+        import marvin
+
+        result = marvin.classify(
+            "Marvin is so easy to use!",
+            labels=["positive", "negative"],
+        )
+        ```
+
+        !!! success "Result"
+            ```python
+            assert result == "positive"
+            ```
+
+    === "Extract entities"
+
+        Extract product features from user feedback:
+
+        ```python
+        import marvin
+
+        features = marvin.extract(
+            "I love my new phone's camera, but the battery life could be improved.",
+            instructions="product features",
+        )
+        ```
+
+        !!! success "Result"
+
+            ```python
+            features == ['camera', 'battery life']
+            ```
+
+    === "Standardize inputs"
+        Convert natural language to a structured form:
+
+        ```python hl_lines="10"
+        import marvin
+        from pydantic import BaseModel, Field
+
 
         class Location(BaseModel):
             city: str
-            state: str
-            latitude: float
-            longitude: float
+            state: str = Field(description='2-letter abbreviation')
 
-        ai_model(Location)("They say they're from the Windy City!")
-        # Location(city='Chicago', state='Illinois', latitude=41.8781, longitude=-87.6298)
+
+        result = marvin.cast('the big apple', Location)
         ```
-        Notice there's no code written, just the expected types. Marvin's components turn your function into a prompt, uses AI to get its most likely output, and parses its response.
-    
-    === "Text Classification"
-    
-        Marvin exposes a number of high level components to simplify working with AI. 
 
-        ```python
-        from marvin import ai_classifier
-        from typing import Literal
+        !!! success "Result"
+            ```python
+            assert result == Location(city="New York", state="NY")
+            ```
 
-        @ai_classifier
-        def customer_intent(text: str) -> Literal['Store Hours', 'Pharmacy', 'Returns']:
-            """Classifies incoming customer intent"""
 
-        customer_intent("I need to pick up my prescription") # "Pharmacy"
+    === "Generate data"
+        Generate synthetic data from a schema and instructions:
 
+        ```python hl_lines="10-14"
+        import marvin
+        from pydantic import BaseModel, Field
+
+
+        class Location(BaseModel):
+            city: str
+            state: str = Field(description='2-letter abbreviation')
+
+
+        result = marvin.generate(
+            n=4,
+            target=Location,
+            instructions='US cities named after presidents',
+        )
         ```
-        Notice `customer_intent` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
-        parses its response.
-    
-    === "Business Logic"
 
-        Marvin exposes a number of high level components to simplify working with AI. 
+        !!! success "Result"
+            ```python
+            result == [
+                Location(city="Washington", state="DC"),
+                Location(city="Jefferson City", state="MO"),
+                Location(city="Lincoln", state="NE"),
+                Location(city="Madison", state="WI"),
+            ]
+            ```
 
-        ```python
-        from marvin import ai_fn
+    === "Custom AI functions"
 
-        @ai_fn
-        def list_fruits(n: int, color: str = 'red') -> list[str]:
-            """Generates a list of {{n}} {{color}} fruits"""
+        Marvin functions let you combine any inputs, instructions, and output types to create custom AI-powered behaviors.
 
-        list_fruits(3) # "['Apple', 'Cherry', 'Strawberry']"
+        ```python hl_lines="3"
+        import marvin
+
+        @marvin.fn
+        def list_fruits(n: int, color: str) -> list[str]:
+            """Generates a list of `n` fruits that are `color`"""
+
+        fruits = list_fruits(3, color='red')
         ```
-        Notice `list_fruits` has no code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and
-        parses its response.
-For years we've built open source software used by tens of thousands of data and machine learning engineers daily. Marvin brings those best practices for building dependable, observable software to generative AI. 
 
-## What models do we support?
+        !!! success "Result"
 
-Marvin supports any model so long as it adheres to the OpenAI spec. It's the easiest way to use Function Calling and Tool use. We run (and foot the bill for!) a public evaluation test suite to ensure that our library does what we say it does. If you're a community member who wants to build an maintain an integration with another provider, get in touch. 
+            ```python
+            fruits == ["apple", "cherry", "strawberry"]
+            ```
 
-Note that Marvin can be used as a serialization library, so you can bring your own Large Language Models and exclusively use Marvin to generate prompts from your code.
-
-## Why are we building Marvin?
-
-At Prefect we support thousands of engineers in workflow orchestration, from small startups to huge enterprise. In late 2022 we
-started working with our community to adopt AI into their workflows and found there wasn't a sane option for teams looking
-to build simple, quickly, and durable with Generative AI. 
-
-## Why Marvin over alternatives?
-
-Marvin's built and maintained by the team at Prefect. We work with thousands of engineers daily and work backwards from their 
-experiences to build reliable, intuitive and pleasant interfaces to otherwise hard things. 
-
-There's a whole fleet of frameworks to work with Large Language Models, but we're not smart enough to understand them. We
-try to fight abstractions wherever we can so that users can easily understand and customize what's going on. 
+        Note that `list_fruits` has no source code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and parses its response.
 
