@@ -186,7 +186,7 @@ class Transcript(BaseModel):
         **kwargs: Any,
     ) -> list[Message]:
         pairs = split_text_by_tokens(
-            text=self.render(**kwargs),
+            text=self.render(**kwargs).strip(),
             split_tokens=[f"\n{role}" for role in self.roles.keys()],
         )
         return [

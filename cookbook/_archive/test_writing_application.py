@@ -5,7 +5,7 @@ import marvin.tools
 import marvin.tools.filesystem
 import marvin.tools.python
 import marvin.tools.shell
-from marvin import AIApplication
+from marvin.beta.applications import AIApplication
 from pydantic import BaseModel, Field
 
 marvin.settings.log_level = "DEBUG"

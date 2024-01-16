@@ -10,7 +10,7 @@ from typing_extensions import ParamSpec
 from marvin.beta.assistants import Assistant, Run, Thread
 from marvin.beta.assistants.runs import CancelRun
 from marvin.serializers import create_tool_from_type
-from marvin.tools.assistants import AssistantTools
+from marvin.tools.assistants import AssistantTool
 from marvin.utilities.context import ScopedContext
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.tools import tool_from_function
@@ -128,7 +128,7 @@ class AITask(BaseModel, Generic[P, T]):
     name: str = Field(None, description="The name of the objective")
     instructions: str = Field(None, description="The instructions for the objective")
     assistant: Optional[Assistant] = None
-    tools: list[AssistantTools] = []
+    tools: list[AssistantTool] = []
     max_run_iterations: int = 15
     result: Optional[T] = None
     accept_user_input: bool = True
@@ -260,7 +260,7 @@ class AITask(BaseModel, Generic[P, T]):
             self.result = result
             raise CancelRun()
 
-        tool.function.python_fn = task_completed_with_result
+        tool.function._python_fn = task_completed_with_result
 
         return tool
 
@@ -280,7 +280,7 @@ def ai_task(
     *,
     name=None,
     instructions=None,
-    tools: list[AssistantTools] = None,
+    tools: list[AssistantTool] = None,
     **kwargs,
 ):
     def decorator(func):

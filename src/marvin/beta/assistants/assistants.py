@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 import marvin.utilities.tools
 from marvin.requests import Tool
-from marvin.tools.assistants import AssistantTools
+from marvin.tools.assistants import AssistantTool
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -26,7 +26,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     name: str = "Assistant"
     model: str = "gpt-4-1106-preview"
     instructions: Optional[str] = Field(None, repr=False)
-    tools: list[AssistantTools] = []
+    tools: list[Union[AssistantTool, Callable]] = []
     file_ids: list[str] = []
     metadata: dict[str, str] = {}
 
@@ -39,8 +39,15 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     def clear_default_thread(self):
         self.default_thread = Thread()
 
-    def get_tools(self) -> list[AssistantTools]:
-        return self.tools
+    def get_tools(self) -> list[AssistantTool]:
+        return [
+            (
+                tool
+                if isinstance(tool, Tool)
+                else marvin.utilities.tools.tool_from_function(tool)
+            )
+            for tool in self.tools
+        ]
 
     def get_instructions(self) -> str:
         return self.instructions or ""
@@ -65,17 +72,6 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             **run_kwargs,
         )
         return run
-
-    @field_validator("tools", mode="before")
-    def format_tools(cls, tools: list[Union[Tool, Callable]]):
-        return [
-            (
-                tool
-                if isinstance(tool, Tool)
-                else marvin.utilities.tools.tool_from_function(tool)
-            )
-            for tool in tools
-        ]
 
     def __enter__(self):
         self.create()
@@ -124,3 +120,9 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         if thread is None:
             thread = self.default_thread
         return thread.chat(assistant=self)
+
+    def pre_run_hook(self, run: "Run"):
+        pass
+
+    def post_run_hook(self, run: "Run"):
+        pass

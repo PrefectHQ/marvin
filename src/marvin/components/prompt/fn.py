@@ -32,6 +32,34 @@ T = TypeVar("T")
 U = TypeVar("U", bound=BaseModel)
 
 
+def fn_to_messages(
+    fn: Callable,
+    fn_args,
+    fn_kwargs,
+    prompt=None,
+    render_kwargs=None,
+    call_fn: bool = True,
+) -> list[Message]:
+    prompt = prompt or fn.__doc__ or ""
+
+    signature = inspect.signature(fn)
+    params = signature.bind(*fn_args, **fn_kwargs)
+    params.apply_defaults()
+    return_annotation = inspect.signature(fn).return_annotation
+    return_value = fn(*fn_args, **fn_kwargs) if call_fn else None
+
+    messages = Transcript(content=prompt).render_to_messages(
+        **fn_kwargs | params.arguments,
+        _arguments=params.arguments,
+        _doc=inspect.getdoc(fn),
+        _return_value=return_value,
+        _return_annotation=return_annotation,
+        _source_code=("\ndef" + "def".join(re.split("def", inspect.getsource(fn))[1:])),
+        **(render_kwargs or {}),
+    )
+    return messages
+
+
 class PromptFunction(Prompt[U]):
     model_config = pydantic.ConfigDict(
         extra="allow",
@@ -99,33 +127,22 @@ class PromptFunction(Prompt[U]):
         Callable[[Callable[P, Any]], Callable[P, Self]],
         Callable[P, Self],
     ]:
-        def wrapper(func: Callable[P, Any], *args: P.args, **kwargs: P.kwargs) -> Self:
-            # Get the signature of the function
-            signature = inspect.signature(func)
-            params = signature.bind(*args, **kwargs)
-            params.apply_defaults()
-
+        def wrapper(func: Callable[P, Any], *args: P.args, **kwargs_: P.kwargs) -> Self:
             vocabulary = create_vocabulary_from_type(
                 inspect.signature(func).return_annotation
             )
-
+            messages = fn_to_messages(
+                fn=fn,
+                fn_args=args,
+                fn_kwargs=kwargs_,
+                prompt=prompt,
+                render_kwargs=dict(_options=vocabulary),
+            )
             grammar = create_grammar_from_vocabulary(
                 vocabulary=vocabulary,
                 encoder=encoder,
                 _enumerate=enumerate,
                 max_tokens=max_tokens,
-            )
-
-            messages = Transcript(
-                content=prompt or func.__doc__ or ""
-            ).render_to_messages(
-                **kwargs | params.arguments,
-                _arguments=params.arguments,
-                _options=vocabulary,
-                _doc=func.__doc__,
-                _source_code=(
-                    "\ndef" + "def".join(re.split("def", inspect.getsource(func))[1:])
-                ),
             )
 
             return cls(
@@ -154,6 +171,7 @@ class PromptFunction(Prompt[U]):
         model_description: str = "Formats the response.",
         field_name: str = "data",
         field_description: str = "The data to format.",
+        render_kwargs: Optional[dict[str, Any]] = None,
     ) -> Callable[[Callable[P, Any]], Callable[P, Self]]:
         pass
 
@@ -169,6 +187,7 @@ class PromptFunction(Prompt[U]):
         model_description: str = "Formats the response.",
         field_name: str = "data",
         field_description: str = "The data to format.",
+        render_kwargs: Optional[dict[str, Any]] = None,
     ) -> Callable[P, Self]:
         pass
 
@@ -183,34 +202,32 @@ class PromptFunction(Prompt[U]):
         model_description: str = "Formats the response.",
         field_name: str = "data",
         field_description: str = "The data to format.",
+        render_kwargs: Optional[dict[str, Any]] = None,
         **kwargs: Any,
     ) -> Union[
         Callable[[Callable[P, Any]], Callable[P, Self]],
         Callable[P, Self],
     ]:
         def wrapper(func: Callable[P, Any], *args: P.args, **kwargs_: P.kwargs) -> Self:
-            signature = inspect.signature(func)
-            params = signature.bind(*args, **kwargs_)
-            params.apply_defaults()
+            _type = inspect.signature(func).return_annotation
+            if _type is inspect._empty:
+                _type = str
 
             toolset = cast_type_to_toolset(
-                _type=inspect.signature(func).return_annotation,
+                _type=_type,
                 model_name=model_name,
                 model_description=model_description,
                 field_name=field_name,
                 field_description=field_description,
             )
 
-            messages = Transcript(
-                content=prompt or func.__doc__ or ""
-            ).render_to_messages(
-                **kwargs_ | params.arguments,
-                _doc=func.__doc__,
-                _arguments=params.arguments,
-                _response_model=toolset.tools[0],  # type: ignore
-                _source_code=(
-                    "\ndef" + "def".join(re.split("def", inspect.getsource(func))[1:])
-                ),
+            messages = fn_to_messages(
+                fn=fn,
+                fn_args=args,
+                fn_kwargs=kwargs_,
+                prompt=prompt,
+                render_kwargs=(render_kwargs or {})
+                | dict(_response_model=toolset.tools[0]),
             )
 
             return cls(
