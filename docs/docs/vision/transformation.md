@@ -2,10 +2,7 @@
 
 Marvin can use OpenAI's vision API to process images and convert them into structured data, transforming unstructured information into native types that are appropriate for a variety of programmatic use cases.
 
-The `marvin.beta.cast` function is an enhanced version of `marvin.cast` that accepts images as well as text. 
-
-
-
+The `marvin.beta.cast` function is an enhanced version of `marvin.cast` that accepts images as well as text.
 
 !!! tip "Beta"
     Please note that vision support in Marvin is still in beta, as OpenAI has not finalized the vision API yet. While it works as expected, it is subject to change.
@@ -17,7 +14,6 @@ The `marvin.beta.cast` function is an enhanced version of `marvin.cast` that acc
   </p>
 </div>
 
-
 <div class="admonition info">
   <p class="admonition-title">How it works</p>
   <p>
@@ -28,15 +24,13 @@ The `marvin.beta.cast` function is an enhanced version of `marvin.cast` that acc
 </div>
 
 
-
-
-!!! example "Example: Locations"
+!!! example "Example: locations"
 
     We will cast this image to a `Location` type:
 
     ![](https://images.unsplash.com/photo-1568515387631-8b650bbcdb90)
 
-    
+
     ```python
     import marvin
     from pydantic import BaseModel, Field
@@ -47,7 +41,9 @@ The `marvin.beta.cast` function is an enhanced version of `marvin.cast` that acc
         state: str = Field(description="2-letter state abbreviation")
 
 
-    img = marvin.beta.Image('https://images.unsplash.com/photo-1568515387631-8b650bbcdb90')
+    img = marvin.beta.Image(
+        "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90",
+    )
     result = marvin.beta.cast(img, target=Location)
     ```
 
@@ -56,15 +52,13 @@ The `marvin.beta.cast` function is an enhanced version of `marvin.cast` that acc
         assert result == Location(city="New York", state="NY")
         ```
 
-
-
 !!! example "Example: getting information about a book"
 
     We will cast this image to a `Book` to extract key information:
 
     ![](https://hastie.su.domains/ElemStatLearn/CoverII_small.jpg){ width="250" }
 
-    
+
     ```python
     import marvin
     from pydantic import BaseModel
@@ -75,16 +69,47 @@ The `marvin.beta.cast` function is an enhanced version of `marvin.cast` that acc
         subtitle: str
         authors: list[str]
 
-    
-    img = marvin.beta.Image('https://hastie.su.domains/ElemStatLearn/CoverII_small.jpg')
+
+    img = marvin.beta.Image(
+        "https://hastie.su.domains/ElemStatLearn/CoverII_small.jpg",
+    )
     result = marvin.beta.cast(img, target=Book)
     ```
 
     !!! success "Result"
         ```python
         assert result == Book(
-            title='The Elements of Statistical Learning', 
-            subtitle='Data Mining, Inference, and Prediction', 
+            title='The Elements of Statistical Learning',
+            subtitle='Data Mining, Inference, and Prediction',
             authors=['Trevor Hastie', 'Robert Tibshirani', 'Jerome Friedman']
         )
-        ```    
+        ```
+
+## Instructions
+
+If the target type isn't self-documenting, or you want to provide additional guidance, you can provide natural language `instructions` when calling `cast` in order to steer the output. 
+
+
+!!! example "Example: checking groceries"
+
+    Let's use this image to see if we got everything on our shopping list:
+
+    ![](https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9)
+
+    ```python
+    import marvin
+
+    shopping_list = ["bagels", "cabbage", "eggs", "apples", "oranges"]
+    
+    missing_items = marvin.beta.cast(
+        marvin.beta.Image("https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9"), 
+        target=list[str], 
+        instructions=f"Did I forget anything on my list: {shopping_list}?",
+    )
+
+    ```
+
+    !!! success "Result"
+        ```python
+        assert missing_items == ["eggs", "oranges"]
+        ```
