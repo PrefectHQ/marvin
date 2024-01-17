@@ -96,11 +96,13 @@ Learn more about classification [here](https://askmarvin.ai/docs/text/classifica
 Marvin can `extract` structured entities from text:
 
 ```python
-from pydantic import BaseModel
+import pydantic
 
-class Location(BaseModel):
+
+class Location(pydantic.BaseModel):
     city: str
     state: str
+
 
 marvin.extract("I moved from NY to CHI", target=Location)
 
@@ -129,11 +131,10 @@ Learn more about entity extraction [here](https://askmarvin.ai/docs/text/extract
 Marvin can `generate` synthetic data for you, following instructions and an optional schema:
 
 ```python
-from pydantic import BaseModel
-
-class Location(BaseModel):
+class Location(pydantic.BaseModel):
     city: str
     state: str
+
 
 marvin.generate(
     n=4,
@@ -164,11 +165,10 @@ marvin.cast("one two three", list[int])
 This is useful for standardizing text inputs or matching natural language to a schema:
 
 ```python
-from pydantic import BaseModel
-
-class Location(BaseModel):
+class Location(pydantic.BaseModel):
     city: str
     state: str
+
 
 marvin.cast("The Big Apple", Location)
 
@@ -179,9 +179,10 @@ For a class-based approach, Marvin's `@model` decorator can be applied to any Py
 
 ```python
 @marvin.model
-class Location(BaseModel):
+class Location(pydantic.BaseModel):
     city: str
     state: str
+
 
 Location("The Big Apple")
 

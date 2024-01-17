@@ -25,10 +25,11 @@ Marvin can use OpenAI's vision API to process images as inputs.
     import marvin
     from pathlib import Path
 
-    marvin.beta.caption(image=Path('/path/to/marvin.png'))
+    caption = marvin.beta.caption(image=Path('/path/to/marvin.png'))
     ```
 
     !!! success "Result"
+    
         "This is a digital illustration featuring a stylized, cute character resembling a Funko Pop vinyl figure with large, shiny eyes and a square-shaped head, sitting on abstract wavy shapes that simulate a landscape. The whimsical figure is set against a dark background with sparkling, colorful bokeh effects, giving it a magical, dreamy atmosphere."
     
 
