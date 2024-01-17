@@ -2,20 +2,21 @@ from github import Github
 from marvin import ai_fn
 from openai import OpenAI
 import os
+from typing import List
 
 
-def authenticate_github(username, token):
+def authenticate_github(username: str, token: str) -> Github:
     return Github(username, token)
 
 
-def get_dependabot_prs(repo):
+def get_dependabot_prs(repo) -> List:
     return repo.get_pulls(state="open", head="dependabot")
 
 
-def heruistics(pr):
+def heruistics(pr) -> float:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    def evaluate_heuristic(pr, labels, description, files_changed):
+    def evaluate_heuristic(pr, labels, description, files_changed) -> float:
         """
         Analyzes the PR labels, description, and files changed to calculate a confidence score using sentiment analysis.
 
@@ -34,29 +35,29 @@ def heruistics(pr):
     )
 
 
-def merge_pr(pr):
+def merge_pr(pr) -> None:
     pr.merge()
 
 
-def notify_maintainer_merger(pr, confidence_score):
+def notify_maintainer_merger(pr, confidence_score: float) -> None:
     pr.create_issue_comment(
         f"Hey @@zzstoatzz! I have evaluated this PR and am {confidence_score*100}%"
         " confident that it is safe to merge. I have gone ahead and merged it for you."
     )
 
 
-def notify_maintainer(pr, confidence_score):
+def notify_maintainer(pr, confidence_score: float) -> None:
     pr.create_issue_comment(
         f"Hey @@zzstoatzz! I have evaluated this PR and am {confidence_score*100}%"
         " confident that it is safe to merge. Could you please take a look. Thanks!"
     )
 
 
-def close_pr(pr):
+def close_pr(pr) -> None:
     pr.close()
 
 
-def main():
+def main() -> None:
     github_username = os.getenv("GITHUB_USERNAME")
     github_token = os.getenv("GITHUB_TOKEN")
 
