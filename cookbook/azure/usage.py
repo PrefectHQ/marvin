@@ -1,14 +1,19 @@
-"""Usage example of Marvin with Azure OpenAI
+"""
+Usage example of Marvin with Azure OpenAI
 
-If you'll be using Azure OpenAI exclusively, you can set the following environment variables in `~/.marvin/.env`:
+If you'll be using Azure OpenAI exclusively, you can set the following env vars in your environment, `~/.marvin/.env`, or `.env`:
 ```bash
-MARVIN_USE_AZURE_OPENAI=true
-MARVIN_AZURE_OPENAI_API_KEY=...
-MARVIN_AZURE_OPENAI_API_VERSION=...
-MARVIN_AZURE_OPENAI_ENDPOINT=...
-MARVIN_AZURE_OPENAI_DEPLOYMENT_NAME=...
+
+MARVIN_PROVIDER=azure_openai
+MARVIN_AZURE_OPENAI_API_KEY=<your-api-key>
+MARVIN_AZURE_OPENAI_ENDPOINT="https://<your-endpoint>.openai.azure.com/"
+MARVIN_AZURE_OPENAI_API_VERSION=2023-12-01-preview # or latest
+
+Note that you MUST set the LLM model name to be your Azure OpenAI deployment name, e.g.
+MARVIN_CHAT_COMPLETION_MODEL=<your Azure OpenAI deployment name>
 ```
 """
+
 from enum import Enum
 
 import marvin
@@ -34,8 +39,12 @@ def list_fruits(n: int = 3) -> list[str]:
 
 
 with temporary_settings(
-    use_azure_openai=True
-):  # or set MARVIN_USE_AZURE_OPENAI=true in `~/.marvin/.env`
+    provider="azure_openai",
+    azure_openai_api_key="...",
+    azure_openai_api_version="...",
+    azure_openai_endpoint="...",
+    chat_completion_model="<your Azure OpenAI deployment name>",
+):
     fruits = list_fruits()
     location = marvin.model(Location)("windy city")
     casted_location = marvin.cast("windy city", Location)

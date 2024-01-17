@@ -30,13 +30,15 @@ A runtime settings object is accessible via `marvin.settings` and can be used to
 ## Settings for using Azure OpenAI models
 _Some_ of Marvin's functionality is supported by Azure OpenAI services.
 
-If you're exclusively using Marvin with Azure OpenAI services, you can set the following environment variables to avoid having to pass `AzureOpenAI` client instances to Marvin's components.
+After setting up your Azure OpenAI account and deployment, set these environment variables in your environment, `~/.marvin/.env`, or `.env` file:
+
 ```bash
-MARVIN_USE_AZURE_OPENAI=true
-MARVIN_AZURE_OPENAI_API_KEY=...
-MARVIN_AZURE_OPENAI_API_VERSION=...
-MARVIN_AZURE_OPENAI_ENDPOINT=...
-MARVIN_AZURE_OPENAI_DEPLOYMENT_NAME=...
+MARVIN_PROVIDER=azure_openai
+MARVIN_AZURE_OPENAI_API_KEY=<your-api-key>
+MARVIN_AZURE_OPENAI_ENDPOINT="https://<your-endpoint>.openai.azure.com/"
+MARVIN_AZURE_OPENAI_API_VERSION=2023-12-01-preview # or latest
+
+MARVIN_CHAT_COMPLETION_MODEL=<your azure openai deployment name>
 ```
 
-To selectively use Azure OpenAI services, you can pass an `AzureOpenAI` client to Marvin's components or use `temporary_settings` like this [example](https://github.com/PrefectHQ/marvin/blob/main/cookbook/azure/README.md).
+Note that the chat completion model must be your Azure OpenAI deployment name.
