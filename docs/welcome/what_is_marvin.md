@@ -1,3 +1,4 @@
+
 # What is Marvin?
 
 ![](/assets/images/heroes/it_hates_me_hero.png)
@@ -73,8 +74,8 @@ Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](
             features == ['camera', 'battery life']
             ```
 
-    === "Standardize inputs"
-        Convert natural language to a structured form:
+    === "Structure text and images"
+        Marvin can convert natural language to a structured form:
 
         ```python hl_lines="10"
         import marvin
@@ -94,6 +95,31 @@ Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](
             assert result == Location(city="New York", state="NY")
             ```
 
+        ---
+
+        Marvin is multimodal, with beta support for using images as inputs. As an example, let's compare this photo to a shopping list to generate a list of missing items:
+
+        ![](https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9)
+
+        ```python
+        import marvin
+
+        shopping_list = ["bagels", "cabbage", "eggs", "apples", "oranges"]
+        groceries = marvin.beta.Image(
+            "https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9",
+        )
+        
+        missing_items = marvin.beta.cast(
+            groceries, 
+            target=list[str], 
+            instructions=f"Did I forget anything on my list: {shopping_list}?",
+        )
+        ```
+
+        !!! success "Result"
+            ```python
+            assert missing_items == ["eggs", "oranges"]
+            ```
 
     === "Generate data"
         Generate synthetic data from a schema and instructions:
@@ -125,6 +151,8 @@ Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](
             ]
             ```
 
+
+
     === "Custom AI functions"
 
         Marvin functions let you combine any inputs, instructions, and output types to create custom AI-powered behaviors.
@@ -148,4 +176,5 @@ Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](
             ```
 
         Note that `list_fruits` has no source code. Marvin's components turn your function into a prompt, ask AI for its most likely output, and parses its response.
+
 
