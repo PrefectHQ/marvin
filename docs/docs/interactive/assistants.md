@@ -74,9 +74,10 @@ Each assistant can be given a list of `tools` that it can use when responding to
 
 OpenAI provides a small number of built-in tools for assistants. The most useful is the "code interpreter", which lets the assistant write and execute Python code. To use the code interpreter, add it to your assistant's list of tools.
 
-!!! example "Using the code interpreter"
 
     This assistant uses the code interpreter to generate a plot of sin(x). Note that Marvin's utility for pretty-printing messages to the terminal can't show the plot inline, but will download it and show a link to the file instead.
+
+!!! example "Using assistants with the code interpreter"
 
     ```python
     from marvin.beta import Assistant
