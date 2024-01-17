@@ -1,5 +1,7 @@
 # What is Marvin?
 
+![](/assets/images/heroes/it_hates_me_hero.png)
+
 Marvin is a lightweight AI toolkit for building natural language interfaces that are reliable, scalable, and easy to trust.
 
 Each of Marvin's tools is simple and self-documenting, using AI to solve common but complex challenges like entity extraction, classification, and generating synthetic data. Each tool is independent and incrementally adoptable, so you can use them on their own or in combination with any other library. Marvin is also multi-modal, supporting both image and audio generation as well using images as inputs for extraction and classification.

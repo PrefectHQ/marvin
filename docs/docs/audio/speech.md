@@ -19,12 +19,15 @@ Marvin can generate speech from text.
         ```python
         import marvin
 
-        marvin.speak("I sure like being inside this fancy computer!")
+        audio = marvin.speak("I sure like being inside this fancy computer!")
         ```
 
         !!! success "Result"
+            ```python
+            audio.stream_to_file("path/to/fancy_computer.mp3")
+            ```
             <audio controls>
-              <source src="/assets/audio/hello.mp3" type="audio/mpeg">
+              <source src="/assets/audio/fancy_computer.mp3" type="audio/mpeg">
               Your browser does not support the audio element.
             </audio>
 
@@ -38,10 +41,14 @@ Marvin can generate speech from text.
         def say_hello(name: str):
             return f'Hello, {name}! How are you doing today?'
         
-        say_hello("Arthur")
+
+        audio = say_hello("Arthur")
         ```
 
         !!! success "Result"
+            ```python
+            audio.stream_to_file("path/to/hello_arthur.mp3")
+            ```
             <audio controls>
               <source src="/assets/audio/hello_arthur.mp3" type="audio/mpeg">
               Your browser does not support the audio element.
