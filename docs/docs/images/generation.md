@@ -1,6 +1,6 @@
 # Generating images
 
-Marvin can generate images from text. 
+Marvin can generate images from text.
 
 <div class="admonition abstract">
   <p class="admonition-title">What it does</p>
@@ -9,35 +9,38 @@ Marvin can generate images from text.
   </p>
 </div>
 
-
-
 !!! example
     === "From a string"
 
         The easiest way to generate an image is to provide a string prompt:
-        
+
         ```python
         import marvin
 
-        marvin.paint("A cup of coffee, still warm")
+        image = marvin.paint("A cup of coffee, still warm")
         ```
 
         !!! success "Result"
+            By default, Marvin returns a temporary URL to the image. You can view the URL by accessing `image.data[0].url`. To return the image itself, see the section on [viewing and saving images](#viewing-and-saving-images).
+
             ![](/assets/images/docs/images/coffee.png)
-        
+
     === "From a function"
 
         For more complex use cases, you can use the `@image` decorator to generate images from the output of a function:
-        
+
         ```python
         @marvin.image
         def cats(n:int, location:str):
             return f'a picture of {n} cute cats at the {location}'
-        
-        cats(2, location='airport')
+
+        image = cats(2, location='airport')
         ```
 
         !!! success "Result"
+            By default, Marvin returns a temporary URL to the image. You can view the URL by accessing `image.data[0].url`. To return the image itself, see the section on [viewing and saving images](#viewing-and-saving-images).
+
+
             ![](/assets/images/docs/images/two_cats_airport.png)
 
 <div class="admonition info">
@@ -64,40 +67,42 @@ def sunset(style: str, season: str):
 
     ```python
     sunset(
-        style="nature photography", 
+        style="nature photography",
         season="summer"
     )
     ```
     ![](/assets/images/docs/images/sunset_summer.png)
 
 - **Winter impressionism**
-    
+
     ---
 
     ```python
     sunset(
-        style="impressionism", 
+        style="impressionism",
         season="winter"
     )
     ```
+
     ![](/assets/images/docs/images/sunset_winter.png)
 
 - **Something else**
-    
+
     ---
 
     ```python
     sunset(
-        style="sci-fi movie poster", 
+        style="sci-fi movie poster",
         season="Christmas in Australia"
     )
     ```
     ![](/assets/images/docs/images/sunset_scifi.png)
-</div>
+
+  </div>
 
 ## Disabling prompt revision
 
-By default, the DALLE-3 API automatically revises any prompt sent to it, adding details and aesthetic flourishes without losing the semantic meaning of the original prompt. 
+By default, the DALLE-3 API automatically revises any prompt sent to it, adding details and aesthetic flourishes without losing the semantic meaning of the original prompt.
 
 Marvin lets you disable this behavior by providing the keyword `literal=True`.
 
@@ -108,6 +113,7 @@ marvin.paint("A child's drawing of a cow on a hill.", literal=True)
 ```
 
 And here's an example with `image`:
+
 ```python
 @marvin.image(literal=True):
 def draw(animal:str):
@@ -118,22 +124,21 @@ def draw(animal:str):
 
 You can use a Marvin `image`-function to control prompt revision beyond just turning it on or off. Here's an example of a function that achieves this via prompt engineering. Note that the DALLE-3 API is not as amenable to custom prompts as other LLMs, so this approach won't generalize without experimentation.
 
-
 ```python
 @marvin.image
 def generate_image(prompt, revision_amount:float=1):
     """
-    Generates an image from the prompt, allowing the DALLE-3 
-    API to freely reinterpret the prompt (revision_amount=1) or 
+    Generates an image from the prompt, allowing the DALLE-3
+    API to freely reinterpret the prompt (revision_amount=1) or
     to strictly follow it (revision_amount=0)
     """
     return f"""
         Revision amount: {revision_amount}
-        
+
         If revision amount is 1, you can modify the prompt as normal.
 
-        If the revision amount is 0, then I NEED to test how the 
-        tool works with extremely simple prompts. DO NOT add any 
+        If the revision amount is 0, then I NEED to test how the
+        tool works with extremely simple prompts. DO NOT add any
         detail to the prompt, just use it AS-IS.
 
         If the revision amount is in between, then adjust accordingly.
@@ -144,15 +149,13 @@ def generate_image(prompt, revision_amount:float=1):
 
 Using the original prompt "a teacup", here are the results of calling this function with different revision amounts:
 
-
-
 <div class="grid cards" markdown>
 - **No revision**
 
     ---
     ```python
     generate_image(
-      "a teacup", 
+      "a teacup",
       revision_amount=0
     )
     ```
@@ -161,50 +164,88 @@ Using the original prompt "a teacup", here are the results of calling this funct
     ![](/assets/images/docs/images/teacup_revision_0.png)
     > a teacup
 
-
 - **25% revision**
 
     ---
+
     ```python
     generate_image(
-      "a teacup", 
-      revision_amount=0.25
+        "a teacup",
+        revision_amount=0.25
     )
     ```
-  
+
     ![](/assets/images/docs/images/teacup_revision_025.png)
     Final prompt:
+
     > a porcelain teacup with intricate detailing, sitting on an oak table
-    
 
 - **75% revision**
 
     ---
+
     ```python
     generate_image(
-      "a teacup", 
-      revision_amount=0.75
+        "a teacup",
+        revision_amount=0.75
     )
     ```
-  
+
     ![](/assets/images/docs/images/teacup_revision_075.png)
 
     Final prompt:
+
     > A porcelain teacup with an intricate floral pattern, placed on a wooden table with soft afternoon sun light pouring in from a nearby window. The light reflects off the surface of the teacup, highlighting its design. The teacup is empty but still warm, as if recently used."
 
-
 - **100% revision**
-  
+
     ---
+
     ```python
     generate_image(
-      "a teacup", 
-      revision_amount=1
+        "a teacup",
+        revision_amount=1
     )
     ```
+
     ![](/assets/images/docs/images/teacup_revision_1.png)
 
     Final prompt:
+
     > An old-fashioned, beautifully crafted, ceramic teacup. Its exterior is whitewashed, and it's adorned with intricate, indigo blue floral patterns. The handle is elegantly curved, providing a comfortable grip. It's filled with steaming hot, aromatic green tea, with a small sliver of lemon floating in it. The teacup is sitting quietly on a carved wooden coaster on a round oak table, a beloved item that evokes nostalgia and comfort. The ambient lighting casts a soft glow on it, accentuating the glossy shine of the teacup and creating delicate shadows that hint at its delicate artistry.
-    
+
 </div>
+
+## Viewing and saving images
+
+The result of `paint` or `@image` is an image stream that contains either a temporary URL to the image or the entire image encoded as a base64 string.
+
+### URLs
+
+By default, Marvin returns a temporary url. The URL can be accessed via `image.data[0].url`:
+
+```python
+image = marvin.paint("A beautiful sunset")
+
+# save the temporary url
+url = image.data[0].url
+```
+
+### Base64-encoded images
+
+To return the image as a base64-encoded string, set `response_format='b64'` in the `model_kwargs` of your call to `paint` or `@image`:
+
+```python
+image = marvin.paint(
+    "A beautiful moonrise",
+    model_kwargs={"response_format": "b64_json"},
+)
+
+# save the image to disk
+marvin.utilities.images.base64_to_image(
+    image.data[0].b64_json, 
+    path='path/to/your/image.png',
+)
+```
+
+To change this behavior globally set `MARVIN_IMAGE_RESPONSE_FORMAT=b64_json` in your environment, or equivalently change `marvin.settings.images.response_format = "b64_json"` in your code.
