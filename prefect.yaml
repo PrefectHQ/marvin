@@ -8,9 +8,8 @@ push: null
 pull:
 - prefect.deployments.steps.git_clone:
     repository: https://github.com/PrefectHQ/marvin.git
-    branch: 'issue-labeler'
 - prefect.deployments.steps.run_shell_script:
-    script: pip install git+https://github.com/PrefectHQ/marvin.git@issue-labeler prefect-gcp
+    script: pip install git+https://github.com/PrefectHQ/marvin.git prefect-gcp
 
 deployments:
 - name: github-repo-digest
