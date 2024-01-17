@@ -166,15 +166,14 @@ def _two_step_vision_response(
         other aspects of the objective into account, but your only
         responsibility is to translate the images into relevant data. 
         
-        While you may output a direct response to the objective, you must also
-        include at least some description of the image. This is to ensure the
-        other AI understands that this is your output, not the original input.
-        You only need to include enough information to make this clear.
+        Do not tell the other AI what to do or return, as it will get confused.
+        Just return a description of the image that contains any detail the
+        other AI can use to generate its own response. You may be as succinct as
+        possible.
         
         Here is the objective, verbatim:
         
-        ``` {objective} ```
-    
+        ```{objective}```
         """
     ).format(objective=objective)
 
