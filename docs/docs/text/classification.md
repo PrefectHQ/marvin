@@ -1,4 +1,4 @@
-# Classification
+# Classifying text
 
 Marvin has a powerful classification tool that can be used to categorize text into predefined labels. It uses a logit bias technique that is faster and more accurate than traditional LLM approaches. This capability is essential across a range of applications, from categorizing user feedback and tagging issues to managing inputs in natural language interfaces.
 

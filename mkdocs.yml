@@ -47,7 +47,6 @@ nav:
       - marvin.ai.text: api_reference/ai/text.md
       - marvin.ai.images: api_reference/ai/images.md
       - marvin.ai.audio: api_reference/ai/audio.md
-
     - Beta AI modules:
       - marvin.beta.vision: api_reference/beta/vision.md
       - marvin.beta.assistants: 
@@ -57,23 +56,30 @@ nav:
         - marvin.beta.assistants.runs: api_reference/beta/assistants/runs.md
         - marvin.beta.assistants.formatting: api_reference/beta/assistants/formatting.md
       - marvin.beta.applications: api_reference/beta/applications.md
-
     - Object schemas: 
       - marvin.types: api_reference/types.md
     - Settings:
       - marvin.settings: api_reference/settings.md
     - Utilities:
       - marvin.utilities.asyncio: api_reference/utilities/asyncio.md
+      - marvin.utilities.context: api_reference/utilities/context.md
+      - marvin.utilities.images: api_reference/utilities/images.md
       - marvin.utilities.jinja: api_reference/utilities/jinja.md
       - marvin.utilities.logging: api_reference/utilities/logging.md
-      - marvin.utilities.tools: api_reference/utilities/tools.md
+      - marvin.utilities.openai: api_reference/utilities/openai.md
+      - marvin.utilities.pydantic: api_reference/utilities/pydantic.md
+      - marvin.utilities.python: api_reference/utilities/python.md
       - marvin.utilities.strings: api_reference/utilities/strings.md
+      - marvin.utilities.testing: api_reference/utilities/testing.md
+      - marvin.utilities.tools: api_reference/utilities/tools.md
+
   - Cookbook:
     - Entity deduplication: examples/deduplication.md
     # - GitHub Activity Digest: examples/github_digest.md
     - Slackbot: examples/slackbot.md
     - Python augmented prompts: examples/python_augmented_prompts.md
     - Being specific about types: examples/being_specific_about_types.md
+
   - Community:
     - community/index.md
     - Feedback 💙: community/feedback.md
