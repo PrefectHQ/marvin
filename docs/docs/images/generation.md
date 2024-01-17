@@ -57,48 +57,74 @@ In addition to passing prompts directly to the DALLE-3 API via the `paint` funct
 ```python
 @marvin.image
 def sunset(style: str, season: str):
-    return f"A view of a sunset, in the style of {style}, during {season}"
+    return f"""
+    A serene and empty beach scene during sunset with two silhouetted figures in the distance flying a kite. The sky is full of colorful clouds. Nothing is on the horizon.
+
+    It is {season} and the image is in the style of {style}.
+    """
 ```
 
 <div class="grid cards" markdown>
 - **Nature photograph in summer**
     
-    ---
+    ----
 
     ```python
     sunset(
         style="nature photography",
-        season="summer"
+        season="summer",
     )
     ```
     ![](/assets/images/docs/images/sunset_summer.png)
 
 - **Winter impressionism**
 
-    ---
+    ----
 
     ```python
     sunset(
         style="impressionism",
-        season="winter"
+        season="winter",
     )
     ```
 
     ![](/assets/images/docs/images/sunset_winter.png)
 
-- **Something else**
+- **Sci-fi Christmas in Australia**
 
-    ---
+    ----
 
     ```python
     sunset(
         style="sci-fi movie poster",
-        season="Christmas in Australia"
+        season="Christmas in Australia",
     )
     ```
+
     ![](/assets/images/docs/images/sunset_scifi.png)
 
-  </div>
+</div>
+
+## Model parameters
+
+You can pass parameters to the DALL-E 3 API via the `model_kwargs` argument of `paint` or `@image`. These parameters are passed directly to the API, so you can use any supported parameter.
+
+!!! example "Example: model parameters"
+    ```python
+    import marvin
+
+    image = marvin.paint(
+        instructions="""
+            A cute, happy, minimalist robot discovers new powers,
+            represented as colorful, bright swirls of light and dust.
+            Dark background. Digital watercolor.
+            """,
+        model_kwargs=dict(size="1792x1024", quality="hd"),
+    )
+    ```
+
+    !!! success "Result"
+        ![](/assets/images/docs/images/robot.png)
 
 ## Disabling prompt revision
 
@@ -152,42 +178,46 @@ Using the original prompt "a teacup", here are the results of calling this funct
 <div class="grid cards" markdown>
 - **No revision**
 
-    ---
-    ```python
-    generate_image(
-      "a teacup",
-      revision_amount=0
-    )
-    ```
-    Final prompt:
-
-    ![](/assets/images/docs/images/teacup_revision_0.png)
-    > a teacup
-
-- **25% revision**
-
-    ---
+    ***
 
     ```python
     generate_image(
         "a teacup",
-        revision_amount=0.25
+        revision_amount=0,
+    )
+    ```
+
+    ![](/assets/images/docs/images/teacup_revision_0.png)
+    
+    Final prompt:
+    
+    > a teacup
+
+- **25% revision**
+
+    ***
+
+    ```python
+    generate_image(
+        "a teacup",
+        revision_amount=0.25,
     )
     ```
 
     ![](/assets/images/docs/images/teacup_revision_025.png)
+    
     Final prompt:
 
     > a porcelain teacup with intricate detailing, sitting on an oak table
 
 - **75% revision**
 
-    ---
+    ***
 
     ```python
     generate_image(
         "a teacup",
-        revision_amount=0.75
+        revision_amount=0.75,
     )
     ```
 
@@ -199,12 +229,12 @@ Using the original prompt "a teacup", here are the results of calling this funct
 
 - **100% revision**
 
-    ---
+    ***
 
     ```python
     generate_image(
         "a teacup",
-        revision_amount=1
+        revision_amount=1,
     )
     ```
 
@@ -243,7 +273,7 @@ image = marvin.paint(
 
 # save the image to disk
 marvin.utilities.images.base64_to_image(
-    image.data[0].b64_json, 
+    image.data[0].b64_json,
     path='path/to/your/image.png',
 )
 ```

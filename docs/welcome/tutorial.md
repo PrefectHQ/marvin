@@ -329,12 +329,14 @@ These functions are available under `marvin.beta` and work identically to their 
 
     Let's identify the breed of each dog in this image by using the beta `extract` function.
 
-    ![Two dogs moving toward the camera](https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=2969&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)
+    ![Two dogs moving toward the camera](https://images.unsplash.com/photo-1548199973-03cce0bbc87b)
 
     ```python
     import marvin
     
-    img = marvin.beta.Image('https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=2969&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')
+    img = marvin.beta.Image(
+        'https://images.unsplash.com/photo-1548199973-03cce0bbc87b',
+    )
 
     result = marvin.beta.extract(img, target=str, instructions='dog breeds')
     ```
