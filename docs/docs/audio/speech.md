@@ -24,7 +24,7 @@ Marvin can generate speech from text.
 
         !!! success "Result"
             ```python
-            audio.stream_to_file("path/to/fancy_computer.mp3")
+            audio.stream_to_file("fancy_computer.mp3")
             ```
             <audio controls>
               <source src="/assets/audio/fancy_computer.mp3" type="audio/mpeg">
@@ -47,7 +47,7 @@ Marvin can generate speech from text.
 
         !!! success "Result"
             ```python
-            audio.stream_to_file("path/to/hello_arthur.mp3")
+            audio.stream_to_file("hello_arthur.mp3")
             ```
             <audio controls>
               <source src="/assets/audio/hello_arthur.mp3" type="audio/mpeg">
@@ -101,5 +101,5 @@ The result of the `speak` function and `@speech` decorator is an audio stream. Y
 
 ```python
 audio = marvin.speak("Hello, world!")
-audio.stream_to_file("path/to/hello_world.mp3")
+audio.stream_to_file("hello_world.mp3")
 ```
