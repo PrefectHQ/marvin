@@ -6,7 +6,8 @@ from typing import Any, Generator
 
 
 class ScopedContext:
-    """`ScopedContext` provides a context management mechanism using `contextvars`.
+    """
+    `ScopedContext` provides a context management mechanism using `contextvars`.
 
     This class allows setting and retrieving key-value pairs in a scoped context,
     which is preserved across asynchronous tasks and threads within the same context.
@@ -47,3 +48,6 @@ class ScopedContext:
             yield
         finally:
             self._context_storage.set(current_context)
+
+
+ctx = ScopedContext()

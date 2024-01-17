@@ -8,22 +8,23 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-keywords = ["ai", "chatbot", "llm"]
+keywords = ["ai", "chatbot", "llm", "NLP", "natural language processing"]
 requires-python = ">=3.9"
 dependencies = [
-  "fastapi",
-  "httpx>=0.24.1",
-  "jinja2>=3.1.2",
-  "jsonpatch>=1.33",
-  "openai>=1.1.0",
-  "pydantic>=2.4.2",
-  "pydantic_settings",
-  "rich>=12",
-  "tiktoken>=0.4.0",
-  "typer>=0.9.0",
-  "typing_extensions>=4.0.0",
-  "tzdata>=2023.3", # need for windows
-  "uvicorn>=0.22.0"
+    "cachetools>=5",
+    "fastapi",
+    "httpx>=0.24.1",
+    "jinja2>=3.1.2",
+    "jsonpatch>=1.33",
+    "openai>=1.1.0",
+    "pydantic>=2.4.2",
+    "pydantic_settings",
+    "rich>=12",
+    "tiktoken>=0.4.0",
+    "typer>=0.9.0",
+    "typing_extensions>=4.0.0",
+    "tzdata>=2023.3", # need for windows
+    "uvicorn>=0.22.0"
 ]
 
 [project.optional-dependencies]
@@ -38,7 +39,7 @@ dev = [
     "mkdocs-awesome-pages-plugin~=2.8",
     "mkdocs-markdownextradata-plugin~=0.2",
     "mkdocs-jupyter>=0.24.1",
-    "mkdocs-material>=9.1.17",
+    "mkdocs-material[imaging]>=9.1.17",
     "mkdocstrings[python]~=0.22",
     "pdbpp~=0.10",
     "pre-commit>=2.21,<4.0",
@@ -48,10 +49,11 @@ dev = [
 tests = [
     "pytest-asyncio>=0.18.2,!=0.22.0,<0.23.0",
     "pytest-env>=0.8,<2.0",
-    "pytest-rerunfailures>=10,<13",
+    "pytest-rerunfailures>=10,<14",
     "pytest-sugar~=0.9",
     "pytest~=7.3.1",
     "pytest-timeout",
+    "pytest-xdist",
 ]
 slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]"]
 
@@ -71,7 +73,10 @@ write_to = "src/marvin/_version.py"
 
 # pytest configuration
 [tool.pytest.ini_options]
-markers = ["llm: indicates that a test calls an LLM (may be slow)."]
+markers = [
+    "llm: indicates that a test calls an LLM (may be slow).",
+    "no_llm: indicates that a test does not require an LLM."
+    ]
 timeout = 20
 testpaths = ["tests"]
 
@@ -93,7 +98,10 @@ filterwarnings = [
 env = [
     "MARVIN_TEST_MODE=1",
     # use 3.5 for tests by default
-    'D:MARVIN_OPENAI_CHAT_COMPLETIONS_MODEL=gpt-3.5-turbo-1106',
+    'D:MARVIN_CHAT_COMPLETION_MODEL=gpt-3.5-turbo',
+    'D:MARVIN_CHAT_COMPLETION_TEMPERATURE=0.0',
+    'D:MARVIN_LOG_VERBOSE=1',
+    'D:MARVIN_LOG_LEVEL=DEBUG',
     'PYTEST_TIMEOUT=20',
 ]
 

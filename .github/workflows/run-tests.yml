@@ -30,23 +30,22 @@ permissions:
 
 jobs:
   run_tests:
-    name: ${{ matrix.test-type }} w/ python ${{ matrix.python-version }} on ${{ matrix.os }}
+    name: ${{ matrix.test-type == '' && 'all' || matrix.test-type }} (Python ${{ matrix.python-version }} on ${{ matrix.os }})
     timeout-minutes: 15
     strategy:
       matrix:
+        # run no_llm tests across all python versions and oses
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11']
-        test-type: ['not llm']
+        python-version: ['3.9', '3.10', '3.11', '3.12']
+        test-type: ['no_llm']
 
         include:
+          # Run LLM tests on 3.9
           - python-version: '3.9'
             os: 'ubuntu-latest'
-            test-type: 'llm'
-
-          - python-version: '3.9'
-            os: 'ubuntu-latest'
-            test-type: 'not llm'
-
+            test-type: ''
+        
+        
     runs-on: ${{ matrix.os }}
 
     env:
@@ -54,15 +53,19 @@ jobs:
       MARVIN_ANTHROPIC_API_KEY: ${{ secrets.MARVIN_ANTHROPIC_API_KEY }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
       - name: Install Marvin
         run: pip install ".[tests]"
 
-      - name: Run ${{ matrix.test-type }} tests
-        run: pytest -vv -m "${{ matrix.test-type }}"
-        if: ${{ !(github.event.pull_request.head.repo.fork && matrix.test-type == 'llm') }}
+      - name: Run tests without LLMs
+        run: pytest -n auto -vv -m "${{ matrix.test-type }}"
+        if: ${{ !(github.event.pull_request.head.repo.fork) && matrix.test-type != '' }}
+      
+      - name: Run tests
+        run: pytest -n auto -vv
+        if: ${{ !(github.event.pull_request.head.repo.fork) && matrix.test-type == '' }}

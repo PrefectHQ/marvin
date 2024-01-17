@@ -29,12 +29,7 @@ pre-commit install
 ## Testing
 Run the tests that don't require an LLM:
 ```bash
-pytest -vv -m "not llm"
-```
-
-Run the LLM tests:
-```bash
-pytest -vv -m "llm"
+pytest -vv -m no_llm
 ```
 
 Run all tests:

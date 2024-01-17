@@ -1,47 +1,85 @@
 site_name: Marvin
-site_description: 'The AI Engineering Framework'
-site_copy: Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.
+site_description: 'The AI Engineering Toolkit'
 site_url: https://askmarvin.ai
 docs_dir: docs
 repo_url: https://github.com/prefecthq/marvin
 
 nav:
-  - Getting Started:
-    - welcome/what_is_marvin.md
-    - welcome/installation.md
-    - welcome/quickstart.md
-    - help/legacy_docs.md
-  - Cookbook:
-    - Entity Deduplication: examples/deduplication.md
-    - Deploying an API:
-      - Basic Extraction API: examples/extraction_api.md
-      - Basic Classification API: examples/classification_api.md
   - Docs:
-    - Overview: welcome/overview.md
+
+    - welcome/what_is_marvin.md
+
+    - Getting started:
+      - Installing: welcome/installation.md
+      - Tutorial: welcome/tutorial.md
+      # - help/legacy_docs.md
+
+    # - Overview: welcome/overview.md
+
+    - Text:
+      - Transforming to data: docs/text/transformation.md
+      - Extracting entities: docs/text/extraction.md
+      - Classification: docs/text/classification.md
+      - Generating synthetic data: docs/text/generation.md
+      - AI functions: docs/text/functions.md
+
+    - Images:
+      - Creating images: docs/images/generation.md
+      - Generating captions: docs/vision/captioning.md
+      - Transforming to data: docs/vision/transformation.md
+      - Extracting entities: docs/vision/extraction.md
+      - Classification: docs/vision/classification.md
+
+    - Audio:
+      - Generating speech: docs/audio/speech.md
+    # - Transcription: docs/function.md
+
+    - Interactive Tools:
+      - Assistants: docs/interactive/assistants.md
+      - Applications: docs/interactive/applications.md
+      
     - Configuration: 
-      - Settings: configuration/settings.md
+      - Settings: docs/configuration/settings.md
 
-    - Components: 
-      - Overview: components/overview.md
-      - AI Function: components/ai_function.md
-      - AI Model: components/ai_model.md
-      - AI Classifier: components/ai_classifier.md
-      - AI Application: components/ai_application.md
-
-    - Examples:
-      - Slackbot: examples/slackbot.md
-      - GitHub Digest: examples/github_digest.md
-  - API Reference:
-    - api_reference/index.md
-    - AI Components:
-      - ai_classifier: api_reference/components/ai_classifier.md
-      - ai_function: api_reference/components/ai_function.md
-      - ai_model: api_reference/components/ai_model.md
+  - API reference:
+    - marvin: api_reference/marvin.md
+    - AI modules:
+      - marvin.ai.text: api_reference/ai/text.md
+      - marvin.ai.images: api_reference/ai/images.md
+      - marvin.ai.audio: api_reference/ai/audio.md
+    - Beta AI modules:
+      - marvin.beta.vision: api_reference/beta/vision.md
+      - marvin.beta.assistants: 
+        - marvin.beta.assistants: api_reference/beta/assistants/index.md
+        - marvin.beta.assistants.assistants: api_reference/beta/assistants/assistants.md
+        - marvin.beta.assistants.threads: api_reference/beta/assistants/threads.md
+        - marvin.beta.assistants.runs: api_reference/beta/assistants/runs.md
+        - marvin.beta.assistants.formatting: api_reference/beta/assistants/formatting.md
+      - marvin.beta.applications: api_reference/beta/applications.md
+    - Object schemas: 
+      - marvin.types: api_reference/types.md
     - Settings:
-      - settings: api_reference/settings.md
+      - marvin.settings: api_reference/settings.md
     - Utilities:
-      - jinja: api_reference/utilities/jinja.md
-      - logging: api_reference/utilities/logging.md
+      - marvin.utilities.asyncio: api_reference/utilities/asyncio.md
+      - marvin.utilities.context: api_reference/utilities/context.md
+      - marvin.utilities.images: api_reference/utilities/images.md
+      - marvin.utilities.jinja: api_reference/utilities/jinja.md
+      - marvin.utilities.logging: api_reference/utilities/logging.md
+      - marvin.utilities.openai: api_reference/utilities/openai.md
+      - marvin.utilities.pydantic: api_reference/utilities/pydantic.md
+      - marvin.utilities.python: api_reference/utilities/python.md
+      - marvin.utilities.strings: api_reference/utilities/strings.md
+      - marvin.utilities.testing: api_reference/utilities/testing.md
+      - marvin.utilities.tools: api_reference/utilities/tools.md
+
+  - Cookbook:
+    - Entity deduplication: examples/deduplication.md
+    # - GitHub Activity Digest: examples/github_digest.md
+    - Slackbot: examples/slackbot.md
+    - Python augmented prompts: examples/python_augmented_prompts.md
+    - Being specific about types: examples/being_specific_about_types.md
+
   - Community:
     - community/index.md
     - Feedback 💙: community/feedback.md
@@ -61,11 +99,12 @@ theme:
     - content.code.select
     - content.code.annotate
   palette:
-    primary: custom
+    primary: blue
+    accent: teal
   name: material
   custom_dir: docs/overrides
-  logo: img/logos/askmarvin_mascot.jpeg
-  favicon: img/logos/askmarvin_mascot.jpeg
+  logo: assets/images/logos/askmarvin_mascot.jpeg
+  favicon: assets/images/logos/askmarvin_mascot.jpeg
 
 plugins:
   - search
@@ -74,7 +113,8 @@ plugins:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
       cards_layout_options:
         font_family: Inter
-        background_color: "#2d6df6"
+        # background_color: "#2d6df6"
+        background_color: "#181544" # marvin blue
   - awesome-pages
   - autolinks 
   - mkdocstrings:
@@ -82,16 +122,21 @@ plugins:
         python:
           paths: [src]
           options:
-            show_source: False
-            show_root_heading: True
-            show_object_full_path: False
-            show_category_heading: False
-            show_bases: False
-            show_submodules: False
-            show_if_no_docstring: False
-            show_signature: False
+            show_source: false
+            show_root_heading: false
+            show_root_toc_entry: false
+            show_object_full_path: false
+            show_category_heading: false
+            show_bases: false
+            show_submodules: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            show_if_no_docstring: false
+            show_signature: false
             heading_level: 2
             filters: ["!^_"]
+          import:
+          - https://docs.python-requests.org/en/master/objects.inv
 watch:
   - src
   - docs
@@ -121,12 +166,13 @@ markdown_extensions:
   - toc:
       permalink: true
       title: On this page
+      
 
 extra:
   get_started: welcome/what_is_marvin
   hero:
-    title: 'The AI Engineering Framework'
-    description: 'Marvin is a lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust.'
+    title: 'The AI Engineering Toolkit'
+    description: 'Marvin is a lightweight toolkit for building natural language interfaces that are reliable, scalable, and easy to trust.'
   announcement:
     title: "Marvin 2.0 is here!"
     url: https://github.com/PrefectHQ/marvin/releases/tag/v2.0.0
@@ -146,3 +192,4 @@ extra_css:
   - /static/css/global.css
   - /static/css/badges.css
   - /static/css/custom.css
+  - /static/css/mkdocstrings.css

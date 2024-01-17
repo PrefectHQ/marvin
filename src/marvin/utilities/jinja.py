@@ -3,6 +3,7 @@
 import inspect
 import re
 from datetime import datetime
+from functools import cached_property
 from typing import Any, ClassVar, Pattern, Union
 from zoneinfo import ZoneInfo
 
@@ -12,7 +13,7 @@ from jinja2 import Template as BaseTemplate
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
 
-from marvin.requests import BaseMessage as Message
+from marvin.types import BaseMessage as Message
 
 
 class BaseEnvironment(BaseModel):
@@ -82,33 +83,33 @@ class BaseEnvironment(BaseModel):
         """
         if isinstance(template, str):
             return self.environment.from_string(template).render(**kwargs)
-        return template.render(**kwargs)
+        return template.render(**kwargs).strip()
 
 
 Environment = BaseEnvironment()
 
 
-def split_text_by_tokens(text: str, split_tokens: list[str]) -> list[tuple[str, str]]:
+def split_text_by_tokens(
+    text: str, split_tokens: list[str], only_on_newline: bool = True
+) -> list[tuple[str, str]]:
     """
     Splits a given text by a list of tokens.
 
     Args:
-        text: The text to be split.
-        split_tokens: The tokens to split the text by.
+        text: The text to be split. split_tokens: The tokens to split the text
+        by. only_on_newline: If True, only match tokens that are either
+        immediately following a newline or are the first item in the text.
 
     Returns:
         A list of tuples containing the token and the text following it.
 
     Example:
-        Basic Usage of `split_text_by_tokens`
-        ```python
-        from marvin.utilities.jinja import split_text_by_tokens
+        Basic Usage of `split_text_by_tokens` ```python from
+        marvin.utilities.jinja import split_text_by_tokens
 
-        text = "Hello, World!"
-        split_tokens = ["Hello", "World"]
-        pairs = split_text_by_tokens(text, split_tokens)
-        print(pairs) # Output: [("Hello", ", "), ("World", "!")]
-        ```
+        text = "Hello, World!" split_tokens = ["Hello", "World"] pairs =
+        split_text_by_tokens(text, split_tokens) print(pairs) # Output:
+        [("Hello", ", "), ("World", "!")] ```
     """
     cleaned_text = inspect.cleandoc(text)
 
@@ -116,7 +117,10 @@ def split_text_by_tokens(text: str, split_tokens: list[str]) -> list[tuple[str, 
     positions = [
         (match.start(), match.end(), match.group().rstrip(":").strip())
         for token in split_tokens
-        for match in re.finditer(re.escape(token) + r"(?::\s*)?", cleaned_text)
+        for match in re.finditer(
+            (r"(^|\n)" if only_on_newline else "") + re.escape(token) + r"(?::\s*)?",
+            cleaned_text,
+        )
     ]
 
     # Sort positions by their start index
@@ -174,9 +178,9 @@ class Transcript(BaseModel):
     )
     environment: ClassVar[BaseEnvironment] = Environment
 
-    @property
+    @cached_property
     def role_regex(self) -> Pattern[str]:
-        return re.compile("|".join([f"\n\n{role}:" for role in self.roles]))
+        return re.compile("|".join([f"(^|\n){role}:" for role in self.roles]))
 
     def render(self: Self, **kwargs: Any) -> str:
         return self.environment.render(self.content, **kwargs)
@@ -187,7 +191,8 @@ class Transcript(BaseModel):
     ) -> list[Message]:
         pairs = split_text_by_tokens(
             text=self.render(**kwargs).strip(),
-            split_tokens=[f"\n{role}" for role in self.roles.keys()],
+            split_tokens=[f"{role}" for role in self.roles.keys()],
+            only_on_newline=True,
         )
         return [
             Message(

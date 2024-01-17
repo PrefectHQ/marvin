@@ -29,11 +29,11 @@ class EventBlock(BaseModel):
 class SlackEvent(BaseModel):
     client_msg_id: Optional[str] = None
     type: str
-    text: str
-    user: str
-    ts: str
-    team: str
-    channel: str
+    text: Optional[str] = None
+    user: Optional[str] = None
+    ts: Optional[str] = None
+    team: Optional[str] = None
+    channel: Optional[str] = None
     event_ts: str
     thread_ts: Optional[str] = None
     parent_user_id: Optional[str] = None
@@ -75,18 +75,18 @@ async def get_token() -> str:
             marvin.settings.slack_api_token
         )  # set `MARVIN_SLACK_API_TOKEN` in `~/.marvin/.env
     except AttributeError:
+        if token := os.getenv("MARVIN_SLACK_API_TOKEN"):
+            return token
         try:  # TODO: clean this up
             from prefect.blocks.system import Secret
 
             return (await Secret.load("slack-api-token")).get()
         except ImportError:
             pass
-        token = os.getenv("MARVIN_SLACK_API_TOKEN")
-        if not token:
-            raise ValueError(
-                "`MARVIN_SLACK_API_TOKEN` not found in environment."
-                " Please set it in `~/.marvin/.env` or as an environment variable."
-            )
+        raise ValueError(
+            "`MARVIN_SLACK_API_TOKEN` not found in environment."
+            " Please set it in `~/.marvin/.env` or as an environment variable."
+        )
     return token
 
 
@@ -106,24 +106,32 @@ def convert_md_links_to_slack(text) -> str:
 async def post_slack_message(
     message: str,
     channel_id: str,
+    attachments: Union[list, None] = None,
     thread_ts: Union[str, None] = None,
     auth_token: Union[str, None] = None,
 ) -> httpx.Response:
     if not auth_token:
         auth_token = await get_token()
 
+    post_data = {
+        "channel": channel_id,
+        "text": convert_md_links_to_slack(message),
+        "attachments": attachments if attachments else [],
+    }
+
+    if thread_ts:
+        post_data["thread_ts"] = thread_ts
+
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://slack.com/api/chat.postMessage",
             headers={"Authorization": f"Bearer {auth_token}"},
-            json={
-                "channel": channel_id,
-                "text": convert_md_links_to_slack(message),
-                "thread_ts": thread_ts,
-            },
+            json=post_data,
         )
+        response_data = response.json()
 
-    response.raise_for_status()
+    if response_data.get("ok") is not True:
+        raise ValueError(f"Error posting Slack message: {response_data.get('error')}")
     return response
 
 

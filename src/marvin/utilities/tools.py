@@ -1,17 +1,31 @@
-"""Module for NLI tool utilities."""
+"""Module for LLM tool utilities."""
 
 import inspect
 import json
 from functools import update_wrapper
-from typing import Any, Callable, Optional
+from typing import (
+    Any,
+    Callable,
+    GenericAlias,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 import pydantic
+from pydantic import BaseModel, TypeAdapter, create_model
+from pydantic.fields import FieldInfo
+from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
 
-from marvin.requests import Function, Tool
+from marvin.types import Function, Tool
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.logging import get_logger
 
 logger = get_logger("Tools")
+
+T = TypeVar("T")
+U = TypeVar("U", bound=Union[type, GenericAlias])
+M = TypeVar("M", bound=pydantic.BaseModel)
 
 
 def custom_partial(func: Callable, **fixed_kwargs: Any) -> Callable:
@@ -42,14 +56,69 @@ def custom_partial(func: Callable, **fixed_kwargs: Any) -> Callable:
     return wrapper
 
 
+class ModelSchemaGenerator(GenerateJsonSchema):
+    def generate(self, schema: Any, mode: JsonSchemaMode = "validation"):
+        json_schema = super().generate(schema, mode=mode)
+        json_schema.pop("title", None)
+        return json_schema
+
+
+def tool_from_type(type_: U, tool_name: str = None) -> Tool[U]:
+    """
+    Creates an OpenAI-compatible tool from a Python type.
+    """
+    annotated_metadata = getattr(type_, "__metadata__", [])
+    if isinstance(next(iter(annotated_metadata), None), FieldInfo):
+        metadata = next(iter(annotated_metadata))
+    else:
+        metadata = FieldInfo(description="The formatted response")
+
+    model = create_model(
+        tool_name or "FormatResponse",
+        __doc__="Format the response with valid JSON.",
+        __module__=__name__,
+        **{"value": (type_, metadata)},
+    )
+
+    def tool_fn(**data) -> U:
+        return TypeAdapter(model).validate_python(data).value
+
+    return tool_from_model(model, python_fn=tool_fn)
+
+
+def tool_from_model(model: type[M], python_fn: Callable[[str], M] = None):
+    """
+    Creates an OpenAI-compatible tool from a Pydantic model class.
+    """
+
+    if not (isinstance(model, type) and issubclass(model, BaseModel)):
+        raise TypeError(
+            f"Expected a Pydantic model class, but got {type(model).__name__}."
+        )
+
+    def tool_fn(**data) -> M:
+        return TypeAdapter(model).validate_python(data)
+
+    return Tool[M](
+        type="function",
+        function=Function[M].create(
+            name=model.__name__,
+            description=model.__doc__,
+            parameters=model.model_json_schema(schema_generator=ModelSchemaGenerator),
+            model=model,
+            _python_fn=python_fn or tool_fn,
+        ),
+    )
+
+
 def tool_from_function(
-    fn: Callable[..., Any],
+    fn: Callable[..., T],
     name: Optional[str] = None,
     description: Optional[str] = None,
     kwargs: Optional[dict[str, Any]] = None,
 ):
     """
-    Creates an OpenAI-CLI tool from a Python function.
+    Creates an OpenAI-compatible tool from a Python function.
 
     If any kwargs are provided, they will be stored and provided at runtime.
     Provided kwargs will be removed from the tool's parameter schema.
@@ -61,9 +130,9 @@ def tool_from_function(
         fn, config=pydantic.ConfigDict(arbitrary_types_allowed=True)
     ).json_schema()
 
-    return Tool(
+    return Tool[T](
         type="function",
-        function=Function.create(
+        function=Function[T].create(
             name=name or fn.__name__,
             description=description or fn.__doc__,
             parameters=schema,
@@ -73,15 +142,20 @@ def tool_from_function(
 
 
 def call_function_tool(
-    tools: list[Tool], function_name: str, function_arguments_json: str
-):
+    tools: list[Tool],
+    function_name: str,
+    function_arguments_json: str,
+    return_string: bool = False,
+) -> str:
+    """
+    Helper function for calling a function tool from a list of tools, using the arguments
+    provided by an LLM as a JSON string. This function handles many common errors.
+    """
     tool = next(
         (
             tool
             for tool in tools
-            if isinstance(tool, Tool)  # type: ignore
-            and tool.function
-            and tool.function.name == function_name
+            if getattr(tool, "function", None) and tool.function.name == function_name
         ),
         None,
     )
@@ -104,6 +178,6 @@ def call_function_tool(
     if len(truncated_output) < len(str(output)):
         truncated_output += "..."
     logger.debug_kv(f"{tool.function.name}", f"returned: {truncated_output}", "green")
-    if not isinstance(output, str):
+    if return_string and not isinstance(output, str):
         output = json.dumps(output)
     return output

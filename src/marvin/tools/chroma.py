@@ -12,7 +12,7 @@ except ImportError:
     )
 
 
-from typing_extensions import Literal
+from typing import Literal
 
 import marvin
 

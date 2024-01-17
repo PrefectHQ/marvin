@@ -3,15 +3,16 @@ import time
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from openai.types.beta.threads import ThreadMessage
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 from marvin.beta.assistants.formatting import pprint_message
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
+    run_sync,
 )
 from marvin.utilities.logging import get_logger
-from marvin.utilities.openai import get_client
+from marvin.utilities.openai import get_openai_client
 from marvin.utilities.pydantic import parse_as
 
 logger = get_logger("Threads")
@@ -22,18 +23,31 @@ if TYPE_CHECKING:
 
 
 class Thread(BaseModel, ExposeSyncMethodsMixin):
+    """
+    The Thread class represents a conversation thread with an assistant.
+
+    Attributes:
+        id (Optional[str]): The unique identifier of the thread. None if the thread
+                            hasn't been created yet.
+        metadata (dict): Additional data about the thread.
+    """
+
     id: Optional[str] = None
     metadata: dict = {}
     messages: list[ThreadMessage] = Field([], repr=False)
 
     def __enter__(self):
-        self.create()
-        return self
+        return run_sync(self.__aenter__)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.delete()
-        # If an exception has occurred, you might want to handle it or pass it through
-        # Returning False here will re-raise any exception that occurred in the context
+        return run_sync(self.__aexit__, exc_type, exc_val, exc_tb)
+
+    async def __aenter__(self):
+        await self.create_async()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.delete_async()
         return False
 
     @expose_sync_method("create")
@@ -45,7 +59,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             raise ValueError("Thread has already been created.")
         if messages is not None:
             messages = [{"role": "user", "content": message} for message in messages]
-        client = get_client()
+        client = get_openai_client()
         response = await client.beta.threads.create(messages=messages)
         self.id = response.id
         return self
@@ -57,7 +71,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         """
         Add a user message to the thread.
         """
-        client = get_client()
+        client = get_openai_client()
 
         if self.id is None:
             await self.create_async()
@@ -83,9 +97,28 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         after_message: Optional[str] = None,
         json_compatible: bool = False,
     ) -> list[Union[ThreadMessage, dict]]:
+        """
+        Asynchronously retrieves messages from the thread.
+
+        Args:
+            limit (int, optional): The maximum number of messages to return.
+            before_message (str, optional): The ID of the message to start the list from,
+                                             retrieving messages sent before this one.
+            after_message (str, optional): The ID of the message to start the list from,
+                                            retrieving messages sent after this one.
+            json_compatible (bool, optional): If True, returns messages as dictionaries.
+                                              If False, returns messages as ThreadMessage
+                                              objects. Default is False.
+
+        Returns:
+            list[Union[ThreadMessage, dict]]: A list of messages from the thread, either
+                                              as dictionaries or ThreadMessage objects,
+                                              depending on the value of json_compatible.
+        """
+
         if self.id is None:
             await self.create_async()
-        client = get_client()
+        client = get_openai_client()
 
         response = await client.beta.threads.messages.list(
             thread_id=self.id,
@@ -103,7 +136,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("delete")
     async def delete_async(self):
-        client = get_client()
+        client = get_openai_client()
         await client.beta.threads.delete(thread_id=self.id)
         self.id = None
 
@@ -115,6 +148,10 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
     ) -> "Run":
         """
         Creates and returns a `Run` of this thread with the provided assistant.
+
+        Args:
+            assistant (Assistant): The assistant to run the thread with.
+            run_kwargs: Additional keyword arguments to pass to the Run constructor.
         """
         if self.id is None:
             await self.create_async()
@@ -147,10 +184,20 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
 
 class ThreadMonitor(BaseModel, ExposeSyncMethodsMixin):
+    """
+    The ThreadMonitor class represents a monitor for a specific thread.
+
+    Attributes:
+        thread_id (str): The unique identifier of the thread being monitored.
+        last_message_id (Optional[str]): The ID of the last message received in the thread.
+        on_new_message (Callable): A callback function that is called when a new message
+                                   is received in the thread.
+    """
+
     thread_id: str
-    _thread: Thread
     last_message_id: Optional[str] = None
     on_new_message: Callable = Field(default=pprint_message)
+    _thread: Thread = PrivateAttr()
 
     @property
     def thread(self):
@@ -169,6 +216,13 @@ class ThreadMonitor(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("run")
     async def run_async(self, interval_seconds: int = None):
+        """
+        Run the thread monitor in a loop, checking for new messages every `interval_seconds`.
+
+        Args:
+            interval_seconds (int, optional): The number of seconds to wait between
+                                              checking for new messages. Default is 1.
+        """
         if interval_seconds is None:
             interval_seconds = 1
         if interval_seconds < 1:

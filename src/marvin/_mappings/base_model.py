@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import BaseModel
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
 
-from marvin.requests import Function, Tool, ToolSet
+from marvin.types import Function, Tool, ToolSet
 
 
 class FunctionSchema(GenerateJsonSchema):

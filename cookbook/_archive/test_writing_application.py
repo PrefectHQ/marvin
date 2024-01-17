@@ -5,7 +5,7 @@ import marvin.tools
 import marvin.tools.filesystem
 import marvin.tools.python
 import marvin.tools.shell
-from marvin.beta.applications import AIApplication
+from marvin.beta.applications import Application
 from pydantic import BaseModel, Field
 
 marvin.settings.log_level = "DEBUG"
@@ -25,7 +25,7 @@ class TestWriterState(BaseModel):
 
 ROOT_DIR = Path(marvin.__file__).parents[2]
 
-test_app = AIApplication(
+test_app = Application(
     name="TestWriter",
     description=f"""
         You are responsible for writing and maintaining the unit tests for the
