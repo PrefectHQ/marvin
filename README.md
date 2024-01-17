@@ -70,12 +70,11 @@ Marvin consists of a variety of useful tools, all designed to be used independen
 
 🧭 [Build applications](https://askmarvin.ai/docs/interactive/applications) that manage persistent state
 
-## Quickstart
+# Quickstart
 
 Here's a whirlwind tour of a few of Marvin's main features. For more information, [check the docs](https://askmarvin.ai/welcome/what_is_marvin/)!
 
----
-### 🏷️ Classify text
+## 🏷️ Classify text
 
 Marvin can `classify` text using a set of labels:
 
@@ -92,8 +91,7 @@ marvin.classify(
 
 Learn more about classification [here](https://askmarvin.ai/docs/text/classification).
 
----
-### 🔍 Extract structured entities
+## 🔍 Extract structured entities
 
 Marvin can `extract` structured entities from text:
 
@@ -129,8 +127,7 @@ marvin.extract(
 Learn more about entity extraction [here](https://askmarvin.ai/docs/text/extraction).
 
 
----
-### ✨ Generate data
+## ✨ Generate data
 
 Marvin can `generate` synthetic data for you, following instructions and an optional schema:
 
@@ -156,8 +153,7 @@ marvin.generate(
 
 Learn more about data generation [here](https://askmarvin.ai/docs/text/generation).
 
----
-### 🪄 Standardize text by casting to types
+## 🪄 Standardize text by casting to types
 
 Marvin can `cast` arbitrary text to any Python type:
 
@@ -196,8 +192,7 @@ Location("The Big Apple")
 
 Learn more about casting to types [here](https://askmarvin.ai/docs/text/transformation).
 
----
-### 🦾 Build AI-powered functions
+## 🦾 Build AI-powered functions
 
 Marvin functions let you combine any inputs, instructions, and output types to create custom AI-powered behaviors... without source code. These functions can can go well beyond the capabilities of `extract` or `classify`, and are ideal for complex natural language processing or mapping combinations of inputs to outputs.
 
@@ -219,8 +214,7 @@ Note that Marvin does NOT work by generating or executing source code, which wou
 
 You can learn more about functions [here](https://www.askmarvin.ai/docs/text/functions/).
 
----
-### 🖼️ Generate images from text
+## 🖼️ Generate images from text
 
 Marvin can `paint` images from text:
 
@@ -234,8 +228,7 @@ marvin.paint("a simple cup of coffee, still warm")
 
 Learn more about image generation [here](https://askmarvin.ai/docs/images/generation).
 
----
-### 🔍 Classify images (beta)
+## 🔍 Classify images (beta)
 
 In addition to text, Marvin has beta support for captioning, classifying, transforming, and extracting entities from images using the GPT-4 vision model:
 
@@ -248,7 +241,7 @@ marvin.beta.classify(
 # "drink"
 ```
 
-## Get in touch!
+# Get in touch!
 
 💡 **Feature idea?** share it in the `#development` channel in [our Discord](https://discord.com/invite/Kgw4HpcuYG).
 
