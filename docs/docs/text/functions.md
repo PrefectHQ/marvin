@@ -87,82 +87,127 @@ When this function is called with `n=3`, the LLM will see the string ``"... of 3
 ### Parameters
 
 The function's parameters, in conjunction with the docstring, provide the LLM with runtime context. The LLM will see the parameter names, types, defaults, and runtime values, and use this information to generate the output. Parameters are important for collecting information, but because the information is ultimately going to an LLM, they can be named anything and take any value that is conducive to generating the right output. 
-or example, if you have a function that returns a list of recipes, you might define it like this:
 
-```python
-@marvin.fn
-def recipe(
-    ingredients: list[str], 
-    max_cook_time: int = 15, 
-    cuisine: str = "North Italy", 
-    experience_level="beginner"
-) -> str:
-    """
-    Returns a complete recipe that uses all the `ingredients` and 
-    takes less than `max_cook_time`  minutes to prepare. Takes 
-    `cuisine` style and the chef's `experience_level` into account 
-    as well. Recipes have a name, list of ingredients, and steps to follow.
-    """
-```
+For example, if you have a function that returns a list of recipes, you might define it like this:
 
-Now we can call this function in ways that would be impossible to code in Python:
-
-=== "Novice chef"
-
+!!! example "Generating recipes"
     ```python
-    recipe(
-        ["chicken", "potatoes"], 
-        experience_level='can barely boil water'
-    )
+    import marvin
+    from pydantic import BaseModel
+
+
+    class Recipe(BaseModel):
+        name: str
+        cook_time_minutes: int
+        ingredients: list[str]
+        steps: list[str]
+
+
+    @marvin.fn
+    def recipe(
+        ingredients: list[str], 
+        max_cook_time: int = 15, 
+        cuisine: str = "North Italy", 
+        experience_level:str = "beginner"
+    ) -> Recipe:
+        """
+        Returns a complete recipe that uses all the `ingredients` and 
+        takes less than `max_cook_time`  minutes to prepare. Takes 
+        `cuisine` style and the chef's `experience_level` into account 
+        as well.
+        """
     ```
 
+    !!! success "Results"
+        === "Novice chef"
 
-    !!! success "Result"
-        Recipe for Simple North Italian Chicken and Potatoes
-        
-        Ingredients:
+            Call the function:
+            ```python
+            result = recipe(
+                ["chicken", "potatoes"], 
+                experience_level="can barely boil water",
+            )
+            ```
 
-        - Chicken
-        - Potatoes
-        
-        Instructions:
+            View the result:
 
-        1. Wash the potatoes and cut them into quarters.
-        2. Place potatoes in a microwave-safe dish, cover with water, and microwave for 10 minutes until soft.
-        ...
-    
+            ```python
+            Recipe(
+                name="Simple Chicken and Potatoes",
+                cook_time_minutes=15,
+                ingredients=["chicken", "potatoes"],
+                steps=[
+                    "Wash the potatoes and cut them into small cubes.",
+                    (
+                        "Heat oil in a pan and cook the chicken over medium heat "
+                        "until browned."
+                    ),
+                    "Add the cubed potatoes to the pan with the chicken.",
+                    (
+                        "Stir everything together and cook for 10 minutes or until "
+                        "the potatoes are tender and the chicken is cooked "
+                        "through."
+                    ),
+                    "Serve hot.",
+                ],
+            )
+            ```
+            
 
-=== "Expert chef"
+        === "Expert chef"
 
-    ```python
-    recipe(
-        ["chicken", "potatoes"], 
-        max_cook_time=60, 
-        experience_level='born wearing a toque'
-    )
-    ```
+            Call the function:
+            ```python
+            result = recipe(
+                ["chicken", "potatoes"], 
+                experience_level="born wearing a toque",
+                max_cook_time=60, 
+            )
+            ```
 
+            View the result:
 
-    !!! success "Result"
-        
-        Recipe Name: Herbed Chicken with Roasted Potatoes
-        
-        Ingredients:
-        
-        - Chicken
-        - Potatoes
-        - Olive oil
-        - Rosemary
-        - Salt
-        - Black pepper
-        - Garlic (optional)
-        
-        Steps:
-        
-        1. Preheat your oven to 200 degrees Celsius (392 degrees Fahrenheit).
-        2. Wash and cut the potatoes into chunks, then toss them with olive oil, salt, rosemary, and black pepper. Place them on a baking tray.
-        ...
-        
+            ```python
+            Recipe(
+                name="Chicken and Potato Tray Bake",
+                cook_time_minutes=45,
+                ingredients=[
+                    "chicken",
+                    "potatoes",
+                    "olive oil",
+                    "rosemary",
+                    "garlic",
+                    "salt",
+                    "black pepper",
+                ],
+                steps=[
+                    (
+                        "Preheat your oven to 200 degrees Celsius (400 degrees "
+                        "Fahrenheit)."
+                    ),
+                    (
+                        "Wash and cut the potatoes into halves or quarters, "
+                        "depending on size, and place in a large baking tray."
+                    ),
+                    (
+                        "Drizzle olive oil over the chicken and potatoes, then "
+                        "season with salt, black pepper, and finely chopped "
+                        "rosemary and garlic."
+                    ),
+                    (
+                        "Place the tray in the oven and bake for about 45 minutes, "
+                        "or until the chicken is fully cooked and the potatoes are "
+                        "golden and crispy."
+                    ),
+                    (
+                        "Remove from the oven and let it rest for a few minutes "
+                        "before serving."
+                    ),
+                ],
+            )
+
+            ```
+
 ### Return annotation
 
 Marvin will cast the output of your function to the type specified in the return annotation. If you do not provide a return annotation, Marvin will assume that the function returns a string. 

@@ -88,9 +88,11 @@ def get_openai_client(
     else:
         raise ValueError(f"Unknown provider {marvin.settings.provider}")
 
+    loop = asyncio.get_event_loop() if is_async else None
+
     return _get_client_memoized(
         cls=client_class,
-        loop=asyncio.get_event_loop(),
+        loop=loop,
         kwargs_items=tuple(kwargs.items()),
     )
 

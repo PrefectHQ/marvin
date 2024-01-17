@@ -8,9 +8,8 @@ push: null
 pull:
 - prefect.deployments.steps.git_clone:
     repository: https://github.com/PrefectHQ/marvin.git
-    branch: '2.0'
 - prefect.deployments.steps.run_shell_script:
-    script: pip install git+https://github.com/PrefectHQ/marvin.git@2.0 prefect-gcp
+    script: pip install git+https://github.com/PrefectHQ/marvin.git prefect-gcp
 
 deployments:
 - name: github-repo-digest
@@ -27,3 +26,22 @@ deployments:
     job_variables:
       env:
         OPENAI_API_KEY: '{{ prefect.blocks.secret.openai-api-key }}'
+
+- name: label-issues
+  tags: ['internal-tools', 'LLM']
+  description: Label issues based on their content
+  triggers:
+    - enabled: true
+      expect:
+        - marvin.issue.opened
+        - marvin.issue.reopened
+      parameters:
+        event_body_str: "{{ event.payload.body }}"
+  entrypoint: cookbook/flows/label_issues.py:label_issues
+  work_pool:
+    name: kubernetes-prd-internal-tools
+    job_variables:
+      env:
+        OPENAI_API_KEY: '{{ prefect.blocks.secret.openai-api-key }}'
+        GH_UTIL_TOKEN: '{{ prefect.blocks.secret.gh-token }}'
+        EXTRA_PIP_PACKAGES: 'gh-util'
