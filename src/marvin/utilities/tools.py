@@ -64,6 +64,9 @@ class ModelSchemaGenerator(GenerateJsonSchema):
 
 
 def tool_from_type(type_: U, tool_name: str = None) -> Tool[U]:
+    """
+    Creates an OpenAI-compatible tool from a Python type.
+    """
     annotated_metadata = getattr(type_, "__metadata__", [])
     if isinstance(next(iter(annotated_metadata), None), FieldInfo):
         metadata = next(iter(annotated_metadata))
@@ -144,6 +147,10 @@ def call_function_tool(
     function_arguments_json: str,
     return_string: bool = False,
 ) -> str:
+    """
+    Helper function for calling a function tool from a list of tools, using the arguments
+    provided by an LLM as a JSON string. This function handles many common errors.
+    """
     tool = next(
         (
             tool

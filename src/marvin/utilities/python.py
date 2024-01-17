@@ -15,6 +15,21 @@ class ParameterModel(BaseModel):
 
 
 class PythonFunction(BaseModel):
+    """
+    A Pydantic model representing a Python function.
+
+    Attributes:
+        function (Callable): The original function object.
+        signature (inspect.Signature): The signature object of the function.
+        name (str): The name of the function.
+        docstring (Optional[str]): The docstring of the function.
+        parameters (List[ParameterModel]): The parameters of the function.
+        return_annotation (Optional[Any]): The return annotation of the function.
+        source_code (str): The source code of the function.
+        bound_parameters (dict[str, Any]): The parameters of the function bound with values.
+        return_value (Optional[Any]): The return value of the function call.
+    """
+
     model_config = dict(arbitrary_types_allowed=True)
     function: Callable = Field(description="Original function object")
     signature: inspect.Signature = Field(description="Function signature object")
@@ -44,6 +59,16 @@ class PythonFunction(BaseModel):
 
     @classmethod
     def from_function(cls, func: Callable, **kwargs) -> "PythonFunction":
+        """
+        Create a PythonFunction instance from a function.
+
+        Args:
+            func (Callable): The function to create a PythonFunction instance from.
+            **kwargs: Additional keyword arguments to set as attributes on the PythonFunction instance.
+
+        Returns:
+            PythonFunction: The created PythonFunction instance.
+        """
         name = kwargs.pop("name", func.__name__)
         docstring = kwargs.pop("docstring", func.__doc__)
         sig = inspect.signature(func)
@@ -79,6 +104,17 @@ class PythonFunction(BaseModel):
 
     @classmethod
     def from_function_call(cls, func: Callable, *args, **kwargs) -> "PythonFunction":
+        """
+        Create a PythonFunction instance from a function call.
+
+        Args:
+            func (Callable): The function to call.
+            *args: Positional arguments to pass to the function call.
+            **kwargs: Keyword arguments to pass to the function call.
+
+        Returns:
+            PythonFunction: The created PythonFunction instance, with the return value of the function call set as an attribute.
+        """
         sig = inspect.signature(func)
 
         bound = sig.bind(*args, **kwargs)
