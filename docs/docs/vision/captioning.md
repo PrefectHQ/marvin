@@ -16,7 +16,7 @@ Marvin can use OpenAI's vision API to process images as inputs.
 
 !!! example
 
-    Generate a description of the following image, hypothetically available at `/path/to/marvin.jpg`:
+    Generate a description of the following image, hypothetically available at `/path/to/marvin.png`:
 
     ![](/assets/images/docs/vision/marvin.webp)
 
@@ -25,7 +25,7 @@ Marvin can use OpenAI's vision API to process images as inputs.
     import marvin
     from pathlib import Path
 
-    marvin.beta.caption(image=Path('/path/to/marvin.jpg'))
+    marvin.beta.caption(image=Path('/path/to/marvin.png'))
     ```
 
     !!! success "Result"
