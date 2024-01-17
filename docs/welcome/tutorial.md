@@ -3,9 +3,6 @@ toc_depth: 3
 ---
 # Tutorial
 
-![](/assets/images/heroes/dont_panic.png)
-
-
 ## Installing Marvin
 
 Before we can start, you'll need to [install Marvin](installation.md). Come back here when you're done!
