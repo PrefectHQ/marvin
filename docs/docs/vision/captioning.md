@@ -40,3 +40,8 @@ Marvin can use OpenAI's vision API to process images as inputs.
   </p>
 </div>
 
+
+
+
+## Model parameters
+You can pass parameters to the underlying API via the `model_kwargs` argument of `caption`. These parameters are passed directly to the API, so you can use any supported parameter.

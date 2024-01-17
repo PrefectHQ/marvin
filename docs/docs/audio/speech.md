@@ -95,6 +95,12 @@ ai_say('hello')
       Your browser does not support the audio element.
     </audio>
 
+## Choosing a voice
+
+Both `speak` and `@speech` accept a `voice` parameter that allows you to choose from a variety of voices. You can preview the available voices [here](https://platform.openai.com/docs/guides/text-to-speech/voice-options).
+
+```python
+
 ## Saving audio files
 
 The result of the `speak` function and `@speech` decorator is an audio stream. You can save this stream to disk like this:
@@ -103,3 +109,7 @@ The result of the `speak` function and `@speech` decorator is an audio stream. Y
 audio = marvin.speak("Hello, world!")
 audio.stream_to_file("hello_world.mp3")
 ```
+
+
+## Model parameters
+You can pass parameters to the underlying API via the `model_kwargs` arguments of `speak` and `@speech`. These parameters are passed directly to the respective APIs, so you can use any supported parameter.

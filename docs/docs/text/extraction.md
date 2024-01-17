@@ -152,3 +152,6 @@ marvin.cast('Mass.', to=str, instruction="The state's abbreviation")
 # MA
 ```
 
+
+## Model parameters
+You can pass parameters to the underlying API via the `model_kwargs` argument of `extract`. These parameters are passed directly to the API, so you can use any supported parameter.
