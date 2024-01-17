@@ -11,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class MarvinSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file="" if os.getenv("MARVIN_TEST_MODE") else "~/.marvin/.env",
+        env_file="" if os.getenv("MARVIN_TEST_MODE") else ("~/.marvin/.env", ".env"),
         extra="allow",
         arbitrary_types_allowed=True,
         validate_assignment=True,
