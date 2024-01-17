@@ -246,3 +246,7 @@ summarize_url('https://www.askmarvin.ai')
 
 ## Running a function
 Running a function is quite simple: just call it like you would any other function! The LLM will generate the output based on the function's definition and the provided inputs. Remember that no source code is generated or executed, so every call to the function will be handled by the LLM. You can use caching or other techniques to improve performance if necessary.
+
+
+## Model parameters
+You can pass parameters to the underlying API via the `model_kwargs` argument of `@fn`. These parameters are passed directly to the API, so you can use any supported parameter.

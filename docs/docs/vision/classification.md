@@ -55,3 +55,9 @@ The `marvin.beta.classify` function is an enhanced version of `marvin.classify` 
         assert animal == 'dog'
         assert dry_or_wet == 'wet'
         ```
+
+
+
+
+## Model parameters
+You can pass parameters to the underlying API via the `model_kwargs` and `vision_model_kwargs` arguments of `classify`. These parameters are passed directly to the respective APIs, so you can use any supported parameter.

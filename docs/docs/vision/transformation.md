@@ -113,3 +113,6 @@ If the target type isn't self-documenting, or you want to provide additional gui
         ```python
         assert missing_items == ["eggs", "oranges"]
         ```
+
+## Model parameters
+You can pass parameters to the underlying API via the `model_kwargs` and `vision_model_kwargs` arguments of `cast`. These parameters are passed directly to the respective APIs, so you can use any supported parameter.

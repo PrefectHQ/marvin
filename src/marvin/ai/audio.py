@@ -80,7 +80,12 @@ def speak(
     return response
 
 
-def speech(fn: Optional[Callable] = None, *, voice: Optional[str] = None) -> Callable:
+def speech(
+    fn: Optional[Callable] = None,
+    *,
+    voice: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+) -> Callable:
     """
     Function decorator that generates audio from the wrapped function's return
     value. The voice used for the audio can be specified.
@@ -93,11 +98,11 @@ def speech(fn: Optional[Callable] = None, *, voice: Optional[str] = None) -> Cal
         Callable: The wrapped function.
     """
     if fn is None:
-        return partial(speech, voice=voice)
+        return partial(speech, voice=voice, model_kwargs=model_kwargs)
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
         model = PythonFunction.from_function_call(fn, *args, **kwargs)
-        return speak(text=model.return_value, voice=voice)
+        return speak(text=model.return_value, voice=voice, model_kwargs=model_kwargs)
 
     return wrapper

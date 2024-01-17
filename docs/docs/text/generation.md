@@ -124,6 +124,10 @@ Data generation relies even more on instructions than other Marvin tools, as the
 
 Instructions are freeform natural language and can be as general or specific as you like. The LLM will do its best to comply with any instructions you give.
 
+
+## Model parameters
+You can pass parameters to the underlying API via the `model_kwargs` argument of `generate`. These parameters are passed directly to the API, so you can use any supported parameter.
+
 ## Caching
 
 Normally, each `generate` call would be independent. For some prompts, this would mean that each call produced very similar results to other calls. That would mean that generating, say, 10 items in a single call would produce a much more varied and high-quality result than generating 10 items in 5 calls of 2 items each.

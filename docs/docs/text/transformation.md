@@ -112,3 +112,6 @@ class Location(marvin.Model):
 Location('CHI')
 # Location(city="Chicago", state="IL")
 ```
+
+## Model parameters
+You can pass parameters to the underlying API via the `model_kwargs` argument of `cast` or `@model`. These parameters are passed directly to the API, so you can use any supported parameter.
