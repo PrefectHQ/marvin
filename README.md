@@ -44,7 +44,7 @@ Marvin consists of a variety of useful tools, all designed to be used independen
 
 🔍 [Extract structured entities](https://askmarvin.ai/docs/text/extraction) from text
 
-🪄 [Transform text](https://askmarvin.ai/docs/text/transforming) into structured data
+🪄 [Transform text](https://askmarvin.ai/docs/text/transformation) into structured data
 
 ✨ [Generate synthetic data](https://askmarvin.ai/docs/text/generation) from a schema
 
@@ -58,7 +58,7 @@ Marvin consists of a variety of useful tools, all designed to be used independen
 
 🔍 [Extract structured entities](https://askmarvin.ai/docs/vision/extraction) from images
 
-🪄 [Transform images](https://askmarvin.ai/docs/vision/transforming) into structured data
+🪄 [Transform images](https://askmarvin.ai/docs/vision/transformation) into structured data
 
 ### Audio
 
