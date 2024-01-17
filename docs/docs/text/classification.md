@@ -10,7 +10,7 @@ Marvin has a powerful classification tool that can be used to categorize text in
 </div>
 
 
-!!! example
+!!! example "Example: categorize user feedback"
     Categorize user feedback into labels such as "bug", "feature request", or "inquiry":
     
     ```python
@@ -45,15 +45,22 @@ Marvin's classification tool is designed to accommodate a variety of label forma
 
 When quick, ad-hoc categorization is required, a simple list of strings is the most straightforward approach. For example:
 
-```python
-response = marvin.classify(
-    "Reset my password", 
-    labels=["support request", "account issue", "general inquiry"]
-)
-assert response == "account issue"
-```
+!!! example "Example: sentiment analysis"
+    
+    ```python
+    import marvin
 
-Here, the function easily discerns the nature of the request, demonstrating Marvin's adeptness at handling diverse categorization tasks.
+    sentiment = marvin.classify(
+        "Marvin is so easy to use!", 
+        labels=["positive", "negative", "meh"]
+    )
+    ```
+
+    !!! success "Result"
+        ```python
+        assert sentiment == "positive"
+        ```
+
 
 ### Enums
 
