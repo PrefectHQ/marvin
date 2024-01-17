@@ -7,13 +7,14 @@ It is possible to use Azure OpenAI with _some_ of `marvin`'s functionality via:
     Azure OpenAI often lags behind the latest version of OpenAI in terms of functionality, therefore some features may not work with Azure OpenAI. If you encounter problems, please check that the underlying functionality is supported by Azure OpenAI before reporting an issue.
 
 ## Configuring with environment variables
-After setting up your Azure OpenAI account and deployment, set these environment variables in your environment, your `~/.marvin/.env` or `.env` file:
+After setting up your Azure OpenAI account and deployment, set these environment variables in your environment, `~/.marvin/.env`, or `.env` file:
 
 ```bash
 MARVIN_PROVIDER=azure_openai
 MARVIN_AZURE_OPENAI_API_KEY=<your-api-key>
 MARVIN_AZURE_OPENAI_ENDPOINT="https://<your-endpoint>.openai.azure.com/"
 MARVIN_AZURE_OPENAI_API_VERSION=2023-12-01-preview # or latest
+
 MARVIN_CHAT_COMPLETION_MODEL=<your azure openai deployment name>
 ```
 

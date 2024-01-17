@@ -1,7 +1,7 @@
 """
 Usage example of Marvin with Azure OpenAI
 
-If you'll be using Azure OpenAI exclusively, you can set the following env vars in your environment or `~/.marvin/.env`:
+If you'll be using Azure OpenAI exclusively, you can set the following env vars in your environment, `~/.marvin/.env`, or `.env`:
 ```bash
 
 MARVIN_PROVIDER=azure_openai
