@@ -27,7 +27,7 @@ The `marvin.beta.extract` function is an enhanced version of `marvin.extract` th
 
 
 
-!!! example "Example: Dog breeds"
+!!! example "Example: identifying dogs"
 
     We will extract the breed of each dog in this image:
 

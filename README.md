@@ -32,7 +32,7 @@ To verify your installation, run `marvin version` in your terminal.
 
 ## Tools
 
-Marvin consists of a variety of useful tools, all designed to be used independently. Each one represents a common LLM use case, and is designed to package that power into a simple, self-documenting interface.
+Marvin consists of a variety of useful tools, all designed to be used independently. Each one represents a common LLM use case, and packages that power into a simple, self-documenting interface.
 
 ### General
 
