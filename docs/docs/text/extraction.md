@@ -1,4 +1,4 @@
-# Entity extraction
+# Extracting entities from text
 
 Marvin's `extract` function is a robust tool for pulling lists of structured entities from text. It is designed to identify and retrieve many types of data, ranging from primitive data types like integers and strings to complex custom types and Pydantic models. It can also follow nuanced instructions, making it a highly versatile tool for a wide range of extraction tasks.
 

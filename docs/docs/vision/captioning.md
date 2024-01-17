@@ -1,4 +1,4 @@
-# Generating images
+# Captioning images
 
 Marvin can use OpenAI's vision API to process images as inputs. 
 
