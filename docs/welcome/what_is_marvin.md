@@ -129,12 +129,14 @@ Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](
 
         Marvin functions let you combine any inputs, instructions, and output types to create custom AI-powered behaviors.
 
-        ```python hl_lines="3"
+        ```python hl_lines="4"
         import marvin
+
 
         @marvin.fn
         def list_fruits(n: int, color: str) -> list[str]:
             """Generates a list of `n` fruits that are `color`"""
+
 
         fruits = list_fruits(3, color='red')
         ```
