@@ -181,7 +181,7 @@ class OpenAISettings(MarvinSettings):
     audio: AudioSettings = Field(default_factory=AudioSettings)
     assistants: AssistantSettings = Field(default_factory=AssistantSettings)
 
-    @field_validator("api_key")
+    @field_validator("api_key", mode="before")
     def discover_api_key(cls, v):
         if v is None:
             # check global OpenAI API key

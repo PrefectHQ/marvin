@@ -5,7 +5,6 @@ import inspect
 from functools import lru_cache
 from typing import Any, Optional, Union
 
-import pydantic
 from openai import AsyncAzureOpenAI, AsyncClient, AzureOpenAI, Client
 
 import marvin
@@ -35,9 +34,11 @@ def get_openai_client(
     if marvin.settings.provider == "openai":
         client_class = AsyncClient if is_async else Client
 
-        api_key = marvin.settings.openai.api_key
-        if isinstance(api_key, pydantic.SecretStr):
-            api_key = api_key.get_secret_value()
+        api_key = (
+            marvin.settings.openai.api_key.get_secret_value()
+            if marvin.settings.openai.api_key
+            else None
+        )
 
         if not api_key:
             raise ValueError(
