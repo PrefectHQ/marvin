@@ -224,9 +224,20 @@ class Settings(MarvinSettings):
         protected_namespaces=(),
     )
 
+    # providers
+    provider: Literal["openai", "azure_openai"] = Field(
+        default="openai",
+        description=(
+            'The LLM provider to use. Supports "openai" and "azure_openai" at this'
+            " time."
+        ),
+    )
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
+
+    # ai settings
     ai: AISettings = Field(default_factory=AISettings)
 
+    # log settings
     log_level: str = Field(
         default="INFO",
         description="The log level to use.",
