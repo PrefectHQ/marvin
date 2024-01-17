@@ -1,8 +1,9 @@
+import os
+from typing import List
+
 from github import Github
 from marvin import ai_fn
 from openai import OpenAI
-import os
-from typing import List
 
 
 def authenticate_github(username: str, token: str) -> Github:
