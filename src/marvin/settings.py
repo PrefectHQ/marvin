@@ -86,7 +86,13 @@ class ImageSettings(MarvinSettings):
     size: Literal["1024x1024", "1792x1024", "1024x1792"] = Field(
         default="1024x1024",
     )
-    response_format: Literal["url", "b64_json"] = Field(default="url")
+    response_format: Literal["url", "b64_json"] = Field(
+        default="url",
+        description=(
+            "URLs only last for one hour and must be downloaded within that time."
+            " b64_json returns a base64-encoded JSON object containing the image."
+        ),
+    )
     style: Literal["vivid", "natural"] = Field(default="vivid")
     quality: Literal["standard", "hd"] = Field(default="standard")
 
