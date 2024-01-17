@@ -44,4 +44,5 @@ deployments:
     job_variables:
       env:
         OPENAI_API_KEY: '{{ prefect.blocks.secret.openai-api-key }}'
-        GH_UTILS_TOKEN: '{{ prefect.blocks.secret.gh-token }}'
+        GH_UTIL_TOKEN: '{{ prefect.blocks.secret.gh-token }}'
+        EXTRA_PIP_PACKAGES: 'gh-util'
