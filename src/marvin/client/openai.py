@@ -26,6 +26,7 @@ from marvin.types import (
 )
 from marvin.types import (
     ChatRequest,
+    HttpxBinaryResponseContent,
     ImageRequest,
     StreamingChatResponse,
     VisionRequest,
@@ -33,7 +34,6 @@ from marvin.types import (
 from marvin.utilities.logging import get_logger
 
 if TYPE_CHECKING:
-    from openai._base_client import HttpxBinaryResponseContent
     from openai.types import ImagesResponse
 
 
