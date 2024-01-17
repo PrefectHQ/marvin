@@ -48,3 +48,6 @@ The `marvin.beta.extract` function is an enhanced version of `marvin.extract` th
         ```python
         result == ["Pembroke Welsh Corgi", "Yorkshire Terrier"]
         ```    
+
+## Model parameters
+You can pass parameters to the underlying API via the `model_kwargs` and `vision_model_kwargs` arguments of `extract`. These parameters are passed directly to the respective APIs, so you can use any supported parameter.

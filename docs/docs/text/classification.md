@@ -166,6 +166,9 @@ assert issue == IssueType.BUG
 
 While convenient for certain scenarios, it's recommended to use the `classify` function for its greater flexibility and broader application range.
 
+## Model parameters
+You can pass parameters to the underlying API via the `model_kwargs` argument of `classify` or `@classifier`. These parameters are passed directly to the API, so you can use any supported parameter.
+
 ## Best practices
 
 1. **Choosing the right labels**: Opt for labels that are mutually exclusive and collectively exhaustive for your classification context. This ensures clarity and prevents overlaps in categorization.
