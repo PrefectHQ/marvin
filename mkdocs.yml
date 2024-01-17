@@ -107,7 +107,8 @@ plugins:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
       cards_layout_options:
         font_family: Inter
-        background_color: "#2d6df6"
+        # background_color: "#2d6df6"
+        background_color: "#181544" # marvin blue
   - awesome-pages
   - autolinks 
   - mkdocstrings:
