@@ -1,11 +1,9 @@
 from functools import partial, wraps
 from typing import Any, Callable, Literal, Optional, TypeVar
 
-from openai._base_client import HttpxBinaryResponseContent
-
 import marvin
 from marvin.client.openai import MarvinClient
-from marvin.types import SpeechRequest
+from marvin.types import HttpxBinaryResponseContent, SpeechRequest
 from marvin.utilities.jinja import Environment
 from marvin.utilities.logging import get_logger
 from marvin.utilities.python import PythonFunction

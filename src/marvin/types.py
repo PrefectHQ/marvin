@@ -9,6 +9,15 @@ from marvin.settings import settings
 
 T = TypeVar("T", bound=BaseModel)
 
+# OpenAI client 1.8 moved the HttpxBinaryResponseContent class to a different
+# module, presumably this will continue to change in the future
+try:
+    # >= 1.8
+    from openai._legacy_response import HttpxBinaryResponseContent  # noqa F401
+except ImportError:
+    # < 1.8
+    from openai._base_client import HttpxBinaryResponseContent  # noqa F401
+
 
 class ResponseFormat(BaseModel):
     type: str
