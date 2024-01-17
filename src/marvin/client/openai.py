@@ -1,4 +1,3 @@
-import inspect
 from functools import partial
 from pathlib import Path
 from typing import (
@@ -32,6 +31,7 @@ from marvin.types import (
     VisionRequest,
 )
 from marvin.utilities.logging import get_logger
+from marvin.utilities.openai import get_openai_client
 
 if TYPE_CHECKING:
     from openai.types import ImagesResponse
@@ -143,65 +143,14 @@ async def should_fallback(e: NotFoundError, request: ChatRequest) -> bool:
         return False
 
 
-def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
-    if getattr(settings, "use_azure_openai", False):
-        from openai import AsyncAzureOpenAI, AzureOpenAI
-
-        client_class = AsyncAzureOpenAI if client_type == "async" else AzureOpenAI
-
-        try:
-            return client_class(
-                api_key=settings.azure_openai_api_key,
-                api_version=settings.azure_openai_api_version,
-                azure_endpoint=settings.azure_openai_endpoint,
-            )
-        except AttributeError:
-            raise ValueError(
-                inspect.cleandoc(
-                    """
-                To use Azure OpenAI, please set all of the following environment variables in `~/.marvin/.env`:
-
-                ```
-                MARVIN_USE_AZURE_OPENAI=true
-                MARVIN_AZURE_OPENAI_API_KEY=...
-                MARVIN_AZURE_OPENAI_API_VERSION=...
-                MARVIN_AZURE_OPENAI_ENDPOINT=...
-                MARVIN_AZURE_OPENAI_DEPLOYMENT_NAME=...
-                ```
-                """
-                )
-            )
-
-    api_key = (
-        settings.openai.api_key.get_secret_value() if settings.openai.api_key else None
-    )
-    if not api_key:
-        raise ValueError(
-            inspect.cleandoc(
-                """
-            OpenAI API key not found! Marvin will not work properly without it.
-            
-            You can either:
-                1. Set the `MARVIN_OPENAI_API_KEY` or `OPENAI_API_KEY` environment variables
-                2. Set `marvin.settings.openai.api_key` in your code (not recommended for production)
-                
-            If you do not have an OpenAI API key, you can create one at https://platform.openai.com/api-keys.
-            """
-            )
-        )
-    if client_type not in ["sync", "async"]:
-        raise ValueError(f"Invalid client type {client_type!r}")
-
-    client_class = Client if client_type == "sync" else AsyncClient
-    return client_class(api_key=api_key, organization=settings.openai.organization)
-
-
 class MarvinClient(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(
         arbitrary_types_allowed=True, protected_namespaces=()
     )
 
-    client: Client = pydantic.Field(default_factory=lambda: _get_default_client("sync"))
+    client: Client = pydantic.Field(
+        default_factory=lambda: get_openai_client(is_async=False)
+    )
 
     @classmethod
     def wrap(cls, client: Client) -> "Client":
@@ -287,7 +236,7 @@ class AsyncMarvinClient(pydantic.BaseModel):
     )
 
     client: AsyncClient = pydantic.Field(
-        default_factory=lambda: _get_default_client("async")
+        default_factory=lambda: get_openai_client(is_async=True)
     )
 
     @classmethod

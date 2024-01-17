@@ -181,7 +181,7 @@ class OpenAISettings(MarvinSettings):
     audio: AudioSettings = Field(default_factory=AudioSettings)
     assistants: AssistantSettings = Field(default_factory=AssistantSettings)
 
-    @field_validator("api_key")
+    @field_validator("api_key", mode="before")
     def discover_api_key(cls, v):
         if v is None:
             # check global OpenAI API key
@@ -224,9 +224,20 @@ class Settings(MarvinSettings):
         protected_namespaces=(),
     )
 
+    # providers
+    provider: Literal["openai", "azure_openai"] = Field(
+        default="openai",
+        description=(
+            'The LLM provider to use. Supports "openai" and "azure_openai" at this'
+            " time."
+        ),
+    )
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
+
+    # ai settings
     ai: AISettings = Field(default_factory=AISettings)
 
+    # log settings
     log_level: str = Field(
         default="INFO",
         description="The log level to use.",
