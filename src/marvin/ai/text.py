@@ -40,6 +40,7 @@ from marvin.utilities.context import ctx
 from marvin.utilities.jinja import Transcript
 from marvin.utilities.logging import get_logger
 from marvin.utilities.python import PythonFunction
+from marvin.utilities.retries import retry_with_fallback
 from marvin.utilities.strings import count_tokens
 
 T = TypeVar("T")
@@ -350,7 +351,7 @@ def classify(
     return _generate_typed_llm_response_with_logit_bias(
         prompt_template=CLASSIFY_PROMPT,
         prompt_kwargs=dict(data=data, labels=labels, instructions=instructions),
-        model_kwargs=model_kwargs | dict(temperature=0),
+        model_kwargs=dict(temperature=0) | model_kwargs,
         client=client,
     )
 
@@ -488,7 +489,20 @@ def fn(
         else:
             type_ = model.return_annotation
 
-        result = _generate_typed_llm_response_with_tool(
+        if isinstance(model_kwargs, list):
+            _generate_typed_llm_response_with_tools_and_retries = retry_with_fallback(
+                model_kwargs
+            )(_generate_typed_llm_response_with_tool)
+        elif isinstance(model_kwargs, dict) or model_kwargs is None:
+            _generate_typed_llm_response_with_tools_and_retries = partial(
+                generate_llm_response, model_kwargs=model_kwargs
+            )
+        else:
+            raise TypeError(
+                f"model_kwargs must be a dict or list, not {type(model_kwargs)}"
+            )
+
+        result = _generate_typed_llm_response_with_tools_and_retries(
             prompt_template=FUNCTION_PROMPT,
             prompt_kwargs=dict(
                 fn_definition=model.definition,
