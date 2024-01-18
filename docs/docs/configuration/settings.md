@@ -24,7 +24,7 @@ A runtime settings object is accessible via `marvin.settings` and can be used to
     ```python
     import marvin
 
-    marvin.settings.openai_chat_completions_model = 'gpt-4'
+    marvin.settings.openai.chat.completions.model = 'gpt-4'
     ```
 
 ## Settings for using Azure OpenAI models
@@ -38,7 +38,7 @@ MARVIN_AZURE_OPENAI_API_KEY=<your-api-key>
 MARVIN_AZURE_OPENAI_ENDPOINT="https://<your-endpoint>.openai.azure.com/"
 MARVIN_AZURE_OPENAI_API_VERSION=2023-12-01-preview # or latest
 
-MARVIN_CHAT_COMPLETION_MODEL=<your azure openai deployment name>
+MARVIN_CHAT_COMPLETIONS_MODEL=<your azure openai deployment name>
 ```
 
 Note that the chat completion model must be your Azure OpenAI deployment name.

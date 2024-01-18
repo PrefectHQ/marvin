@@ -10,7 +10,7 @@ MARVIN_AZURE_OPENAI_ENDPOINT="https://<your-endpoint>.openai.azure.com/"
 MARVIN_AZURE_OPENAI_API_VERSION=2023-12-01-preview # or latest
 
 Note that you MUST set the LLM model name to be your Azure OpenAI deployment name, e.g.
-MARVIN_CHAT_COMPLETION_MODEL=<your Azure OpenAI deployment name>
+MARVIN_CHAT_COMPLETIONS_MODEL=<your Azure OpenAI deployment name>
 ```
 """
 
