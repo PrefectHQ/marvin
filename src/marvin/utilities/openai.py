@@ -75,7 +75,7 @@ def get_openai_client(
                     - MARVIN_AZURE_OPENAI_ENDPOINT
                     
                 In addition, you must set the LLM model name to your Azure OpenAI deployment name, e.g.
-                    - MARVIN_CHAT_COMPLETION_MODEL = <your Azure OpenAI deployment name>
+                    - MARVIN_CHAT_COMPLETIONS_MODEL = <your Azure OpenAI deployment name>
                 """
                 )
             )
