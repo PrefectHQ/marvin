@@ -176,6 +176,11 @@ class OpenAISettings(MarvinSettings):
         description="Your OpenAI organization ID.",
     )
 
+    base_url: Optional[str] = Field(
+        default=None,
+        description="Your OpenAI base URL.",
+    )
+
     chat: ChatSettings = Field(default_factory=ChatSettings)
     images: ImageSettings = Field(default_factory=ImageSettings)
     audio: AudioSettings = Field(default_factory=AudioSettings)
