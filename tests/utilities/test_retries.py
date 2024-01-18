@@ -56,7 +56,7 @@ def test_success_after_specific_retries(retry_configs, capsys):
 
     assert success_after_retries_function() == "Success after retries"
     captured = capsys.readouterr()
-    assert captured.out.count("Retrying") == 4  # 4 retries before success
+    assert captured.out.count("Retrying") == 3  # 1st try + 3 retries = 4 total attempts
 
 
 def test_user_provided_arguments_prioritized(retry_configs, capsys):

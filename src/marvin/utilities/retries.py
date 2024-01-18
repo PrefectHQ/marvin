@@ -62,34 +62,37 @@ def retry_with_fallback(
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            last_exception = None
+            try:
+                return func(*args, **kwargs)
+            except Exception:
+                last_exception = None
 
-            for config in retry_configs:
-                param_values, retries = (
-                    (config, 1) if isinstance(config, dict) else config
-                )
+                for config in retry_configs:
+                    param_values, retries = (
+                        (config, 1) if isinstance(config, dict) else config
+                    )
 
-                for _ in range(retries):
-                    # Merge inner dictionaries
-                    for param_name, value in param_values.items():
-                        if param_name in kwargs:
-                            # Update only the keys that are not present in the user-provided dictionary
-                            for key, val in value.items():
-                                kwargs[param_name].setdefault(key, val)
-                        else:
-                            kwargs[param_name] = value
+                    for _ in range(retries):
+                        # Merge inner dictionaries
+                        for param_name, value in param_values.items():
+                            if param_name in kwargs:
+                                # Update only the keys that are not present in the user-provided dictionary
+                                for key, val in value.items():
+                                    kwargs[param_name].setdefault(key, val)
+                            else:
+                                kwargs[param_name] = value
 
-                    try:
-                        return func(*args, **kwargs)
-                    except Exception as e:
-                        logger.debug_kv("Retrying", str(e), "red")
-                        last_exception = e
-                        if not error_handler(e):
-                            raise
+                        try:
+                            return func(*args, **kwargs)
+                        except Exception as e:
+                            logger.debug_kv("Retrying", str(e), "red")
+                            last_exception = e
+                            if not error_handler(e):
+                                raise
 
-            raise RuntimeError(
-                f"All retries have failed. Last exception: {last_exception}"
-            ) from last_exception
+                raise RuntimeError(
+                    f"All retries have failed. Last exception: {last_exception}"
+                ) from last_exception
 
         return wrapper
 
