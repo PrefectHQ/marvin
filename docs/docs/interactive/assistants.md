@@ -238,6 +238,17 @@ async with Assistant(name='Marvin') as ai:
     await ai.say_async('hi')
 ```
 
+In addition, assistants can use `async` tools, even when called with the sync API. To do so, simply pass an async function to the `tools` parameter:
+
+```python
+async def secret_message():
+    return "The answer is 42"
+
+ai = Assistant(tools=[secret_message])
+ai.say("What's the secret message?")
+# 42
+```
+
 
 ## Threads
 
