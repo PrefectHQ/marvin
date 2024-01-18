@@ -33,7 +33,7 @@ class MarvinSettings(BaseSettings):
 
 
 class ChatCompletionSettings(MarvinSettings):
-    model_config = SettingsConfigDict(env_prefix="marvin_chat_completion_")
+    model_config = SettingsConfigDict(env_prefix="marvin_chat_completions_")
     model: str = Field(
         description="The default chat model to use.", default="gpt-4-1106-preview"
     )
