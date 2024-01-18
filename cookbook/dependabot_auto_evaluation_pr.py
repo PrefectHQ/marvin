@@ -62,6 +62,9 @@ def main() -> None:
     github_username = os.getenv("GITHUB_USERNAME")
     github_token = os.getenv("GITHUB_TOKEN")
 
+    if not github_username or not github_token:
+        raise ValueError("Both GITHUB_USERNAME and GITHUB_TOKEN must be set")
+
     g = authenticate_github(github_username, github_token)
     repo = g.get_repo("refectHQ/marvin")
 
