@@ -55,7 +55,11 @@ def get_openai_client(
                 )
             )
 
-        kwargs.update(api_key=api_key, organization=marvin.settings.openai.organization)
+        kwargs.update(
+            api_key=api_key,
+            organization=marvin.settings.openai.organization,
+            base_url=marvin.settings.openai.base_url,
+        )
 
     # --- Azure OpenAI
     elif marvin.settings.provider == "azure_openai":
