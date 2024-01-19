@@ -8,6 +8,7 @@ from marvin.utilities.async_utils import create_task
 from marvin.utilities.messages import Message
 from marvin.utilities.streaming import StreamHandler
 from openai.openai_object import OpenAIObject
+from openai import AzureOpenAI, OpenAI
 from pydantic import BaseModel
 
 from ..abstract import AbstractChatCompletion
@@ -198,10 +199,17 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         """
         # Use openai's library functions to send the request and get a response
         # Example:
+        client = AzureOpenAI(
+            azure_endpoint = serialized_request['api_base'],
+            api_key = serialized_request['api_key'],
+            api_version=self.defaults["api_version"]
+        )
 
-        import openai
+        serialized_request.pop("api_base")
+        serialized_request.pop("api_key")
+        serialized_request.pop("api_version")
 
-        response = openai.ChatCompletion.create(**serialized_request)  # type: ignore
+        response = client.chat.completions.create(**serialized_request)  # type: ignore
         return response  # type: ignore
 
     async def _send_request_async(self, **serialized_request: Any) -> Response[T]:
