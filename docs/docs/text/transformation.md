@@ -56,13 +56,13 @@ Sometimes the cast operation is obvious, as in the "big apple" example above. Ot
 In a simple case, instructions can be used independent of any type-casting. Here, we want to keep the output a string, but get the 2-letter abbreviation of the state.
 
 ```python
-marvin.cast('California', target=str, instruction="The state's abbreviation")
+marvin.cast('California', target=str, instructions="The state's abbreviation")
 # "CA"
 
-marvin.cast('The sunshine state', target=str, instruction="The state's abbreviation")
+marvin.cast('The sunshine state', target=str, instructions="The state's abbreviation")
 # "FL"
 
-marvin.cast('Mass.', target=str, instruction="The state's abbreviation")
+marvin.cast('Mass.', target=str, instructions="The state's abbreviation")
 # MA
 ```
 

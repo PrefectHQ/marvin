@@ -69,13 +69,10 @@ class Application(Assistant):
             if not isinstance(tool, Tool):
                 kwargs = None
                 signature = inspect.signature(tool)
-                parameter = None
                 for parameter in signature.parameters.values():
                     if parameter.annotation == Application:
+                        kwargs = {parameter.name: self}
                         break
-                if parameter is not None:
-                    kwargs = {parameter.name: self}
-
                 tool = tool_from_function(tool, kwargs=kwargs)
             tools.append(tool)
 
