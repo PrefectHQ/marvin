@@ -145,13 +145,20 @@ def _generate_typed_llm_response_with_tool(
         "type": "function",
         "function": {"name": tool.function.name},
     }
-    model_kwargs.update(tools=[tool], tool_choice=tool_choice)
 
     # adding the tool parameters to the context helps GPT-4 pay attention to field
     # descriptions. If they are only in the tool signature it often ignores them.
     prompt_kwargs["response_format"] = tool.function.parameters
 
-    response = generate_llm_response(
+    if isinstance(model_kwargs, list):
+        retry_model_kwarg_list = model_kwargs[1:]
+        model_kwargs = model_kwargs[0]
+    else:
+        retry_model_kwarg_list = []
+
+    model_kwargs.update(tools=[tool], tool_choice=tool_choice)
+
+    response = retry_with_fallback(retry_model_kwarg_list)(generate_llm_response)(
         prompt_template=prompt_template,
         prompt_kwargs=prompt_kwargs,
         model_kwargs=model_kwargs,
@@ -351,7 +358,7 @@ def classify(
     return _generate_typed_llm_response_with_logit_bias(
         prompt_template=CLASSIFY_PROMPT,
         prompt_kwargs=dict(data=data, labels=labels, instructions=instructions),
-        model_kwargs=dict(temperature=0) | model_kwargs,
+        model_kwargs=model_kwargs | dict(temperature=0),
         client=client,
     )
 
@@ -489,20 +496,7 @@ def fn(
         else:
             type_ = model.return_annotation
 
-        if isinstance(model_kwargs, list):
-            _generate_typed_llm_response_with_tools_and_retries = retry_with_fallback(
-                model_kwargs
-            )(_generate_typed_llm_response_with_tool)
-        elif isinstance(model_kwargs, dict) or model_kwargs is None:
-            _generate_typed_llm_response_with_tools_and_retries = partial(
-                generate_llm_response, model_kwargs=model_kwargs
-            )
-        else:
-            raise TypeError(
-                f"model_kwargs must be a dict or list, not {type(model_kwargs)}"
-            )
-
-        result = _generate_typed_llm_response_with_tools_and_retries(
+        result = _generate_typed_llm_response_with_tool(
             prompt_template=FUNCTION_PROMPT,
             prompt_kwargs=dict(
                 fn_definition=model.definition,
