@@ -79,6 +79,10 @@ nav:
     - Slackbot: examples/slackbot.md
     - Python augmented prompts: examples/python_augmented_prompts.md
     - Being specific about types: examples/being_specific_about_types.md
+    - Examples:
+      - examples/xkcd_bird.md
+      - examples/michael_scott_business/michael_scott_business.md
+
 
   - Community:
     - community/index.md
