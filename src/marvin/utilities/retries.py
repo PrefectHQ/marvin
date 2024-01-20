@@ -78,6 +78,7 @@ def retry_with_fallback(
                             if param_name in kwargs:
                                 # Update only the keys that are not present in the user-provided dictionary
                                 for key, val in value.items():
+                                    print(param_name, key, val)
                                     kwargs[param_name].setdefault(key, val)
                             else:
                                 kwargs[param_name] = value
