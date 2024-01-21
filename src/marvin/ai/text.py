@@ -659,7 +659,7 @@ def cast(
     target: type[T],
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ) -> T:
     """
     Converts the input data into the specified type.
@@ -673,7 +673,7 @@ def cast(
         target (type): The type to convert the data into.
         instructions (str, optional): Specific instructions for the conversion. Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the language model. Defaults to None.
-        client (MarvinClient, optional): The client to use for the AI function.
+        client (AsyncMarvinClient, optional): The client to use for the AI function.
 
     Returns:
         T: The converted data of the specified type.
@@ -694,7 +694,7 @@ def classify(
     labels: Union[Enum, list[T], type],
     instructions: str = None,
     model_kwargs: dict = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ) -> T:
     """
     Classifies the provided data based on the provided labels.
@@ -711,7 +711,7 @@ def classify(
             classification. Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
-        client (MarvinClient, optional): The client to use for the AI function.
+        client (AsyncMarvinClient, optional): The client to use for the AI function.
 
     Returns:
         T: The label that the data was classified into.
@@ -732,7 +732,7 @@ def extract(
     target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ) -> list[T]:
     """
     Extracts entities of a specific type from the provided data.
@@ -752,7 +752,7 @@ def extract(
             Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
-        client (MarvinClient, optional): The client to use for the AI function.
+        client (AsyncMarvinClient, optional): The client to use for the AI function.
 
     Returns:
         list: A list of extracted entities of the specified type.
@@ -775,7 +775,7 @@ def generate(
     use_cache: bool = True,
     temperature: float = 1,
     model_kwargs: Optional[dict] = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ) -> list[T]:
     """
     Generates a list of 'n' items of the provided type or based on instructions.
@@ -794,7 +794,7 @@ def generate(
         temperature (float, optional): The temperature for the generation. Defaults to 1.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
-        client (MarvinClient, optional): The client to use for the AI function.
+        client (AsyncMarvinClient, optional): The client to use for the AI function.
 
     Returns:
         list: A list of generated items.
