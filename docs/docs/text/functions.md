@@ -63,7 +63,7 @@ The docstring can refer to the function's arguments by name or interpolate the a
 
 ```python
 @marvin.fn
-def list_fruit(n: int) -> list[str]
+def list_fruit(n: int) -> list[str]:
     """
     Returns a list of `n` fruit.
     """
@@ -76,7 +76,7 @@ When the above function is called with `n=3`, the LLM will see the string ``"...
 If the docstring is written in jinja notation, Marvin will template variable names into it before sending the prompt to the LLM. Consider this slightly modified version of the above function (note the `{{n}}` instead of `` `n` ``):
 ```python
 @marvin.fn
-def list_fruit(n: int) -> list[str]
+def list_fruit(n: int) -> list[str]:
     """
     Returns a list of {{n}} fruit.
     """
