@@ -1,14 +1,4 @@
-"""Settings for configuring `marvin`.
-
-## Requirements
-All you ***need*** to configure is your OpenAI API key.
-
-You can set this in `~/.marvin/.env` or as an environment variable on your system:
-```
-MARVIN_OPENAI_API_KEY=sk-...
-```
----
-"""
+"""Settings for configuring `marvin`."""
 
 import os
 from contextlib import contextmanager
@@ -21,7 +11,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class MarvinSettings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file="" if os.getenv("MARVIN_TEST_MODE") else "~/.marvin/.env",
+        env_file="" if os.getenv("MARVIN_TEST_MODE") else ("~/.marvin/.env", ".env"),
         extra="allow",
         arbitrary_types_allowed=True,
         validate_assignment=True,
@@ -43,7 +33,7 @@ class MarvinSettings(BaseSettings):
 
 
 class ChatCompletionSettings(MarvinSettings):
-    model_config = SettingsConfigDict(env_prefix="marvin_chat_completion_")
+    model_config = SettingsConfigDict(env_prefix="marvin_chat_completions_")
     model: str = Field(
         description="The default chat model to use.", default="gpt-4-1106-preview"
     )
@@ -96,7 +86,13 @@ class ImageSettings(MarvinSettings):
     size: Literal["1024x1024", "1792x1024", "1024x1792"] = Field(
         default="1024x1024",
     )
-    response_format: Literal["url", "b64_json"] = Field(default="url")
+    response_format: Literal["url", "b64_json"] = Field(
+        default="url",
+        description=(
+            "URLs only last for one hour and must be downloaded within that time."
+            " b64_json returns a base64-encoded JSON object containing the image."
+        ),
+    )
     style: Literal["vivid", "natural"] = Field(default="vivid")
     quality: Literal["standard", "hd"] = Field(default="standard")
 
@@ -180,21 +176,22 @@ class OpenAISettings(MarvinSettings):
         description="Your OpenAI organization ID.",
     )
 
+    base_url: Optional[str] = Field(
+        default=None,
+        description="Your OpenAI base URL.",
+    )
+
     chat: ChatSettings = Field(default_factory=ChatSettings)
     images: ImageSettings = Field(default_factory=ImageSettings)
     audio: AudioSettings = Field(default_factory=AudioSettings)
     assistants: AssistantSettings = Field(default_factory=AssistantSettings)
 
-    @field_validator("api_key")
+    @field_validator("api_key", mode="before")
     def discover_api_key(cls, v):
         if v is None:
-            v = SecretStr(os.environ.get("OPENAI_API_KEY"))
-            if v.get_secret_value() is None:
-                raise ValueError(
-                    "OpenAI API key not found. Please either set"
-                    " `MARVIN_OPENAI_API_KEY` in `~/.marvin/.env` or otherwise set"
-                    " `OPENAI_API_KEY` in your environment."
-                )
+            # check global OpenAI API key
+            v = os.environ.get("OPENAI_API_KEY")
+
         return v
 
 
@@ -232,9 +229,20 @@ class Settings(MarvinSettings):
         protected_namespaces=(),
     )
 
+    # providers
+    provider: Literal["openai", "azure_openai"] = Field(
+        default="openai",
+        description=(
+            'The LLM provider to use. Supports "openai" and "azure_openai" at this'
+            " time."
+        ),
+    )
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
+
+    # ai settings
     ai: AISettings = Field(default_factory=AISettings)
 
+    # log settings
     log_level: str = Field(
         default="INFO",
         description="The log level to use.",

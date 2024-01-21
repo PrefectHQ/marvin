@@ -1,4 +1,4 @@
-"""Module for testing utlities."""
+"""Utilities for running unit tests."""
 
 from typing import Any, Optional
 
@@ -19,6 +19,24 @@ class Assertion(BaseModel):
 
 
 def assert_equal(llm_output: Any, expected: Any) -> bool:
+    """
+    Asserts whether the LLM output meets the expected output.
+
+    This function uses an LLM to assess whether the provided output (llm_output)
+    meets some expectation. It allows us to make semantic claims like "the output
+    is a list of first names" to make assertions about stochastic LLM outputs.
+
+    Args:
+        llm_output (Any): The output from the LLM.
+        expected (Any): The expected output.
+
+    Returns:
+        bool: True if the LLM output meets the expectation, False otherwise.
+
+    Raises:
+        AssertionError: If the LLM output does not meet the expectation.
+    """
+
     result = _assert_equal(llm_output, expected)
     assert (
         result.is_equal

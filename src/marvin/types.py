@@ -9,6 +9,15 @@ from marvin.settings import settings
 
 T = TypeVar("T", bound=BaseModel)
 
+# OpenAI client 1.8 moved the HttpxBinaryResponseContent class to a different
+# module, presumably this will continue to change in the future
+try:
+    # >= 1.8
+    from openai._legacy_response import HttpxBinaryResponseContent  # noqa F401
+except ImportError:
+    # < 1.8
+    from openai._base_client import HttpxBinaryResponseContent  # noqa F401
+
 
 class ResponseFormat(BaseModel):
     type: str
@@ -115,13 +124,7 @@ class ResponseModel(MarvinType):
 
 
 class ChatRequest(Prompt[T]):
-    model: str = Field(
-        default_factory=lambda: (
-            settings.openai.chat.completions.model
-            if not getattr(settings, "use_azure_openai", False)
-            else settings.azure_openai_deployment_name
-        )
-    )
+    model: str = Field(default_factory=lambda: settings.openai.chat.completions.model)
     frequency_penalty: Optional[
         Annotated[float, Field(strict=True, ge=-2.0, le=2.0)]
     ] = 0

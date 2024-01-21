@@ -1,11 +1,9 @@
 from functools import partial, wraps
-from typing import Callable, Literal, Optional, TypeVar
-
-from openai._base_client import HttpxBinaryResponseContent
+from typing import Any, Callable, Literal, Optional, TypeVar
 
 import marvin
 from marvin.client.openai import MarvinClient
-from marvin.types import SpeechRequest
+from marvin.types import HttpxBinaryResponseContent, SpeechRequest
 from marvin.utilities.jinja import Environment
 from marvin.utilities.logging import get_logger
 from marvin.utilities.python import PythonFunction
@@ -17,8 +15,8 @@ logger = get_logger(__name__)
 
 def generate_speech(
     prompt_template: str,
-    prompt_kwargs: dict = None,
-    model_kwargs: dict = None,
+    prompt_kwargs: Optional[dict[str, Any]] = None,
+    model_kwargs: Optional[dict[str, Any]] = None,
 ) -> HttpxBinaryResponseContent:
     """
     Generates an image based on a provided prompt template.
@@ -43,17 +41,17 @@ def generate_speech(
     prompt = Environment.render(prompt_template, **prompt_kwargs)
     request = SpeechRequest(input=prompt, **model_kwargs)
     if marvin.settings.log_verbose:
-        logger.debug_kv("Request", request.model_dump_json(indent=2))
+        getattr(logger, "debug_kv")("Request", request.model_dump_json(indent=2))
     response = MarvinClient().generate_speech(**request.model_dump())
     if marvin.settings.log_verbose:
-        logger.debug_kv("Request", request.model_dump_json(indent=2))
+        getattr(logger, "debug_kv")("Response", response.model_dump_json(indent=2))
     return response
 
 
 def speak(
     text: str,
-    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = None,
-    model_kwargs: dict = None,
+    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = "alloy",
+    model_kwargs: Optional[dict[str, Any]] = None,
 ) -> HttpxBinaryResponseContent:
     """
     Generates audio from text using an AI.
@@ -82,7 +80,12 @@ def speak(
     return response
 
 
-def speech(fn: Optional[Callable] = None, *, voice: Optional[str] = None) -> Callable:
+def speech(
+    fn: Optional[Callable] = None,
+    *,
+    voice: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+) -> Callable:
     """
     Function decorator that generates audio from the wrapped function's return
     value. The voice used for the audio can be specified.
@@ -95,11 +98,11 @@ def speech(fn: Optional[Callable] = None, *, voice: Optional[str] = None) -> Cal
         Callable: The wrapped function.
     """
     if fn is None:
-        return partial(speech, voice=voice)
+        return partial(speech, voice=voice, model_kwargs=model_kwargs)
 
     @wraps(fn)
     def wrapper(*args, **kwargs):
         model = PythonFunction.from_function_call(fn, *args, **kwargs)
-        return speak(text=model.return_value, voice=voice)
+        return speak(text=model.return_value, voice=voice, model_kwargs=model_kwargs)
 
     return wrapper

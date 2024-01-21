@@ -1,5 +1,5 @@
 site_name: Marvin
-site_description: 'The AI Engineering Framework'
+site_description: 'The AI Engineering Toolkit'
 site_url: https://askmarvin.ai
 docs_dir: docs
 repo_url: https://github.com/prefecthq/marvin
@@ -10,36 +10,36 @@ nav:
     - welcome/what_is_marvin.md
 
     - Getting started:
-      - welcome/installation.md
-      - welcome/quickstart.md
+      - Installing: welcome/installation.md
+      - Tutorial: welcome/tutorial.md
       # - help/legacy_docs.md
 
     # - Overview: welcome/overview.md
 
     - Text:
-      - Converting to data: ai/text/converting.md
-      - Extracting entities: ai/text/extraction.md
-      - Classification: ai/text/classification.md
-      - Generating synthetic data: ai/text/generation.md
-      - AI functions: ai/text/function.md
+      - Transforming to data: docs/text/transformation.md
+      - Extracting entities: docs/text/extraction.md
+      - Classification: docs/text/classification.md
+      - Generating synthetic data: docs/text/generation.md
+      - AI functions: docs/text/functions.md
 
     - Images:
-      - Creating images: ai/images/painting.md
-      - Generating captions: ai/vision/captioning.md
-      - Converting to data: ai/vision/converting.md
-      - Extracting entities: ai/vision/extraction.md
-      - Classification: ai/vision/classification.md
+      - Creating images: docs/images/generation.md
+      - Generating captions: docs/vision/captioning.md
+      - Transforming to data: docs/vision/transformation.md
+      - Extracting entities: docs/vision/extraction.md
+      - Classification: docs/vision/classification.md
 
     - Audio:
-      - Generating speech: ai/audio/speech.md
-    # - Transcription: ai/function.md
+      - Generating speech: docs/audio/speech.md
+    # - Transcription: docs/function.md
 
     - Interactive Tools:
-      - Assistants: ai/interactive/assistants.md
-      - Applications: ai/interactive/applications.md
+      - Assistants: docs/interactive/assistants.md
+      - Applications: docs/interactive/applications.md
       
     - Configuration: 
-      - Settings: configuration/settings.md
+      - Settings: docs/configuration/settings.md
 
   - API reference:
     - marvin: api_reference/marvin.md
@@ -47,7 +47,6 @@ nav:
       - marvin.ai.text: api_reference/ai/text.md
       - marvin.ai.images: api_reference/ai/images.md
       - marvin.ai.audio: api_reference/ai/audio.md
-
     - Beta AI modules:
       - marvin.beta.vision: api_reference/beta/vision.md
       - marvin.beta.assistants: 
@@ -57,23 +56,34 @@ nav:
         - marvin.beta.assistants.runs: api_reference/beta/assistants/runs.md
         - marvin.beta.assistants.formatting: api_reference/beta/assistants/formatting.md
       - marvin.beta.applications: api_reference/beta/applications.md
-
     - Object schemas: 
       - marvin.types: api_reference/types.md
     - Settings:
       - marvin.settings: api_reference/settings.md
     - Utilities:
       - marvin.utilities.asyncio: api_reference/utilities/asyncio.md
+      - marvin.utilities.context: api_reference/utilities/context.md
+      - marvin.utilities.images: api_reference/utilities/images.md
       - marvin.utilities.jinja: api_reference/utilities/jinja.md
       - marvin.utilities.logging: api_reference/utilities/logging.md
-      - marvin.utilities.tools: api_reference/utilities/tools.md
+      - marvin.utilities.openai: api_reference/utilities/openai.md
+      - marvin.utilities.pydantic: api_reference/utilities/pydantic.md
+      - marvin.utilities.python: api_reference/utilities/python.md
       - marvin.utilities.strings: api_reference/utilities/strings.md
+      - marvin.utilities.testing: api_reference/utilities/testing.md
+      - marvin.utilities.tools: api_reference/utilities/tools.md
+
   - Cookbook:
     - Entity deduplication: examples/deduplication.md
     # - GitHub Activity Digest: examples/github_digest.md
     - Slackbot: examples/slackbot.md
     - Python augmented prompts: examples/python_augmented_prompts.md
     - Being specific about types: examples/being_specific_about_types.md
+    - Examples:
+      - examples/xkcd_bird.md
+      - examples/michael_scott_business/michael_scott_business.md
+
+
   - Community:
     - community/index.md
     - Feedback 💙: community/feedback.md
@@ -107,7 +117,8 @@ plugins:
       cards: !ENV [MKDOCS_SOCIAL_CARDS, false]
       cards_layout_options:
         font_family: Inter
-        background_color: "#2d6df6"
+        # background_color: "#2d6df6"
+        background_color: "#181544" # marvin blue
   - awesome-pages
   - autolinks 
   - mkdocstrings:
@@ -159,6 +170,7 @@ markdown_extensions:
   - toc:
       permalink: true
       title: On this page
+      
 
 extra:
   get_started: welcome/what_is_marvin

@@ -1,7 +1,7 @@
 [project]
 name = "marvin"
 dynamic = ["version"]
-description = "A lightweight AI engineering framework for building natural language interfaces that are reliable, scalable, and easy to trust."
+description = "A lightweight AI engineering toolkit for building natural language interfaces that are reliable, scalable, and easy to trust."
 readme = "README.md"
 license = { file = "LICENSE" }
 classifiers = [
@@ -49,7 +49,7 @@ dev = [
 tests = [
     "pytest-asyncio>=0.18.2,!=0.22.0,<0.23.0",
     "pytest-env>=0.8,<2.0",
-    "pytest-rerunfailures>=10,<13",
+    "pytest-rerunfailures>=10,<14",
     "pytest-sugar~=0.9",
     "pytest~=7.3.1",
     "pytest-timeout",
@@ -109,8 +109,8 @@ filterwarnings = [
 env = [
     "MARVIN_TEST_MODE=1",
     # use 3.5 for tests by default
-    'D:MARVIN_CHAT_COMPLETION_MODEL=gpt-3.5-turbo',
-    'D:MARVIN_CHAT_COMPLETION_TEMPERATURE=0.0',
+    'D:MARVIN_CHAT_COMPLETIONS_MODEL=gpt-3.5-turbo',
+    'D:MARVIN_CHAT_COMPLETIONS_TEMPERATURE=0.0',
     'D:MARVIN_LOG_VERBOSE=1',
     'D:MARVIN_LOG_LEVEL=DEBUG',
     'PYTEST_TIMEOUT=20',

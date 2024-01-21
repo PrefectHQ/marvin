@@ -1,7 +1,5 @@
 import asyncio
 import re
-from datetime import timedelta
-from typing import Callable
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
@@ -28,15 +26,10 @@ from parent_app import (
 )
 from prefect import flow, task
 from prefect.states import Completed
-from prefect.tasks import task_input_hash
 
 BOT_MENTION = r"<@(\w+)>"
 CACHE = JSONBlockState(block_name="marvin-thread-cache")
 USER_MESSAGE_MAX_TOKENS = 300
-
-
-def cached(func: Callable) -> Callable:
-    return task(cache_key_fn=task_input_hash, cache_expiration=timedelta(days=1))(func)
 
 
 async def get_notes_for_user(
@@ -145,7 +138,7 @@ async def handle_message(payload: SlackPayload) -> Completed:
 
         with Assistant(
             name="Marvin",
-            tools=[cached(multi_query_chroma), cached(search_github_issues)],
+            tools=[multi_query_chroma, search_github_issues],
             instructions=(
                 "You are Marvin, the paranoid android from Hitchhiker's Guide to the"
                 " Galaxy. Act subtly in accordance with your character, but remember"

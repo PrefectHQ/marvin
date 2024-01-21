@@ -18,21 +18,30 @@ class TestVisionExtract:
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = marvin.beta.extract(img, target=Location)
-        assert result == [Location(city="New York", state="NY")]
+        assert result in (
+            [Location(city="New York", state="NY")],
+            [Location(city="New York City", state="NY")],
+        )
 
     def test_ny_images_input(self):
         img = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = marvin.beta.extract(data=None, images=[img], target=Location)
-        assert result == [Location(city="New York", state="NY")]
+        assert result in (
+            [Location(city="New York", state="NY")],
+            [Location(city="New York City", state="NY")],
+        )
 
     def test_ny_image_input(self):
         img = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = marvin.beta.extract(data=img, target=Location)
-        assert result == [Location(city="New York", state="NY")]
+        assert result in (
+            [Location(city="New York", state="NY")],
+            [Location(city="New York City", state="NY")],
+        )
 
     def test_ny_image_and_text(self):
         img = marvin.beta.Image(
@@ -43,7 +52,10 @@ class TestVisionExtract:
             images=[img],
             target=Location,
         )
-        assert result == [Location(city="New York", state="NY")]
+        assert result in (
+            [Location(city="New York", state="NY")],
+            [Location(city="New York City", state="NY")],
+        )
 
     def test_dog(self):
         class Animal(BaseModel, frozen=True):

@@ -23,7 +23,10 @@ CAPTION_FOR_OBJECTIVE_PROMPT = inspect.cleandoc(
     most succinct response that contains any information relevant to the
     objective, while still providing some context. You can take the `data` into
     account but do not need to reproduce it because it will be provided to the
-    other AI as well. You must pay attention to any additional instructions.
+    other AI as well. You must pay attention to any additional instructions. Do
+    not tell the other AI exactly what to do, as it will get confused. Just
+    return data that it can decide to incorporate (or even repeat) in its own
+    response.
     
     
     ## Objective

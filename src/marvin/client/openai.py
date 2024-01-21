@@ -25,14 +25,15 @@ from marvin.types import (
 )
 from marvin.types import (
     ChatRequest,
+    HttpxBinaryResponseContent,
     ImageRequest,
     StreamingChatResponse,
     VisionRequest,
 )
 from marvin.utilities.logging import get_logger
+from marvin.utilities.openai import get_openai_client
 
 if TYPE_CHECKING:
-    from openai._base_client import HttpxBinaryResponseContent
     from openai.types import ImagesResponse
 
 
@@ -142,53 +143,14 @@ async def should_fallback(e: NotFoundError, request: ChatRequest) -> bool:
         return False
 
 
-def _get_default_client(client_type: str) -> Union[Client, AsyncClient]:
-    if getattr(settings, "use_azure_openai", False):
-        from openai import AsyncAzureOpenAI, AzureOpenAI
-
-        client_class = AsyncAzureOpenAI if client_type == "async" else AzureOpenAI
-
-        try:
-            return client_class(
-                api_key=settings.azure_openai_api_key,
-                api_version=settings.azure_openai_api_version,
-                azure_endpoint=settings.azure_openai_endpoint,
-            )
-        except AttributeError:
-            raise ValueError(
-                "To use Azure OpenAI, please set all of the following environment"
-                " variables in `~/.marvin/.env`:"
-                "\n\n"
-                "```"
-                "\nMARVIN_USE_AZURE_OPENAI=true"
-                "\nMARVIN_AZURE_OPENAI_API_KEY=..."
-                "\nMARVIN_AZURE_OPENAI_API_VERSION=..."
-                "\nMARVIN_AZURE_OPENAI_ENDPOINT=..."
-                "\nMARVIN_AZURE_OPENAI_DEPLOYMENT_NAME=..."
-                "\n```"
-            )
-
-    api_key = (
-        settings.openai.api_key.get_secret_value() if settings.openai.api_key else None
-    )
-    if not api_key:
-        raise ValueError(
-            "OpenAI API key not found. Please either set `MARVIN_OPENAI_API_KEY` in"
-            " `~/.marvin/.env` or otherwise set `OPENAI_API_KEY` in your environment."
-        )
-    if client_type not in ["sync", "async"]:
-        raise ValueError(f"Invalid client type {client_type!r}")
-
-    client_class = Client if client_type == "sync" else AsyncClient
-    return client_class(api_key=api_key, organization=settings.openai.organization)
-
-
 class MarvinClient(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(
         arbitrary_types_allowed=True, protected_namespaces=()
     )
 
-    client: Client = pydantic.Field(default_factory=lambda: _get_default_client("sync"))
+    client: Client = pydantic.Field(
+        default_factory=lambda: get_openai_client(is_async=False)
+    )
 
     @classmethod
     def wrap(cls, client: Client) -> "Client":
@@ -274,7 +236,7 @@ class AsyncMarvinClient(pydantic.BaseModel):
     )
 
     client: AsyncClient = pydantic.Field(
-        default_factory=lambda: _get_default_client("async")
+        default_factory=lambda: get_openai_client(is_async=True)
     )
 
     @classmethod
