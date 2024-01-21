@@ -1,6 +1,19 @@
 from .settings import settings
 
-from .ai.text import fn, cast, extract, classify, classifier, generate, model, Model
+from .ai.text import (
+    fn,
+    cast,
+    cast_async,
+    extract,
+    extract_async,
+    classify,
+    classify_async,
+    classifier,
+    generate,
+    generate_async,
+    model,
+    Model,
+)
 from .ai.images import paint, image
 from .ai.audio import speak, speech
 from . import beta
@@ -15,11 +28,14 @@ __all__ = [
     # --- text ---
     "Model",
     "cast",
+    "cast_async",
     "classify",
+    "classify_async",
     "classifier",
     "extract",
-    "fn",
+    "extract_async" "fn",
     "generate",
+    "generate_async",
     "model",
     # --- images ---
     "image",

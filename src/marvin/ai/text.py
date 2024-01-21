@@ -34,8 +34,9 @@ from marvin.ai.prompts.text_prompts import (
     FUNCTION_PROMPT,
     GENERATE_PROMPT,
 )
-from marvin.client.openai import ChatCompletion, MarvinClient
+from marvin.client.openai import AsyncMarvinClient, ChatCompletion, MarvinClient
 from marvin.types import ChatRequest, ChatResponse
+from marvin.utilities.asyncio import run_sync
 from marvin.utilities.context import ctx
 from marvin.utilities.jinja import Transcript
 from marvin.utilities.logging import get_logger
@@ -56,11 +57,11 @@ class EjectRequest(Exception):
         super().__init__("Ejected request.")
 
 
-def generate_llm_response(
+async def generate_llm_response(
     prompt_template: str,
     prompt_kwargs: Optional[dict] = None,
     model_kwargs: Optional[dict] = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ) -> ChatResponse:
     """
     Generates a language model response based on a provided prompt template.
@@ -76,7 +77,7 @@ def generate_llm_response(
     Returns:
         ChatResponse: The generated response from the language model.
     """
-    client = client or MarvinClient()
+    client = client or AsyncMarvinClient()
     model_kwargs = model_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
     messages = Transcript(content=prompt_template).render_to_messages(**prompt_kwargs)
@@ -86,7 +87,7 @@ def generate_llm_response(
         raise EjectRequest(request)
     if marvin.settings.log_verbose:
         logger.debug_kv("Request", request.model_dump_json(indent=2))
-    response = client.generate_chat(**request.model_dump())
+    response = await client.generate_chat(**request.model_dump())
     if marvin.settings.log_verbose:
         logger.debug_kv("Response", response.model_dump_json(indent=2))
     tool_outputs = _get_tool_outputs(request, response)
@@ -106,13 +107,13 @@ def _get_tool_outputs(request: ChatRequest, response: ChatCompletion) -> list[An
     return outputs
 
 
-def _generate_typed_llm_response_with_tool(
+async def _generate_typed_llm_response_with_tool(
     prompt_template: str,
     type_: Union[GenericAlias, type[T]],
     tool_name: Optional[str] = None,
     prompt_kwargs: Optional[dict] = None,
     model_kwargs: Optional[dict] = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ) -> T:
     """
     Generates a language model response based on a provided prompt template and a specific tool.
@@ -150,7 +151,7 @@ def _generate_typed_llm_response_with_tool(
     # descriptions. If they are only in the tool signature it often ignores them.
     prompt_kwargs["response_format"] = tool.function.parameters
 
-    response = generate_llm_response(
+    response = await generate_llm_response(
         prompt_template=prompt_template,
         prompt_kwargs=prompt_kwargs,
         model_kwargs=model_kwargs,
@@ -160,13 +161,13 @@ def _generate_typed_llm_response_with_tool(
     return response.tool_outputs[0]
 
 
-def _generate_typed_llm_response_with_logit_bias(
+async def _generate_typed_llm_response_with_logit_bias(
     prompt_template: str,
     prompt_kwargs: dict,
     encoder: Callable[[str], list[int]] = None,
     max_tokens: int = 1,
     model_kwargs: dict = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ):
     """
     Generates a language model response with logit bias based on a provided
@@ -206,7 +207,7 @@ def _generate_typed_llm_response_with_logit_bias(
         labels=label_strings, encoder=encoder, max_tokens=max_tokens
     )
     model_kwargs.update(grammar.model_dump())
-    response = generate_llm_response(
+    response = await generate_llm_response(
         prompt_template=prompt_template,
         prompt_kwargs=(prompt_kwargs or {}) | dict(labels=label_strings),
         model_kwargs=model_kwargs | dict(temperature=0),
@@ -223,12 +224,12 @@ def _generate_typed_llm_response_with_logit_bias(
     return labels(result) if isinstance(labels, type) else result
 
 
-def cast(
+async def cast_async(
     data: str,
     target: type[T],
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ) -> T:
     """
     Converts the input data into the specified type.
@@ -242,7 +243,7 @@ def cast(
         target (type): The type to convert the data into.
         instructions (str, optional): Specific instructions for the conversion. Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the language model. Defaults to None.
-        client (MarvinClient, optional): The client to use for the AI function.
+        client (AsyncMarvinClient, optional): The client to use for the AI function.
 
     Returns:
         T: The converted data of the specified type.
@@ -257,7 +258,7 @@ def cast(
         or isinstance(target, list)
         or target is bool
     ):
-        return classify(
+        return await classify_async(
             data=data,
             labels=target,
             instructions=instructions,
@@ -265,7 +266,7 @@ def cast(
             client=client,
         )
 
-    return _generate_typed_llm_response_with_tool(
+    return await _generate_typed_llm_response_with_tool(
         prompt_template=CAST_PROMPT,
         prompt_kwargs=dict(data=data, instructions=instructions),
         type_=target,
@@ -274,12 +275,12 @@ def cast(
     )
 
 
-def extract(
+async def extract_async(
     data: str,
     target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ) -> list[T]:
     """
     Extracts entities of a specific type from the provided data.
@@ -309,7 +310,7 @@ def extract(
     elif target is None:
         target = str
     model_kwargs = model_kwargs or {}
-    return _generate_typed_llm_response_with_tool(
+    return await _generate_typed_llm_response_with_tool(
         prompt_template=EXTRACT_PROMPT,
         prompt_kwargs=dict(data=data, instructions=instructions),
         type_=list[target],
@@ -318,12 +319,12 @@ def extract(
     )
 
 
-def classify(
+async def classify_async(
     data: str,
     labels: Union[Enum, list[T], type],
     instructions: str = None,
     model_kwargs: dict = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ) -> T:
     """
     Classifies the provided data based on the provided labels.
@@ -340,14 +341,14 @@ def classify(
             classification. Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
-        client (MarvinClient, optional): The client to use for the AI function.
+        client (AsyncMarvinClient, optional): The client to use for the AI function.
 
     Returns:
         T: The label that the data was classified into.
     """
 
     model_kwargs = model_kwargs or {}
-    return _generate_typed_llm_response_with_logit_bias(
+    return await _generate_typed_llm_response_with_logit_bias(
         prompt_template=CLASSIFY_PROMPT,
         prompt_kwargs=dict(data=data, labels=labels, instructions=instructions),
         model_kwargs=model_kwargs | dict(temperature=0),
@@ -355,14 +356,14 @@ def classify(
     )
 
 
-def generate(
+async def generate_async(
     target: Optional[type[T]] = None,
     instructions: Optional[str] = None,
     n: int = 1,
     use_cache: bool = True,
     temperature: float = 1,
     model_kwargs: Optional[dict] = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ) -> list[T]:
     """
     Generates a list of 'n' items of the provided type or based on instructions.
@@ -381,7 +382,7 @@ def generate(
         temperature (float, optional): The temperature for the generation. Defaults to 1.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
-        client (MarvinClient, optional): The client to use for the AI function.
+        client (AsyncMarvinClient, optional): The client to use for the AI function.
 
     Returns:
         list: A list of generated items.
@@ -409,7 +410,7 @@ def generate(
     # make sure we generate at least n items
     result = [0] * (n + 1)
     while len(result) != n:
-        result = _generate_typed_llm_response_with_tool(
+        result = await _generate_typed_llm_response_with_tool(
             prompt_template=GENERATE_PROMPT,
             prompt_kwargs=dict(
                 type_=target,
@@ -454,11 +455,13 @@ def fn(
         Callable: The converted AI function.
 
     Example:
+        ```python
         @fn
         def list_fruit(n:int) -> list[str]:
             '''generates a list of n fruit'''
 
         list_fruit(3) # ['apple', 'banana', 'orange']
+        ```
     """
 
     if func is None:
@@ -488,16 +491,18 @@ def fn(
         else:
             type_ = model.return_annotation
 
-        result = _generate_typed_llm_response_with_tool(
-            prompt_template=FUNCTION_PROMPT,
-            prompt_kwargs=dict(
-                fn_definition=model.definition,
-                bound_parameters=model.bound_parameters,
-                return_value=model.return_value,
-            ),
-            type_=type_,
-            model_kwargs=model_kwargs,
-            client=client,
+        result = run_sync(
+            _generate_typed_llm_response_with_tool(
+                prompt_template=FUNCTION_PROMPT,
+                prompt_kwargs=dict(
+                    fn_definition=model.definition,
+                    bound_parameters=model.bound_parameters,
+                    return_value=model.return_value,
+                ),
+                type_=type_,
+                model_kwargs=model_kwargs,
+                client=client,
+            )
         )
 
         if post_processor is not None:
@@ -514,7 +519,7 @@ class Model(BaseModel):
     """
 
     @classmethod
-    def from_text(cls, text: str, model_kwargs: dict = None, **kwargs) -> "Model":
+    async def from_text(cls, text: str, model_kwargs: dict = None, **kwargs) -> "Model":
         """
         Class method to create an instance of the model from a natural language string.
 
@@ -527,7 +532,7 @@ class Model(BaseModel):
         Returns:
             Model: An instance of the model.
         """
-        ai_kwargs = cast(text, cls, model_kwargs=model_kwargs, **kwargs)
+        ai_kwargs = cast_async(text, cls, model_kwargs=model_kwargs, **kwargs)
         ai_kwargs.update(kwargs)
         return cls(**ai_kwargs)
 
@@ -644,3 +649,164 @@ def model(
     if type_ is not None:
         return decorator(type_)
     return decorator
+
+
+### Sync versions of the above functions
+
+
+def cast(
+    data: str,
+    target: type[T],
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[MarvinClient] = None,
+) -> T:
+    """
+    Converts the input data into the specified type.
+
+    This function uses a language model to convert the input data into a specified type.
+    The conversion process can be guided by specific instructions. The function also
+    supports additional arguments for the language model.
+
+    Args:
+        data (str): The data to be converted.
+        target (type): The type to convert the data into.
+        instructions (str, optional): Specific instructions for the conversion. Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the language model. Defaults to None.
+        client (MarvinClient, optional): The client to use for the AI function.
+
+    Returns:
+        T: The converted data of the specified type.
+    """
+    return run_sync(
+        cast_async(
+            data=data,
+            target=target,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        )
+    )
+
+
+def classify(
+    data: str,
+    labels: Union[Enum, list[T], type],
+    instructions: str = None,
+    model_kwargs: dict = None,
+    client: Optional[MarvinClient] = None,
+) -> T:
+    """
+    Classifies the provided data based on the provided labels.
+
+    This function uses a language model with a logit bias to classify the input
+    data. The logit bias constrains the language model's response to a single
+    token, making this function highly efficient for classification tasks. The
+    function will always return one of the provided labels.
+
+    Args:
+        data (str): The data to be classified.
+        labels (Union[Enum, list[T], type]): The labels to classify the data into.
+        instructions (str, optional): Specific instructions for the
+            classification. Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+        client (MarvinClient, optional): The client to use for the AI function.
+
+    Returns:
+        T: The label that the data was classified into.
+    """
+    return run_sync(
+        classify_async(
+            data=data,
+            labels=labels,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        )
+    )
+
+
+def extract(
+    data: str,
+    target: type[T] = None,
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[MarvinClient] = None,
+) -> list[T]:
+    """
+    Extracts entities of a specific type from the provided data.
+
+    This function uses a language model to identify and extract entities of the
+    specified type from the input data. The extracted entities are returned as a
+    list.
+
+    Note that *either* a target type or instructions must be provided (or both).
+    If only instructions are provided, the target type is assumed to be a
+    string.
+
+    Args:
+        data (str): The data from which to extract entities.
+        target (type, optional): The type of entities to extract.
+        instructions (str, optional): Specific instructions for the extraction.
+            Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+        client (MarvinClient, optional): The client to use for the AI function.
+
+    Returns:
+        list: A list of extracted entities of the specified type.
+    """
+    return run_sync(
+        extract_async(
+            data=data,
+            target=target,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        )
+    )
+
+
+def generate(
+    target: Optional[type[T]] = None,
+    instructions: Optional[str] = None,
+    n: int = 1,
+    use_cache: bool = True,
+    temperature: float = 1,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[MarvinClient] = None,
+) -> list[T]:
+    """
+    Generates a list of 'n' items of the provided type or based on instructions.
+
+    Either a type or instructions must be provided. If instructions are provided
+    without a type, the type is assumed to be a string. The function generates at
+    least 'n' items.
+
+    Args:
+        target (type, optional): The type of items to generate. Defaults to None.
+        instructions (str, optional): Instructions for the generation. Defaults to None.
+        n (int, optional): The number of items to generate. Defaults to 1.
+        use_cache (bool, optional): If True, the function will cache the last
+            100 responses for each (target, instructions, and temperature) and use
+            those to avoid repetition on subsequent calls. Defaults to True.
+        temperature (float, optional): The temperature for the generation. Defaults to 1.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+        client (MarvinClient, optional): The client to use for the AI function.
+
+    Returns:
+        list: A list of generated items.
+    """
+    return run_sync(
+        generate_async(
+            target=target,
+            instructions=instructions,
+            n=n,
+            use_cache=use_cache,
+            temperature=temperature,
+            model_kwargs=model_kwargs,
+            client=client,
+        )
+    )
