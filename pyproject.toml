@@ -55,7 +55,7 @@ tests = [
     "pytest-timeout",
     "pytest-xdist",
 ]
-slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]"]
+slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]", "gh-util"]
 
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"
