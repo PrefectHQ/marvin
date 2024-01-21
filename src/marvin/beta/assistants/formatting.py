@@ -151,7 +151,9 @@ def pprint_message(message: ThreadMessage):
     }
 
     color = role_colors.get(message.role, "red")
-    timestamp = datetime.fromtimestamp(message.created_at).strftime("%l:%M:%S %p")
+    timestamp = (
+        datetime.fromtimestamp(message.created_at).strftime("%I:%M:%S %p").lstrip("0")
+    )
 
     content = ""
     for item in message.content:
