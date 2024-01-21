@@ -519,22 +519,45 @@ class Model(BaseModel):
     """
 
     @classmethod
-    async def from_text(cls, text: str, model_kwargs: dict = None, **kwargs) -> "Model":
+    async def from_text_async(
+        cls,
+        text: str,
+        instructions: str = None,
+        model_kwargs: dict = None,
+        client: Optional[AsyncMarvinClient] = None,
+    ) -> "Model":
         """
         Class method to create an instance of the model from a natural language string.
 
         Args:
             text (str): The natural language string to convert into an instance of the model.
+            instructions (str, optional): Specific instructions for the conversion. Defaults to None.
             model_kwargs (dict, optional): Additional keyword arguments for the
                 language model. Defaults to None.
-            **kwargs: Additional keyword arguments to pass to the model's constructor.
+            client (AsyncMarvinClient, optional): The client to use for the AI function.
 
         Returns:
             Model: An instance of the model.
+
+        Example:
+            ```python
+            from marvin.ai.text import Model
+            class Location(Model):
+                '''A location'''
+                city: str
+                state: str
+                country: str
+
+            await Location.from_text_async("big apple, ny, usa")
+            ```
         """
-        ai_kwargs = cast_async(text, cls, model_kwargs=model_kwargs, **kwargs)
-        ai_kwargs.update(kwargs)
-        return cls(**ai_kwargs)
+        return await cast_async(
+            text,
+            cls,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        )
 
     def __init__(
         self,
