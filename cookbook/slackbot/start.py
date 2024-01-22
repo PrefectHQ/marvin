@@ -173,8 +173,8 @@ async def handle_message(payload: SlackPayload) -> Completed:
                 ai_response_text := "\n\n".join(
                     m.content[0].text.value for m in ai_messages
                 ),
-                channel := event.channel,
-                thread,
+                channel_id=(channel := event.channel),
+                thread_ts=thread,
             )
             logger.debug_kv(
                 success_msg
