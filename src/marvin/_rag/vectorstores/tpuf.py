@@ -1,20 +1,42 @@
 import asyncio
-from typing import Iterable, Optional
+import os
+from typing import Iterable, Optional, Union
 
 import turbopuffer as tpuf
-from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ImportString,
+    PrivateAttr,
+    SecretStr,
+    model_validator,
+)
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from turbopuffer.vectors import VectorResult
 
-import marvin
 from marvin._rag.documents import Document
 from marvin._rag.utils import create_openai_embeddings
 
-tpuf_api_key = getattr(marvin.settings, "turbopuffer_api_key", None)
 
-if not tpuf_api_key:
-    raise ValueError("Please set `MARVIN_TURBOPUFFER_API_KEY` in `~/.marvin/.env`")
+class TurboPufferSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="MARVIN_TURBOPUFFER_",
+        env_file="" if os.getenv("MARVIN_TEST_MODE") else ("~/.marvin/.env", ".env"),
+        extra="allow",
+        arbitrary_types_allowed=True,
+    )
 
-tpuf.api_key = tpuf_api_key
+    api_key: SecretStr
+    namespace: str = "marvin"
+    fetch_document_fn: ImportString = "marvin._rag.utils.fetch_documents_from_gcs"
+
+    @model_validator(mode="after")
+    def set_api_key(self):
+        tpuf.api_key = self.api_key.get_secret_value()
+
+
+tpuf_settings = TurboPufferSettings()
 
 
 class TurboPuffer(BaseModel):
@@ -22,27 +44,15 @@ class TurboPuffer(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    ns: tpuf.Namespace = Field(default_factory=lambda: tpuf.Namespace("marvin"))
+    ns: tpuf.Namespace = Field(
+        default_factory=lambda: tpuf.Namespace(tpuf_settings.namespace)
+    )
     _in_context: bool = PrivateAttr(False)
-
-    async def add(self, documents: Iterable[Document]) -> Iterable[Document]:
-        embeddings = await asyncio.gather(
-            *[create_openai_embeddings(document.text) for document in documents]
-        )
-
-        await self.upsert(
-            ids=[document.id for document in documents],
-            vectors=embeddings,
-            attributes={
-                document.id: document.metadata.model_dump(exclude_none=True)
-                for document in documents
-            },
-        )
 
     async def upsert(
         self,
-        ids: list[int],
         documents: Optional[Iterable[Document]] = None,
+        ids: Optional[Union[list[str], list[int]]] = None,
         vectors: Optional[list[list[float]]] = None,
         attributes: Optional[dict] = None,
     ):
@@ -50,6 +60,7 @@ class TurboPuffer(BaseModel):
             raise ValueError("Either `documents` or `vectors` must be provided.")
 
         if documents:
+            ids = [document.id for document in documents]
             vectors = await asyncio.gather(
                 *[create_openai_embeddings(document.text) for document in documents]
             )
@@ -58,13 +69,20 @@ class TurboPuffer(BaseModel):
 
     async def query(
         self,
-        vector: list[float],
+        text: Optional[str] = None,
+        vector: Optional[list[float]] = None,
         top_k: int = 10,
         distance_metric: str = "cosine_distance",
         filters: Optional[dict] = None,
         include_attributes: Optional[list[str]] = None,
         include_vectors: bool = False,
     ) -> VectorResult:
+        if text:
+            vector = await create_openai_embeddings(text)
+        else:
+            if vector is None:
+                raise ValueError("Either `text` or `vector` must be provided.")
+
         return self.ns.query(
             vector=vector,
             top_k=top_k,
@@ -74,7 +92,7 @@ class TurboPuffer(BaseModel):
             include_vectors=include_vectors,
         )
 
-    async def delete(self, ids: list[int]):
+    async def delete(self, ids: Union[str, int, list[str], list[int]]):
         self.ns.delete(ids)
 
     async def __aenter__(self):

@@ -1,19 +1,17 @@
-from datetime import timedelta
-from functools import partial
-from unittest.mock import patch
+import asyncio
+from datetime import datetime, timedelta
 
-import marvin
-import turbopuffer as tpuf
+import cloudpickle
 from marvin._rag.documents import Document
 from marvin._rag.loaders.base import Loader
 from marvin._rag.loaders.github import GitHubRepoLoader
 from marvin._rag.loaders.web import SitemapLoader
-from marvin._rag.utils import create_openai_embeddings, html_to_content
-from prefect import flow, task
+from marvin._rag.utils import patch_html_parser
+from marvin._rag.vectorstores.tpuf import TurboPuffer
+from prefect import flow, task, unmapped
 from prefect.tasks import task_input_hash
 from prefect.utilities.annotations import quote
-
-tpuf.api_key = marvin.settings.turbopuffer_api_key
+from prefect_gcp import GcsBucket
 
 
 def html_parser(html: str) -> str:
@@ -23,7 +21,7 @@ def html_parser(html: str) -> str:
     # disable signal, so it can run in a worker thread
     # https://github.com/adbar/trafilatura/issues/202
     trafilatura_config.set("DEFAULT", "EXTRACTION_TIMEOUT", "0")
-    return trafilatura.extract(html, config=trafilatura_config)
+    return trafilatura.extract(html, favor_precision=True, config=trafilatura_config)
 
 
 prefect_loaders = [
@@ -69,40 +67,83 @@ async def run_loader(loader: Loader) -> list[Document]:
     return await loader.load()
 
 
+@task
+async def write_documents_to_gcs(
+    bucket: GcsBucket, path: str, documents: list[Document]
+):
+    await asyncio.gather(
+        *[
+            bucket.write_path(
+                path=f"{path}/{document.id}.pkl",
+                content=cloudpickle.dumps(document),
+            )
+            for document in documents
+        ]
+    )
+
+
+@flow(name="Save Documents to GCS", log_prints=True)
+async def save_documents(
+    bucket: GcsBucket, path: str, documents: list[Document], chunk_size: int = 10
+):
+    await write_documents_to_gcs.map(
+        bucket=unmapped(bucket),
+        path=path,
+        documents=[
+            documents[i : i + chunk_size] for i in range(0, len(documents), chunk_size)
+        ],
+    )
+
+
 @flow(name="Update Marvin's Knowledge", log_prints=True)
-async def update_marvin_knowledge_in_tpuf(namespace: str = "marvin"):
+async def update_marvin_knowledge_in_tpuf(
+    namespace: str = "marvin", test_mode: bool = False
+):
     """Flow updating Marvin's knowledge with info from the Prefect community."""
 
-    ns = tpuf.Namespace(namespace)
+    if test_mode:
+        print(
+            f"Running in test mode - only loading data from {prefect_loaders[-1].__class__.__name__!r}"
+        )
 
-    with patch(
-        "marvin._rag.loaders.web.html_to_content",
-        partial(html_to_content, parsing_fn=html_parser),
-    ):
+    with patch_html_parser(html_parser=html_parser):
+        document_sources = prefect_loaders if not test_mode else prefect_loaders[-1:]
         documents = [
             doc
-            for future in await run_loader.map(quote(prefect_loaders))
+            for future in await run_loader.map(quote(document_sources))
             for doc in await future.result()
         ]
 
-        print(f"Loaded {len(documents)} documents from the Prefect community.")
+    print(f"Loaded {len(documents)} documents from the Prefect community.")
 
-        embeddable_documents = []
-        for document in documents:
-            try:
-                document.embedding = await task(create_openai_embeddings)(document.text)
-                embeddable_documents.append(document)
-            except Exception as e:
-                print(
-                    f"Failed to create embedding for {document.id}: {document.text[:100]}..: {e}"
-                )
-        await task(ns.upsert)(
-            ids=[document.id for document in embeddable_documents],
-            vectors=[document.embedding for document in embeddable_documents],
+    bucket: GcsBucket = await GcsBucket.load("marvin-tpuf-document-storage")
+
+    async with TurboPuffer() as tpuf:
+        await task(tpuf.upsert)(documents=documents)
+
+        n_doc = len(documents)
+
+        print(f"Upserted {n_doc} documents to TurboPuffer.")
+
+        base_path = f"{namespace}/serialized"
+        path = (
+            f"{base_path}/{datetime.now().strftime('%Y-%m-%d')}"
+            if not test_mode
+            else f"{base_path}/test"
         )
+
+        await save_documents(bucket, path, documents=documents)
+
+        print(f"Saved {n_doc} documents to GCS @ {path!r}")
+
+        if test_mode:
+            vector_result = await tpuf.query(text="pokemon", top_k=1)
+            doc_id = vector_result.data[0].id
+            document: Document = cloudpickle.loads(
+                await bucket.read_path(f"{path}/{doc_id}.pkl")
+            )
+            print(document.text)
 
 
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(update_marvin_knowledge_in_tpuf())
+    asyncio.run(update_marvin_knowledge_in_tpuf(test_mode=True))

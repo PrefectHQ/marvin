@@ -1,7 +1,9 @@
+import asyncio
 import itertools
 import re
 import uuid
-from functools import lru_cache
+from contextlib import contextmanager
+from functools import lru_cache, partial
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -14,12 +16,14 @@ from typing import (
     TypeVar,
     Union,
 )
+from unittest.mock import patch
 
 import xxhash
 from openai.types import CreateEmbeddingResponse
 from prefect.utilities.collections import distinct
 
 from marvin.utilities.asyncio import run_sync_if_awaitable
+from marvin.utilities.logging import get_logger
 
 T = TypeVar("T")
 
@@ -32,6 +36,16 @@ def generate_prefixed_uuid(prefix: str) -> str:
     if "_" in prefix:
         raise ValueError("Prefix must not contain underscores.")
     return f"{prefix}_{uuid.uuid4()}"
+
+
+@contextmanager
+def patch_html_parser(html_parser: Callable[[str], str]) -> None:
+    """Patch the html_to_content function to use the given html_parser."""
+    with patch(
+        "marvin._rag.utils.html_to_content",
+        partial(html_to_content, html_parsing_fn=html_parser),
+    ):
+        yield
 
 
 def batched(
@@ -108,12 +122,22 @@ def rm_text_after(text: str, substring: str) -> str:
 
 
 def html_to_content(
-    html: str, parsing_fn: Optional[Callable[[str], str]] = None
+    html: str, html_parsing_fn: Optional[Callable[[str], str]] = None
 ) -> str:
-    if parsing_fn is None:
-        raise ValueError("A parsing function must be provided.")
+    if html_parsing_fn is None:
+        import bs4
 
-    return run_sync_if_awaitable(parsing_fn(html))
+        def _default_parsing_fn(html: str) -> str:
+            return bs4.BeautifulSoup(html, "html.parser").get_text()
+
+        get_logger().warning_kv(
+            "No parsing function provided",
+            "Using `bs4.BeautifulSoup(html, 'html.parser').get_text()` as default (it's not very good)",
+            "red",
+        )
+        html_parsing_fn = _default_parsing_fn
+
+    return run_sync_if_awaitable(html_parsing_fn(html))
 
 
 def extract_keywords(text: str) -> list[str]:
@@ -182,3 +206,29 @@ async def create_openai_embeddings(
         return embedding.data[0].embedding
 
     return [data.embedding for data in embedding.data]
+
+
+async def fetch_documents_from_gcs(
+    document_ids: tuple[str],
+    block_name: str = "marvin-tpuf-document-storage",
+    base_path: str = "marvin/serialized/test",
+) -> list["Document"]:
+    """Fetch a document from GCS."""
+    import cloudpickle
+
+    try:
+        from prefect_gcp import GcsBucket
+    except ImportError:
+        raise ImportError(
+            "The prefect_gcp package is required to fetch documents from GCS. Please"
+            " install it with `pip install prefect_gcp`."
+        )
+
+    bucket = await GcsBucket.load(block_name)
+    encoded_documents = await asyncio.gather(
+        *[
+            bucket.read_path(f"{base_path}/{document_id}.pkl")
+            for document_id in document_ids
+        ]
+    )
+    return [cloudpickle.loads(doc) for doc in encoded_documents]

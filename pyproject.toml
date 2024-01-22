@@ -55,7 +55,7 @@ tests = [
     "pytest-timeout",
     "pytest-xdist",
 ]
-slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]"]
+slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]", "gh-util"]
 tpuf = ["turbopuffer[fast]"]
 rag = [
     "bs4",
@@ -68,6 +68,7 @@ rag = [
     "chromadb",
     "marvin[tpuf]"
 ]
+
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"
 Documentation = "https://www.askmarvin.ai"

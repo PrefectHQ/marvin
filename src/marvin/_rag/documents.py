@@ -49,6 +49,9 @@ class Document(BaseModel):
             self.tokens = count_tokens(self.text)
         return self
 
+    def __hash__(self) -> int:
+        return hash(self.hash)
+
 
 EXCERPT_TEMPLATE = jinja_env.from_string(
     inspect.cleandoc(

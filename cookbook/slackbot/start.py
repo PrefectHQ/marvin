@@ -8,8 +8,9 @@ from keywords import handle_keywords
 from marvin.beta.applications import Application
 from marvin.beta.applications.state.json_block import JSONBlockState
 from marvin.beta.assistants import Assistant, Thread
-from marvin.tools.chroma import multi_query_chroma, store_document
+from marvin.tools.chroma import store_document
 from marvin.tools.github import search_github_issues
+from marvin.tools.tpuf import multi_query_turbopuffer
 from marvin.utilities.logging import get_logger
 from marvin.utilities.slack import (
     SlackPayload,
@@ -26,6 +27,7 @@ from parent_app import (
 )
 from prefect import flow, task
 from prefect.states import Completed
+from tools import get_info
 
 BOT_MENTION = r"<@(\w+)>"
 CACHE = JSONBlockState(block_name="marvin-thread-cache")
@@ -138,7 +140,12 @@ async def handle_message(payload: SlackPayload) -> Completed:
 
         with Assistant(
             name="Marvin",
-            tools=[multi_query_chroma, search_github_issues],
+            tools=[
+                # task(multi_query_chroma),
+                task(multi_query_turbopuffer),
+                task(search_github_issues),
+                task(get_info),
+            ],
             instructions=(
                 "You are Marvin, the paranoid android from Hitchhiker's Guide to the"
                 " Galaxy. Act subtly in accordance with your character, but remember"
