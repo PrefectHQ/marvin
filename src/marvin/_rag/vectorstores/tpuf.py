@@ -23,7 +23,6 @@ class TurboPufferSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_prefix="MARVIN_TURBOPUFFER_",
         env_file="" if os.getenv("MARVIN_TEST_MODE") else ("~/.marvin/.env", ".env"),
-        extra="allow",
         arbitrary_types_allowed=True,
     )
 
