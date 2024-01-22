@@ -28,7 +28,7 @@ class Lesson(TypedDict):
     heuristic: str | None
 
 
-@fn(model="gpt-3.5-turbo-1106")
+@fn(model_kwargs=dict(model="gpt-3.5-turbo-1106"))
 def take_lesson_from_interaction(
     transcript: str,
     assistant_instructions: str,
