@@ -61,3 +61,17 @@ The `marvin.beta.classify` function is an enhanced version of `marvin.classify` 
 
 ## Model parameters
 You can pass parameters to the underlying API via the `model_kwargs` and `vision_model_kwargs` arguments of `classify`. These parameters are passed directly to the respective APIs, so you can use any supported parameter.
+
+
+## Async support
+
+If you are using Marvin in an async environment, you can use `classify_async`:
+
+```python
+result = await marvin.beta.classify_async(
+    "The app crashes when I try to upload a file.", 
+    labels=["bug", "feature request", "inquiry"]
+) 
+
+assert result == "bug"
+```

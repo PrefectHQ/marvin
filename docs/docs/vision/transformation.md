@@ -116,3 +116,12 @@ If the target type isn't self-documenting, or you want to provide additional gui
 
 ## Model parameters
 You can pass parameters to the underlying API via the `model_kwargs` and `vision_model_kwargs` arguments of `cast`. These parameters are passed directly to the respective APIs, so you can use any supported parameter.
+
+## Async support
+If you are using `marvin` in an async environment, you can use `cast_async`:
+
+```python
+result = await marvin.beta.cast_async("one", int) 
+
+assert result == 1
+```

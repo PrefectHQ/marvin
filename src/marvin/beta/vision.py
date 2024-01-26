@@ -6,7 +6,7 @@ vision-enhanced versions of `cast`, `extract`, and `classify`.
 import inspect
 from enum import Enum
 from pathlib import Path
-from typing import TypeVar, Union
+from typing import Callable, Coroutine, TypeVar, Union
 
 from pydantic import BaseModel
 
@@ -14,13 +14,14 @@ import marvin
 import marvin.utilities.tools
 from marvin.ai.prompts.vision_prompts import CAPTION_PROMPT
 from marvin.ai.text import EjectRequest
-from marvin.client.openai import MarvinClient
+from marvin.client.openai import AsyncMarvinClient
 from marvin.types import (
     BaseMessage,
     ChatResponse,
     MessageImageURLContent,
     VisionRequest,
 )
+from marvin.utilities.asyncio import run_sync
 from marvin.utilities.context import ctx
 from marvin.utilities.images import image_to_base64
 from marvin.utilities.jinja import Transcript
@@ -50,7 +51,7 @@ class Image(BaseModel):
         return MessageImageURLContent(image_url=dict(url=self.url))
 
 
-def generate_vision_response(
+async def generate_vision_response(
     images: list[Image],
     prompt_template: str,
     prompt_kwargs: dict = None,
@@ -83,7 +84,7 @@ def generate_vision_response(
     request = VisionRequest(messages=messages, **model_kwargs)
     if marvin.settings.log_verbose:
         logger.debug_kv("Request", request.model_dump_json(indent=2))
-    response = MarvinClient().generate_vision(
+    response = await AsyncMarvinClient().generate_vision(
         **request.model_dump(exclude_none=True, exclude_unset=True)
     )
     if marvin.settings.log_verbose:
@@ -91,36 +92,10 @@ def generate_vision_response(
     return ChatResponse(request=request, response=response)
 
 
-def caption(
-    image: Union[str, Path, Image],
-    instructions: str = None,
-    model_kwargs: dict = None,
-) -> str:
-    """
-    Generates a caption for an image using a language model.
-
-    Args:
-        image (Union[str, Path, Image]): URL or local path of the image.
-        instructions (str, optional): Instructions for the caption generation.
-        model_kwargs (dict, optional): Additional arguments for the language model.
-
-    Returns:
-        str: Generated caption.
-    """
-    model_kwargs = model_kwargs or {}
-    response = generate_vision_response(
-        prompt_template=CAPTION_PROMPT,
-        images=[image],
-        prompt_kwargs=dict(instructions=instructions),
-        model_kwargs=model_kwargs,
-    )
-    return response.response.choices[0].message.content
-
-
-def _two_step_vision_response(
+async def _two_step_vision_response(
     data: Union[str, Image],
     images: list[Image],
-    marvin_call: callable,
+    marvin_call: Union[Callable, Coroutine],
     vision_model_kwargs: dict = None,
 ):
     """
@@ -129,7 +104,8 @@ def _two_step_vision_response(
     Args:
         data (Union[str, None]): Additional data for processing.
         images (list[Image]): Images to be processed.
-        marvin_call (callable): A lambda function(of data) encapsulating the specific Marvin function call.
+        marvin_call (Union[Callable, Coroutine]): A function that takes a single
+            argument, data, encapsulating the specific Marvin function call.
         vision_model_kwargs (dict, optional): Arguments for the vision model.
 
     Returns:
@@ -151,7 +127,10 @@ def _two_step_vision_response(
     # is used in the marvin_call function
     with ctx(eject_request=True):
         try:
-            marvin_call(data)
+            if inspect.iscoroutinefunction(marvin_call):
+                await marvin_call(data)
+            else:
+                marvin_call(data)
             raise ValueError("Expected to raise EjectRequest")
         except EjectRequest as e:
             objective = "\n\n".join([m.content for m in e.request.messages])
@@ -177,21 +156,52 @@ def _two_step_vision_response(
         """
     ).format(objective=objective)
 
-    response = generate_vision_response(
+    response = await generate_vision_response(
         images=images,
         prompt_template=prompt,
         model_kwargs=vision_model_kwargs,
     )
 
     vision_response = response.response.choices[0].message.content
-    return marvin_call(
+
+    msg = (
         f"## Text data\n\n{data}\n\n## Image data analysis\n\nThe data also include an"
         " image. Another AI processed it and determined the"
         f" following:\n\n{vision_response}"
     )
+    if inspect.iscoroutinefunction(marvin_call):
+        return await marvin_call(msg)
+    else:
+        return marvin_call(msg)
 
 
-def cast(
+async def caption_async(
+    image: Union[str, Path, Image],
+    instructions: str = None,
+    model_kwargs: dict = None,
+) -> str:
+    """
+    Generates a caption for an image using a language model.
+
+    Args:
+        image (Union[str, Path, Image]): URL or local path of the image.
+        instructions (str, optional): Instructions for the caption generation.
+        model_kwargs (dict, optional): Additional arguments for the language model.
+
+    Returns:
+        str: Generated caption.
+    """
+    model_kwargs = model_kwargs or {}
+    response = await generate_vision_response(
+        prompt_template=CAPTION_PROMPT,
+        images=[image],
+        prompt_kwargs=dict(instructions=instructions),
+        model_kwargs=model_kwargs,
+    )
+    return response.response.choices[0].message.content
+
+
+async def cast_async(
     data: Union[str, Image],
     target: type[T],
     instructions: str = None,
@@ -221,15 +231,15 @@ def cast(
         T: The converted data of the specified type.
     """
 
-    def marvin_call(x):
-        return marvin.cast(
+    async def marvin_call(x):
+        return await marvin.cast_async(
             data=x,
             target=target,
             instructions=instructions,
             model_kwargs=model_kwargs,
         )
 
-    return _two_step_vision_response(
+    return await _two_step_vision_response(
         data=data,
         images=images,
         marvin_call=marvin_call,
@@ -237,7 +247,7 @@ def cast(
     )
 
 
-def extract(
+async def extract_async(
     data: Union[str, Image],
     target: type[T],
     instructions: str = None,
@@ -260,15 +270,15 @@ def extract(
         T: Extracted data of the specified type.
     """
 
-    def marvin_call(x):
-        return marvin.extract(
+    async def marvin_call(x):
+        return await marvin.extract_async(
             data=x,
             target=target,
             instructions=instructions,
             model_kwargs=model_kwargs,
         )
 
-    return _two_step_vision_response(
+    return await _two_step_vision_response(
         data=data,
         images=images,
         marvin_call=marvin_call,
@@ -276,7 +286,7 @@ def extract(
     )
 
 
-def classify(
+async def classify_async(
     data: Union[str, Image],
     labels: Union[Enum, list[T], type],
     images: Union[Union[str, Path], list[Union[str, Path]]] = None,
@@ -298,17 +308,147 @@ def classify(
         T: Label that the data/images were classified into.
     """
 
-    def marvin_call(x):
-        return marvin.classify(
+    async def marvin_call(x):
+        return await marvin.classify_async(
             data=x,
             labels=labels,
             instructions=instructions,
             model_kwargs=model_kwargs,
         )
 
-    return _two_step_vision_response(
+    return await _two_step_vision_response(
         data=data,
         images=images,
         marvin_call=marvin_call,
         vision_model_kwargs=vision_model_kwargs,
+    )
+
+
+# Sync versions of the above functions
+
+
+def caption(
+    image: Union[str, Path, Image],
+    instructions: str = None,
+    model_kwargs: dict = None,
+) -> str:
+    """
+    Generates a caption for an image using a language model synchronously.
+
+    Args:
+        image (Union[str, Path, Image]): URL or local path of the image.
+        instructions (str, optional): Instructions for the caption generation.
+        model_kwargs (dict, optional): Additional arguments for the language model.
+
+    Returns:
+        str: Generated caption.
+    """
+    return run_sync(
+        caption_async(
+            image=image,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+        )
+    )
+
+
+def cast(
+    data: Union[str, Image],
+    target: type[T],
+    instructions: str = None,
+    images: list[Image] = None,
+    vision_model_kwargs: dict = None,
+    model_kwargs: dict = None,
+) -> T:
+    """
+    Converts the input data into the specified type using a vision model synchronously.
+
+    Args:
+        data (Union[str, Image]): The data to be converted.
+        target (type[T]): The type to convert the data into.
+        instructions (str, optional): Specific instructions for the conversion.
+        images (list[Image], optional): The images to be processed.
+        vision_model_kwargs (dict, optional): Additional keyword arguments for the vision model.
+        model_kwargs (dict, optional): Additional keyword arguments for the language model.
+
+    Returns:
+        T: The converted data of the specified type.
+    """
+    return run_sync(
+        cast_async(
+            data=data,
+            target=target,
+            instructions=instructions,
+            images=images,
+            vision_model_kwargs=vision_model_kwargs,
+            model_kwargs=model_kwargs,
+        )
+    )
+
+
+def extract(
+    data: Union[str, Image],
+    target: type[T],
+    instructions: str = None,
+    images: list[Union[str, Path]] = None,
+    vision_model_kwargs: dict = None,
+    model_kwargs: dict = None,
+) -> T:
+    """
+    Extracts information from provided data and/or images using a vision model synchronously.
+
+    Args:
+        data (Union[str, Image]): Data or an image for information extraction.
+        target (type[T]): The type to extract the data into.
+        instructions (str, optional): Instructions for extraction.
+        images (list[Union[str, Path]], optional): Additional images for extraction.
+        vision_model_kwargs (dict, optional): Arguments for the vision model.
+        model_kwargs (dict, optional): Arguments for the language model.
+
+    Returns:
+        T: Extracted data of the specified type.
+    """
+    return run_sync(
+        extract_async(
+            data=data,
+            target=target,
+            instructions=instructions,
+            images=images,
+            vision_model_kwargs=vision_model_kwargs,
+            model_kwargs=model_kwargs,
+        )
+    )
+
+
+def classify(
+    data: Union[str, Image],
+    labels: Union[Enum, list[T], type],
+    images: Union[Union[str, Path], list[Union[str, Path]]] = None,
+    instructions: str = None,
+    vision_model_kwargs: dict = None,
+    model_kwargs: dict = None,
+) -> T:
+    """
+    Classifies provided data and/or images into one of the specified labels synchronously.
+
+    Args:
+        data (Union[str, Image]): Data or an image for classification.
+        labels (Union[Enum, list[T], type]): Labels to classify into.
+        images (Union[Union[str, Path], list[Union[str, Path]]], optional): Additional images for classification.
+        instructions (str, optional): Instructions for the classification.
+        vision_model_kwargs (dict, optional): Arguments for the vision model.
+        model_kwargs (dict, optional): Arguments for the language model.
+
+    Returns:
+        T: Label that the data/images were classified into.
+    """
+    return run_sync(
+        classify_async(
+            data=data,
+            labels=labels,
+            images=images,
+            instructions=instructions,
+            vision_model_kwargs=vision_model_kwargs,
+            model_kwargs=model_kwargs,
+        )
     )

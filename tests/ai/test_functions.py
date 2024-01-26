@@ -252,3 +252,12 @@ class TestFunctions:
                 """Returns the fruit with the provided color"""
 
             assert get_fruit("yellow") == "BANANA"
+
+    class TestAsync:
+        async def test_decorated_async_function(self):
+            @marvin.fn
+            async def list_fruit(n: int) -> list[str]:
+                """Returns a list of `n` fruit"""
+
+            result = await list_fruit(3)
+            assert len(result) == 3
