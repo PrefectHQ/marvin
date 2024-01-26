@@ -118,8 +118,9 @@ You can pass parameters to the underlying API via the `model_kwargs` argument of
 
 ## Async support
 If you are using `marvin` in an async environment, you can use `cast_async`:
-```python
-import marvin
 
-assert await marvin.cast_async("one", int) == 1
+```python
+result = await marvin.cast_async("one", int) 
+
+assert result == 1
 ```

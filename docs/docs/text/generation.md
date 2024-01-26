@@ -213,15 +213,14 @@ The first and second tabs both show high-quality, varied results. The third tab 
         ]
         ```
 
-## Async Support
+## Async support
 If you are using Marvin in an async environment, you can use `generate_async`:
   
-  ```python
-  import marvin
+```python
+cat_names = await marvin.generate_async(
+    n=4, 
+    instructions="names for cats inspired by Chance the Rapper"
+)
 
-  cat_names = await marvin.generate_async(
-      n=4, 
-      instructions="names for cats inspired by Chance the Rapper"
-  )
-  # ['Chancey', 'Rappurr', 'Lyric', 'Chano']
-  ```
+# ['Chancey', 'Rappurr', 'Lyric', 'Chano']
+```
