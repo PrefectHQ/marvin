@@ -45,3 +45,13 @@ Marvin can use OpenAI's vision API to process images as inputs.
 
 ## Model parameters
 You can pass parameters to the underlying API via the `model_kwargs` argument of `caption`. These parameters are passed directly to the API, so you can use any supported parameter.
+
+
+
+## Async support
+
+If you are using Marvin in an async environment, you can use `caption_async`:
+
+```python
+caption = await marvin.beta.caption_async(image=Path('/path/to/marvin.png'))
+```

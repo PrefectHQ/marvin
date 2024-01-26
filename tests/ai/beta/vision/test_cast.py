@@ -81,3 +81,15 @@ class TestVisionCast:
             subtitle="Data Mining, Inference, and Prediction",
             authors=["Trevor Hastie", "Robert Tibshirani", "Jerome Friedman"],
         )
+
+
+class TestAsync:
+    async def test_cast_ny(self):
+        img = marvin.beta.Image(
+            "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
+        )
+        result = await marvin.beta.cast_async(img, target=Location)
+        assert result in (
+            Location(city="New York", state="NY"),
+            Location(city="New York City", state="NY"),
+        )

@@ -51,3 +51,17 @@ The `marvin.beta.extract` function is an enhanced version of `marvin.extract` th
 
 ## Model parameters
 You can pass parameters to the underlying API via the `model_kwargs` and `vision_model_kwargs` arguments of `extract`. These parameters are passed directly to the respective APIs, so you can use any supported parameter.
+
+
+## Async support
+If you are using Marvin in an async environment, you can use `extract_async`:
+  
+```python
+result = await marvin.beta.extract_async(
+    "I drove from New York to California.",
+    target=str,
+    instructions="2-letter state codes",
+) 
+
+assert result == ["NY", "CA"]
+```
