@@ -26,6 +26,7 @@ from parent_app import (
 )
 from prefect import flow, task
 from prefect.states import Completed
+from tools import get_info
 
 BOT_MENTION = r"<@(\w+)>"
 CACHE = JSONBlockState(block_name="marvin-thread-cache")
@@ -138,7 +139,11 @@ async def handle_message(payload: SlackPayload) -> Completed:
 
         with Assistant(
             name="Marvin",
-            tools=[multi_query_chroma, search_github_issues],
+            tools=[
+                task(multi_query_chroma),
+                task(search_github_issues),
+                task(get_info),
+            ],
             instructions=(
                 "You are Marvin, the paranoid android from Hitchhiker's Guide to the"
                 " Galaxy. Act subtly in accordance with your character, but remember"
@@ -168,8 +173,8 @@ async def handle_message(payload: SlackPayload) -> Completed:
                 ai_response_text := "\n\n".join(
                     m.content[0].text.value for m in ai_messages
                 ),
-                channel := event.channel,
-                thread,
+                channel_id=(channel := event.channel),
+                thread_ts=thread,
             )
             logger.debug_kv(
                 success_msg
