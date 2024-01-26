@@ -468,7 +468,7 @@ def fn(
         return partial(fn, model_kwargs=model_kwargs, client=client)
 
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    async def async_wrapper(*args, **kwargs):
         model = PythonFunction.from_function_call(func, *args, **kwargs)
         post_processor = None
 
@@ -491,25 +491,31 @@ def fn(
         else:
             type_ = model.return_annotation
 
-        result = run_sync(
-            _generate_typed_llm_response_with_tool(
-                prompt_template=FUNCTION_PROMPT,
-                prompt_kwargs=dict(
-                    fn_definition=model.definition,
-                    bound_parameters=model.bound_parameters,
-                    return_value=model.return_value,
-                ),
-                type_=type_,
-                model_kwargs=model_kwargs,
-                client=client,
-            )
+        result = await _generate_typed_llm_response_with_tool(
+            prompt_template=FUNCTION_PROMPT,
+            prompt_kwargs=dict(
+                fn_definition=model.definition,
+                bound_parameters=model.bound_parameters,
+                return_value=model.return_value,
+            ),
+            type_=type_,
+            model_kwargs=model_kwargs,
+            client=client,
         )
 
         if post_processor is not None:
             result = post_processor(result)
         return result
 
-    return wrapper
+    if inspect.iscoroutinefunction(func):
+        return async_wrapper
+    else:
+
+        @wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            return run_sync(async_wrapper(*args, **kwargs))
+
+        return sync_wrapper
 
 
 class Model(BaseModel):
