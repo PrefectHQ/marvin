@@ -153,6 +153,10 @@ async def lifespan(app: FastAPI):
 def emit_assistant_completed_event(
     child_assistant: Assistant, parent_app: Application, payload: dict
 ) -> Event:
+    if not getattr(parent_app, "id", None):
+        logger.debug_kv("🚨", "No parent app id found", "red")
+        return
+
     event = emit_event(
         event="marvin.assistants.SubAssistantRunCompleted",
         resource={

@@ -19,18 +19,22 @@ from marvin.utilities.slack import (
     post_slack_message,
 )
 from marvin.utilities.strings import count_tokens, slice_tokens
-from parent_app import (
-    PARENT_APP_STATE,
-    emit_assistant_completed_event,
-    lifespan,
-)
+from parent_app import PARENT_APP_STATE, emit_assistant_completed_event, lifespan
 from prefect import flow, task
+from prefect.blocks.system import JSON
 from prefect.states import Completed
 from tools import get_info
 
 BOT_MENTION = r"<@(\w+)>"
 CACHE = JSONBlockState(block_name="marvin-thread-cache")
 USER_MESSAGE_MAX_TOKENS = 300
+
+logger = get_logger("slackbot")
+
+
+def get_feature_flag_value(flag_name: str) -> bool:
+    block = JSON.load("feature-flags")
+    return block.value.get(flag_name, False)
 
 
 async def get_notes_for_user(
@@ -83,7 +87,6 @@ async def get_notes_for_user(
 
 @flow(name="Handle Slack Message")
 async def handle_message(payload: SlackPayload) -> Completed:
-    logger = get_logger("slackbot")
     user_message = (event := payload.event).text
     cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
     thread = event.thread_ts or event.ts
@@ -199,19 +202,22 @@ async def handle_message(payload: SlackPayload) -> Completed:
                     "ai_instructions": ai.instructions,
                 },
             )
-            logger.debug_kv("🚀  Emitted Event", event.event, "green")
+            if event:
+                logger.debug_kv("🚀  Emitted Event", event.event, "green")
             return Completed(message=success_msg)
     else:
         return Completed(message="Skipping message not directed at bot", name="SKIPPED")
 
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan if get_feature_flag_value("enable_parent_app") else None
+)
 
 
 def get_parent_app() -> Application:
-    marvin = app.state.marvin
+    marvin = getattr(app.state, "marvin", None)
     if not marvin:
-        raise HTTPException(status_code=500, detail="Marvin instance not available")
+        logger.warning("Marvin instance not available")
     return marvin
 
 
