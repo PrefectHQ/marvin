@@ -66,3 +66,8 @@ class TestClassify:
                 "This is a great feature!", Sentiment, instructions="It's opposite day."
             )
             assert result == "Negative"
+
+    class TestAsync:
+        async def test_classify_positive_sentiment(self):
+            result = await marvin.classify_async("This is a great feature!", bool)
+            assert result is True

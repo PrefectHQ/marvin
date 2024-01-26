@@ -155,3 +155,16 @@ marvin.cast('Mass.', to=str, instructions="The state's abbreviation")
 
 ## Model parameters
 You can pass parameters to the underlying API via the `model_kwargs` argument of `extract`. These parameters are passed directly to the API, so you can use any supported parameter.
+
+## Async support
+If you are using Marvin in an async environment, you can use `extract_async`:
+  
+```python
+result = await marvin.extract_async(
+    "I drove from New York to California.",
+    target=str,
+    instructions="2-letter state codes",
+) 
+
+assert result == ["NY", "CA"]
+```

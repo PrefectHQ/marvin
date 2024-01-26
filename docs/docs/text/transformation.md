@@ -115,3 +115,12 @@ Location('CHI')
 
 ## Model parameters
 You can pass parameters to the underlying API via the `model_kwargs` argument of `cast` or `@model`. These parameters are passed directly to the API, so you can use any supported parameter.
+
+## Async support
+If you are using `marvin` in an async environment, you can use `cast_async`:
+
+```python
+result = await marvin.cast_async("one", int) 
+
+assert result == 1
+```

@@ -37,3 +37,8 @@ class TestGenerate:
                 result,
                 "a list of two major cities in California, both given as strings",
             )
+
+    class TestAsync:
+        async def test_generate_locations(self):
+            result = await marvin.generate_async(Location, n=3)
+            assert_equal(result, "a list of three locations")

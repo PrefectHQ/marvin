@@ -175,3 +175,16 @@ You can pass parameters to the underlying API via the `model_kwargs` argument of
 2. **Effective use of instructions**: Provide clear, concise, and contextually relevant instructions. This enhances the accuracy of the classification, especially in ambiguous or complex cases.
 3. **Iterative testing and refinement**: Continuously test and refine your classification criteria and instructions based on real-world feedback. This iterative process helps in fine-tuning the classification logic for better results.
 4. **Prefer `classify()` over `@classifier`**: `classify()` is more versatile and adaptable for a wide range of scenarios. It should be the primary tool for classification tasks in Marvin.
+
+## Async support
+
+If you are using Marvin in an async environment, you can use `classify_async`:
+
+```python
+result = await marvin.classify_async(
+    "The app crashes when I try to upload a file.", 
+    labels=["bug", "feature request", "inquiry"]
+) 
+
+assert result == "bug"
+```
