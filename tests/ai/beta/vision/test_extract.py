@@ -82,3 +82,15 @@ class TestVisionExtract:
             " Terrier] though exact results may vary, especially for the Terrier."
             " 'Terrier', 'mixed breed', or similar is ok.",
         )
+
+
+class TestAsync:
+    async def test_ny(self):
+        img = marvin.beta.Image(
+            "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
+        )
+        result = await marvin.beta.extract_async(img, target=Location)
+        assert result in (
+            [Location(city="New York", state="NY")],
+            [Location(city="New York City", state="NY")],
+        )

@@ -87,3 +87,8 @@ class TestExtract:
                 instructions="pair names and locations",
             )
             assert result == []
+
+    class TestAsync:
+        async def test_extract_numbers(self):
+            result = await marvin.extract_async("one, two, three", int)
+            assert result == [1, 2, 3]

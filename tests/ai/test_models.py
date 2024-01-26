@@ -241,3 +241,16 @@ class TestInstructions:
         assert t2 == Translation(
             original_text="Hello, world!", translated_text="Hallo, Welt!"
         )
+
+
+class TestAsync:
+    async def test_basic_async(self):
+        from marvin.ai.text import Model
+
+        class Location(Model):
+            city: str
+            state: str
+
+        location = await Location.from_text_async("biggest midwestern city")
+
+        assert location == Location(city="Chicago", state="Illinois")
