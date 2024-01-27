@@ -256,7 +256,7 @@ State models are instructions, in a sense. If well designed they guide the LLM t
 
 Like assistants, applications can use tools to perform actions and return results. Applications are always given a built-in tool for updating their own state, which operates by issuing JSON patches to the state object. This is a performant and structure-agnotistic way to update the state. However, users may want to define their own tools for state manipulation in order to codify more complex logic or handle targeted updates without worrying about the LLM's ability to describe them or know where to apply them.
 
-For more information on using tools, see the [assistants documentation](/docs/ai/interactive/assistants.md#Tools).
+For more information on using tools, see the [assistants documentation](/docs/interactive/assistants/#tools).
 
 ## Example: ToDo application
 
