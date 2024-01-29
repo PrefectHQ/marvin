@@ -3,14 +3,14 @@
 ![](hogwarts_patch.webp){width="400"}
 
 
-!!! example "What house am I?"
+!!! example "Hogwarts sorting hat"
     ```python
     import marvin
 
-    description = "Brave, daring, chivalrous, and sometimes a bit reckless."
+    student = "Brave, daring, chivalrous, and sometimes a bit reckless."
 
     house = marvin.classify(
-        description,
+        student,
         labels=["Gryffindor", "Hufflepuff", "Ravenclaw", "Slytherin"]
     )
     ```
