@@ -71,3 +71,14 @@ class TestClassify:
         async def test_classify_positive_sentiment(self):
             result = await marvin.classify_async("This is a great feature!", bool)
             assert result is True
+
+    class TestExamples:
+        async def test_hogwarts_sorting_hat(self):
+            description = "Brave, daring, chivalrous, and sometimes a bit reckless."
+
+            house = marvin.classify(
+                description,
+                labels=["Gryffindor", "Hufflepuff", "Ravenclaw", "Slytherin"],
+            )
+
+            assert house == "Gryffindor"
