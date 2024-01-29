@@ -9,7 +9,7 @@
 
     description = "Brave, daring, chivalrous, and sometimes a bit reckless."
 
-    result = marvin.classify(
+    house = marvin.classify(
         description,
         labels=["Gryffindor", "Hufflepuff", "Ravenclaw", "Slytherin"]
     )
@@ -17,5 +17,5 @@
 
     !!! success "Welcome to Gryffindor!"
         ```python
-        assert result == "Gryffindor"
+        assert house == "Gryffindor"
         ```
