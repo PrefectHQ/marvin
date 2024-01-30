@@ -31,7 +31,7 @@ Automatically route customer calls to the right department.
 
     !!! success "💵 Price matching"
         ```python
-        department = route_call("Do you price match?")
+        department = route_call("Well FooCo offered me a better deal")
         assert department == Department.SALES
         ```
 
