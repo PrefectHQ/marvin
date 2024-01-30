@@ -83,6 +83,7 @@ nav:
       - examples/xkcd_bird.md
       - examples/michael_scott_business/michael_scott_business.md
       - examples/hogwarts_sorting_hat/hogwarts_sorting_hat.md
+      - examples/call_routing.md
 
 
   - Community:

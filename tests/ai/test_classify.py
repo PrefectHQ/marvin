@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Literal
 
 import marvin
+import pytest
 
 Sentiment = Literal["Positive", "Negative"]
 
@@ -82,3 +83,26 @@ class TestClassify:
             )
 
             assert house == "Gryffindor"
+
+        @pytest.mark.parametrize(
+            "user_input, expected_selection",
+            [
+                ("I need to update my payment method", "billing"),
+                ("Well FooCo offered me a better deal", "sales"),
+                ("*angry noises*", "support"),
+            ],
+        )
+        async def test_call_routing(self, user_input, expected_selection):
+            class Department(Enum):
+                SALES = "sales"
+                SUPPORT = "support"
+                BILLING = "billing"
+
+            def router(transcript: str) -> Department:
+                return marvin.classify(
+                    transcript,
+                    labels=Department,
+                    instructions="Select the best department for the customer request",
+                )
+
+            assert router(user_input).value == expected_selection
