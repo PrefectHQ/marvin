@@ -242,10 +242,6 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
             api_version = api_version
         )
 
-        serialized_request.pop("api_base")
-        serialized_request.pop("api_key")
-        serialized_request.pop("api_version")
-
         if request_handler_fn := serialized_request.pop("request_handler", {}):
             serialized_request = request_handler_fn(serialized_request)
         if handler_fn := serialized_request.pop("stream_handler", {}):
