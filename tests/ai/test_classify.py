@@ -89,16 +89,13 @@ class TestClassify:
             import marvin
 
             class Department(Enum):
-                """Use `agent` when no other department is applicable."""
-
                 SALES = "sales"
                 SUPPORT = "support"
                 BILLING = "billing"
-                AGENT = "agent"
 
-            def router(text: str) -> Department:
+            def router(transcript: str) -> Department:
                 return marvin.classify(
-                    text,
+                    transcript,
                     labels=Department,
                     instructions="Select the best department for the customer request",
                 )
