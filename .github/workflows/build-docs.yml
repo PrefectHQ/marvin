@@ -4,12 +4,11 @@ on:
   pull_request:
     branches:
       - main
-      - marvin-old
     paths:
       - 'docs/**'
-      - 'docs_old/**'
       - 'mkdocs.yml'
       - 'mkdocs.insiders.yml'
+      - '.github/workflows/build-docs.yml'
 
 
 env:
@@ -21,12 +20,13 @@ permissions:
 jobs:
   build-docs:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.9"
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           key: ${{ github.ref }}
           path: .cache

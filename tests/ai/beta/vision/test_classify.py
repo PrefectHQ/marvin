@@ -84,3 +84,12 @@ class TestVisionClassify:
             img, labels=["dry", "wet"], instructions="Is the animal wet?"
         )
         assert dry_or_wet == "wet"
+
+
+class TestAsync:
+    async def test_ny(self):
+        img = marvin.beta.Image(
+            "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
+        )
+        result = await marvin.beta.classify_async(img, labels=["urban", "rural"])
+        assert result == "urban"

@@ -63,7 +63,7 @@ The docstring can refer to the function's arguments by name or interpolate the a
 
 ```python
 @marvin.fn
-def list_fruit(n: int) -> list[str]
+def list_fruit(n: int) -> list[str]:
     """
     Returns a list of `n` fruit.
     """
@@ -76,7 +76,7 @@ When the above function is called with `n=3`, the LLM will see the string ``"...
 If the docstring is written in jinja notation, Marvin will template variable names into it before sending the prompt to the LLM. Consider this slightly modified version of the above function (note the `{{n}}` instead of `` `n` ``):
 ```python
 @marvin.fn
-def list_fruit(n: int) -> list[str]
+def list_fruit(n: int) -> list[str]:
     """
     Returns a list of {{n}} fruit.
     """
@@ -295,3 +295,16 @@ Running a function is quite simple: just call it like you would any other functi
 
 ## Model parameters
 You can pass parameters to the underlying API via the `model_kwargs` argument of `@fn`. These parameters are passed directly to the API, so you can use any supported parameter.
+
+## Async support
+Async functions can be decorated just like regular functions. The result is still async and must be awaited.  
+
+```python
+@marvin.fn
+async def list_fruit(n: int) -> list[str]:
+    """
+    Returns a list of `n` fruit.
+    """
+
+await list_fruit(n=3)
+```

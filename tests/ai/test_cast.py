@@ -94,17 +94,17 @@ class TestCast:
             assert result == "My name is MARVIN"
 
     class TestCastCallsClassify:
-        @patch("marvin.ai.text.classify")
+        @patch("marvin.ai.text.classify_async")
         def test_cast_doesnt_call_classify_for_int(self, mock_classify):
             marvin.cast("Yes", int)
             mock_classify.assert_not_called()
 
-        @patch("marvin.ai.text.classify")
+        @patch("marvin.ai.text.classify_async")
         def test_cast_calls_classify_for_bool(self, mock_classify):
             marvin.cast("Yes", bool)
             mock_classify.assert_called_once()
 
-        @patch("marvin.ai.text.classify")
+        @patch("marvin.ai.text.classify_async")
         def test_cast_calls_classify_for_enum(self, mock_classify):
             class Sentiment(Enum):
                 positive = "Positive"
@@ -113,3 +113,8 @@ class TestCast:
             marvin.cast("Yes", Sentiment)
 
             mock_classify.assert_called_once()
+
+    class TestAsync:
+        async def test_cast_text_to_int(self):
+            result = await marvin.cast_async("one", int)
+            assert result == 1

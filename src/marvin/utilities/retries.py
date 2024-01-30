@@ -1,8 +1,10 @@
+import inspect
 from functools import wraps
 from typing import Any, Callable
 
 from pydantic import BaseModel, Field
 
+from marvin.utilities.logging import get_logger
 from marvin.utilities.pydantic import parse_as
 
 
@@ -12,7 +14,11 @@ class RetryConfig(BaseModel):
 
 
 def default_error_handler(exception: Exception) -> bool:
+    print(type(exception), exception)
     return "ValidationError" in str(type(exception))
+
+
+logger = get_logger(__name__)
 
 
 def retry_with_fallback(
@@ -55,9 +61,13 @@ def retry_with_fallback(
 
     def decorator(func: Callable) -> Callable:
         @wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
+        async def wrapper(*args, **kwargs) -> Any:
             try:
-                return func(*args, **kwargs)
+                maybe_coro = func(*args, **kwargs)
+                if inspect.isawaitable(maybe_coro):
+                    return await maybe_coro
+                return maybe_coro
+
             except Exception as initial_exception:
                 if not error_handler(initial_exception):
                     raise
@@ -65,11 +75,20 @@ def retry_with_fallback(
 
                 for config in parse_as(list[RetryConfig], retry_configs):
                     for _ in range(config.retries):
+                        logger.debug_kv(
+                            "Retrying",
+                            f"{func.__name__} with {config_field_name}={config.override_kwargs}.",
+                            "red",
+                        )
                         try:
-                            return func(
+                            maybe_coro = func(
                                 *args,
                                 **kwargs | {config_field_name: config.override_kwargs},
                             )
+                            if inspect.isawaitable(maybe_coro):
+                                return await maybe_coro
+                            return maybe_coro
+
                         except Exception as e:
                             last_exception = e
                             if not error_handler(e):

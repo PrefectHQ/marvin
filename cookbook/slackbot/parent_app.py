@@ -28,7 +28,7 @@ class Lesson(TypedDict):
     heuristic: str | None
 
 
-@fn(model="gpt-3.5-turbo-1106")
+@fn(model_kwargs=dict(model="gpt-3.5-turbo-1106"))
 def take_lesson_from_interaction(
     transcript: str,
     assistant_instructions: str,
@@ -153,6 +153,10 @@ async def lifespan(app: FastAPI):
 def emit_assistant_completed_event(
     child_assistant: Assistant, parent_app: Application, payload: dict
 ) -> Event:
+    if not getattr(parent_app, "id", None):
+        logger.debug_kv("🚨", "No parent app id found", "red")
+        return
+
     event = emit_event(
         event="marvin.assistants.SubAssistantRunCompleted",
         resource={
