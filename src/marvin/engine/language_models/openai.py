@@ -100,8 +100,6 @@ class OpenAIChatLLM(ChatLLM):
                 " MARVIN_OPENAI_API_KEY environment variable."
             )
 
-        if marvin.settings.openai.api_type:
-            openai_kwargs["api_type"] = marvin.settings.openai.api_type
         if marvin.settings.openai.api_base:
             openai_kwargs["api_base"] = marvin.settings.openai.api_base
         if marvin.settings.openai.api_version:

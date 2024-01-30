@@ -33,8 +33,14 @@ class FunctionCall(BaseModel):
     name: str
     arguments: str
 
+class ToolCall(BaseModel):
+    id: str
+    type: str
+    function: FunctionCall
+
 
 class Message(MarvinBaseModel):
+
     role: Role
     content: Optional[str] = Field(default=None, description="The message content")
 
