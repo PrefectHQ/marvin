@@ -82,3 +82,32 @@ class TestClassify:
             )
 
             assert house == "Gryffindor"
+
+        async def test_call_routing(self):
+            from enum import Enum
+
+            import marvin
+
+            class Department(Enum):
+                """Use `agent` when no other department is applicable."""
+
+                SALES = "sales"
+                SUPPORT = "support"
+                BILLING = "billing"
+                AGENT = "agent"
+
+            def router(text: str) -> Department:
+                return marvin.classify(
+                    text,
+                    labels=Department,
+                    instructions="Select the best department for the customer request",
+                )
+
+            department = router("I need to update my payment method")
+            assert department == Department.BILLING
+
+            department = router("Do you price match?")
+            assert department == Department.SALES
+
+            department = router("*angry noises*")
+            assert department == Department.SUPPORT
