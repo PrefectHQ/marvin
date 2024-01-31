@@ -7,7 +7,7 @@ from marvin.types import Function
 from marvin.utilities.async_utils import create_task
 from marvin.utilities.messages import Message
 from marvin.utilities.streaming import StreamHandler
-from openai.openai_object import OpenAIObject
+from openai import AzureOpenAI, AsyncAzureOpenAI, OpenAI
 from pydantic import BaseModel
 
 from ..abstract import AbstractChatCompletion
@@ -29,7 +29,9 @@ CONTEXT_SIZES = {
     "gpt-4-0613": 8192,
     "gpt-4": 8192,
     "gpt-4-1106": 128000,
-    "gpt-4-turbo": 128000
+    "gpt-4-turbo": 128000,
+    "analytics-gpt35-1106": 16384,
+    "analytics-gpt4-turbo": 128000
 }
 
 
@@ -64,8 +66,8 @@ def serialize_function_or_callable(
 class OpenAIStreamHandler(StreamHandler):
     async def handle_streaming_response(
         self,
-        api_response: AsyncGenerator[OpenAIObject, None],
-    ) -> OpenAIObject:
+        api_response
+    ):
         final_chunk = {}
         accumulated_content = ""
 
@@ -190,7 +192,19 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         Parse the response received from OpenAI.
         """
         # Convert OpenAI's response into a standard format or object
-        return Response(**response.to_dict_recursive())  # type: ignore
+        response_dict = response.model_dump(
+            exclude = {
+                'choices': {
+                    '__all__': {
+                        'message' : {
+                            'tool_calls'
+                        }
+                    }
+                }
+            }
+        )
+
+        return Response(**response_dict)  # type: ignore
 
     def _send_request(self, **serialized_request: Any) -> Any:
         """
@@ -198,22 +212,46 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         """
         # Use openai's library functions to send the request and get a response
         # Example:
+        client = AzureOpenAI(
+            azure_endpoint = serialized_request['api_base'],
+            api_key = serialized_request['api_key'],
+            api_version=self.defaults["api_version"]
+        )
 
-        import openai
+        serialized_request.pop("api_base")
+        serialized_request.pop("api_key")
+        serialized_request.pop("api_version")
 
-        response = openai.ChatCompletion.create(**serialized_request)  # type: ignore
+        response = client.chat.completions.create(**serialized_request)  # type: ignore
         return response  # type: ignore
 
     async def _send_request_async(self, **serialized_request: Any) -> Response[T]:
         """
         Send the serialized request to OpenAI's endpoint asynchronously.
         """
-        import openai
+        # Use openai's library functions to send the request and get a response
+        # Example:
 
+        api_base = serialized_request.pop("api_base")
+        api_key = serialized_request.pop("api_key")
+        api_version = serialized_request.pop("api_version")
+
+        client = AsyncAzureOpenAI(
+            azure_endpoint = api_base,
+            api_key = api_key,
+            api_version = api_version
+        )
+
+        if request_handler_fn := serialized_request.pop("request_handler", {}):
+            serialized_request = request_handler_fn(serialized_request)
         if handler_fn := serialized_request.pop("stream_handler", {}):
             serialized_request["stream"] = True
 
-        response = await openai.ChatCompletion.acreate(**serialized_request)  # type: ignore # noqa
+        print(f"sending request to openai: {serialized_request}")
+
+        response = await client.chat.completions.create(**serialized_request)  # type: ignore # noqa
+
+        print(f"received response from openai: {response}")
 
         if handler_fn:
             response = await OpenAIStreamHandler(

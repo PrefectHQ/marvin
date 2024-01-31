@@ -32,16 +32,11 @@ class OpenAISettings(MarvinBaseSettings):
     api_key: Optional[SecretStr] = None
     organization: Optional[str] = None
     embedding_engine: str = "text-embedding-ada-002"
-    api_type: Optional[str] = None
     api_base: Optional[str] = None
     api_version: Optional[str] = None
 
     def get_defaults(self, settings: "Settings") -> dict[str, Any]:
         import os
-
-        import openai
-
-        from marvin import openai as marvin_openai
 
         EXCLUDE_KEYS = {"stream_handler"}
 
@@ -53,12 +48,8 @@ class OpenAISettings(MarvinBaseSettings):
             response["api_key"] = os.environ["MARVIN_OPENAI_API_KEY"]
         if os.environ.get("OPENAI_API_KEY"):
             response["api_key"] = os.environ["OPENAI_API_KEY"]
-        if openai.api_key:
-            response["api_key"] = openai.api_key
-        if marvin_openai.api_key:
-            response["api_key"] = marvin_openai.api_key
         response["temperature"] = settings.llm_temperature
-        response["request_timeout"] = settings.llm_request_timeout_seconds
+        response["timeout"] = settings.llm_request_timeout_seconds
         return {
             k: v for k, v in response.items() if v is not None and k not in EXCLUDE_KEYS
         }
@@ -89,33 +80,21 @@ class AzureOpenAI(MarvinBaseSettings):
         env_prefix = "MARVIN_AZURE_OPENAI_"
 
     api_key: Optional[SecretStr] = None
-    api_type: Literal["azure", "azure_ad"] = "azure"
     # "The endpoint of the Azure OpenAI API. This should have the form https://YOUR_RESOURCE_NAME.openai.azure.com" # noqa
     api_base: Optional[str] = None
     api_version: Optional[str] = "2023-07-01-preview"
-    # `deployment_id` will correspond to the custom name you chose for your deployment when # noqa
-    # you deployed a model.
-    deployment_id: Optional[str] = None
 
     def get_defaults(self, settings: "Settings") -> dict[str, Any]:
         import os
-
-        import openai
-
-        from marvin import openai as marvin_openai
 
         response: dict[str, Any] = {}
         if settings.llm_max_context_tokens > 0:
             response["max_tokens"] = settings.llm_max_tokens
         response["temperature"] = settings.llm_temperature
-        response["request_timeout"] = settings.llm_request_timeout_seconds
+        response["timeout"] = settings.llm_request_timeout_seconds
         response["api_key"] = self.api_key and self.api_key.get_secret_value()
         if os.environ.get("MARVIN_AZURE_OPENAI_API_KEY"):
             response["api_key"] = os.environ["MARVIN_AZURE_OPENAI_API_KEY"]
-        if openai.api_key:
-            response["api_key"] = openai.api_key
-        if marvin_openai.api_key:
-            response["api_key"] = marvin_openai.api_key
 
         return model_dump(self, exclude_unset=True) | {
             k: v for k, v in response.items() if v is not None
