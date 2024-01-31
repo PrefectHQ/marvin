@@ -242,16 +242,19 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
             api_version = api_version
         )
 
-        if request_handler_fn := serialized_request.pop("request_handler", {}):
+        request_handler_fn = serialized_request.pop("request_handler", {})
+        response_handler_fn = serialized_request.pop("response_handler", {})
+
+        if request_handler_fn:
             serialized_request = request_handler_fn(serialized_request)
+
         if handler_fn := serialized_request.pop("stream_handler", {}):
             serialized_request["stream"] = True
 
-        print(f"sending request to openai: {serialized_request}")
-
         response = await client.chat.completions.create(**serialized_request)  # type: ignore # noqa
 
-        print(f"received response from openai: {response}")
+        if response_handler_fn:
+            response = response_handler_fn(response)
 
         if handler_fn:
             response = await OpenAIStreamHandler(
