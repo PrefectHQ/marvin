@@ -1,4 +1,4 @@
-# xkcd's bird photo classifier
+# xkcd bird classifier
 
 [![](https://imgs.xkcd.com/comics/tasks.png)](https://xkcd.com/1425/)
 
