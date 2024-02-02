@@ -1,4 +1,5 @@
 import inspect
+from datetime import datetime
 from typing import Any, AsyncGenerator, Callable, Optional, TypeVar, Union
 
 from marvin._compat import cast_to_json, model_dump
@@ -212,17 +213,38 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         """
         # Use openai's library functions to send the request and get a response
         # Example:
+        api_base = serialized_request.pop("api_base")
+        api_key = serialized_request.pop("api_key")
+        api_version = serialized_request.pop("api_version")
+
         client = AzureOpenAI(
-            azure_endpoint = serialized_request['api_base'],
-            api_key = serialized_request['api_key'],
-            api_version=self.defaults["api_version"]
+            azure_endpoint = api_base,
+            api_key = api_key,
+            api_version = api_version
         )
 
-        serialized_request.pop("api_base")
-        serialized_request.pop("api_key")
-        serialized_request.pop("api_version")
+        request_handler_fn = serialized_request.pop("request_handler", {})
+        response_handler_fn = serialized_request.pop("response_handler", {})
 
-        response = client.chat.completions.create(**serialized_request)  # type: ignore
+        if request_handler_fn:
+            serialized_request = request_handler_fn(serialized_request)
+
+        start = datetime.now()
+        response = client.chat.completions.create(**serialized_request)  # type: ignore # noqa
+        end = datetime.now()
+
+        if response_handler_fn:
+            metadata = {
+                'chat_completion_start': start.strftime("%Y-%m-%d %H:%M:%S.%f"),
+                'chat_completion_end': end.strftime("%Y-%m-%d %H:%M:%S.%f"),
+                'chat_completion_duration': (end - start).total_seconds(),
+            }
+            response = response_handler_fn(
+                response = response,
+                request = serialized_request,
+                metadata = metadata
+            )
+
         return response  # type: ignore
 
     async def _send_request_async(self, **serialized_request: Any) -> Response[T]:
@@ -251,10 +273,22 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         if handler_fn := serialized_request.pop("stream_handler", {}):
             serialized_request["stream"] = True
 
+        start = datetime.now()
         response = await client.chat.completions.create(**serialized_request)  # type: ignore # noqa
+        end = datetime.now()
 
         if response_handler_fn:
-            response = response_handler_fn(response)
+            metadata = {
+                'chat_completion_start': start.strftime("%Y-%m-%d %H:%M:%S.%f"),
+                'chat_completion_end': end.strftime("%Y-%m-%d %H:%M:%S.%f"),
+                'chat_completion_duration': (end - start).total_seconds(),
+            }
+            response = response_handler_fn(
+                response = response,
+                request = serialized_request,
+                metadata = metadata
+            )
+                
 
         if handler_fn:
             response = await OpenAIStreamHandler(
