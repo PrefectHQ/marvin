@@ -1,7 +1,7 @@
 """Using AI vision to evaluate car damage and submit an insurance claim using Marvin
 and Prefect interactive workflows.
 
-authored by: @kevingrismore
+authored by: @kevingrismore and @zzstoatzz
 """
 
 from enum import Enum
@@ -22,31 +22,31 @@ class Severity(str, Enum):
 M = TypeVar("M", bound=BaseModel)
 
 
-class Damage(BaseModel):
-    location: str = Field(
-        description="The location of the damage on the car.",
+class DamagedPart(BaseModel):
+    part: str = Field(
+        description="unique name for a damaged part",
     )
     severity: Severity = Field(
-        description="The severity of the damage.",
+        description="severity of part damage",
     )
     description: str = Field(
-        description="A description of the damage.",
+        description="very brief description of the damage, location, and est cost to repair"
     )
 
 
-def build_damage_report_model(damages: list[Damage]) -> M:
-    """TODO we should be able to have a static `DamageReport` model has a `list[Damage]` field
-    but the Prefect UI will not render it correctly yet.
+def build_damage_report_model(damages: list[DamagedPart]) -> M:
+    """TODO we should be able to have a static `DamageReport` model with
+    a `list[DamagedPart]` field but it won't be rendered nice yet.
     """
     return create_model(
         "DamageReport",
-        **{f"{damage.location}": (Damage, ...) for damage in damages},
+        **{f"{damage.part}": (DamagedPart, ...) for damage in damages},
         __base__=RunInput,
     )
 
 
 @flow(log_prints=True)
-async def interactive_damage_report(car_id: str = 1):
+async def interactive_damage_report(car_id: int = 1):
     image_url = get_car_image(car_id)
     damages = evaluate_damage(image_url)
 
@@ -59,23 +59,23 @@ async def interactive_damage_report(car_id: str = 1):
                 ""
                 f"![image]({image_url})"
             ),
-            **{damage.location: damage for damage in damages},
+            **{damage.part: damage for damage in damages},
         )
     )
 
     submit_damage_report(car)
 
 
-def evaluate_damage(image_url: str) -> list[Damage]:
+def evaluate_damage(image_url: str) -> list[DamagedPart]:
     return marvin.beta.extract(
         data=marvin.beta.Image(image_url),
-        target=Damage,
+        target=DamagedPart,
         instructions=(
             "A car crash occurred. Please BRIEFLY evaluate the damage ON THE CAR."
             " Only include the damage that is visible in the image - do not assume additional damage."
-            " Be sure to include appropriate severity levels for each damage location."
+            " For now, only include the 2 most severe damages, which may be minor if minimal damage."
         ),
-    )[:2]  # Limit to two damages for the sake of the example.
+    )
 
 
 def get_car_image(car_id: str):
@@ -89,4 +89,6 @@ def submit_damage_report(report: M):
 
 
 if __name__ == "__main__":
-    interactive_damage_report.serve(name="interactive-insurance")
+    import asyncio
+
+    asyncio.run(interactive_damage_report())
