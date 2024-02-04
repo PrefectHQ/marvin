@@ -46,7 +46,7 @@ def build_damage_report_model(damages: list[Damage]) -> M:
 
 
 @flow(log_prints=True)
-async def interactive_damage_report(car_id: str = 1):
+async def interactive_damage_report(car_id: int = 1):
     image_url = get_car_image(car_id)
     damages = evaluate_damage(image_url)
 
@@ -89,4 +89,5 @@ def submit_damage_report(report: M):
 
 
 if __name__ == "__main__":
-    interactive_damage_report.serve(name="interactive-insurance")
+    import asyncio
+    asyncio.run(interactive_damage_report())
