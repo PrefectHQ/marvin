@@ -9,6 +9,7 @@ from typing import TypeVar
 
 import marvin
 from prefect import flow, pause_flow_run
+from prefect.artifacts import create_markdown_artifact
 from prefect.input import RunInput
 from pydantic import BaseModel, Field, create_model
 
@@ -19,76 +20,78 @@ class Severity(str, Enum):
     severe = "Severe"
 
 
-M = TypeVar("M", bound=BaseModel)
+M = TypeVar("M", bound=RunInput)
 
 
 class DamagedPart(BaseModel):
     part: str = Field(
-        description="unique name for a damaged part",
+        description="short unique name for a damaged part",
+        example="front_left_bumper",
     )
     severity: Severity = Field(
         description="severity of part damage",
     )
     description: str = Field(
-        description="very brief description of the damage, location, and est cost to repair"
+        description="specific, but high level summary of damage in 1 sentence",
     )
 
 
 def build_damage_report_model(damages: list[DamagedPart]) -> M:
-    """TODO we should be able to have a static `DamageReport` model with
+    """TODO we should be able to have a static `DamageReportInput` model with
     a `list[DamagedPart]` field but it won't be rendered nice yet.
     """
     return create_model(
-        "DamageReport",
+        "DamageReportInput",
         **{f"{damage.part}": (DamagedPart, ...) for damage in damages},
         __base__=RunInput,
     )
 
 
 @flow(log_prints=True)
-async def interactive_damage_report(car_id: int = 1):
-    image_url = get_car_image(car_id)
-    damages = evaluate_damage(image_url)
+async def interactive_damage_report(image_url: str):
+    damages = marvin_evaluate_damage(image_url)
 
-    DamageReport = build_damage_report_model(damages)
+    DamageReportInput = build_damage_report_model(damages)
 
-    car = await pause_flow_run(
-        wait_for_input=DamageReport.with_initial_data(
+    damage_report = await pause_flow_run(
+        wait_for_input=DamageReportInput.with_initial_data(
             description=(
-                "Please audit the generated damage report based on the following image:"
-                ""
-                f"![image]({image_url})"
+                "Please audit the damage report drafted from the submitted image:"
+                f"\n![image]({image_url})"
             ),
             **{damage.part: damage for damage in damages},
         )
     )
 
-    submit_damage_report(car)
+    submit_damage_report(damage_report, image_url)
 
 
-def evaluate_damage(image_url: str) -> list[DamagedPart]:
+def marvin_evaluate_damage(image_url: str) -> list[DamagedPart]:
     return marvin.beta.extract(
         data=marvin.beta.Image(image_url),
         target=DamagedPart,
         instructions=(
-            "A car crash occurred. Please BRIEFLY evaluate the damage ON THE CAR."
-            " Only include the damage that is visible in the image - do not assume additional damage."
-            " For now, only include the 2 most severe damages, which may be minor if minimal damage."
+            "Give extremely brief, high-level descriptions of the damage."
+            " Only include the 2 most significant damages, which may also be minor and/or moderate."
+            # only want 2 damages for purposes of this example
         ),
     )
 
 
-def get_car_image(car_id: str):
-    """hypothetical function to get a car image from a car id."""
-    return "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0923/e367ca327c564c9ba8368359f456664f_ful.jpg"
-
-
-def submit_damage_report(report: M):
+async def submit_damage_report(report: M, image_url: str):
     """hypothetical function to submit a damage report."""
     print(f"Submitting damage report: {report}")
+
+    await create_markdown_artifact(
+        markdown=(
+            f"![image]({image_url})" "\n\n" f"**Damage Report:**\n\n" f"{report}"
+        ),
+    )
 
 
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(interactive_damage_report())
+    # or wherever you'd get your image from
+    image_url = "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0923/e367ca327c564c9ba8368359f456664f_ful.jpg"
+    asyncio.run(interactive_damage_report(image_url))
