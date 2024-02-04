@@ -38,7 +38,7 @@ class DamagedPart(BaseModel):
     description: str = Field(description="specific high level summary in 1 sentence")
 
 
-def build_damage_report_model(damages: list[DamagedPart]) -> M:
+def build_damage_report_model(damages: list[DamagedPart]) -> type[M]:
     """TODO we should be able to have a static `DamageReportInput` model with
     a `list[DamagedPart]` field but it won't be rendered nice yet.
     """
