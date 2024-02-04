@@ -50,7 +50,7 @@ def build_damage_report_model(damages: list[DamagedPart]) -> M:
 
 
 @task(cache_key_fn=task_input_hash)
-def marvin_evaluate_damage(image_url: str) -> list[DamagedPart]:
+def marvin_extract_damage_from_image(image_url: str) -> list[DamagedPart]:
     return marvin.beta.extract(
         data=marvin.beta.Image(image_url),
         target=DamagedPart,
@@ -81,7 +81,9 @@ def submit_damage_report(report: M, car: Car):
 
 @flow(log_prints=True)
 def process_damage_report(car: Car):
-    damaged_parts = sorted(marvin_evaluate_damage(car.image_url), key=lambda x: x.part)
+    damaged_parts = sorted(
+        marvin_extract_damage_from_image(car.image_url), key=lambda x: x.part
+    )
 
     DamageReportInput: type[M] = build_damage_report_model(damaged_parts)
 
