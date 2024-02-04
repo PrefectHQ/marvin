@@ -63,7 +63,7 @@ async def interactive_damage_report(image_url: str):
         )
     )
 
-    submit_damage_report(damage_report, image_url)
+    await submit_damage_report(damage_report, image_url)
 
 
 def marvin_evaluate_damage(image_url: str) -> list[DamagedPart]:
