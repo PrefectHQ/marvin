@@ -63,7 +63,7 @@ def marvin_extract_damage_from_image(image_url: str) -> list[DamagedPart]:
 
 
 @task
-def submit_damage_report(report: type[M], car: Car):
+def submit_damage_report(report: M, car: Car):
     """submit the damage report to a system of record"""
     uuid = create_markdown_artifact(
         key=f"latest-damage-report-car-{car.id}",
@@ -87,7 +87,7 @@ def process_damage_report(car: Car):
 
     DamageReportInput: type[M] = build_damage_report_model(damaged_parts)
 
-    damage_report = pause_flow_run(
+    damage_report: M = pause_flow_run(
         wait_for_input=DamageReportInput.with_initial_data(
             description=(
                 "🔍 audit the damage report drafted from submitted image:"
