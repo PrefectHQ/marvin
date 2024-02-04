@@ -166,6 +166,22 @@ class VisionRequest(MarvinType):
     user: Optional[str] = None
 
 
+class TranscriptRequest(MarvinType):
+    model: Literal["whisper-1"] = "whisper-1"
+    prompt: Optional[str] = Field(
+        None,
+        description=(
+            "An optional prompt to guide the transcription. Useful for setting tone,"
+            " supplying spelling of complex words, including filler vocalizations, etc."
+        ),
+    )
+    response_format: Optional[
+        Literal["json", "text", "srt", "verbose_json", "vtt"]
+    ] = None
+    language: Optional[str] = None
+    temperature: Optional[float] = None
+
+
 class ChatResponse(MarvinType):
     model_config = dict(arbitrary_types_allowed=True)
     request: Union[ChatRequest, VisionRequest]

@@ -15,7 +15,7 @@ from .ai.text import (
     Model,
 )
 from .ai.images import paint, image
-from .ai.audio import speak, speech
+from .ai.audio import speak_async, speak, speech, transcribe, transcribe_async
 from . import beta
 
 try:
@@ -43,7 +43,10 @@ __all__ = [
     "paint",
     # --- audio ---
     "speak",
+    "speak_async",
     "speech",
+    "transcribe",
+    "transcribe_async",
     # --- beta ---
     "beta",
 ]
