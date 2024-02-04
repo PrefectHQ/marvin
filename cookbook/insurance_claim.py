@@ -1,7 +1,7 @@
 """Using AI vision to evaluate car damage and submit an insurance claim using Marvin
 and Prefect interactive workflows.
 
-authored by: @kevingrismore
+authored by: @kevingrismore and @zzstoatzz
 """
 
 from enum import Enum
