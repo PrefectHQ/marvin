@@ -1,5 +1,6 @@
-"""Using AI vision to extract damaged parts in a hypothetical
-insurance claim using Marvin and Prefect interactive workflows.
+"""Using AI vision to extract a damaged part report from an image in a
+hypothetical car insurance claim using Marvin. We use prefect to define
+an interactive flow to audit the draft before submitting it to a system of record.
 
 authored by: @kevingrismore and @zzstoatzz
 """
