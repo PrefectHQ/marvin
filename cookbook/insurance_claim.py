@@ -1,26 +1,26 @@
-"""Using AI vision to evaluate car damage and submit an insurance claim using Marvin
-and Prefect interactive workflows.
+"""Using AI vision to extract damaged parts in a hypothetical
+insurance claim using Marvin and Prefect interactive workflows.
 
 authored by: @kevingrismore and @zzstoatzz
 """
-
 from enum import Enum
 from typing import TypeVar
 
 import marvin
-from prefect import flow, pause_flow_run
+from prefect import flow, pause_flow_run, task
 from prefect.artifacts import create_markdown_artifact
 from prefect.input import RunInput
+from prefect.settings import PREFECT_UI_URL
+from prefect.tasks import task_input_hash
 from pydantic import BaseModel, Field, create_model
+
+M = TypeVar("M", bound=RunInput)
 
 
 class Severity(str, Enum):
-    minor = "Minor"
-    moderate = "Moderate"
-    severe = "Severe"
-
-
-M = TypeVar("M", bound=RunInput)
+    minor = "minor"
+    moderate = "moderate"
+    severe = "severe"
 
 
 class DamagedPart(BaseModel):
@@ -28,12 +28,13 @@ class DamagedPart(BaseModel):
         description="short unique name for a damaged part",
         example="front_left_bumper",
     )
-    severity: Severity = Field(
-        description="severity of part damage",
-    )
-    description: str = Field(
-        description="specific, but high level summary of damage in 1 sentence",
-    )
+    severity: Severity = Field(description="objective severity of part damage")
+    description: str = Field(description="specific high level summary in 1 sentence")
+
+
+class Car(BaseModel):
+    id: str
+    image_url: str
 
 
 def build_damage_report_model(damages: list[DamagedPart]) -> M:
@@ -47,25 +48,7 @@ def build_damage_report_model(damages: list[DamagedPart]) -> M:
     )
 
 
-@flow(log_prints=True)
-async def interactive_damage_report(image_url: str):
-    damages = marvin_evaluate_damage(image_url)
-
-    DamageReportInput = build_damage_report_model(damages)
-
-    damage_report = await pause_flow_run(
-        wait_for_input=DamageReportInput.with_initial_data(
-            description=(
-                "Please audit the damage report drafted from the submitted image:"
-                f"\n![image]({image_url})"
-            ),
-            **{damage.part: damage for damage in damages},
-        )
-    )
-
-    await submit_damage_report(damage_report, image_url)
-
-
+@task(cache_key_fn=task_input_hash)
 def marvin_evaluate_damage(image_url: str) -> list[DamagedPart]:
     return marvin.beta.extract(
         data=marvin.beta.Image(image_url),
@@ -78,20 +61,51 @@ def marvin_evaluate_damage(image_url: str) -> list[DamagedPart]:
     )
 
 
-async def submit_damage_report(report: M, image_url: str):
-    """hypothetical function to submit a damage report."""
-    print(f"Submitting damage report: {report}")
-
-    await create_markdown_artifact(
+@task
+async def submit_damage_report(report: M, car: Car):
+    """submit the damage report to a system of record"""
+    uuid = await create_markdown_artifact(
+        key=f"latest-damage-report-car-{car.id}",
         markdown=(
-            f"![image]({image_url})" "\n\n" f"**Damage Report:**\n\n" f"{report}"
+            f"## **Damage Report for Car {car.id}**\n"
+            f"![image]({car.image_url})\n**Data:**\n"
+            f"```json\n{report.model_dump_json(indent=2)}\n```"
         ),
+        description=f"## Latest damage report for car {car.id}",
     )
+    print(
+        f"See your artifact in the UI: {PREFECT_UI_URL.value()}/artifacts/artifact/{uuid}"
+    )
+
+
+@flow(log_prints=True)
+async def process_damage_report(car: Car):
+    damaged_parts = sorted(marvin_evaluate_damage(car.image_url), key=lambda x: x.part)
+
+    DamageReportInput: type[M] = build_damage_report_model(damaged_parts)
+
+    damage_report = await pause_flow_run(
+        wait_for_input=DamageReportInput.with_initial_data(
+            description=(
+                "🔍 audit the damage report drafted from submitted image:"
+                f"\n![image]({car.image_url})"
+            ),
+            **dict(zip(DamageReportInput.model_fields.keys(), damaged_parts)),
+        )
+    )
+    print(f"Resumed flow run with damage report: {damage_report!r}")
+
+    await submit_damage_report(damage_report, car)
 
 
 if __name__ == "__main__":
     import asyncio
 
-    # or wherever you'd get your image from
-    image_url = "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0923/e367ca327c564c9ba8368359f456664f_ful.jpg"
-    asyncio.run(interactive_damage_report(image_url))
+    asyncio.run(
+        process_damage_report(
+            {
+                "id": "1",  # or wherever you'd get your car data from
+                "image_url": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0923/e367ca327c564c9ba8368359f456664f_ful.jpg",  # noqa E501
+            }
+        )
+    )
