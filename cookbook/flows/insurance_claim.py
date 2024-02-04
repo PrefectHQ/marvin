@@ -24,6 +24,11 @@ class Severity(str, Enum):
     severe = "severe"
 
 
+class Car(BaseModel):
+    id: str
+    image_url: str
+
+
 class DamagedPart(BaseModel):
     part: str = Field(
         description="short unique name for a damaged part",
@@ -31,11 +36,6 @@ class DamagedPart(BaseModel):
     )
     severity: Severity = Field(description="objective severity of part damage")
     description: str = Field(description="specific high level summary in 1 sentence")
-
-
-class Car(BaseModel):
-    id: str
-    image_url: str
 
 
 def build_damage_report_model(damages: list[DamagedPart]) -> M:
@@ -63,9 +63,9 @@ def marvin_evaluate_damage(image_url: str) -> list[DamagedPart]:
 
 
 @task
-async def submit_damage_report(report: M, car: Car):
+def submit_damage_report(report: M, car: Car):
     """submit the damage report to a system of record"""
-    uuid = await create_markdown_artifact(
+    uuid = create_markdown_artifact(
         key=f"latest-damage-report-car-{car.id}",
         markdown=(
             f"## **Damage Report for Car {car.id}**\n"
@@ -80,12 +80,12 @@ async def submit_damage_report(report: M, car: Car):
 
 
 @flow(log_prints=True)
-async def process_damage_report(car: Car):
+def process_damage_report(car: Car):
     damaged_parts = sorted(marvin_evaluate_damage(car.image_url), key=lambda x: x.part)
 
     DamageReportInput: type[M] = build_damage_report_model(damaged_parts)
 
-    damage_report = await pause_flow_run(
+    damage_report = pause_flow_run(
         wait_for_input=DamageReportInput.with_initial_data(
             description=(
                 "🔍 audit the damage report drafted from submitted image:"
@@ -96,17 +96,13 @@ async def process_damage_report(car: Car):
     )
     print(f"Resumed flow run with damage report: {damage_report!r}")
 
-    await submit_damage_report(damage_report, car)
+    submit_damage_report(damage_report, car)
 
 
 if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(
-        process_damage_report(
-            {
-                "id": "1",  # or wherever you'd get your car data from
-                "image_url": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0923/e367ca327c564c9ba8368359f456664f_ful.jpg",  # noqa E501
-            }
-        )
+    process_damage_report(
+        {
+            "id": "1",  # or wherever you'd get your car data from
+            "image_url": "https://cs.copart.com/v1/AUTH_svc.pdoc00001/lpp/0923/e367ca327c564c9ba8368359f456664f_ful.jpg",  # noqa E501
+        }
     )
