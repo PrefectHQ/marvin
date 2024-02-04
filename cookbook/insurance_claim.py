@@ -35,8 +35,8 @@ class Damage(BaseModel):
 
 
 def build_damage_report_model(damages: list[Damage]) -> M:
-    """TODO we should be able to have a static `DamageReport` model has a `list[Damage]` field
-    but the Prefect UI will not render it correctly yet.
+    """TODO we should be able to have a static `DamageReport` model with a `list[Damage]` field
+    but it would not yet be rendered nicely.
     """
     return create_model(
         "DamageReport",
