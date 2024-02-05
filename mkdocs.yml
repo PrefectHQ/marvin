@@ -32,7 +32,7 @@ nav:
 
     - Audio:
       - Generating speech: docs/audio/speech.md
-    # - Transcription: docs/function.md
+      - Transcribing speech: docs/audio/transcription.md
 
     - Interactive Tools:
       - Assistants: docs/interactive/assistants.md

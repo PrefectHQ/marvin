@@ -113,3 +113,12 @@ audio.stream_to_file("hello_world.mp3")
 
 ## Model parameters
 You can pass parameters to the underlying API via the `model_kwargs` arguments of `speak` and `@speech`. These parameters are passed directly to the respective APIs, so you can use any supported parameter.
+
+
+## Async support
+
+If you are using Marvin in an async environment, you can use `speak_async` (or decorate an async function with `@speech`) to generate speech asynchronously:
+
+```python
+result = await marvin.speak_async('I sure like being inside this fancy computer!')
+```

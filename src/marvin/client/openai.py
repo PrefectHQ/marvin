@@ -1,6 +1,7 @@
 from functools import partial
 from pathlib import Path
 from typing import (
+    IO,
     TYPE_CHECKING,
     Any,
     Callable,
@@ -10,6 +11,7 @@ from typing import (
 )
 
 import openai
+import openai.types.audio
 import openai.types.chat.chat_completion
 import openai.types.chat.chat_completion_chunk
 import pydantic
@@ -28,6 +30,7 @@ from marvin.types import (
     HttpxBinaryResponseContent,
     ImageRequest,
     StreamingChatResponse,
+    TranscriptRequest,
     VisionRequest,
 )
 from marvin.utilities.logging import get_logger
@@ -229,6 +232,22 @@ class MarvinClient(pydantic.BaseModel):
             return None
         return response
 
+    def generate_transcript(
+        self, file: Union[Path, IO[bytes]], **kwargs: Any
+    ) -> openai.types.audio.Transcription:
+        request = TranscriptRequest(**kwargs)
+        validated_kwargs = request.model_dump(exclude_none=True)
+        if isinstance(file, (Path, str)):
+            with open(file, "rb") as f:
+                response = self.client.audio.transcriptions.create(
+                    file=f, **validated_kwargs
+                )
+        else:
+            response = self.client.audio.transcriptions.create(
+                file=file, **validated_kwargs
+            )
+        return response
+
 
 class AsyncMarvinClient(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(
@@ -303,7 +322,7 @@ class AsyncMarvinClient(pydantic.BaseModel):
             **request.model_dump(exclude_none=True)
         )
 
-    async def generate_audio(
+    async def generate_speech(
         self,
         input: str,
         file: Optional[Path] = None,
@@ -315,4 +334,18 @@ class AsyncMarvinClient(pydantic.BaseModel):
         if file:
             response.stream_to_file(file)
             return None
+        return response
+
+    async def generate_transcript(self, file: Union[Path, IO[bytes]], **kwargs: Any):
+        request = TranscriptRequest(**kwargs)
+        validated_kwargs = request.model_dump(exclude_none=True)
+        if isinstance(file, (Path, str)):
+            with open(file, "rb") as f:
+                response = await self.client.audio.transcriptions.create(
+                    file=f, **validated_kwargs
+                )
+        else:
+            response = await self.client.audio.transcriptions.create(
+                file=file, **validated_kwargs
+            )
         return response
