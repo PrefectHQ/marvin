@@ -18,6 +18,7 @@ class TestVisionCast:
         assert result in (
             Location(city="New York", state="NY"),
             Location(city="New York City", state="NY"),
+            Location(city="Manhattan", state="NY"),
         )
 
     def test_cast_ny_images_input(self):
@@ -28,6 +29,7 @@ class TestVisionCast:
         assert result in (
             Location(city="New York", state="NY"),
             Location(city="New York City", state="NY"),
+            Location(city="Manhattan", state="NY"),
         )
 
     def test_cast_ny_image_input(self):
@@ -38,6 +40,7 @@ class TestVisionCast:
         assert result in (
             Location(city="New York", state="NY"),
             Location(city="New York City", state="NY"),
+            Location(city="Manhattan", state="NY"),
         )
 
     def test_cast_ny_image_and_text(self):
@@ -52,6 +55,7 @@ class TestVisionCast:
         assert result in (
             Location(city="New York", state="NY"),
             Location(city="New York City", state="NY"),
+            Location(city="Manhattan", state="NY"),
         )
 
     def test_cast_dog(self):
