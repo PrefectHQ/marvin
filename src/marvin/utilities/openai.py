@@ -41,19 +41,24 @@ def get_openai_client(
         )
 
         if not api_key:
-            raise ValueError(
-                inspect.cleandoc(
-                    """
-                    OpenAI API key not found! Marvin will not work properly without it.
-                    
-                    You can either:
-                        1. Set the `MARVIN_OPENAI_API_KEY` or `OPENAI_API_KEY` environment variables
-                        2. Set `marvin.settings.openai.api_key` in your code (not recommended for production)
+            if (
+                api_url := marvin.settings.openai.base_url
+            ) is None or api_url.startswith("https://api.openai.com"):
+                raise ValueError(
+                    inspect.cleandoc(
+                        """
+                        OpenAI API key not found! Marvin will not work properly without it.
                         
-                    If you do not have an OpenAI API key, you can create one at https://platform.openai.com/api-keys.
-                    """
+                        You can either:
+                            1. Set the `MARVIN_OPENAI_API_KEY` or `OPENAI_API_KEY` environment variables
+                            2. Set `marvin.settings.openai.api_key` in your code (not recommended for production)
+                            
+                        If you do not have an OpenAI API key, you can create one at https://platform.openai.com/api-keys.
+                        """
+                    )
                 )
-            )
+            else:
+                api_key = "does-not-matter-for-self-hosted"
 
         kwargs.update(
             api_key=api_key,
