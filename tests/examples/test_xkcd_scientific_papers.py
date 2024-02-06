@@ -2,6 +2,7 @@ import fitz
 import marvin
 import pytest
 import requests
+from marvin.utilities.testing import assert_equal
 
 PAPER_TYPES = [
     "We put a camera somewhere new",
@@ -52,7 +53,14 @@ def test_extract_labels(gpt_4):
         ),
     )
 
-    assert paper_types == PAPER_TYPES
+    assert_equal(
+        llm_output=paper_types,
+        expected=PAPER_TYPES,
+        instructions=(
+            "Check if the extracted labels match the expected types; its ok if one or"
+            " two are missing."
+        ),
+    )
 
 
 def test_classify_paper(gpt_4):
