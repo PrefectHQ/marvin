@@ -81,6 +81,7 @@ nav:
     - Being specific about types: examples/being_specific_about_types.md
     - Examples:
       - examples/xkcd_bird.md
+      - examples/xkcd_scientific_papers.md
       - examples/michael_scott_business/michael_scott_business.md
       - examples/hogwarts_sorting_hat/hogwarts_sorting_hat.md
       - examples/call_routing.md
