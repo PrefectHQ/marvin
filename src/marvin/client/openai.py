@@ -33,6 +33,7 @@ from marvin.types import (
     TranscriptRequest,
     VisionRequest,
 )
+from marvin.utilities.asyncio import run_sync
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_openai_client
 
@@ -182,7 +183,7 @@ class MarvinClient(pydantic.BaseModel):
         try:
             response: "ChatCompletion" = create(**request.model_dump(exclude_none=True))
         except NotFoundError as e:
-            if should_fallback(e, request):
+            if run_sync(should_fallback(e, request)):
                 response = create(
                     **request.model_dump(exclude_none=True)
                     | dict(model=FALLBACK_CHAT_COMPLETIONS_MODEL)
@@ -283,7 +284,7 @@ class AsyncMarvinClient(pydantic.BaseModel):
                 **request.model_dump(exclude_none=True)
             )
         except NotFoundError as e:
-            if should_fallback(e, request):
+            if run_sync(should_fallback(e, request)):
                 response = await create(
                     **request.model_dump(exclude_none=True)
                     | dict(model=FALLBACK_CHAT_COMPLETIONS_MODEL)
