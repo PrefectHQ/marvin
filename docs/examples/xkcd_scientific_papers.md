@@ -1,6 +1,6 @@
 # xkcd scientific paper classifier
 
-[![](https://imgs.xkcd.com/comics/types_of_scientific_paper_2x.png)](https://xkcd.com/2456/)
+[![](https://imgs.xkcd.com/comics/types_of_scientific_paper_2x.png){width="550"}](https://xkcd.com/2456/)
 
 
 !!! example "What kind of paper is 'Attention is All You Need'?"
@@ -10,6 +10,7 @@
     ```python
     import marvin
 
+
     # extract labels from the comic
     paper_types = marvin.beta.extract(
         data=marvin.beta.Image(
@@ -18,6 +19,7 @@
         instructions="Extract the types of papers from the comic",
     )
 
+    
     # classify the paper
     paper_text = load_paper("https://arxiv.org/pdf/1706.03762.pdf")
     result = marvin.classify(paper_text, labels=paper_types)
