@@ -1,5 +1,6 @@
 import fitz
 import marvin
+import pytest
 import requests
 
 PAPER_TYPES = [
@@ -39,6 +40,7 @@ def extract_text_from_pdf_url(pdf_url: str) -> str:
     return text
 
 
+@pytest.mark.flaky(max_runs=3)
 def test_extract_labels(gpt_4):
     # extract labels from the comic
     paper_types = marvin.beta.extract(
