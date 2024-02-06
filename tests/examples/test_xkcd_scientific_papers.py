@@ -48,18 +48,16 @@ def test_extract_labels(gpt_4):
         data=marvin.beta.Image(
             "https://imgs.xkcd.com/comics/types_of_scientific_paper_2x.png"
         ),
-        instructions=(
-            "Extract the types of papers from the comic (using sentence casing)"
-        ),
+        instructions="Extract the types of papers from the comic",
     )
 
     assert_equal(
         llm_output=paper_types,
         expected=PAPER_TYPES,
         instructions=(
-            "Check if the extracted labels match the expected types. It is likely that"
-            " there will be a few modifications, so it's ok as long as most of them"
-            " match. Order doesn't matter."
+            "Check if the two lists are largely the same. Ignore word casing. It's ok"
+            " if on contains a few more items than the other as long as most are the"
+            " same."
         ),
     )
 
