@@ -1,6 +1,5 @@
 import fitz
 import marvin
-import pytest
 import requests
 from marvin.utilities.testing import assert_equal
 
@@ -41,7 +40,6 @@ def extract_text_from_pdf_url(pdf_url: str) -> str:
     return text
 
 
-@pytest.mark.flaky(max_runs=3)
 def test_extract_labels(gpt_4):
     # extract labels from the comic
     paper_types = marvin.beta.extract(
@@ -67,6 +65,6 @@ def test_classify_paper(gpt_4):
     paper_text = extract_text_from_pdf_url("https://arxiv.org/pdf/1706.03762.pdf")
     result = marvin.classify(paper_text, labels=PAPER_TYPES)
     assert (
-        result == "Hey, at least we showed that this method can produce results! "
-        "That's not nothing, right?"
+        result == "Hey, at least we showed that this method can produce results!"
+        " That's not nothing, right?"
     )
