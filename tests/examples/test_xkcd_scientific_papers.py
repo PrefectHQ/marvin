@@ -57,8 +57,9 @@ def test_extract_labels(gpt_4):
         llm_output=paper_types,
         expected=PAPER_TYPES,
         instructions=(
-            "Check if the extracted labels match the expected types; its ok if one or"
-            " two are missing."
+            "Check if the extracted labels match the expected types. It is likely that"
+            " there will be a few modifications, so it's ok as long as most of them"
+            " match. Order doesn't matter."
         ),
     )
 
