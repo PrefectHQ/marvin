@@ -95,6 +95,10 @@ You can pass parameters to the underlying API via the `model_kwargs` argument. T
 
 Marvin has experimental support for live transcriptions. This feature is subject to change.
 
+!!! tip "requires pyaudio"
+    Live transcriptions require the `pyaudio` package. You can install it with `pip install 'marvin[audio]', which
+    (on MacOS at least) requires an installation of `portaudio` via `brew install portaudio`.
+
 To start a live transcription, call `transcribe_live`. This will start recording audio from your microphone and periodically call a provided `callback` function with the latest transcription. If no callback is provided, it will print the transcription to the screen. 
 
 The result of `transcribe_live` is a function that you can call to stop the transcription.
