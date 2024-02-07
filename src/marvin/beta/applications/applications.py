@@ -27,7 +27,7 @@ objectives to keep track of various threads assist in long-term execution.
 Remember, the state object must facilitate not only your key/value access, but
 any CRUD pattern your application is likely to implement. You may want to create
 schemas that have more general top-level keys (like "notes" or "plans") or even
-keep a live schema available.
+keep a live schema availble.
 
 The current state is:
 

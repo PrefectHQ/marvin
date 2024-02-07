@@ -26,7 +26,7 @@ class JSONPatchModel(BaseModel, populate_by_name=True):
 
 
 class State(BaseModel):
-    value: SerializeAsAny[Union[BaseModel, dict]] = {}
+    value: SerializeAsAny[Union[BaseModel, dict]] = Field(default_factory=dict)
     _last_saved_value: Optional[Union[BaseModel, dict]] = PrivateAttr(None)
 
     def render(self) -> str:
