@@ -40,6 +40,42 @@ Marvin can generate text from speech.
   </p>
 </div>
 
+## Audio formats
+
+Marvin supports the following audio formats: flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, and webm.
+
+You can provide audio data to `transcribe` as any of the following:
+
+### Path to a local file
+
+Provide a string or `Path` representing the path to a local audio file:
+
+```python
+from pathlib import Path
+
+marvin.transcribe(Path("/path/to/audio.mp3"))
+```
+
+### File reference
+
+Provide the audio data as an in-memory file object:
+
+```python
+with open("/path/to/audio.mp3", "rb") as f:
+    marvin.transcribe(f)
+```
+
+
+### Raw bytes
+
+Provide the audio data as raw bytes:
+
+```python
+marvin.transcribe(audio_bytes)
+```
+
+Note that the OpenAI transcription API requires a filename, so Marvin will supply `audio.mp3` if  you pass raw bytes. In practice, this doesn't appear to make a difference even if your audio is not an mp3 file (e.g. a wav file).
+
 
 ## Async support
 
@@ -54,3 +90,23 @@ assert result.text == "I sure like being inside this fancy computer."
 
 ## Model parameters
 You can pass parameters to the underlying API via the `model_kwargs` argument. These parameters are passed directly to the respective APIs, so you can use any supported parameter.
+
+## Live transcriptions
+
+Marvin has experimental support for live transcriptions. This feature is subject to change.
+
+To start a live transcription, call `transcribe_live`. This will start recording audio from your microphone and periodically call a provided `callback` function with the latest transcription. If no callback is provided, it will print the transcription to the screen. 
+
+The result of `transcribe_live` is a function that you can call to stop the transcription.
+
+
+
+```python
+stop_fn = marvin.audio.transcribe_live(callback=None)
+# talk into your microphone
+# ...
+# ...
+# call the stop function to stop recording
+stop_fn()
+```
+

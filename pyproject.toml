@@ -55,6 +55,10 @@ tests = [
     "pytest-timeout",
     "pytest-xdist",
 ]
+audio = [
+    "SpeechRecognition>=3.10", 
+    "PyAudio>=0.2.11",
+]
 slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]"]
 
 [project.urls]
