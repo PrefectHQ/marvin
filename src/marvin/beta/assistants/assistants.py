@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from pydantic import BaseModel, Field, PrivateAttr
+from openai.types.beta.threads.required_action_function_tool_call import RequiredActionFunctionToolCall
 
 import marvin.utilities.tools
 from marvin.tools.assistants import AssistantTool
@@ -168,5 +169,10 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     def pre_run_hook(self, run: "Run"):
         pass
 
-    def post_run_hook(self, run: "Run"):
+    def post_run_hook(
+            self,
+            run: "Run",
+            tool_calls: Optional[list[RequiredActionFunctionToolCall]] = None,
+            tool_outputs: Optional[list[dict[str, str]]] = None
+        ):
         pass
