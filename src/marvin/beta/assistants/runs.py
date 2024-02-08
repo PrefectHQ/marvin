@@ -1,6 +1,9 @@
 import asyncio
 from typing import Any, Callable, Optional, Union
 
+from openai.types.beta.threads.required_action_function_tool_call import (
+    RequiredActionFunctionToolCall,
+)
 from openai.types.beta.threads.run import Run as OpenAIRun
 from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
@@ -11,7 +14,6 @@ from marvin.types import Tool
 from marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
 from marvin.utilities.logging import get_logger
 from marvin.utilities.openai import get_openai_client
-from openai.types.beta.threads.required_action_function_tool_call import RequiredActionFunctionToolCall
 
 from .assistants import Assistant
 from .threads import Thread
@@ -86,7 +88,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             run_id=self.run.id, thread_id=self.thread.id
         )
 
-    async def _handle_step_requires_action(self) -> tuple[list[RequiredActionFunctionToolCall], list[dict[str, str]]]:
+    async def _handle_step_requires_action(
+        self,
+    ) -> tuple[list[RequiredActionFunctionToolCall], list[dict[str, str]]]:
         client = get_openai_client()
         if self.run.status != "requires_action":
             return None, None
@@ -167,7 +171,10 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             try:
                 while self.run.status in ("queued", "in_progress", "requires_action"):
                     if self.run.status == "requires_action":
-                        tool_calls, tool_outputs = await self._handle_step_requires_action()
+                        (
+                            tool_calls,
+                            tool_outputs,
+                        ) = await self._handle_step_requires_action()
                     await asyncio.sleep(0.1)
                     await self.refresh_async()
             except CancelRun as exc:
@@ -181,7 +188,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             if self.run.status == "failed":
                 logger.debug(f"Run failed. Last error was: {self.run.last_error}")
 
-            self.assistant.post_run_hook(run=self, tool_calls=tool_calls, tool_outputs=tool_outputs)
+            self.assistant.post_run_hook(
+                run=self, tool_calls=tool_calls, tool_outputs=tool_outputs
+            )
         return self
 
 
