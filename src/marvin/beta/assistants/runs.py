@@ -1,6 +1,9 @@
 import asyncio
 from typing import Any, Callable, Optional, Union
 
+from openai.types.beta.threads.required_action_function_tool_call import (
+    RequiredActionFunctionToolCall,
+)
 from openai.types.beta.threads.run import Run as OpenAIRun
 from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
@@ -85,11 +88,14 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             run_id=self.run.id, thread_id=self.thread.id
         )
 
-    async def _handle_step_requires_action(self):
+    async def _handle_step_requires_action(
+        self,
+    ) -> tuple[list[RequiredActionFunctionToolCall], list[dict[str, str]]]:
         client = get_openai_client()
         if self.run.status != "requires_action":
-            return
+            return None, None
         if self.run.required_action.type == "submit_tool_outputs":
+            tool_calls = []
             tool_outputs = []
             tools = self.get_tools()
 
@@ -110,10 +116,12 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 tool_outputs.append(
                     dict(tool_call_id=tool_call.id, output=output or "")
                 )
+                tool_calls.append(tool_call)
 
             await client.beta.threads.runs.submit_tool_outputs(
                 thread_id=self.thread.id, run_id=self.run.id, tool_outputs=tool_outputs
             )
+            return tool_calls, tool_outputs
 
     def get_instructions(self) -> str:
         if self.instructions is None:
@@ -157,10 +165,16 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
             self.assistant.pre_run_hook(run=self)
 
+            tool_calls = None
+            tool_outputs = None
+
             try:
                 while self.run.status in ("queued", "in_progress", "requires_action"):
                     if self.run.status == "requires_action":
-                        await self._handle_step_requires_action()
+                        (
+                            tool_calls,
+                            tool_outputs,
+                        ) = await self._handle_step_requires_action()
                     await asyncio.sleep(0.1)
                     await self.refresh_async()
             except CancelRun as exc:
@@ -174,7 +188,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             if self.run.status == "failed":
                 logger.debug(f"Run failed. Last error was: {self.run.last_error}")
 
-            self.assistant.post_run_hook(run=self)
+            self.assistant.post_run_hook(
+                run=self, tool_calls=tool_calls, tool_outputs=tool_outputs
+            )
         return self
 
 
