@@ -78,6 +78,6 @@ class Application(Assistant):
 
         return tools
 
-    def post_run_hook(self, run: Run):
+    def post_run_hook(self, run: Run, *args, **kwargs):
         self.state.flush_changes()
-        return super().post_run_hook(run)
+        return super().post_run_hook(run, *args, **kwargs)
