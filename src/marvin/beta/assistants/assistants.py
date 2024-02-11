@@ -1,5 +1,8 @@
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
+from openai.types.beta.threads.required_action_function_tool_call import (
+    RequiredActionFunctionToolCall,
+)
 from pydantic import BaseModel, Field, PrivateAttr
 
 import marvin.utilities.tools
@@ -89,9 +92,10 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         # post the message
         user_message = await thread.add_async(message, file_paths=file_paths)
 
-        # run the thread
-        async with self:
-            await thread.run_async(assistant=self, **run_kwargs)
+        # enter assistant context, run the thread, and decrement context level
+        await self.__aenter__()
+        await thread.run_async(assistant=self, **run_kwargs)
+        self._context_level -= 1
 
         # load all messages, including the user message
         response_messages = await thread.get_messages_async(
@@ -168,5 +172,10 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     def pre_run_hook(self, run: "Run"):
         pass
 
-    def post_run_hook(self, run: "Run"):
+    def post_run_hook(
+        self,
+        run: "Run",
+        tool_calls: Optional[list[RequiredActionFunctionToolCall]] = None,
+        tool_outputs: Optional[list[dict[str, str]]] = None,
+    ):
         pass
