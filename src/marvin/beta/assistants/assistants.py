@@ -124,7 +124,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         if self._context_level > 0:
             self._context_level -= 1
 
-        # If this is the outermost context and we want to delete it, delete the assistant
+        # If this is the outermost context, delete the assistant
         if self._context_level == 0:
             await self.delete_async()
 
