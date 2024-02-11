@@ -92,9 +92,10 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         # post the message
         user_message = await thread.add_async(message, file_paths=file_paths)
 
-        # run the thread
-        async with self:
-            await thread.run_async(assistant=self, **run_kwargs)
+        # enter assistant context, run the thread, and decrement context level
+        await self.__aenter__()
+        await thread.run_async(assistant=self, **run_kwargs)
+        self._context_level -= 1
 
         # load all messages, including the user message
         response_messages = await thread.get_messages_async(
