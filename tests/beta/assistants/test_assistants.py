@@ -1,10 +1,11 @@
 from unittest.mock import patch
 
+import marvin
 import openai
 import pytest
 from marvin.beta.assistants import Assistant
 
-client = openai.AsyncClient()
+client = openai.AsyncClient(api_key=marvin.settings.openai.api_key.get_secret_value())
 
 
 def mocked_client():
