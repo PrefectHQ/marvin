@@ -48,7 +48,6 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     tools: list[Union[AssistantTool, Callable]] = []
     file_ids: list[str] = []
     metadata: dict[str, str] = {}
-    auto_delete: bool = False
     # context level tracks nested assistant contexts
     _context_level: int = PrivateAttr(0)
 
@@ -93,9 +92,10 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         # post the message
         user_message = await thread.add_async(message, file_paths=file_paths)
 
-        # enter assistant context, run the thread, and exit assistant context
-        async with self:
-            await thread.run_async(assistant=self, **run_kwargs)
+        # enter assistant context, run the thread, and decrement context level
+        await self.__aenter__()
+        await thread.run_async(assistant=self, **run_kwargs)
+        self._context_level -= 1
 
         # load all messages, including the user message
         response_messages = await thread.get_messages_async(
@@ -125,7 +125,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             self._context_level -= 1
 
         # If this is the outermost context and we want to delete it, delete the assistant
-        if self._context_level == 0 and self.auto_delete:
+        if self._context_level == 0:
             await self.delete_async()
 
         return False
