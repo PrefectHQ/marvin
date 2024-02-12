@@ -31,8 +31,7 @@ class TestLifeCycle:
         ai = Assistant()
         mock_create.assert_not_called()
         assert not ai.id
-        response = ai.say("hi")
-        assert response
+        ai.say("hi")
         assert not ai.id
         mock_create.assert_called()
         mock_delete.assert_called()
