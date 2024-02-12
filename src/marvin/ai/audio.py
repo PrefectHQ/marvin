@@ -1,4 +1,3 @@
-import collections
 import inspect
 from functools import partial, wraps
 from pathlib import Path
@@ -176,51 +175,3 @@ def speech(
             return run_sync(async_wrapper(*args, **kwargs))
 
         return sync_wrapper
-
-
-def transcribe_live(callback: Callable[[str], None] = None) -> Callable[[], None]:
-    """
-    Starts a live transcription service that transcribes audio in real-time and
-    calls a callback function with the transcribed text.
-
-    The function starts a background task in a thread that continuously records audio and
-    transcribes it into text. The transcribed text is then passed to the
-    provided callback function. Note that the callback must be threadsafe.
-
-    Args:
-        callback (Callable[[str], None], optional): A function that is called
-            with the transcribed text as its argument. If no callback is provided,
-            the transcribed text will be printed to the console. Defaults to None.
-
-    Returns:
-        Callable[[], None]: A function that, when called, stops the background
-            transcription service.
-    """
-    if callback is None:
-        callback = lambda t: print(f">> {t}")  # noqa E731
-    transcription_buffer = collections.deque(maxlen=20)
-
-    import marvin.audio
-
-    def audio_callback(payload: marvin.audio.AudioPayload) -> None:
-        data = payload.audio.get_wav_data()
-        buffer_str = (
-            "\n\n".join(transcription_buffer)
-            if transcription_buffer
-            else "<no audio received yet>"
-        )
-        transcription = transcribe(
-            data,
-            prompt=(
-                "Transcribe the new audio. For context, here is the transcribed audio"
-                f" you already received:\n\n--- START\n\n{buffer_str}\n\n--- END\n\n"
-            ),
-        )
-        if transcription.text:
-            transcription_buffer.append(transcription.text)
-            callback(transcription.text)
-
-    stop_fn = marvin.audio.record_background(
-        audio_callback, phrase_time_limit=10, default_wait_for_stop=False
-    )
-    return stop_fn

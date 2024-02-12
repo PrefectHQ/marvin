@@ -9,5 +9,6 @@ from .vision import (
     extract_async,
     Image,
 )
+from .audio import transcribe_live
 from .assistants import Assistant, Thread
 from .applications import Application
