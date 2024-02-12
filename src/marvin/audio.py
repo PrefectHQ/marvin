@@ -2,27 +2,39 @@
 
 import collections
 import io
+import tempfile
 import threading
 from typing import Callable
 
 from pydantic import BaseModel, Field
 
-try:
-    import speech_recognition as sr
-except ImportError:
-    from marvin.utilities.logging import get_logger
-
-    get_logger(__name__).warning(
-        'Marvin was not installed with the "audio" extra; can not import'
-        ' "speech_recognition"'
-    )
-
+from marvin.types import Audio
 from marvin.utilities.logging import get_logger
 
 logger = get_logger(__name__)
+try:
+    import speech_recognition as sr
+    from playsound import playsound
+except ImportError:
+    raise ImportError(
+        'Marvin was not installed with the "audio" extra. Please run `pip install'
+        ' "marvin[audio]"` to use this module.'
+    )
 
 
-def record_audio(duration: int = None) -> bytes:
+def play_audio(audio: bytes):
+    """
+    Play audio from bytes.
+
+    Parameters:
+        audio (bytes): Audio data in a format that the system can play.
+    """
+    with tempfile.NamedTemporaryFile() as temp_file:
+        temp_file.write(audio)
+        playsound(temp_file.name)
+
+
+def record_audio(duration: int = None) -> Audio:
     """
     Record audio from the default microphone to WAV format bytes.
 
@@ -34,7 +46,6 @@ def record_audio(duration: int = None) -> bytes:
     Returns:
         bytes: WAV-formatted audio data.
     """
-
     with sr.Microphone() as source:
         # this is a modified version of the record method from the Recognizer class
         # that can be keyboard interrupted
@@ -60,24 +71,24 @@ def record_audio(duration: int = None) -> bytes:
         frames.close()
         audio = sr.audio.AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH)
 
-    return audio.get_wav_data()
+    return Audio(data=audio.get_wav_data(), format="wav")
 
 
 def record_phrase(
-    pause_threshold: float = None,
+    after_phrase_silence: float = None,
     timeout: int = None,
-    phrase_time_limit: int = None,
+    max_phrase_duration: int = None,
     adjust_for_ambient_noise: bool = True,
-) -> bytes:
+) -> Audio:
     """
     Record a single speech phrase to WAV format bytes.
 
     Parameters:
-        pause_threshold (float, optional): Silence duration to consider speech
+        after_phrase_silence (float, optional): Silence duration to consider speech
             ended. Defaults to 0.8 seconds.
         timeout (int, optional): Max wait time for speech start before giving
             up. None for no timeout.
-        phrase_time_limit (int, optional): Max duration for recording a phrase.
+        max_phrase_duration (int, optional): Max duration for recording a phrase.
             None for no limit.
         adjust_for_ambient_noise (bool, optional): Adjust recognizer sensitivity
             to ambient noise. Defaults to True. (Adds minor latency during
@@ -87,19 +98,19 @@ def record_phrase(
         bytes: WAV-formatted audio data.
     """
     r = sr.Recognizer()
-    if pause_threshold is not None:
-        r.pause_threshold = pause_threshold
+    if after_phrase_silence is not None:
+        r.pause_threshold = after_phrase_silence
     with sr.Microphone() as source:
         if adjust_for_ambient_noise:
             r.adjust_for_ambient_noise(source)
-        audio = r.listen(source, timeout=timeout, phrase_time_limit=phrase_time_limit)
-    return audio.get_wav_data()
+        audio = r.listen(source, timeout=timeout, phrase_time_limit=max_phrase_duration)
+    return Audio(data=audio.get_wav_data(), format="wav")
 
 
 class AudioPayload(BaseModel):
     model_config: dict = dict(arbitrary_types_allowed=True)
-    audio: sr.AudioData
-    audio_buffer: list[sr.AudioData] = Field(
+    audio: Audio
+    audio_buffer: list[Audio] = Field(
         description="A buffer of the last 10 audio samples."
     )
     recognizer: sr.Recognizer
@@ -108,7 +119,7 @@ class AudioPayload(BaseModel):
 
 def record_background(
     callback: Callable[[AudioPayload], None],
-    phrase_time_limit: int = None,
+    max_phrase_duration: int = None,
     adjust_for_ambient_noise: bool = True,
     default_wait_for_stop: bool = True,
 ):
@@ -118,7 +129,7 @@ def record_background(
     Parameters:
         callback (Callable): Function to call with AudioPayload for
             each phrase.
-        phrase_time_limit (int, optional): Max phrase duration. None for no
+        max_phrase_duration (int, optional): Max phrase duration. None for no
             limit.
         adjust_for_ambient_noise (bool, optional): Adjust sensitivity to ambient
             noise. Defaults to True. (Adds minor latency during calibration)
@@ -155,7 +166,8 @@ def record_background(
             audio_buffer = collections.deque(maxlen=10)
             while running[0]:
                 try:  # listen for 1 second, then check again if the stop function has been called
-                    audio = r.listen(source, 1, phrase_time_limit)
+                    audio = r.listen(source, 1, max_phrase_duration)
+                    audio = Audio(data=audio.get_wav_data(), format="wav")
                     audio_buffer.append(audio)
                 except sr.exceptions.WaitTimeoutError:
                     # listening timed out, just try again

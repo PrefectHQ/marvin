@@ -18,12 +18,11 @@ from marvin.client.openai import AsyncMarvinClient
 from marvin.types import (
     BaseMessage,
     ChatResponse,
-    MessageImageURLContent,
+    Image,
     VisionRequest,
 )
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.context import ctx
-from marvin.utilities.images import image_to_base64
 from marvin.utilities.jinja import Transcript
 from marvin.utilities.logging import get_logger
 
@@ -31,24 +30,6 @@ T = TypeVar("T")
 M = TypeVar("M", bound=BaseModel)
 
 logger = get_logger(__name__)
-
-
-class Image(BaseModel):
-    url: str
-
-    def __init__(self, path_or_url: Union[str, Path], **kwargs):
-        if isinstance(path_or_url, str) and Path(path_or_url).exists():
-            path_or_url = Path(path_or_url)
-
-        if isinstance(path_or_url, Path):
-            b64_image = image_to_base64(path_or_url)
-            url = f"data:image/jpeg;base64,{b64_image}"
-        else:
-            url = path_or_url
-        super().__init__(url=url, **kwargs)
-
-    def to_message_content(self) -> MessageImageURLContent:
-        return MessageImageURLContent(image_url=dict(url=self.url))
 
 
 async def generate_vision_response(

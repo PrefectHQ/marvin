@@ -58,6 +58,7 @@ tests = [
 audio = [
     "SpeechRecognition>=3.10", 
     "PyAudio>=0.2.11",
+    "playsound >= 1.0",
 ]
 slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]"]
 

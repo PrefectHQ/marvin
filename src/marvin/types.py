@@ -1,3 +1,5 @@
+import datetime
+from pathlib import Path
 from typing import Any, Callable, Generic, Literal, Optional, TypeVar, Union
 
 import openai.types.chat
@@ -260,3 +262,48 @@ class StreamingChatResponse(MarvinType):
     @property
     def messages(self) -> list[BaseMessage]:
         return [c.message for c in self.completion.choices]
+
+
+class Image(MarvinType):
+    url: str
+
+    def __init__(self, path_or_url: Union[str, Path], **kwargs):
+        from marvin.utilities.images import image_to_base64
+
+        if isinstance(path_or_url, str) and Path(path_or_url).exists():
+            path_or_url = Path(path_or_url)
+
+        if isinstance(path_or_url, Path):
+            b64_image = image_to_base64(path_or_url)
+            url = f"data:image/jpeg;base64,{b64_image}"
+        else:
+            url = path_or_url
+        super().__init__(url=url, **kwargs)
+
+    def to_message_content(self) -> MessageImageURLContent:
+        return MessageImageURLContent(image_url=dict(url=self.url))
+
+
+class Audio(MarvinType):
+    data: bytes = Field(repr=False)
+    url: Optional[Path] = None
+    format: Literal["mp3", "wav"] = "mp3"
+    timestamp: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+
+    @classmethod
+    def from_path(cls, path: str) -> "Audio":
+        with open(path, "rb") as f:
+            data = f.read()
+        format = path.split(".")[-1]
+        if format not in ["mp3", "wav"]:
+            raise ValueError("Invalid audio format")
+        return cls(data=data, url=path, format=format)
+
+    def save(self, path: str):
+        with open(path, "wb") as f:
+            f.write(self.data)
+
+    def play(self):
+        import marvin.audio
+
+        marvin.audio.play_audio(self.data)
