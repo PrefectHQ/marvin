@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import marvin
 import openai
@@ -18,6 +18,11 @@ def mock_get_client(monkeypatch):
     monkeypatch.setattr("marvin.utilities.openai.get_openai_client", mocked_client)
 
 
+@pytest.fixture(autouse=True)
+def mock_say(monkeypatch):
+    monkeypatch.setattr(client.beta.threads.runs, "create", AsyncMock())
+
+
 class TestLifeCycle:
     @patch.object(client.beta.assistants, "delete", wraps=client.beta.assistants.delete)
     @patch.object(client.beta.assistants, "create", wraps=client.beta.assistants.create)
@@ -26,7 +31,7 @@ class TestLifeCycle:
         ai = Assistant()
         mock_create.assert_not_called()
         assert not ai.id
-        response = ai.say("repeat the word hi")
+        response = ai.say("hi")
         assert response
         assert not ai.id
         mock_create.assert_called()
@@ -40,9 +45,9 @@ class TestLifeCycle:
         with ai:
             mock_create.assert_called()
             assert ai.id
-            ai.say("repeat the word hi")
+            ai.say("hi")
             mock_delete.assert_not_called()
-            ai.say("repeat the word hi")
+            ai.say("hi")
             mock_delete.assert_not_called()
             assert ai.id
         assert not ai.id
@@ -58,9 +63,9 @@ class TestLifeCycle:
         ai.create()
         mock_create.assert_called()
         assert ai.id
-        ai.say("repeat the word hi")
+        ai.say("hi")
         mock_delete.assert_not_called()
-        ai.say("repeat the word hi")
+        ai.say("hi")
         mock_delete.assert_not_called()
         assert ai.id
         ai.delete()
@@ -88,9 +93,9 @@ class TestLifeCycle:
             mock_create.assert_not_called()
 
             assert ai.id
-            ai.say("repeat the word hi")
+            ai.say("hi")
             mock_delete.assert_not_called()
-            ai.say("repeat the word hi")
+            ai.say("hi")
             mock_delete.assert_not_called()
             assert ai.id
             ai.delete()

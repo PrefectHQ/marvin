@@ -8,12 +8,12 @@ from openai.types.beta.threads.run import Run as OpenAIRun
 from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
+import marvin.utilities.openai
 import marvin.utilities.tools
 from marvin.tools.assistants import AssistantTool, CancelRun
 from marvin.types import Tool
 from marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
 from marvin.utilities.logging import get_logger
-from marvin.utilities.openai import get_openai_client
 
 from .assistants import Assistant
 from .threads import Thread
@@ -75,7 +75,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
     @expose_sync_method("refresh")
     async def refresh_async(self):
         """Refreshes the run."""
-        client = get_openai_client()
+        client = marvin.utilities.openai.get_openai_client()
         self.run = await client.beta.threads.runs.retrieve(
             run_id=self.run.id, thread_id=self.thread.id
         )
@@ -83,7 +83,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
     @expose_sync_method("cancel")
     async def cancel_async(self):
         """Cancels the run."""
-        client = get_openai_client()
+        client = marvin.utilities.openai.get_openai_client()
         await client.beta.threads.runs.cancel(
             run_id=self.run.id, thread_id=self.thread.id
         )
@@ -91,7 +91,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
     async def _handle_step_requires_action(
         self,
     ) -> tuple[list[RequiredActionFunctionToolCall], list[dict[str, str]]]:
-        client = get_openai_client()
+        client = marvin.utilities.openai.get_openai_client()
         if self.run.status != "requires_action":
             return None, None
         if self.run.required_action.type == "submit_tool_outputs":
@@ -146,7 +146,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
     async def run_async(self) -> "Run":
         """Excutes a run asynchronously."""
-        client = get_openai_client()
+        client = marvin.utilities.openai.get_openai_client()
 
         create_kwargs = {}
 
@@ -233,7 +233,7 @@ class RunMonitor(BaseModel):
         max_attempts = max_fetched / limit + 2
 
         # Fetch the latest run steps
-        client = get_openai_client()
+        client = marvin.utilities.openai.get_openai_client()
 
         response = await client.beta.threads.runs.steps.list(
             run_id=self.run.id,
