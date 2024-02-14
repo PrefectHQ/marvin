@@ -48,6 +48,12 @@ class TestClassify:
             )
             assert result == "bug"
 
+        def test_classify_number(self):
+            # a version of the prompt would choose the label *number* that
+            # matched the data, rather than the label *description*
+            result = marvin.classify(0, ["letter", "number"])
+            assert result == "number"
+
     class TestBool:
         def test_classify_positive_sentiment(self):
             result = marvin.classify("This is a great feature!", bool)
