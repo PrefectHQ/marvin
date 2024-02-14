@@ -304,6 +304,6 @@ class Audio(MarvinType):
             f.write(self.data)
 
     def play(self):
-        import marvin.beta.audio
+        import marvin.audio
 
-        marvin.beta.audio.play_audio(self.data)
+        marvin.audio.play_audio(self.data)

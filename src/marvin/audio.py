@@ -4,7 +4,7 @@ import collections
 import io
 import tempfile
 import threading
-from typing import Callable
+from typing import Callable, Optional
 
 from pydantic import BaseModel, Field
 
@@ -52,6 +52,7 @@ def record_audio(duration: int = None) -> Audio:
         frames = io.BytesIO()
         seconds_per_buffer = (source.CHUNK + 0.0) / source.SAMPLE_RATE
         elapsed_time = 0
+        logger.info("Recording...")
         try:
             while True:
                 buffer = source.stream.read(source.CHUNK)
@@ -66,6 +67,7 @@ def record_audio(duration: int = None) -> Audio:
         except KeyboardInterrupt:
             logger.debug("Recording interrupted by user")
             pass
+        logger.info("Recording finished.")
 
         frame_data = frames.getvalue()
         frames.close()
@@ -78,7 +80,7 @@ def record_phrase(
     after_phrase_silence: float = None,
     timeout: int = None,
     max_phrase_duration: int = None,
-    adjust_for_ambient_noise: bool = True,
+    adjust_for_ambient_noise: bool = False,
 ) -> Audio:
     """
     Record a single speech phrase to WAV format bytes.
@@ -103,7 +105,9 @@ def record_phrase(
     with sr.Microphone() as source:
         if adjust_for_ambient_noise:
             r.adjust_for_ambient_noise(source)
+        logger.info("Recording...")
         audio = r.listen(source, timeout=timeout, phrase_time_limit=max_phrase_duration)
+        logger.info("Recording finished.")
     return Audio(data=audio.get_wav_data(), format="wav")
 
 
@@ -114,81 +118,97 @@ class AudioPayload(BaseModel):
         description="A buffer of the last 10 audio samples."
     )
     recognizer: sr.Recognizer
-    stop: Callable
+    stop_recording: Callable
 
 
-def record_background(
-    callback: Callable[[AudioPayload], None],
-    max_phrase_duration: int = None,
-    adjust_for_ambient_noise: bool = True,
-    default_wait_for_stop: bool = True,
-):
-    """
-    Start a background thread to record phrases and invoke a callback with each.
+class BackgroundRecorder(BaseModel):
+    is_recording: bool = False
+    stop_recording: Optional[Callable] = None
 
-    Parameters:
-        callback (Callable): Function to call with AudioPayload for
-            each phrase.
-        max_phrase_duration (int, optional): Max phrase duration. None for no
-            limit.
-        adjust_for_ambient_noise (bool, optional): Adjust sensitivity to ambient
-            noise. Defaults to True. (Adds minor latency during calibration)
-        default_wait_for_stop (bool, optional): When the stop function is called,
-            this determines the default behavior of whether to wait for the
-            background thread to finish. Defaults to True.
+    def record(
+        self,
+        callback: Callable[[AudioPayload], None],
+        max_phrase_duration: int = None,
+        adjust_for_ambient_noise: bool = True,
+        default_wait_for_stop: bool = True,
+    ):
+        """
+        Start a background thread to record phrases and invoke a callback with each.
 
-    Returns:
-        Callable: Function to stop background recording.
-    """
-    r = sr.Recognizer()
-    m = sr.Microphone()
-    if adjust_for_ambient_noise:
-        with m as source:
-            r.adjust_for_ambient_noise(source)
+        Parameters:
+            callback (Callable): Function to call with AudioPayload for
+                each phrase.
+            max_phrase_duration (int, optional): Max phrase duration. None for no
+                limit.
+            adjust_for_ambient_noise (bool, optional): Adjust sensitivity to ambient
+                noise. Defaults to True. (Adds minor latency during calibration)
+            default_wait_for_stop (bool, optional): When the stop function is called,
+                this determines the default behavior of whether to wait for the
+                background thread to finish. Defaults to True.
 
-    running = [True]
+        Returns:
+            Callable: Function to stop background recording.
+        """
+        if self.is_recording:
+            raise ValueError("Recording is already in progress.")
+        r = sr.Recognizer()
+        m = sr.Microphone()
+        if adjust_for_ambient_noise:
+            with m as source:
+                r.adjust_for_ambient_noise(source)
 
-    def stopper(wait_for_stop=None):
-        if wait_for_stop is None:
-            wait_for_stop = default_wait_for_stop
-        running[0] = False
-        if wait_for_stop:
-            listener_thread.join()  # block until the background thread is done, which can take around 1 second
+        def stop_recording(wait_for_stop=None):
+            if wait_for_stop is None:
+                wait_for_stop = default_wait_for_stop
+            self.is_recording = False
+            if wait_for_stop:
+                logger.debug("Waiting for background thread to finish...")
+                listener_thread.join(
+                    timeout=3
+                )  # block until the background thread is done, which can take around 1 second
+            logger.info("Recording finished.")
 
-    def callback_wrapper(payload):
-        """Run the callback in a separate thread to avoid blocking."""
-        callback_thread = threading.Thread(target=callback, args=(payload,))
-        callback_thread.daemon = True
-        callback_thread.start()
+        self.stop_recording = stop_recording
 
-    def threaded_listen():
-        with m as source:
-            audio_buffer = collections.deque(maxlen=10)
-            while running[0]:
-                try:  # listen for 1 second, then check again if the stop function has been called
-                    audio = r.listen(source, 1, max_phrase_duration)
-                    audio = Audio(data=audio.get_wav_data(), format="wav")
-                    audio_buffer.append(audio)
-                except sr.exceptions.WaitTimeoutError:
-                    # listening timed out, just try again
-                    pass
-                else:
-                    payload = AudioPayload(
-                        audio=audio,
-                        audio_buffer=audio_buffer,
-                        recognizer=r,
-                        stop=stopper,
-                    )
-                    # run callback in thread
-                    callback_wrapper(payload)
+        def callback_wrapper(payload):
+            """Run the callback in a separate thread to avoid blocking."""
+            callback_thread = threading.Thread(target=callback, args=(payload,))
+            callback_thread.daemon = True
+            logger.debug("Running callback...")
+            callback_thread.start()
 
-    listener_thread = threading.Thread(target=threaded_listen)
-    listener_thread.daemon = True
-    listener_thread.start()
-    return stopper
+        def threaded_listen():
+            with m as source:
+                audio_buffer = collections.deque(maxlen=10)
+                while self.is_recording:
+                    try:  # listen for 1 second, then check again if the stop function has been called
+                        audio = r.listen(source, 1, max_phrase_duration)
+                        audio = Audio(data=audio.get_wav_data(), format="wav")
+                        audio_buffer.append(audio)
+                    except sr.exceptions.WaitTimeoutError:
+                        # listening timed out, just try again
+                        pass
+                    else:
+                        payload = AudioPayload(
+                            audio=audio,
+                            audio_buffer=audio_buffer,
+                            recognizer=r,
+                            stop_recording=stop_recording,
+                        )
+                        # run callback in thread
+                        callback_wrapper(payload)
+
+        self.is_recording = True
+        listener_thread = threading.Thread(target=threaded_listen)
+        listener_thread.daemon = True
+        listener_thread.start()
+        logger.info("Recording...")
+        return self
 
 
-def transcribe_live(callback: Callable[[str], None] = None) -> Callable[[], None]:
+def transcribe_live(
+    callback: Callable[[str], None] = None, stop_phrase: str = None
+) -> BackgroundRecorder:
     """
     Starts a live transcription service that transcribes audio in real-time and
     calls a callback function with the transcribed text.
@@ -201,18 +221,18 @@ def transcribe_live(callback: Callable[[str], None] = None) -> Callable[[], None
         callback (Callable[[str], None], optional): A function that is called
             with the transcribed text as its argument. If no callback is provided,
             the transcribed text will be printed to the console. Defaults to None.
+        stop_phrase (str, optional): A phrase that, when spoken, will stop recording.
 
     Returns:
-        Callable[[], None]: A function that, when called, stops the background
-            transcription service.
+        BackgroundRecorder: The background recorder instance that is recording audio.
     """
     if callback is None:
         callback = lambda t: print(f">> {t}")  # noqa E731
     transcription_buffer = collections.deque(maxlen=3)
 
-    import marvin.beta.audio
+    import marvin.audio
 
-    def audio_callback(payload: marvin.beta.audio.AudioPayload) -> None:
+    def audio_callback(payload: marvin.audio.AudioPayload) -> None:
         buffer_str = (
             "\n\n".join(transcription_buffer)
             if transcription_buffer
@@ -230,7 +250,10 @@ def transcribe_live(callback: Callable[[str], None] = None) -> Callable[[], None
         if transcription:
             callback(transcription)
 
-    stop_fn = marvin.beta.audio.record_background(
-        audio_callback, max_phrase_duration=10, default_wait_for_stop=False
-    )
-    return stop_fn
+        if stop_phrase and stop_phrase.lower() in transcription.lower():
+            logger.debug("Stop phrase detected, stopping recording...")
+            payload.stop_recording()
+
+    recorder = BackgroundRecorder()
+    recorder.record(audio_callback, max_phrase_duration=10, default_wait_for_stop=False)
+    return recorder
