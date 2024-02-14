@@ -112,3 +112,26 @@ class TestClassify:
                 )
 
             assert router(user_input).value == expected_selection
+
+
+class TestMapping:
+    def test_classify_map(self):
+        result = marvin.classify.map(["This is great!", "This is terrible!"], Sentiment)
+        assert isinstance(result, list)
+        assert result == ["Positive", "Negative"]
+
+    def test_classify_map_with_instructions(self, gpt_4):
+        result = marvin.classify.map(
+            ["o", "0"],
+            ["letter", "number"],
+            instructions="'o' means zero",
+        )
+        assert isinstance(result, list)
+        assert result == ["number", "number"]
+
+    async def test_async_classify_map(self):
+        result = await marvin.classify_async.map(
+            ["This is great!", "This is terrible!"], Sentiment
+        )
+        assert isinstance(result, list)
+        assert result == ["Positive", "Negative"]

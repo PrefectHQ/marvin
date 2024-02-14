@@ -6,7 +6,7 @@ vision-enhanced versions of `cast`, `extract`, and `classify`.
 import inspect
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Coroutine, TypeVar, Union
+from typing import Callable, Coroutine, Optional, TypeVar, Union
 
 from pydantic import BaseModel
 
@@ -26,6 +26,7 @@ from marvin.utilities.context import ctx
 from marvin.utilities.images import image_to_base64
 from marvin.utilities.jinja import Transcript
 from marvin.utilities.logging import get_logger
+from marvin.utilities.mapping import map_async
 
 T = TypeVar("T")
 M = TypeVar("M", bound=BaseModel)
@@ -117,7 +118,10 @@ async def _two_step_vision_response(
         images = [images]
 
     if not images and not isinstance(data, Image):
-        return marvin_call(data)
+        if inspect.iscoroutinefunction(marvin_call):
+            return await marvin_call(data)
+        else:
+            return marvin_call(data)
 
     if isinstance(data, Image):
         images.append(data)
@@ -217,7 +221,7 @@ async def cast_async(
     instructions. The function also supports additional arguments for both models.
 
     Args:
-        images (list[Union[str, Path]]): The images to be processed.
+        images (list[Image]): The images to be processed.
         data (str): The data to be converted.
         target (type): The type to convert the data into.
         instructions (str, optional): Specific instructions for the conversion.
@@ -251,7 +255,7 @@ async def extract_async(
     data: Union[str, Image],
     target: type[T],
     instructions: str = None,
-    images: list[Union[str, Path]] = None,
+    images: list[Image] = None,
     vision_model_kwargs: dict = None,
     model_kwargs: dict = None,
 ) -> T:
@@ -390,7 +394,7 @@ def extract(
     data: Union[str, Image],
     target: type[T],
     instructions: str = None,
-    images: list[Union[str, Path]] = None,
+    images: list[Image] = None,
     vision_model_kwargs: dict = None,
     model_kwargs: dict = None,
 ) -> T:
@@ -401,7 +405,7 @@ def extract(
         data (Union[str, Image]): Data or an image for information extraction.
         target (type[T]): The type to extract the data into.
         instructions (str, optional): Instructions for extraction.
-        images (list[Union[str, Path]], optional): Additional images for extraction.
+        images (list[Image], optional): Additional images for extraction.
         vision_model_kwargs (dict, optional): Arguments for the vision model.
         model_kwargs (dict, optional): Arguments for the language model.
 
@@ -423,7 +427,7 @@ def extract(
 def classify(
     data: Union[str, Image],
     labels: Union[Enum, list[T], type],
-    images: Union[Union[str, Path], list[Union[str, Path]]] = None,
+    images: Union[Image, list[Image]] = None,
     instructions: str = None,
     vision_model_kwargs: dict = None,
     model_kwargs: dict = None,
@@ -434,7 +438,7 @@ def classify(
     Args:
         data (Union[str, Image]): Data or an image for classification.
         labels (Union[Enum, list[T], type]): Labels to classify into.
-        images (Union[Union[str, Path], list[Union[str, Path]]], optional): Additional images for classification.
+        images (Union[Image, list[Image]], optional): Additional images for classification.
         instructions (str, optional): Instructions for the classification.
         vision_model_kwargs (dict, optional): Arguments for the vision model.
         model_kwargs (dict, optional): Arguments for the language model.
@@ -452,3 +456,114 @@ def classify(
             model_kwargs=model_kwargs,
         )
     )
+
+
+# --- Mapping
+async def classify_async_map(
+    data: list[Union[str, Image]],
+    labels: Union[Enum, list[T], type],
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+) -> list[T]:
+    return await map_async(
+        fn=classify_async,
+        map_kwargs=dict(data=data),
+        unmapped_kwargs=dict(
+            labels=labels,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+        ),
+    )
+
+
+def classify_map(
+    data: list[Union[str, Image]],
+    labels: Union[Enum, list[T], type],
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+) -> list[T]:
+    return run_sync(
+        classify_async_map(
+            data=data,
+            labels=labels,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+        )
+    )
+
+
+async def cast_async_map(
+    data: list[Union[str, Image]],
+    target: type[T],
+    instructions: Optional[str] = None,
+    images: list[list[Image]] = None,
+    model_kwargs: Optional[dict] = None,
+) -> list[T]:
+    return await map_async(
+        fn=cast_async,
+        map_kwargs=dict(data=data, images=images or []),
+        unmapped_kwargs=dict(
+            target=target,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+        ),
+    )
+
+
+def cast_map(
+    data: list[Union[str, Image]],
+    target: type[T],
+    instructions: Optional[str] = None,
+    images: list[list[Image]] = None,
+    model_kwargs: Optional[dict] = None,
+) -> list[T]:
+    return run_sync(
+        cast_async_map(
+            data=data,
+            images=images,
+            target=target,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+        )
+    )
+
+
+async def extract_async_map(
+    data: list[Union[str, Image]],
+    target: Optional[type[T]] = None,
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+) -> list[list[T]]:
+    return await map_async(
+        fn=extract_async,
+        map_kwargs=dict(data=data),
+        unmapped_kwargs=dict(
+            target=target,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+        ),
+    )
+
+
+def extract_map(
+    data: list[Union[str, Image]],
+    target: Optional[type[T]] = None,
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+) -> list[list[T]]:
+    return run_sync(
+        extract_async_map(
+            data=data,
+            target=target,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+        )
+    )
+
+
+cast_async.map = cast_async_map
+cast.map = cast_map
+classify_async.map = classify_async_map
+classify.map = classify_map
+extract_async.map = extract_async_map
+extract.map = extract_map

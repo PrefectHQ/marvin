@@ -40,6 +40,7 @@ from marvin.utilities.asyncio import run_sync
 from marvin.utilities.context import ctx
 from marvin.utilities.jinja import Transcript
 from marvin.utilities.logging import get_logger
+from marvin.utilities.mapping import map_async
 from marvin.utilities.python import PythonFunction
 from marvin.utilities.strings import count_tokens
 
@@ -680,7 +681,7 @@ def model(
     return decorator
 
 
-### Sync versions of the above functions
+# --- Sync versions of the above functions
 
 
 def cast(
@@ -839,3 +840,123 @@ def generate(
             client=client,
         )
     )
+
+
+# --- Mapping
+async def classify_async_map(
+    data: list[str],
+    labels: Union[Enum, list[T], type],
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[AsyncMarvinClient] = None,
+) -> list[T]:
+    return await map_async(
+        fn=classify_async,
+        map_kwargs=dict(data=data),
+        unmapped_kwargs=dict(
+            labels=labels,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        ),
+    )
+
+
+def classify_map(
+    data: list[str],
+    labels: Union[Enum, list[T], type],
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[AsyncMarvinClient] = None,
+) -> list[T]:
+    return run_sync(
+        classify_async_map(
+            data=data,
+            labels=labels,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        )
+    )
+
+
+async def cast_async_map(
+    data: list[str],
+    target: type[T],
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[AsyncMarvinClient] = None,
+) -> list[T]:
+    return await map_async(
+        fn=cast_async,
+        map_kwargs=dict(data=data),
+        unmapped_kwargs=dict(
+            target=target,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        ),
+    )
+
+
+def cast_map(
+    data: list[str],
+    target: type[T],
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[AsyncMarvinClient] = None,
+) -> list[T]:
+    return run_sync(
+        cast_async_map(
+            data=data,
+            target=target,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        )
+    )
+
+
+async def extract_async_map(
+    data: list[str],
+    target: Optional[type[T]] = None,
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[AsyncMarvinClient] = None,
+) -> list[list[T]]:
+    return await map_async(
+        fn=extract_async,
+        map_kwargs=dict(data=data),
+        unmapped_kwargs=dict(
+            target=target,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        ),
+    )
+
+
+def extract_map(
+    data: list[str],
+    target: Optional[type[T]] = None,
+    instructions: Optional[str] = None,
+    model_kwargs: Optional[dict] = None,
+    client: Optional[AsyncMarvinClient] = None,
+) -> list[list[T]]:
+    return run_sync(
+        extract_async_map(
+            data=data,
+            target=target,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        )
+    )
+
+
+cast_async.map = cast_async_map
+cast.map = cast_map
+classify_async.map = classify_async_map
+classify.map = classify_map
+extract_async.map = extract_async_map
+extract.map = extract_map

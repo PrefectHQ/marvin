@@ -124,3 +124,20 @@ result = await marvin.cast_async("one", int)
 
 assert result == 1
 ```
+
+## Mapping
+
+To transform a list of inputs at once, use `.map`:
+
+```python
+inputs = [
+    "I bought two donuts.",
+    "I bought six hot dogs."
+]
+result = marvin.cast.map(inputs, int)
+assert result  == [2, 6]
+```
+
+(`marvin.cast_async.map` is also available for async environments.)
+
+Mapping automatically issues parallel requests to the API, making it a highly efficient way to work with multiple inputs at once. The result is a list of outputs in the same order as the inputs.
