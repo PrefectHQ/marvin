@@ -11,7 +11,7 @@ Please set Marvin specific settings in `~/.marvin/.env`. One exception being `OP
     For example, in your `~/.marvin/.env` file you could have:
     ```shell
     MARVIN_LOG_LEVEL=INFO
-    MARVIN_OPENAI_CHAT_COMPLETIONS_MODEL=gpt-4
+    MARVIN_CHAT_COMPLETIONS_MODEL=gpt-4
     MARVIN_OPENAI_API_KEY='sk-my-api-key'
     ```
     Settings these values will let you avoid setting an API key every time. 
