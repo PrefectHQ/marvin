@@ -93,3 +93,29 @@ class TestAsync:
         )
         result = await marvin.beta.classify_async(img, labels=["urban", "rural"])
         assert result == "urban"
+
+
+class TestMapping:
+    def test_map(self):
+        ny = marvin.beta.Image(
+            "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
+        )
+        dc = marvin.beta.Image(
+            "https://images.unsplash.com/photo-1617581629397-a72507c3de9e"
+        )
+        result = marvin.beta.classify.map([ny, dc], labels=["urban", "rural"])
+        assert isinstance(result, list)
+        assert result == ["urban", "urban"]
+
+    async def test_map_async(self):
+        ny = marvin.beta.Image(
+            "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
+        )
+        dc = marvin.beta.Image(
+            "https://images.unsplash.com/photo-1617581629397-a72507c3de9e"
+        )
+        result = await marvin.beta.classify_async.map(
+            [ny, dc], labels=["urban", "rural"]
+        )
+        assert isinstance(result, list)
+        assert result == ["urban", "urban"]
