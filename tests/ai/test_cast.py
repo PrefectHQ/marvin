@@ -93,6 +93,17 @@ class TestCast:
             )
             assert result == "My name is MARVIN"
 
+        def test_str_target_if_only_instructions_provided(self):
+            result = marvin.cast(
+                "one", instructions="the numerical representation of the word "
+            )
+            assert isinstance(result, str)
+            assert result == "1"
+
+        def test_error_if_no_target_and_no_instructions(self):
+            with pytest.raises(ValueError):
+                marvin.cast("one")
+
     class TestCastCallsClassify:
         @patch("marvin.ai.text.classify_async")
         def test_cast_doesnt_call_classify_for_int(self, mock_classify):

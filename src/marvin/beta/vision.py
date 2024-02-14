@@ -207,7 +207,7 @@ async def caption_async(
 
 async def cast_async(
     data: Union[str, Image],
-    target: type[T],
+    target: type[T] = None,
     instructions: str = None,
     images: list[Image] = None,
     vision_model_kwargs: dict = None,
@@ -223,7 +223,8 @@ async def cast_async(
     Args:
         images (list[Image]): The images to be processed.
         data (str): The data to be converted.
-        target (type): The type to convert the data into.
+        target (type): The type to convert the data into. If not provided but
+            instructions are provided, assumed to be str.
         instructions (str, optional): Specific instructions for the conversion.
             Defaults to None.
         vision_model_kwargs (dict, optional): Additional keyword arguments for
@@ -358,7 +359,7 @@ def caption(
 
 def cast(
     data: Union[str, Image],
-    target: type[T],
+    target: type[T] = None,
     instructions: str = None,
     images: list[Image] = None,
     vision_model_kwargs: dict = None,
@@ -369,7 +370,8 @@ def cast(
 
     Args:
         data (Union[str, Image]): The data to be converted.
-        target (type[T]): The type to convert the data into.
+        target (type[T]): The type to convert the data into. If not provided but
+            instructions are provided, assumed to be str.
         instructions (str, optional): Specific instructions for the conversion.
         images (list[Image], optional): The images to be processed.
         vision_model_kwargs (dict, optional): Additional keyword arguments for the vision model.
