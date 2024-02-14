@@ -114,14 +114,14 @@ class TestMapping:
         assert isinstance(result, list)
         assert result == ["Positive", "Negative"]
 
-    def test_classify_map_with_instructions(self):
+    def test_classify_map_with_instructions(self, gpt_4):
         result = marvin.classify.map(
-            ["This is great!", "This is terrible!"],
-            Sentiment,
-            instructions="Always choose the positive label!",
+            ["o", "0"],
+            ["letter", "number"],
+            instructions="'o' means zero",
         )
         assert isinstance(result, list)
-        assert result == ["Positive", "Positive"]
+        assert result == ["number", "number"]
 
     async def test_async_classify_map(self):
         result = await marvin.classify_async.map(
