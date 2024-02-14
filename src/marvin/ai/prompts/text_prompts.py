@@ -158,9 +158,9 @@ CLASSIFY_PROMPT = inspect.cleandoc(
     
     ## Labels
     
-    You must classify the data as one of the following labels:
+    You must classify the data as one of the following labels, which are numbered (starting from 0) and provide a brief description. Output the label number only.
     {% for label in labels %}
-    - Label {{ loop.index0 }} (value: {{ label }})
+    - Label #{{ loop.index0 }}: {{ label }}
     {% endfor %}
     
     
