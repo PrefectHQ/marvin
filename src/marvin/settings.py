@@ -44,7 +44,12 @@ class ChatCompletionSettings(MarvinSettings):
     def encoder(self):
         import tiktoken
 
-        return tiktoken.encoding_for_model(self.model).encode
+        try:
+            encoding = tiktoken.encoding_for_model(self.model)
+        except KeyError:
+            encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
+
+        return encoding.encode
 
 
 class ChatVisionSettings(MarvinSettings):
