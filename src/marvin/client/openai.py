@@ -140,7 +140,7 @@ async def should_fallback(e: NotFoundError, request: ChatRequest) -> bool:
             " API key likely does not give you access to. This API call will"
             f" fall back to the {FALLBACK_CHAT_COMPLETIONS_MODEL!r} model. To"
             " avoid this warning, please set"
-            " `MARVIN_OPENAI_CHAT_COMPLETIONS_MODEL=<accessible model>` in"
+            " `MARVIN_CHAT_COMPLETIONS_MODEL=<accessible model>` in"
             f" `~/.marvin/.env` - for example, `gpt-3.5-turbo`.\n\n {e}"
         )
         return True

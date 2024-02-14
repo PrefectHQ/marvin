@@ -118,3 +118,24 @@ class TestCast:
         async def test_cast_text_to_int(self):
             result = await marvin.cast_async("one", int)
             assert result == 1
+
+
+class TestMapping:
+    def test_map(self):
+        result = marvin.cast.map(["one", "two"], int)
+        assert isinstance(result, list)
+        assert result == [1, 2]
+
+    def test_map_with_instructions(self):
+        result = marvin.cast.map(
+            ["one", "two"],
+            int,
+            instructions="add one to each number",
+        )
+        assert isinstance(result, list)
+        assert result == [2, 3]
+
+    async def test_async_map(self):
+        result = await marvin.cast_async.map(["one", "two"], int)
+        assert isinstance(result, list)
+        assert result == [1, 2]

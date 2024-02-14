@@ -92,3 +92,28 @@ class TestExtract:
         async def test_extract_numbers(self):
             result = await marvin.extract_async("one, two, three", int)
             assert result == [1, 2, 3]
+
+
+class TestMapping:
+    def test_map(self):
+        result = marvin.extract.map(
+            ["I have one donut", "I bought two donuts and ate one"], int
+        )
+        assert isinstance(result, list)
+        assert result == [[1], [2, 1]]
+
+    def test_map_with_instructions(self):
+        result = marvin.extract.map(
+            ["I have one donut", "I bought two donuts and ate one"],
+            int,
+            instructions="ignore the number two",
+        )
+        assert isinstance(result, list)
+        assert result == [[1], [1]]
+
+    async def test_async_map(self):
+        result = await marvin.extract_async.map(
+            ["I have one donut", "I bought two donuts and ate one"], int
+        )
+        assert isinstance(result, list)
+        assert result == [[1], [2, 1]]
