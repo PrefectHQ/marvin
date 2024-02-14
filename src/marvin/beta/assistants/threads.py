@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 from openai.types.beta.threads import ThreadMessage
 from pydantic import BaseModel, Field, PrivateAttr
 
+import marvin.utilities.openai
 from marvin.beta.assistants.formatting import pprint_message
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
@@ -12,7 +13,6 @@ from marvin.utilities.asyncio import (
     run_sync,
 )
 from marvin.utilities.logging import get_logger
-from marvin.utilities.openai import get_openai_client
 from marvin.utilities.pydantic import parse_as
 
 logger = get_logger("Threads")
@@ -59,7 +59,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             raise ValueError("Thread has already been created.")
         if messages is not None:
             messages = [{"role": "user", "content": message} for message in messages]
-        client = get_openai_client()
+        client = marvin.utilities.openai.get_openai_client()
         response = await client.beta.threads.create(messages=messages)
         self.id = response.id
         return self
@@ -71,7 +71,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         """
         Add a user message to the thread.
         """
-        client = get_openai_client()
+        client = marvin.utilities.openai.get_openai_client()
 
         if self.id is None:
             await self.create_async()
@@ -118,7 +118,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
         if self.id is None:
             await self.create_async()
-        client = get_openai_client()
+        client = marvin.utilities.openai.get_openai_client()
 
         response = await client.beta.threads.messages.list(
             thread_id=self.id,
@@ -136,7 +136,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("delete")
     async def delete_async(self):
-        client = get_openai_client()
+        client = marvin.utilities.openai.get_openai_client()
         await client.beta.threads.delete(thread_id=self.id)
         self.id = None
 

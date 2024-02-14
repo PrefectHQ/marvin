@@ -5,6 +5,7 @@ from openai.types.beta.threads.required_action_function_tool_call import (
 )
 from pydantic import BaseModel, Field, PrivateAttr
 
+import marvin.utilities.openai
 import marvin.utilities.tools
 from marvin.tools.assistants import AssistantTool
 from marvin.types import Tool
@@ -14,7 +15,6 @@ from marvin.utilities.asyncio import (
     run_sync,
 )
 from marvin.utilities.logging import get_logger
-from marvin.utilities.openai import get_openai_client
 
 from .threads import Thread, ThreadMessage
 
@@ -92,10 +92,9 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         # post the message
         user_message = await thread.add_async(message, file_paths=file_paths)
 
-        # enter assistant context, run the thread, and decrement context level
-        await self.__aenter__()
-        await thread.run_async(assistant=self, **run_kwargs)
-        self._context_level -= 1
+        # run the thread
+        async with self:
+            await thread.run_async(assistant=self, **run_kwargs)
 
         # load all messages, including the user message
         response_messages = await thread.get_messages_async(
@@ -115,7 +114,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     async def __aenter__(self):
         # if this is the outermost context and no ID is set, create the assistant
         if self.id is None and self._context_level == 0:
-            await self.create_async()
+            await self.create_async(_auto_delete=True)
 
         self._context_level += 1
         return self
@@ -131,12 +130,12 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         return False
 
     @expose_sync_method("create")
-    async def create_async(self):
+    async def create_async(self, _auto_delete: bool = False):
         if self.id is not None:
             raise ValueError(
                 "Assistant has an ID and has already been created in the OpenAI API."
             )
-        client = get_openai_client()
+        client = marvin.utilities.openai.get_openai_client()
         response = await client.beta.assistants.create(
             **self.model_dump(
                 include={"name", "model", "metadata", "file_ids", "metadata"}
@@ -146,11 +145,16 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         )
         self.id = response.id
 
+        # assistants are auto deleted if their context level reaches 0,
+        # so we disable that behavior by initializing the context level to 1
+        if not _auto_delete:
+            self._context_level = 1
+
     @expose_sync_method("delete")
     async def delete_async(self):
         if not self.id:
             raise ValueError("Assistant has no ID and doesn't exist in the OpenAI API.")
-        client = get_openai_client()
+        client = marvin.utilities.openai.get_openai_client()
         await client.beta.assistants.delete(assistant_id=self.id)
         self.id = None
 
@@ -160,9 +164,12 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
 
     @classmethod
     async def load_async(cls, assistant_id: str, **kwargs):
-        client = get_openai_client()
+        client = marvin.utilities.openai.get_openai_client()
         response = await client.beta.assistants.retrieve(assistant_id=assistant_id)
-        return cls(**(response.model_dump() | kwargs))
+        assistant = cls(**(response.model_dump() | kwargs))
+        # set context level to 1 so the assistant is never auto-deleted
+        assistant._context_level = 1
+        return assistant
 
     def chat(self, thread: Thread = None):
         if thread is None:

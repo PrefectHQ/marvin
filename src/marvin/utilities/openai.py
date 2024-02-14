@@ -90,7 +90,9 @@ def get_openai_client(
             )
         client_class = AsyncAzureOpenAI if is_async else AzureOpenAI
         kwargs.update(
-            api_key=api_key, api_version=api_version, azure_endpoint=azure_endpoint
+            api_key=api_key,
+            api_version=api_version,
+            azure_endpoint=azure_endpoint,
         )
 
     # --- N/A
