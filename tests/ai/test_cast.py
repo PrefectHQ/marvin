@@ -121,12 +121,12 @@ class TestCast:
 
 
 class TestMapping:
-    def test_cast_map(self):
+    def test_map(self):
         result = marvin.cast.map(["one", "two"], int)
         assert isinstance(result, list)
         assert result == [1, 2]
 
-    def test_cast_map_with_instructions(self):
+    def test_map_with_instructions(self):
         result = marvin.cast.map(
             ["one", "two"],
             int,
@@ -135,7 +135,7 @@ class TestMapping:
         assert isinstance(result, list)
         assert result == [2, 3]
 
-    async def test_async_cast_map(self):
+    async def test_async_map(self):
         result = await marvin.cast_async.map(["one", "two"], int)
         assert isinstance(result, list)
         assert result == [1, 2]

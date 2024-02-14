@@ -118,7 +118,10 @@ async def _two_step_vision_response(
         images = [images]
 
     if not images and not isinstance(data, Image):
-        return marvin_call(data)
+        if inspect.iscoroutinefunction(marvin_call):
+            return await marvin_call(data)
+        else:
+            return marvin_call(data)
 
     if isinstance(data, Image):
         images.append(data)
