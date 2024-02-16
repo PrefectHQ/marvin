@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 class BackgroundVideoRecorder:
     def __init__(self, resolution: Optional[tuple[int, int]] = None):
         if resolution is None:
-            resolution = (150, 200)
+            resolution = (200, 260)
         self.resolution = resolution
         self.is_recording = False
         self.queue = queue.Queue()
