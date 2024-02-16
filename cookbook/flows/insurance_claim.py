@@ -4,6 +4,7 @@ an interactive flow to audit the draft before submitting it to a system of recor
 
 authored by: @kevingrismore and @zzstoatzz
 """
+
 from enum import Enum
 from typing import TypeVar
 
@@ -52,11 +53,11 @@ def build_damage_report_model(damages: list[DamagedPart]) -> type[M]:
 @task(cache_key_fn=task_input_hash)
 def marvin_extract_damages_from_url(image_url: str) -> list[DamagedPart]:
     return marvin.beta.extract(
-        data=marvin.beta.Image(image_url),
+        data=marvin.beta.Image.from_url(image_url),
         target=DamagedPart,
         instructions=(
-            "Give extremely brief, high-level descriptions of the damage."
-            " Only include the 2 most significant damages, which may also be minor and/or moderate."
+            "Give extremely brief, high-level descriptions of the damage. Only include"
+            " the 2 most significant damages, which may also be minor and/or moderate."
             # only want 2 damages for purposes of this example
         ),
     )
@@ -75,7 +76,8 @@ def submit_damage_report(report: M, car: Car):
         description=f"## Latest damage report for car {car.id}",
     )
     print(
-        f"See your artifact in the UI: {PREFECT_UI_URL.value()}/artifacts/artifact/{uuid}"
+        "See your artifact in the UI:"
+        f" {PREFECT_UI_URL.value()}/artifacts/artifact/{uuid}"
     )
 
 

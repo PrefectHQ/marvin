@@ -59,7 +59,7 @@ async def generate_vision_response(
         content = []
         for image in images:
             if not isinstance(image, Image):
-                image = Image(image)
+                image = Image.infer(image)
             content.append(image.to_message_content())
         messages.append(BaseMessage(role="user", content=content))
 
@@ -161,7 +161,7 @@ async def _two_step_vision_response(
 
 
 async def caption_async(
-    image: Union[str, Path, Image],
+    data: Union[str, Path, Image, list[Union[str, Path, Image]]],
     instructions: str = None,
     model_kwargs: dict = None,
 ) -> str:
@@ -169,17 +169,19 @@ async def caption_async(
     Generates a caption for an image using a language model.
 
     Args:
-        image (Union[str, Path, Image]): URL or local path of the image.
+        data (Union[str, Path, Image]): URL or local path of the image or images.
         instructions (str, optional): Instructions for the caption generation.
         model_kwargs (dict, optional): Additional arguments for the language model.
 
     Returns:
         str: Generated caption.
     """
+    if isinstance(data, (str, Path, Image)):
+        data = [data]
     model_kwargs = model_kwargs or {}
     response = await generate_vision_response(
         prompt_template=CAPTION_PROMPT,
-        images=[image],
+        images=data,
         prompt_kwargs=dict(instructions=instructions),
         model_kwargs=model_kwargs,
     )
@@ -313,7 +315,7 @@ async def classify_async(
 
 
 def caption(
-    image: Union[str, Path, Image],
+    data: Union[str, Path, Image, list[Union[str, Path, Image]]],
     instructions: str = None,
     model_kwargs: dict = None,
 ) -> str:
@@ -321,7 +323,7 @@ def caption(
     Generates a caption for an image using a language model synchronously.
 
     Args:
-        image (Union[str, Path, Image]): URL or local path of the image.
+        data (Union[str, Path, Image]): URL or local path of the image.
         instructions (str, optional): Instructions for the caption generation.
         model_kwargs (dict, optional): Additional arguments for the language model.
 
@@ -330,7 +332,7 @@ def caption(
     """
     return run_sync(
         caption_async(
-            image=image,
+            data=data,
             instructions=instructions,
             model_kwargs=model_kwargs,
         )

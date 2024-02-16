@@ -1,3 +1,4 @@
+import base64
 import datetime
 from pathlib import Path
 from typing import Any, Callable, Generic, Literal, Optional, TypeVar, Union
@@ -265,23 +266,64 @@ class StreamingChatResponse(MarvinType):
 
 
 class Image(MarvinType):
-    url: str
+    data: Optional[bytes] = Field(default=None, repr=False)
+    url: Optional[str] = None
+    format: str = "png"
+    timestamp: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    detail: Literal["auto", "low", "high"] = "auto"
 
-    def __init__(self, path_or_url: Union[str, Path], **kwargs):
-        from marvin.utilities.images import image_to_base64
-
-        if isinstance(path_or_url, str) and Path(path_or_url).exists():
-            path_or_url = Path(path_or_url)
-
-        if isinstance(path_or_url, Path):
-            b64_image = image_to_base64(path_or_url)
-            url = f"data:image/jpeg;base64,{b64_image}"
+    def __init__(self, data_or_url=None, **kwargs):
+        if data_or_url is not None:
+            obj = type(self).infer(data_or_url, **kwargs)
+            super().__init__(**obj.model_dump())
         else:
-            url = path_or_url
-        super().__init__(url=url, **kwargs)
+            super().__init__(**kwargs)
+
+    @classmethod
+    def infer(cls, data_or_url=None, **kwargs):
+        if isinstance(data_or_url, bytes):
+            return cls(data=data_or_url, **kwargs)
+        elif isinstance(data_or_url, (str, Path)):
+            path = Path(data_or_url)
+            if path.exists():
+                return cls.from_path(path, **kwargs)
+            else:
+                return cls(url=data_or_url, **kwargs)
+        else:
+            return cls(**kwargs)
+
+    @classmethod
+    def from_path(cls, path: Union[str, Path]) -> "Image":
+        with open(path, "rb") as f:
+            data = f.read()
+        format = path.split(".")[-1]
+        if format not in ["jpg", "jpeg", "png", "webm"]:
+            raise ValueError("Invalid audio format")
+        return cls(data=data, url=path, format=format)
+
+    @classmethod
+    def from_url(cls, url: str) -> "Image":
+        return cls(url=url)
 
     def to_message_content(self) -> MessageImageURLContent:
-        return MessageImageURLContent(image_url=dict(url=self.url))
+        if self.url:
+            return MessageImageURLContent(
+                image_url=dict(url=self.url, detail=self.detail)
+            )
+        elif self.data:
+            b64_image = base64.b64encode(self.data).decode("utf-8")
+            path = f"data:image/{self.format};base64,{b64_image}"
+            return MessageImageURLContent(image_url=dict(url=path, detail=self.detail))
+        else:
+            raise ValueError("Image source is not specified")
+
+    def save(self, path: Union[str, Path]):
+        if self.data is None:
+            raise ValueError("No image data to save")
+        if isinstance(path, str):
+            path = Path(path)
+        with path.open("wb") as f:
+            f.write(self.data)
 
 
 class Audio(MarvinType):
@@ -291,7 +333,7 @@ class Audio(MarvinType):
     timestamp: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 
     @classmethod
-    def from_path(cls, path: str) -> "Audio":
+    def from_path(cls, path: Union[str, Path]) -> "Audio":
         with open(path, "rb") as f:
             data = f.read()
         format = path.split(".")[-1]
