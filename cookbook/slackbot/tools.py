@@ -76,4 +76,4 @@ async def get_prefect_code_example(related_to: str) -> str:
 
         code_example_content = (await client.get(best_link)).text
 
-        return f"{best_link}\n\n```python\n{code_example_content}\n```"
+        return f"LINK:\n{best_link}\n\n EXAMPLE:\n{code_example_content}"
