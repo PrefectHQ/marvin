@@ -96,10 +96,10 @@ async def handle_message(payload: SlackPayload) -> Completed:
         with Assistant(
             name="Marvin",
             tools=[
-                task(search_prefect_docs),
-                task(search_github_issues),
-                task(get_info),
-                task(get_prefect_code_example),
+                search_prefect_docs,
+                search_github_issues,
+                get_info,
+                get_prefect_code_example,
             ],
             instructions=(
                 "You are Marvin, the paranoid android from Hitchhiker's Guide to the"
