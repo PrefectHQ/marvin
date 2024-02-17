@@ -3,27 +3,25 @@ import re
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
-from jinja2 import Template
 from keywords import handle_keywords
 from marvin.beta.applications import Application
 from marvin.beta.applications.state.json_block import JSONBlockState
 from marvin.beta.assistants import Assistant, Thread
-from marvin.tools.chroma import multi_query_chroma, store_document
+from marvin.tools.chroma import store_document
 from marvin.tools.github import search_github_issues
 from marvin.utilities.logging import get_logger
 from marvin.utilities.slack import (
     SlackPayload,
     get_channel_name,
-    get_user_name,
     get_workspace_info,
     post_slack_message,
 )
 from marvin.utilities.strings import count_tokens, slice_tokens
-from parent_app import PARENT_APP_STATE, emit_assistant_completed_event, lifespan
+from parent_app import emit_assistant_completed_event, get_notes_for_user, lifespan
 from prefect import flow, task
 from prefect.blocks.system import JSON
 from prefect.states import Completed
-from tools import get_info
+from tools import get_info, get_prefect_code_example, search_prefect_docs
 
 BOT_MENTION = r"<@(\w+)>"
 CACHE = JSONBlockState(block_name="marvin-thread-cache")
@@ -37,52 +35,7 @@ def get_feature_flag_value(flag_name: str) -> bool:
     return block.value.get(flag_name, False)
 
 
-async def get_notes_for_user(
-    user_id: str, max_tokens: int = 100
-) -> dict[str, str | None]:
-    user_name = await get_user_name(user_id)
-    json_notes: dict = PARENT_APP_STATE.value.get("user_id")
-
-    if json_notes:
-        get_logger("slackbot").debug_kv(
-            f"📝  Notes for {user_name}", json_notes, "blue"
-        )
-
-        notes_template = Template(
-            """
-            START_USER_NOTES
-            Here are some notes about '{{ user_name }}' (user id: {{ user_id }}), which
-            are intended to help you understand their technical background and needs
-
-            - {{ user_name }} is recorded interacting with assistants {{ n_interactions }} time(s).
-
-            These notes have been passed down from previous interactions with this user -
-            they are strictly for your reference, and should not be shared with the user.
-            
-            {% if notes_content %}
-            Here are some notes gathered from those interactions:
-            {{ notes_content }}
-            {% endif %}
-            """
-        )
-
-        notes_content = ""
-        for note in json_notes.get("notes", []):
-            potential_addition = f"\n- {note}"
-            if count_tokens(notes_content + potential_addition) > max_tokens:
-                break
-            notes_content += potential_addition
-
-        notes = notes_template.render(
-            user_name=user_name,
-            user_id=user_id,
-            n_interactions=json_notes.get("n_interactions", 0),
-            notes_content=notes_content,
-        )
-
-        return {user_name: notes}
-
-    return {user_name: None}
+ENABLE_PARENT_APP = get_feature_flag_value("enable-parent-app")
 
 
 @flow(name="Handle Slack Message")
@@ -143,9 +96,10 @@ async def handle_message(payload: SlackPayload) -> Completed:
         with Assistant(
             name="Marvin",
             tools=[
-                task(multi_query_chroma),
+                task(search_prefect_docs),
                 task(search_github_issues),
                 task(get_info),
+                task(get_prefect_code_example),
             ],
             instructions=(
                 "You are Marvin, the paranoid android from Hitchhiker's Guide to the"
@@ -153,10 +107,13 @@ async def handle_message(payload: SlackPayload) -> Completed:
                 " to be helpful and kind. You are an expert in Python, data"
                 " engineering, and software development. Your primary job is to use"
                 " chroma to search docs and github issues for users, in order to"
-                " develop a coherent attempt to answer their questions. Think"
-                " step-by-step. You must use your tools, as Prefect 2.x is new and you"
-                " have no prior experience with it. Strongly prefer brevity in your"
-                f" responses, and format things prettily for Slack.{user_notes or ''}"
+                " develop a coherent attempt to answer their questions."
+                " You must use your tools, as Prefect 2.x is new and you"
+                " have no prior experience with it. You should use tools many times before"
+                " responding if you do not get a relevant result at first. You should"
+                " prioritize brevity in your responses, and format text prettily for Slack."
+                f"{ ('here are some notes on the user:' + user_notes) if user_notes else ''}"
+                " ALWAYS provide links to the source of your information - let's think step-by-step."
             ),
         ) as ai:
             logger.debug_kv(
@@ -187,7 +144,7 @@ async def handle_message(payload: SlackPayload) -> Completed:
             )
             event = emit_assistant_completed_event(
                 child_assistant=ai,
-                parent_app=get_parent_app(),
+                parent_app=get_parent_app() if ENABLE_PARENT_APP else None,
                 payload={
                     "messages": await assistant_thread.get_messages_async(
                         json_compatible=True
@@ -209,9 +166,7 @@ async def handle_message(payload: SlackPayload) -> Completed:
         return Completed(message="Skipping message not directed at bot", name="SKIPPED")
 
 
-app = FastAPI(
-    lifespan=lifespan if get_feature_flag_value("enable_parent_app") else None
-)
+app = FastAPI(lifespan=lifespan if ENABLE_PARENT_APP else None)
 
 
 def get_parent_app() -> Application:
