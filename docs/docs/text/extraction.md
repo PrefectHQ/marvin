@@ -168,3 +168,20 @@ result = await marvin.extract_async(
 
 assert result == ["NY", "CA"]
 ```
+
+## Mapping
+
+To extract from a list of inputs at once, use `.map`:
+
+```python
+inputs = [
+    "I drove from New York to California.",
+    "I took a flight from NYC to BOS."
+]
+result = marvin.extract.map(inputs, target=str, instructions="2-letter state codes")
+assert result  == [["NY", "CA"], ["NY", "MA"]]
+```
+
+(`marvin.extract_async.map` is also available for async environments.)
+
+Mapping automatically issues parallel requests to the API, making it a highly efficient way to work with multiple inputs at once. The result is a list of outputs in the same order as the inputs.

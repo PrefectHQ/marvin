@@ -188,3 +188,20 @@ result = await marvin.classify_async(
 
 assert result == "bug"
 ```
+
+## Mapping
+
+To classify a list of inputs at once, use `.map`:
+
+```python
+inputs = [
+    "The app crashes when I try to upload a file.",
+    "How do change my password?"
+]
+result = marvin.classify.map(inputs, ["bug", "feature request", "inquiry"])
+assert result == ["bug", "inquiry"]
+```
+
+(`marvin.classify_async.map` is also available for async environments.)
+
+Mapping automatically issues parallel requests to the API, making it a highly efficient way to classify multiple inputs at once. The result is a list of classifications in the same order as the inputs.

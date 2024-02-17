@@ -40,7 +40,7 @@ def event_loop(request):
             task.cancel()
         if tasks and loop.is_running():
             loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
-            loop.close()
+        loop.close()
 
 
 class SetEnv:
