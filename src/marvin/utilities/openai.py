@@ -63,13 +63,9 @@ def get_openai_client(
 
     # --- Azure OpenAI
     elif marvin.settings.provider == "azure_openai":
-        api_key = getattr(marvin.settings.openai, "marvin_azure_openai_api_key", None)
-        api_version = getattr(
-            marvin.settings.openai, "marvin_azure_openai_api_version", None
-        )
-        azure_endpoint = getattr(
-            marvin.settings.openai, "marvin_azure_openai_endpoint", None
-        )
+        api_key = getattr(marvin.settings, "marvin_azure_openai_api_key", None)
+        api_version = getattr(marvin.settings, "marvin_azure_openai_api_version", None)
+        azure_endpoint = getattr(marvin.settings, "marvin_azure_openai_endpoint", None)
 
         if any(k is None for k in [api_key, api_version, azure_endpoint]):
             raise ValueError(
