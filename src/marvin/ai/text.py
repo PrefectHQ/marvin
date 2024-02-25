@@ -54,7 +54,7 @@ GENERATE_CACHE = LRUCache(maxsize=1000)
 
 class EjectRequest(Exception):
     def __init__(self, request):
-        self.request = request
+        self.request: ChatRequest = request
         super().__init__("Ejected request.")
 
 
