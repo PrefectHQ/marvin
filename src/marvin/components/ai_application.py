@@ -215,8 +215,8 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         ),
     )
     stream_handler: Optional[Callable[[Message], None]] = None
-    state_enabled: bool = True
-    plan_enabled: bool = True
+    state_enabled: bool = False
+    plan_enabled: bool = False
 
     @validator("description")
     def validate_description(cls, v):
