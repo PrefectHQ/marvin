@@ -294,7 +294,13 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         )
 
         # set up tools
-        tools = tools.copy() if tools else self.tools.copy()
+        if tools:
+            tools = self.validate_tools(tools)
+        else:
+            tools = self.tools
+
+        tools = tools.copy()
+
         if self.state_enabled:
             tools.append(UpdateState(app=self).as_function())
         if self.plan_enabled:
