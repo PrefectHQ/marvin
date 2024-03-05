@@ -28,6 +28,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+anthropic = ["anthropic"]
 generator = ["datamodel-code-generator>=0.20.0"]
 chromadb = ["chromadb"]
 prefect = ["prefect>=2.14.9"]
@@ -94,6 +95,7 @@ asyncio_mode = 'auto'
 
 filterwarnings = [
     "ignore:'crypt' is deprecated and slated for removal in Python 3.13:DeprecationWarning",
+    "ignore::pluggy.PluggyTeardownRaisedWarning",
 ]
 env = [
     "MARVIN_TEST_MODE=1",

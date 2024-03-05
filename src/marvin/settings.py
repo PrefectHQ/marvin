@@ -209,6 +209,14 @@ class AISettings(MarvinSettings):
     text: TextAISettings = Field(default_factory=TextAISettings)
 
 
+class AnthropicSettings(MarvinSettings):
+    model_config = SettingsConfigDict(env_prefix="ANTHROPIC_", extra="ignore")
+    api_key: Optional[SecretStr] = Field(
+        default=None,
+        description="Your Anthropic API key.",
+    )
+
+
 class Settings(MarvinSettings):
     """Settings for `marvin`.
 
@@ -235,7 +243,7 @@ class Settings(MarvinSettings):
     )
 
     # providers
-    provider: Literal["openai", "azure_openai"] = Field(
+    provider: Literal["openai", "azure_openai", "anthropic"] = Field(
         default="openai",
         description=(
             'The LLM provider to use. Supports "openai" and "azure_openai" at this'
@@ -243,6 +251,7 @@ class Settings(MarvinSettings):
         ),
     )
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
+    anthropic: AnthropicSettings = Field(default_factory=AnthropicSettings)
 
     # ai settings
     ai: AISettings = Field(default_factory=AISettings)
