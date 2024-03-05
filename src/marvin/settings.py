@@ -82,7 +82,7 @@ class ImageSettings(MarvinSettings):
         style: The default style to use, defaults to `vivid`.
     """
 
-    model_config = SettingsConfigDict(env_prefix="marvin_image_")
+    model_config = SettingsConfigDict(env_prefix="marvin_image_", extra="ignore")
 
     model: str = Field(
         default="dall-e-3",
