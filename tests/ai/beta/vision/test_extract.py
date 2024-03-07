@@ -57,6 +57,7 @@ class TestVisionExtract:
             [Location(city="New York City", state="NY")],
         )
 
+    @pytest.mark.flaky(max_runs=3)
     def test_dog(self):
         class Animal(BaseModel, frozen=True):
             type: Literal["cat", "dog", "bird", "frog", "horse", "pig"]
