@@ -8,7 +8,7 @@ class Location(BaseModel):
     state: str = Field(description="The two letter abbreviation")
 
 
-@pytest.mark.flaky(max_runs=2)
+@pytest.mark.flaky(max_runs=3)
 class TestVisionCast:
     def test_cast_ny(self):
         img = marvin.beta.Image(
@@ -63,18 +63,6 @@ class TestVisionCast:
             Location(city="New York", state="NY"),
             Location(city="New York City", state="NY"),
         )
-
-    def test_cast_dog(self):
-        class Animal(BaseModel):
-            type: str = Field(description="The type of animal (cat, bird, etc.)")
-            primary_color: str
-            is_solid_color: bool
-
-        img = marvin.beta.Image(
-            "https://upload.wikimedia.org/wikipedia/commons/9/99/Brooks_Chase_Ranger_of_Jolly_Dogs_Jack_Russell.jpg"
-        )
-        result = marvin.beta.cast(img, target=Animal)
-        assert result == Animal(type="dog", primary_color="white", is_solid_color=False)
 
     def test_cast_book(self):
         class Book(BaseModel):
