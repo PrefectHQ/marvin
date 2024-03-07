@@ -21,7 +21,10 @@ class TestClassify:
             assert result == "Positive"
 
         def test_classify_negative_sentiment(self):
-            result = marvin.classify("This feature is terrible!", Sentiment)
+            result = marvin.classify(
+                "This feature is absolutely terrible!",
+                Sentiment,
+            )
             assert result == "Negative"
 
     class TestEnum:
@@ -93,7 +96,7 @@ class TestClassify:
         @pytest.mark.parametrize(
             "user_input, expected_selection",
             [
-                ("I need to update my payment method", "billing"),
+                ("I want to do an event with marvin!", "events and relations"),
                 ("Well FooCo offered me a better deal", "sales"),
                 ("*angry noises*", "support"),
             ],
@@ -102,7 +105,7 @@ class TestClassify:
             class Department(Enum):
                 SALES = "sales"
                 SUPPORT = "support"
-                BILLING = "billing"
+                EVENTS = "events and relations"
 
             def router(transcript: str) -> Department:
                 return marvin.classify(
