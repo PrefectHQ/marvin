@@ -62,7 +62,9 @@ class OpenAIEmbeddingFunction(EmbeddingFunction):
         return [create_openai_embeddings(input)]
 
 
-client = HttpClient(host=HOST, port=PORT)
+def get_http_client() -> HttpClient:
+    """Get a Chroma HTTP client."""
+    return HttpClient(host=HOST, port=PORT)
 
 
 async def query_chroma(
@@ -80,7 +82,7 @@ async def query_chroma(
         User: "What are prefect blocks?"
         Assistant: >>> query_chroma("What are prefect blocks?")
     """
-    collection_object = client.get_or_create_collection(
+    collection_object = get_http_client().get_or_create_collection(
         name=collection or DEFAULT_COLLECTION_NAME,
         embedding_function=OpenAIEmbeddingFunction(),
     )
@@ -142,7 +144,7 @@ def store_document(
     Returns:
         The stored document.
     """
-    collection = client.get_or_create_collection(
+    collection = get_http_client().get_or_create_collection(
         name=collection_name, embedding_function=OpenAIEmbeddingFunction()
     )
     doc_id = metadata.get("msg_id", str(uuid.uuid4()))

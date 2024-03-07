@@ -481,7 +481,7 @@ def fn(
     @wraps(func)
     async def async_wrapper(*args, **kwargs):
         model = PythonFunction.from_function_call(func, *args, **kwargs)
-        post_processor = None
+        post_processor = marvin.settings.post_processor_fn
 
         # written instructions or missing annotations are treated as "-> str"
         if (

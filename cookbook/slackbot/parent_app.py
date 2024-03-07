@@ -1,17 +1,21 @@
 import asyncio
 import json
 from contextlib import asynccontextmanager
+from typing import Annotated
 
 from fastapi import FastAPI
+from jinja2 import Template
 from marvin import fn
 from marvin.beta.applications import Application
 from marvin.beta.applications.state.json_block import JSONBlockState
 from marvin.beta.assistants import Assistant
 from marvin.utilities.logging import get_logger
+from marvin.utilities.slack import get_user_name
+from marvin.utilities.strings import count_tokens
 from prefect.events import Event, emit_event
 from prefect.events.clients import PrefectCloudEventSubscriber
 from prefect.events.filters import EventFilter
-from pydantic import confloat
+from pydantic import Field
 from typing_extensions import TypedDict
 from websockets.exceptions import ConnectionClosedError
 
@@ -24,7 +28,7 @@ EVENT_NAMES = [
 
 
 class Lesson(TypedDict):
-    relevance: confloat(ge=0, le=1)
+    relevance: Annotated[float, Field(ge=0, le=1)]
     heuristic: str | None
 
 
@@ -52,6 +56,54 @@ def take_lesson_from_interaction(
 
 
 logger = get_logger("PrefectEventSubscriber")
+
+
+async def get_notes_for_user(
+    user_id: str, max_tokens: int = 100
+) -> dict[str, str | None]:
+    user_name = await get_user_name(user_id)
+    json_notes: dict = PARENT_APP_STATE.value.get("user_id")
+
+    if json_notes:
+        get_logger("slackbot").debug_kv(
+            f"📝  Notes for {user_name}", json_notes, "blue"
+        )
+
+        notes_template = Template(
+            """
+            START_USER_NOTES
+            Here are some notes about '{{ user_name }}' (user id: {{ user_id }}), which
+            are intended to help you understand their technical background and needs
+
+            - {{ user_name }} is recorded interacting with assistants {{ n_interactions }} time(s).
+
+            These notes have been passed down from previous interactions with this user -
+            they are strictly for your reference, and should not be shared with the user.
+            
+            {% if notes_content %}
+            Here are some notes gathered from those interactions:
+            {{ notes_content }}
+            {% endif %}
+            """
+        )
+
+        notes_content = ""
+        for note in json_notes.get("notes", []):
+            potential_addition = f"\n- {note}"
+            if count_tokens(notes_content + potential_addition) > max_tokens:
+                break
+            notes_content += potential_addition
+
+        notes = notes_template.render(
+            user_name=user_name,
+            user_id=user_id,
+            n_interactions=json_notes.get("n_interactions", 0),
+            notes_content=notes_content,
+        )
+
+        return {user_name: notes}
+
+    return {user_name: None}
 
 
 def excerpt_from_event(event: Event) -> str:

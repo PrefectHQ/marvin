@@ -108,7 +108,7 @@ marvin.extract("I moved from NY to CHI", target=Location)
 
 # [
 #     Location(city="New York", state="New York"),
-#     Location(city="Chcago", state="Illinois")
+#     Location(city="Chicago", state="Illinois")
 # ]
 ```
 
