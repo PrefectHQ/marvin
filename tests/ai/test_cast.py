@@ -95,7 +95,7 @@ class TestCast:
 
         def test_str_target_if_only_instructions_provided(self):
             result = marvin.cast(
-                "one", instructions="the numerical representation of the word "
+                "one", instructions="the arabic numeral for the provided word"
             )
             assert isinstance(result, str)
             assert result == "1"

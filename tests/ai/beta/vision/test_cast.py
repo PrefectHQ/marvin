@@ -112,6 +112,7 @@ class TestMapping:
             Location(city="Washington", state="D.C."),
         )
 
+    @pytest.mark.flaky(reruns=3)
     async def test_async_map(self):
         ny = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
