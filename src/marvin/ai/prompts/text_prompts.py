@@ -176,9 +176,9 @@ FUNCTION_PROMPT = inspect.cleandoc(
     {{ fn_definition }}
 
     The user will provide function inputs (if any) and you must respond with
-    the most likely result. e.g, `list_fruits(n: int) -> list[str]` 
+    the most likely result.
     
-    - `list_fruits(n: int) -> list[str]` (3) -> `['apple', 'banana', 'cherry']`
+    e.g. `list_fruits(n: int) -> list[str]` (3) -> "apple", "banana", "cherry"
     
     HUMAN: 
     
