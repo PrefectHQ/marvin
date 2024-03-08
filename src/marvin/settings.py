@@ -48,6 +48,11 @@ class OpenAISettings(MarvinBaseSettings):
             response["api_key"] = os.environ["MARVIN_OPENAI_API_KEY"]
         if os.environ.get("OPENAI_API_KEY"):
             response["api_key"] = os.environ["OPENAI_API_KEY"]
+        response["api_version"] = self.api_version
+        if os.environ.get("MARVIN_OPENAI_API_VERSION"):
+            response["api_version"] = os.environ["MARVIN_OPENAI_API_VERSION"]
+        if os.environ.get("OPENAI_API_VERSION"):
+            response["api_version"] = os.environ["OPENAI_API_VERSION"]
         response["temperature"] = settings.llm_temperature
         response["timeout"] = settings.llm_request_timeout_seconds
         return {

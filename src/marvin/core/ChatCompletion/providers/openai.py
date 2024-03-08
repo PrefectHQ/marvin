@@ -8,7 +8,7 @@ from marvin.types import Function
 from marvin.utilities.async_utils import create_task
 from marvin.utilities.messages import Message
 from marvin.utilities.streaming import StreamHandler
-from openai import AzureOpenAI, AsyncAzureOpenAI, OpenAI
+from openai import AzureOpenAI, AsyncAzureOpenAI, OpenAI, AsyncOpenAI
 from pydantic import BaseModel
 
 from ..abstract import AbstractChatCompletion
@@ -31,6 +31,7 @@ CONTEXT_SIZES = {
     "gpt-4": 8192,
     "gpt-4-1106": 128000,
     "gpt-4-turbo": 128000,
+    "gpt-4-turbo-preview": 128000,
     "analytics-gpt35-1106": 16384,
     "analytics-gpt4-turbo": 128000
 }
@@ -40,8 +41,16 @@ def get_context_size(model: str) -> int:
     if "/" in model:
         model = model.split("/")[-1]
 
-    return CONTEXT_SIZES.get(model, 2048)
+    # first try exact match
+    if model in CONTEXT_SIZES:
+        return CONTEXT_SIZES.get(model)
+    
+    # then try prefix match
+    for key, value in CONTEXT_SIZES.items():
+        if model.startswith(key):
+            return value
 
+    raise ValueError(f"Unknown model: {model}")
 
 def serialize_function_or_callable(
     function_or_callable: Union[Function, Callable[..., Any]],
@@ -126,8 +135,10 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
     OpenAI-specific implementation of the ChatCompletion.
     """
 
+
     def __init__(self, provider: str, **kwargs: Any):
         super().__init__(defaults=settings.get_defaults(provider or "openai") | kwargs)
+        self.defaults['provider'] = provider
 
     def _serialize_request(
         self, request: Optional[Request[T]] = None
@@ -211,17 +222,23 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         """
         Send the serialized request to OpenAI's endpoint/service.
         """
-        # Use openai's library functions to send the request and get a response
-        # Example:
-        api_base = serialized_request.pop("api_base")
-        api_key = serialized_request.pop("api_key")
-        api_version = serialized_request.pop("api_version")
 
-        client = AzureOpenAI(
-            azure_endpoint = api_base,
-            api_key = api_key,
-            api_version = api_version
-        )
+        api_key = serialized_request.pop("api_key")
+        provider = serialized_request.pop("provider", "openai")
+        if provider == "openai":
+            client = OpenAI(
+                api_key = api_key,
+            )
+        elif provider == "azure_openai":
+            api_base = serialized_request.pop("api_base")
+            api_version = serialized_request.pop("api_version")
+            client = AzureOpenAI(
+                azure_endpoint = api_base,
+                api_key = api_key,
+                api_version = api_version
+            )
+        else:
+            raise ValueError(f"Unknown provider: {provider}")
 
         request_handler_fn = serialized_request.pop("request_handler", {})
         response_handler_fn = serialized_request.pop("response_handler", {})
@@ -251,18 +268,23 @@ class OpenAIChatCompletion(AbstractChatCompletion[T]):
         """
         Send the serialized request to OpenAI's endpoint asynchronously.
         """
-        # Use openai's library functions to send the request and get a response
-        # Example:
 
-        api_base = serialized_request.pop("api_base")
         api_key = serialized_request.pop("api_key")
-        api_version = serialized_request.pop("api_version")
-
-        client = AsyncAzureOpenAI(
-            azure_endpoint = api_base,
-            api_key = api_key,
-            api_version = api_version
-        )
+        provider = serialized_request.pop("provider", "openai")
+        if provider == "openai":
+            client = AsyncOpenAI(
+                api_key = api_key,
+            )
+        elif provider == "azure_openai":
+            api_base = serialized_request.pop("api_base")
+            api_version = serialized_request.pop("api_version")
+            client = AsyncAzureOpenAI(
+                azure_endpoint = api_base,
+                api_key = api_key,
+                api_version = api_version
+            )
+        else:
+            raise ValueError(f"Unknown provider: {provider}")
 
         request_handler_fn = serialized_request.pop("request_handler", {})
         response_handler_fn = serialized_request.pop("response_handler", {})

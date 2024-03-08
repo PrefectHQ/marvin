@@ -29,13 +29,6 @@ SYSTEM_PROMPT = """
     item. If it is a route planner, then "I need to go to the store" should be
     interpreted as an attempt to find a route to the store.
 
-    # Instructions
-
-    Your primary job is to maintain the application's `state` and your own
-    `plan`. Together, these two states fully parameterize the application,
-    making it resilient, serializable, and observable. You do this autonomously;
-    you do not need to inform the user of any changes you make.
-
     # Actions
 
     Each time the user runs the application by sending a message, you must take
@@ -287,10 +280,14 @@ class AIApplication(LoggerMixin, MarvinBaseModel):
         self.logger.debug_kv("User input", input_text, key_style="green")
         self.history.add_message(Message(content=input_text, role=Role.USER))
 
+
+        max_tokens = get_context_size(model=model)
+        self.logger.debug_kv("Model", model, key_style="blue")
+        self.logger.debug_kv("Max tokens", max_tokens,key_style="blue")
         message_list = render_prompts(
             prompts=prompts,
             render_kwargs=dict(app=self, input_text=input_text),
-            max_tokens=get_context_size(model=model),
+            max_tokens=max_tokens,
         )
 
         # set up tools
