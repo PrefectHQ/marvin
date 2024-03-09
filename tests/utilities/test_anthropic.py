@@ -1,14 +1,12 @@
 import pytest
 from marvin.utilities.claude import (
     ChatRequest,
-    ClientSideMessage,
     FunctionCall,
     function_to_xml_string,
     generate_chat,
-    get_function_messages,
     parse_function_calls,
+    render_function_calling_prompt,
 )
-from marvin.utilities.pydantic import parse_as
 from marvin.utilities.tools import tool_from_function
 
 
@@ -111,24 +109,20 @@ class TestFunctionCalling:
 
         tool = tool_from_function(get_schleeb)
 
-        user_message = [{"role": "user", "content": "What is the value of schleeb?"}]
-
-        messages = get_function_messages(tool.function)
-
-        system_message = messages.pop(0)
-
-        breakpoint()
+        system_message = render_function_calling_prompt([tool])
 
         chat_request = ChatRequest(
             model="claude-3-opus-20240229",
             max_tokens=100,
-            temperature=0.5,
-            system=system_message.get("content"),
-            messages=parse_as(list[ClientSideMessage], messages + user_message),
+            temperature=0.0,
+            system=system_message,
+            messages=[{"role": "user", "content": "What is the value of schleeb?"}],
         )
 
         response = generate_chat(chat_request)
 
-        print(response)
+        function_calls = parse_function_calls(response.content[0].text)
 
-        breakpoint()
+        assert function_calls == [FunctionCall(tool_name="get_schleeb", parameters={})]
+
+        assert tool.function._python_fn(**function_calls[0].parameters) == 42

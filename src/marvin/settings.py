@@ -210,7 +210,7 @@ class AISettings(MarvinSettings):
 
 
 class AnthropicSettings(MarvinSettings):
-    model_config = SettingsConfigDict(env_prefix="ANTHROPIC_", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="MARVIN_ANTHROPIC_", extra="ignore")
     api_key: Optional[SecretStr] = Field(
         default=None,
         description="Your Anthropic API key.",

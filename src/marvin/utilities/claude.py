@@ -6,45 +6,35 @@ import anthropic
 from anthropic.types import Message
 from pydantic import BaseModel
 
-from marvin.types import Function
-from marvin.utilities.jinja import Transcript
+import marvin
+from marvin.types import Function, Tool
+from marvin.utilities.jinja import Environment as jinja
 
 T = TypeVar("T")
 
-ANTHROPIC_FUNCTION_PROMPT = inspect.cleandoc(
+ANTHROPIC_FUNCTION_CALLING_PROMPT = inspect.cleandoc(
     """
-    SYSTEM: Your job is to generate likely outputs for a Python function with the
-    following definition:
+    You have access to an additional set of one or more functions you can use to 
+    answer the user's question.
 
-    {{ fn_definition }}
+    You may call them like this:
+    <function_calls>
+        <invoke>
+            <tool_name>$TOOL_NAME</tool_name>
+            <parameters>
+                <$PARAMETER_NAME>$PARAMETER_VALUE</$PARAMETER_NAME>
+                ...
+            </parameters>
+        </invoke>
+    </function_calls>
 
-    The user will provide function inputs (if any) and you must respond with
-    the most likely result.
-    
-    USER: 
-    
-    ## Function inputs
-    
-    {% if bound_parameters -%}
-    The function was called with the following inputs:
-    {%for (arg, value) in bound_parameters.items()%}
-    - {{ arg }}: {{ value }}
+    Here are the tools available:
+
+    <tools>
+    {% for tool in tools %}
+        {{ tool }}
     {% endfor %}
-    {% else %}
-    The function was not called with any inputs.
-    {% endif %}
-    
-    {% if return_value -%}
-    ## Additional Context
-    
-    I also preprocessed some of the data and have this additional context for you to consider:
-    
-    {{return_value}}
-    {% endif %}
-
-    What is the function's output?
-    
-    ASSISTANT: The output is
+    </tools>
     """
 )
 
@@ -71,7 +61,10 @@ class ChatRequest(BaseModel):
 
 
 def generate_chat(chat_request: ChatRequest) -> Message:
-    client = anthropic.Anthropic()
+    api_key = (
+        key.get_secret_value() if (key := marvin.settings.anthropic.api_key) else key
+    )
+    client = anthropic.Anthropic(api_key=api_key)
     return client.messages.create(**chat_request.model_dump())
 
 
@@ -108,11 +101,10 @@ def function_to_xml_string(function: Function[T]) -> str:
     return ET.tostring(root, "unicode")
 
 
-def get_function_messages(function: Function[T]) -> list[dict]:
-    messages = Transcript(content=ANTHROPIC_FUNCTION_PROMPT).render_to_messages(
-        fn_definition=function_to_xml_string(function),
-        bound_parameters={},
-        return_value=None,
+def render_function_calling_prompt(
+    tools: list[Tool],
+    prompt_template: str = ANTHROPIC_FUNCTION_CALLING_PROMPT,
+) -> str:
+    return jinja.environment.from_string(ANTHROPIC_FUNCTION_CALLING_PROMPT).render(
+        tools=[function_to_xml_string(tool.function) for tool in tools]
     )
-
-    return [m.model_dump() for m in messages]
