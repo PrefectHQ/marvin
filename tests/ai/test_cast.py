@@ -27,8 +27,8 @@ class TestCast:
             assert result == [4, 5, 6]
 
         def test_cast_text_to_list_of_floats(self):
-            result = marvin.cast("1.1, 2.2, 3.3", list[float])
-            assert result == [1.1, 2.2, 3.3]
+            result = marvin.cast("1.0, 2.0, 3.0", list[float])
+            assert result == [1.0, 2.0, 3.0]
 
         def test_cast_text_to_bool(self):
             result = marvin.cast("no", bool)
@@ -92,6 +92,17 @@ class TestCast:
                 instructions="Rewrite with names (and only names) uppercase",
             )
             assert result == "My name is MARVIN"
+
+        def test_str_target_if_only_instructions_provided(self):
+            result = marvin.cast(
+                "one", instructions="the arabic numeral for the provided word"
+            )
+            assert isinstance(result, str)
+            assert result == "1"
+
+        def test_error_if_no_target_and_no_instructions(self):
+            with pytest.raises(ValueError):
+                marvin.cast("one")
 
     class TestCastCallsClassify:
         @patch("marvin.ai.text.classify_async")
