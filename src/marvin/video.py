@@ -30,6 +30,9 @@ class BackgroundVideoRecorder:
         self._stop_event = None
         self._thread = None
 
+    def __len__(self) -> int:
+        return self.queue.qsize()
+
     def stream(self) -> "BackgroundVideoStream":
         return BackgroundVideoStream(self)
 
