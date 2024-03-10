@@ -63,9 +63,9 @@ There are a few keyword arguments that can be used to customize the behavior of 
 - `max_phrase_duration`: The maximum duration for recording a phrase. The default is no limit.
 - `adjust_for_ambient_noise`: Whether to adjust the recognizer sensitivity to ambient noise before starting recording. The default is `True`, but note that this introduces a minor latency between the time the function is called and the time recording starts. A log message will be printed to indicate when the calibration is complete.
 
-### Recording in the background
+### Recording continuously
 
-The `record_background` function records audio indefinitely in the background. This is useful for recording audio while doing other tasks or processing audio in real time.
+The `record_background` function records audio continuously in the background. This is useful for recording audio while doing other tasks or processing audio in real time.
 
 The result of `record_background` is a `BackgroundAudioRecorder` object, which can be used to control the recording (including stopping it) and to access the recorded audio as a stream.
 

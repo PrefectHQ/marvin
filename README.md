@@ -66,7 +66,11 @@ Marvin consists of a variety of useful tools, all designed to be used independen
 
 ✍️ [Transcribe speech](https://askmarvin.ai/docs/audio/transcription) from recorded audio
 
-🎙️ [Record users](https://askmarvin.ai/docs/audio/recording) as individual phrases
+🎙️ [Record users](https://askmarvin.ai/docs/audio/recording) continuously or as individual phrases
+
+### Video
+
+🎙️ [Record video](https://askmarvin.ai/docs/video/recording) continuously
 
 ### Interaction
 
@@ -243,6 +247,28 @@ marvin.beta.classify(
 )
 
 # "drink"
+```
+
+Marvin can transcribe speech and generate audio out-of-the-box, but the optional `audio` extra provides utilities for recording and playing audio.
+
+```python
+import marvin
+import marvin.audio
+
+# record the user
+user_audio = marvin.audio.record_phrase()
+
+# transcribe the text
+user_text = marvin.transcribe(user_audio)
+
+# cast the language to a more formal style
+ai_text = marvin.cast(user_text, instructions='Make the language ridiculously formal')
+
+# generate AI speech
+ai_audio = marvin.speak(ai_text)
+
+# play the result
+ai_audio.play()
 ```
 
 # Get in touch!
