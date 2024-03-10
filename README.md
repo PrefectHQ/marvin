@@ -249,6 +249,8 @@ marvin.beta.classify(
 # "drink"
 ```
 
+## Record the user, modify the content, and play it back
+
 Marvin can transcribe speech and generate audio out-of-the-box, but the optional `audio` extra provides utilities for recording and playing audio.
 
 ```python
