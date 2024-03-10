@@ -170,7 +170,7 @@ class BackgroundAudioRecorder:
                 except sr.exceptions.WaitTimeoutError:
                     continue
 
-    def start_recording(
+    def start(
         self,
         max_phrase_duration: int = None,
         adjust_for_ambient_noise: bool = True,
@@ -191,7 +191,7 @@ class BackgroundAudioRecorder:
         self._thread.daemon = True
         self._thread.start()
 
-    def stop_recording(self, wait: bool = True):
+    def stop(self, wait: bool = True):
         if not self.is_recording:
             raise ValueError("Recording is not in progress.")
         self._stop_event.set()
@@ -248,7 +248,7 @@ def record_background(
         ```
     """
     recorder = BackgroundAudioRecorder()
-    recorder.start_recording(
+    recorder.start(
         max_phrase_duration=max_phrase_duration,
         adjust_for_ambient_noise=adjust_for_ambient_noise,
     )

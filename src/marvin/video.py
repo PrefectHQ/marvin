@@ -53,7 +53,7 @@ class BackgroundVideoRecorder:
         finally:
             camera.release()
 
-    def start_recording(
+    def start(
         self, device: int = 0, interval_seconds: int = 2, clear_queue: bool = False
     ):
         if self.is_recording:
@@ -70,7 +70,7 @@ class BackgroundVideoRecorder:
         self._thread.start()
         logger.info("Video recording started.")
 
-    def stop_recording(self, wait: bool = True):
+    def stop(self, wait: bool = True):
         if not self.is_recording:
             raise ValueError("Recording is not in progress.")
         self._stop_event.set()
@@ -104,5 +104,5 @@ def record_background(
     device: int = 0, interval_seconds: int = 2
 ) -> BackgroundVideoRecorder:
     recorder = BackgroundVideoRecorder()
-    recorder.start_recording(device, interval_seconds)
+    recorder.start(device, interval_seconds)
     return recorder
