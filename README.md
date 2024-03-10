@@ -62,7 +62,11 @@ Marvin consists of a variety of useful tools, all designed to be used independen
 
 ### Audio
 
-🎙️ [Generate speech](https://askmarvin.ai/docs/audio/speech) from text or functions
+💬 [Generate speech](https://askmarvin.ai/docs/audio/speech) from text or functions
+
+✍️ [Transcribe speech](https://askmarvin.ai/docs/audio/transcription) from recorded audio
+
+🎙️ [Record users](https://askmarvin.ai/docs/audio/recording) as individual phrases
 
 ### Interaction
 

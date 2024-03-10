@@ -36,7 +36,7 @@ def play_audio(audio: bytes):
         playsound(temp_file.name)
 
 
-def record_audio(duration: int = None) -> Audio:
+def record(duration: int = None) -> Audio:
     """
     Record audio from the default microphone to WAV format bytes.
 
@@ -146,20 +146,8 @@ class BackgroundAudioRecorder:
         self._stop_event = None
         self._thread = None
 
-    def __len__(self) -> int:
-        return self.queue.qsize()
-
-    def __iter__(self) -> "BackgroundAudioRecorder":
-        return self
-
-    def __next__(self) -> Audio:
-        while True:
-            if not self.is_recording and self.queue.empty():
-                raise StopIteration
-            try:
-                return self.queue.get(timeout=0.25)
-            except queue.Empty:
-                continue
+    def stream(self) -> "BackgroundAudioStream":
+        return BackgroundAudioStream(self)
 
     def _record_thread(
         self, max_phrase_duration: Optional[int], adjust_for_ambient_noise: bool
@@ -213,6 +201,26 @@ class BackgroundAudioRecorder:
         self._is_recording = False
 
 
+class BackgroundAudioStream:
+    def __init__(self, recorder: BackgroundAudioRecorder):
+        self.recorder = recorder
+
+    def __len__(self) -> int:
+        return self.recorder.queue.qsize()
+
+    def __iter__(self) -> "BackgroundAudioStream":
+        return self
+
+    def __next__(self) -> Audio:
+        while True:
+            if not self.recorder.is_recording and self.recorder.queue.empty():
+                raise StopIteration
+            try:
+                return self.recorder.queue.get(timeout=0.25)
+            except queue.Empty:
+                continue
+
+
 def record_background(
     max_phrase_duration: int = None, adjust_for_ambient_noise: bool = True
 ) -> BackgroundAudioRecorder:
@@ -231,12 +239,12 @@ def record_background(
     Example:
         ```python
         import marvin.audio
-        clips = marvin.audio.record_background()
-        for clip in clips:
+        recorder = marvin.audio.record_background()
+        for clip in recorder.stream():
             print(marvin.transcribe(clip))
 
             if some_condition:
-                clips.stop()
+                recorder.stop()
         ```
     """
     recorder = BackgroundAudioRecorder()

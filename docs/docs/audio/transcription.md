@@ -13,12 +13,14 @@ Marvin can generate text from speech.
 
 !!! example
 
+    Suppose you have the following audio saved as `fancy_computer.mp3`:
+
     <audio controls>
       <source src="/assets/audio/fancy_computer.mp3" type="audio/mpeg">
       Your browser does not support the audio element.
     </audio>
 
-    To generate a transcription, provide the path to an audio file:
+    To generate a transcription, provide the path to the file:
 
     ```python
     import marvin
@@ -28,7 +30,7 @@ Marvin can generate text from speech.
 
     !!! success "Result"
         ```python
-        assert transcription.text == "I sure like being inside this fancy computer."
+        assert transcription == "I sure like being inside this fancy computer."
         ```
 
         
@@ -40,20 +42,30 @@ Marvin can generate text from speech.
   </p>
 </div>
 
-## Audio formats
+## Supported audio formats
 
-Marvin supports the following audio formats: flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, and webm.
+You can provide audio data to `transcribe` in a variety of ways. Marvin supports the following encodings: flac, m4a, mp3, mp4, mpeg, mpga, oga, ogg, wav, and webm.
 
-You can provide audio data to `transcribe` as any of the following:
+### Marvin `Audio` object
+
+Marvin provides an `Audio` object that makes it easier to work with audio. Typically it is imported from the `marvin.audio` module, which requires the `audio` extra to be installed. If it isn't installed, you can still import the `Audio` object from `marvin.types`, though some additional functionality will not be available.
+
+```python
+from marvin.audio import Audio
+# or, if the audio extra is not installed:
+# from marvin.types import Audio
+
+audio = Audio.from_path("fancy_computer.mp3")
+transcription = marvin.transcribe(audio)
+```
+
 
 ### Path to a local file
 
 Provide a string or `Path` representing the path to a local audio file:
 
 ```python
-from pathlib import Path
-
-marvin.transcribe(Path("/path/to/audio.mp3"))
+marvin.transcribe("fancy_computer.mp3")
 ```
 
 ### File reference
@@ -83,34 +95,10 @@ If you are using Marvin in an async environment, you can use `transcribe_async`:
 
 ```python
 result = await marvin.transcribe_async('fancy_computer.mp3')
-assert result.text == "I sure like being inside this fancy computer."
+assert result == "I sure like being inside this fancy computer."
 ```
 
 
 
 ## Model parameters
 You can pass parameters to the underlying API via the `model_kwargs` argument. These parameters are passed directly to the respective APIs, so you can use any supported parameter.
-
-## Live transcriptions
-
-Marvin has experimental support for live transcriptions. This feature is subject to change.
-
-!!! tip "requires pyaudio"
-    Live transcriptions require the `pyaudio` package. You can install it with `pip install 'marvin[audio]', which
-    (on MacOS at least) requires an installation of `portaudio` via `brew install portaudio`.
-
-To start a live transcription, call `transcribe_live`. This will start recording audio from your microphone and periodically call a provided `callback` function with the latest transcription. If no callback is provided, it will print the transcription to the screen. 
-
-The result of `transcribe_live` is a function that you can call to stop the transcription.
-
-
-
-```python
-stop_fn = marvin.audio.transcribe_live(callback=None)
-# talk into your microphone
-# ...
-# ...
-# call the stop function to stop recording
-stop_fn()
-```
-

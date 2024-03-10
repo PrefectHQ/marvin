@@ -30,20 +30,8 @@ class BackgroundVideoRecorder:
         self._stop_event = None
         self._thread = None
 
-    def __len__(self) -> int:
-        return self.queue.qsize()
-
-    def __iter__(self) -> "BackgroundVideoRecorder":
-        return self
-
-    def __next__(self) -> Image:
-        while True:
-            if not self.is_recording and self.queue.empty():
-                raise StopIteration
-            try:
-                return self.queue.get(timeout=0.25)
-            except queue.Empty:
-                continue
+    def stream(self) -> "BackgroundVideoStream":
+        return BackgroundVideoStream(self)
 
     def _record_thread(self, device: int, interval_seconds: int):
         camera = cv2.VideoCapture(device)
@@ -90,6 +78,26 @@ class BackgroundVideoRecorder:
             self._thread.join()
         self.is_recording = False
         logger.info("Video recording finished.")
+
+
+class BackgroundVideoStream:
+    def __init__(self, recorder: BackgroundVideoRecorder):
+        self.recorder = recorder
+
+    def __len__(self) -> int:
+        return self.recorder.queue.qsize()
+
+    def __iter__(self) -> "BackgroundVideoStream":
+        return self
+
+    def __next__(self) -> Image:
+        while True:
+            if not self.recorder.is_recording and self.recorder.queue.empty():
+                raise StopIteration
+            try:
+                return self.recorder.queue.get(timeout=0.25)
+            except queue.Empty:
+                continue
 
 
 def record_background(
