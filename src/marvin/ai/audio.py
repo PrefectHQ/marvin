@@ -1,13 +1,11 @@
 import inspect
 from functools import partial, wraps
 from pathlib import Path
-from typing import Any, Callable, Literal, Optional, TypeVar
-
-import openai.types.audio
+from typing import IO, Any, Callable, Literal, Optional, TypeVar, Union
 
 import marvin
 from marvin.client.openai import AsyncMarvinClient
-from marvin.types import HttpxBinaryResponseContent, SpeechRequest
+from marvin.types import Audio, HttpxBinaryResponseContent, SpeechRequest
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import Environment
 from marvin.utilities.logging import get_logger
@@ -22,7 +20,7 @@ async def generate_speech(
     prompt_template: str,
     prompt_kwargs: Optional[dict[str, Any]] = None,
     model_kwargs: Optional[dict[str, Any]] = None,
-) -> HttpxBinaryResponseContent:
+) -> Audio:
     """
     Generates an image based on a provided prompt template.
 
@@ -48,14 +46,15 @@ async def generate_speech(
     if marvin.settings.log_verbose:
         getattr(logger, "debug_kv")("Request", request.model_dump_json(indent=2))
     response = await AsyncMarvinClient().generate_speech(**request.model_dump())
-    return response
+    data = response.read()
+    return Audio(data=data, format="mp3")
 
 
 async def speak_async(
     text: str,
-    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = "alloy",
+    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = None,
     model_kwargs: Optional[dict[str, Any]] = None,
-) -> HttpxBinaryResponseContent:
+) -> Audio:
     """
     Generates audio from text using an AI.
 
@@ -70,7 +69,7 @@ async def speak_async(
             language model. Defaults to None.
 
     Returns:
-        HttpxBinaryResponseContent: The generated audio.
+        Audio: The generated audio.
     """
     model_kwargs = model_kwargs or {}
     if voice is not None:
@@ -85,7 +84,7 @@ async def speak_async(
 
 def speak(
     text: str,
-    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = "alloy",
+    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = None,
     model_kwargs: Optional[dict[str, Any]] = None,
 ) -> HttpxBinaryResponseContent:
     """
@@ -108,27 +107,36 @@ def speak(
 
 
 async def transcribe_async(
-    file: Path, model_kwargs: Optional[dict[str, Any]] = None
-) -> openai.types.audio.Transcription:
+    data: Union[Path, bytes, IO[bytes], Audio],
+    prompt: str = None,
+    model_kwargs: Optional[dict[str, Any]] = None,
+) -> str:
     """
     Transcribes audio from a file.
 
     This function converts audio from a file to text.
     """
-    return await AsyncMarvinClient().generate_transcript(
-        file=file, **model_kwargs or {}
+
+    if isinstance(data, Audio):
+        data = data.data
+
+    transcript = await AsyncMarvinClient().generate_transcript(
+        file=data, prompt=prompt, **model_kwargs or {}
     )
+    return transcript.text
 
 
 def transcribe(
-    file: Path, model_kwargs: Optional[dict[str, Any]] = None
-) -> openai.types.audio.Transcription:
+    data: Union[Path, bytes, IO[bytes], Audio],
+    prompt: str = None,
+    model_kwargs: Optional[dict[str, Any]] = None,
+) -> str:
     """
     Transcribes audio from a file.
 
     This function converts audio from a file to text.
     """
-    return run_sync(transcribe_async(file=file, **model_kwargs or {}))
+    return run_sync(transcribe_async(data=data, prompt=prompt, **model_kwargs or {}))
 
 
 def speech(

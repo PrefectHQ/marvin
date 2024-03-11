@@ -33,6 +33,10 @@ nav:
     - Audio:
       - Generating speech: docs/audio/speech.md
       - Transcribing speech: docs/audio/transcription.md
+      - Recording audio: docs/audio/recording.md
+
+    - Video:
+      - Recording video: docs/video/recording.md
 
     - Interactive Tools:
       - Assistants: docs/interactive/assistants.md
@@ -80,6 +84,7 @@ nav:
     - Python augmented prompts: examples/python_augmented_prompts.md
     - Being specific about types: examples/being_specific_about_types.md
     - Examples:
+      - examples/audio_modification.md
       - examples/xkcd_bird.md
       - examples/michael_scott_business/michael_scott_business.md
       - examples/hogwarts_sorting_hat/hogwarts_sorting_hat.md
