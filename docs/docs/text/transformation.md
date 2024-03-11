@@ -66,6 +66,8 @@ marvin.cast('Mass.', target=str, instructions="The state's abbreviation")
 # MA
 ```
 
+Note that when providing instructions, the `target` field is assumed to be a string unless otherwise specified. If no instructions are provided, a target type is required.
+
 
 ## Classification
 

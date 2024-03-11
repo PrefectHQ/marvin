@@ -55,6 +55,15 @@ tests = [
     "pytest-timeout",
     "pytest-xdist",
 ]
+audio = [
+    "SpeechRecognition>=3.10", 
+    "PyAudio>=0.2.11",
+    "playsound >= 1.0",
+    "pydub >= 0.25",
+]
+video = [
+    "opencv-python >= 4.5",
+]
 slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]"]
 
 [project.urls]
@@ -111,15 +120,15 @@ preview = true
 
 # ruff configuration
 [tool.ruff]
-extend-select = ["I"]
 target-version = "py39"
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$" # default, but here in case we want to change it
+lint.extend-select = ["I"]
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$" # default, but here in case we want to change it
 
 [tool.ruff.format]
 quote-style = "double"
 skip-magic-trailing-comma = false
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ['I', 'F401', 'E402']
 "conftest.py" = ["F401", "F403"]
 'tests/fixtures/*.py' = ['F403']

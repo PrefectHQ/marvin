@@ -62,7 +62,15 @@ Marvin consists of a variety of useful tools, all designed to be used independen
 
 ### Audio
 
-🎙️ [Generate speech](https://askmarvin.ai/docs/audio/speech) from text or functions
+💬 [Generate speech](https://askmarvin.ai/docs/audio/speech) from text or functions
+
+✍️ [Transcribe speech](https://askmarvin.ai/docs/audio/transcription) from recorded audio
+
+🎙️ [Record users](https://askmarvin.ai/docs/audio/recording) continuously or as individual phrases
+
+### Video
+
+🎙️ [Record video](https://askmarvin.ai/docs/video/recording) continuously
 
 ### Interaction
 
@@ -108,7 +116,7 @@ marvin.extract("I moved from NY to CHI", target=Location)
 
 # [
 #     Location(city="New York", state="New York"),
-#     Location(city="Chcago", state="Illinois")
+#     Location(city="Chicago", state="Illinois")
 # ]
 ```
 
@@ -239,6 +247,30 @@ marvin.beta.classify(
 )
 
 # "drink"
+```
+
+## Record the user, modify the content, and play it back
+
+Marvin can transcribe speech and generate audio out-of-the-box, but the optional `audio` extra provides utilities for recording and playing audio.
+
+```python
+import marvin
+import marvin.audio
+
+# record the user
+user_audio = marvin.audio.record_phrase()
+
+# transcribe the text
+user_text = marvin.transcribe(user_audio)
+
+# cast the language to a more formal style
+ai_text = marvin.cast(user_text, instructions='Make the language ridiculously formal')
+
+# generate AI speech
+ai_audio = marvin.speak(ai_text)
+
+# play the result
+ai_audio.play()
 ```
 
 # Get in touch!

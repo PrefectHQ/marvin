@@ -30,10 +30,15 @@ jobs:
         with:
           key: ${{ github.ref }}
           path: .cache
+      - name: Install uv
+        run: pip install -U uv && uv venv
+      
+      - name: Install Material Insiders
+        run: pip install git+https://oauth:${MKDOCS_MATERIAL_INSIDERS_REPO_RO}@github.com/PrefectHQ/mkdocs-material-insiders.git
+
       # for now, only install mkdocs. In the future may need to install Marvin itself.
       - name: Install dependencies for MKDocs Material
-        run: pip install \
-          git+https://oauth:${MKDOCS_MATERIAL_INSIDERS_REPO_RO}@github.com/PrefectHQ/mkdocs-material-insiders.git \
+        run: uv pip install \
           mkdocs-autolinks-plugin \
           mkdocs-awesome-pages-plugin \
           mkdocs-markdownextradata-plugin \
