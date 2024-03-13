@@ -16,7 +16,9 @@ from .ai.text import (
 )
 from .ai.images import paint, image
 from .ai.audio import speak_async, speak, speech, transcribe, transcribe_async
-from . import beta
+
+if settings.auto_import_beta_modules:
+    from . import beta
 
 try:
     from ._version import version as __version__
@@ -48,9 +50,10 @@ __all__ = [
     "transcribe",
     "transcribe_async",
     # --- beta ---
-    "beta",
 ]
 
+if settings.auto_import_beta_modules:
+    __all__.append("beta")
 
 # compatibility with Marvin v1
 ai_fn = fn
