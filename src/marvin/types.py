@@ -89,14 +89,14 @@ class ImageUrl(MarvinType):
     detail: str = "auto"
 
 
-class MessageImageURLContent(MarvinType):
+class ImageFileContentBlock(MarvinType):
     """Schema for messages containing images"""
 
     type: Literal["image_url"] = "image_url"
     image_url: ImageUrl
 
 
-class MessageTextContent(MarvinType):
+class TextContentBlock(MarvinType):
     """Schema for messages containing text"""
 
     type: Literal["text"] = "text"
@@ -106,7 +106,7 @@ class MessageTextContent(MarvinType):
 class BaseMessage(MarvinType):
     """Base schema for messages"""
 
-    content: Union[str, list[Union[MessageImageURLContent, MessageTextContent]]]
+    content: Union[str, list[Union[ImageFileContentBlock, TextContentBlock]]]
     role: str
 
 
@@ -305,15 +305,15 @@ class Image(MarvinType):
     def from_url(cls, url: str) -> "Image":
         return cls(url=url)
 
-    def to_message_content(self) -> MessageImageURLContent:
+    def to_message_content(self) -> ImageFileContentBlock:
         if self.url:
-            return MessageImageURLContent(
+            return ImageFileContentBlock(
                 image_url=dict(url=self.url, detail=self.detail)
             )
         elif self.data:
             b64_image = base64.b64encode(self.data).decode("utf-8")
             path = f"data:image/{self.format};base64,{b64_image}"
-            return MessageImageURLContent(image_url=dict(url=path, detail=self.detail))
+            return ImageFileContentBlock(image_url=dict(url=path, detail=self.detail))
         else:
             raise ValueError("Image source is not specified")
 

@@ -92,7 +92,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         response = await client.beta.threads.messages.create(
             thread_id=self.id, role=role, content=message, file_ids=file_ids
         )
-        return Message.model_validate(response.model_dump())
+        return response
 
     @expose_sync_method("get_messages")
     async def get_messages_async(
