@@ -7,7 +7,7 @@ try:
     from openai.types.beta.threads import ThreadMessage as Message
 # for openai >= 1.14.0
 except ImportError:
-    from openai.types.beta.threads import Message 
+    from openai.types.beta.threads import Message
 from pydantic import BaseModel, Field, PrivateAttr
 
 import marvin.utilities.openai

@@ -2,6 +2,7 @@ import tempfile
 from datetime import datetime
 
 import openai
+
 # for openai < 1.14.0
 try:
     from openai.types.beta.threads import ThreadMessage as Message

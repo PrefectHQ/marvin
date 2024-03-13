@@ -16,7 +16,7 @@ from marvin.utilities.asyncio import (
 )
 from marvin.utilities.logging import get_logger
 
-from .threads import Thread, Message
+from .threads import Message, Thread
 
 if TYPE_CHECKING:
     from .runs import Run

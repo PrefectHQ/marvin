@@ -12,7 +12,7 @@ from fastapi import Body, FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from marvin.beta.assistants.threads import Thread, Message
+from marvin.beta.assistants.threads import Message, Thread
 
 
 def find_free_port():
