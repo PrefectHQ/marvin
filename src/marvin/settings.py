@@ -253,6 +253,12 @@ class Settings(MarvinSettings):
     # ai settings
     ai: AISettings = Field(default_factory=AISettings)
 
+    # beta settings
+    auto_import_beta_modules: bool = Field(
+        True,
+        description="If True, the marvin.beta module will be automatically imported when marvin is imported.",
+    )
+
     # log settings
     log_level: str = Field(
         default="INFO",
