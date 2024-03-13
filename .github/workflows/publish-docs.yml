@@ -30,7 +30,7 @@ jobs:
 
       # for now, only install mkdocs. In the future may need to install Marvin itself.
       - name: Install dependencies for MKDocs Material
-        run: uv pip install \
+        run: pip install \
           mkdocs-material \
           mkdocs-autolinks-plugin \
           mkdocs-awesome-pages-plugin \
