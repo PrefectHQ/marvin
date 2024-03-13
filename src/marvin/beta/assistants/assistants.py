@@ -16,7 +16,7 @@ from marvin.utilities.asyncio import (
 )
 from marvin.utilities.logging import get_logger
 
-from .threads import Thread, ThreadMessage
+from .threads import Thread, Message
 
 if TYPE_CHECKING:
     from .runs import Run
@@ -81,7 +81,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         thread: Optional[Thread] = None,
         return_user_message: bool = False,
         **run_kwargs,
-    ) -> list[ThreadMessage]:
+    ) -> list[Message]:
         """
         A convenience method for adding a user message to the assistant's
         default thread, running the assistant, and returning the assistant's
