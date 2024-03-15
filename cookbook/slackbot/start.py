@@ -142,13 +142,13 @@ async def handle_message(payload: SlackPayload) -> Completed:
                 ai_response_text,
                 "green",
             )
+            messages = await assistant_thread.get_messages_async()
+
             event = emit_assistant_completed_event(
                 child_assistant=ai,
                 parent_app=get_parent_app() if ENABLE_PARENT_APP else None,
                 payload={
-                    "messages": await assistant_thread.get_messages_async(
-                        json_compatible=True
-                    ),
+                    "messages": [m.model_dump() for m in messages],
                     "metadata": assistant_thread.metadata,
                     "user": {
                         "id": event.user,

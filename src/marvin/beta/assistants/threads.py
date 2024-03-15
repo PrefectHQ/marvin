@@ -1,6 +1,6 @@
 import asyncio
 import time
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional
 
 # for openai < 1.14.0
 try:
@@ -18,7 +18,6 @@ from marvin.utilities.asyncio import (
     run_sync,
 )
 from marvin.utilities.logging import get_logger
-from marvin.utilities.pydantic import parse_as
 
 logger = get_logger("Threads")
 
@@ -100,25 +99,18 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         limit: int = None,
         before_message: Optional[str] = None,
         after_message: Optional[str] = None,
-        json_compatible: bool = False,
-    ) -> list[Union[Message, dict]]:
+    ) -> list[Message]:
         """
         Asynchronously retrieves messages from the thread.
 
         Args:
             limit (int, optional): The maximum number of messages to return.
-            before_message (str, optional): The ID of the message to start the list from,
-                                             retrieving messages sent before this one.
-            after_message (str, optional): The ID of the message to start the list from,
-                                            retrieving messages sent after this one.
-            json_compatible (bool, optional): If True, returns messages as dictionaries.
-                                              If False, returns messages as Message
-                                              objects. Default is False.
-
+            before_message (str, optional): The ID of the message to start the
+                list from, retrieving messages sent before this one.
+            after_message (str, optional): The ID of the message to start the
+                list from, retrieving messages sent after this one.
         Returns:
-            list[Union[Message, dict]]: A list of messages from the thread, either
-                                              as dictionaries or Message objects,
-                                              depending on the value of json_compatible.
+            list[Union[Message, dict]]: A list of messages from the thread
         """
 
         if self.id is None:
@@ -134,10 +126,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             limit=limit,
             order="desc",
         )
-
-        T = dict if json_compatible else Message
-
-        return parse_as(list[T], reversed(response.model_dump()["data"]))
+        return response.data
 
     @expose_sync_method("delete")
     async def delete_async(self):

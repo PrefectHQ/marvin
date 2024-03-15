@@ -3,7 +3,7 @@ from typing import Any
 from pydantic import BaseModel
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
 
-from marvin.types import Function, Tool, ToolSet
+from marvin.types import Function, FunctionTool, ToolSet
 
 
 class FunctionSchema(GenerateJsonSchema):
@@ -15,10 +15,10 @@ class FunctionSchema(GenerateJsonSchema):
 
 def cast_model_to_tool(
     model: type[BaseModel],
-) -> Tool[BaseModel]:
+) -> FunctionTool[BaseModel]:
     model_name = model.__name__
     model_description = model.__doc__
-    return Tool[BaseModel](
+    return FunctionTool[BaseModel](
         type="function",
         function=Function[BaseModel](
             name=model_name,

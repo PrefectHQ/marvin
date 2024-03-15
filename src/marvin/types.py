@@ -60,21 +60,24 @@ class Function(MarvinType, Generic[T]):
         return instance
 
 
-class Tool(MarvinType, Generic[T]):
+class Tool(MarvinType):
     type: str
+
+
+class FunctionTool(Tool, Generic[T]):
     function: Optional[Function[T]] = None
 
 
 class ToolSet(MarvinType, Generic[T]):
-    tools: Optional[list[Tool[T]]] = None
+    tools: Optional[list[Union[FunctionTool[T], Tool]]] = None
     tool_choice: Optional[Union[Literal["auto"], dict[str, Any]]] = None
 
 
-class RetrievalTool(Tool[T]):
+class RetrievalTool(Tool):
     type: Literal["retrieval"] = "retrieval"
 
 
-class CodeInterpreterTool(Tool[T]):
+class CodeInterpreterTool(Tool):
     type: Literal["code_interpreter"] = "code_interpreter"
 
 
@@ -244,7 +247,7 @@ class Run(MarvinType, Generic[T]):
     status: str
     model: str
     instructions: Optional[str]
-    tools: Optional[list[Tool[T]]] = None
+    tools: Optional[list[FunctionTool[T]]] = None
     metadata: dict[str, str]
 
 
