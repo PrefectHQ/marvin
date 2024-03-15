@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field, PrivateAttr, field_validator
 import marvin.utilities.openai
 import marvin.utilities.tools
 from marvin.tools.assistants import AssistantTool, CancelRun
-from marvin.types import Tool
+from marvin.types import FunctionTool
 from marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
 from marvin.utilities.logging import get_logger
 
@@ -61,12 +61,12 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
     data: Any = None
 
     @field_validator("tools", "additional_tools", mode="before")
-    def format_tools(cls, tools: Union[None, list[Union[Tool, Callable]]]):
+    def format_tools(cls, tools: Union[None, list[Union[FunctionTool, Callable]]]):
         if tools is not None:
             return [
                 (
                     tool
-                    if isinstance(tool, Tool)
+                    if isinstance(tool, FunctionTool)
                     else marvin.utilities.tools.tool_from_function(tool)
                 )
                 for tool in tools

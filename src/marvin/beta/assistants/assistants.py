@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 import marvin.utilities.openai
 import marvin.utilities.tools
 from marvin.tools.assistants import AssistantTool
-from marvin.types import Tool
+from marvin.types import FunctionTool
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -64,7 +64,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         return [
             (
                 tool
-                if isinstance(tool, Tool)
+                if isinstance(tool, FunctionTool)
                 else marvin.utilities.tools.tool_from_function(tool)
             )
             for tool in self.tools

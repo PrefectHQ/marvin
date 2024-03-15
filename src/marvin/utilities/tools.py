@@ -17,7 +17,7 @@ from pydantic import BaseModel, TypeAdapter, create_model
 from pydantic.fields import FieldInfo
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
 
-from marvin.types import Function, Tool
+from marvin.types import Function, FunctionTool
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.logging import get_logger
 
@@ -63,7 +63,7 @@ class ModelSchemaGenerator(GenerateJsonSchema):
         return json_schema
 
 
-def tool_from_type(type_: U, tool_name: str = None) -> Tool[U]:
+def tool_from_type(type_: U, tool_name: str = None) -> FunctionTool[U]:
     """
     Creates an OpenAI-compatible tool from a Python type.
     """
@@ -99,7 +99,7 @@ def tool_from_model(model: type[M], python_fn: Callable[[str], M] = None):
     def tool_fn(**data) -> M:
         return TypeAdapter(model).validate_python(data)
 
-    return Tool[M](
+    return FunctionTool[M](
         type="function",
         function=Function[M].create(
             name=model.__name__,
@@ -130,7 +130,7 @@ def tool_from_function(
         fn, config=pydantic.ConfigDict(arbitrary_types_allowed=True)
     ).json_schema()
 
-    return Tool[T](
+    return FunctionTool[T](
         type="function",
         function=Function[T].create(
             name=name or fn.__name__,
@@ -142,7 +142,7 @@ def tool_from_function(
 
 
 def call_function_tool(
-    tools: list[Tool],
+    tools: list[FunctionTool],
     function_name: str,
     function_arguments_json: str,
     return_string: bool = False,

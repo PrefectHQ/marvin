@@ -6,7 +6,7 @@ from marvin.beta.applications.state import State
 from marvin.beta.assistants import Assistant
 from marvin.beta.assistants.runs import Run
 from marvin.tools.assistants import AssistantTool
-from marvin.types import Tool
+from marvin.types import FunctionTool
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.tools import tool_from_function
 
@@ -66,7 +66,7 @@ class Application(Assistant):
         tools = []
 
         for tool in [self.state.as_tool(name="state")] + self.tools:
-            if not isinstance(tool, Tool):
+            if not isinstance(tool, FunctionTool):
                 kwargs = None
                 signature = inspect.signature(tool)
                 for parameter in signature.parameters.values():
