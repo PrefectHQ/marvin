@@ -118,6 +118,22 @@ Location('CHI')
 ## Model parameters
 You can pass parameters to the underlying API via the `model_kwargs` argument of `cast` or `@model`. These parameters are passed directly to the API, so you can use any supported parameter.
 
+### Instructions
+
+You can pass instructions to steer model transformation via the `instructions` parameter:
+
+```python
+@marvin.model(instructions='Always generate locations in California')
+class Location(BaseModel):
+    city: str
+    state: str
+
+Location('a large city')   
+# Location(city='Los Angeles', state='California')
+```
+
+Note that instructions are set at the class level, so they will apply to all instances of the model. To customize instructions on a per-instance basis, use `cast` with the `instructions` parameter instead.
+
 ## Async support
 If you are using `marvin` in an async environment, you can use `cast_async`:
 

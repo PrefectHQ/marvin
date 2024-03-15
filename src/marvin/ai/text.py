@@ -580,6 +580,7 @@ class Model(BaseModel):
         self,
         text: Optional[str] = None,
         *,
+        instructions: Optional[str] = None,
         model_kwargs: Optional[dict] = None,
         client: Optional[MarvinClient] = None,
         **kwargs,
@@ -590,6 +591,7 @@ class Model(BaseModel):
         Args:
             text (str, optional): The natural language string to convert into an
                 instance of the model. Defaults to None.
+            instructions (str, optional): Specific instructions for the conversion.
             model_kwargs (dict, optional): Additional keyword arguments for the
                 language model. Defaults to None.
             **kwargs: Additional keyword arguments to pass to the model's constructor.
@@ -597,7 +599,11 @@ class Model(BaseModel):
         ai_kwargs = kwargs
         if text is not None:
             ai_kwargs = cast(
-                text, type(self), model_kwargs=model_kwargs, client=client
+                text,
+                type(self),
+                instructions=instructions,
+                model_kwargs=model_kwargs,
+                client=client,
             ).model_dump()
             ai_kwargs.update(kwargs)
         super().__init__(**ai_kwargs)
@@ -654,6 +660,7 @@ def classifier(cls=None, *, instructions=None, model_kwargs=None):
 
 def model(
     type_: Union[Type[M], None] = None,
+    instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
     client: Optional[MarvinClient] = None,
 ) -> Union[Type[M], Callable[[Type[M]], Type[M]]]:
@@ -666,6 +673,7 @@ def model(
     Args:
         type_ (Union[Type[M], None], optional): The type of the Pydantic model.
             Defaults to None.
+        instructions (str, optional): Specific instructions for the conversion.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
 
@@ -679,7 +687,11 @@ def model(
             @wraps(cls.__init__)
             def __init__(self, *args, **kwargs):
                 super().__init__(
-                    *args, model_kwargs=model_kwargs, client=client, **kwargs
+                    *args,
+                    instructions=instructions,
+                    model_kwargs=model_kwargs,
+                    client=client,
+                    **kwargs,
                 )
 
         WrappedModel.__name__ = cls.__name__

@@ -156,20 +156,7 @@ class TestModels:
         assert isinstance(fruit, Fruit)
 
 
-@pytest.mark.skip(reason="old behavior, may revisit")
 class TestInstructions:
-    def test_instructions_error(self):
-        @marvin.model
-        class Test(BaseModel):
-            text: str
-
-        with pytest.raises(
-            ValueError, match="(Received `instructions` but this model)"
-        ):
-            Test("Hello!", instructions="Translate to French")
-        with pytest.raises(ValueError, match="(Received `model` but this model)"):
-            Test("Hello!", model=None)
-
     def test_instructions(self):
         @marvin.model
         class Text(BaseModel):
@@ -185,62 +172,6 @@ class TestInstructions:
 
         t2 = Text("Hello")
         assert t2.text == "Bonjour"
-
-    def test_follow_instance_instructions(self):
-        @marvin.model
-        class Test(BaseModel):
-            text: str
-
-        t1 = Test("Hello")
-        assert t1.text == "Hello"
-
-        # this model is identical except it has an instruction
-        @marvin.model
-        class Test(BaseModel):
-            text: str
-
-        t2 = Test("Hello", instructions_="first translate the text to French")
-        assert t2.text == "Bonjour"
-
-    def test_follow_global_and_instance_instructions(self):
-        @marvin.model(instructions="Always set color_1 to 'red'")
-        class Test(BaseModel):
-            color_1: str
-            color_2: str
-
-        t1 = Test("Hello", instructions_="Always set color_2 to 'blue'")
-        assert t1 == Test(color_1="red", color_2="blue")
-
-    def test_follow_docstring_and_global_and_instance_instructions(self):
-        @marvin.model(instructions="Always set color_1 to 'red'")
-        class Test(BaseModel):
-            """Always set color_3 to 'orange'"""
-
-            color_1: str
-            color_2: str
-            color_3: str
-
-        t1 = Test("Hello", instructions_="Always set color_2 to 'blue'")
-        assert t1 == Test(color_1="red", color_2="blue", color_3="orange")
-
-    def test_follow_multiple_instructions(self):
-        # ensure that instructions don't bleed to other invocations
-        @marvin.model
-        class Translation(BaseModel):
-            """Translates from one language to another language"""
-
-            original_text: str
-            translated_text: str
-
-        t1 = Translation("Hello, world!", instructions_="Translate to French")
-        t2 = Translation("Hello, world!", instructions_="Translate to German")
-
-        assert t1 == Translation(
-            original_text="Hello, world!", translated_text="Bonjour, monde!"
-        )
-        assert t2 == Translation(
-            original_text="Hello, world!", translated_text="Hallo, Welt!"
-        )
 
 
 class TestAsync:
