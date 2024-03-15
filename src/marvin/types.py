@@ -73,11 +73,11 @@ class ToolSet(MarvinType, Generic[T]):
     tool_choice: Optional[Union[Literal["auto"], dict[str, Any]]] = None
 
 
-class RetrievalTool(FunctionTool[T]):
+class RetrievalTool(Tool):
     type: Literal["retrieval"] = "retrieval"
 
 
-class CodeInterpreterTool(FunctionTool[T]):
+class CodeInterpreterTool(Tool):
     type: Literal["code_interpreter"] = "code_interpreter"
 
 

@@ -6,12 +6,12 @@ from openai.types.beta.threads.required_action_function_tool_call import (
 )
 from openai.types.beta.threads.run import Run as OpenAIRun
 from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
-from pydantic import BaseModel, Field, PrivateAttr, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 import marvin.utilities.openai
 import marvin.utilities.tools
 from marvin.tools.assistants import AssistantTool, CancelRun
-from marvin.types import FunctionTool
+from marvin.types import Tool
 from marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
 from marvin.utilities.logging import get_logger
 
@@ -39,6 +39,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         data (Any): Any additional data associated with the run.
     """
 
+    id: Optional[str] = None
     thread: Thread
     assistant: Assistant
     instructions: Optional[str] = Field(
@@ -61,12 +62,12 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
     data: Any = None
 
     @field_validator("tools", "additional_tools", mode="before")
-    def format_tools(cls, tools: Union[None, list[Union[FunctionTool, Callable]]]):
+    def format_tools(cls, tools: Union[None, list[Union[Tool, Callable]]]):
         if tools is not None:
             return [
                 (
                     tool
-                    if isinstance(tool, FunctionTool)
+                    if isinstance(tool, Tool)
                     else marvin.utilities.tools.tool_from_function(tool)
                 )
                 for tool in tools
@@ -77,7 +78,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         """Refreshes the run."""
         client = marvin.utilities.openai.get_openai_client()
         self.run = await client.beta.threads.runs.retrieve(
-            run_id=self.run.id, thread_id=self.thread.id
+            run_id=self.run.id if self.run else self.id, thread_id=self.thread.id
         )
 
     @expose_sync_method("cancel")
@@ -85,7 +86,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         """Cancels the run."""
         client = marvin.utilities.openai.get_openai_client()
         await client.beta.threads.runs.cancel(
-            run_id=self.run.id, thread_id=self.thread.id
+            run_id=self.run.id if self.run else self.id, thread_id=self.thread.id
         )
 
     async def _handle_step_requires_action(
@@ -156,6 +157,10 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         if self.tools is not None or self.additional_tools is not None:
             create_kwargs["tools"] = self.get_tools()
 
+        if self.id is not None:
+            raise ValueError(
+                "This run object was provided an ID; can not create a new run."
+            )
         async with self.assistant:
             self.run = await client.beta.threads.runs.create(
                 thread_id=self.thread.id,
@@ -195,24 +200,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
 
 class RunMonitor(BaseModel):
-    run_id: str
-    thread_id: str
-    _run: Run = PrivateAttr()
-    _thread: Thread = PrivateAttr()
+    run: Run
+    thread: Thread
     steps: list[OpenAIRunStep] = []
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._thread = Thread(**kwargs["thread_id"])
-        self._run = Run(**kwargs["run_id"], thread=self.thread)
-
-    @property
-    def thread(self):
-        return self._thread
-
-    @property
-    def run(self):
-        return self._run
 
     async def refresh_run_steps_async(self):
         """
