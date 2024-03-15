@@ -69,7 +69,7 @@ class FunctionTool(Tool, Generic[T]):
 
 
 class ToolSet(MarvinType, Generic[T]):
-    tools: Optional[list[Union[Tool, FunctionTool[T]]]] = None
+    tools: Optional[list[Union[FunctionTool[T], Tool]]] = None
     tool_choice: Optional[Union[Literal["auto"], dict[str, Any]]] = None
 
 
