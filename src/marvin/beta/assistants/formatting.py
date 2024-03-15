@@ -2,7 +2,13 @@ import tempfile
 from datetime import datetime
 
 import openai
-from openai.types.beta.threads import ThreadMessage
+
+# for openai < 1.14.0
+try:
+    from openai.types.beta.threads import ThreadMessage as Message
+# for openai >= 1.14.0
+except ImportError:
+    from openai.types.beta.threads import Message
 from openai.types.beta.threads.runs.run_step import RunStep
 from rich import box
 from rich.console import Console
@@ -38,7 +44,7 @@ from rich.panel import Panel
 #     for obj in combined:
 #         if isinstance(obj, RunStep):
 #             pprint_run_step(obj)
-#         elif isinstance(obj, ThreadMessage):
+#         elif isinstance(obj, Message):
 #             pprint_message(obj)
 
 
@@ -135,14 +141,14 @@ def download_temp_file(file_id: str, suffix: str = None):
     return temp_file_path
 
 
-def pprint_message(message: ThreadMessage):
+def pprint_message(message: Message):
     """
     Pretty-prints a single message using the rich library, highlighting the
     speaker's role, the message text, any available images, and the message
     timestamp in a panel format.
 
     Args:
-        message (ThreadMessage): A message object
+        message (Message): A message object
     """
     console = Console()
     role_colors = {
@@ -192,7 +198,7 @@ def pprint_message(message: ThreadMessage):
     console.print(panel)
 
 
-def pprint_messages(messages: list[ThreadMessage]):
+def pprint_messages(messages: list[Message]):
     """
     Iterates over a list of messages and pretty-prints each one.
 
@@ -201,7 +207,7 @@ def pprint_messages(messages: list[ThreadMessage]):
     timestamp in a panel format.
 
     Args:
-        messages (list[ThreadMessage]): A list of ThreadMessage objects to be
+        messages (list[Message]): A list of Message objects to be
             printed.
     """
     for message in messages:

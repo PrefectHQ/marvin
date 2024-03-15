@@ -23,8 +23,9 @@ dependencies = [
     "tiktoken>=0.4.0",
     "typer>=0.9.0",
     "typing_extensions>=4.0.0",
-    "tzdata>=2023.3", # need for windows
-    "uvicorn>=0.22.0"
+    # need for windows
+    "tzdata>=2023.3",
+    "uvicorn>=0.22.0",
 ]
 
 [project.optional-dependencies]
@@ -58,8 +59,13 @@ tests = [
 audio = [
     "SpeechRecognition>=3.10", 
     "PyAudio>=0.2.11",
+    # playsound reqs
     "playsound >= 1.0",
-    "pydub >= 0.25",
+    "wheel>=0.43.0",
+    "PyObjC",
+    # pydub reqs
+    "pydub>=0.25",
+    "simpleaudio>=1.0",
 ]
 video = [
     "opencv-python >= 4.5",

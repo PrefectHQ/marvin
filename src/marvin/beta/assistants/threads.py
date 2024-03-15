@@ -2,7 +2,12 @@ import asyncio
 import time
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
-from openai.types.beta.threads import ThreadMessage
+# for openai < 1.14.0
+try:
+    from openai.types.beta.threads import ThreadMessage as Message
+# for openai >= 1.14.0
+except ImportError:
+    from openai.types.beta.threads import Message
 from pydantic import BaseModel, Field, PrivateAttr
 
 import marvin.utilities.openai
@@ -34,7 +39,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
     id: Optional[str] = None
     metadata: dict = {}
-    messages: list[ThreadMessage] = Field([], repr=False)
+    messages: list[Message] = Field([], repr=False)
 
     def __enter__(self):
         return run_sync(self.__aenter__)
@@ -67,7 +72,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
     @expose_sync_method("add")
     async def add_async(
         self, message: str, file_paths: Optional[list[str]] = None, role: str = "user"
-    ) -> ThreadMessage:
+    ) -> Message:
         """
         Add a user message to the thread.
         """
@@ -87,7 +92,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         response = await client.beta.threads.messages.create(
             thread_id=self.id, role=role, content=message, file_ids=file_ids
         )
-        return ThreadMessage.model_validate(response.model_dump())
+        return response
 
     @expose_sync_method("get_messages")
     async def get_messages_async(
@@ -96,7 +101,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         before_message: Optional[str] = None,
         after_message: Optional[str] = None,
         json_compatible: bool = False,
-    ) -> list[Union[ThreadMessage, dict]]:
+    ) -> list[Union[Message, dict]]:
         """
         Asynchronously retrieves messages from the thread.
 
@@ -107,12 +112,12 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             after_message (str, optional): The ID of the message to start the list from,
                                             retrieving messages sent after this one.
             json_compatible (bool, optional): If True, returns messages as dictionaries.
-                                              If False, returns messages as ThreadMessage
+                                              If False, returns messages as Message
                                               objects. Default is False.
 
         Returns:
-            list[Union[ThreadMessage, dict]]: A list of messages from the thread, either
-                                              as dictionaries or ThreadMessage objects,
+            list[Union[Message, dict]]: A list of messages from the thread, either
+                                              as dictionaries or Message objects,
                                               depending on the value of json_compatible.
         """
 
@@ -130,7 +135,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             order="desc",
         )
 
-        T = dict if json_compatible else ThreadMessage
+        T = dict if json_compatible else Message
 
         return parse_as(list[T], reversed(response.model_dump()["data"]))
 
@@ -238,7 +243,7 @@ class ThreadMonitor(BaseModel, ExposeSyncMethodsMixin):
                 logger.error(f"Error refreshing thread: {exc}")
             await asyncio.sleep(interval_seconds)
 
-    async def get_latest_messages(self) -> list[ThreadMessage]:
+    async def get_latest_messages(self) -> list[Message]:
         limit = 20
 
         # Loop to get all new messages in batches of 20
