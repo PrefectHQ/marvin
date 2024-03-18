@@ -9,11 +9,39 @@ from marvin.beta.assistants.formatting import format_run
 
 
 class RunHandler(AssistantEventHandler):
-    pass
+    def get_final_messages(self):
+        # this errors if no messages were generated, which can happen
+        # when making tool calls
+        try:
+            return super().get_final_messages()
+        except RuntimeError:
+            return []
+
+    def get_final_run_steps(self):
+        # this errors if no run_steps were generated, which can happen
+        # when making tool calls
+        try:
+            return super().get_final_run_steps()
+        except RuntimeError:
+            return []
 
 
 class AsyncRunHandler(AsyncAssistantEventHandler):
-    pass
+    async def get_final_messages(self):
+        # this errors if no messages were generated, which can happen
+        # when making tool calls
+        try:
+            return await super().get_final_messages()
+        except RuntimeError:
+            return []
+
+    async def get_final_run_steps(self):
+        # this errors if no run_steps were generated, which can happen
+        # when making tool calls
+        try:
+            return await super().get_final_run_steps()
+        except RuntimeError:
+            return []
 
 
 class PrintRunHandler(AsyncRunHandler):

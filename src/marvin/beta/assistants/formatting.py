@@ -1,21 +1,21 @@
+import inspect
+import json
 import tempfile
 from datetime import datetime
 
 import openai
-
-# for openai < 1.14.0
-try:
-    from openai.types.beta.threads import ThreadMessage as Message
-# for openai >= 1.14.0
-except ImportError:
-    from openai.types.beta.threads import Message
+from openai.types.beta.threads import Message
 from openai.types.beta.threads.runs.run_step import RunStep
+from partialjson import JSONParser
 from rich import box
 from rich.console import Console, Group
+from rich.markdown import Markdown
 from rich.panel import Panel
 
+json_parser = JSONParser()
 
-def format_step(step: RunStep):
+
+def format_step(step: RunStep) -> list[Panel]:
     # Timestamp formatting
     timestamp = datetime.fromtimestamp(step.created_at).strftime("%l:%M:%S %p")
 
@@ -24,50 +24,89 @@ def format_step(step: RunStep):
         f"Assistant is performing an action: {step.type} - Status:" f" {step.status}"
     )
 
+    panels = []
+
     # attempt to customize content
     if step.type == "tool_calls":
         for tool_call in step.step_details.tool_calls:
             if tool_call.type == "code_interpreter":
-                if step.status == "in_progress":
-                    content = "Assistant is running the code interpreter..."
-                elif step.status == "completed":
-                    content = "Assistant ran the code interpreter."
+                if tool_call.code_interpreter.outputs:
+                    footer = inspect.cleandoc(
+                        """
+                        Result:
+                        
+                        ```python
+                        {result}
+                        ```
+                        """
+                    ).format(result=tool_call.code_interpreter.outputs[0].logs)
                 else:
-                    content = f"Assistant code interpreter status: {step.status}"
+                    footer = ""
+                content = inspect.cleandoc(
+                    """
+                    Assistant is running the code interpreter...
+                    
+                    ```python
+                    {input}
+                    ```
+                    
+                    {footer}
+                    """
+                ).format(input=tool_call.code_interpreter.input, footer=footer)
             elif tool_call.type == "function":
-                if step.status == "in_progress":
-                    content = (
-                        "Assistant would like to call the tool"
-                        f" `{tool_call.function.name}` with arguments"
-                        f" {tool_call.function.arguments}..."
-                    )
-                elif step.status == "completed":
-                    content = (
-                        "Assistant received output from the tool"
-                        f" `{tool_call.function.name}`."
-                    )
-                else:
-                    content = (
-                        f"Assistant tool `{tool_call.function.name}` status:"
-                        f" `{step.status}`"
-                    )
-    elif step.type == "message_creation":
-        return
+                try:
+                    args = json.loads(tool_call.function.arguments)
+                except json.JSONDecodeError:
+                    try:
+                        args = json_parser.parse(tool_call.function.arguments)
+                    except Exception:
+                        args = tool_call.function.arguments
 
-    # Create the panel for the run step status
-    panel = Panel(
-        content.strip(),
-        title="System",
-        subtitle=f"[italic]{timestamp}[/]",
-        title_align="left",
-        subtitle_align="right",
-        border_style="gray74",
-        box=box.ROUNDED,
-        width=100,
-        expand=True,
-        padding=(1, 2),
-    )
-    return panel
+                if tool_call.function.output:
+                    footer = inspect.cleandoc(
+                        """
+                        Result:
+                        
+                        ```python
+                        {result}
+                        ```
+                        """
+                    ).format(result=tool_call.function.output)
+                else:
+                    footer = ""
+
+                content = inspect.cleandoc(
+                    """
+                    Assistant is using the `{function}` tool with arguments:
+                    
+                    ```python
+                    {args}
+                    ```
+                    
+                    {footer}
+                    """
+                ).format(function=tool_call.function.name, args=args, footer=footer)
+
+            # Create the panel for the run step status
+            panels.append(
+                Panel(
+                    Markdown(inspect.cleandoc(content)),
+                    title="System",
+                    subtitle=f"[italic]{timestamp}[/]",
+                    title_align="left",
+                    subtitle_align="right",
+                    border_style="gray74",
+                    box=box.ROUNDED,
+                    width=100,
+                    expand=True,
+                    padding=(1, 2),
+                )
+            )
+
+    elif step.type == "message_creation":
+        pass
+
+    return Group(*panels)
 
 
 def pprint_run_step(step: RunStep):
@@ -144,7 +183,7 @@ def format_message(message: Message) -> Panel:
 
     # Create the panel for the message
     panel = Panel(
-        content.strip(),
+        Markdown(inspect.cleandoc(content)),
         title=f"[bold]{message.role.capitalize()}[/]",
         subtitle=f"[italic]{timestamp}[/]",
         title_align="left",

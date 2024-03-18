@@ -26,6 +26,7 @@ dependencies = [
     # need for windows
     "tzdata>=2023.3",
     "uvicorn>=0.22.0",
+    "partialjson>=0.0.5",
 ]
 
 [project.optional-dependencies]
