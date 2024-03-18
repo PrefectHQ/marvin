@@ -79,9 +79,6 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         # post the message
         user_message = await thread.add_async(message, file_paths=file_paths)
 
-        # if print:
-        #     pprint_message(user_message)
-
         return await thread.run_async(
             assistant=self,
             messages=[user_message],
