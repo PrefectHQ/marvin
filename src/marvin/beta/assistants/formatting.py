@@ -54,38 +54,45 @@ def format_step(step: RunStep) -> list[Panel]:
                     """
                 ).format(input=tool_call.code_interpreter.input, footer=footer)
             elif tool_call.type == "function":
-                try:
-                    args = json.loads(tool_call.function.arguments)
-                except json.JSONDecodeError:
-                    try:
-                        args = json_parser.parse(tool_call.function.arguments)
-                    except Exception:
-                        args = tool_call.function.arguments
+                if step.status == "in_progress":
+                    if tool_call.function.arguments:
+                        try:
+                            args = json.loads(tool_call.function.arguments)
+                        except json.JSONDecodeError:
+                            try:
+                                args = json_parser.parse(tool_call.function.arguments)
+                            except Exception:
+                                args = tool_call.function.arguments
 
-                if tool_call.function.output:
-                    footer = inspect.cleandoc(
-                        """
-                        Result:
-                        
-                        ```python
-                        {result}
-                        ```
-                        """
-                    ).format(result=tool_call.function.output)
-                else:
-                    footer = ""
+                        content = inspect.cleandoc(
+                            """
+                            Assistant wants to use the `{function}` tool with these arguments:
+                            
+                            ```python
+                            {args}
+                            ```
+                            """
+                        ).format(function=tool_call.function.name, args=args)
 
-                content = inspect.cleandoc(
-                    """
-                    Assistant is using the `{function}` tool with arguments:
-                    
-                    ```python
-                    {args}
-                    ```
-                    
-                    {footer}
-                    """
-                ).format(function=tool_call.function.name, args=args, footer=footer)
+                    else:
+                        content = f"Assistant wants to use the `{tool_call.function.name}` tool."
+
+                elif step.status == "completed":
+                    if tool_call.function.output:
+                        content = inspect.cleandoc(
+                            """
+                            The `{function}` tool generated this result:
+                            
+                            ```python
+                            {result}
+                            ```
+                            """
+                        ).format(
+                            function=tool_call.function.name,
+                            result=tool_call.function.output,
+                        )
+                    else:
+                        content = f"The `{tool_call.function.name}` tool has completed with no result."
 
             # Create the panel for the run step status
             panels.append(
