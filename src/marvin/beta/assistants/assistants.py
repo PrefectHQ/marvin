@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 import marvin.utilities.openai
 import marvin.utilities.tools
-from marvin.beta.assistants.formatting import pprint_message
 from marvin.tools.assistants import AssistantTool
 from marvin.types import Tool
 from marvin.utilities.asyncio import (
@@ -73,22 +72,20 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("say")
     async def say_async(
-        self,
-        message,
-        file_paths: Optional[list[str]] = None,
-        thread=None,
-        print: bool = True,
+        self, message, file_paths: Optional[list[str]] = None, thread=None, **run_kwargs
     ):
         thread = thread or self.default_thread
 
         # post the message
         user_message = await thread.add_async(message, file_paths=file_paths)
 
-        if print:
-            pprint_message(user_message)
+        # if print:
+        #     pprint_message(user_message)
 
         return await thread.run_async(
-            assistant=self, print=print, messages=[user_message]
+            assistant=self,
+            messages=[user_message],
+            **run_kwargs,
         )
 
     def __enter__(self):

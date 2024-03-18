@@ -1,6 +1,5 @@
-import asyncio
 import time
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Optional
 
 # for openai < 1.14.0
 try:
@@ -8,10 +7,9 @@ try:
 # for openai >= 1.14.0
 except ImportError:
     from openai.types.beta.threads import Message
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field
 
 import marvin.utilities.openai
-from marvin.beta.assistants.formatting import pprint_message
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -138,7 +136,6 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
     async def run_async(
         self,
         assistant: "Assistant",
-        print: bool = True,
         **run_kwargs,
     ) -> "Run":
         """
@@ -154,7 +151,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         from marvin.beta.assistants.runs import Run
 
         run = Run(assistant=assistant, thread=self, **run_kwargs)
-        return await run.run_async(print=print)
+        return await run.run_async()
 
     def chat(self, assistant: "Assistant"):
         """
@@ -176,87 +173,3 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
                     time.sleep(0.2)
                 except KeyboardInterrupt:
                     break
-
-
-class ThreadMonitor(BaseModel, ExposeSyncMethodsMixin):
-    """
-    The ThreadMonitor class represents a monitor for a specific thread.
-
-    Attributes:
-        thread_id (str): The unique identifier of the thread being monitored.
-        last_message_id (Optional[str]): The ID of the last message received in the thread.
-        on_new_message (Callable): A callback function that is called when a new message
-                                   is received in the thread.
-    """
-
-    thread_id: str
-    last_message_id: Optional[str] = None
-    on_new_message: Callable = Field(default=pprint_message)
-    _thread: Thread = PrivateAttr()
-
-    @property
-    def thread(self):
-        return self._thread
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._thread = Thread(id=kwargs["thread_id"])
-
-    @expose_sync_method("run_once")
-    async def run_once_async(self):
-        messages = await self.get_latest_messages()
-        for msg in messages:
-            if self.on_new_message:
-                self.on_new_message(msg)
-
-    @expose_sync_method("run")
-    async def run_async(self, interval_seconds: int = None):
-        """
-        Run the thread monitor in a loop, checking for new messages every `interval_seconds`.
-
-        Args:
-            interval_seconds (int, optional): The number of seconds to wait between
-                                              checking for new messages. Default is 1.
-        """
-        if interval_seconds is None:
-            interval_seconds = 1
-        if interval_seconds < 1:
-            raise ValueError("Interval must be at least 1 second.")
-
-        while True:
-            try:
-                await self.run_once_async()
-            except KeyboardInterrupt:
-                logger.debug("Keyboard interrupt received; exiting thread monitor.")
-                break
-            except Exception as exc:
-                logger.error(f"Error refreshing thread: {exc}")
-            await asyncio.sleep(interval_seconds)
-
-    async def get_latest_messages(self) -> list[Message]:
-        limit = 20
-
-        # Loop to get all new messages in batches of 20
-        while True:
-            messages = await self.thread.get_messages_async(
-                after_message=self.last_message_id, limit=limit
-            )
-
-            # often the API will retrieve messages that have been created but
-            # not populated with text. We filter out these empty messages.
-            filtered_messages = []
-            for i, msg in enumerate(messages):
-                skip_message = False
-                for c in msg.content:
-                    if getattr(getattr(c, "text", None), "value", None) == "":
-                        skip_message = True
-                if not skip_message:
-                    filtered_messages.append(msg)
-
-            if filtered_messages:
-                self.last_message_id = filtered_messages[-1].id
-
-            if len(messages) < limit:
-                break
-
-        return filtered_messages

@@ -373,21 +373,3 @@ Messages are not strings, but structured message objects. Marvin has a few utili
 ### Async support
 
 Every `Thread` method has a corresponding async version. To use the async API, append `_async` to the method name.
-
-## Monitors
-
-The assistants API is complex and stateful, with automatic memory management and the potential for assistants to respond to threads multiple times before giving control back to users. Therefore, monitoring the status of a conversation is considerably more difficult than with other LLM API's such as chat completions, which have much more simple request-response patterns.
-
-Marvin has utilites for monitoring the status of a thread and taking action whenever a new message is added to it. This can be a useful way to debug activity or create notifications. Please note that monitors are not intended to be used for real-time chat applications or production use.
-
-```python
-from marvin.beta.assistants import ThreadMonitor
-
-monitor = ThreadMonitor(thread_id=thread.id)
-
-monitor.run()
-```
-
-You can customize the `ThreadMonitor` by providing a callback function to the `on_new_message` parameter. This function will be called whenever a new message is added to the thread. The function will be passed the new message as a parameter. By default, the monitor will pretty-print every new message to the console.
-
-`monitor.run()` is a blocking call that will run forever, polling for messages every second (to customize the interval, pass `interval_seconds` to the method). It has an async equivalent `monitor.run_async()`. Because it's blocking, you can run a thread monitor in a separate session from the one that is running the thread itself.

@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 import marvin.utilities.openai
 import marvin.utilities.tools
+from marvin.beta.assistants.handlers import AsyncRunHandler, PrintRunHandler, RunHandler
 from marvin.tools.assistants import AssistantTool, CancelRun
 from marvin.types import Tool
 from marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
@@ -36,9 +37,14 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         data (Any): Any additional data associated with the run.
     """
 
+    model_config: dict = dict(extra="forbid")
+
     thread: Thread
     assistant: Assistant
-    id: Optional[str] = None
+    event_handler_class: type[Union[RunHandler, AsyncRunHandler]] = Field(
+        default=PrintRunHandler
+    )
+    event_handler_kwargs: dict[str, Any] = Field(default={})
     _messages: list[Message] = PrivateAttr({})
     _steps: list[OpenAIRunStep] = PrivateAttr({})
     instructions: Optional[str] = Field(
@@ -77,6 +83,16 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 for tool in tools
             ]
 
+    @field_validator("event_handler_class", mode="before")
+    def no_event_handler(
+        cls, event_handler_class: type[Union[RunHandler, AsyncRunHandler]]
+    ):
+        # the default event handler is a PrintRunHandler but if None is passed,
+        # we use a no-op handler
+        if event_handler_class is None:
+            return AsyncRunHandler
+        return event_handler_class
+
     @property
     def messages(self) -> list[Message]:
         return sorted(self._messages.values(), key=lambda m: m.created_at)
@@ -88,18 +104,23 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
     @expose_sync_method("refresh")
     async def refresh_async(self):
         """Refreshes the run."""
+        if not self.run:
+            raise ValueError("Run has not been created yet.")
         client = marvin.utilities.openai.get_openai_client()
         self.run = await client.beta.threads.runs.retrieve(
-            run_id=self.run.id if self.run else self.id, thread_id=self.thread.id
+            run_id=self.run.id, thread_id=self.thread.id
         )
 
     @expose_sync_method("cancel")
     async def cancel_async(self):
         """Cancels the run."""
+        if not self.run:
+            raise ValueError("Run has not been created yet.")
         client = marvin.utilities.openai.get_openai_client()
         await client.beta.threads.runs.cancel(
-            run_id=self.run.id if self.run else self.id, thread_id=self.thread.id
+            run_id=self.run.id, thread_id=self.thread.id
         )
+        await self.refresh_async()
 
     def get_instructions(self) -> str:
         if self.instructions is None:
@@ -151,62 +172,72 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
             return tool_outputs
 
-    async def run_async(self, print: bool = True):
+    async def run_async(self):
         client = marvin.utilities.openai.get_openai_client()
 
-        create_kwargs = {}
-
+        run_kwargs = {}
         if self.instructions is not None or self.additional_instructions is not None:
-            create_kwargs["instructions"] = self.get_instructions()
+            run_kwargs["instructions"] = self.get_instructions()
 
         if self.tools is not None or self.additional_tools is not None:
-            create_kwargs["tools"] = self.get_tools()
+            run_kwargs["tools"] = self.get_tools()
 
-        if self.id is not None:
+        if self.run is not None:
             raise ValueError(
                 "This run object was provided an ID; can not create a new run."
             )
         with self.assistant:
-            from .streaming import RunHandler
-
-            handler = RunHandler(print=print)
+            handler = self.event_handler_class(**self.event_handler_kwargs)
 
             try:
                 self.assistant.pre_run_hook()
+
+                for msg in self.messages:
+                    await handler.on_message_done(msg)
 
                 async with client.beta.threads.runs.create_and_stream(
                     thread_id=self.thread.id,
                     assistant_id=self.assistant.id,
                     event_handler=handler,
-                    **create_kwargs,
+                    **run_kwargs,
                 ) as stream:
                     await stream.until_done()
-                    self.id = handler.current_run.id
-                    self._messages.update(handler._messages)
-                    self._steps.update(handler._steps)
+                    self.run = handler.current_run
+                    self._messages.update(
+                        {m.id: m for m in await handler.get_final_messages()}
+                    )
+                    self._steps.update(
+                        {s.id: s for s in await handler.get_final_run_steps()}
+                    )
 
                 while handler.current_run.status in ["requires_action"]:
                     tool_outputs = await self.get_tool_outputs(run=handler.current_run)
-                    handler = RunHandler(print=print)
+                    handler = self.event_handler_class(**self.event_handler_kwargs)
                     async with client.beta.threads.runs.submit_tool_outputs_stream(
                         thread_id=self.thread.id,
-                        run_id=self.id,
+                        run_id=self.run.id,
                         tool_outputs=tool_outputs,
                         event_handler=handler,
                     ) as stream:
                         await stream.until_done()
-                        self._messages.update(handler._messages)
-                        self._steps.update(handler._steps)
+                        self.run = handler.current_run
+                        self._messages.update(
+                            {m.id: m for m in await handler.get_final_messages()}
+                        )
+                        self._steps.update(
+                            {s.id: s for s in await handler.get_final_run_steps()}
+                        )
 
             except CancelRun as exc:
                 logger.debug(f"`CancelRun` raised; ending run with data: {exc.data}")
-                await client.beta.threads.runs.cancel(
-                    run_id=self.id, thread_id=self.thread.id
-                )
+                await self.cancel_async()
                 self.data = exc.data
-                await self.refresh_async()
 
-            if handler.current_run.status == "failed":
+            except Exception as exc:
+                await handler.on_exception(exc)
+                raise
+
+            if self.run.status == "failed":
                 logger.debug(
                     f"Run failed. Last error was: {handler.current_run.last_error}"
                 )
