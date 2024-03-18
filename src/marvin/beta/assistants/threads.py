@@ -138,6 +138,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
     async def run_async(
         self,
         assistant: "Assistant",
+        print: bool = True,
         **run_kwargs,
     ) -> "Run":
         """
@@ -153,7 +154,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         from marvin.beta.assistants.runs import Run
 
         run = Run(assistant=assistant, thread=self, **run_kwargs)
-        return await run.run_async()
+        return await run.run_async(print=print)
 
     def chat(self, assistant: "Assistant"):
         """

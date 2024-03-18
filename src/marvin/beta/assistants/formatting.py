@@ -11,96 +11,53 @@ except ImportError:
     from openai.types.beta.threads import Message
 from openai.types.beta.threads.runs.run_step import RunStep
 from rich import box
-from rich.console import Console
+from rich.console import Console, Group
 from rich.panel import Panel
 
-# def pprint_run(run: Run):
-#     """
-#     Runs are comprised of steps and messages, which are each in a sorted list
-#     BUT the created_at timestamps only have second-level resolution, so we can't
-#     easily sort the lists. Instead we walk them in order and combine them giving
-#     ties to run steps.
-#     """
-#     index_steps = 0
-#     index_messages = 0
-#     combined = []
 
-#     while index_steps < len(run.steps) and index_messages < len(run.messages):
-#         if (run.steps[index_steps].created_at
-#             <= run.messages[index_messages].created_at):
-#             combined.append(run.steps[index_steps])
-#             index_steps += 1
-#         elif (
-#             run.steps[index_steps].created_at
-#             > run.messages[index_messages].created_at
-#         ):
-#             combined.append(run.messages[index_messages])
-#             index_messages += 1
-
-#     # Add any remaining items from either list
-#     combined.extend(run.steps[index_steps:])
-#     combined.extend(run.messages[index_messages:])
-
-#     for obj in combined:
-#         if isinstance(obj, RunStep):
-#             pprint_run_step(obj)
-#         elif isinstance(obj, Message):
-#             pprint_message(obj)
-
-
-def pprint_run_step(run_step: RunStep):
-    """
-    Formats and prints a run step with status information.
-
-    Args:
-        run_step: A RunStep object containing the details of the run step.
-    """
+def format_step(step: RunStep):
     # Timestamp formatting
-    timestamp = datetime.fromtimestamp(run_step.created_at).strftime("%l:%M:%S %p")
+    timestamp = datetime.fromtimestamp(step.created_at).strftime("%l:%M:%S %p")
 
     # default content
     content = (
-        f"Assistant is performing an action: {run_step.type} - Status:"
-        f" {run_step.status}"
+        f"Assistant is performing an action: {step.type} - Status:" f" {step.status}"
     )
 
     # attempt to customize content
-    if run_step.type == "tool_calls":
-        for tool_call in run_step.step_details.tool_calls:
+    if step.type == "tool_calls":
+        for tool_call in step.step_details.tool_calls:
             if tool_call.type == "code_interpreter":
-                if run_step.status == "in_progress":
+                if step.status == "in_progress":
                     content = "Assistant is running the code interpreter..."
-                elif run_step.status == "completed":
+                elif step.status == "completed":
                     content = "Assistant ran the code interpreter."
                 else:
-                    content = f"Assistant code interpreter status: {run_step.status}"
+                    content = f"Assistant code interpreter status: {step.status}"
             elif tool_call.type == "function":
-                if run_step.status == "in_progress":
+                if step.status == "in_progress":
                     content = (
-                        "Assistant used the tool"
+                        "Assistant would like to call the tool"
                         f" `{tool_call.function.name}` with arguments"
                         f" {tool_call.function.arguments}..."
                     )
-                elif run_step.status == "completed":
+                elif step.status == "completed":
                     content = (
-                        "Assistant used the tool"
-                        f" `{tool_call.function.name}` with arguments"
-                        f" {tool_call.function.arguments}."
+                        "Assistant received output from the tool"
+                        f" `{tool_call.function.name}`."
                     )
                 else:
                     content = (
                         f"Assistant tool `{tool_call.function.name}` status:"
-                        f" `{run_step.status}`"
+                        f" `{step.status}`"
                     )
-    elif run_step.type == "message_creation":
+    elif step.type == "message_creation":
         return
-
-    console = Console()
 
     # Create the panel for the run step status
     panel = Panel(
         content.strip(),
-        title="Assistant Run Step",
+        title="System",
         subtitle=f"[italic]{timestamp}[/]",
         title_align="left",
         subtitle_align="right",
@@ -108,9 +65,24 @@ def pprint_run_step(run_step: RunStep):
         box=box.ROUNDED,
         width=100,
         expand=True,
-        padding=(0, 1),
+        padding=(1, 2),
     )
-    # Printing the panel
+    return panel
+
+
+def pprint_run_step(step: RunStep):
+    """
+    Formats and prints a run step with status information.
+
+    Args:
+        run_step: A RunStep object containing the details of the run step.
+    """
+    panel = format_step(step)
+
+    if not panel:
+        return
+
+    console = Console()
     console.print(panel)
 
 
@@ -141,16 +113,7 @@ def download_temp_file(file_id: str, suffix: str = None):
     return temp_file_path
 
 
-def pprint_message(message: Message):
-    """
-    Pretty-prints a single message using the rich library, highlighting the
-    speaker's role, the message text, any available images, and the message
-    timestamp in a panel format.
-
-    Args:
-        message (Message): A message object
-    """
-    console = Console()
+def format_message(message: Message) -> Panel:
     role_colors = {
         "user": "green",
         "assistant": "blue",
@@ -193,8 +156,20 @@ def pprint_message(message: Message):
         expand=True,  # Panels always expand to the width of the console
         padding=(1, 2),
     )
+    return panel
 
-    # Printing the panel
+
+def pprint_message(message: Message):
+    """
+    Pretty-prints a single message using the rich library, highlighting the
+    speaker's role, the message text, any available images, and the message
+    timestamp in a panel format.
+
+    Args:
+        message (Message): A message object
+    """
+    console = Console()
+    panel = format_message(message)
     console.print(panel)
 
 
@@ -212,3 +187,27 @@ def pprint_messages(messages: list[Message]):
     """
     for message in messages:
         pprint_message(message)
+
+
+def format_run(run) -> list[Panel]:
+    """
+    Formats a run, which is an object that has both `.messages` and `.steps` attributes, each of which is a list of Messages and RunSteps.
+    """
+
+    sorted_objects = sorted(
+        [(format_message(m), m.created_at) for m in run.messages]
+        + [(format_step(s), s.created_at) for s in run.steps],
+        key=lambda x: x[1],
+    )
+    return [x[0] for x in sorted_objects if x[0] is not None]
+
+
+def pprint_run(run):
+    """
+    Pretty-prints a run, which is an object that has both `.messages` and `.steps` attributes, each of which is a list of Messages and RunSteps.
+    Args:
+        run: A Run object
+    """
+    console = Console()
+    panels = format_run(run)
+    console.print(Group(*panels))

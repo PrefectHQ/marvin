@@ -1,12 +1,10 @@
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
-from openai.types.beta.threads.required_action_function_tool_call import (
-    RequiredActionFunctionToolCall,
-)
 from pydantic import BaseModel, Field, PrivateAttr
 
 import marvin.utilities.openai
 import marvin.utilities.tools
+from marvin.beta.assistants.formatting import pprint_message
 from marvin.tools.assistants import AssistantTool
 from marvin.types import Tool
 from marvin.utilities.asyncio import (
@@ -16,7 +14,7 @@ from marvin.utilities.asyncio import (
 )
 from marvin.utilities.logging import get_logger
 
-from .threads import Message, Thread
+from .threads import Thread
 
 if TYPE_CHECKING:
     from .runs import Run
@@ -76,34 +74,22 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     @expose_sync_method("say")
     async def say_async(
         self,
-        message: str,
+        message,
         file_paths: Optional[list[str]] = None,
-        thread: Optional[Thread] = None,
-        return_user_message: bool = False,
-        **run_kwargs,
-    ) -> list[Message]:
-        """
-        A convenience method for adding a user message to the assistant's
-        default thread, running the assistant, and returning the assistant's
-        messages.
-        """
+        thread=None,
+        print: bool = True,
+    ):
         thread = thread or self.default_thread
 
         # post the message
         user_message = await thread.add_async(message, file_paths=file_paths)
 
-        # run the thread
-        async with self:
-            await thread.run_async(assistant=self, **run_kwargs)
+        if print:
+            pprint_message(user_message)
 
-        # load all messages, including the user message
-        response_messages = await thread.get_messages_async(
-            after_message=user_message.id
+        return await thread.run_async(
+            assistant=self, print=print, messages=[user_message]
         )
-
-        if return_user_message:
-            response_messages = [user_message] + response_messages
-        return response_messages
 
     def __enter__(self):
         return run_sync(self.__aenter__())
@@ -176,13 +162,8 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             thread = self.default_thread
         return thread.chat(assistant=self)
 
-    def pre_run_hook(self, run: "Run"):
+    def pre_run_hook(self):
         pass
 
-    def post_run_hook(
-        self,
-        run: "Run",
-        tool_calls: Optional[list[RequiredActionFunctionToolCall]] = None,
-        tool_outputs: Optional[list[dict[str, str]]] = None,
-    ):
+    def post_run_hook(self, run: "Run"):
         pass
