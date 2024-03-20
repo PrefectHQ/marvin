@@ -90,11 +90,17 @@ marvin thread current
 
 The Marvin CLI allows you to register and use custom assistants in addition to the default assistant. Custom assistants are defined in Python files and can have their own set of instructions, tools, and behaviors.
 
-### Registering an assistant
+Using a custom assistant has the following workflow:
 
-To register a custom assistant, create a Python file that defines an instance of the `Assistant` class from the `marvin.beta.assistants` module. To learn more about creating assistants and available options, see the [assistants documentation](/docs/interactive/assistants/).
+1. Define the assistant in a Python file
+2. Register the assistant with the Marvin CLI
+3. Use the assistant in the CLI
 
-Next, use the Marvin CLI to register the assistant by providing the fully-qualified path to the Python file and the variable that contains the assistant. For example, if you saved a file `custom_assistant.py` with the following contents:
+### Defining an assistant
+
+To use a custom assistant, you must define it in a Python file. In a new file, create an instance of the `Assistant` class from the `marvin.beta.assistants`. Provide it with any desired options, such as a name, instructions, and tools. To learn more about creating assistants, see the [assistants documentation](/docs/interactive/assistants/). The only requirement is that the assistant object must be assigned to a global variable in the file so that the CLI can load it.
+
+For example, this file defines an assistant named "Arthur" that can use the code interpreter. The assistant is stored under the variable `my_assistant`.
 
 ```python
 # path/to/custom_assistant.py
@@ -108,22 +114,25 @@ my_assistant = Assistant(
 )
 ```
 
-Then you would register this assistant with the following command:
+### Registering an assistant
+
+Once you've created a Python file that defines an assistant, you can register it with the Marvin CLI. This allows you to use the assistant in the CLI by name.
+
+To do so, use the `marvin assistant register` command followed by the fully-qualified path to the Python file *and* the variable that contains the assistant. For example, to register the assistant defined in the previous step, use the following command:
 
 ```bash
 marvin assistant register path/to/custom_assistant.py:my_assistant
 ```
 
-This will automatically use the assistant's name (Arthur) as the name of the assistant in the Marvin CLI registry. Each registered assistant must have a unique name, so you can override the name during registration with the `--name` or `-n` flag. For example:
+This command will automatically use the assistant's name (Arthur) as the name of the assistant in the Marvin CLI registry. You will need to provide the name to load the assistant, which is why each registered assistant must have a unique name. Registering an assistant with the same name as an existing one will fail. In this case, you can either delete the existing assistant or use the `--overwrite` or `-o` flag to overwrite it. You can also provide an alternative name during registration using the `--name` or `-n` flag. For example, this would register the assistant with the name "My Custom Assistant":
 
 ```bash
 marvin assistant register path/to/custom_assistant.py:my_assistant -n "My Custom Assistant"
 ```
 
-By default, registering an assistant with the same name as an existing one will fail. To overwrite an existing assistant, use the --overwrite or -o flag.
 
 !!! warning 
-    When you register an assistant, its name and the path to the file are stored in the Marvin registry. This allows the CLI to load the assistant whenever you need it. However, it means the assistant file must remain in the same location, with the same name, for the CLI to find it. If you move or rename the file, you will need to re-register the assistant. However, if you edit the file without changing the variable name of the assistant, the CLI will automatically use the updated assistant.
+    When you register an assistant, its name and the path to the file that contains it are stored in the Marvin CLI registry. This allows the CLI to load the assistant whenever you need it. However, it means the assistant file **must** remain in the same location, with the same name, for the CLI to find it. If you move or rename the file, you will need to re-register the assistant. However, if you edit the file without changing the variable name of the assistant, the CLI will automatically use the updated assistant.
 
 
 
@@ -136,6 +145,14 @@ marvin say "Hello!" -a "Arthur"
 ```
 
 You can also set a default assistant using the MARVIN_CLI_ASSISTANT environment variable, similar to setting a default thread. This allows you to set a global or session-specific default assistant.
+
+#### Mixing threads and assistants
+
+Threads and assistants are independent, so you can talk to multiple assistants in the same thread. Note that due to limitations in the OpenAI API, assistants aren't aware of other assistants, so they assume that they said everything in the thread history (even if another assistant did).
+
+```bash
+marvin say "Hello!" -a "Arthur" -t "marvin-thread"
+```
 
 ### Listing registered assistants
 
