@@ -42,9 +42,9 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         instructions (list): List of instructions for the assistant.
     """
 
-    model_config = dict(extra="forbid")
     id: Optional[str] = None
     name: str = "Assistant"
+    description: Optional[str] = None
     model: str = Field(None, validate_default=True)
     instructions: Optional[str] = Field(None, repr=False)
     tools: list[Union[AssistantTool, Callable]] = []
