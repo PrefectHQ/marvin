@@ -66,7 +66,7 @@ def current():
 
 
 @threads_app.command()
-def reset(
+def clear(
     thread: str = typer.Option(
         DEFAULT_THREAD_NAME,
         "--thread",
@@ -76,7 +76,7 @@ def reset(
     ),
 ):
     thread_data = create_thread(thread)
-    typer.echo(f"Thread '{thread_data.name}' reset. New ID: {thread_data.id}")
+    typer.echo(f"Thread '{thread_data.name}' cleared. New ID: {thread_data.id}")
 
 
 if __name__ == "__main__":

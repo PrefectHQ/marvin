@@ -63,18 +63,18 @@ marvin say "Hello!"
 marvin say "How are you?"
 ```
 
-### Resetting threads
+### Clearing threads
 
-To reset a thread and clear its history, use the `reset` command. For example, this resets the default thread:
+To reset a thread and clear its history, use the `clear` command. For example, this clears the default thread:
 
 ```bash
-marvin thread reset
+marvin thread clear
 ```
 
-And this resets a thread called "my-thread":
+And this clears a thread called "my-thread":
 
 ```bash
-marvin thread reset -t my-thread
+marvin thread clear -t my-thread
 ```
 
 

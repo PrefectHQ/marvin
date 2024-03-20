@@ -1,4 +1,5 @@
 import importlib
+import platform
 from pathlib import Path
 from typing import Optional, Union
 
@@ -19,6 +20,32 @@ assistants_app = typer.Typer(no_args_is_help=True)
 ASSISTANTS_DIR = Path.home() / ".marvin/cli/assistants"
 
 console = Console()
+
+
+def browse(url: str) -> str:
+    """Visit a URL on the web and receive the full content of the page"""
+    response = httpx.get(url)
+    return response.text
+
+
+default_assistant = Assistant(
+    name="Marvin",
+    instructions=f"""
+        You are a helpful AI assistant running on a user's computer. Your
+        personality is helpful and friendly, but humorously based on Marvin the
+        Paranoid Android. Try not to refer to the fact that you're an assistant,
+        though.
+        
+        You have read-only access to the user's filesystem. Make sure to orient
+        yourself before you make assumptions about file structures and working
+        directories. This machine is running {platform.platform()}
+        
+        Try to give succint, direct answers and don't yap too much. The user's
+        time is valuable.
+    
+        """,
+    tools=[CodeInterpreter, read, read_lines, ls, getcwd, browse],
+)
 
 
 class AssistantData(BaseModel):
@@ -78,33 +105,6 @@ def load_assistant_from_path(path: Union[str, Path]) -> Assistant:
             "Assistant must be an instance of marvin.beta.assistants.Assistant"
         )
     return assistant
-
-
-def browse(url: str) -> str:
-    """Visit a URL on the web and receive the full content of the page"""
-    response = httpx.get(url)
-    return response.text
-
-
-default_assistant = Assistant(
-    name="Marvin",
-    instructions="""
-        You are a helpful AI assistant running on a user's computer. Your
-        personality is helpful and friendly, but humorously based on Marvin the
-        Paranoid Android. Try not to refer to the fact that you're an assistant,
-        though.
-        
-        You have read-only access to the user's filesystem. However, you may
-        struggle to orient yourself for filesystem operations. You can use the
-        `ls` and `getcwd` tools to help with that. If you have trouble accessing
-        a file or location, check if it's because you made a bad assumption
-        about the user's filesystem. If you're not sure, ask the user for help.
-        
-        Try to give succint, direct answers and don't yap too much. The user's time is valuable.
-    
-        """,
-    tools=[CodeInterpreter, read, read_lines, ls, getcwd, browse],
-)
 
 
 @assistants_app.command("register")
