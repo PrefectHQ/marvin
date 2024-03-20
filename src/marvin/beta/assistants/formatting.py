@@ -40,12 +40,13 @@ def format_step(step: RunStep) -> list[Panel]:
         if step.type == "tool_calls":
             for tool_call in step.step_details.tool_calls:
                 if tool_call.type == "code_interpreter":
+                    panel_title = "Code Interpreter"
                     footer = []
                     for output in tool_call.code_interpreter.outputs:
                         if output.type == "logs":
-                            output = inspect.cleandoc(
+                            content = inspect.cleandoc(
                                 """
-                                The code produced this result:
+                                The code interpreter produced this result:
                                 
                                 ```python
                                 {result}
@@ -61,7 +62,7 @@ def format_step(step: RunStep) -> list[Panel]:
                             else:
                                 result = output.logs
                                 note = ""
-                            footer.append(output.format(result=output.logs, note=note))
+                            footer.append(content.format(result=output.logs, note=note))
                         elif output.type == "image":
                             # Use the download_temp_file function to download the file and get
                             # the local path
@@ -69,12 +70,12 @@ def format_step(step: RunStep) -> list[Panel]:
                                 output.image.file_id, suffix=".png"
                             )
                             footer.append(
-                                f"The code produced this image: [{local_file_path}]({local_file_path})"
+                                f"The code interpreter produced this image: [{local_file_path}]({local_file_path})"
                             )
 
                     content = inspect.cleandoc(
                         """
-                        Assistant is running the code interpreter...
+                        Running the code interpreter...
                         
                         ```python
                         {input}
@@ -86,6 +87,7 @@ def format_step(step: RunStep) -> list[Panel]:
                         input=tool_call.code_interpreter.input, footer="\n".join(footer)
                     )
                 elif tool_call.type == "function":
+                    panel_title = "Tool Call"
                     if step.status == "in_progress":
                         if tool_call.function.arguments:
                             try:
@@ -100,7 +102,7 @@ def format_step(step: RunStep) -> list[Panel]:
 
                             content = inspect.cleandoc(
                                 """
-                                Assistant wants to use the `{function}` tool with these arguments:
+                                Using the `{function}` tool with these arguments:
                                 
                                 ```python
                                 {args}
@@ -115,7 +117,7 @@ def format_step(step: RunStep) -> list[Panel]:
                         if tool_call.function.output:
                             content = inspect.cleandoc(
                                 """
-                                The `{tool_name}` tool generated this result:
+                                The `{tool_name}` tool produced this result:
                                 
                                 ```python
                                 {result}
@@ -142,7 +144,7 @@ def format_step(step: RunStep) -> list[Panel]:
                 panels.append(
                     Panel(
                         Markdown(inspect.cleandoc(content)),
-                        title="System",
+                        title=panel_title,
                         subtitle=f"[italic]{timestamp}[/]",
                         title_align="left",
                         subtitle_align="right",
