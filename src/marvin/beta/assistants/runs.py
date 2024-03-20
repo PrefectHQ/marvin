@@ -64,7 +64,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         None,
         description="Additional tools to append to the assistant's tools. ",
     )
-    run: OpenAIRun = None
+    run: OpenAIRun = Field(None, repr=False)
     data: Any = None
 
     def __init__(self, *, messages: list[Message] = None, **data):
