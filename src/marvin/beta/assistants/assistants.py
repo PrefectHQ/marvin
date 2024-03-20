@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
+from openai import AssistantEventHandler, AsyncAssistantEventHandler
 from pydantic import BaseModel, Field, PrivateAttr
 
 import marvin.utilities.openai
@@ -76,12 +77,14 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     @expose_sync_method("say")
     async def say_async(
         self,
-        message,
+        message: str,
         file_paths: Optional[list[str]] = None,
-        thread=None,
-        event_handler_class=NOT_PROVIDED,
+        thread: Optional[Thread] = None,
+        event_handler_class: type[
+            Union[AssistantEventHandler, AsyncAssistantEventHandler]
+        ] = NOT_PROVIDED,
         **run_kwargs,
-    ):
+    ) -> "Run":
         thread = thread or self.default_thread
 
         if event_handler_class is NOT_PROVIDED:

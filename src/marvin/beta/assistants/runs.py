@@ -163,7 +163,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
             return tool_outputs
 
-    async def run_async(self):
+    async def run_async(self) -> "Run":
         event_handler_class = self.event_handler_class or AsyncAssistantEventHandler
         client = marvin.utilities.openai.get_openai_client()
 
