@@ -27,6 +27,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
     Attributes:
         thread (Thread): The thread in which the run is executed.
         assistant (Assistant): The assistant that is being run.
+        model (str, optional): The model used by the assistant.
         instructions (str, optional): Replacement instructions for the run.
         additional_instructions (str, optional): Additional instructions to append
                                                  to the assistant's instructions.
