@@ -48,6 +48,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
     event_handler_kwargs: dict[str, Any] = Field(default={})
     _messages: list[Message] = PrivateAttr({})
     _steps: list[OpenAIRunStep] = PrivateAttr({})
+    model: Optional[str] = Field(
+        None, description="Replace the model used by the assistant."
+    )
     instructions: Optional[str] = Field(
         None, description="Replacement instructions to use for the run."
     )
@@ -113,7 +116,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         )
         await self.refresh_async()
 
-    def get_instructions(self) -> str:
+    def _get_instructions(self) -> str:
         if self.instructions is None:
             instructions = self.assistant.get_instructions() or ""
         else:
@@ -124,7 +127,14 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
         return instructions
 
-    def get_tools(self) -> list[AssistantTool]:
+    def _get_model(self) -> str:
+        if self.model is None:
+            model = self.assistant.model
+        else:
+            model = self.model
+        return model
+
+    def _get_tools(self) -> list[AssistantTool]:
         tools = []
         if self.tools is None:
             tools.extend(self.assistant.get_tools())
@@ -134,13 +144,27 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             tools.extend(self.additional_tools)
         return tools
 
+    def _get_run_kwargs(self, **run_kwargs) -> dict:
+        if "instructions" not in run_kwargs and (
+            self.instructions is not None or self.additional_instructions is not None
+        ):
+            run_kwargs["instructions"] = self._get_instructions()
+
+        if "tools" not in run_kwargs and (
+            self.tools is not None or self.additional_tools is not None
+        ):
+            run_kwargs["tools"] = self._get_tools()
+        if "model" not in run_kwargs and self.model is not None:
+            run_kwargs["model"] = self._get_model()
+        return run_kwargs
+
     async def get_tool_outputs(self, run: OpenAIRun) -> list[dict[str, str]]:
         if run.status != "requires_action":
             return None, None
         if run.required_action.type == "submit_tool_outputs":
             tool_calls = []
             tool_outputs = []
-            tools = self.get_tools()
+            tools = self._get_tools()
 
             for tool_call in run.required_action.submit_tool_outputs.tool_calls:
                 try:
@@ -164,20 +188,14 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             return tool_outputs
 
     async def run_async(self) -> "Run":
-        event_handler_class = self.event_handler_class or AsyncAssistantEventHandler
-        client = marvin.utilities.openai.get_openai_client()
-
-        run_kwargs = {}
-        if self.instructions is not None or self.additional_instructions is not None:
-            run_kwargs["instructions"] = self.get_instructions()
-
-        if self.tools is not None or self.additional_tools is not None:
-            run_kwargs["tools"] = self.get_tools()
-
         if self.run is not None:
             raise ValueError(
                 "This run object was provided an ID; can not create a new run."
             )
+        client = marvin.utilities.openai.get_openai_client()
+        run_kwargs = self._get_run_kwargs()
+        event_handler_class = self.event_handler_class or AsyncAssistantEventHandler
+
         with self.assistant:
             handler = event_handler_class(**self.event_handler_kwargs)
 
