@@ -87,7 +87,6 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         if event_handler_class is NOT_PROVIDED:
             event_handler_class = PrintHandler
 
-        print("----------\n\n\n")
         # post the message
         user_message = await thread.add_async(message, file_paths=file_paths)
 
@@ -102,7 +101,6 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             **run_kwargs,
         )
         result = await run.run_async()
-        print("\n\n\n----------")
 
         return result
 
