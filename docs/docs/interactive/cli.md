@@ -65,7 +65,7 @@ marvin say "How are you?"
 
 ### Resetting threads
 
-To reset a thread, use the `reset` command. This will give you a completely fresh history and context for the thread. For example, this resets the default thread:
+To reset a thread and clear its history, use the `reset` command. For example, this resets the default thread:
 
 ```bash
 marvin thread reset
@@ -76,6 +76,7 @@ And this resets a thread called "my-thread":
 ```bash
 marvin thread reset -t my-thread
 ```
+
 
 ### Current thread
 
