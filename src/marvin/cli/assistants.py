@@ -125,12 +125,6 @@ def register_assistant(
         "-o",
         help="Overwrite the existing assistant, if it exists.",
     ),
-    copy_file: bool = typer.Option(
-        False,
-        "--copy",
-        "-c",
-        help="Copy the file to the assistant registry. Note: edits to the original file will not be reflected in the assistant without re-registering.",
-    ),
 ):
     try:
         assistant = load_assistant_from_path(path)
@@ -139,13 +133,6 @@ def register_assistant(
         raise typer.Exit(1)
 
     name = name or assistant.name
-
-    # copy the file to the assistant directory
-    if copy_file:
-        new_path = ASSISTANTS_DIR / f"{name}.py"
-        # copy the file to the assistant directory
-        new_path.write_text(Path(str(path).split(":")[0]).read_text())
-        path = new_path
 
     if not name:
         typer.echo("No name provided and assistant has no name attribute.")
@@ -170,7 +157,8 @@ def delete_assistant(
     if assistant_file.exists():
         assistant_file.unlink()
         typer.echo(
-            f"Assistant '{name}' deleted. Note: This only removes the reference to the assistant, not the actual assistant file."
+            f"Assistant '{name}' deleted. Note: This only removes the "
+            "reference to the assistant, not the actual assistant file."
         )
     else:
         typer.echo(f"Assistant '{name}' not found.")
@@ -198,7 +186,12 @@ def list_assistants():
 @assistants_app.command()
 def say(
     message,
-    model: str = None,
+    model: str = typer.Option(
+        None,
+        "--model",
+        "-m",
+        help="The model to use. If not provided, the assistant's default model will be used.",
+    ),
     thread: str = typer.Option(
         None,
         "--thread",

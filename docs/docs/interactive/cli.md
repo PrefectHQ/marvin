@@ -4,6 +4,22 @@ Marvin includes a CLI for quickly invoking an AI assistant.
 
 ![](/assets/images/docs/cli/hero.png)
 
+To use the CLI, simply `say` something to Marvin:
+
+```bash
+marvin say "hi"
+```
+
+You can control the [thread](#threads) and [assistant](#custom-assistants) you're talking to, as well as the LLM model used for generating responses.
+
+## Models
+
+By default, the CLI uses whatever model the assistant is configured to use. However, you can override this on a per-message basis using the `--model` or `-m` flag. For example, to use the `gpt-3.5-turbo` model for a single message:
+
+```bash
+marvin say "hi" -m "gpt-3.5-turbo"
+```
+
 ## Tools
 
 By default, the CLI assistant has the following tools:
@@ -108,7 +124,6 @@ By default, registering an assistant with the same name as an existing one will 
 !!! warning 
     When you register an assistant, its name and the path to the file are stored in the Marvin registry. This allows the CLI to load the assistant whenever you need it. However, it means the assistant file must remain in the same location, with the same name, for the CLI to find it. If you move or rename the file, you will need to re-register the assistant. However, if you edit the file without changing the variable name of the assistant, the CLI will automatically use the updated assistant.
 
-    During registration, you can optionally copy the assistant file to the Marvin assistant registry by passing the `--copy` or `-c` flag. This will create a copy of the file in the registry, but note that any subsequent changes to the original file will not be reflected in the registered assistant unless you re-register it.
 
 
 ### Using an assistant
