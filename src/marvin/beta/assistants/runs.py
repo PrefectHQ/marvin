@@ -1,12 +1,11 @@
-import asyncio
+import inspect
 from typing import Any, Callable, Optional, Union
 
-from openai.types.beta.threads.required_action_function_tool_call import (
-    RequiredActionFunctionToolCall,
-)
+from openai import AssistantEventHandler, AsyncAssistantEventHandler
+from openai.types.beta.threads import Message
 from openai.types.beta.threads.run import Run as OpenAIRun
 from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 import marvin.utilities.openai
 import marvin.utilities.tools
@@ -39,9 +38,19 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         data (Any): Any additional data associated with the run.
     """
 
-    id: Optional[str] = None
+    model_config: dict = dict(extra="forbid")
+
     thread: Thread
     assistant: Assistant
+    event_handler_class: type[
+        Union[AssistantEventHandler, AsyncAssistantEventHandler]
+    ] = Field(default=None)
+    event_handler_kwargs: dict[str, Any] = Field(default={})
+    _messages: list[Message] = PrivateAttr({})
+    _steps: list[OpenAIRunStep] = PrivateAttr({})
+    model: Optional[str] = Field(
+        None, description="Replace the model used by the assistant."
+    )
     instructions: Optional[str] = Field(
         None, description="Replacement instructions to use for the run."
     )
@@ -58,8 +67,13 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         None,
         description="Additional tools to append to the assistant's tools. ",
     )
-    run: OpenAIRun = None
+    run: OpenAIRun = Field(None, repr=False)
     data: Any = None
+
+    def __init__(self, *, messages: list[Message] = None, **data):
+        super().__init__(**data)
+        if messages is not None:
+            self._messages.update({m.id: m for m in messages})
 
     @field_validator("tools", "additional_tools", mode="before")
     def format_tools(cls, tools: Union[None, list[Union[Tool, Callable]]]):
@@ -73,34 +87,86 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 for tool in tools
             ]
 
+    @property
+    def messages(self) -> list[Message]:
+        return sorted(self._messages.values(), key=lambda m: m.created_at)
+
+    @property
+    def steps(self) -> list[OpenAIRunStep]:
+        return sorted(self._steps.values(), key=lambda s: s.created_at)
+
     @expose_sync_method("refresh")
     async def refresh_async(self):
         """Refreshes the run."""
+        if not self.run:
+            raise ValueError("Run has not been created yet.")
         client = marvin.utilities.openai.get_openai_client()
         self.run = await client.beta.threads.runs.retrieve(
-            run_id=self.run.id if self.run else self.id, thread_id=self.thread.id
+            run_id=self.run.id, thread_id=self.thread.id
         )
 
     @expose_sync_method("cancel")
     async def cancel_async(self):
         """Cancels the run."""
+        if not self.run:
+            raise ValueError("Run has not been created yet.")
         client = marvin.utilities.openai.get_openai_client()
         await client.beta.threads.runs.cancel(
-            run_id=self.run.id if self.run else self.id, thread_id=self.thread.id
+            run_id=self.run.id, thread_id=self.thread.id
         )
+        await self.refresh_async()
 
-    async def _handle_step_requires_action(
-        self,
-    ) -> tuple[list[RequiredActionFunctionToolCall], list[dict[str, str]]]:
-        client = marvin.utilities.openai.get_openai_client()
-        if self.run.status != "requires_action":
+    def _get_instructions(self) -> str:
+        if self.instructions is None:
+            instructions = self.assistant.get_instructions() or ""
+        else:
+            instructions = self.instructions
+
+        if self.additional_instructions is not None:
+            instructions = "\n\n".join([instructions, self.additional_instructions])
+
+        return instructions
+
+    def _get_model(self) -> str:
+        if self.model is None:
+            model = self.assistant.model
+        else:
+            model = self.model
+        return model
+
+    def _get_tools(self) -> list[AssistantTool]:
+        tools = []
+        if self.tools is None:
+            tools.extend(self.assistant.get_tools())
+        else:
+            tools.extend(self.tools)
+        if self.additional_tools is not None:
+            tools.extend(self.additional_tools)
+        return tools
+
+    def _get_run_kwargs(self, **run_kwargs) -> dict:
+        if "instructions" not in run_kwargs and (
+            self.instructions is not None or self.additional_instructions is not None
+        ):
+            run_kwargs["instructions"] = self._get_instructions()
+
+        if "tools" not in run_kwargs and (
+            self.tools is not None or self.additional_tools is not None
+        ):
+            run_kwargs["tools"] = self._get_tools()
+        if "model" not in run_kwargs and self.model is not None:
+            run_kwargs["model"] = self._get_model()
+        return run_kwargs
+
+    async def get_tool_outputs(self, run: OpenAIRun) -> list[dict[str, str]]:
+        if run.status != "requires_action":
             return None, None
-        if self.run.required_action.type == "submit_tool_outputs":
+        if run.required_action.type == "submit_tool_outputs":
             tool_calls = []
             tool_outputs = []
-            tools = self.get_tools()
+            tools = self._get_tools()
 
-            for tool_call in self.run.required_action.submit_tool_outputs.tool_calls:
+            for tool_call in run.required_action.submit_tool_outputs.tool_calls:
                 try:
                     output = marvin.utilities.tools.call_function_tool(
                         tools=tools,
@@ -119,162 +185,83 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 )
                 tool_calls.append(tool_call)
 
-            await client.beta.threads.runs.submit_tool_outputs(
-                thread_id=self.thread.id, run_id=self.run.id, tool_outputs=tool_outputs
-            )
-            return tool_calls, tool_outputs
-
-    def get_instructions(self) -> str:
-        if self.instructions is None:
-            instructions = self.assistant.get_instructions() or ""
-        else:
-            instructions = self.instructions
-
-        if self.additional_instructions is not None:
-            instructions = "\n\n".join([instructions, self.additional_instructions])
-
-        return instructions
-
-    def get_tools(self) -> list[AssistantTool]:
-        tools = []
-        if self.tools is None:
-            tools.extend(self.assistant.get_tools())
-        else:
-            tools.extend(self.tools)
-        if self.additional_tools is not None:
-            tools.extend(self.additional_tools)
-        return tools
+            return tool_outputs
 
     async def run_async(self) -> "Run":
-        """Excutes a run asynchronously."""
-        client = marvin.utilities.openai.get_openai_client()
-
-        create_kwargs = {}
-
-        if self.instructions is not None or self.additional_instructions is not None:
-            create_kwargs["instructions"] = self.get_instructions()
-
-        if self.tools is not None or self.additional_tools is not None:
-            create_kwargs["tools"] = self.get_tools()
-
-        if self.id is not None:
+        if self.run is not None:
             raise ValueError(
                 "This run object was provided an ID; can not create a new run."
             )
-        async with self.assistant:
-            self.run = await client.beta.threads.runs.create(
-                thread_id=self.thread.id,
-                assistant_id=self.assistant.id,
-                **create_kwargs,
-            )
+        client = marvin.utilities.openai.get_openai_client()
+        run_kwargs = self._get_run_kwargs()
+        event_handler_class = self.event_handler_class or AsyncAssistantEventHandler
 
-            self.assistant.pre_run_hook(run=self)
-
-            tool_calls = None
-            tool_outputs = None
+        with self.assistant:
+            handler = event_handler_class(**self.event_handler_kwargs)
 
             try:
-                while self.run.status in ("queued", "in_progress", "requires_action"):
-                    if self.run.status == "requires_action":
-                        (
-                            tool_calls,
-                            tool_outputs,
-                        ) = await self._handle_step_requires_action()
-                    await asyncio.sleep(0.1)
-                    await self.refresh_async()
+                self.assistant.pre_run_hook()
+
+                for msg in self.messages:
+                    await handler.on_message_done(msg)
+
+                async with client.beta.threads.runs.create_and_stream(
+                    thread_id=self.thread.id,
+                    assistant_id=self.assistant.id,
+                    event_handler=handler,
+                    **run_kwargs,
+                ) as stream:
+                    await stream.until_done()
+                    await self._update_run_from_handler(handler)
+
+                while handler.current_run.status in ["requires_action"]:
+                    tool_outputs = await self.get_tool_outputs(run=handler.current_run)
+
+                    handler = event_handler_class(**self.event_handler_kwargs)
+
+                    async with client.beta.threads.runs.submit_tool_outputs_stream(
+                        thread_id=self.thread.id,
+                        run_id=self.run.id,
+                        tool_outputs=tool_outputs,
+                        event_handler=handler,
+                    ) as stream:
+                        await stream.until_done()
+                        await self._update_run_from_handler(handler)
+
             except CancelRun as exc:
                 logger.debug(f"`CancelRun` raised; ending run with data: {exc.data}")
-                await client.beta.threads.runs.cancel(
-                    run_id=self.run.id, thread_id=self.thread.id
-                )
+                await self.cancel_async()
                 self.data = exc.data
-                await self.refresh_async()
+
+            except Exception as exc:
+                await handler.on_exception(exc)
+                raise
 
             if self.run.status == "failed":
-                logger.debug(f"Run failed. Last error was: {self.run.last_error}")
+                logger.debug(
+                    f"Run failed. Last error was: {handler.current_run.last_error}"
+                )
 
-            self.assistant.post_run_hook(
-                run=self, tool_calls=tool_calls, tool_outputs=tool_outputs
-            )
+            self.assistant.post_run_hook(run=self)
+
         return self
 
+    async def _update_run_from_handler(
+        self, handler: Union[AsyncAssistantEventHandler, AssistantEventHandler]
+    ):
+        self.run = handler.current_run
+        try:
+            messages = handler.get_final_messages()
+            if inspect.iscoroutine(messages):
+                messages = await messages
+            self._messages.update({m.id: m for m in messages})
+        except RuntimeError:
+            pass
 
-class RunMonitor(BaseModel):
-    run: Run
-    thread: Thread
-    steps: list[OpenAIRunStep] = []
-
-    async def refresh_run_steps_async(self):
-        """
-        Asynchronously refreshes and updates the run steps list.
-
-        This function fetches the latest run steps up to a specified limit and
-        checks if the latest run step in the current run steps list
-        (`self.steps`) is included in the new batch. If the latest run step is
-        missing, it continues to fetch additional run steps in batches, up to a
-        maximum count, using pagination. The function then updates
-        `self.steps` with these new run steps, ensuring any existing run steps
-        are updated with their latest versions and new run steps are appended in
-        their original order.
-        """
-        # fetch up to 100 run steps
-        max_fetched = 100
-        limit = 50
-        max_attempts = max_fetched / limit + 2
-
-        # Fetch the latest run steps
-        client = marvin.utilities.openai.get_openai_client()
-
-        response = await client.beta.threads.runs.steps.list(
-            run_id=self.run.id,
-            thread_id=self.thread.id,
-            limit=limit,
-        )
-        run_steps = list(reversed(response.data))
-
-        if not run_steps:
-            return
-
-        # Check if the latest run step in self.steps is in the new run steps
-        latest_step_id = self.steps[-1].id if self.steps else None
-        missing_latest = (
-            latest_step_id not in {rs.id for rs in run_steps}
-            if latest_step_id
-            else True
-        )
-
-        # If the latest run step is missing, fetch additional run steps
-        total_fetched = len(run_steps)
-        attempts = 0
-        while (
-            run_steps
-            and missing_latest
-            and total_fetched < max_fetched
-            and attempts < max_attempts
-        ):
-            attempts += 1
-            response = await client.beta.threads.runs.steps.list(
-                run_id=self.run.id,
-                thread_id=self.thread.id,
-                limit=limit,
-                # because this is a raw API call, "after" refers to pagination
-                # in descnding chronological order
-                after=run_steps[0].id,
-            )
-            paginated_steps = list(reversed(response.data))
-
-            total_fetched += len(paginated_steps)
-            # prepend run steps
-            run_steps = paginated_steps + run_steps
-            if any(rs.id == latest_step_id for rs in paginated_steps):
-                missing_latest = False
-
-        # Update self.steps with the latest data
-        new_steps_dict = {rs.id: rs for rs in run_steps}
-        for i in range(len(self.steps) - 1, -1, -1):
-            if self.steps[i].id in new_steps_dict:
-                self.steps[i] = new_steps_dict.pop(self.steps[i].id)
-            else:
-                break
-        # Append remaining new run steps at the end in their original order
-        self.steps.extend(new_steps_dict.values())
+        try:
+            steps = handler.get_final_run_steps()
+            if inspect.iscoroutine(steps):
+                steps = await steps
+            self._steps.update({s.id: s for s in steps})
+        except RuntimeError:
+            pass

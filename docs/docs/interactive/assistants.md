@@ -17,16 +17,13 @@ The need to manage all this state makes the assistants API very different from t
     Get started with the Assistants API by creating an `Assistant` and talking directly to it.
 
     ```python
-    from marvin.beta.assistants import Assistant, pprint_messages
+    from marvin.beta.assistants import Assistant
 
     # create an assistant
     ai = Assistant(name="Marvin", instructions="You the Paranoid Android.")
 
     # send a message to the assistant and have it respond
-    response = ai.say('Hello, Marvin!')
-
-    # pretty-print the response
-    pprint_messages(response)
+    ai.say('Hello, Marvin!')
     ```
 
     !!! success "Result"
@@ -40,7 +37,7 @@ The need to manage all this state makes the assistants API very different from t
 </div>
 
 !!! tip "Beta"
-    Please note that assistants support in Marvin is still in beta, as OpenAI has not finalized the assistants API yet. While it works as expected, it is subject to change.
+    Please note that assistants support in Marvin is still in beta, as OpenAI has not finalized the assistants API yet. Breaking changes may occur.
 
 
 
@@ -52,59 +49,166 @@ To learn more about the OpenAI assistants API, see the [OpenAI documentation](ht
 
 ### Creating an assistant
 
-To instantiate an assistant, use the `Assistant` class and provide a name and, optionally, details like instructions or tools:
+To create an assistant, use the `Assistant` class and provide an optional name and any additional details like instructions or tools:
 
 ```python
-ai = Assistant(name='Marvin', instructions=..., tools=[...])
+ai = Assistant(
+    name='Marvin', 
+    # any specific instructions for how this assistant should behave
+    instructions="You the Paranoid Android.", 
+    # any tools or additional abilities the assistant should have
+    tools=[cry, sob]
+)
 ```
 
+### Talking to an assistant
 
+The simplest way to talk to an assistant is to use its `say` method:
+
+!!! example "Talking to an assistant"
+
+    ```python
+    from marvin.beta.assistants import Assistant
+
+    ai = Assistant()
+    
+    ai.say('Hi!')
+    ai.say('Bye!')
+    ```
+    !!! success "Result"
+        ![](/assets/images/docs/assistants/talking.png)
+
+You can repeatedly call `say` to have a conversation with the assistant. Each time you call `say`, the result is a `Run` object that contains information about what the assistant did. You can use this object to inspect all actions the assistant took, including tool use, messages posted, and more. 
+
+#### Chat history
+
+The OpenAI Assistants API automatically maintains a history of all messages and actions that the assistant has taken. This history is organized into threads, which are distinct conversations that the assistant has had. Each thread contains a series of messages, and each message is associated with a specific user or the assistant. 
+
+When you talk to an assistant, you are implicitly talking on a specific thread. By default, the `say` method posts a single message to the assistant's `default_thread`, which is automatically created for your convenience whenever you instantiate an assistant. You can talk to the assistant on a different thread by providing it as the `thread` parameter:
+
+```python
+from marvin.beta.assistants import Assistant, Thread
+
+ai = Assistant()
+
+# load a thread from an existing ID (or pass id=None to start a new thread)
+thread = Thread(id=thread_id)
+
+# post a message to the thread
+ai.say('hi', thread=thread)
+```
+
+Using `say` is convenient, but enforces a strict request/response pattern: the user posts a single message to the thread, then the AI responds. Note that AI responses can include multiple messages or tool calls.
+
+For more control over the conversation, including posting multiple user messages to the thread before the assistant responds, use thread objects directly instead of calling `say` (see [Threads](#threads) for more information).
+
+
+#### Event handlers
+
+Marvin uses the OpenAI streaming API to provide real-time updates on the assistant's actions. To customize how these updates are handled, you can provide a custom event handler class to the `event_handler_class` parameter of `Assistant.say`, `Thread.run`, or `Run.run`. This class must inherit from `openai.AssistantEventHandler` or `openai.AsyncAssistantEventHandler`. For more control, you can also provide `event_handler_kwargs` that will be provided to the event handler when it is instantiated.
+
+#### Pretty-printing
+
+By default, Marvin streams all of the messages and actions that the assistant takes and prints them to your terminal. In production or headless environments, you may want to suppress this output. 
+
+The simplest way to do this is to pass `event_handler_class=None` to the `say` method. This will prevent any messages from being printed to the terminal. You can still access the messages and actions from the run object that is returned.
+
+```python
+ai = Assistant()
+
+# run the assistant without printing any messages
+run = ai.say("Hello!", event_handler_class=None)
+
+# access the messages
+run.messages
+
+# access the assistant actions
+run.steps
+```
+
+For finer control, you can pass `event_handler_kwargs=dict(print_messages=False)` or `event_handler_kwargs=dict(print_steps=False)` to the `say` method. This will allow you to suppress only the messages or only the assistant's actions, respectively.
+
+```python
+# print only messages
+run = ai.say("Hello!", event_handler_kwargs=dict(print_steps=False))
+
+# print only actions
+run = ai.say("Hello!", event_handler_kwargs=dict(print_messages=False))
+```
+
+Note that pretty-printing is only the default behavior when using the assistant's convenient `say` method. If you use lower-level APIs like a thread's `run` method or invoke a run object directly, printing is not automatically enabled. You can re-enable it for those objects by setting `event_handler_class=marvin.beta.assistants.PrintHandler`.
+
+```python
+from mavin.beta.assistants import Thread, Assistant, PrintHandler
+
+ai = Assistant()
+thread = Thread()
+run = thread.run(ai, event_handler_class=PrintHandler)
+```
+
+Lastly, you can print messages and actions manually using the `pprint_run`, `pprint_messages`, and `pprint_steps` functions from the `marvin.beta.assistants.formatting` module. These functions are used internally by the default event handler, and they provide a human-readable representation of the messages and actions, respectively.
+
+```python
+from mavin.beta.assistants import Assistant, pprint_run
+
+ai = Assistant()
+run = ai.say("Hello!", event_handler_class=None)
+pprint_run(run)
+```
 
 ### Instructions
 
-Each assistant can be given `instructions` that describe its purpose, personality, or other details. The instructions are a natural language string and one of the only ways to globally steer the assistant's behavior.
+Each assistant can be given `instructions` that describe its purpose, personality, or other details. Instructions are provided as natural language and allow you to globally steer the assistant's behavior, similar to a system message for a chat completion. They can be lengthy explanations of how to handle complex workflows, or they can be brief instructions on how to act.
 
-Instructions can be lengthy explanations of how to handle complex workflows, or they can be short descriptions of the assistant's personality. For example, the instructions for the `Marvin` assistant above are "You are Marvin, the Paranoid Android." This will marginally affect the way the assistant responds to messages.
+!!! example "Using instructions to control behavior"
+
+    ```python
+    from marvin.beta.assistants import Assistant
+
+    ai = Assistant(instructions="Mention the word 'banana' as often as possible")
+    ai.say("Hello!")
+    ```
+    !!! success "Result"
+        ![](/assets/images/docs/assistants/instructions.png)
 
 ### Tools
 
 Each assistant can be given a list of `tools` that it can use when responding to a message. Tools are a way to extend the assistant's capabilities beyond its default behavior, including giving it access to external systems like the internet, a database, your computer, or any API. 
 
-#### OpenAI tools
+#### Code interpreter
 
-OpenAI provides a small number of built-in tools for assistants. The most useful is the "code interpreter", which lets the assistant write and execute Python code. To use the code interpreter, add it to your assistant's list of tools.
+The code interpreter tool is a built-in tool provided by OpenAI that lets the assistant write and execute Python code. To use the code interpreter, add it to your assistant's list of tools.
 
+!!! example "Using the code interpreter"
 
-    This assistant uses the code interpreter to generate a plot of sin(x). Note that Marvin's utility for pretty-printing messages to the terminal can't show the plot inline, but will download it and show a link to the file instead.
-
-!!! example "Using assistants with the code interpreter"
 
     ```python
-    from marvin.beta import Assistant
-    from marvin.beta.assistants import pprint_messages, CodeInterpreter
+    from marvin.beta.assistants import Assistant, CodeInterpreter
 
-    ai = Assistant(name='Marvin', tools=[CodeInterpreter])
-    response = ai.say("Generate a plot of sin(x)")
-
-    # pretty-print the response
-    pprint_messages(response)
+    ai = Assistant(tools=[CodeInterpreter])
+    ai.say("Generate a plot of sin(x)")
     ```
     !!! success "Result"
+        Since images can't be rendered in the terminal, Marvin will automatically download them and provide links to view the output.
+    
         ![](/assets/images/docs/assistants/code_interpreter.png)
+
+        Here is the image:
+
         ![](/assets/images/docs/assistants/sin_x.png)
 
 
 #### Custom tools
 
-A major advantage of using Marvin's assistants API is that you can add your own custom tools. To do so, simply pass one or more functions to the assistant's `tools` argument. For best performance, give your tool function a descriptive name, docstring, and type hint for every argument.
+Marvin makes it easy to give your assistants custom tools. To do so, pass one or more Python functions to the assistant's `tools` argument. For best performance, give your tool function a descriptive name, docstring, and type hint for every argument. Note that you can provide custom tools and the code interpreter at the same time.
 
 
 !!! example "Using custom tools"
 
-    Assistants can not browse the web by default. We can add this capability by giving them a tool that takes a URL and returns the HTML of that page. This assistant uses that tool to count how many titles on Hacker News mention AI:
+    Assistants don't have web access by default. We can add this capability by giving them a tool that takes a URL and returns the HTML of that page. This assistant uses that tool to count how many titles on Hacker News mention AI:
 
     ```python
-    from marvin.beta.assistants import Assistant, pprint_messages
+    from marvin.beta.assistants import Assistant
     import requests
 
 
@@ -115,41 +219,11 @@ A major advantage of using Marvin's assistants API is that you can add your own 
 
 
     # Integrate custom tools with the assistant
-    ai = Assistant(name="Marvin", tools=[visit_url])
-    response = ai.say("What's the top story on Hacker News?")
-
-    # pretty-print the response
-    pprint_messages(response)
+    ai = Assistant(tools=[visit_url])
+    ai.say("What's the top story on Hacker News?")
     ```
     !!! success "Result"
         ![](/assets/images/docs/assistants/custom_tools.png)
-
-### Talking to an assistant
-
-The simplest way to talk to an assistant is to use its `say` method:
-
-```python
-ai = Assistant(name='Marvin')
-
-response = ai.say('hi')
-
-pprint_messages(response)
-```
-
-By default, the `say` method posts a single message to the assistant's `default_thread`, a thread that is automatically created for your convenience. You can supply a different thread by providing it as the `thread` parameter:
-
-```python
-# create a thread from an existing ID (or pass None for a new thread)
-thread = Thread(id=thread_id)
-
-# post a message to the thread
-ai.say('hi', thread=thread)
-```
-
-Using `say` is convenient, but enforces a strict request/response pattern: the user posts a single message to the thread, then the AI responds. Note that AI responses can span multiple messages. Therefore, the `say` method returns a list of `Message` objects. 
-
-For more control over the conversation, including posting multiple user messages to the thread or accessing the lower-level `Run` object that contains information about all actions the assistant took, use `Thread` objects directly instead of calling `say` (see [Threads](#threads) for more information).
-
 
 ### Lifecycle management
 
@@ -169,7 +243,7 @@ All of these options are *functionally* equivalent e.g. they produce identical r
 The simplest way to manage assistant lifecycles is to let Marvin handle it for you. If you do not provide an `id` when instantiating an assistant, Marvin will lazily create a new API assistant for you whenever you need it and delete it immediately after. This is the default behavior, and it is the easiest way to get started with assistants.
 
 ```python
-ai = Assistant(name='Marvin')
+ai = Assistant()
 # creation and deletion happens automatically
 ai.say('hello!')
 ```
@@ -179,7 +253,7 @@ ai.say('hello!')
 Lazy lifecycle management adds two API calls to every LLM call (one to create the assistant and one to delete it). If you want to avoid this overhead, you can use context managers to create and delete assistants:
 
 ```python
-ai = Assistant(name='Marvin')
+ai = Assistant()
 
 # creation / deletion happens when the context is opened / closed
 with ai:
@@ -194,7 +268,7 @@ Note there is also an equivalent `async with` context manager for the async API.
 To fully control the lifecycle of an assistant, you can create and delete it manually:
 
 ```python
-ai = Assistant(name='Marvin')
+ai = Assistant()
 ai.create()
 ai.say('hi')
 ai.delete()
@@ -234,7 +308,7 @@ ai = Assistant.load(id=<the assistant id>)
 Every `Assistant` method has a corresponding async version. To use the async API, append `_async` to the method name, or enter an async context manager:
 
 ```python
-async with Assistant(name='Marvin') as ai:
+async with Assistant() as ai:
     await ai.say_async('hi')
 ```
 
@@ -345,7 +419,7 @@ Messages are not strings, but structured message objects. Marvin has a few utili
     def roll_dice(n_dice: int) -> list[int]:
         return [random.randint(1, 6) for _ in range(n_dice)]
 
-    ai = Assistant(name="Marvin", tools=[roll_dice])
+    ai = Assistant(tools=[roll_dice])
 
     # create a thread - you could pass an ID to resume a conversation
     thread = Thread()
@@ -363,8 +437,9 @@ Messages are not strings, but structured message objects. Marvin has a few utili
     # run the thread again to generate a new response
     thread.run(ai)
 
-    # see all the messages
-    pprint_messages(thread.get_messages())
+    # see all the messages in the thread
+    messages = thread.get_messages()
+    pprint_messages(messages)
     ```
 
     !!! success "Result"
@@ -373,21 +448,3 @@ Messages are not strings, but structured message objects. Marvin has a few utili
 ### Async support
 
 Every `Thread` method has a corresponding async version. To use the async API, append `_async` to the method name.
-
-## Monitors
-
-The assistants API is complex and stateful, with automatic memory management and the potential for assistants to respond to threads multiple times before giving control back to users. Therefore, monitoring the status of a conversation is considerably more difficult than with other LLM API's such as chat completions, which have much more simple request-response patterns.
-
-Marvin has utilites for monitoring the status of a thread and taking action whenever a new message is added to it. This can be a useful way to debug activity or create notifications. Please note that monitors are not intended to be used for real-time chat applications or production use.
-
-```python
-from marvin.beta.assistants import ThreadMonitor
-
-monitor = ThreadMonitor(thread_id=thread.id)
-
-monitor.run()
-```
-
-You can customize the `ThreadMonitor` by providing a callback function to the `on_new_message` parameter. This function will be called whenever a new message is added to the thread. The function will be passed the new message as a parameter. By default, the monitor will pretty-print every new message to the console.
-
-`monitor.run()` is a blocking call that will run forever, polling for messages every second (to customize the interval, pass `interval_seconds` to the method). It has an async equivalent `monitor.run_async()`. Because it's blocking, you can run a thread monitor in a separate session from the one that is running the thread itself.

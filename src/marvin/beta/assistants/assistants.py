@@ -1,12 +1,11 @@
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
-from openai.types.beta.threads.required_action_function_tool_call import (
-    RequiredActionFunctionToolCall,
-)
-from pydantic import BaseModel, Field, PrivateAttr
+from openai import AssistantEventHandler, AsyncAssistantEventHandler
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 import marvin.utilities.openai
 import marvin.utilities.tools
+from marvin.beta.assistants.handlers import PrintHandler
 from marvin.tools.assistants import AssistantTool
 from marvin.types import Tool
 from marvin.utilities.asyncio import (
@@ -16,13 +15,15 @@ from marvin.utilities.asyncio import (
 )
 from marvin.utilities.logging import get_logger
 
-from .threads import Message, Thread
+from .threads import Thread
 
 if TYPE_CHECKING:
     from .runs import Run
 
 
 logger = get_logger("Assistants")
+
+NOT_PROVIDED = "__NOT_PROVIDED__"
 
 
 class Assistant(BaseModel, ExposeSyncMethodsMixin):
@@ -41,9 +42,10 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         instructions (list): List of instructions for the assistant.
     """
 
+    model_config = dict(extra="forbid")
     id: Optional[str] = None
     name: str = "Assistant"
-    model: str = "gpt-4-1106-preview"
+    model: str = Field(None, validate_default=True)
     instructions: Optional[str] = Field(None, repr=False)
     tools: list[Union[AssistantTool, Callable]] = []
     file_ids: list[str] = []
@@ -56,6 +58,12 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         repr=False,
         description="A default thread for the assistant.",
     )
+
+    @field_validator("model", mode="before")
+    def default_model(cls, model):
+        if model is None:
+            model = marvin.settings.openai.assistants.model
+        return model
 
     def clear_default_thread(self):
         self.default_thread = Thread()
@@ -79,31 +87,32 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         message: str,
         file_paths: Optional[list[str]] = None,
         thread: Optional[Thread] = None,
-        return_user_message: bool = False,
+        event_handler_class: type[
+            Union[AssistantEventHandler, AsyncAssistantEventHandler]
+        ] = NOT_PROVIDED,
         **run_kwargs,
-    ) -> list[Message]:
-        """
-        A convenience method for adding a user message to the assistant's
-        default thread, running the assistant, and returning the assistant's
-        messages.
-        """
+    ) -> "Run":
         thread = thread or self.default_thread
+
+        if event_handler_class is NOT_PROVIDED:
+            event_handler_class = PrintHandler
 
         # post the message
         user_message = await thread.add_async(message, file_paths=file_paths)
 
-        # run the thread
-        async with self:
-            await thread.run_async(assistant=self, **run_kwargs)
+        from marvin.beta.assistants.runs import Run
 
-        # load all messages, including the user message
-        response_messages = await thread.get_messages_async(
-            after_message=user_message.id
+        run = Run(
+            # provide the user message as part of the run to print
+            messages=[user_message],
+            assistant=self,
+            thread=thread,
+            event_handler_class=event_handler_class,
+            **run_kwargs,
         )
+        result = await run.run_async()
 
-        if return_user_message:
-            response_messages = [user_message] + response_messages
-        return response_messages
+        return result
 
     def __enter__(self):
         return run_sync(self.__aenter__())
@@ -176,13 +185,8 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             thread = self.default_thread
         return thread.chat(assistant=self)
 
-    def pre_run_hook(self, run: "Run"):
+    def pre_run_hook(self):
         pass
 
-    def post_run_hook(
-        self,
-        run: "Run",
-        tool_calls: Optional[list[RequiredActionFunctionToolCall]] = None,
-        tool_outputs: Optional[list[dict[str, str]]] = None,
-    ):
+    def post_run_hook(self, run: "Run"):
         pass
