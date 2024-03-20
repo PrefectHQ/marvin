@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from openai import AssistantEventHandler, AsyncAssistantEventHandler
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 import marvin.utilities.openai
 import marvin.utilities.tools
@@ -42,9 +42,10 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         instructions (list): List of instructions for the assistant.
     """
 
+    model_config = dict(extra="forbid")
     id: Optional[str] = None
     name: str = "Assistant"
-    model: str = "gpt-4-1106-preview"
+    model: str = Field(None, validate_default=True)
     instructions: Optional[str] = Field(None, repr=False)
     tools: list[Union[AssistantTool, Callable]] = []
     file_ids: list[str] = []
@@ -57,6 +58,12 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         repr=False,
         description="A default thread for the assistant.",
     )
+
+    @field_validator("model", mode="before")
+    def default_model(cls, model):
+        if model is None:
+            model = marvin.settings.openai.assistants.model
+        return model
 
     def clear_default_thread(self):
         self.default_thread = Thread()
