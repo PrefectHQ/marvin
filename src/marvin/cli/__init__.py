@@ -16,7 +16,7 @@ from typer import Context, Exit, echo
 
 from marvin import __version__
 
-app = typer.Typer()
+app = typer.Typer(no_args_is_help=True)
 console = Console()
 app.add_typer(threads_app, name="thread")
 app.add_typer(assistants_app, name="assistant")

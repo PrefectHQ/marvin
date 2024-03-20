@@ -1,53 +1,82 @@
+import os
 from pathlib import Path
+from typing import Optional
 
 import typer
+from pydantic import BaseModel, ValidationError
 
 from marvin.beta.assistants import Thread
 
-threads_app = typer.Typer()
+threads_app = typer.Typer(no_args_is_help=True)
 ROOT_DIR = Path.home() / ".marvin/cli/threads"
-CURRENT_THREAD_FILE = ROOT_DIR / "_current_thread.json"
+DEFAULT_THREAD_NAME = "default"
 
 # Ensure the root directory exists
 ROOT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def get_current_thread_id() -> str:
-    if CURRENT_THREAD_FILE.exists():
+class ThreadData(BaseModel):
+    name: str
+    id: str
+
+
+def get_thread_file_path(name: str) -> Path:
+    return ROOT_DIR / f"{name}.json"
+
+
+def save_thread(thread_data: ThreadData):
+    thread_file = get_thread_file_path(thread_data.name)
+    thread_file.write_text(thread_data.model_dump_json())
+
+
+def load_thread(name: str) -> Optional[ThreadData]:
+    thread_file = get_thread_file_path(name)
+    if thread_file.exists():
         try:
-            return CURRENT_THREAD_FILE.read_text().strip()
-        except Exception:
-            return reset_current_thread()
+            thread_data = ThreadData.model_validate_json(thread_file.read_text())
+        except ValidationError:
+            thread_file.unlink()
+            return None
+        return thread_data
     else:
-        return reset_current_thread()
+        return None
 
 
-def get_current_thread() -> Thread:
-    thread_id = get_current_thread_id()
-    return Thread(id=thread_id)
-
-
-def set_current_thread_id(thread_id: str):
-    CURRENT_THREAD_FILE.write_text(thread_id)
-
-
-def reset_current_thread() -> str:
+def create_thread(name: str) -> ThreadData:
     thread = Thread()
     thread.create()
-    set_current_thread_id(thread.id)
-    return thread.id
+    thread_data = ThreadData(name=name, id=thread.id)
+    save_thread(thread_data)
+    return thread_data
+
+
+def get_or_create_thread(name: str = None) -> ThreadData:
+    name = name or os.getenv("MARVIN_CLI_THREAD", DEFAULT_THREAD_NAME)
+    thread_data = load_thread(name)
+    if thread_data is None:
+        thread_data = create_thread(name)
+    return thread_data
 
 
 @threads_app.command()
 def current():
-    thread_id = get_current_thread_id()
-    typer.echo(f"Current thread ID: {thread_id}")
+    """Get the current thread's name."""
+    thread_data = get_or_create_thread()
+    typer.echo(f"Current thread: {thread_data.name} (ID: {thread_data.id})")
 
 
 @threads_app.command()
-def reset():
-    thread_id = reset_current_thread()
-    typer.echo(f"New thread created and set as current. Thread ID: {thread_id}")
+def reset(
+    thread: str = typer.Option(
+        DEFAULT_THREAD_NAME,
+        "--thread",
+        "-t",
+        help="Thread name",
+        envvar="MARVIN_CLI_THREAD",
+    ),
+):
+    thread_data = create_thread(thread)
+    typer.echo(f"Thread '{thread_data.name}' reset. New ID: {thread_data.id}")
 
 
 if __name__ == "__main__":
