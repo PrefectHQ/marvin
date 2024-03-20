@@ -1,5 +1,7 @@
+import inspect
 from typing import Any, Callable, Optional, Union
 
+from openai import AssistantEventHandler, AsyncAssistantEventHandler
 from openai.types.beta.threads import Message
 from openai.types.beta.threads.run import Run as OpenAIRun
 from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
@@ -7,7 +9,6 @@ from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 import marvin.utilities.openai
 import marvin.utilities.tools
-from marvin.beta.assistants.handlers import AsyncRunHandler, PrintRunHandler, RunHandler
 from marvin.tools.assistants import AssistantTool, CancelRun
 from marvin.types import Tool
 from marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
@@ -41,9 +42,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
     thread: Thread
     assistant: Assistant
-    event_handler_class: type[Union[RunHandler, AsyncRunHandler]] = Field(
-        default=PrintRunHandler
-    )
+    event_handler_class: type[
+        Union[AssistantEventHandler, AsyncAssistantEventHandler]
+    ] = Field(default=None)
     event_handler_kwargs: dict[str, Any] = Field(default={})
     _messages: list[Message] = PrivateAttr({})
     _steps: list[OpenAIRunStep] = PrivateAttr({})
@@ -82,16 +83,6 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 )
                 for tool in tools
             ]
-
-    @field_validator("event_handler_class", mode="before")
-    def no_event_handler(
-        cls, event_handler_class: type[Union[RunHandler, AsyncRunHandler]]
-    ):
-        # the default event handler is a PrintRunHandler but if None is passed,
-        # we use a no-op handler
-        if event_handler_class is None:
-            return AsyncRunHandler
-        return event_handler_class
 
     @property
     def messages(self) -> list[Message]:
@@ -173,6 +164,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             return tool_outputs
 
     async def run_async(self):
+        event_handler_class = self.event_handler_class or AsyncAssistantEventHandler
         client = marvin.utilities.openai.get_openai_client()
 
         run_kwargs = {}
@@ -187,7 +179,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 "This run object was provided an ID; can not create a new run."
             )
         with self.assistant:
-            handler = self.event_handler_class(**self.event_handler_kwargs)
+            handler = event_handler_class(**self.event_handler_kwargs)
 
             try:
                 self.assistant.pre_run_hook()
@@ -202,17 +194,13 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                     **run_kwargs,
                 ) as stream:
                     await stream.until_done()
-                    self.run = handler.current_run
-                    self._messages.update(
-                        {m.id: m for m in await handler.get_final_messages()}
-                    )
-                    self._steps.update(
-                        {s.id: s for s in await handler.get_final_run_steps()}
-                    )
+                    await self._update_run_from_handler(handler)
 
                 while handler.current_run.status in ["requires_action"]:
                     tool_outputs = await self.get_tool_outputs(run=handler.current_run)
-                    handler = self.event_handler_class(**self.event_handler_kwargs)
+
+                    handler = event_handler_class(**self.event_handler_kwargs)
+
                     async with client.beta.threads.runs.submit_tool_outputs_stream(
                         thread_id=self.thread.id,
                         run_id=self.run.id,
@@ -220,13 +208,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                         event_handler=handler,
                     ) as stream:
                         await stream.until_done()
-                        self.run = handler.current_run
-                        self._messages.update(
-                            {m.id: m for m in await handler.get_final_messages()}
-                        )
-                        self._steps.update(
-                            {s.id: s for s in await handler.get_final_run_steps()}
-                        )
+                        await self._update_run_from_handler(handler)
 
             except CancelRun as exc:
                 logger.debug(f"`CancelRun` raised; ending run with data: {exc.data}")
@@ -245,3 +227,23 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             self.assistant.post_run_hook(run=self)
 
         return self
+
+    async def _update_run_from_handler(
+        self, handler: Union[AsyncAssistantEventHandler, AssistantEventHandler]
+    ):
+        self.run = handler.current_run
+        try:
+            messages = handler.get_final_messages()
+            if inspect.iscoroutine(messages):
+                messages = await messages
+            self._messages.update({m.id: m for m in messages})
+        except RuntimeError:
+            pass
+
+        try:
+            steps = handler.get_final_run_steps()
+            if inspect.iscoroutine(steps):
+                steps = await steps
+            self._steps.update({s.id: s for s in steps})
+        except RuntimeError:
+            pass

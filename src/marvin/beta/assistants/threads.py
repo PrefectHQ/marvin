@@ -117,9 +117,10 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             before=after_message,
             after=before_message,
             limit=limit,
+            # order desc to get the most recent messages first
             order="desc",
         )
-        return response.data
+        return list(reversed(response.data))
 
     @expose_sync_method("delete")
     async def delete_async(self):
@@ -145,7 +146,11 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
         from marvin.beta.assistants.runs import Run
 
-        run = Run(assistant=assistant, thread=self, **run_kwargs)
+        run = Run(
+            assistant=assistant,
+            thread=self,
+            **run_kwargs,
+        )
         return await run.run_async()
 
     def chat(self, assistant: "Assistant"):

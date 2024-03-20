@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 import marvin.utilities.openai
 import marvin.utilities.tools
+from marvin.beta.assistants.handlers import PrintHandler
 from marvin.tools.assistants import AssistantTool
 from marvin.types import Tool
 from marvin.utilities.asyncio import (
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
 
 
 logger = get_logger("Assistants")
+
+NOT_PROVIDED = "__NOT_PROVIDED__"
 
 
 class Assistant(BaseModel, ExposeSyncMethodsMixin):
@@ -72,18 +75,36 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("say")
     async def say_async(
-        self, message, file_paths: Optional[list[str]] = None, thread=None, **run_kwargs
+        self,
+        message,
+        file_paths: Optional[list[str]] = None,
+        thread=None,
+        event_handler_class=NOT_PROVIDED,
+        **run_kwargs,
     ):
         thread = thread or self.default_thread
 
+        if event_handler_class is NOT_PROVIDED:
+            event_handler_class = PrintHandler
+
+        print("----------\n\n\n")
         # post the message
         user_message = await thread.add_async(message, file_paths=file_paths)
 
-        return await thread.run_async(
-            assistant=self,
+        from marvin.beta.assistants.runs import Run
+
+        run = Run(
+            # provide the user message as part of the run to print
             messages=[user_message],
+            assistant=self,
+            thread=thread,
+            event_handler_class=event_handler_class,
             **run_kwargs,
         )
+        result = await run.run_async()
+        print("\n\n\n----------")
+
+        return result
 
     def __enter__(self):
         return run_sync(self.__aenter__())
