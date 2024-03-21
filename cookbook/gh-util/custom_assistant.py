@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class Memory(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
+
 octocat = Application(
     name="octocat",
     state=Memory(),
@@ -15,3 +16,5 @@ octocat = Application(
 # $ marvin assistant register cookbook/gh-util/assistant.py:octocat
 
 # > what's the latest release of prefecthq/marvin?
+
+# see https://github.com/PrefectHQ/marvin/pull/875
