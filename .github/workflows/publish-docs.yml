@@ -24,6 +24,10 @@ jobs:
         with:
           key: ${{ github.ref }}
           path: .cache
+
+      - name: Install uv
+        run: pip install -U uv && uv venv
+
       # for now, only install mkdocs. In the future may need to install Marvin itself.
       - name: Install dependencies for MKDocs Material
         run: pip install \

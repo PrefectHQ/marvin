@@ -6,51 +6,31 @@ from marvin.client.openai import AsyncMarvinClient
 from marvin.types import StreamingChatResponse
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.openai import get_openai_client
-from marvin.cli.version import display_version
+from marvin.beta.assistants import Assistant
+from marvin.cli.threads import threads_app
+from marvin.cli.assistants import assistants_app, say as assistants_say
 
-app = typer.Typer()
+import platform
+
+from typer import Context, Exit, echo
+
+from marvin import __version__
+
+app = typer.Typer(no_args_is_help=True)
 console = Console()
+app.add_typer(threads_app, name="thread")
+app.add_typer(assistants_app, name="assistant")
+app.command(name="say")(assistants_say)
 
-app.command(name="version")(display_version)
 
-
-@app.callback(invoke_without_command=True)
-def main(
-    ctx: typer.Context,
-    model: Optional[str] = typer.Option("gpt-3.5-turbo"),
-    max_tokens: Optional[int] = typer.Option(1000),
-):
-    if ctx.invoked_subcommand is not None:
+@app.command()
+def version(ctx: Context):
+    if ctx.resilient_parsing:
         return
-    elif ctx.invoked_subcommand is None and not sys.stdin.isatty():
-        run_sync(stdin_chat(model, max_tokens))
-    else:
-        console.print(ctx.get_help())
-
-
-async def stdin_chat(model: str, max_tokens: int):
-    client = get_openai_client()
-    content = sys.stdin.read()
-
-    client = AsyncMarvinClient()
-    await client.generate_chat(
-        model=model,
-        messages=[{"role": "user", "content": content}],
-        max_tokens=max_tokens,
-        stream=True,
-        stream_callback=print_chunk,
-    )
-
-
-def print_chunk(streaming_response: StreamingChatResponse):
-    last_chunk_flag = False
-    text_chunk = streaming_response.chunk.choices[0].delta.content or ""
-    if text_chunk:
-        if last_chunk_flag and text_chunk.startswith(" "):
-            text_chunk = text_chunk[1:]
-        sys.stdout.write(text_chunk)
-        sys.stdout.flush()
-        last_chunk_flag = text_chunk.endswith(" ")
+    echo(f"Version:\t\t{__version__}")
+    echo(f"Python version:\t\t{platform.python_version()}")
+    echo(f"OS/Arch:\t\t{platform.system().lower()}/{platform.machine().lower()}")
+    raise Exit()
 
 
 if __name__ == "__main__":

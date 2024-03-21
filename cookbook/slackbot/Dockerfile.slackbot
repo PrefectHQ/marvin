@@ -13,7 +13,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip install ".[slackbot]" pydantic-settings==2.1.0
+RUN pip install ".[slackbot]"
 
 EXPOSE 4200
 

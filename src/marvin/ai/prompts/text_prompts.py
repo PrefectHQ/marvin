@@ -178,6 +178,8 @@ FUNCTION_PROMPT = inspect.cleandoc(
     The user will provide function inputs (if any) and you must respond with
     the most likely result.
     
+    e.g. `list_fruits(n: int) -> list[str]` (3) -> "apple", "banana", "cherry"
+    
     HUMAN: 
     
     ## Function inputs

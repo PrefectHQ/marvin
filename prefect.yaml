@@ -36,7 +36,7 @@ deployments:
         - marvin.issue.opened
         - marvin.issue.reopened
       parameters:
-        event_body_str: "{{ event.payload.body }}"
+        event_body_json: "{{ event.payload.body }}"
   entrypoint: cookbook/flows/label_issues.py:label_issues
   work_pool:
     name: kubernetes-prd-internal-tools

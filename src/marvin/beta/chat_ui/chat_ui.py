@@ -12,7 +12,7 @@ from fastapi import Body, FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from marvin.beta.assistants.threads import Thread, ThreadMessage
+from marvin.beta.assistants.threads import Message, Thread
 
 
 def find_free_port():
@@ -47,7 +47,7 @@ def server_process(host, port, message_queue):
         message_queue.put(dict(thread_id=thread_id, message=content))
 
     @app.get("/api/messages/")
-    async def get_messages(thread_id: str) -> list[ThreadMessage]:
+    async def get_messages(thread_id: str) -> list[Message]:
         thread = Thread(id=thread_id)
         return await thread.get_messages_async(limit=100)
 

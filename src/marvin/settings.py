@@ -3,7 +3,7 @@
 import os
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Any, Literal, Optional, Union
+from typing import Any, Callable, Literal, Optional, Union
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -209,6 +209,10 @@ class AISettings(MarvinSettings):
     text: TextAISettings = Field(default_factory=TextAISettings)
 
 
+def default_post_processor_fn(response):
+    return response
+
+
 class Settings(MarvinSettings):
     """Settings for `marvin`.
 
@@ -234,6 +238,8 @@ class Settings(MarvinSettings):
         protected_namespaces=(),
     )
 
+    post_processor_fn: Optional[Callable] = default_post_processor_fn
+
     # providers
     provider: Literal["openai", "azure_openai"] = Field(
         default="openai",
@@ -246,6 +252,12 @@ class Settings(MarvinSettings):
 
     # ai settings
     ai: AISettings = Field(default_factory=AISettings)
+
+    # beta settings
+    auto_import_beta_modules: bool = Field(
+        True,
+        description="If True, the marvin.beta module will be automatically imported when marvin is imported.",
+    )
 
     # log settings
     log_level: str = Field(

@@ -5,7 +5,7 @@ from typing import Optional, Union
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr, SerializeAsAny
 
-from marvin.types import Tool
+from marvin.types import FunctionTool
 from marvin.utilities.tools import tool_from_function
 
 
@@ -66,7 +66,7 @@ class State(BaseModel):
         self.set_state(state)
         return "Application state updated successfully!"
 
-    def as_tool(self, name: str = None) -> "Tool":
+    def as_tool(self, name: str = None) -> "FunctionTool":
         if name is None:
             name = "state"
         schema = self.get_schema()

@@ -10,7 +10,7 @@ nav:
     - welcome/what_is_marvin.md
 
     - Getting started:
-      - Installing: welcome/installation.md
+      - Installation: welcome/installation.md
       - Tutorial: welcome/tutorial.md
       # - help/legacy_docs.md
 
@@ -33,9 +33,14 @@ nav:
     - Audio:
       - Generating speech: docs/audio/speech.md
       - Transcribing speech: docs/audio/transcription.md
+      - Recording audio: docs/audio/recording.md
+
+    - Video:
+      - Recording video: docs/video/recording.md
 
     - Interactive Tools:
       - Assistants: docs/interactive/assistants.md
+      - CLI: docs/interactive/cli.md
       - Applications: docs/interactive/applications.md
       
     - Configuration: 
@@ -80,6 +85,7 @@ nav:
     - Python augmented prompts: examples/python_augmented_prompts.md
     - Being specific about types: examples/being_specific_about_types.md
     - Examples:
+      - examples/audio_modification.md
       - examples/xkcd_bird.md
       - examples/xkcd_scientific_papers.md
       - examples/michael_scott_business/michael_scott_business.md

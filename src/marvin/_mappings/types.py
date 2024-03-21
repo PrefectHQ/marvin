@@ -6,7 +6,7 @@ from pydantic import BaseModel, create_model
 from pydantic.fields import FieldInfo
 
 from marvin.settings import settings
-from marvin.types import Grammar, Tool, ToolSet
+from marvin.types import FunctionTool, Grammar, ToolSet
 
 from .base_model import cast_model_to_tool, cast_model_to_toolset
 
@@ -46,7 +46,7 @@ def cast_type_to_tool(
     field_name: str,
     field_description: str,
     python_function: Optional[Callable[..., Any]] = None,
-) -> Tool[BaseModel]:
+) -> FunctionTool[BaseModel]:
     return cast_model_to_tool(
         model=cast_type_to_model(
             _type,

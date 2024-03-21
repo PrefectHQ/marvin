@@ -227,7 +227,7 @@ async def _generate_typed_llm_response_with_logit_bias(
 
 async def cast_async(
     data: str,
-    target: type[T],
+    target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
     client: Optional[AsyncMarvinClient] = None,
@@ -235,21 +235,31 @@ async def cast_async(
     """
     Converts the input data into the specified type.
 
-    This function uses a language model to convert the input data into a specified type.
-    The conversion process can be guided by specific instructions. The function also
-    supports additional arguments for the language model.
+    This function uses a language model to convert the input data into a
+    specified type. The conversion process can be guided by specific
+    instructions. The function also supports additional arguments for the
+    language model.
 
     Args:
         data (str): The data to be converted.
-        target (type): The type to convert the data into.
-        instructions (str, optional): Specific instructions for the conversion. Defaults to None.
-        model_kwargs (dict, optional): Additional keyword arguments for the language model. Defaults to None.
-        client (AsyncMarvinClient, optional): The client to use for the AI function.
+        target (type): The type to convert the data into. If none is provided
+            but instructions are provided, `str` is assumed.
+        instructions (str, optional): Specific instructions for the conversion.
+            Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+        client (AsyncMarvinClient, optional): The client to use for the AI
+            function.
 
     Returns:
         T: The converted data of the specified type.
     """
     model_kwargs = model_kwargs or {}
+
+    if target is None and instructions is None:
+        raise ValueError("Must provide either a target type or instructions.")
+    elif target is None:
+        target = str
 
     # if the user provided a `to` type that represents a list of labels, we use
     # `classify()` for performance.
@@ -471,7 +481,7 @@ def fn(
     @wraps(func)
     async def async_wrapper(*args, **kwargs):
         model = PythonFunction.from_function_call(func, *args, **kwargs)
-        post_processor = None
+        post_processor = marvin.settings.post_processor_fn
 
         # written instructions or missing annotations are treated as "-> str"
         if (
@@ -570,6 +580,7 @@ class Model(BaseModel):
         self,
         text: Optional[str] = None,
         *,
+        instructions: Optional[str] = None,
         model_kwargs: Optional[dict] = None,
         client: Optional[MarvinClient] = None,
         **kwargs,
@@ -580,6 +591,7 @@ class Model(BaseModel):
         Args:
             text (str, optional): The natural language string to convert into an
                 instance of the model. Defaults to None.
+            instructions (str, optional): Specific instructions for the conversion.
             model_kwargs (dict, optional): Additional keyword arguments for the
                 language model. Defaults to None.
             **kwargs: Additional keyword arguments to pass to the model's constructor.
@@ -587,7 +599,11 @@ class Model(BaseModel):
         ai_kwargs = kwargs
         if text is not None:
             ai_kwargs = cast(
-                text, type(self), model_kwargs=model_kwargs, client=client
+                text,
+                type(self),
+                instructions=instructions,
+                model_kwargs=model_kwargs,
+                client=client,
             ).model_dump()
             ai_kwargs.update(kwargs)
         super().__init__(**ai_kwargs)
@@ -644,6 +660,7 @@ def classifier(cls=None, *, instructions=None, model_kwargs=None):
 
 def model(
     type_: Union[Type[M], None] = None,
+    instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
     client: Optional[MarvinClient] = None,
 ) -> Union[Type[M], Callable[[Type[M]], Type[M]]]:
@@ -656,6 +673,7 @@ def model(
     Args:
         type_ (Union[Type[M], None], optional): The type of the Pydantic model.
             Defaults to None.
+        instructions (str, optional): Specific instructions for the conversion.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
 
@@ -669,7 +687,11 @@ def model(
             @wraps(cls.__init__)
             def __init__(self, *args, **kwargs):
                 super().__init__(
-                    *args, model_kwargs=model_kwargs, client=client, **kwargs
+                    *args,
+                    instructions=instructions,
+                    model_kwargs=model_kwargs,
+                    client=client,
+                    **kwargs,
                 )
 
         WrappedModel.__name__ = cls.__name__
@@ -686,7 +708,7 @@ def model(
 
 def cast(
     data: str,
-    target: type[T],
+    target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
     client: Optional[AsyncMarvinClient] = None,
@@ -694,16 +716,21 @@ def cast(
     """
     Converts the input data into the specified type.
 
-    This function uses a language model to convert the input data into a specified type.
-    The conversion process can be guided by specific instructions. The function also
-    supports additional arguments for the language model.
+    This function uses a language model to convert the input data into a
+    specified type. The conversion process can be guided by specific
+    instructions. The function also supports additional arguments for the
+    language model.
 
     Args:
         data (str): The data to be converted.
-        target (type): The type to convert the data into.
-        instructions (str, optional): Specific instructions for the conversion. Defaults to None.
-        model_kwargs (dict, optional): Additional keyword arguments for the language model. Defaults to None.
-        client (AsyncMarvinClient, optional): The client to use for the AI function.
+        target (type): The type to convert the data into. If none is provided
+            but instructions are provided, `str` is assumed.
+        instructions (str, optional): Specific instructions for the conversion.
+            Defaults to None.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+        client (AsyncMarvinClient, optional): The client to use for the AI
+            function.
 
     Returns:
         T: The converted data of the specified type.
@@ -882,7 +909,7 @@ def classify_map(
 
 async def cast_async_map(
     data: list[str],
-    target: type[T],
+    target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
     client: Optional[AsyncMarvinClient] = None,
@@ -901,7 +928,7 @@ async def cast_async_map(
 
 def cast_map(
     data: list[str],
-    target: type[T],
+    target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
     client: Optional[AsyncMarvinClient] = None,

@@ -1,3 +1,4 @@
+import io
 from functools import partial
 from pathlib import Path
 from typing import (
@@ -243,7 +244,12 @@ class MarvinClient(pydantic.BaseModel):
                 response = self.client.audio.transcriptions.create(
                     file=f, **validated_kwargs
                 )
+        # bytes or a file handler were provided
         else:
+            if isinstance(file, bytes):
+                file = io.BytesIO(file)
+                file.name = "audio.mp3"
+
             response = self.client.audio.transcriptions.create(
                 file=file, **validated_kwargs
             )
@@ -345,7 +351,12 @@ class AsyncMarvinClient(pydantic.BaseModel):
                 response = await self.client.audio.transcriptions.create(
                     file=f, **validated_kwargs
                 )
+        # bytes or a file handler were provided
         else:
+            if isinstance(file, bytes):
+                file = io.BytesIO(file)
+                file.name = "audio.mp3"
+
             response = await self.client.audio.transcriptions.create(
                 file=file, **validated_kwargs
             )
