@@ -174,6 +174,8 @@ def call_function_tool(
     output = tool.function._python_fn(**arguments)
     if inspect.isawaitable(output):
         output = run_sync(output)
+        if isinstance(output, BaseModel):
+            output = output.model_dump(mode="json")
     truncated_output = str(output)[:100]
     if len(truncated_output) < len(str(output)):
         truncated_output += "..."
