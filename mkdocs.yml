@@ -40,6 +40,7 @@ nav:
 
     - Interactive Tools:
       - Assistants: docs/interactive/assistants.md
+      - CLI: docs/interactive/cli.md
       - Applications: docs/interactive/applications.md
       
     - Configuration: 
