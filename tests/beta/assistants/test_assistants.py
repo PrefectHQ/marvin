@@ -31,7 +31,7 @@ class TestTools:
             "use the code interpreter to compute a random number between 85 and 95"
         )
         assert run.steps[0].step_details.tool_calls[0].type == "code_interpreter"
-        output = int(
+        output = float(
             run.steps[-2].step_details.tool_calls[0].code_interpreter.outputs[0].logs
         )
         assert 85 <= output <= 95
