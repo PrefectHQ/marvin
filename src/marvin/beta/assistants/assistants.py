@@ -39,7 +39,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         metadata (dict): Additional data about the assistant.
         file_ids (list): List of file IDs associated with the assistant.
         tools (list): List of tools used by the assistant.
-        instructions (list): List of instructions for the assistant.
+        instructions (str): Instructions for the assistant.
     """
 
     id: Optional[str] = None
@@ -78,7 +78,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             for tool in self.tools
         ]
 
-    def get_instructions(self) -> str:
+    def get_instructions(self, thread: Thread = None) -> str:
         return self.instructions or ""
 
     @expose_sync_method("say")

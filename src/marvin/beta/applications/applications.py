@@ -3,7 +3,7 @@ import inspect
 from pydantic import Field, field_validator
 
 from marvin.beta.applications.state import State
-from marvin.beta.assistants import Assistant
+from marvin.beta.assistants import Assistant, Thread
 from marvin.beta.assistants.runs import Run
 from marvin.tools.assistants import AssistantTool
 from marvin.types import Tool
@@ -59,7 +59,7 @@ class Application(Assistant):
             return v
         return State(value=v)
 
-    def get_instructions(self) -> str:
+    def get_instructions(self, thread: Thread = None) -> str:
         return JinjaEnvironment.render(APPLICATION_INSTRUCTIONS, self_=self)
 
     def get_tools(self) -> list[AssistantTool]:
