@@ -4,6 +4,7 @@ import marvin
 import openai
 import pytest
 from marvin.beta.assistants import Assistant
+from marvin.tools.assistants import CodeInterpreter
 
 client = openai.AsyncClient(api_key=marvin.settings.openai.api_key.get_secret_value())
 
@@ -21,6 +22,19 @@ def mock_get_client(monkeypatch):
 @pytest.fixture(autouse=True)
 def mock_say(monkeypatch):
     monkeypatch.setattr(client.beta.threads.runs, "create", AsyncMock())
+
+
+class TestTools:
+    def test_code_interpreter(self):
+        ai = Assistant(tools=[CodeInterpreter])
+        run = ai.say(
+            "use the code interpreter to compute a random number between 85 and 95"
+        )
+        assert run.steps[0].step_details.tool_calls[0].type == "code_interpreter"
+        output = float(
+            run.steps[-2].step_details.tool_calls[0].code_interpreter.outputs[0].logs
+        )
+        assert 85 <= output <= 95
 
 
 class TestLifeCycle:

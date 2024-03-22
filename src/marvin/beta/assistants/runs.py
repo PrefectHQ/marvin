@@ -43,8 +43,8 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
     thread: Thread
     assistant: Assistant
-    event_handler_class: type[
-        Union[AssistantEventHandler, AsyncAssistantEventHandler]
+    event_handler_class: Optional[
+        type[Union[AssistantEventHandler, AsyncAssistantEventHandler]]
     ] = Field(default=None)
     event_handler_kwargs: dict[str, Any] = Field(default={})
     _messages: list[Message] = PrivateAttr({})
@@ -117,16 +117,16 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
         )
         await self.refresh_async()
 
-    def _get_instructions(self) -> str:
+    def _get_instructions(self, thread: Thread = None) -> Optional[str]:
         if self.instructions is None:
-            instructions = self.assistant.get_instructions() or ""
+            instructions = self.assistant.get_instructions(thread=thread) or ""
         else:
             instructions = self.instructions
 
         if self.additional_instructions is not None:
             instructions = "\n\n".join([instructions, self.additional_instructions])
 
-        return instructions
+        return instructions or None
 
     def _get_model(self) -> str:
         if self.model is None:
@@ -145,18 +145,16 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             tools.extend(self.additional_tools)
         return tools
 
-    def _get_run_kwargs(self, **run_kwargs) -> dict:
-        if "instructions" not in run_kwargs and (
-            self.instructions is not None or self.additional_instructions is not None
-        ):
-            run_kwargs["instructions"] = self._get_instructions()
+    def _get_run_kwargs(self, thread: Thread = None, **run_kwargs) -> dict:
+        if instructions := self._get_instructions(thread=thread):
+            run_kwargs["instructions"] = instructions
 
-        if "tools" not in run_kwargs and (
-            self.tools is not None or self.additional_tools is not None
-        ):
-            run_kwargs["tools"] = self._get_tools()
-        if "model" not in run_kwargs and self.model is not None:
-            run_kwargs["model"] = self._get_model()
+        if tools := self._get_tools():
+            run_kwargs["tools"] = [t.model_dump(mode="json") for t in tools]
+
+        if model := self._get_model():
+            run_kwargs["model"] = model
+
         return run_kwargs
 
     async def get_tool_outputs(self, run: OpenAIRun) -> list[dict[str, str]]:
@@ -194,7 +192,8 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 "This run object was provided an ID; can not create a new run."
             )
         client = marvin.utilities.openai.get_openai_client()
-        run_kwargs = self._get_run_kwargs()
+        run_kwargs = self._get_run_kwargs(thread=self.thread)
+
         event_handler_class = self.event_handler_class or AsyncAssistantEventHandler
 
         with self.assistant:

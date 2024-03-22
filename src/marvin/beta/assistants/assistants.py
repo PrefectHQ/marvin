@@ -26,6 +26,12 @@ logger = get_logger("Assistants")
 NOT_PROVIDED = "__NOT_PROVIDED__"
 
 
+def default_run_handler_class() -> (
+    type[Union[AssistantEventHandler, AsyncAssistantEventHandler]]
+):
+    return PrintHandler
+
+
 class Assistant(BaseModel, ExposeSyncMethodsMixin):
     """
     The Assistant class represents an AI assistant that can be created, deleted,
@@ -39,7 +45,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         metadata (dict): Additional data about the assistant.
         file_ids (list): List of file IDs associated with the assistant.
         tools (list): List of tools used by the assistant.
-        instructions (list): List of instructions for the assistant.
+        instructions (str): Instructions for the assistant.
     """
 
     id: Optional[str] = None
@@ -78,7 +84,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             for tool in self.tools
         ]
 
-    def get_instructions(self) -> str:
+    def get_instructions(self, thread: Thread = None) -> str:
         return self.instructions or ""
 
     @expose_sync_method("say")
@@ -95,7 +101,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         thread = thread or self.default_thread
 
         if event_handler_class is NOT_PROVIDED:
-            event_handler_class = PrintHandler
+            event_handler_class = default_run_handler_class()
 
         # post the message
         user_message = await thread.add_async(message, file_paths=file_paths)
