@@ -43,8 +43,8 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
     thread: Thread
     assistant: Assistant
-    event_handler_class: type[
-        Union[AssistantEventHandler, AsyncAssistantEventHandler]
+    event_handler_class: Optional[
+        type[Union[AssistantEventHandler, AsyncAssistantEventHandler]]
     ] = Field(default=None)
     event_handler_kwargs: dict[str, Any] = Field(default={})
     _messages: list[Message] = PrivateAttr({})
