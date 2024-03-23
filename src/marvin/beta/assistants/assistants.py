@@ -196,7 +196,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             try:
                 message = Prompt.ask("[bold green]Your message[/]")
                 # if the user types exit, ask for confirmation
-                if message == "exit":
+                if message in ["exit", "!exit", ":q", "!quit"]:
                     if Confirm.ask("[red]Are you sure you want to exit?[/]"):
                         break
                     continue
