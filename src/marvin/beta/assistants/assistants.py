@@ -204,7 +204,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
                         break
                     continue
                 # if the user types exit -y, quit right away
-                elif message == "exit -y":
+                elif message in ["exit -y", ":q!"]:
                     break
                 await self.say_async(message, **kwargs)
             except KeyboardInterrupt:
