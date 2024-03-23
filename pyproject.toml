@@ -17,6 +17,7 @@ dependencies = [
     "jinja2>=3.1.2",
     "jsonpatch>=1.33",
     "openai>=1.4.0",
+    "prompt-toolkit>=3.0.33",
     "pydantic>=2.4.2",
     "pydantic_settings",
     "rich>=12",
