@@ -199,7 +199,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             try:
                 message = await run_async(session.prompt, "➤ ", multiline=False)
                 # if the user types exit, ask for confirmation
-                if message == "exit":
+                if message in ["exit", "!exit", ":q", "!quit"]:
                     if Confirm.ask("[red]Are you sure you want to exit?[/]"):
                         break
                     continue
