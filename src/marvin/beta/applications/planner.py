@@ -2,6 +2,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from marvin.beta.assistants import Thread
 from marvin.tools.assistants import AssistantTool
 from marvin.utilities.jinja import Environment as JinjaEnvironment
 
@@ -48,7 +49,7 @@ class TaskList(BaseModel):
 class AIPlanner(Application):
     plan: State = Field(default_factory=lambda: State(value=TaskList()))
 
-    def get_instructions(self) -> str:
+    def get_instructions(self, thread: Thread = None) -> str:
         instructions = super().get_instructions()
         return JinjaEnvironment.render(
             instructions + "\n\n" + PLANNER_INSTRUCTIONS, self_=self
