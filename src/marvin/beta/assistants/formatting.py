@@ -1,17 +1,19 @@
 import functools
-import inspect
 import json
 import tempfile
 from datetime import datetime
-from typing import Optional
+from typing import Any, Union
 
 from openai.types.beta.threads import Message
 from openai.types.beta.threads.runs.run_step import RunStep
 from partialjson import JSONParser
 from rich import box
+from rich.columns import Columns
 from rich.console import Console, Group
 from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.status import Status
+from rich.syntax import Syntax
 
 from marvin.utilities.openai import get_openai_client
 
@@ -46,9 +48,9 @@ def format_timestamp(timestamp: int) -> str:
     return datetime.fromtimestamp(timestamp).strftime("%l:%M:%S %p")
 
 
-def create_panel(content: str, title: str, timestamp: int, color: str):
+def create_panel(content: Any, title: str, timestamp: int, color: str):
     return Panel(
-        Markdown(inspect.cleandoc(content)),
+        content,
         title=f"[bold]{title}[/]",
         subtitle=f"[italic]{format_timestamp(timestamp)}[/]",
         title_align="left",
@@ -61,79 +63,33 @@ def create_panel(content: str, title: str, timestamp: int, color: str):
     )
 
 
-def handle_code_interpreter(step, tool_call):
+def format_code_interpreter_tool_call(step, tool_call):
     panel_title = "Code Interpreter"
-    footer = []
-    for output in tool_call.code_interpreter.outputs:
-        if output.type == "logs":
-            result, note = format_logs_output(output.logs)
-            footer_content = format_code_output(result, note)
-            footer.append(footer_content)
-        elif output.type == "image":
-            local_file_path = download_temp_file(output.image.file_id, suffix=".png")
-            footer.append(
-                f"The code interpreter produced this image: [{local_file_path}]({local_file_path})"
-            )
-    content = format_code_interpreter_input(tool_call.code_interpreter.input, footer)
-    return create_panel(content, panel_title, step.created_at, "gray74")
+    code = Syntax(tool_call.code_interpreter.input, "python", padding=(1, 2))
 
-
-def format_logs_output(logs):
-    if len(logs) > 500:
-        result = logs[:500] + " ..."
-        note = "*(First 500 characters shown)*"
+    if not tool_call.code_interpreter.outputs:
+        status = Status("Running code interpreter...", spinner="dots")
     else:
-        result = logs
-        note = ""
-    return result, note
-
-
-def format_code_output(result, note):
-    return inspect.cleandoc(
-        """
-        The code interpreter produced this result:
-
-        ```python
-        {result}
-        ```
-
-        {note}
-        """
-    ).format(result=result, note=note)
-
-
-def format_code_interpreter_input(input, footer):
-    footer = "\n".join(footer)
-    return inspect.cleandoc(
-        """
-        Running the code interpreter...
-
-        ```python
-        {input}
-        ```
-
-        {footer}
-        """
-    ).format(input=input, footer=footer)
-
-
-def handle_function_tool(step, tool_call):
-    panel_title = "Tool Call"
-    content = ""
-    if step.status == "in_progress":
-        if tool_call.function.arguments:
-            args = parse_function_arguments(tool_call.function.arguments)
-            content = format_function_call_input(tool_call.function.name, args)
-        else:
-            content = f"Using the `{tool_call.function.name}` tool."
-
-    if step.status == "completed" and tool_call.function.output:
-        result, note = format_function_output(tool_call.function.output)
-        content = format_function_result(tool_call.function.name, result, note)
+        status = ":heavy_check_mark: Finished!"
+    content = Group(status, "\n", code)
     return create_panel(content, panel_title, step.created_at, "gray74")
 
 
-def parse_function_arguments(arguments):
+def format_function_tool_call(step, tool_call):
+    panel_title = "Tool Call"
+    content = []
+    if step.status == "in_progress":
+        msg = f"Calling the [markdown.code]{tool_call.function.name}[/] tool with arguments:"
+        args = parse_function_arguments(tool_call.function.arguments)
+        arguments = Syntax(str(args), "python", padding=(0, 1))
+        content = Columns([Status(msg, spinner="dots"), arguments])
+    if step.status == "completed":
+        content = f":heavy_check_mark: Received output from the [markdown.code]{tool_call.function.name}[/] tool."
+    return create_panel(content, panel_title, step.created_at, "gray74")
+
+
+@functools.lru_cache(maxsize=1000)
+def parse_function_arguments(arguments: str) -> Union[dict, str]:
     try:
         return json.loads(arguments)
     except json.JSONDecodeError:
@@ -141,42 +97,6 @@ def parse_function_arguments(arguments):
             return json_parser.parse(arguments)
         except Exception:
             return arguments
-
-
-def format_function_call_input(function_name, args):
-    return inspect.cleandoc(
-        """
-        Using the `{function_name}` tool with these arguments:
-
-        ```python
-        {args}
-        ```
-        """
-    ).format(function_name=function_name, args=args)
-
-
-def format_function_output(output, length_cutoff: Optional[int] = 500):
-    if length_cutoff and len(output) > length_cutoff:
-        result = output[:length_cutoff] + " ..."
-        note = f"*(First {length_cutoff} characters shown)*"
-    else:
-        result = output
-        note = ""
-    return result, note
-
-
-def format_function_result(tool_name, result, note):
-    return inspect.cleandoc(
-        """
-        The `{tool_name}` tool produced this result:
-
-        ```python
-        {result}
-        ```
-
-        {note}
-        """
-    ).format(tool_name=tool_name, result=result, note=note)
 
 
 def format_step(step: RunStep) -> list[Panel]:
@@ -187,9 +107,9 @@ def format_step(step: RunStep) -> list[Panel]:
         if step.type == "tool_calls":
             for tool_call in step.step_details.tool_calls:
                 if tool_call.type == "code_interpreter":
-                    panel = handle_code_interpreter(step, tool_call)
+                    panel = format_code_interpreter_tool_call(step, tool_call)
                 elif tool_call.type == "function":
-                    panel = handle_function_tool(step, tool_call)
+                    panel = format_function_tool_call(step, tool_call)
                 panels.append(panel)
 
         elif step.type == "message_creation":
@@ -236,7 +156,7 @@ def format_message(message: Message) -> Panel:
     content = []
     for item in message.content:
         if item.type == "text":
-            content.append(item.text.value + "\n\n")
+            content.append(item.text.value)
         elif item.type == "image_file":
             # Use the download_temp_file function to download the file and get
             # the local path
@@ -250,7 +170,7 @@ def format_message(message: Message) -> Panel:
 
     # Create the panel for the message
     panel = create_panel(
-        "\n\n".join(content),
+        Markdown("\n\n".join(content)),
         title=message.role.capitalize(),
         timestamp=message.created_at,
         color=role_colors.get(message.role, "red"),
