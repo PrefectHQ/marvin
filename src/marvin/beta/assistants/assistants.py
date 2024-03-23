@@ -1,8 +1,9 @@
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from openai import AssistantEventHandler, AsyncAssistantEventHandler
+from prompt_toolkit import PromptSession
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
-from rich.prompt import Confirm, Prompt
+from rich.prompt import Confirm
 
 import marvin.utilities.openai
 import marvin.utilities.tools
@@ -12,6 +13,7 @@ from marvin.types import Tool
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
+    run_async,
     run_sync,
 )
 from marvin.utilities.logging import get_logger
@@ -190,11 +192,12 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     @expose_sync_method("chat")
     async def chat_async(self, initial_message: str = None, **kwargs):
         # send an initial message, if provided
+        session = PromptSession()
         if initial_message is not None:
             await self.say_async(initial_message, **kwargs)
         while True:
             try:
-                message = Prompt.ask("[bold green]Your message[/]")
+                message = await run_async(session.prompt, "➤ ", multiline=False)
                 # if the user types exit, ask for confirmation
                 if message == "exit":
                     if Confirm.ask("[red]Are you sure you want to exit?[/]"):
