@@ -2,9 +2,12 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from openai import AssistantEventHandler, AsyncAssistantEventHandler
 from prompt_toolkit import PromptSession
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.history import FileHistory
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
 from rich.prompt import Confirm
 
+import marvin
 import marvin.utilities.openai
 import marvin.utilities.tools
 from marvin.beta.assistants.handlers import PrintHandler
@@ -191,13 +194,17 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("chat")
     async def chat_async(self, initial_message: str = None, **kwargs):
+        session = PromptSession(
+            history=FileHistory(str(marvin.settings.home / "assistant_history.txt"))
+        )
         # send an initial message, if provided
-        session = PromptSession()
         if initial_message is not None:
             await self.say_async(initial_message, **kwargs)
         while True:
             try:
-                message = await run_async(session.prompt, "➤ ", multiline=False)
+                message = await run_async(
+                    session.prompt, message="➤ ", auto_suggest=AutoSuggestFromHistory()
+                )
                 # if the user types exit, ask for confirmation
                 if message in ["exit", "!exit", ":q", "!quit"]:
                     if Confirm.ask("[red]Are you sure you want to exit?[/]"):

@@ -6,6 +6,7 @@ from openai.types.beta.threads import Message
 from openai.types.beta.threads.run import Run as OpenAIRun
 from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
+from pydantic_core import to_json
 
 import marvin.utilities.openai
 import marvin.utilities.tools
@@ -164,6 +165,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             tool_calls = []
             tool_outputs = []
             tools = self._get_tools()
+            size_estimate = 0
 
             for tool_call in run.required_action.submit_tool_outputs.tool_calls:
                 try:
@@ -179,9 +181,16 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 except Exception as exc:
                     output = f"Error calling function {tool_call.function.name}: {exc}"
                     logger.error(output)
-                tool_outputs.append(
-                    dict(tool_call_id=tool_call.id, output=output or "")
-                )
+                tool_output = dict(tool_call_id=tool_call.id, output=output or "")
+                size_estimate += len(to_json(tool_output))
+                print(size_estimate)
+                breakpoint()
+
+                if size_estimate > (512 * 1024):
+                    raise RuntimeError(
+                        "Combined tool outputs cannot exceed the size limit of 512 KB."
+                    )
+                tool_outputs.append(tool_output)
                 tool_calls.append(tool_call)
 
             return tool_outputs

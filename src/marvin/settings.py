@@ -3,9 +3,10 @@
 import os
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Any, Callable, Literal, Optional, Union
+from pathlib import Path
+from typing import Annotated, Any, Callable, Literal, Optional, Union
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import AfterValidator, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -213,6 +214,14 @@ def default_post_processor_fn(response):
     return response
 
 
+def ensure_home_path(home_path: Path):
+    home_path.mkdir(parents=True, exist_ok=True)
+    return home_path
+
+
+HomePath = Annotated[Path, AfterValidator(ensure_home_path)]
+
+
 class Settings(MarvinSettings):
     """Settings for `marvin`.
 
@@ -237,6 +246,8 @@ class Settings(MarvinSettings):
         env_prefix="marvin_",
         protected_namespaces=(),
     )
+
+    home: HomePath = Field(default_factory=lambda: Path.home() / ".testing")
 
     post_processor_fn: Optional[Callable] = default_post_processor_fn
 
