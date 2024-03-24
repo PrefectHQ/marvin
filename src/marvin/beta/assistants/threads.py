@@ -1,4 +1,3 @@
-import time
 from typing import TYPE_CHECKING, Optional
 
 from openai.types.beta.threads import Message
@@ -152,24 +151,3 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             **run_kwargs,
         )
         return await run.run_async()
-
-    def chat(self, assistant: "Assistant"):
-        """
-        Starts an interactive chat session with the provided assistant.
-        """
-
-        from marvin.beta.chat_ui import interactive_chat
-
-        if self.id is None:
-            self.create()
-
-        def callback(thread_id: str, message: str):
-            thread = Thread(id=thread_id)
-            thread.run(assistant=assistant)
-
-        with interactive_chat(thread_id=self.id, message_callback=callback):
-            while True:
-                try:
-                    time.sleep(0.2)
-                except KeyboardInterrupt:
-                    break

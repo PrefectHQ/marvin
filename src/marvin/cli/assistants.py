@@ -206,6 +206,12 @@ def say(
         help="The name of the assistant to use. Set MARVIN_CLI_ASSISTANT to provide a default.",
         envvar="MARVIN_CLI_ASSISTANT",
     ),
+    chat: bool = typer.Option(
+        False,
+        "--chat",
+        "-c",
+        help="Start a persistent chat session with the assistant. The CLI will not exit until you type 'exit'.",
+    ),
 ):
     thread_data = threads_cli.get_or_create_thread(name=thread)
 
@@ -218,7 +224,45 @@ def say(
     else:
         assistant = default_assistant
 
-    assistant.say(message, thread=Thread(id=thread_data.id), model=model)
+    fn = assistant.chat if chat else assistant.say
+    fn(message, thread=Thread(id=thread_data.id), model=model)
+
+
+@assistants_app.command()
+def chat(
+    model: str = typer.Option(
+        None,
+        "--model",
+        "-m",
+        help="The model to use. If not provided, the assistant's default model will be used.",
+    ),
+    thread: str = typer.Option(
+        None,
+        "--thread",
+        "-t",
+        help="The thread name to send the message to. Set MARVIN_CLI_THREAD to provide a default.",
+        envvar="MARVIN_CLI_THREAD",
+    ),
+    assistant_name: str = typer.Option(
+        None,
+        "--assistant",
+        "-a",
+        help="The name of the assistant to use. Set MARVIN_CLI_ASSISTANT to provide a default.",
+        envvar="MARVIN_CLI_ASSISTANT",
+    ),
+):
+    thread_data = threads_cli.get_or_create_thread(name=thread)
+
+    if assistant_name:
+        try:
+            assistant = load_assistant(assistant_name)
+        except Exception as exc:
+            typer.echo(exc)
+            raise typer.Exit(1)
+    else:
+        assistant = default_assistant
+
+    assistant.chat(thread=Thread(id=thread_data.id), model=model)
 
 
 if __name__ == "__main__":
