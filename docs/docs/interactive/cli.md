@@ -10,7 +10,17 @@ To use the CLI, simply `say` something to Marvin:
 marvin say "hi"
 ```
 
-You can control the [thread](#threads) and [assistant](#custom-assistants) you're talking to, as well as the LLM model used for generating responses.
+You can control the [thread](#threads) and [assistant](#custom-assistants) you're talking to, as well as the [LLM model](#models) used for generating responses.
+
+### Chat mode
+
+By default, the CLI responds to a single message, then exits. To continue your conversation, you must reinvoke the CLI (possibly with the same arguments). Marvin also has a "chat mode" that allows you to have an extended conversation. Pass the `--chat` or `-c` flag to do this:
+
+```bash
+marvin say "hi" -c
+```
+
+In chat mode, the CLI will continue to prompt you for messages until you exit by typing `exit` or pressing `Ctrl+C`.
 
 ## Models
 
