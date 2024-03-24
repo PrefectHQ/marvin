@@ -1,5 +1,4 @@
 import marvin
-import pytest
 from marvin.settings import (
     AssistantSettings,
     Settings,
@@ -7,12 +6,6 @@ from marvin.settings import (
     temporary_settings,
 )
 from pydantic_settings import SettingsConfigDict
-
-
-@pytest.fixture(autouse=True)
-def tmp_marvin_home(tmp_path):
-    with temporary_settings(home=tmp_path):
-        yield
 
 
 class TestApiKeySetting:
