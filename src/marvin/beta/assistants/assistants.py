@@ -192,8 +192,13 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         assistant._context_level = 1
         return assistant
 
-    @expose_sync_method("chat")
+    # for better type hinting
+    def chat(self, initial_message: str = None, **kwargs):
+        """Start a chat session with the assistant."""
+        return run_sync(self.chat_async(initial_message, **kwargs))
+
     async def chat_async(self, initial_message: str = None, **kwargs):
+        """Async method to start a chat session with the assistant."""
         session = PromptSession(
             history=FileHistory(str(marvin.settings.home / "assistant_history.txt"))
         )
