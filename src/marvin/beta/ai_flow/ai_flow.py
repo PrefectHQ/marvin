@@ -9,7 +9,7 @@ class AIFlow(BaseModel):
     fn: Callable
 
     def __call__(self, *args, thread_id: str = None, **kwargs):
-        raise ("Not implemented - AI Flow is currently being upgraded")
+        raise NotImplementedError("AI Flow is currently being upgraded")
         # pflow = prefect_flow(name=self.name)(self.fn)
 
         # # Set up the thread context and execute the flow
