@@ -225,7 +225,12 @@ def say(
         assistant = default_assistant
 
     fn = assistant.chat if chat else assistant.say
-    fn(message, thread=Thread(id=thread_data.id), model=model)
+    fn(
+        message,
+        thread=Thread(id=thread_data.id),
+        model=model,
+        **({"assistant_dir": ASSISTANTS_DIR} if chat else {}),
+    )
 
 
 @assistants_app.command()
@@ -262,7 +267,9 @@ def chat(
     else:
         assistant = default_assistant
 
-    assistant.chat(thread=Thread(id=thread_data.id), model=model)
+    assistant.chat(
+        thread=Thread(id=thread_data.id), model=model, assistant_dir=ASSISTANTS_DIR
+    )
 
 
 if __name__ == "__main__":

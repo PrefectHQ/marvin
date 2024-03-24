@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from openai import AssistantEventHandler, AsyncAssistantEventHandler
@@ -193,22 +194,33 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         return assistant
 
     # for better type hinting
-    def chat(self, initial_message: str = None, **kwargs):
+    def chat(
+        self,
+        initial_message: str = None,
+        assistant_dir: Union[Path, str, None] = None,
+        **kwargs,
+    ):
         """Start a chat session with the assistant."""
-        return run_sync(self.chat_async(initial_message, **kwargs))
+        return run_sync(self.chat_async(initial_message, assistant_dir, **kwargs))
 
-    async def chat_async(self, initial_message: str = None, **kwargs):
+    async def chat_async(
+        self,
+        initial_message: str = None,
+        assistant_dir: Union[Path, str, None] = None,
+        **kwargs,
+    ):
         """Async method to start a chat session with the assistant."""
-        session = PromptSession(
-            history=FileHistory(str(marvin.settings.home / "assistant_history.txt"))
-        )
+        history = Path(assistant_dir) / "chat_history.txt" if assistant_dir else None
+        session = PromptSession(history=FileHistory(str(history)) if history else None)
         # send an initial message, if provided
         if initial_message is not None:
             await self.say_async(initial_message, **kwargs)
         while True:
             try:
                 message = await run_async(
-                    session.prompt, message="➤ ", auto_suggest=AutoSuggestFromHistory()
+                    session.prompt,
+                    message="➤ ",
+                    auto_suggest=AutoSuggestFromHistory() if history else None,
                 )
                 # if the user types exit, ask for confirmation
                 if message in ["exit", "!exit", ":q", "!quit"]:
