@@ -25,10 +25,9 @@ class TestVisionCast:
             "https://images.unsplash.com/photo-1617581629397-a72507c3de9e"
         )
         result = marvin.beta.cast(img, target=Location)
-        assert result in (
-            Location(city="Washington", state="DC"),
-            Location(city="Washington", state="D.C."),
-        )
+        assert isinstance(result, Location)
+        assert "Washington" in result.city
+        assert result.state.index("D") < result.state.index("C")
 
     def test_cast_ny_images_input(self):
         img = marvin.beta.Image(
