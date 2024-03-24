@@ -176,6 +176,10 @@ def call_function_tool(
         output = run_sync(output)
         if isinstance(output, BaseModel):
             output = output.model_dump(mode="json")
+        elif isinstance(output, (set, list, tuple)) and all(
+            isinstance(item, BaseModel) for item in output
+        ):
+            output = [item.model_dump(mode="json") for item in output]
     truncated_output = str(output)[:100]
     if len(truncated_output) < len(str(output)):
         truncated_output += "..."

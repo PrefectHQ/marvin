@@ -33,7 +33,9 @@ class MarvinSettings(BaseSettings):
 
 
 class ChatCompletionSettings(MarvinSettings):
-    model_config = SettingsConfigDict(env_prefix="marvin_chat_completions_")
+    model_config = SettingsConfigDict(
+        env_prefix="marvin_chat_completions_", extra="ignore"
+    )
     model: str = Field(
         description="The default chat model to use.", default="gpt-4-1106-preview"
     )
@@ -53,7 +55,7 @@ class ChatCompletionSettings(MarvinSettings):
 
 
 class ChatVisionSettings(MarvinSettings):
-    model_config = SettingsConfigDict(env_prefix="marvin_chat_vision_")
+    model_config = SettingsConfigDict(env_prefix="marvin_chat_vision_", extra="ignore")
     model: str = Field(
         description="The default vision model to use.", default="gpt-4-vision-preview"
     )
@@ -68,6 +70,7 @@ class ChatVisionSettings(MarvinSettings):
 
 
 class ChatSettings(MarvinSettings):
+    model_config = SettingsConfigDict(env_prefix="marvin_chat_", extra="ignore")
     completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
     vision: ChatVisionSettings = Field(default_factory=ChatVisionSettings)
 
@@ -82,7 +85,7 @@ class ImageSettings(MarvinSettings):
         style: The default style to use, defaults to `vivid`.
     """
 
-    model_config = SettingsConfigDict(env_prefix="marvin_image_")
+    model_config = SettingsConfigDict(env_prefix="marvin_image_", extra="ignore")
 
     model: str = Field(
         default="dall-e-3",
@@ -112,7 +115,10 @@ class SpeechSettings(MarvinSettings):
         speed: The default speed to use, defaults to `1.0`.
     """
 
-    model_config = SettingsConfigDict(env_prefix="marvin_speech_")
+    model_config = SettingsConfigDict(
+        env_prefix="marvin_speech_",
+        extra="ignore",
+    )
 
     model: str = Field(
         default="tts-1-hd",
@@ -141,6 +147,10 @@ class AssistantSettings(MarvinSettings):
 
 
 class AudioSettings(MarvinSettings):
+    """Settings for the audio API."""
+
+    model_config = SettingsConfigDict(env_prefix="marvin_audio_", extra="ignore")
+
     speech: SpeechSettings = Field(default_factory=SpeechSettings)
 
 
@@ -169,6 +179,7 @@ class OpenAISettings(MarvinSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="marvin_openai_",
+        extra="ignore",
     )
 
     api_key: Optional[SecretStr] = Field(
@@ -201,11 +212,13 @@ class OpenAISettings(MarvinSettings):
 
 
 class TextAISettings(MarvinSettings):
-    model_config = SettingsConfigDict(env_prefix="marvin_ai_text_")
+    model_config = SettingsConfigDict(env_prefix="marvin_ai_text_", extra="ignore")
     generate_cache_token_cap: int = Field(600)
 
 
 class AISettings(MarvinSettings):
+    model_config = SettingsConfigDict(env_prefix="marvin_ai_", extra="ignore")
+
     text: TextAISettings = Field(default_factory=TextAISettings)
 
 
