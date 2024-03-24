@@ -194,8 +194,10 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             await self.say_async(initial_message, **kwargs)
         while True:
             try:
-                message = Prompt.ask("[bold green]Your message[/]")
-                # if the user types exit, ask for confirmation
+                message = None
+                while not message:
+                    message = Prompt.ask("[bold green]Your message[/]")
+                    # if the user types exit, ask for confirmation
                 if message in ["exit", "!exit", ":q", "!quit"]:
                     if Confirm.ask("[red]Are you sure you want to exit?[/]"):
                         break
