@@ -247,7 +247,7 @@ class Settings(MarvinSettings):
         protected_namespaces=(),
     )
 
-    home: HomePath = Field(default_factory=lambda: Path.home() / ".testing")
+    home: HomePath = Field(default_factory=lambda: Path.home() / ".marvin")
 
     post_processor_fn: Optional[Callable] = default_post_processor_fn
 
