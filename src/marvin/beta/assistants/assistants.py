@@ -1,8 +1,14 @@
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from openai import AssistantEventHandler, AsyncAssistantEventHandler
+from prompt_toolkit import PromptSession
+from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+from prompt_toolkit.history import FileHistory
 from pydantic import BaseModel, Field, PrivateAttr, field_validator
+from rich.prompt import Confirm
 
+import marvin
 import marvin.utilities.openai
 import marvin.utilities.tools
 from marvin.beta.assistants.handlers import PrintHandler
@@ -11,6 +17,7 @@ from marvin.types import Tool
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
+    run_async,
     run_sync,
 )
 from marvin.utilities.jinja import Environment as JinjaEnvironment
@@ -189,10 +196,46 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         assistant._context_level = 1
         return assistant
 
-    def chat(self, thread: Thread = None):
-        if thread is None:
-            thread = self.default_thread
-        return thread.chat(assistant=self)
+    # for better type hinting
+    def chat(
+        self,
+        initial_message: str = None,
+        assistant_dir: Union[Path, str, None] = None,
+        **kwargs,
+    ):
+        """Start a chat session with the assistant."""
+        return run_sync(self.chat_async(initial_message, assistant_dir, **kwargs))
+
+    async def chat_async(
+        self,
+        initial_message: str = None,
+        assistant_dir: Union[Path, str, None] = None,
+        **kwargs,
+    ):
+        """Async method to start a chat session with the assistant."""
+        history = Path(assistant_dir) / "chat_history.txt" if assistant_dir else None
+        session = PromptSession(history=FileHistory(str(history)) if history else None)
+        # send an initial message, if provided
+        if initial_message is not None:
+            await self.say_async(initial_message, **kwargs)
+        while True:
+            try:
+                message = await run_async(
+                    session.prompt,
+                    message="➤ ",
+                    auto_suggest=AutoSuggestFromHistory() if history else None,
+                )
+                # if the user types exit, ask for confirmation
+                if message in ["exit", "!exit", ":q", "!quit"]:
+                    if Confirm.ask("[red]Are you sure you want to exit?[/]"):
+                        break
+                    continue
+                # if the user types exit -y, quit right away
+                elif message in ["exit -y", ":q!"]:
+                    break
+                await self.say_async(message, **kwargs)
+            except KeyboardInterrupt:
+                break
 
     def pre_run_hook(self):
         pass

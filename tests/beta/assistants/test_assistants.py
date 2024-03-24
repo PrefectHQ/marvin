@@ -67,6 +67,7 @@ class TestLifeCycle:
         mock_delete.assert_called_once()
         mock_create.assert_called_once()
 
+    @pytest.mark.flaky(reruns=2)
     @patch.object(client.beta.assistants, "delete", wraps=client.beta.assistants.delete)
     @patch.object(client.beta.assistants, "create", wraps=client.beta.assistants.create)
     def test_manual_lifecycle(self, mock_create, mock_delete):

@@ -309,7 +309,7 @@ app = Application(
 
 ### Running the app
 
-Now we can interact with our app. After each command, you can print the resulting message to see the LLM's response, or use the experimental `app.chat()` interface to interact with the application in real time. You can also see the updated application state.
+Now we can interact with our app. You can also see the updated application state.
 
 ```python
 response = app.say("I need to go to the store tomorrow afternoon")
