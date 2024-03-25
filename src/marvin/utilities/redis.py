@@ -38,6 +38,5 @@ def async_redis_from_settings(
     return async_redis.Redis(**marvin.settings.redis.model_dump() | (options or {}))
 
 
-@cached
 async def get_async_redis_client() -> async_redis.Redis:
     return await async_redis_from_settings()
