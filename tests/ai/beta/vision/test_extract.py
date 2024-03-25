@@ -7,8 +7,8 @@ from pydantic import BaseModel, Field
 
 
 class Location(BaseModel):
-    city: str
-    state: str = Field(description="The two letter abbreviation")
+    city: str = Field(description="Official city name, no boroughs or neighborhoods")
+    state: str = Field(description="The two letter abbreviation for the state")
 
 
 @pytest.mark.flaky(max_runs=2)
@@ -18,10 +18,9 @@ class TestVisionExtract:
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = marvin.beta.extract(img, target=Location)
-        assert result in (
-            [Location(city="New York", state="NY")],
-            [Location(city="New York City", state="NY")],
-        )
+
+        assert result.city.startswith("New York")
+        assert result.state == "NY"
 
     def test_ny_images_input(self):
         img = marvin.beta.Image(
