@@ -1,0 +1,43 @@
+version: '3'
+services:
+  redis:
+    image: redis:latest
+    restart: always
+    volumes:
+      - redis_data:/data
+
+  handlers:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python handlers.py
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PREFECT_API_KEY=${PREFECT_API_KEY}
+      - PREFECT_API_URL=${PREFECT_API_URL}
+
+  api:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python api.py
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - handlers
+    env_file:
+      - .env
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PREFECT_API_KEY=${PREFECT_API_KEY}
+      - PREFECT_API_URL=${PREFECT_API_URL}
+
+volumes:
+  redis_data:

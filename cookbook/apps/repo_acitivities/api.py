@@ -3,25 +3,21 @@ import typing
 import marvin
 import uvicorn
 from config import settings
-from devtools import debug
 from fastapi import FastAPI, Request
-from gh_util.types import GitHubWebhookEvent
-from pydantic import BaseModel, Field
+from gh_util.types import GitHubWebhookRequest
+from handlers import handle_repo_request
 from pydantic_core import from_json
 
 
-class GitHubWebhookEventHeaders(BaseModel):
-    model_config = dict(extra="ignore")
+def save_request(request: GitHubWebhookRequest):
+    if not (path := settings.home / request.event.repository.name).exists():
+        path.mkdir()
 
-    host: str = Field(...)
-    event: str = Field(alias="x-github-event")
-    hook_id: int = Field(alias="x-github-hook-id")
-    delivery: str = Field(alias="x-github-delivery")
-
-
-class GitHubWebhookRequest(BaseModel):
-    headers: GitHubWebhookEventHeaders
-    event: GitHubWebhookEvent
+    event_log_path = (
+        path
+        / f"{request.event.action}_{request.headers.event}_{request.headers.delivery}.json"
+    )
+    event_log_path.write_text(request.model_dump_json(indent=2))
 
 
 class FasterRequest(Request):
@@ -56,26 +52,12 @@ async def repo_event(request: FasterRequest):
     )
 
     if settings.test_mode:
-        if not (path := settings.home / req.event.repository.name).exists():
-            path.mkdir()
-        (
-            path / f"{req.event.action}_{req.headers.event}_{req.headers.delivery}.json"
-        ).write_text(req.model_dump_json(indent=2))
-    debug(req.event)
+        save_request(req)
 
-    match req.event.repository.get("full_name"):
-        case "zzstoatzz/gh":
-            # do something
-            pass
-        case "prefecthq/marvin":
-            # do something
-            pass
-        case _:
-            # do nothing
-            pass
+    await handle_repo_request.submit(req)
 
     return {"message": "repo event received"}
 
 
 if __name__ == "__main__":
-    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("api:app", host="0.0.0.0", port=8000)
