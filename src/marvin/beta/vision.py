@@ -237,7 +237,7 @@ async def cast_async(
 
 async def extract_async(
     data: Union[str, Image],
-    target: type[T],
+    target: type[T] = None,
     instructions: str = None,
     images: list[Image] = None,
     vision_model_kwargs: dict = None,
@@ -377,7 +377,7 @@ def cast(
 
 def extract(
     data: Union[str, Image],
-    target: type[T],
+    target: type[T] = None,
     instructions: str = None,
     images: list[Image] = None,
     vision_model_kwargs: dict = None,
