@@ -20,6 +20,7 @@ from marvin.utilities.asyncio import (
     run_async,
     run_sync,
 )
+from marvin.utilities.jinja import Environment as JinjaEnvironment
 from marvin.utilities.logging import get_logger
 
 from .threads import Thread
@@ -92,7 +93,9 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         ]
 
     def get_instructions(self, thread: Thread = None) -> str:
-        return self.instructions or ""
+        if self.instructions:
+            return JinjaEnvironment.render(self.instructions, self_=self)
+        return ""
 
     @expose_sync_method("say")
     async def say_async(
