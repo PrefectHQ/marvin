@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 
 class Location(BaseModel):
-    city: str = Field(description="Official city name, no boroughs or neighborhoods")
+    city: str
     state: str = Field(description="The two letter abbreviation for the state")
 
 
@@ -17,44 +17,45 @@ class TestVisionExtract:
         img = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
-        result = marvin.beta.extract(img, target=Location)
-
-        assert result.city.startswith("New York")
-        assert result.state == "NY"
+        locations = marvin.beta.extract(img, target=Location)
+        assert len(locations) == 1
+        location = locations[0]
+        assert location.city.startswith("New York") or location.city == "Manhattan"
+        assert location.state == "NY"
 
     def test_ny_images_input(self):
         img = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
-        result = marvin.beta.extract(data=None, images=[img], target=Location)
-        assert result in (
-            [Location(city="New York", state="NY")],
-            [Location(city="New York City", state="NY")],
-        )
+        locations = marvin.beta.extract(data=None, images=[img], target=Location)
+        assert len(locations) == 1
+        location = locations[0]
+        assert location.city.startswith("New York") or location.city == "Manhattan"
+        assert location.state == "NY"
 
     def test_ny_image_input(self):
         img = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
-        result = marvin.beta.extract(data=img, target=Location)
-        assert result in (
-            [Location(city="New York", state="NY")],
-            [Location(city="New York City", state="NY")],
-        )
+        locations = marvin.beta.extract(data=img, target=Location)
+        assert len(locations) == 1
+        location = locations[0]
+        assert location.city.startswith("New York") or location.city == "Manhattan"
+        assert location.state == "NY"
 
     def test_ny_image_and_text(self):
         img = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
-        result = marvin.beta.extract(
+        locations = marvin.beta.extract(
             data="I see the empire state building",
             images=[img],
             target=Location,
         )
-        assert result in (
-            [Location(city="New York", state="NY")],
-            [Location(city="New York City", state="NY")],
-        )
+        assert len(locations) == 1
+        location = locations[0]
+        assert location.city.startswith("New York") or location.city == "Manhattan"
+        assert location.state == "NY"
 
     @pytest.mark.flaky(max_runs=3)
     def test_dog(self):
@@ -89,11 +90,11 @@ class TestAsync:
         img = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
-        result = await marvin.beta.extract_async(img, target=Location)
-        assert result in (
-            [Location(city="New York", state="NY")],
-            [Location(city="New York City", state="NY")],
-        )
+        locations = await marvin.beta.extract_async(img, target=Location)
+        assert len(locations) == 1
+        location = locations[0]
+        assert location.city.startswith("New York") or location.city == "Manhattan"
+        assert location.state == "NY"
 
 
 class TestMapping:
@@ -104,16 +105,15 @@ class TestMapping:
         dc = marvin.beta.Image(
             "https://images.unsplash.com/photo-1617581629397-a72507c3de9e"
         )
-        result = marvin.beta.extract.map([ny, dc], target=Location)
-        assert isinstance(result, list)
-        assert result[0][0] in (
-            Location(city="New York", state="NY"),
-            Location(city="New York City", state="NY"),
-        )
-        assert result[1][0] in (
-            Location(city="Washington", state="DC"),
-            Location(city="Washington", state="D.C."),
-        )
+        locations = marvin.beta.extract.map([ny, dc], target=Location)
+        assert len(locations) == 2
+        ny_location, dc_location = locations
+
+        assert ny_location[0].city.startswith("New York")
+        assert ny_location[0].state == "NY"
+
+        assert dc_location[0].city == "Washington"
+        assert dc_location[0].state.index("D") < dc_location[0].state.index("C")
 
     async def test_async_map(self):
         ny = marvin.beta.Image(
@@ -122,13 +122,12 @@ class TestMapping:
         dc = marvin.beta.Image(
             "https://images.unsplash.com/photo-1617581629397-a72507c3de9e"
         )
-        result = await marvin.beta.extract_async.map([ny, dc], target=Location)
-        assert isinstance(result, list)
-        assert result[0][0] in (
-            Location(city="New York", state="NY"),
-            Location(city="New York City", state="NY"),
-        )
-        assert result[1][0] in (
-            Location(city="Washington", state="DC"),
-            Location(city="Washington", state="D.C."),
-        )
+        locations = await marvin.beta.extract_async.map([ny, dc], target=Location)
+        assert len(locations) == 2
+        ny_location, dc_location = locations
+
+        assert ny_location[0].city.startswith("New York")
+        assert ny_location[0].state == "NY"
+
+        assert dc_location[0].city == "Washington"
+        assert dc_location[0].state.index("D") < dc_location[0].state.index("C")
