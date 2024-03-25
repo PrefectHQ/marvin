@@ -171,6 +171,9 @@ Each assistant can be given `instructions` that describe its purpose, personalit
     !!! success "Result"
         ![](/assets/images/docs/assistants/instructions.png)
 
+Instructions are rendered as a Jinja template, which means you can use variables and conditionals to customize the assistant's behavior. A special variable, `self_` is provided to the template, which represents the assistant object itself. This allows you to template the assistant's name, tools, or other attributes into the instructions.
+
+
 ### Tools
 
 Each assistant can be given a list of `tools` that it can use when responding to a message. Tools are a way to extend the assistant's capabilities beyond its default behavior, including giving it access to external systems like the internet, a database, your computer, or any API. 
