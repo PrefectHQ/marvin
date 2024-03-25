@@ -1,14 +1,17 @@
 import asyncio
 import functools
+from typing import Callable, TypeVar, Union
 
 import redis.asyncio as async_redis
 
 import marvin
 
+R = TypeVar("R", bound=async_redis.Redis)
+
 _client_cache: dict[tuple, async_redis.Redis] = {}
 
 
-def _running_loop() -> asyncio.AbstractEventLoop | None:
+def _running_loop() -> Union[asyncio.AbstractEventLoop, None]:
     try:
         return asyncio.get_running_loop()
     except RuntimeError as e:
@@ -17,7 +20,7 @@ def _running_loop() -> asyncio.AbstractEventLoop | None:
         raise
 
 
-def cached(fn):
+def cached(fn: Callable[..., R]) -> Callable[..., R]:
     @functools.wraps(fn)
     def cached_fn(*args, **kwargs):
         key = (fn, args, tuple(kwargs.items()), _running_loop())
