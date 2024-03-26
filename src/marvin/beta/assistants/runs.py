@@ -191,6 +191,8 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             raise ValueError(
                 "This run object was provided an ID; can not create a new run."
             )
+        if not self.thread.id:
+            await self.thread.create_async()
         client = marvin.utilities.openai.get_openai_client()
         run_kwargs = self._get_run_kwargs(thread=self.thread)
 
