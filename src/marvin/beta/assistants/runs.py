@@ -205,7 +205,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 self.assistant.pre_run_hook()
 
                 for msg in self.messages:
-                    await handler.on_message_done(msg)
+                    msg_handler = handler.on_message_done(msg)
+                    if inspect.iscoroutine(msg_handler):
+                        await msg_handler
 
                 async with client.beta.threads.runs.create_and_stream(
                     thread_id=self.thread.id,
@@ -236,7 +238,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 self.data = exc.data
 
             except Exception as exc:
-                await handler.on_exception(exc)
+                exc_handler = handler.on_exception(exc)
+                if inspect.iscoroutine(exc_handler):
+                    await exc_handler
                 raise
 
             if self.run.status == "failed":
