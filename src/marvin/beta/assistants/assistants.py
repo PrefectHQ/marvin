@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
-from openai import AssistantEventHandler, AsyncAssistantEventHandler
+from openai import AsyncAssistantEventHandler
 from prompt_toolkit import PromptSession
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.history import FileHistory
@@ -34,9 +34,7 @@ logger = get_logger("Assistants")
 NOT_PROVIDED = "__NOT_PROVIDED__"
 
 
-def default_run_handler_class() -> (
-    type[Union[AssistantEventHandler, AsyncAssistantEventHandler]]
-):
+def default_run_handler_class() -> type[AsyncAssistantEventHandler]:
     return PrintHandler
 
 
@@ -103,9 +101,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         message: str,
         file_paths: Optional[list[str]] = None,
         thread: Optional[Thread] = None,
-        event_handler_class: type[
-            Union[AssistantEventHandler, AsyncAssistantEventHandler]
-        ] = NOT_PROVIDED,
+        event_handler_class: type[AsyncAssistantEventHandler] = NOT_PROVIDED,
         **run_kwargs,
     ) -> "Run":
         thread = thread or self.default_thread
