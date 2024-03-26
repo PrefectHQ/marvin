@@ -8,7 +8,6 @@ from openai.types.beta.threads import Message
 from openai.types.beta.threads.runs.run_step import RunStep
 from partialjson import JSONParser
 from rich import box
-from rich.columns import Columns
 from rich.console import Console, Group
 from rich.markdown import Markdown
 from rich.panel import Panel
@@ -65,7 +64,9 @@ def create_panel(content: Any, title: str, timestamp: int, color: str):
 
 def format_code_interpreter_tool_call(step, tool_call):
     panel_title = "Code Interpreter"
-    code = Syntax(tool_call.code_interpreter.input, "python", padding=(1, 2))
+    code = Syntax(
+        tool_call.code_interpreter.input, "python", padding=(1, 2), word_wrap=True
+    )
 
     if not tool_call.code_interpreter.outputs:
         status = Status("Running code interpreter...", spinner="dots")
@@ -81,8 +82,8 @@ def format_function_tool_call(step, tool_call):
     if step.status == "in_progress":
         msg = f"Calling the [markdown.code]{tool_call.function.name}[/] tool with arguments:"
         args = parse_function_arguments(tool_call.function.arguments)
-        arguments = Syntax(str(args), "python", padding=(0, 1))
-        content = Columns([Status(msg, spinner="dots"), arguments])
+        arguments = Syntax(args, "json", padding=(1, 2), word_wrap=True)
+        content = Group(Status(msg, spinner="dots"), "\n", arguments)
     if step.status == "completed":
         content = f":heavy_check_mark: Received output from the [markdown.code]{tool_call.function.name}[/] tool."
     return create_panel(content, panel_title, step.created_at, "gray74")
@@ -91,10 +92,12 @@ def format_function_tool_call(step, tool_call):
 @functools.lru_cache(maxsize=1000)
 def parse_function_arguments(arguments: str) -> Union[dict, str]:
     try:
-        return json.loads(arguments)
+        result = json.loads(arguments)
+        return json.dumps(result, indent=2)
     except json.JSONDecodeError:
         try:
-            return json_parser.parse(arguments)
+            result = json_parser.parse(arguments)
+            return json.dumps(result, indent=2)
         except Exception:
             return arguments
 
