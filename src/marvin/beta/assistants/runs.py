@@ -1,7 +1,6 @@
-import inspect
 from typing import Any, Callable, Optional, Union
 
-from openai import AssistantEventHandler, AsyncAssistantEventHandler
+from openai import AsyncAssistantEventHandler
 from openai.types.beta.threads import Message
 from openai.types.beta.threads.run import Run as OpenAIRun
 from openai.types.beta.threads.runs import RunStep as OpenAIRunStep
@@ -43,9 +42,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
     thread: Thread
     assistant: Assistant
-    event_handler_class: Optional[
-        type[Union[AssistantEventHandler, AsyncAssistantEventHandler]]
-    ] = Field(default=None)
+    event_handler_class: Optional[type[AsyncAssistantEventHandler]] = Field(
+        default=None
+    )
     event_handler_kwargs: dict[str, Any] = Field(default={})
     _messages: list[Message] = PrivateAttr({})
     _steps: list[OpenAIRunStep] = PrivateAttr({})
@@ -205,9 +204,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 self.assistant.pre_run_hook()
 
                 for msg in self.messages:
-                    msg_handler = handler.on_message_done(msg)
-                    if inspect.iscoroutine(msg_handler):
-                        await msg_handler
+                    await handler.on_message_done(msg)
 
                 async with client.beta.threads.runs.create_and_stream(
                     thread_id=self.thread.id,
@@ -238,9 +235,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 self.data = exc.data
 
             except Exception as exc:
-                exc_handler = handler.on_exception(exc)
-                if inspect.iscoroutine(exc_handler):
-                    await exc_handler
+                await handler.on_exception(exc)
                 raise
 
             if self.run.status == "failed":
@@ -252,22 +247,16 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
         return self
 
-    async def _update_run_from_handler(
-        self, handler: Union[AsyncAssistantEventHandler, AssistantEventHandler]
-    ):
+    async def _update_run_from_handler(self, handler: AsyncAssistantEventHandler):
         self.run = handler.current_run
         try:
-            messages = handler.get_final_messages()
-            if inspect.iscoroutine(messages):
-                messages = await messages
+            messages = await handler.get_final_messages()
             self._messages.update({m.id: m for m in messages})
         except RuntimeError:
             pass
 
         try:
-            steps = handler.get_final_run_steps()
-            if inspect.iscoroutine(steps):
-                steps = await steps
+            steps = await handler.get_final_run_steps()
             self._steps.update({s.id: s for s in steps})
         except RuntimeError:
             pass
