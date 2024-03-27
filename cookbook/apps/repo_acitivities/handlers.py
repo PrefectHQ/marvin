@@ -1,48 +1,98 @@
-from typing import Any
+from enum import Enum
+from functools import wraps
+from typing import Callable, TypeVar
 
 from devtools import debug
-from gh_util.types import GitHubWebhookRequest
-from marvin.utilities.redis import get_async_redis_client
-from prefect import task
-from prefect.task_server import serve
+from gh_util.logging import get_logger
+from gh_util.types import GitHubIssueEvent, GitHubPullRequestEvent, GitHubWebhookRequest
 from pydantic import BaseModel
 
+logger = get_logger("handlers")
 
-# default handler
-async def _default_handler(request: GitHubWebhookRequest) -> GitHubWebhookRequest:
+M = TypeVar("M", bound=BaseModel)
+
+
+class EventType(Enum):
+    RELEASE = "release"
+    PULL_REQUEST = "pull_request"
+    PULL_REQUEST_REVIEW_COMMENT = "pull_request_review_comment"
+    ISSUES = "issues"
+    ISSUE_COMMENT = "issue_comment"
+
+
+def log_id(func: Callable[..., M]) -> Callable[..., M]:
+    @wraps(func)
+    def wrapper(request: GitHubWebhookRequest, *args, **kwargs) -> M:
+        logger.info_kv(
+            "WHO?",
+            f"{request.event.sender.login} triggered an event: {request.headers.event}",
+        )
+        return func(request, *args, **kwargs)
+
+    return wrapper
+
+
+## EVENT HANDLERS
+
+
+@log_id
+async def default_handler(request: GitHubWebhookRequest) -> GitHubWebhookRequest:
     debug(request)
-    print(f"got {request.headers.event} event for {request.event.repository.full_name}")
+    print(f"Unhandled event: {request.headers.event}")
     return request
 
 
-# handlers for specific repositories
-HANDLERS = {
-    "zzstoatzz/gh": _default_handler,
-    "prefecthq/marvin": _default_handler,
-    # add more handlers for specific repositories here
+@log_id
+async def handle_release_event(request: GitHubWebhookRequest) -> M:
+    release = request.event.release
+    print(f"New release: {release.name} (tag: {release.tag_name})")
+    # TODO
+    return request
+
+
+@log_id
+async def handle_pr_event(request: GitHubWebhookRequest) -> M:
+    event = GitHubPullRequestEvent.model_validate(request.event.model_dump())
+
+    pr = event.pull_request
+
+    if request.headers.event == EventType.PULL_REQUEST.value:
+        print(f"New PR: {pr.title} (#{pr.number})")
+    elif request.headers.event == EventType.PULL_REQUEST_REVIEW_COMMENT.value:
+        comment = request.event.comment
+        print(f"New PR comment: {comment.body} (PR #{pr.number})")
+    # TODO
+
+    return request
+
+
+@log_id
+async def handle_issue_event(request: GitHubWebhookRequest) -> M:
+    event = GitHubIssueEvent.model_validate(request.event.model_dump())
+
+    issue = event.issue
+
+    if event == EventType.ISSUES.value:
+        print(f"New issue: {issue.title} (#{issue.number})")
+
+    elif event == EventType.ISSUE_COMMENT.value:
+        print(f"New issue comment: {event.comment.body} (Issue #{issue.number})")
+    # TODO
+
+    return request
+
+
+## MAPPINGS
+
+DEFAULT_EVENT_HANDLERS: dict[EventType, Callable[..., M]] = {
+    EventType.RELEASE.value: handle_release_event,
+    EventType.PULL_REQUEST.value: handle_pr_event,
+    EventType.PULL_REQUEST_REVIEW_COMMENT.value: handle_pr_event,
+    EventType.ISSUES.value: handle_issue_event,
+    EventType.ISSUE_COMMENT.value: handle_issue_event,
 }
 
-
-# repo event handler task
-@task(
-    log_prints=True,
-    task_run_name="Handle {request.headers.event} event for {request.event.repository.full_name}",
-)
-async def handle_repo_request(request: GitHubWebhookRequest) -> Any:
-    full_repo_name = request.event.repository.full_name
-    request_handler = HANDLERS.get(full_repo_name, _default_handler)
-    handler_result = await request_handler(request)
-    if isinstance(handler_result, BaseModel) and (
-        serialized_result := handler_result.model_dump_json()
-    ):
-        redis = await get_async_redis_client()
-        request_key = (
-            f"{full_repo_name}:{request.headers.event}:{request.headers.delivery}"
-        )
-        await redis.set(request_key, serialized_result)
-        print(f"serialized & saved to redis @ {request_key}")
-
-
-# serve the main task
-if __name__ == "__main__":
-    serve(handle_repo_request)
+REPO_EVENT_HANDLERS: dict[str, dict[EventType, Callable]] = {
+    "zzstoatzz/gh": DEFAULT_EVENT_HANDLERS,
+    "zzstoatzz/raggy": DEFAULT_EVENT_HANDLERS,
+}

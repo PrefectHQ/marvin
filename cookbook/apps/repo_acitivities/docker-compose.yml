@@ -6,12 +6,12 @@ services:
     volumes:
       - redis_data:/data
 
-  handlers:
+  tasks:
     restart: always
     build:
       context: .
       dockerfile: Dockerfile
-    command: python handlers.py
+    command: python tasks.py
     depends_on:
       - redis
     env_file:
@@ -37,7 +37,7 @@ services:
       - "8000:8000"
     depends_on:
       - redis
-      - handlers
+      - tasks
     env_file:
       - .env
     environment:

@@ -51,33 +51,33 @@ GitHub will send a `POST` request to the `/webhook` endpoint with a JSON payload
 
 The received JSON payload is parsed, and the event type is determined based on the payload data. The event type is used to select the appropriate handler function to process the event.
 
-The project provides a default handler function (`_default_handler`) that simply logs the received event and returns the request data. You can customize the default handler or add specific handlers for different repositories by modifying the `HANDLERS` dictionary in the `handlers.py` file.
-
-#### Supported Event Types
-
-Right now, events aren't being handled in a specific way, but we could add more handlers to handle different types of events for different repositories. The current implementation only logs the event data and returns it as the result.
-
-You can extend the project to handle additional event types by adding corresponding handler functions and updating the `HANDLERS` dictionary.
-
 ### Configuration
 
 The project uses a `docker-compose.yml` file to define and configure the services. The file includes the following services:
 
 - `api`: Serves the endpoint that receives webhook events and submits them to the handler
-- `handlers`: Processes the received events and executes the appropriate handler function
+- `tasks`: Processes the received events and executes the appropriate handler function
 - `redis`: Provides a Redis instance for storing handler results (or any other data)
 
-The `handlers` and `api` services depend on the `redis` service and share a task storage volume for persistence.
+The `tasks` and `api` services depend on the `redis` service and share a task storage volume for persistence.
 
 ### Prefect Integration
 
-The project leverages Prefect to handle the execution of webhook event handlers (i.e background tasks). The `handle_repo_request` function in `handlers.py` is decorated with `@task` to make it a Prefect task.
+The project leverages Prefect to handle the execution of webhook event handlers (i.e background tasks). The `handle_repo_request` function in `tasks.py` is decorated with `@task` to make it a Prefect task.
 
 The Prefect task is configured with the following settings:
 - `log_prints=True`: Send stdout and stderr output to the Prefect logger
 - `task_run_name`: Sets the name of the task run based on the tasks input arguments
 
-The task retrieves the appropriate handler function based on the repository name and executes it with the received request data. If the handler returns a serializable result (i.e., a Pydantic model), it is serialized and stored in Redis using the repository name, event type, and delivery ID as the key.
+The task retrieves the appropriate handler function based on the repository name and executes it with the received request data. If the handler returns a serializable result (i.e., a Pydantic model), it is serialized and stored in Redis using a key composed of:
+- the webhook event type
+- a short LLM-digest string
+- the webhook delivery ID as the key.
+
+for example, the key might look like:
+```console
+issue_comment:about_broken_imports:123456789
+```
 
 ## How to Use
 

@@ -5,8 +5,8 @@ import uvicorn
 from config import settings
 from fastapi import FastAPI, Request
 from gh_util.types import GitHubWebhookRequest
-from handlers import handle_repo_request
 from pydantic_core import from_json
+from tasks import handle_repo_request
 
 
 def save_request(request: GitHubWebhookRequest):
@@ -17,7 +17,7 @@ def save_request(request: GitHubWebhookRequest):
         path
         / f"{request.event.action}_{request.headers.event}_{request.headers.delivery}.json"
     )
-    event_log_path.write_text(request.model_dump_json(indent=2))
+    event_log_path.write_text(request.model_dump_json(indent=2, exclude_none=True))
 
 
 class FasterRequest(Request):

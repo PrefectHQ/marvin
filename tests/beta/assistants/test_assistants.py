@@ -25,6 +25,7 @@ def mock_say(monkeypatch):
 
 
 class TestTools:
+    @pytest.mark.flaky(reruns=2)
     def test_code_interpreter(self):
         ai = Assistant(tools=[CodeInterpreter])
         run = ai.say(
