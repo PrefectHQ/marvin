@@ -27,7 +27,7 @@ def test_is_enum():
 class TestClassifier:
     class TestSimple:
         def test_color_red(self):
-            result = Color("rose")
+            result = Color("pink")
             assert result == Color.RED
 
         def test_color_green(self):

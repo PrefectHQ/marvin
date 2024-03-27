@@ -13,7 +13,7 @@ octocat = Application(
     tools=[f for f in functions if f.__name__ != "run_git_command"],
 )
 
-# $ marvin assistant register cookbook/gh_util/custom_assistant.py:octocat
+# $ marvin assistant register cookbook/assistants/github_assistant.py:octocat
 
 # > what's the latest release of prefecthq/marvin?
 

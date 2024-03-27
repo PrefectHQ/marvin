@@ -1,0 +1,55 @@
+version: '3'
+services:
+  redis:
+    image: redis:latest
+    restart: always
+    volumes:
+      - redis_data:/data
+
+  tasks:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python tasks.py
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PREFECT_API_KEY=${PREFECT_API_KEY}
+      - PREFECT_API_URL=${PREFECT_API_URL}
+      - PREFECT_EXPERIMENTAL_ENABLE_TASK_SCHEDULING=1
+      - PREFECT_LOCAL_STORAGE_PATH=/task-storage
+      - PREFECT_TASK_SCHEDULING_DEFAULT_STORAGE_BLOCK=local-file-system/repo-activites
+      - MARVIN_REDIS_HOST=redis
+    volumes:
+      - task-storage:/task-storage
+
+  api:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python api.py
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+      - tasks
+    env_file:
+      - .env
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PREFECT_API_KEY=${PREFECT_API_KEY}
+      - PREFECT_API_URL=${PREFECT_API_URL}
+      - PREFECT_EXPERIMENTAL_ENABLE_TASK_SCHEDULING=1
+      - PREFECT_LOCAL_STORAGE_PATH=/task-storage
+      - PREFECT_TASK_SCHEDULING_DEFAULT_STORAGE_BLOCK=local-file-system/repo-activites
+    volumes:
+      - task-storage:/task-storage
+
+volumes:
+  redis_data: {}
+  task-storage: {}

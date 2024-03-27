@@ -226,6 +226,30 @@ def default_post_processor_fn(response):
     return response
 
 
+class RedisSettings(MarvinSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="marvin_redis_",
+        extra="ignore",
+    )
+
+    host: str = Field(
+        default="localhost",
+        description="The host of the Redis server.",
+    )
+    port: int = Field(
+        default=6379,
+        description="The port of the Redis server.",
+    )
+    db: int = Field(
+        default=0,
+        description="The database number to use.",
+    )
+    password: Optional[SecretStr] = Field(
+        default=None,
+        description="The password to use to authenticate with the Redis server.",
+    )
+
+
 class Settings(MarvinSettings):
     """Settings for `marvin`.
 
@@ -265,6 +289,9 @@ class Settings(MarvinSettings):
 
     # ai settings
     ai: AISettings = Field(default_factory=AISettings)
+
+    # redis settings
+    redis: RedisSettings = Field(default_factory=RedisSettings)
 
     # beta settings
     auto_import_beta_modules: bool = Field(
