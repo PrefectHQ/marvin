@@ -200,7 +200,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
             handler = event_handler_class(**self.event_handler_kwargs)
 
             try:
-                self.assistant.pre_run_hook()
+                self.assistant.pre_run_hook(
+                    assistant=self.assistant, run=self, run_kwargs=run_kwargs
+                )
 
                 for msg in self.messages:
                     await handler.on_message_done(msg)

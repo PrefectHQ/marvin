@@ -237,7 +237,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             except KeyboardInterrupt:
                 break
 
-    def pre_run_hook(self):
+    def pre_run_hook(self, *args, **kwargs):
         pass
 
     def post_run_hook(self, run: "Run"):
