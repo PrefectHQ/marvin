@@ -24,16 +24,16 @@ This project enables processing and reacting to webhook events from GitHub repos
    PREFECT_API_URL=your-prefect-api-url
    ```
 
-4. Build and start the services using Docker Compose:
+4. Build and start the services using Docker Compose (or to rebuild after you've made changes to the code):
    ```
    docker-compose up --build -d
    ```
 
    This command will build the Docker images and start the services defined in the `docker-compose.yml` file.
 
-5. Monitor the logs of the `handlers` and `api` services to observe the processing of webhook events:
+5. Monitor the logs of the `tasks` and `api` services to observe the processing of webhook events:
    ```
-    docker-compose logs -f handlers api
+    docker-compose logs -f tasks api
    ```
 
 6. Tear down the services when you're done:

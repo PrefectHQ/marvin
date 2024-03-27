@@ -12,5 +12,5 @@ async def describe_event_as_key(event_digest: str) -> str:
     semantically representative.
 
     `about_` should be present in each key and the key should always be a total
-    of 4 lowercase words separated by 2 underscores. e.g. `about_fixing_broken_imports`
+    of 3 lowercase words separated by 2 underscores. e.g. `about_broken_imports`
     """
