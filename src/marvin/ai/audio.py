@@ -22,7 +22,7 @@ async def generate_speech(
     model_kwargs: Optional[dict[str, Any]] = None,
 ) -> Audio:
     """
-    Generates a speech based on a provided prompt template.
+    Generates speech based on a provided prompt template.
 
     This function uses the OpenAI Audio API to generate speech based on a provided
     prompt template. The function supports additional arguments for the prompt
