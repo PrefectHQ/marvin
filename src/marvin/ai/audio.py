@@ -22,9 +22,9 @@ async def generate_speech(
     model_kwargs: Optional[dict[str, Any]] = None,
 ) -> Audio:
     """
-    Generates an image based on a provided prompt template.
+    Generates a speech based on a provided prompt template.
 
-    This function uses the DALL-E API to generate an image based on a provided
+    This function uses the OpenAI Audio API to generate an speech based on a provided
     prompt template. The function supports additional arguments for the prompt
     and the model.
 
@@ -36,8 +36,8 @@ async def generate_speech(
             language model. Defaults to None.
 
     Returns:
-        ImagesResponse: The response from the DALL-E API, which includes the
-            generated image.
+        Audio: The response from the OpenAI Audio API, which includes the
+            generated speech.
     """
     prompt_kwargs = prompt_kwargs or {}
     model_kwargs = model_kwargs or {}
