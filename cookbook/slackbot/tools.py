@@ -3,7 +3,9 @@ from typing import Literal
 
 import httpx
 import marvin
-from marvin.tools.chroma import multi_query_chroma
+import turbopuffer as tpuf
+from prefect.blocks.system import Secret
+from raggy.vectorstores.tpuf import multi_query_tpuf
 
 Topic = Literal["latest_prefect_version"]
 
@@ -21,7 +23,10 @@ async def search_prefect_docs(queries: list[str]) -> str:
     - "retrieve run metadata dynamically"
 
     """
-    return await multi_query_chroma(queries=queries, n_results=3)
+    if not tpuf.api_key:
+        tpuf.api_key = (await Secret.load("tpuf-api-key")).get()
+
+    return await multi_query_tpuf(queries, namespace="marvin-slackbot")
 
 
 async def get_latest_release_notes() -> str:
