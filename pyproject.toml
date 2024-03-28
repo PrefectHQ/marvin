@@ -72,7 +72,7 @@ audio = [
 video = [
     "opencv-python >= 4.5",
 ]
-slackbot = ["marvin[prefect]", "numpy", "marvin[chromadb]"]
+slackbot = ["marvin[prefect]", "numpy"]
 
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"
