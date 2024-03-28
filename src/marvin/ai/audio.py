@@ -24,7 +24,7 @@ async def generate_speech(
     """
     Generates a speech based on a provided prompt template.
 
-    This function uses the OpenAI Audio API to generate an speech based on a provided
+    This function uses the OpenAI Audio API to generate speech based on a provided
     prompt template. The function supports additional arguments for the prompt
     and the model.
 
