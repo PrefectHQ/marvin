@@ -247,6 +247,11 @@ marvin.beta.classify(
 )
 
 # "drink"
+
+
+marvin.beta.caption("https://github.com/PrefectHQ/marvin/raw/main/docs/assets/images/docs/images/coffee.png")
+
+# "A steaming cup of coffee or tea sits on a wooden table, illuminated by warm, natural light with a soft focus background."
 ```
 
 ## Record the user, modify the content, and play it back
