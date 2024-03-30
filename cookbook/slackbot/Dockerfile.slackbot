@@ -4,16 +4,21 @@ WORKDIR /app
 
 COPY . /app
 
-RUN python -m venv venv
-ENV VIRTUAL_ENV=/app/venv
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
 RUN apt-get update && \
-    apt-get install -y git build-essential && \
+    apt-get install -y git build-essential curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip install ".[slackbot]"
+RUN pip install uv && uv venv
+
+ENV VIRTUAL_ENV=/app/.venv
+RUN uv venv
+
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+RUN uv pip install ".[slackbot]"
+
+RUN uv pip install git+https://www.github.com/zzstoatzz/raggy.git turbopuffer
 
 EXPOSE 4200
 

@@ -7,7 +7,6 @@ from keywords import handle_keywords
 from marvin.beta.applications import Application
 from marvin.beta.applications.state.json_block import JSONBlockState
 from marvin.beta.assistants import Assistant, Thread
-from marvin.tools.chroma import store_document
 from marvin.tools.github import search_github_issues
 from marvin.utilities.logging import get_logger
 from marvin.utilities.slack import (
@@ -38,7 +37,7 @@ def get_feature_flag_value(flag_name: str) -> bool:
 ENABLE_PARENT_APP = get_feature_flag_value("enable-parent-app")
 
 
-@flow(name="Handle Slack Message")
+@flow(name="Handle Slack Message", retries=1)
 async def handle_message(payload: SlackPayload) -> Completed:
     user_message = (event := payload.event).text
     cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
@@ -83,16 +82,6 @@ async def handle_message(payload: SlackPayload) -> Completed:
         )
         user_name, user_notes = (await get_notes_for_user(user_id=event.user)).popitem()
 
-        task(store_document).submit(
-            document=cleaned_message,
-            metadata={
-                "user": f"{user_name} ({event.user})",
-                "user_notes": user_notes or "",
-                "channel": await get_channel_name(event.channel),
-                "thread": thread,
-            },
-        )
-
         with Assistant(
             name="Marvin",
             tools=[
@@ -114,6 +103,9 @@ async def handle_message(payload: SlackPayload) -> Completed:
                 " prioritize brevity in your responses, and format text prettily for Slack."
                 f"{ ('here are some notes on the user:' + user_notes) if user_notes else ''}"
                 " ALWAYS provide links to the source of your information - let's think step-by-step."
+                " If a tool returns an irrelevant/bad result, you should try another tool."
+                " KEEP IN MIND that agents are deprecated in favor of workers, so you should"
+                " never recommend `prefect agent` commands, suggest `prefect worker` instead."
             ),
         ) as ai:
             logger.debug_kv(
