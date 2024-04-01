@@ -360,7 +360,7 @@ And remember:
     import marvin
 
     audio = marvin.speak("and above all else... don't panic!")
-    audio.stream_to_file("dont_panic.mp3")
+    audio.save("dont_panic.mp3")
     ```
 
     !!! success "Result"
