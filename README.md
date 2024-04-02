@@ -242,7 +242,7 @@ In addition to text, Marvin has beta support for captioning, classifying, transf
 
 ```python
 marvin.beta.classify(
-    marvin.image("docs/images/coffee.png"),
+    marvin.beta.Image("docs/images/coffee.png"),
     labels=["drink", "food"],
 )
 
