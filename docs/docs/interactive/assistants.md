@@ -105,7 +105,7 @@ For more control over the conversation, including posting multiple user messages
 
 #### Event handlers
 
-Marvin uses the OpenAI streaming API to provide real-time updates on the assistant's actions. To customize how these updates are handled, you can provide a custom event handler class to the `event_handler_class` parameter of `Assistant.say`, `Thread.run`, or `Run.run`. This class must inherit from `openai.AssistantEventHandler` or `openai.AsyncAssistantEventHandler`. For more control, you can also provide `event_handler_kwargs` that will be provided to the event handler when it is instantiated.
+Marvin uses the OpenAI streaming API to provide real-time updates on the assistant's actions. To customize how these updates are handled, you can provide a custom event handler class to the `event_handler_class` parameter of `Assistant.say`, `Thread.run`, or `Run.run`. This class must inherit from `openai.AsyncAssistantEventHandler` (so all methods must be async). For more control, you can also provide `event_handler_kwargs` that will be provided to the event handler when it is instantiated.
 
 #### Pretty-printing
 
