@@ -65,6 +65,7 @@ class Tool(MarvinType):
 
 
 class FunctionTool(Tool, Generic[T]):
+    type: Literal["function"] = "function"
     function: Optional[Function[T]] = None
 
 

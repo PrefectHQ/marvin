@@ -1,3 +1,4 @@
+import glob as glob_module
 import os
 import pathlib
 import shutil
@@ -149,3 +150,12 @@ def ls(path: str) -> str:
     path = os.path.expanduser(path)
     _path = pathlib.Path(path)
     return "\n".join(str(p) for p in _path.iterdir())
+
+
+def glob(pattern: str) -> list[str]:
+    """
+    Returns a list of paths matching a valid glob pattern.
+    The pattern can include ** for recursive matching, such as
+    '~/path/to/root/**/*.py'
+    """
+    return glob_module.glob(pattern, recursive=True)
