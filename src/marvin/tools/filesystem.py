@@ -159,3 +159,21 @@ def glob(pattern: str) -> list[str]:
     '~/path/to/root/**/*.py'
     """
     return glob_module.glob(pattern, recursive=True)
+
+
+def concat(source_paths: list[str], dest_path: str, add_headers: bool = True) -> str:
+    """
+    Concatenates the contents of multiple source files into a single
+    destination file. The result should be markdown. If add_headers is True, the
+    file path will be added as a header above the contents of each file.
+    """
+    dest_path = os.path.expanduser(dest_path)
+    _safe_create_file(dest_path)
+    with open(dest_path, "w") as dest_file:
+        for source_path in source_paths:
+            source_path = os.path.expanduser(source_path)
+            if add_headers:
+                dest_file.write(f"\n\n# File: {source_path}\n")
+            with open(source_path, "r") as source_file:
+                dest_file.write(source_file.read())
+    return f'Successfully concatenated files to "{dest_path}"'
