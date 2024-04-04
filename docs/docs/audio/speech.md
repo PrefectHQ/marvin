@@ -24,7 +24,7 @@ Marvin can generate speech from text.
 
         !!! success "Result"
             ```python
-            audio.stream_to_file("fancy_computer.mp3")
+            audio.save("fancy_computer.mp3")
             ```
             <audio controls>
               <source src="/assets/audio/fancy_computer.mp3" type="audio/mpeg">
@@ -47,7 +47,7 @@ Marvin can generate speech from text.
 
         !!! success "Result"
             ```python
-            audio.stream_to_file("hello_arthur.mp3")
+            audio.save("hello_arthur.mp3")
             ```
             <audio controls>
               <source src="/assets/audio/hello_arthur.mp3" type="audio/mpeg">
@@ -100,14 +100,10 @@ ai_say('hello')
 Both `speak` and `@speech` accept a `voice` parameter that allows you to choose from a variety of voices. You can preview the available voices [here](https://platform.openai.com/docs/guides/text-to-speech/voice-options).
 
 ```python
+The result of the `speak` function and `@speech` decorator is an audio stream.
 
-## Saving audio files
-
-The result of the `speak` function and `@speech` decorator is an audio stream. You can save this stream to disk like this:
-
-```python
-audio = marvin.speak("Hello, world!")
-audio.stream_to_file("hello_world.mp3")
+audio = marvin.speak("Hello, world!", voice="nova")
+audio.save("hello_world.mp3") # Saving audio files
 ```
 
 
