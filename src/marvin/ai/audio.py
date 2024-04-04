@@ -5,7 +5,7 @@ from typing import IO, Any, Callable, Literal, Optional, TypeVar, Union
 
 import marvin
 from marvin.client.openai import AsyncMarvinClient
-from marvin.types import Audio, HttpxBinaryResponseContent, SpeechRequest
+from marvin.types import Audio, SpeechRequest
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import Environment
 from marvin.utilities.logging import get_logger
@@ -86,7 +86,7 @@ def speak(
     text: str,
     voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = None,
     model_kwargs: Optional[dict[str, Any]] = None,
-) -> HttpxBinaryResponseContent:
+) -> Audio:
     """
     Generates audio from text using an AI.
 
@@ -101,7 +101,7 @@ def speak(
             language model. Defaults to None.
 
     Returns:
-        HttpxBinaryResponseContent: The generated audio.
+        Audio: The generated audio.
     """
     return run_sync(speak_async(text, voice, model_kwargs))
 
