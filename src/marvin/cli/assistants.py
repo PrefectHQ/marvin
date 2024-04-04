@@ -1,4 +1,5 @@
 import importlib
+import os
 import platform
 from pathlib import Path
 from typing import Optional, Union
@@ -11,7 +12,7 @@ from rich.table import Table
 
 from marvin.beta.assistants import Assistant, Thread
 from marvin.tools.assistants import CodeInterpreter
-from marvin.tools.filesystem import getcwd, ls, read, read_lines
+from marvin.tools.filesystem import getcwd, glob, ls, read, read_lines
 
 from . import threads as threads_cli
 
@@ -44,7 +45,7 @@ default_assistant = Assistant(
         time is valuable.
     
         """,
-    tools=[CodeInterpreter, read, read_lines, ls, getcwd, browse],
+    tools=[CodeInterpreter, read, read_lines, ls, getcwd, glob, browse],
 )
 
 
@@ -225,10 +226,21 @@ def say(
         assistant = default_assistant
 
     fn = assistant.chat if chat else assistant.say
+
+    instructions = (
+        f'The user has invoked you from the CLI in the "{os.getcwd()}" directory.'
+    )
+
+    if any(
+        getattr(tool, "type", None) == "code_interpreter" for tool in assistant.tools
+    ):
+        instructions += "\n\n Remember, the `CodeInterpreter` tool does not have access to the local filesystem."
+
     fn(
         message,
         thread=Thread(id=thread_data.id),
         model=model,
+        additional_instructions=instructions,
         **({"assistant_dir": ASSISTANTS_DIR} if chat else {}),
     )
 
@@ -267,8 +279,20 @@ def chat(
     else:
         assistant = default_assistant
 
+    instructions = (
+        f'The user has invoked you from the CLI in the "{os.getcwd()}" directory.'
+    )
+
+    if any(
+        getattr(tool, "type", None) == "code_interpreter" for tool in assistant.tools
+    ):
+        instructions += "\n\n Remember, the `CodeInterpreter` tool does not have access to the local filesystem."
+
     assistant.chat(
-        thread=Thread(id=thread_data.id), model=model, assistant_dir=ASSISTANTS_DIR
+        thread=Thread(id=thread_data.id),
+        model=model,
+        assistant_dir=ASSISTANTS_DIR,
+        additional_instructions=instructions,
     )
 
 
