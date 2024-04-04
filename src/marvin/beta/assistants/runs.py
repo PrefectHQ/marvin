@@ -234,6 +234,11 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 await self.cancel_async()
                 self.data = exc.data
 
+            except KeyboardInterrupt:
+                logger.debug("Keyboard interrupt; ending run.")
+                await self.cancel_async()
+                raise
+
             except Exception as exc:
                 await handler.on_exception(exc)
                 raise

@@ -21,6 +21,7 @@ def python(code: str) -> str:
     """
     Executes Python code on your local machine and returns the output. You can
     use this to run code that isn't compatible with the code interpreter tool,
-    for example if it requires internet access or other packages.
+    for example if it requires internet access or other packages. Whatever code
+    you pass is executed as a string using `eval`
     """
     return str(eval(code))

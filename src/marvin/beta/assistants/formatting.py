@@ -82,10 +82,15 @@ def format_function_tool_call(step, tool_call):
     panel_title = "Tool Call"
     content = []
     if step.status == "in_progress":
-        msg = f"Calling the [markdown.code]{tool_call.function.name}[/] tool with arguments:"
+        msg = f"Calling the [markdown.code]{tool_call.function.name}[/] tool"
         args = parse_function_arguments(tool_call.function.arguments)
-        arguments = Syntax(args, "json", padding=(1, 2), word_wrap=True)
-        content = Group(Status(msg, spinner="dots"), "\n", arguments)
+        if args and args != "{}":
+            msg += " with arguments:"
+            arguments = Syntax(args, "json", padding=(1, 2), word_wrap=True)
+            content = Group(Status(msg, spinner="dots"), "\n", arguments)
+        else:
+            msg += "..."
+            content = Group(Status(msg, spinner="dots"))
     if step.status == "completed":
         content = f":heavy_check_mark: Received output from the [markdown.code]{tool_call.function.name}[/] tool."
     return create_panel(content, panel_title, step.created_at, "gray74")
