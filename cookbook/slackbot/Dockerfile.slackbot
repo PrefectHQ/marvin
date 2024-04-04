@@ -18,8 +18,6 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN uv pip install ".[slackbot]"
 
-RUN uv pip install git+https://www.github.com/zzstoatzz/raggy.git turbopuffer
-
 EXPOSE 4200
 
 CMD ["python", "cookbook/slackbot/start.py"]
