@@ -1,6 +1,8 @@
 import asyncio
+import os
 import re
 
+import marvin
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
 from keywords import handle_keywords
@@ -189,4 +191,7 @@ async def chat_endpoint(request: Request):
 
 
 if __name__ == "__main__":
+    if not os.getenv("OPENAI_API_KEY", None):  # TODO: Remove this
+        os.environ["OPENAI_API_KEY"] = marvin.settings.openai.api_key.get_secret_value()
+
     uvicorn.run(app, host="0.0.0.0", port=4200)
