@@ -15,6 +15,6 @@ octocat = Application(
 
 # $ marvin assistant register cookbook/assistants/github_assistant.py:octocat
 
-# > what's the latest release of prefecthq/marvin?
+# > marvin say "what's the latest release of prefecthq/marvin?" -a octocat -c
 
 # see https://github.com/PrefectHQ/marvin/pull/875
