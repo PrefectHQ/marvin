@@ -1,6 +1,7 @@
 """Module for Jinja utilities."""
 
 import inspect
+import os
 import re
 from datetime import datetime
 from functools import cached_property
@@ -54,6 +55,7 @@ class BaseEnvironment(BaseModel):
         default_factory=lambda: {
             "now": lambda: datetime.now(ZoneInfo("UTC")),
             "inspect": inspect,
+            "getcwd": os.getcwd,
         }
     )
 

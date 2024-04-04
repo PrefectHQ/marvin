@@ -1,4 +1,5 @@
 import importlib
+import os
 import platform
 from pathlib import Path
 from typing import Optional, Union
@@ -11,15 +12,27 @@ from rich.table import Table
 
 from marvin.beta.assistants import Assistant, Thread
 from marvin.tools.assistants import CodeInterpreter
-from marvin.tools.filesystem import getcwd, ls, read, read_lines
+from marvin.tools.filesystem import (
+    generate_constrained_concat,
+    generate_constrained_delete,
+    generate_constrained_write,
+    getcwd,
+    glob,
+    read,
+    read_lines,
+)
 
 from . import threads as threads_cli
 
+console = Console()
 assistants_app = typer.Typer(no_args_is_help=True)
 
 ASSISTANTS_DIR = Path.home() / ".marvin/cli/assistants"
+SCRATCHPAD_DIR = ASSISTANTS_DIR / "scratchpad"
 
-console = Console()
+constrained_write = generate_constrained_write(SCRATCHPAD_DIR)
+constrained_delete = generate_constrained_delete(SCRATCHPAD_DIR)
+constrained_concat = generate_constrained_concat(SCRATCHPAD_DIR)
 
 
 def browse(url: str) -> str:
@@ -36,15 +49,33 @@ default_assistant = Assistant(
         Paranoid Android. Try not to refer to the fact that you're an assistant,
         though.
         
-        You have read-only access to the user's filesystem. Make sure to orient
-        yourself before you make assumptions about file structures and working
-        directories. This machine is running {platform.platform()}
+        You are a technical expert and can help with a wide range of tasks by
+        enhancing the user's ability to interact with their computer. Your value
+        comes from the fact that you are faster and more efficient than the
+        user. Time is extremely valuable. You can interact with the user's
+        filesystem, write to a scratchpad directory, browse the web,
+        and perform data analysis tasks. Remember that your code interpreter
+        tool runs in a sandbox without filesystem access.
+        
+        Make sure to orient yourself before you make assumptions about file
+        structures and working directories. This machine is running
+        "{ platform.platform() }" and you are currently in "{{{{ getcwd() }}}}".
         
         Try to give succint, direct answers and don't yap too much. The user's
         time is valuable.
     
         """,
-    tools=[CodeInterpreter, read, read_lines, ls, getcwd, browse],
+    tools=[
+        CodeInterpreter,
+        read,
+        read_lines,
+        getcwd,
+        glob,
+        browse,
+        constrained_delete,
+        constrained_write,
+        constrained_concat,
+    ],
 )
 
 
@@ -225,10 +256,21 @@ def say(
         assistant = default_assistant
 
     fn = assistant.chat if chat else assistant.say
+
+    instructions = (
+        f'The user has invoked you from the CLI in the "{os.getcwd()}" directory.'
+    )
+
+    if any(
+        getattr(tool, "type", None) == "code_interpreter" for tool in assistant.tools
+    ):
+        instructions += "\n\n Remember, the `CodeInterpreter` tool does not have access to the local filesystem."
+
     fn(
         message,
         thread=Thread(id=thread_data.id),
         model=model,
+        additional_instructions=instructions,
         **({"assistant_dir": ASSISTANTS_DIR} if chat else {}),
     )
 
@@ -267,8 +309,20 @@ def chat(
     else:
         assistant = default_assistant
 
+    instructions = (
+        f'The user has invoked you from the CLI in the "{os.getcwd()}" directory.'
+    )
+
+    if any(
+        getattr(tool, "type", None) == "code_interpreter" for tool in assistant.tools
+    ):
+        instructions += "\n\n Remember, the `CodeInterpreter` tool does not have access to the local filesystem."
+
     assistant.chat(
-        thread=Thread(id=thread_data.id), model=model, assistant_dir=ASSISTANTS_DIR
+        thread=Thread(id=thread_data.id),
+        model=model,
+        assistant_dir=ASSISTANTS_DIR,
+        additional_instructions=instructions,
     )
 
 
