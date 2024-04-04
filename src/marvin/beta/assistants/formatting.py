@@ -2,6 +2,7 @@ import functools
 import json
 import tempfile
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Union
 
 from openai.types.beta.threads import Message
@@ -20,27 +21,28 @@ json_parser = JSONParser()
 
 
 @functools.lru_cache(maxsize=1000)
-def download_temp_file(file_id: str, suffix: str = None):
+def download_temp_file(file_id: str):
     """
     Downloads a file from OpenAI's servers and saves it to a temporary file.
 
     Args:
         file_id: The ID of the file to be downloaded.
-        suffix: The file extension to be used for the temporary file.
 
     Returns:
         The file path of the downloaded temporary file.
     """
 
     client = get_openai_client(is_async=False)
+    file = client.files.retrieve(file_id)
+    filename = Path(file.filename).name
     response = client.files.content(file_id)
 
-    # Create a temporary file with a context manager to ensure it's cleaned up
-    # properly
-    temp_file = tempfile.NamedTemporaryFile(delete=False, mode="wb", suffix=suffix)
-    temp_file.write(response.content)
+    # generate a temporary file with the same filename as the original file
+    tempdir = tempfile.gettempdir()
+    path = Path(tempdir) / filename
+    path.write_bytes(response.content)
 
-    return temp_file.name
+    return str(path)
 
 
 def format_timestamp(timestamp: int) -> str:
@@ -157,19 +159,24 @@ def format_message(message: Message) -> Panel:
         "assistant": "blue",
     }
     content = []
+    attachments = []
     for item in message.content:
         if item.type == "text":
             content.append(item.text.value)
         elif item.type == "image_file":
             # Use the download_temp_file function to download the file and get
             # the local path
-            local_file_path = download_temp_file(item.image_file.file_id, suffix=".png")
-            content.append(
-                f"*View attached image: [{local_file_path}]({local_file_path})*"
-            )
+            local_file_path = download_temp_file(item.image_file.file_id)
+            attachments.append(local_file_path)
 
     for file_id in message.file_ids:
-        content.append(f"Attached file: {file_id}\n")
+        local_file_path = download_temp_file(file_id)
+        attachments.append(local_file_path)
+
+    if attachments:
+        content.append(
+            "\n" + "\n".join([f"Attachment: [{a}]({a})" for a in attachments])
+        )
 
     # Create the panel for the message
     panel = create_panel(
