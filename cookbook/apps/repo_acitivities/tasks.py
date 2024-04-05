@@ -32,6 +32,20 @@ def dump_event(event: GitHubWebhookEvent) -> str:
     )
 
 
+async def save_event_to_redis(repo_key: str, event_key: str, handler_result: M):
+    # Add the event to the repository's sorted set with the received_at timestamp as the score
+    redis = await get_async_redis_client()
+    await redis.zadd(
+        repo_key, mapping={event_key: handler_result._received_at.timestamp()}
+    )
+    await redis.set(event_key, handler_result.model_dump_json(), ex=TTL)
+
+    # Trim the repository's sorted set to maintain a maximum number of events
+    await redis.zremrangebyrank(repo_key, 0, -MAX_EVENTS - 1)
+
+    print(f"serialized event saved to redis: {repo_key} -> {event_key}")
+
+
 # Repo event handler task
 @task(
     log_prints=True,
@@ -61,18 +75,11 @@ async def handle_repo_request(
 
     handler_result, event_key_description = results
 
-    repo_key = f"{full_repo_name}:events"
-    event_key = f"{event_type}:{event_key_description}:{request.headers.delivery}"
-
-    # Add the event to the repository's sorted set with the received_at timestamp as the score
-    redis = await get_async_redis_client()
-    await redis.zadd(repo_key, mapping={event_key: request._received_at.timestamp()})
-    await redis.set(event_key, handler_result.model_dump_json(), ex=TTL)
-
-    # Trim the repository's sorted set to maintain a maximum number of events
-    await redis.zremrangebyrank(repo_key, 0, -MAX_EVENTS - 1)
-
-    print(f"serialized event saved to redis: {repo_key} -> {event_key}")
+    await save_event_to_redis(  # TODO: make this a flow
+        repo_key=f"{full_repo_name}:events",
+        event_key=f"{event_type}:{event_key_description}:{request.headers.delivery}",
+        handler_result=handler_result,
+    )
 
 
 # Serve the main handler task

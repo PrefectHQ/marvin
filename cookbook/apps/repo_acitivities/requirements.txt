@@ -1,6 +1,6 @@
-anyio<4
+anyio
 fastapi
 gh-util
 git+https://www.github.com/prefecthq/marvin.git@repo-activities
-prefect
+git+https://www.github.com/prefecthq/prefect.git@main
 redis

@@ -82,7 +82,7 @@ async def handle_issue_event(request: GitHubWebhookRequest) -> M:
     return request
 
 
-## MAPPINGS
+## handler mappings for event types and repos
 
 DEFAULT_EVENT_HANDLERS: dict[EventType, Callable[..., M]] = {
     EventType.RELEASE.value: handle_release_event,
@@ -92,7 +92,7 @@ DEFAULT_EVENT_HANDLERS: dict[EventType, Callable[..., M]] = {
     EventType.ISSUE_COMMENT.value: handle_issue_event,
 }
 
-REPO_EVENT_HANDLERS: dict[str, dict[EventType, Callable]] = {
+REPO_EVENT_HANDLERS: dict[str, dict[EventType, Callable[..., M]]] = {
     "zzstoatzz/gh": DEFAULT_EVENT_HANDLERS,
     "zzstoatzz/raggy": DEFAULT_EVENT_HANDLERS,
 }
