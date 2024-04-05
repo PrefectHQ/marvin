@@ -70,11 +70,22 @@ def format_code_interpreter_tool_call(step, tool_call):
         tool_call.code_interpreter.input, "python", padding=(1, 2), word_wrap=True
     )
 
+    attachments = []
     if not tool_call.code_interpreter.outputs:
         status = Status("Running code interpreter...", spinner="dots")
     else:
+        for o in tool_call.code_interpreter.outputs:
+            if o.type == "image":
+                local_file_path = download_temp_file(o.image.file_id)
+                attachments.append(local_file_path)
         status = ":heavy_check_mark: Finished!"
-    content = Group(status, "\n", code)
+    content = [status, "\n", code]
+    if attachments:
+        content.extend(
+            ["\n", "\n".join([f"Attachment: [{a}]({a})" for a in attachments])]
+        )
+    content = Group(*content)
+
     return create_panel(content, panel_title, step.created_at, "gray74")
 
 
