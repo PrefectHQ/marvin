@@ -131,21 +131,29 @@ assert category == "usability feedback"
 In more complex cases, where the context and specifics are crucial for accurate classification, detailed instructions play a critical role:
 
 ```python
-# Classifying a task based on project specifications
-project_specs = {
-    "Frontend": "Tasks involving UI design, CSS, and JavaScript.",
-    "Backend": "Tasks related to server, database, and application logic.",
-    "DevOps": "Tasks involving deployment, CI/CD, and server maintenance."
-}
+# Classifying a customer review as positive, negative, or neutral
+review_sentiments = [
+    "Positive",
+    "Negative",
+    "Neutral"
+]
 
-task_description = "Set up the server for the new application."
+review = "The product worked well, but the delivery took longer than expected."
 
-task_category = marvin.classify(
-    task_description,
-    labels=list(project_specs.keys()),
-    instructions="Match the task to the project category based on the provided specifications."
+# Without instructions
+predicted_sentiment = marvin.classify(
+    review,
+    labels=review_sentiments
 )
-assert task_category == "Backend"
+assert predicted_sentiment == "Negative"
+
+# With instructions
+predicted_sentiment = marvin.classify(
+    review,
+    labels=review_sentiments,
+    instructions="Focus on the sentiment towards the product itself, rather than the delivery experience."
+)
+assert predicted_sentiment == "Positive"
 ```
 
 ## Enums as classifiers
