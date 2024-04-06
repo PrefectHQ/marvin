@@ -126,7 +126,7 @@ category = marvin.classify(
 assert category == "usability feedback"
 ```
 
-### Details and few-shot examples
+### Adding detailed instructions
 
 In more complex cases, where the context and specifics are crucial for accurate classification, detailed instructions play a critical role:
 
