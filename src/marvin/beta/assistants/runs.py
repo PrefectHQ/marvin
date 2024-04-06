@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 import marvin.utilities.openai
 import marvin.utilities.tools
-from marvin.tools.assistants import AssistantTool, CancelRun
+from marvin.tools.assistants import AssistantTool, EndRun
 from marvin.types import Tool
 from marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
 from marvin.utilities.logging import get_logger
@@ -172,7 +172,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                         function_arguments_json=tool_call.function.arguments,
                         return_string=True,
                     )
-                except CancelRun as exc:
+                except EndRun as exc:
                     logger.debug(f"Ending run with data: {exc.data}")
                     raise
                 except Exception as exc:
@@ -229,8 +229,8 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                         await stream.until_done()
                         await self._update_run_from_handler(handler)
 
-            except CancelRun as exc:
-                logger.debug(f"`CancelRun` raised; ending run with data: {exc.data}")
+            except EndRun as exc:
+                logger.debug(f"`EndRun` raised; ending run with data: {exc.data}")
                 await self.cancel_async()
                 self.data = exc.data
 

@@ -8,7 +8,7 @@ CodeInterpreter = CodeInterpreterTool()
 AssistantTool = Union[RetrievalTool, CodeInterpreterTool, Tool]
 
 
-class CancelRun(Exception):
+class EndRun(Exception):
     """
     A special exception that can be raised in a tool to end the run immediately.
     """
