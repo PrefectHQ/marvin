@@ -186,14 +186,11 @@ def output_to_string(output: Any) -> str:
     """
     Function outputs must be provided as strings
     """
-    if isinstance(output, None):
+    if output is None:
         output = ""
     elif not isinstance(output, str):
-        if isinstance(output, BaseModel):
-            output = output.model_dump_json()
-        else:
-            try:
-                output = json.dumps(output)
-            except json.JSONDecodeError:
-                output = str(output)
+        try:
+            output = TypeAdapter(type(output)).dump_json(output)
+        except Exception:
+            output = str(output)
     return output
