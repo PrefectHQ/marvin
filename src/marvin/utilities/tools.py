@@ -180,6 +180,24 @@ def call_function_tool(
     if len(truncated_output) < len(str(output)):
         truncated_output += "..."
     logger.debug_kv(f"{tool.function.name}", f"returned: {truncated_output}", "green")
-    if return_string and not isinstance(output, str):
-        output = json.dumps(output)
     return output
+
+
+def get_string_outputs(tool_outputs: list[Any]) -> list[str]:
+    """
+    Function outputs must be provided as strings
+    """
+    string_outputs = []
+    for o in tool_outputs:
+        if isinstance(o, None):
+            o = ""
+        elif not isinstance(o, str):
+            if isinstance(o, BaseModel):
+                o = o.model_dump_json()
+            else:
+                try:
+                    o = json.dumps(o)
+                except json.JSONDecodeError:
+                    o = str(o)
+        string_outputs.append(o)
+    return string_outputs

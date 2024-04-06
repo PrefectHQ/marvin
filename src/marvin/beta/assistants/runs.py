@@ -156,7 +156,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
         return run_kwargs
 
-    async def get_tool_outputs(self, run: OpenAIRun) -> list[dict[str, str]]:
+    async def get_tool_outputs(
+        self, run: OpenAIRun, as_strings: bool = True
+    ) -> list[dict[str, str]]:
         if run.status != "requires_action":
             return None, None
         if run.required_action.type == "submit_tool_outputs":
@@ -182,6 +184,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                     dict(tool_call_id=tool_call.id, output=output or "")
                 )
                 tool_calls.append(tool_call)
+
+            if as_strings:
+                tool_outputs = marvin.utilities.tools.get_string_outputs(tool_outputs)
 
             return tool_outputs
 
@@ -216,7 +221,9 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                     await self._update_run_from_handler(handler)
 
                 while handler.current_run.status in ["requires_action"]:
-                    tool_outputs = await self.get_tool_outputs(run=handler.current_run)
+                    tool_outputs = await self.get_tool_outputs(
+                        run=handler.current_run, as_strings=True
+                    )
 
                     handler = event_handler_class(**self.event_handler_kwargs)
 
