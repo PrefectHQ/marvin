@@ -151,7 +151,7 @@ assert predicted_sentiment == "Negative"
 predicted_sentiment = marvin.classify(
     review,
     labels=review_sentiments,
-    instructions="Focus on the sentiment towards the product itself, rather than the delivery experience."
+    instructions="Focus on the sentiment towards the product itself, rather than the purchase experience."
 )
 assert predicted_sentiment == "Positive"
 ```
