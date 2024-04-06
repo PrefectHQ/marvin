@@ -190,7 +190,7 @@ def output_to_string(output: Any) -> str:
         output = ""
     elif not isinstance(output, str):
         try:
-            output = TypeAdapter(type(output)).dump_json(output)
+            output = TypeAdapter(type(output)).dump_json(output).decode()
         except Exception:
             output = str(output)
     return output
