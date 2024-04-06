@@ -7,6 +7,8 @@ CodeInterpreter = CodeInterpreterTool()
 
 AssistantTool = Union[RetrievalTool, CodeInterpreterTool, Tool]
 
+ENDRUN_TOKEN = "<|ENDRUN|>"
+
 
 class EndRun(Exception):
     """

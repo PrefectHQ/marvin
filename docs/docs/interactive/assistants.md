@@ -228,6 +228,41 @@ Marvin makes it easy to give your assistants custom tools. To do so, pass one or
     !!! success "Result"
         ![](/assets/images/docs/assistants/custom_tools.png)
 
+#### Ending a run early
+
+Normally, the assistant will continue to run until it decides to stop, which usually happens after generating a response. Sometimes it may be useful to end a run early, for example if the assistant uses a tool that indicates the conversation is over. To do this, you can raise an `EndRun` exception from within a tool. This will cause the assistant to cancel the current run and return control. EndRun exceptions can contain data.
+
+There are three ways to raise an `EndRun` exception:
+
+1. Raise the exception directly from the tool function:
+```python
+from marvin.beta.assistants import Assistant, EndRun
+
+def my_tool():
+    raise EndRun(data="The final result")
+
+ai = Assistant(tools=[my_tool])
+```
+1. Return the exception from the tool function. This is useful if e.g. your tools are wrapped in custom exception handlers:
+```python
+from marvin.beta.assistants import Assistant, EndRun
+
+def my_tool():
+    return EndRun(data="The final result")
+
+ai = Assistant(tools=[my_tool])
+```
+1. Return a special string value from the tool function. This is useful if you don't have full control over the tool itself, or need to ensure the tool output is JSON-compatible. Note that this approach does not allow you to attach any data to the exception:
+```python
+from marvin.beta.assistants import Assistant, ENDRUN_TOKEN
+
+def my_tool():
+    return ENDRUN_TOKEN
+
+ai = Assistant(tools=[my_tool])
+```
+
+
 ### Lifecycle management
 
 Assistants are Marvin objects that correspond to remote objects in the OpenAI API. You can not communicate with an assistant unless it has been registered with the API. 
@@ -387,7 +422,7 @@ This will return a `Run` object that represents the OpenAI run. You can use this
     When threads are `run` with an assistant, the same lifecycle management rules apply as when you use the assistant's `say` method. In the above example, lazy lifecycle management is used for conveneince. See [lifecycle management](#lifecycle-management) for more information.
 
 !!! warning "Threads are locked while running"
-    When an assistant is running a thread, the thread is locked and no other messages can be added to it. This applies to both user and assistant messages.
+    When an assistant is running a thread, the thread is locked and no other messages can be added to it. This applies to both user and assistant messages. To end a run early, you must [use a custom tool](#ending-a-run-early).
 
 ### Reading messages
 

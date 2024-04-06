@@ -145,7 +145,6 @@ def call_function_tool(
     tools: list[FunctionTool],
     function_name: str,
     function_arguments_json: str,
-    return_string: bool = False,
 ) -> str:
     """
     Helper function for calling a function tool from a list of tools, using the arguments
@@ -183,21 +182,18 @@ def call_function_tool(
     return output
 
 
-def get_string_outputs(tool_outputs: list[Any]) -> list[str]:
+def output_to_string(output: Any) -> str:
     """
     Function outputs must be provided as strings
     """
-    string_outputs = []
-    for o in tool_outputs:
-        if isinstance(o, None):
-            o = ""
-        elif not isinstance(o, str):
-            if isinstance(o, BaseModel):
-                o = o.model_dump_json()
-            else:
-                try:
-                    o = json.dumps(o)
-                except json.JSONDecodeError:
-                    o = str(o)
-        string_outputs.append(o)
-    return string_outputs
+    if isinstance(output, None):
+        output = ""
+    elif not isinstance(output, str):
+        if isinstance(output, BaseModel):
+            output = output.model_dump_json()
+        else:
+            try:
+                output = json.dumps(output)
+            except json.JSONDecodeError:
+                output = str(output)
+    return output
