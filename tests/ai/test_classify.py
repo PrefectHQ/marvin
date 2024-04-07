@@ -145,7 +145,7 @@ class TestMapping:
     def test_classify_map(self):
         result = marvin.classify.map(["This is great!", "This is terrible!"], Sentiment)
         assert isinstance(result, list)
-        assert result == ["Negative", "Positive"]
+        assert result == ["Positive", "Negative"]
 
     def test_classify_map_with_instructions(self, gpt_4):
         result = marvin.classify.map(
