@@ -9,15 +9,14 @@ Marvin has a powerful classification tool that can be used to categorize text in
   </p>
 </div>
 
-
 !!! example "Example: categorize user feedback"
-    Categorize user feedback into labels such as "bug", "feature request", or "inquiry":
-    
+Categorize user feedback into labels such as "bug", "feature request", or "inquiry":
+
     ```python
     import marvin
 
     category = marvin.classify(
-        "The app crashes when I try to upload a file.", 
+        "The app crashes when I try to upload a file.",
         labels=["bug", "feature request", "inquiry"]
     )
     ```
@@ -28,7 +27,6 @@ Marvin has a powerful classification tool that can be used to categorize text in
         assert category == "bug"
         ```
 
-
 <div class="admonition info">
   <p class="admonition-title">How it works</p>
   <p>
@@ -36,22 +34,21 @@ Marvin has a powerful classification tool that can be used to categorize text in
   </p>
 </div>
 
-
 ## Providing labels
 
 Marvin's classification tool is designed to accommodate a variety of label formats, each suited to different use cases.
 
 ### Lists
 
-When quick, ad-hoc categorization is required, a simple list of strings is the most straightforward approach. For example:
+When quick, ad-hoc categorization is required, a simple list of values is the most straightforward approach. The result of the classifier is the matching label from the list. Marvin will attempt to convert your labels to strings if they are not already strings. If you are trying to classify complex objects that have unusual or no simple string representation, consider manually creating labels and [classifying by index](#returning-indices).
 
 !!! example "Example: sentiment analysis"
-    
+
     ```python
     import marvin
 
     sentiment = marvin.classify(
-        "Marvin is so easy to use!", 
+        "Marvin is so easy to use!",
         labels=["positive", "negative", "meh"]
     )
     ```
@@ -60,7 +57,6 @@ When quick, ad-hoc categorization is required, a simple list of strings is the m
         ```python
         assert sentiment == "positive"
         ```
-
 
 ### Enums
 
@@ -107,6 +103,18 @@ request = marvin.classify("Reset my password", RequestType)
 assert request == "account issue"
 ```
 
+## Returning indices
+
+In some cases, you may want to return the index of the selected label rather than the label itself:
+
+```python
+result = marvin.classify(
+    "Reset my password",
+    ["support request", "account issue", "general inquiry"],
+    return_index=True,
+)
+assert result == 1
+```
 
 ## Providing instructions
 
@@ -160,7 +168,6 @@ assert predicted_sentiment == "Positive"
 
 While the primary focus is on the `classify` function, Marvin also includes the `classifier` decorator. Applied to Enums, it enables them to be used as classifiers that can be instantiated with natural language. This interface is particularly handy when dealing with a fixed set of labels commonly reused in your application.
 
-
 ```python
 @marvin.classifier
 class IssueType(Enum):
@@ -175,6 +182,7 @@ assert issue == IssueType.BUG
 While convenient for certain scenarios, it's recommended to use the `classify` function for its greater flexibility and broader application range.
 
 ## Model parameters
+
 You can pass parameters to the underlying API via the `model_kwargs` argument of `classify` or `@classifier`. These parameters are passed directly to the API, so you can use any supported parameter.
 
 ## Best practices
@@ -190,9 +198,9 @@ If you are using Marvin in an async environment, you can use `classify_async`:
 
 ```python
 result = await marvin.classify_async(
-    "The app crashes when I try to upload a file.", 
+    "The app crashes when I try to upload a file.",
     labels=["bug", "feature request", "inquiry"]
-) 
+)
 
 assert result == "bug"
 ```
