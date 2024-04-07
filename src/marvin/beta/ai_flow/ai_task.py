@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from typing_extensions import ParamSpec
 
 from marvin.beta.assistants import Assistant, Run, Thread
-from marvin.beta.assistants.runs import CancelRun
+from marvin.beta.assistants.runs import EndRun
 from marvin.tools.assistants import AssistantTool
 from marvin.utilities.context import ScopedContext
 from marvin.utilities.jinja import Environment as JinjaEnvironment
@@ -238,7 +238,7 @@ class AITask(BaseModel, Generic[P, T]):
 
             def task_completed():
                 self.status = Status.COMPLETED
-                raise CancelRun()
+                raise EndRun()
 
             return task_completed
 
@@ -249,7 +249,7 @@ class AITask(BaseModel, Generic[P, T]):
         def task_completed_with_result(result: T):
             self.status = Status.COMPLETED
             self.result = result
-            raise CancelRun()
+            raise EndRun()
 
         tool.function._python_fn = task_completed_with_result
 
@@ -261,7 +261,7 @@ class AITask(BaseModel, Generic[P, T]):
             """Indicate that the task failed for the provided `reason`."""
             self.status = Status.FAILED
             self.result = reason
-            raise CancelRun()
+            raise EndRun()
 
         return tool_from_function(task_failed)
 

@@ -1,11 +1,12 @@
 import base64
 import datetime
+import inspect
 from pathlib import Path
 from typing import Any, Callable, Generic, Literal, Optional, TypeVar, Union
 
 import openai.types.chat
 from openai.types.chat import ChatCompletion
-from pydantic import BaseModel, Field, PrivateAttr, computed_field
+from pydantic import BaseModel, Field, PrivateAttr, computed_field, field_validator
 from typing_extensions import Annotated, Self
 
 from marvin.settings import settings
@@ -32,18 +33,24 @@ LogitBias = dict[str, float]
 class MarvinType(BaseModel):
     # by default, mavin types are not allowed to have extra fields
     # because they are used for validation throughout the codebase
-    model_config = dict(extra="forbid")
+    model_config = dict(extra="forbid", validate_assignment=True)
 
 
 class Function(MarvinType, Generic[T]):
     name: str
-    description: Optional[str]
+    description: Optional[str] = Field(validate_default=True)
     parameters: dict[str, Any]
 
     model: Optional[type[T]] = Field(default=None, exclude=True, repr=False)
 
     # Private field that holds the executable function, if available
     _python_fn: Optional[Callable[..., Any]] = PrivateAttr(default=None)
+
+    @field_validator("description", mode="before")
+    def _clean_description(cls, v):
+        if isinstance(v, str):
+            v = inspect.cleandoc(v)
+        return v
 
     def validate_json(self: Self, json_data: Union[str, bytes, bytearray]) -> T:
         if self.model is None:

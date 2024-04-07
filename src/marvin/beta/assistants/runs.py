@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, PrivateAttr, field_validator
 
 import marvin.utilities.openai
 import marvin.utilities.tools
-from marvin.tools.assistants import AssistantTool, CancelRun
+from marvin.tools.assistants import ENDRUN_TOKEN, AssistantTool, EndRun
 from marvin.types import Tool
 from marvin.utilities.asyncio import ExposeSyncMethodsMixin, expose_sync_method
 from marvin.utilities.logging import get_logger
@@ -156,7 +156,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
         return run_kwargs
 
-    async def get_tool_outputs(self, run: OpenAIRun) -> list[dict[str, str]]:
+    async def get_tool_outputs(self, run: OpenAIRun) -> list[str]:
         if run.status != "requires_action":
             return None, None
         if run.required_action.type == "submit_tool_outputs":
@@ -170,16 +170,26 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                         tools=tools,
                         function_name=tool_call.function.name,
                         function_arguments_json=tool_call.function.arguments,
-                        return_string=True,
                     )
-                except CancelRun as exc:
+                    # functions can raise EndRun, return an EndRun, or return the endrun token
+                    # to end the run
+                    if isinstance(output, EndRun):
+                        raise output
+                    elif output == ENDRUN_TOKEN:
+                        raise EndRun()
+
+                except EndRun as exc:
                     logger.debug(f"Ending run with data: {exc.data}")
                     raise
                 except Exception as exc:
                     output = f"Error calling function {tool_call.function.name}: {exc}"
                     logger.error(output)
+                string_output = marvin.utilities.tools.output_to_string(output)
                 tool_outputs.append(
-                    dict(tool_call_id=tool_call.id, output=output or "")
+                    dict(
+                        tool_call_id=tool_call.id,
+                        output=string_output,
+                    )
                 )
                 tool_calls.append(tool_call)
 
@@ -229,8 +239,8 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                         await stream.until_done()
                         await self._update_run_from_handler(handler)
 
-            except CancelRun as exc:
-                logger.debug(f"`CancelRun` raised; ending run with data: {exc.data}")
+            except EndRun as exc:
+                logger.debug(f"`EndRun` raised; ending run with data: {exc.data}")
                 await self.cancel_async()
                 self.data = exc.data
 

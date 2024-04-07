@@ -145,7 +145,6 @@ def call_function_tool(
     tools: list[FunctionTool],
     function_name: str,
     function_arguments_json: str,
-    return_string: bool = False,
 ) -> str:
     """
     Helper function for calling a function tool from a list of tools, using the arguments
@@ -180,6 +179,18 @@ def call_function_tool(
     if len(truncated_output) < len(str(output)):
         truncated_output += "..."
     logger.debug_kv(f"{tool.function.name}", f"returned: {truncated_output}", "green")
-    if return_string and not isinstance(output, str):
-        output = json.dumps(output)
+    return output
+
+
+def output_to_string(output: Any) -> str:
+    """
+    Function outputs must be provided as strings
+    """
+    if output is None:
+        output = ""
+    elif not isinstance(output, str):
+        try:
+            output = TypeAdapter(type(output)).dump_json(output).decode()
+        except Exception:
+            output = str(output)
     return output
