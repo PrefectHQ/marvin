@@ -14,7 +14,7 @@ from .ai.text import (
     model,
     Model,
 )
-from .ai.images import paint, image
+from .ai.images import paint, paint_async, image
 from .ai.audio import speak_async, speak, speech, transcribe, transcribe_async
 
 if settings.auto_import_beta_modules:
