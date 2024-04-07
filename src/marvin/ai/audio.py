@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import IO, Any, Callable, Literal, Optional, TypeVar, Union
 
 import marvin
-from marvin.client.openai import AsyncMarvinClient
+from marvin.client.openai import get_default_async_client
 from marvin.types import Audio, SpeechRequest
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import Environment
@@ -39,13 +39,14 @@ async def generate_speech(
         Audio: The response from the OpenAI Audio API, which includes the
             generated speech.
     """
+    client = get_default_async_client()
     prompt_kwargs = prompt_kwargs or {}
     model_kwargs = model_kwargs or {}
     prompt = Environment.render(prompt_template, **prompt_kwargs)
     request = SpeechRequest(input=prompt, **model_kwargs)
     if marvin.settings.log_verbose:
         getattr(logger, "debug_kv")("Request", request.model_dump_json(indent=2))
-    response = await AsyncMarvinClient().generate_speech(**request.model_dump())
+    response = await client.generate_speech(**request.model_dump())
     data = response.read()
     return Audio(data=data, format="mp3")
 
@@ -117,10 +118,12 @@ async def transcribe_async(
     This function converts audio from a file to text.
     """
 
+    client = get_default_async_client()
+
     if isinstance(data, Audio):
         data = data.data
 
-    transcript = await AsyncMarvinClient().generate_transcript(
+    transcript = await client.generate_transcript(
         file=data, prompt=prompt, **model_kwargs or {}
     )
     return transcript.text

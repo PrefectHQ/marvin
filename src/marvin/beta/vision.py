@@ -14,7 +14,7 @@ import marvin
 import marvin.utilities.tools
 from marvin.ai.prompts.vision_prompts import CAPTION_PROMPT
 from marvin.ai.text import EjectRequest
-from marvin.client.openai import AsyncMarvinClient
+from marvin.client.openai import get_default_async_client
 from marvin.types import (
     BaseMessage,
     ChatResponse,
@@ -53,6 +53,7 @@ async def generate_vision_response(
     """
     model_kwargs = model_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
+    client = get_default_async_client()
     messages = Transcript(content=prompt_template).render_to_messages(**prompt_kwargs)
 
     if images is not None:
@@ -66,7 +67,7 @@ async def generate_vision_response(
     request = VisionRequest(messages=messages, **model_kwargs)
     if marvin.settings.log_verbose:
         logger.debug_kv("Request", request.model_dump_json(indent=2))
-    response = await AsyncMarvinClient().generate_vision(
+    response = await client.generate_vision(
         **request.model_dump(exclude_none=True, exclude_unset=True)
     )
     if marvin.settings.log_verbose:

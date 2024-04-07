@@ -26,7 +26,7 @@ As an alternative to setting environment variables, you can pass the `AzureOpenA
 
 ```python
 import marvin
-from marvin.client import MarvinClient
+from marvin.client import AsyncMarvinClient
 
 from openai import AzureOpenAI
 
@@ -37,7 +37,7 @@ azure_openai_client = AzureOpenAI(
 )
 
 @marvin.fn(
-    client=MarvinClient(client=azure_openai_client),
+    client=AsyncMarvinClient(client=azure_openai_client),
     model_kwargs={"model": "your_deployment_name"}
 )
 def list_fruits(n: int) -> list[str]:

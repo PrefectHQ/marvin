@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from typing import Any, Callable, Literal, Optional, Union
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, ImportString, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -262,6 +262,14 @@ class Settings(MarvinSettings):
         ),
     )
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
+
+    default_client: ImportString = Field(
+        None, description="The qualified import path of the default client to use."
+    )
+    default_async_client: ImportString = Field(
+        None,
+        description="The qualified import path of the default async client to use.",
+    )
 
     # ai settings
     ai: AISettings = Field(default_factory=AISettings)

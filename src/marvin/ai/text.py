@@ -34,7 +34,11 @@ from marvin.ai.prompts.text_prompts import (
     FUNCTION_PROMPT,
     GENERATE_PROMPT,
 )
-from marvin.client.openai import AsyncMarvinClient, ChatCompletion, MarvinClient
+from marvin.client.openai import (
+    AsyncMarvinClient,
+    ChatCompletion,
+    get_default_async_client,
+)
 from marvin.types import ChatRequest, ChatResponse
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.context import ctx
@@ -78,7 +82,7 @@ async def generate_llm_response(
     Returns:
         ChatResponse: The generated response from the language model.
     """
-    client = client or AsyncMarvinClient()
+    client = client or get_default_async_client()
     model_kwargs = model_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
     messages = Transcript(content=prompt_template).render_to_messages(**prompt_kwargs)
@@ -448,7 +452,7 @@ async def generate_async(
 def fn(
     func: Optional[Callable] = None,
     model_kwargs: Optional[dict] = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ) -> Callable:
     """
     Converts a Python function into an AI function using a decorator.
@@ -460,7 +464,7 @@ def fn(
         func (Callable, optional): The function to be converted. Defaults to None.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
-        client (MarvinClient, optional): The client to use for the AI function.
+        client (AsyncMarvinClient, optional): The client to use for the AI function.
 
     Returns:
         Callable: The converted AI function.
@@ -582,7 +586,7 @@ class Model(BaseModel):
         *,
         instructions: Optional[str] = None,
         model_kwargs: Optional[dict] = None,
-        client: Optional[MarvinClient] = None,
+        client: Optional[AsyncMarvinClient] = None,
         **kwargs,
     ):
         """
@@ -662,7 +666,7 @@ def model(
     type_: Union[Type[M], None] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
-    client: Optional[MarvinClient] = None,
+    client: Optional[AsyncMarvinClient] = None,
 ) -> Union[Type[M], Callable[[Type[M]], Type[M]]]:
     """
     Class decorator for instantiating a Pydantic model from a string.

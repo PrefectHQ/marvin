@@ -5,8 +5,9 @@ from openai.types.images_response import ImagesResponse
 
 import marvin
 from marvin.ai.prompts.image_prompts import IMAGE_PROMPT
-from marvin.client.openai import MarvinClient
+from marvin.client.openai import get_default_async_client
 from marvin.types import ImageRequest
+from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import Environment
 from marvin.utilities.logging import get_logger
 
@@ -15,7 +16,7 @@ T = TypeVar("T")
 logger = get_logger(__name__)
 
 
-def generate_image(
+async def generate_image(
     prompt_template: str,
     prompt_kwargs: dict = None,
     model_kwargs: dict = None,
@@ -40,14 +41,53 @@ def generate_image(
     """
     model_kwargs = model_kwargs or {}
     prompt_kwargs = prompt_kwargs or {}
+    client = get_default_async_client()
     prompt = Environment.render(prompt_template, **prompt_kwargs)
     request = ImageRequest(prompt=prompt.strip(), **model_kwargs)
     if marvin.settings.log_verbose:
         logger.debug_kv("Request", request.model_dump_json(indent=2))
-    response = MarvinClient().generate_image(**request.model_dump())
+    response = await client.generate_image(**request.model_dump())
     if marvin.settings.log_verbose:
         logger.debug_kv("Response", response.model_dump_json(indent=2))
 
+    return response
+
+
+async def paint_async(
+    instructions: str = None,
+    context: dict = None,
+    literal: bool = False,
+    model_kwargs: dict = None,
+):
+    """
+    Generates an image based on the provided instructions and context.
+
+    This function uses the DALLE-3 API to generate an image based on the provided
+    instructions and context. By default, the API modifies prompts to add detail
+    and style. This behavior can be disabled by setting `literal=True`.
+
+    Args:
+        instructions (str, optional): The instructions for the image generation.
+            Defaults to None.
+        context (dict, optional): The context for the image generation. Defaults to None.
+        literal (bool, optional): Whether to disable the API's default behavior of
+            modifying prompts. Defaults to False.
+        model_kwargs (dict, optional): Additional keyword arguments for the
+            language model. Defaults to None.
+
+    Returns:
+        ImagesResponse: The response from the DALLE-3 API, which includes the
+            generated image.
+    """
+    response = await generate_image(
+        prompt_template=IMAGE_PROMPT,
+        prompt_kwargs=dict(
+            instructions=instructions,
+            context=context,
+            literal=literal,
+        ),
+        model_kwargs=model_kwargs,
+    )
     return response
 
 
@@ -77,16 +117,7 @@ def paint(
         ImagesResponse: The response from the DALLE-3 API, which includes the
             generated image.
     """
-    response = generate_image(
-        prompt_template=IMAGE_PROMPT,
-        prompt_kwargs=dict(
-            instructions=instructions,
-            context=context,
-            literal=literal,
-        ),
-        model_kwargs=model_kwargs,
-    )
-    return response
+    return run_sync(paint_async(instructions, context, literal, model_kwargs))
 
 
 def image(fn=None, *, literal: bool = False):
