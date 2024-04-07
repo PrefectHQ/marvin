@@ -92,7 +92,10 @@ def cast_type_to_labels(type_: Union[type, GenericAlias]) -> list[str]:
         return member_values
     elif isinstance(type_, list):
         # typeadapter handles all types known to Pydantic
-        return [TypeAdapter(type(t)).dump_json(t).decode() for t in type_]
+        try:
+            return [TypeAdapter(type(t)).dump_json(t).decode() for t in type_]
+        except Exception as exc:
+            raise ValueError(f"Unable to cast type to labels: {exc}")
     elif type_ is bool:
         return ["false", "true"], [False, True]
     else:
