@@ -50,6 +50,7 @@ Marvin can generate images from text.
   </p>
 </div>
 
+
 ## Generating images from functions
 
 In addition to passing prompts directly to the DALLE-3 API via the `paint` function, you can also use the `@image` decorator to generate images from the output of a function. This is useful for adding more complex logic to your image generation process or capturing aesthetic preferences programmatically.
@@ -279,3 +280,13 @@ marvin.utilities.images.base64_to_image(
 ```
 
 To change this behavior globally set `MARVIN_IMAGE_RESPONSE_FORMAT=b64_json` in your environment, or equivalently change `marvin.settings.images.response_format = "b64_json"` in your code.
+
+## Async support
+
+If you are using Marvin in an async environment, you can use `paint_async`:
+  
+```python
+image = await marvin.paint_async(
+    "A cup of coffee, still warm"
+)
+```

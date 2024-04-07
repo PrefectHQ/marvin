@@ -216,7 +216,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                 for msg in self.messages:
                     await handler.on_message_done(msg)
 
-                async with client.beta.threads.runs.create_and_stream(
+                async with client.beta.threads.runs.stream(
                     thread_id=self.thread.id,
                     assistant_id=self.assistant.id,
                     event_handler=handler,

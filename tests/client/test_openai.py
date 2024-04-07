@@ -1,4 +1,7 @@
+import marvin
+import pytest
 from marvin.client.openai import AsyncMarvinClient, MarvinClient
+from marvin.settings import temporary_settings
 from marvin.types import BaseMessage, StreamingChatResponse
 from openai.types.chat import ChatCompletion
 
@@ -73,3 +76,22 @@ class TestStreamingAsync:
         )
         assert isinstance(response, ChatCompletion)
         assert len(buffer) == 0
+
+
+class TempTestClient(AsyncMarvinClient):
+    def generate_chat(self, *args, **kwargs):
+        raise NotImplementedError()
+
+
+class TestChangeClient:
+    def test_change_client_class(self):
+        with temporary_settings(default_async_client_cls=TempTestClient):
+            with pytest.raises(NotImplementedError):
+                marvin.classify("book", ["thing you read", "thing you sing"])
+
+    def test_change_client_path(self):
+        with temporary_settings(
+            default_async_client_cls="tests.client.test_openai.TempTestClient"
+        ):
+            with pytest.raises(NotImplementedError):
+                marvin.classify("book", ["thing you read", "thing you sing"])
