@@ -2,7 +2,7 @@ from enum import Enum
 from types import GenericAlias
 from typing import Any, Callable, Literal, Optional, Union, get_args, get_origin
 
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel, TypeAdapter, create_model
 from pydantic.fields import FieldInfo
 
 from marvin.settings import settings
@@ -79,20 +79,38 @@ def cast_type_to_toolset(
     )
 
 
-def cast_type_to_labels(
-    type_: Union[type, GenericAlias],
-) -> list[str]:
+def cast_type_to_labels(type_: Union[type, GenericAlias]) -> list[str]:
+    """
+    Converts a type to a string list of its possible values.
+    """
     if get_origin(type_) == Literal:
         return [str(token) for token in get_args(type_)]
     elif isinstance(type_, type) and issubclass(type_, Enum):
-        members: list[str] = [
+        member_values: list[str] = [
             option.value for option in getattr(type_, "__members__", {}).values()
         ]
-        return members
+        return member_values
     elif isinstance(type_, list):
-        return [str(token) for token in type_]
+        # typeadapter handles all types known to Pydantic
+        return [TypeAdapter(type(t)).dump_json(t).decode() for t in type_]
     elif type_ is bool:
-        return ["false", "true"]
+        return ["false", "true"], [False, True]
+    else:
+        raise TypeError(f"Expected Literal, Enum, bool, or list, got {type_}.")
+
+
+def cast_type_to_list(type_: Union[type, GenericAlias]) -> list:
+    """
+    Converts a type to a list of its possible values.
+    """
+    if get_origin(type_) == Literal:
+        return [token for token in get_args(type_)]
+    elif isinstance(type_, type) and issubclass(type_, Enum):
+        return list(type_)
+    elif isinstance(type_, list):
+        return type_
+    elif type_ is bool:
+        return [False, True]
     else:
         raise TypeError(f"Expected Literal, Enum, bool, or list, got {type_}.")
 

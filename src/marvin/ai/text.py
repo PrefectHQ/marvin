@@ -26,6 +26,7 @@ import marvin.utilities.tools
 from marvin._mappings.types import (
     cast_labels_to_grammar,
     cast_type_to_labels,
+    cast_type_to_list,
 )
 from marvin.ai.prompts.text_prompts import (
     CAST_PROMPT,
@@ -210,6 +211,7 @@ async def _generate_typed_llm_response_with_logit_bias(
     if "labels" not in prompt_kwargs:
         raise ValueError("Labels must be provided as a kwarg to the prompt template.")
     labels = prompt_kwargs["labels"]
+    label_list = cast_type_to_list(labels)
     label_strings = cast_type_to_labels(labels)
     grammar = cast_labels_to_grammar(
         labels=label_strings, encoder=encoder, max_tokens=max_tokens
@@ -231,8 +233,7 @@ async def _generate_typed_llm_response_with_logit_bias(
     if labels is bool:
         return bool(label_index)
 
-    result = label_strings[label_index]
-    return labels(result) if isinstance(labels, type) else result
+    return label_list[label_index]
 
 
 async def cast_async(

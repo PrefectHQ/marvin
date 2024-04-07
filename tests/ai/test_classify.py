@@ -3,6 +3,7 @@ from typing import Literal
 
 import marvin
 import pytest
+from pydantic import BaseModel
 
 Sentiment = Literal["Negative", "Positive"]
 
@@ -56,6 +57,22 @@ class TestClassify:
             # matched the data, rather than the label *description*
             result = marvin.classify(0, ["letter", "number"])
             assert result == "number"
+
+        def test_classify_object(self):
+            """
+            Test that objects are returned from classify
+            """
+
+            class Person(BaseModel):
+                name: str
+                age: int
+
+            p1 = Person(name="Alice", age=30)
+            p2 = Person(name="Bob", age=25)
+            p3 = Person(name="Charlie", age=35)
+
+            result = marvin.classify("a person in wonderland", [p1, p2, p3])
+            assert result is p1
 
     class TestBool:
         def test_classify_positive_sentiment(self):
