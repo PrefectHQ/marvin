@@ -80,7 +80,11 @@ class TestClassify:
             assert result is True
 
         def test_classify_negative_sentiment(self):
-            result = marvin.classify("This feature is terrible!", bool)
+            result = marvin.classify(
+                "This feature is terrible!",
+                bool,
+                instructions="Is the sentiment positive?",
+            )
             assert result is False
 
         def test_classify_falseish(self):
