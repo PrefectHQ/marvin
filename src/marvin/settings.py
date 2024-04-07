@@ -263,10 +263,10 @@ class Settings(MarvinSettings):
     )
     openai: OpenAISettings = Field(default_factory=OpenAISettings)
 
-    default_client: ImportString = Field(
+    default_client_cls: ImportString = Field(
         None, description="The qualified import path of the default client to use."
     )
-    default_async_client: ImportString = Field(
+    default_async_client_cls: ImportString = Field(
         None,
         description="The qualified import path of the default async client to use.",
     )

@@ -85,13 +85,13 @@ class TempTestClient(AsyncMarvinClient):
 
 class TestChangeClient:
     def test_change_client_class(self):
-        with temporary_settings(default_async_client=TempTestClient):
+        with temporary_settings(default_async_client_cls=TempTestClient):
             with pytest.raises(NotImplementedError):
                 marvin.classify("book", ["thing you read", "thing you sing"])
 
     def test_change_client_path(self):
         with temporary_settings(
-            default_async_client="tests.client.test_openai.TempTestClient"
+            default_async_client_cls="tests.client.test_openai.TempTestClient"
         ):
             with pytest.raises(NotImplementedError):
                 marvin.classify("book", ["thing you read", "thing you sing"])

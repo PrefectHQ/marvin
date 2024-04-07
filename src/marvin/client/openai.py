@@ -364,10 +364,10 @@ class AsyncMarvinClient(pydantic.BaseModel):
 
 
 def get_default_client(**client_kwargs) -> MarvinClient:
-    client_cls = marvin.settings.default_client or MarvinClient
+    client_cls = marvin.settings.default_client_cls or MarvinClient
     return client_cls(**client_kwargs)
 
 
 def get_default_async_client(**client_kwargs) -> AsyncMarvinClient:
-    client_cls = marvin.settings.default_async_client or AsyncMarvinClient
+    client_cls = marvin.settings.default_async_client_cls or AsyncMarvinClient
     return client_cls(**client_kwargs)
