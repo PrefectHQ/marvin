@@ -267,6 +267,9 @@ async def cast_async(
     """
     model_kwargs = model_kwargs or {}
 
+    if not isinstance(data, str):
+        data = marvin.utilities.tools.output_to_string(data)
+
     if target is None and instructions is None:
         raise ValueError("Must provide either a target type or instructions.")
     elif target is None:
@@ -327,11 +330,16 @@ async def extract_async(
     Returns:
         list: A list of extracted entities of the specified type.
     """
+    model_kwargs = model_kwargs or {}
+
     if target is None and instructions is None:
         raise ValueError("Must provide either a target type or instructions.")
     elif target is None:
         target = str
-    model_kwargs = model_kwargs or {}
+
+    if not isinstance(data, str):
+        data = marvin.utilities.tools.output_to_string(data)
+
     return await _generate_typed_llm_response_with_tool(
         prompt_template=EXTRACT_PROMPT,
         prompt_kwargs=dict(data=data, instructions=instructions),
@@ -372,6 +380,9 @@ async def classify_async(
     """
 
     model_kwargs = model_kwargs or {}
+    if not isinstance(data, str):
+        data = marvin.utilities.tools.output_to_string(data)
+
     return await _generate_typed_llm_response_with_logit_bias(
         prompt_template=CLASSIFY_PROMPT,
         prompt_kwargs=dict(data=data, labels=labels, instructions=instructions),

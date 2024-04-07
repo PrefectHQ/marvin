@@ -144,6 +144,17 @@ class TestClassify:
 
             assert router(user_input).value == expected_selection
 
+    class TestConvertInputData:
+        def test_convert_input_data(self):
+            class Name(BaseModel):
+                first: str
+                last: str
+
+            result = marvin.classify(
+                Name(first="Alice", last="Smith"), ["Alice", "Bob"]
+            )
+            assert result == "Alice"
+
 
 class TestMapping:
     def test_classify_map(self):
