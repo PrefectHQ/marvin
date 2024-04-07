@@ -4,7 +4,7 @@ from typing import Literal
 import marvin
 import pytest
 
-Sentiment = Literal["Positive", "Negative"]
+Sentiment = Literal["Negative", "Positive"]
 
 
 class GitHubIssueTag(Enum):
@@ -82,6 +82,13 @@ class TestClassify:
             result = await marvin.classify_async("This is a great feature!", bool)
             assert result is True
 
+    class TestReturnIndex:
+        def test_return_index(self):
+            result = marvin.classify(
+                "This is a great feature!", ["bad", "good"], return_index=True
+            )
+            assert result == 1
+
     class TestExamples:
         async def test_hogwarts_sorting_hat(self):
             description = "Brave, daring, chivalrous, and sometimes a bit reckless."
@@ -121,7 +128,7 @@ class TestMapping:
     def test_classify_map(self):
         result = marvin.classify.map(["This is great!", "This is terrible!"], Sentiment)
         assert isinstance(result, list)
-        assert result == ["Positive", "Negative"]
+        assert result == ["Negative", "Positive"]
 
     def test_classify_map_with_instructions(self, gpt_4):
         result = marvin.classify.map(
@@ -138,3 +145,9 @@ class TestMapping:
         )
         assert isinstance(result, list)
         assert result == ["Positive", "Negative"]
+
+    def test_classify_return_index(self):
+        result = marvin.classify.map(
+            ["This is great!", "This is terrible!"], Sentiment, return_index=True
+        )
+        assert result == [1, 0]

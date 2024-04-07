@@ -169,6 +169,7 @@ async def _generate_typed_llm_response_with_tool(
 async def _generate_typed_llm_response_with_logit_bias(
     prompt_template: str,
     prompt_kwargs: dict,
+    return_index: bool = False,
     encoder: Callable[[str], list[int]] = None,
     max_tokens: int = 1,
     model_kwargs: dict = None,
@@ -191,6 +192,8 @@ async def _generate_typed_llm_response_with_logit_bias(
     Args:
         prompt_template (str): The template for the prompt.
         prompt_kwargs (dict): Additional keyword arguments for the prompt.
+        return_index (bool, optional): Whether to return the index of the label
+            instead of the label itself.
         encoder (Callable[[str], list[int]], optional): The encoder function to
             use for the generation. Defaults to None.
         max_tokens (int, optional): The maximum number of tokens for the
@@ -221,6 +224,9 @@ async def _generate_typed_llm_response_with_logit_bias(
 
     # the response contains a single number representing the index of the chosen
     label_index = int(response.response.choices[0].message.content)
+
+    if return_index:
+        return label_index
 
     if labels is bool:
         return bool(label_index)
@@ -338,9 +344,10 @@ async def classify_async(
     data: str,
     labels: Union[Enum, list[T], type],
     instructions: str = None,
+    return_index: bool = False,
     model_kwargs: dict = None,
     client: Optional[AsyncMarvinClient] = None,
-) -> T:
+) -> Union[T, int]:
     """
     Classifies the provided data based on the provided labels.
 
@@ -354,18 +361,20 @@ async def classify_async(
         labels (Union[Enum, list[T], type]): The labels to classify the data into.
         instructions (str, optional): Specific instructions for the
             classification. Defaults to None.
+
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
         client (AsyncMarvinClient, optional): The client to use for the AI function.
 
     Returns:
-        T: The label that the data was classified into.
+        Union[T, int]: The label or index that the data was classified into.
     """
 
     model_kwargs = model_kwargs or {}
     return await _generate_typed_llm_response_with_logit_bias(
         prompt_template=CLASSIFY_PROMPT,
         prompt_kwargs=dict(data=data, labels=labels, instructions=instructions),
+        return_index=return_index,
         model_kwargs=model_kwargs | dict(temperature=0),
         client=client,
     )
@@ -754,9 +763,10 @@ def classify(
     data: str,
     labels: Union[Enum, list[T], type],
     instructions: str = None,
+    return_index: bool = False,
     model_kwargs: dict = None,
     client: Optional[AsyncMarvinClient] = None,
-) -> T:
+) -> Union[T, int]:
     """
     Classifies the provided data based on the provided labels.
 
@@ -770,18 +780,20 @@ def classify(
         labels (Union[Enum, list[T], type]): The labels to classify the data into.
         instructions (str, optional): Specific instructions for the
             classification. Defaults to None.
+        return_index (bool, optional): Whether to return the index of the label instead of the label itself.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
         client (AsyncMarvinClient, optional): The client to use for the AI function.
 
     Returns:
-        T: The label that the data was classified into.
+        Union[T, int]: The label or index that the data was classified into.
     """
     return run_sync(
         classify_async(
             data=data,
             labels=labels,
             instructions=instructions,
+            return_index=return_index,
             model_kwargs=model_kwargs,
             client=client,
         )
@@ -878,15 +890,17 @@ async def classify_async_map(
     data: list[str],
     labels: Union[Enum, list[T], type],
     instructions: Optional[str] = None,
+    return_index: bool = False,
     model_kwargs: Optional[dict] = None,
     client: Optional[AsyncMarvinClient] = None,
-) -> list[T]:
+) -> list[Union[T, int]]:
     return await map_async(
         fn=classify_async,
         map_kwargs=dict(data=data),
         unmapped_kwargs=dict(
             labels=labels,
             instructions=instructions,
+            return_index=return_index,
             model_kwargs=model_kwargs,
             client=client,
         ),
@@ -897,14 +911,16 @@ def classify_map(
     data: list[str],
     labels: Union[Enum, list[T], type],
     instructions: Optional[str] = None,
+    return_index: bool = False,
     model_kwargs: Optional[dict] = None,
     client: Optional[AsyncMarvinClient] = None,
-) -> list[T]:
+) -> list[Union[T, int]]:
     return run_sync(
         classify_async_map(
             data=data,
             labels=labels,
             instructions=instructions,
+            return_index=return_index,
             model_kwargs=model_kwargs,
             client=client,
         )
