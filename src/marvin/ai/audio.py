@@ -19,6 +19,7 @@ logger = get_logger(__name__)
 async def generate_speech(
     prompt_template: str,
     prompt_kwargs: Optional[dict[str, Any]] = None,
+    stream: bool = True,
     model_kwargs: Optional[dict[str, Any]] = None,
 ) -> Audio:
     """
@@ -32,6 +33,9 @@ async def generate_speech(
         prompt_template (str): The template for the prompt.
         prompt_kwargs (dict, optional): Additional keyword arguments for the
             prompt. Defaults to None.
+        stream (bool, optional): Whether to stream the audio. If False, the
+            audio can not be saved or played until it has all been generated. If
+            True, `.save()` and `.play()` can be called immediately.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
 
@@ -39,6 +43,10 @@ async def generate_speech(
         Audio: The response from the OpenAI Audio API, which includes the
             generated speech.
     """
+
+    if stream and "response_format" not in model_kwargs:
+        model_kwargs["response_format"] = "pcm"
+
     client = get_default_async_client()
     prompt_kwargs = prompt_kwargs or {}
     model_kwargs = model_kwargs or {}
@@ -46,14 +54,26 @@ async def generate_speech(
     request = SpeechRequest(input=prompt, **model_kwargs)
     if marvin.settings.log_verbose:
         getattr(logger, "debug_kv")("Request", request.model_dump_json(indent=2))
-    response = await client.generate_speech(**request.model_dump())
-    data = response.read()
-    return Audio(data=data, format="mp3")
+
+    if stream:
+        if request.response_format != "pcm":
+            raise ValueError(
+                "Streaming audio is only supported for the PCM format. When you "
+                "call e.g. `.save('audio.mp3')`, Marvin can convert PCM-streamed "
+                "audio to any other format."
+            )
+        response = client.generate_speech_streaming(**request.model_dump())
+        return Audio.from_stream(response, format=request.response_format)
+    else:
+        response = await client.generate_speech(**request.model_dump())
+        data = response.read()
+        return Audio(data=data, format=request.response_format)
 
 
 async def speak_async(
     text: str,
     voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = None,
+    stream: bool = True,
     model_kwargs: Optional[dict[str, Any]] = None,
 ) -> Audio:
     """
@@ -66,6 +86,9 @@ async def speak_async(
         text (str): The text to generate audio from.
         voice (Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"], optional):
             The voice to use for the audio. Defaults to None.
+        stream (bool, optional): Whether to stream the audio. If False, the
+            audio can not be saved or played until it has all been generated. If
+            True, `.save()` and `.play()` can be called immediately.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
 
@@ -78,6 +101,7 @@ async def speak_async(
 
     response = await generate_speech(
         prompt_template=text,
+        stream=stream,
         model_kwargs=model_kwargs,
     )
     return response
@@ -86,6 +110,7 @@ async def speak_async(
 def speak(
     text: str,
     voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = None,
+    stream: bool = True,
     model_kwargs: Optional[dict[str, Any]] = None,
 ) -> Audio:
     """
@@ -98,13 +123,18 @@ def speak(
         text (str): The text to generate audio from.
         voice (Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"], optional):
             The voice to use for the audio. Defaults to None.
+        stream (bool, optional): Whether to stream the audio. If False, the
+            audio can not be saved or played until it has all been generated. If
+            True, `.save()` and `.play()` can be called immediately.
         model_kwargs (dict, optional): Additional keyword arguments for the
             language model. Defaults to None.
 
     Returns:
         Audio: The generated audio.
     """
-    return run_sync(speak_async(text, voice, model_kwargs))
+    return run_sync(
+        speak_async(text=text, voice=voice, stream=stream, model_kwargs=model_kwargs)
+    )
 
 
 async def transcribe_async(
@@ -146,6 +176,7 @@ def speech(
     fn: Optional[Callable] = None,
     *,
     voice: Optional[str] = None,
+    stream: bool = True,
     model_kwargs: Optional[dict] = None,
 ) -> Callable:
     """
@@ -155,18 +186,24 @@ def speech(
     Args:
         fn (Callable, optional): The function to wrap. Defaults to None.
         voice (str, optional): The voice to use for the audio. Defaults to None.
+        stream (bool, optional): Whether to stream the audio. If False, the
+            audio can not be saved or played until it has all been generated. If
+            True, `.save()` and `.play()` can be called immediately.
 
     Returns:
         Callable: The wrapped function.
     """
     if fn is None:
-        return partial(speech, voice=voice, model_kwargs=model_kwargs)
+        return partial(speech, voice=voice, stream=stream, model_kwargs=model_kwargs)
 
     @wraps(fn)
     async def async_wrapper(*args, **kwargs):
         model = PythonFunction.from_function_call(fn, *args, **kwargs)
         return await speak_async(
-            text=model.return_value, voice=voice, model_kwargs=model_kwargs
+            text=model.return_value,
+            voice=voice,
+            stream=stream,
+            model_kwargs=model_kwargs,
         )
 
     if inspect.iscoroutinefunction(fn):

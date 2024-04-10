@@ -59,19 +59,12 @@ tests = [
     "pytest-xdist",
 ]
 audio = [
-    "SpeechRecognition>=3.10", 
+    "SpeechRecognition>=3.10",
     "PyAudio>=0.2.11",
-    # playsound reqs
-    "playsound >= 1.0",
-    "wheel>=0.43.0",
-    "PyObjC",
-    # pydub reqs
     "pydub>=0.25",
     "simpleaudio>=1.0",
 ]
-video = [
-    "opencv-python >= 4.5",
-]
+video = ["opencv-python >= 4.5"]
 slackbot = ["marvin[prefect]", "numpy", "raggy", "turbopuffer"]
 
 [project.urls]
@@ -92,8 +85,8 @@ write_to = "src/marvin/_version.py"
 [tool.pytest.ini_options]
 markers = [
     "llm: indicates that a test calls an LLM (may be slow).",
-    "no_llm: indicates that a test does not require an LLM."
-    ]
+    "no_llm: indicates that a test does not require an LLM.",
+]
 timeout = 20
 testpaths = ["tests"]
 
