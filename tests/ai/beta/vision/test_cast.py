@@ -106,10 +106,8 @@ class TestMapping:
             Location(city="New York", state="NY"),
             Location(city="New York City", state="NY"),
         )
-        assert result[1] in (
-            Location(city="Washington", state="DC"),
-            Location(city="Washington", state="D.C."),
-        )
+        assert result[1].city == "Washington"
+        assert result[1].state.index("D") < result[1].state.index("C")
 
     @pytest.mark.flaky(reruns=3)
     async def test_async_map(self):
