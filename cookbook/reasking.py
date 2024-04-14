@@ -1,7 +1,7 @@
 from typing import Annotated
 
 import marvin
-from marvin.beta.retries import retry_on_validation_error
+from marvin.beta.retries import retry_fn_on_validation_error
 from pydantic import AfterValidator
 
 
@@ -14,7 +14,7 @@ def verify_random_number(number: int) -> int:
 RandomNumber = Annotated[int, AfterValidator(verify_random_number)]
 
 
-@retry_on_validation_error  # shows the validation error message in subsequent retries
+@retry_fn_on_validation_error  # shows the validation error message in subsequent retries
 @marvin.fn
 def get_random_number() -> RandomNumber:
     """returns a random number"""

@@ -8,7 +8,7 @@ def default_exception_handler(exc: Exception) -> str:
     return str(exc)
 
 
-def retry_on_validation_error(
+def retry_fn_on_validation_error(
     fn=None,
     max_retries: int = 3,
     exception_handler: Callable[[Exception], str] = default_exception_handler,
