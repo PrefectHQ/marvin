@@ -280,9 +280,10 @@ async def classify_async(
     labels: Union[Enum, list[T], type],
     images: Union[Union[str, Path], list[Union[str, Path]]] = None,
     instructions: str = None,
+    return_index: bool = False,
     vision_model_kwargs: dict = None,
     model_kwargs: dict = None,
-) -> T:
+) -> Union[T, int]:
     """
     Classifies provided data and/or images into one of the specified labels.
     Args:
@@ -290,11 +291,12 @@ async def classify_async(
         labels (Union[Enum, list[T], type]): Labels to classify into.
         images (Union[Union[str, Path], list[Union[str, Path]]], optional): Additional images for classification.
         instructions (str, optional): Instructions for the classification.
+        return_index (bool, optional): Whether to return the index of the label instead of the label itself.
         vision_model_kwargs (dict, optional): Arguments for the vision model.
         model_kwargs (dict, optional): Arguments for the language model.
 
     Returns:
-        T: Label that the data/images were classified into.
+        Union[T, int]: Label or index that the data/images were classified into.
     """
 
     async def marvin_call(x):
@@ -302,6 +304,7 @@ async def classify_async(
             data=x,
             labels=labels,
             instructions=instructions,
+            return_index=return_index,
             model_kwargs=model_kwargs,
         )
 
@@ -415,9 +418,10 @@ def classify(
     labels: Union[Enum, list[T], type],
     images: Union[Image, list[Image]] = None,
     instructions: str = None,
+    return_index: bool = False,
     vision_model_kwargs: dict = None,
     model_kwargs: dict = None,
-) -> T:
+) -> Union[T, int]:
     """
     Classifies provided data and/or images into one of the specified labels synchronously.
 
@@ -426,11 +430,12 @@ def classify(
         labels (Union[Enum, list[T], type]): Labels to classify into.
         images (Union[Image, list[Image]], optional): Additional images for classification.
         instructions (str, optional): Instructions for the classification.
+        return_index (bool, optional): Whether to return the index of the label instead of the label itself.
         vision_model_kwargs (dict, optional): Arguments for the vision model.
         model_kwargs (dict, optional): Arguments for the language model.
 
     Returns:
-        T: Label that the data/images were classified into.
+        Union[T, int]: Label or index that the data/images were classified into.
     """
     return run_sync(
         classify_async(
@@ -438,6 +443,7 @@ def classify(
             labels=labels,
             images=images,
             instructions=instructions,
+            return_index=return_index,
             vision_model_kwargs=vision_model_kwargs,
             model_kwargs=model_kwargs,
         )
@@ -449,14 +455,16 @@ async def classify_async_map(
     data: list[Union[str, Image]],
     labels: Union[Enum, list[T], type],
     instructions: Optional[str] = None,
+    return_index: bool = False,
     model_kwargs: Optional[dict] = None,
-) -> list[T]:
+) -> list[Union[T, int]]:
     return await map_async(
         fn=classify_async,
         map_kwargs=dict(data=data),
         unmapped_kwargs=dict(
             labels=labels,
             instructions=instructions,
+            return_index=return_index,
             model_kwargs=model_kwargs,
         ),
     )
@@ -466,13 +474,15 @@ def classify_map(
     data: list[Union[str, Image]],
     labels: Union[Enum, list[T], type],
     instructions: Optional[str] = None,
+    return_index: bool = False,
     model_kwargs: Optional[dict] = None,
-) -> list[T]:
+) -> list[Union[T, int]]:
     return run_sync(
         classify_async_map(
             data=data,
             labels=labels,
             instructions=instructions,
+            return_index=return_index,
             model_kwargs=model_kwargs,
         )
     )
