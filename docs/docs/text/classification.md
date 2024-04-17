@@ -40,7 +40,7 @@ Marvin's classification tool is designed to accommodate a variety of label forma
 
 ### Lists
 
-When quick, ad-hoc categorization is required, a simple list of values is the most straightforward approach. The result of the classifier is the matching label from the list. Marvin will attempt to convert your labels to strings if they are not already strings. If you are trying to classify complex objects that have unusual or no simple string representation, consider manually creating labels and [classifying by index](#returning-indices).
+When quick, ad-hoc categorization is required, a simple list of values is the most straightforward approach. The result of the classifier is the matching label from the list. Marvin will attempt to convert your labels to strings if they are not already strings in order to provide them to the LLM, though the original (potentially non-string) labels will be returned as your result.
 
 !!! example "Example: sentiment analysis"
 
@@ -57,6 +57,26 @@ When quick, ad-hoc categorization is required, a simple list of values is the mo
         ```python
         assert sentiment == "positive"
         ```
+
+#### Lists of objects
+
+Marvin's classification tool can also handle lists of objects, in which case it will return the object that best matches the input. For example, here we use a text prompt to select a single person from a list of people:
+
+```python
+import marvin
+from pydantic import BaseModel
+
+class Person(BaseModel):
+    name: str
+    age: int
+
+alice = Person(name="Alice", age=45)
+bob = Person(name="Bob", age=16)
+
+result = marvin.classify('who is a teenager?', [alice, bob])
+assert result is bob
+```
+
 
 ### Enums
 
@@ -97,10 +117,11 @@ In scenarios where labels are part of the function signatures or need to be infe
 from typing import Literal
 import marvin
 
-RequestType = Literal["support request", "account issue", "general inquiry"]
+RequestType = Literal["billing issue", "support request", "general inquiry"]
+
 
 request = marvin.classify("Reset my password", RequestType)
-assert request == "account issue"
+assert request == "support request"
 ```
 
 ## Returning indices
@@ -110,7 +131,7 @@ In some cases, you may want to return the index of the selected label rather tha
 ```python
 result = marvin.classify(
     "Reset my password",
-    ["support request", "account issue", "general inquiry"],
+    ["billing issue", "support request", "general inquiry"],
     return_index=True,
 )
 assert result == 1
