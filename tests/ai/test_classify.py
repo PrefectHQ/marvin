@@ -3,8 +3,9 @@ from typing import Literal
 
 import marvin
 import pytest
+from pydantic import BaseModel
 
-Sentiment = Literal["Positive", "Negative"]
+Sentiment = Literal["Negative", "Positive"]
 
 
 class GitHubIssueTag(Enum):
@@ -57,13 +58,33 @@ class TestClassify:
             result = marvin.classify(0, ["letter", "number"])
             assert result == "number"
 
+        def test_classify_object(self):
+            """
+            Test that objects are returned from classify
+            """
+
+            class Person(BaseModel):
+                name: str
+                age: int
+
+            p1 = Person(name="Alice", age=30)
+            p2 = Person(name="Bob", age=25)
+            p3 = Person(name="Charlie", age=35)
+
+            result = marvin.classify("a person in wonderland", [p1, p2, p3])
+            assert result is p1
+
     class TestBool:
         def test_classify_positive_sentiment(self):
             result = marvin.classify("This is a great feature!", bool)
             assert result is True
 
         def test_classify_negative_sentiment(self):
-            result = marvin.classify("This feature is terrible!", bool)
+            result = marvin.classify(
+                "This feature is terrible!",
+                bool,
+                instructions="Is the sentiment positive?",
+            )
             assert result is False
 
         def test_classify_falseish(self):
@@ -81,6 +102,13 @@ class TestClassify:
         async def test_classify_positive_sentiment(self):
             result = await marvin.classify_async("This is a great feature!", bool)
             assert result is True
+
+    class TestReturnIndex:
+        def test_return_index(self):
+            result = marvin.classify(
+                "This is a great feature!", ["bad", "good"], return_index=True
+            )
+            assert result == 1
 
     class TestExamples:
         async def test_hogwarts_sorting_hat(self):
@@ -116,6 +144,17 @@ class TestClassify:
 
             assert router(user_input).value == expected_selection
 
+    class TestConvertInputData:
+        def test_convert_input_data(self):
+            class Name(BaseModel):
+                first: str
+                last: str
+
+            result = marvin.classify(
+                Name(first="Alice", last="Smith"), ["Alice", "Bob"]
+            )
+            assert result == "Alice"
+
 
 class TestMapping:
     def test_classify_map(self):
@@ -138,3 +177,9 @@ class TestMapping:
         )
         assert isinstance(result, list)
         assert result == ["Positive", "Negative"]
+
+    def test_classify_return_index(self):
+        result = marvin.classify.map(
+            ["This is great!", "This is terrible!"], Sentiment, return_index=True
+        )
+        assert result == [1, 0]
