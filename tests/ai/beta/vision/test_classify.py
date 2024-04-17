@@ -95,6 +95,14 @@ class TestAsync:
         assert result == "urban"
 
 
+class TestReturnIndex:
+    def test_return_index(self):
+        result = marvin.beta.classify(
+            "This is a great feature!", ["bad", "good"], return_index=True
+        )
+        assert result == 1
+
+
 class TestMapping:
     def test_map(self):
         ny = marvin.beta.Image(
