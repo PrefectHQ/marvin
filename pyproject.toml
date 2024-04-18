@@ -16,7 +16,7 @@ dependencies = [
     "httpx>=0.24.1",
     "jinja2>=3.1.2",
     "jsonpatch>=1.33",
-    "openai>=1.16.0",
+    "openai>=1.16.0,<1.21",
     "prompt-toolkit>=3.0.33",
     "pydantic>=2.4.2",
     "pydantic_settings",
@@ -59,7 +59,7 @@ tests = [
     "pytest-xdist",
 ]
 audio = [
-    "SpeechRecognition>=3.10", 
+    "SpeechRecognition>=3.10",
     "PyAudio>=0.2.11",
     # playsound reqs
     "playsound >= 1.0",
@@ -69,9 +69,7 @@ audio = [
     "pydub>=0.25",
     "simpleaudio>=1.0",
 ]
-video = [
-    "opencv-python >= 4.5",
-]
+video = ["opencv-python >= 4.5"]
 slackbot = ["marvin[prefect]", "numpy", "raggy", "turbopuffer"]
 
 [project.urls]
@@ -92,8 +90,8 @@ write_to = "src/marvin/_version.py"
 [tool.pytest.ini_options]
 markers = [
     "llm: indicates that a test calls an LLM (may be slow).",
-    "no_llm: indicates that a test does not require an LLM."
-    ]
+    "no_llm: indicates that a test does not require an LLM.",
+]
 timeout = 20
 testpaths = ["tests"]
 
