@@ -1,11 +1,11 @@
 from typing import Any, Union
 
-from marvin.types import CodeInterpreterTool, RetrievalTool, Tool
+from marvin.types import CodeInterpreterTool, FileSearchTool, Tool
 
-Retrieval = RetrievalTool()
+FileSearch = FileSearchTool()
 CodeInterpreter = CodeInterpreterTool()
 
-AssistantTool = Union[RetrievalTool, CodeInterpreterTool, Tool]
+AssistantTool = Union[FileSearchTool, CodeInterpreterTool, Tool]
 
 ENDRUN_TOKEN = "<|ENDRUN|>"
 

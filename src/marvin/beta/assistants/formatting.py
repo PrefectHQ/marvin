@@ -34,6 +34,8 @@ def download_temp_file(file_id: str):
 
     client = get_openai_client(is_async=False)
     file = client.files.retrieve(file_id)
+    if file.purpose == "assistants":
+        return
     filename = Path(file.filename).name
     response = client.files.content(file_id)
 
@@ -76,8 +78,8 @@ def format_code_interpreter_tool_call(step, tool_call):
     else:
         for o in tool_call.code_interpreter.outputs:
             if o.type == "image":
-                local_file_path = download_temp_file(o.image.file_id)
-                attachments.append(local_file_path)
+                if local_file_path := download_temp_file(o.image.file_id):
+                    attachments.append(local_file_path)
         status = ":heavy_check_mark: Finished!"
     content = [status, "\n", code]
     if attachments:
@@ -182,12 +184,12 @@ def format_message(message: Message) -> Panel:
         elif item.type == "image_file":
             # Use the download_temp_file function to download the file and get
             # the local path
-            local_file_path = download_temp_file(item.image_file.file_id)
-            attachments.append(local_file_path)
+            if local_file_path := download_temp_file(item.image_file.file_id):
+                attachments.append(local_file_path)
 
-    for file_id in message.file_ids:
-        local_file_path = download_temp_file(file_id)
-        attachments.append(local_file_path)
+    for attachment in message.attachments:
+        if local_file_path := download_temp_file(attachment.file_id):
+            attachments.append(local_file_path)
 
     if attachments:
         content.append(

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 from openai import AsyncAssistantEventHandler
 from prompt_toolkit import PromptSession
@@ -47,20 +47,21 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         id (str): The unique identifier of the assistant. None if the assistant
                   hasn't been created yet.
         name (str): The name of the assistant.
-        model (str): The model used by the assistant.
-        metadata (dict): Additional data about the assistant.
-        file_ids (list): List of file IDs associated with the assistant.
-        tools (list): List of tools used by the assistant.
+        description (str): A description of the assistant.
         instructions (str): Instructions for the assistant.
+        model (str): The model used by the assistant.
+        tools (list): List of tools used by the assistant.
+        tool_resources (dict): dict of tool resources associated with the assistant.
+        metadata (dict): Additional data about the assistant.
     """
 
     id: Optional[str] = None
     name: str = "Assistant"
     description: Optional[str] = None
+    instructions: Optional[str] = Field(None)
     model: str = Field(None, validate_default=True)
-    instructions: Optional[str] = Field(None, repr=False)
     tools: list[Union[AssistantTool, Callable]] = []
-    file_ids: list[str] = []
+    tool_resources: dict[str, Any] = {}
     metadata: dict[str, str] = {}
     # context level tracks nested assistant contexts
     _context_level: int = PrivateAttr(0)
@@ -99,7 +100,8 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     async def say_async(
         self,
         message: str,
-        file_paths: Optional[list[str]] = None,
+        code_interpreter_files: Optional[list[str]] = None,
+        file_search_files: Optional[list[str]] = None,
         thread: Optional[Thread] = None,
         event_handler_class: type[AsyncAssistantEventHandler] = NOT_PROVIDED,
         **run_kwargs,
@@ -110,7 +112,11 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
             event_handler_class = default_run_handler_class()
 
         # post the message
-        user_message = await thread.add_async(message, file_paths=file_paths)
+        user_message = await thread.add_async(
+            message,
+            code_interpreter_files=code_interpreter_files,
+            file_search_files=file_search_files,
+        )
 
         from marvin.beta.assistants.runs import Run
 
@@ -159,7 +165,14 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         client = marvin.utilities.openai.get_openai_client()
         response = await client.beta.assistants.create(
             **self.model_dump(
-                include={"name", "model", "metadata", "file_ids", "metadata"}
+                include={
+                    "name",
+                    "model",
+                    "description",
+                    "metadata",
+                    "tool_resources",
+                    "metadata",
+                }
             ),
             tools=[tool.model_dump() for tool in self.get_tools()],
             instructions=self.get_instructions(),
