@@ -15,7 +15,7 @@ def assert_locations_equal(observed: Location, expected: Location):
     assert_equal(
         observed,
         expected,
-        instructions="Do the locations refer to the same place?",
+        instructions="Do the locations refer to the same place even if the literal words differ? NYC, New York, and New York City are all the same place.",
         model="gpt-3.5-turbo",
     )
 
