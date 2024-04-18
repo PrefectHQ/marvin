@@ -18,7 +18,9 @@ class Assertion(BaseModel):
     )
 
 
-def assert_equal(llm_output: Any, expected: Any) -> bool:
+def assert_equal(
+    llm_output: Any, expected: Any, instructions: str = None, model: str = None
+) -> bool:
     """
     Asserts whether the LLM output meets the expected output.
 
@@ -37,16 +39,33 @@ def assert_equal(llm_output: Any, expected: Any) -> bool:
         AssertionError: If the LLM output does not meet the expectation.
     """
 
-    result = _assert_equal(llm_output, expected)
-    assert (
-        result.is_equal
-    ), f"{result.explanation}\n>> LLM Output: {llm_output}\n>> Expected: {expected}"
+    if model is not None:
+        model_kwargs = dict(model=model)
+    else:
+        model_kwargs = None
+
+    result = _assert_equal(
+        llm_output,
+        expected,
+        instructions=instructions,
+        _model_kwargs=model_kwargs,
+    )
+    assert_msg = (
+        f"{result.explanation}\n" f">> Instructions: {instructions}\n"
+        if instructions
+        else "" f">> LLM Output: {llm_output}\n" f">> Expected: {expected}"
+    )
+    assert result.is_equal, assert_msg
 
 
 @marvin.fn(model_kwargs=dict(model="gpt-4-1106-preview"))
-def _assert_equal(llm_output: Any, expected: Any) -> Assertion:
+def _assert_equal(
+    llm_output: Any, expected: Any, instructions: str = None
+) -> Assertion:
     """
     An LLM generated the provided output as part of a unit test. Assert whether
     or not it meets the expectations of the test, which may be provided as
-    either a string explanation or one or more valid examples. If
+    either a string explanation or one or more valid examples or expected
+    outputs. If instructions are provided, use them to compare the output to the
+    expectation.
     """

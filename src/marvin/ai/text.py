@@ -504,7 +504,11 @@ def fn(
         return partial(fn, model_kwargs=model_kwargs, client=client)
 
     @wraps(func)
-    async def async_wrapper(*args, **kwargs):
+    async def async_wrapper(*args, _model_kwargs: dict = None, **kwargs):
+        """
+        _model_kwargs allows users to provide model overrides at call time
+        it is merged into the model_kwargs dict
+        """
         model = PythonFunction.from_function_call(func, *args, **kwargs)
         post_processor = marvin.settings.post_processor_fn
 
@@ -515,6 +519,12 @@ def fn(
             or model.return_annotation is inspect.Signature.empty
         ):
             type_ = str
+
+        if _model_kwargs is not None:
+            if model_kwargs:
+                model_kwargs = model_kwargs | _model_kwargs
+            else:
+                model_kwargs = _model_kwargs
 
         # convert list annotations into Enums
         elif isinstance(model.return_annotation, list):

@@ -9,6 +9,12 @@ class Location(BaseModel):
     state: str = Field(description="The two letter abbreviation")
 
 
+def assert_locations_equal(observed: Location, expected: Location):
+    assert_equal(
+        observed, expected, instructions="Do the locations refer to the same place?"
+    )
+
+
 @pytest.mark.flaky(max_runs=3)
 class TestVisionCast:
     def test_cast_ny(self):
@@ -16,7 +22,7 @@ class TestVisionCast:
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = marvin.beta.cast(img, target=Location)
-        assert_equal(result, Location(city="New York", state="NY"))
+        assert_locations_equal(result, Location(city="New York", state="NY"))
 
     def test_cast_dc(self):
         img = marvin.beta.Image(
@@ -100,8 +106,8 @@ class TestMapping:
         )
         result = marvin.beta.cast.map([ny, dc], target=Location)
         assert isinstance(result, list)
-        assert_equal(result[0], Location(city="New York", state="NY"))
-        assert_equal(result[1], Location(city="Washington", state="DC"))
+        assert_locations_equal(result[0], Location(city="New York", state="NY"))
+        assert_locations_equal(result[1], Location(city="Washington", state="DC"))
 
     @pytest.mark.flaky(reruns=3)
     async def test_async_map(self):
@@ -113,5 +119,5 @@ class TestMapping:
         )
         result = await marvin.beta.cast_async.map([ny, dc], target=Location)
         assert isinstance(result, list)
-        assert_equal(result[0], Location(city="New York", state="NY"))
-        assert_equal(result[1], Location(city="Washington", state="DC"))
+        assert_locations_equal(result[0], Location(city="New York", state="NY"))
+        assert_locations_equal(result[1], Location(city="Washington", state="DC"))
