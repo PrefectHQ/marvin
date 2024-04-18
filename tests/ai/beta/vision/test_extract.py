@@ -13,7 +13,10 @@ class Location(BaseModel):
 
 def assert_locations_equal(observed: Location, expected: Location):
     assert_equal(
-        observed, expected, instructions="Do the locations refer to the same place?"
+        observed,
+        expected,
+        instructions="Do the locations refer to the same place?",
+        model="gpt-3.5-turbo",
     )
 
 

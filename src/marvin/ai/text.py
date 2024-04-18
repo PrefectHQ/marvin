@@ -520,12 +520,6 @@ def fn(
         ):
             type_ = str
 
-        if _model_kwargs is not None:
-            if model_kwargs:
-                model_kwargs = model_kwargs | _model_kwargs
-            else:
-                model_kwargs = _model_kwargs
-
         # convert list annotations into Enums
         elif isinstance(model.return_annotation, list):
             type_ = Enum(
@@ -545,7 +539,7 @@ def fn(
                 return_value=model.return_value,
             ),
             type_=type_,
-            model_kwargs=model_kwargs,
+            model_kwargs=(model_kwargs or {}) | (_model_kwargs or {}),
             client=client,
         )
 

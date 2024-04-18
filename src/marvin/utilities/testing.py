@@ -39,10 +39,9 @@ def assert_equal(
         AssertionError: If the LLM output does not meet the expectation.
     """
 
+    model_kwargs = {}
     if model is not None:
-        model_kwargs = dict(model=model)
-    else:
-        model_kwargs = None
+        model_kwargs.update(model=model)
 
     result = _assert_equal(
         llm_output,
