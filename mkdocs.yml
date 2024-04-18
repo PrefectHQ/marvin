@@ -87,6 +87,7 @@ nav:
     - Examples:
       - examples/audio_modification.md
       - examples/xkcd_bird.md
+      - examples/xkcd_scientific_papers.md
       - examples/michael_scott_business/michael_scott_business.md
       - examples/hogwarts_sorting_hat/hogwarts_sorting_hat.md
       - examples/call_routing.md
