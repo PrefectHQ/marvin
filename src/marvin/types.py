@@ -81,8 +81,8 @@ class ToolSet(MarvinType, Generic[T]):
     tool_choice: Optional[Union[Literal["auto"], dict[str, Any]]] = None
 
 
-class RetrievalTool(Tool):
-    type: Literal["retrieval"] = "retrieval"
+class FileSearchTool(Tool):
+    type: Literal["file_search"] = "file_search"
 
 
 class CodeInterpreterTool(Tool):
@@ -244,7 +244,7 @@ class AssistantMessage(BaseMessage):
     created_at: int
     assistant_id: Optional[str] = None
     run_id: Optional[str] = None
-    file_ids: list[str] = []
+    attachments: list[dict] = []
     metadata: dict[str, Any] = {}
 
 

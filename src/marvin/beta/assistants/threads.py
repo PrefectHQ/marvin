@@ -62,7 +62,11 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
     @expose_sync_method("add")
     async def add_async(
-        self, message: str, file_paths: Optional[list[str]] = None, role: str = "user"
+        self,
+        message: str,
+        role: str = "user",
+        code_interpreter_files: Optional[list[str]] = None,
+        file_search_files: Optional[list[str]] = None,
     ) -> Message:
         """
         Add a user message to the thread.
@@ -73,15 +77,23 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
             await self.create_async()
 
         # Upload files and collect their IDs
-        file_ids = []
-        for file_path in file_paths or []:
-            with open(file_path, mode="rb") as file:
+        attachments = []
+        for fp in code_interpreter_files or []:
+            with open(fp, mode="rb") as file:
                 response = await client.files.create(file=file, purpose="assistants")
-                file_ids.append(response.id)
+                attachments.append(
+                    dict(file_id=response.id, tools=[dict(type="code_interpreter")])
+                )
+        for fp in file_search_files or []:
+            with open(fp, mode="rb") as file:
+                response = await client.files.create(file=file, purpose="assistants")
+                attachments.append(
+                    dict(file_id=response.id, tools=[dict(type="file_search")])
+                )
 
         # Create the message with the attached files
         response = await client.beta.threads.messages.create(
-            thread_id=self.id, role=role, content=message, file_ids=file_ids
+            thread_id=self.id, role=role, content=message, attachments=attachments
         )
         return response
 
