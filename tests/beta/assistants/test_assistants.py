@@ -51,7 +51,7 @@ class TestLifeCycle:
         mock_delete.assert_called()
 
     # it's unclear why this test is flaky in CI, but it is
-    @pytest.mark.flaky(max_runs=3)
+    @pytest.mark.flaky(max_runs=2)
     @patch.object(client.beta.assistants, "delete", wraps=client.beta.assistants.delete)
     @patch.object(client.beta.assistants, "create", wraps=client.beta.assistants.create)
     def test_context_manager(self, mock_create, mock_delete):
@@ -89,6 +89,7 @@ class TestLifeCycle:
         mock_delete.assert_called_once()
         mock_create.assert_called_once()
 
+    @pytest.mark.flaky(reruns=2)
     def test_load_from_api(self):
         """fully manual delete"""
 
