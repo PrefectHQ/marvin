@@ -2,19 +2,21 @@
 
 import io
 import queue
-import tempfile
 import threading
-from typing import Optional
+from typing import Iterator, Optional
 
-import pydub
-import pydub.silence
+import pydub.playback
 
 from marvin.types import Audio
 from marvin.utilities.logging import get_logger
 
 try:
+    import pyaudio
+    import pydub
+    import pydub.silence
     import speech_recognition as sr
-    from playsound import playsound
+
+
 except ImportError:
     raise ImportError(
         'Marvin was not installed with the "audio" extra. Please run `pip install'
@@ -24,16 +26,57 @@ except ImportError:
 logger = get_logger(__name__)
 
 
-def play_audio(audio: bytes):
+def convert_audio(audio: bytes, from_format: str, to_format: str) -> bytes:
+    if from_format == to_format:
+        return audio
+
+    temp_file = io.BytesIO(audio)
+    temp_file.seek(0)
+    segment = pydub.AudioSegment.from_file(
+        temp_file,
+        format=from_format,
+        sample_width=2,
+        channels=1,
+        frame_rate=24000,
+    )
+
+    buffer = io.BytesIO()
+    segment.export(buffer, format=to_format)
+    buffer.seek(0)
+
+    return buffer.read()
+
+
+def play_audio(audio: bytes, format="pcm"):
     """
-    Play audio from bytes.
+    Play audio from bytes. The proper format must be provided.
 
     Parameters:
         audio (bytes): Audio data in a format that the system can play.
     """
-    with tempfile.NamedTemporaryFile() as temp_file:
-        temp_file.write(audio)
-        playsound(temp_file.name)
+    wav = convert_audio(audio, format, "wav")
+    buffer = io.BytesIO(wav)
+    buffer.seek(0)
+
+    wav = pydub.AudioSegment.from_file(
+        buffer,
+        format="wav",
+        sample_width=2,
+        channels=1,
+        frame_rate=24000,
+    )
+    pydub.playback.play(wav)
+
+
+async def stream_audio(audio: Iterator[bytes]):
+    """
+    Stream audio from an iterator of bytes. Audio chunks must be in `pcm` format.
+    """
+    player_stream = pyaudio.PyAudio().open(
+        format=pyaudio.paInt16, channels=1, rate=24000, output=True
+    )
+    async for chunk in audio:
+        player_stream.write(chunk)
 
 
 def record(duration: int = None) -> Audio:

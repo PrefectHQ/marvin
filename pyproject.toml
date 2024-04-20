@@ -50,6 +50,7 @@ dev = [
     "ruff",
 ]
 tests = [
+    "flaky",
     "pytest-asyncio>=0.18.2,!=0.22.0,<0.23.0",
     "pytest-env>=0.8,<2.0",
     "pytest-rerunfailures>=10,<14",
@@ -61,11 +62,6 @@ tests = [
 audio = [
     "SpeechRecognition>=3.10",
     "PyAudio>=0.2.11",
-    # playsound reqs
-    "playsound >= 1.0",
-    "wheel>=0.43.0",
-    "PyObjC",
-    # pydub reqs
     "pydub>=0.25",
     "simpleaudio>=1.0",
 ]

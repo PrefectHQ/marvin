@@ -28,37 +28,45 @@ Marvin has a few features that have additional dependencies that are not install
 
 Marvin can transcribe and generate speech out-of-the box by working with audio files, but in order to record and play sound, you'll need additional dependencies. See the [documentation](/docs/audio/recording) for more details.
 
-Please follow the instructions to set up PyAudio and PyDub, then run:
+Please follow these instructions to set up the prerequisites for PyAudio and PyDub. 
 
-```shell
-pip install marvin[audio]
-```
+#### Set up PyAudio dependencies
 
-#### Set up PyAudio
-Marvin's audio features depend on PyAudio, which may have additional platform-dependent instructions. Please review the PyAudio installation instructions [here](https://people.csail.mit.edu/hubert/pyaudio/) for the latest information. 
+Marvin's audio features depend on PyAudio, which may have additional platform-dependent instructions. Please review the PyAudio installation instructions [here](https://people.csail.mit.edu/hubert/pyaudio/) for the latest information.
 
 On macOS, PyAudio depends on PortAudio, which can be installed with [Homebrew](https://brew.sh/):
+
 ```shell
 brew install portaudio
 ```
 
+#### Set up PyDub dependencies
 
-#### Set up PyDub
 Marvin's audio features also depend on PyDub, which may have additional platform-dependent instructions. Please review the PyDub installation instructions [here](https://github.com/jiaaro/pydub#dependencies).
 
 Generally, you'll need to install ffmpeg.
 
 On macOS, use [Homebrew](https://brew.sh/):
+
 ```shell
 brew install ffmpeg
 ```
 
 On Linux, use your package manager:
+
 ```shell
 apt-get install ffmpeg libavcodec-extra
 ```
 
 On Windows, see the PyDub instructions.
+
+#### Install Marvin
+
+Now you can install Marvin with the audio extras, which will also install PyAudio and PyDub:
+
+```shell
+pip install marvin[audio]
+```
 
 ### Video features
 
@@ -77,6 +85,5 @@ pip install -e "path/to/marvin[dev]"
 ```
 
 To build the documentation, you may also have to install certain imaging dependencies of MkDocs Material, which you can learn more about [here](https://squidfunk.github.io/mkdocs-material/plugins/requirements/image-processing/#dependencies).
-
 
 See the [contributing docs](../../community/development_guide) for further instructions.

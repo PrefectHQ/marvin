@@ -5,7 +5,9 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
+    AsyncGenerator,
     Callable,
+    Generator,
     Optional,
     TypeVar,
     Union,
@@ -221,18 +223,21 @@ class MarvinClient(pydantic.BaseModel):
         return self.client.images.generate(**request.model_dump(exclude_none=True))
 
     def generate_speech(
-        self,
-        input: str,
-        file: Optional[Path] = None,
-        **kwargs: Any,
-    ) -> Optional["HttpxBinaryResponseContent"]:
+        self, input: str, **kwargs: Any
+    ) -> "HttpxBinaryResponseContent":
         response = self.client.audio.speech.create(
             input=input, **settings.openai.audio.speech.model_dump() | kwargs
         )
-        if file:
-            response.stream_to_file(file)
-            return None
         return response
+
+    def generate_speech_streaming(
+        self, input: str, **kwargs: Any
+    ) -> Generator[bytes, None, None]:
+        with self.client.audio.with_streaming_response.speech.create(
+            input=input, **settings.openai.audio.speech.model_dump() | kwargs
+        ) as response:
+            for chunk in response.iter_bytes(chunk_size=1024):
+                yield chunk
 
     def generate_transcript(
         self, file: Union[Path, IO[bytes]], **kwargs: Any
@@ -330,18 +335,21 @@ class AsyncMarvinClient(pydantic.BaseModel):
         )
 
     async def generate_speech(
-        self,
-        input: str,
-        file: Optional[Path] = None,
-        **kwargs: Any,
-    ) -> Optional["HttpxBinaryResponseContent"]:
+        self, input: str, **kwargs: Any
+    ) -> "HttpxBinaryResponseContent":
         response = await self.client.audio.speech.create(
             input=input, **settings.openai.audio.speech.model_dump() | kwargs
         )
-        if file:
-            response.stream_to_file(file)
-            return None
         return response
+
+    async def generate_speech_streaming(
+        self, input: str, **kwargs: Any
+    ) -> AsyncGenerator[bytes, None]:
+        async with self.client.audio.with_streaming_response.speech.create(
+            input=input, **settings.openai.audio.speech.model_dump() | kwargs
+        ) as response:
+            async for chunk in response.iter_bytes(chunk_size=1024):
+                yield chunk
 
     async def generate_transcript(self, file: Union[Path, IO[bytes]], **kwargs: Any):
         request = TranscriptRequest(**kwargs)

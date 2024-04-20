@@ -24,7 +24,7 @@ Marvin can generate speech from text.
 
         !!! success "Result"
             ```python
-            audio.save("fancy_computer.mp3")
+            audio.play("fancy_computer.mp3")
             ```
             <audio controls>
               <source src="/assets/audio/fancy_computer.mp3" type="audio/mpeg">
@@ -47,7 +47,7 @@ Marvin can generate speech from text.
 
         !!! success "Result"
             ```python
-            audio.save("hello_arthur.mp3")
+            audio.play("hello_arthur.mp3")
             ```
             <audio controls>
               <source src="/assets/audio/hello_arthur.mp3" type="audio/mpeg">
@@ -61,11 +61,11 @@ Marvin can generate speech from text.
   </p>
 </div>
 
-## Speaking text verbatim
+!!! tip "Text is generated verbatim"
 
-Unlike the images API, OpenAI's speech API does not modify or revise your input prompt in any way. Whatever text you provide is exactly what will be spoken. 
+    Unlike the images API, OpenAI's speech API does not modify or revise your input prompt in any way. Whatever text you provide is exactly what will be spoken. 
 
-Therefore, you can use the `speak` function to generate speech from any string, or use the `@speech` decorator to generate speech from the string output of any function.
+    Therefore, you can use the `speak` function to generate speech from any string, or use the `@speech` decorator to generate speech from the string output of any function.
 
 
 
@@ -95,6 +95,36 @@ ai_say('hello')
       Your browser does not support the audio element.
     </audio>
 
+### Playing audio
+
+The result of `speak` and `@speech` is an `Audio` object that can be played by calling its `play` method. By default, playback will start as soon as the first bytes of audio are available. See the note on [streaming audio](#streaming-audio) for more information.
+
+```python
+audio = marvin.speak("Hello, world!")
+audio.play()
+```
+
+#### Streaming audio
+By default, Marvin streams audio from the OpenAI API, which means that playback can start as soon as the first bytes of audio are available. This can be useful for long audio files, as it allows you to start listening to the audio before it has finished generating. If you want to wait for the entire audio file to be generated before starting playback, you can pass `stream=False`:
+
+```python
+audio = marvin.speak("Hello, world!", stream=False)
+```
+Note that streaming is only supported with the `pcm` (or raw) audio file format, and an error will be raised if you try to generate speech in a different format with `stream=True`. However, you can always save `pcm` audio to a file in a different format after it has been generated.
+
+### Saving audio
+To save an `Audio` object to a file, you can call its `save` method:
+
+```python
+audio = marvin.speak("Hello, world!")
+audio.save("hello_world.mp3")
+```
+
+Marvin will attempt to infer the correct file format from the file extension you provide. If you want to save the audio in a different format, you can pass a `format` argument to `save`.
+
+### Saving audio
+
+
 ## Choosing a voice
 
 Both `speak` and `@speech` accept a `voice` parameter that allows you to choose from a variety of voices. You can preview the available voices [here](https://platform.openai.com/docs/guides/text-to-speech/voice-options).
@@ -103,7 +133,7 @@ Both `speak` and `@speech` accept a `voice` parameter that allows you to choose 
 The result of the `speak` function and `@speech` decorator is an audio stream.
 
 audio = marvin.speak("Hello, world!", voice="nova")
-audio.save("hello_world.mp3") # Saving audio files
+audio.play("hello_world.mp3") 
 ```
 
 

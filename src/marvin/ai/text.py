@@ -504,7 +504,11 @@ def fn(
         return partial(fn, model_kwargs=model_kwargs, client=client)
 
     @wraps(func)
-    async def async_wrapper(*args, **kwargs):
+    async def async_wrapper(*args, _model_kwargs: dict = None, **kwargs):
+        """
+        _model_kwargs allows users to provide model overrides at call time
+        it is merged into the model_kwargs dict
+        """
         model = PythonFunction.from_function_call(func, *args, **kwargs)
         post_processor = marvin.settings.post_processor_fn
 
@@ -535,7 +539,7 @@ def fn(
                 return_value=model.return_value,
             ),
             type_=type_,
-            model_kwargs=model_kwargs,
+            model_kwargs=(model_kwargs or {}) | (_model_kwargs or {}),
             client=client,
         )
 

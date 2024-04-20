@@ -1,5 +1,6 @@
 import marvin
 import pytest
+from marvin.utilities.testing import assert_locations_equal
 from pydantic import BaseModel, Field
 
 
@@ -15,10 +16,7 @@ class TestVisionCast:
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = marvin.beta.cast(img, target=Location)
-        assert result in (
-            Location(city="New York", state="NY"),
-            Location(city="New York City", state="NY"),
-        )
+        assert_locations_equal(result, Location(city="New York", state="NY"))
 
     def test_cast_dc(self):
         img = marvin.beta.Image(
@@ -26,28 +24,21 @@ class TestVisionCast:
         )
         result = marvin.beta.cast(img, target=Location)
         assert isinstance(result, Location)
-        assert "Washington" in result.city
-        assert result.state.index("D") < result.state.index("C")
+        assert_locations_equal(result, Location(city="Washington", state="DC"))
 
     def test_cast_ny_images_input(self):
         img = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = marvin.beta.cast(data=None, images=[img], target=Location)
-        assert result in (
-            Location(city="New York", state="NY"),
-            Location(city="New York City", state="NY"),
-        )
+        assert_locations_equal(result, Location(city="New York", state="NY"))
 
     def test_cast_ny_image_input(self):
         img = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = marvin.beta.cast(data=img, target=Location)
-        assert result in (
-            Location(city="New York", state="NY"),
-            Location(city="New York City", state="NY"),
-        )
+        assert_locations_equal(result, Location(city="New York", state="NY"))
 
     def test_cast_ny_image_and_text(self):
         img = marvin.beta.Image(
@@ -58,10 +49,7 @@ class TestVisionCast:
             images=[img],
             target=Location,
         )
-        assert result in (
-            Location(city="New York", state="NY"),
-            Location(city="New York City", state="NY"),
-        )
+        assert_locations_equal(result, Location(city="New York", state="NY"))
 
     def test_cast_book(self):
         class Book(BaseModel):
@@ -86,10 +74,7 @@ class TestAsync:
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = await marvin.beta.cast_async(img, target=Location)
-        assert result in (
-            Location(city="New York", state="NY"),
-            Location(city="New York City", state="NY"),
-        )
+        assert_locations_equal(result, Location(city="New York", state="NY"))
 
 
 class TestMapping:
@@ -102,14 +87,10 @@ class TestMapping:
         )
         result = marvin.beta.cast.map([ny, dc], target=Location)
         assert isinstance(result, list)
-        assert result[0] in (
-            Location(city="New York", state="NY"),
-            Location(city="New York City", state="NY"),
-        )
-        assert result[1].city == "Washington"
-        assert result[1].state.index("D") < result[1].state.index("C")
+        assert_locations_equal(result[0], Location(city="New York", state="NY"))
+        assert_locations_equal(result[1], Location(city="Washington", state="DC"))
 
-    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.flaky(max_runs=2)
     async def test_async_map(self):
         ny = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
@@ -119,11 +100,6 @@ class TestMapping:
         )
         result = await marvin.beta.cast_async.map([ny, dc], target=Location)
         assert isinstance(result, list)
-        assert result[0] in (
-            Location(city="New York", state="NY"),
-            Location(city="New York City", state="NY"),
-        )
-        assert result[1] in (
-            Location(city="Washington", state="DC"),
-            Location(city="Washington", state="D.C."),
-        )
+
+        assert_locations_equal(result[0], Location(city="New York", state="NY"))
+        assert_locations_equal(result[1], Location(city="Washington", state="DC"))

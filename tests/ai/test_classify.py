@@ -75,11 +75,15 @@ class TestClassify:
             assert result is p1
 
     class TestBool:
-        def test_classify_positive_sentiment(self):
-            result = marvin.classify("This is a great feature!", bool)
+        def test_classify_true(self):
+            result = marvin.classify("2+2=4", bool)
             assert result is True
 
-        def test_classify_negative_sentiment(self):
+        def test_classify_false(self):
+            result = marvin.classify("2+2=5", bool)
+            assert result is False
+
+        def test_classify_with_instructions(self):
             result = marvin.classify(
                 "This feature is terrible!",
                 bool,
@@ -87,8 +91,16 @@ class TestClassify:
             )
             assert result is False
 
+        def test_classify_trueish(self):
+            result = marvin.classify(
+                "y", bool, instructions="map the input to true/false"
+            )
+            assert result is True
+
         def test_classify_falseish(self):
-            result = marvin.classify("nope", bool)
+            result = marvin.classify(
+                "nope", bool, instructions="map the input to true/false"
+            )
             assert result is False
 
     class TestInstructions:
@@ -112,7 +124,7 @@ class TestClassify:
 
     class TestExamples:
         async def test_hogwarts_sorting_hat(self):
-            description = "Brave, daring, chivalrous, and sometimes a bit reckless."
+            description = "Brave, daring, chivalrous, and sometimes a bit reckless -- just like Harry Potter."
 
             house = marvin.classify(
                 description,

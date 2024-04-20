@@ -2,7 +2,17 @@ import base64
 import datetime
 import inspect
 from pathlib import Path
-from typing import Any, Callable, Generic, Literal, Optional, TypeVar, Union
+from typing import (
+    Any,
+    AsyncIterator,
+    Callable,
+    Generic,
+    Iterator,
+    Literal,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 import openai.types.chat
 from openai.types.chat import ChatCompletion
@@ -10,6 +20,7 @@ from pydantic import BaseModel, Field, PrivateAttr, computed_field, field_valida
 from typing_extensions import Annotated, Self
 
 from marvin.settings import settings
+from marvin.utilities.asyncio import run_sync
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -230,7 +241,7 @@ class SpeechRequest(MarvinType):
     voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = Field(
         default_factory=lambda: settings.openai.audio.speech.voice
     )
-    response_format: Optional[Literal["mp3", "opus", "aac", "flac"]] = Field(
+    response_format: Optional[Literal["mp3", "opus", "aac", "flac", "pcm"]] = Field(
         default_factory=lambda: settings.openai.audio.speech.response_format
     )
     speed: Optional[float] = Field(
@@ -339,24 +350,79 @@ class Image(MarvinType):
 
 class Audio(MarvinType):
     data: bytes = Field(repr=False)
+    _data_stream: Optional[AsyncIterator[bytes]] = PrivateAttr()
     url: Optional[Path] = None
-    format: Literal["mp3", "wav"] = "mp3"
     timestamp: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    format: Literal["wav", "mp3", "pcm"] = "pcm"
+
+    def __init__(self, _data_stream: AsyncIterator[bytes] = None, **data):
+        super().__init__(**data)
+        self._data_stream = _data_stream
+
+    async def _stream(self) -> AsyncIterator[bytes]:
+        """
+        Yield bytes from the data stream and add them to the data attribute. Delete the
+        stream attribute when the stream is exhausted.
+        """
+        if self._data_stream is not None:
+            if inspect.isasyncgen(self._data_stream):
+                async for chunk in self._data_stream:
+                    self.data += chunk
+                    yield chunk
+            else:
+                for chunk in self._data_stream:
+                    self.data += chunk
+                    yield chunk
+            self._data_stream = None
+
+    async def _complete_stream(self):
+        """
+        Exhausts the data stream and writes all data to `.data`
+        """
+        async for _ in self._stream():
+            pass
+
+    @classmethod
+    def from_stream(cls, stream: Iterator[bytes], format: str) -> "Audio":
+        instance = cls(data=b"", format=format)
+        instance._data_stream = stream
+        return instance
 
     @classmethod
     def from_path(cls, path: Union[str, Path]) -> "Audio":
         with open(path, "rb") as f:
             data = f.read()
         format = path.split(".")[-1]
-        if format not in ["mp3", "wav"]:
-            raise ValueError("Invalid audio format")
         return cls(data=data, url=path, format=format)
 
-    def save(self, path: str):
-        with open(path, "wb") as f:
-            f.write(self.data)
+    async def save_async(self, path: str, format: str = None):
+        if format is None:
+            format = path.rsplit(".")[-1]
+        if format not in ["wav", "mp3", "pcm"]:
+            raise ValueError("Unsupported format")
 
-    def play(self):
+        await self._complete_stream()
+
+        if self.format != format:
+            import marvin.audio
+
+            audio = marvin.audio.convert_audio(self.data, self.format, format)
+        else:
+            audio = self.data
+        with open(path, "wb") as f:
+            f.write(audio)
+
+    def save(self, path: str, format: str = None):
+        return run_sync(self.save_async(path, format=format))
+
+    async def play_async(self):
         import marvin.audio
 
-        marvin.audio.play_audio(self.data)
+        if self._data_stream is not None:
+            await marvin.audio.stream_audio(self._stream())
+
+        else:
+            marvin.audio.play_audio(self.data, format=self.format)
+
+    def play(self):
+        return run_sync(self.play_async())
