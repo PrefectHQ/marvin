@@ -50,6 +50,7 @@ dev = [
     "ruff",
 ]
 tests = [
+    "flaky",
     "pytest-asyncio>=0.18.2,!=0.22.0,<0.23.0",
     "pytest-env>=0.8,<2.0",
     "pytest-rerunfailures>=10,<14",
