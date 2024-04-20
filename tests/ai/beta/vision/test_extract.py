@@ -2,21 +2,13 @@ from typing import Literal
 
 import marvin
 import pytest
-from marvin.utilities.testing import assert_equal
+from marvin.utilities.testing import assert_equal, assert_locations_equal
 from pydantic import BaseModel, Field
 
 
 class Location(BaseModel):
     city: str
     state: str = Field(description="The two letter abbreviation for the state")
-
-
-def assert_locations_equal(observed: Location, expected: Location):
-    assert_equal(
-        observed,
-        expected,
-        instructions="The location models may not be literally identical, but do they refer to the same city?",
-    )
 
 
 @pytest.mark.flaky(max_runs=2)

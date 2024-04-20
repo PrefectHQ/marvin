@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import marvin
 import pytest
+from marvin.utilities.testing import assert_locations_equal
 from pydantic import BaseModel, Field
 
 
@@ -67,10 +68,7 @@ class TestCast:
         @pytest.mark.parametrize("text", ["New York, NY", "NYC", "the big apple"])
         def test_cast_text_to_location(self, text, gpt_4):
             result = marvin.cast(f"I live in {text}", Location)
-            assert result in (
-                Location(city="New York", state="NY"),
-                Location(city="New York City", state="NY"),
-            )
+            assert_locations_equal(result, Location(city="New York", state="NY"))
 
         def test_pay_attention_to_field_descriptions(self, gpt_4):
             # GPT-3.5 gets this wrong

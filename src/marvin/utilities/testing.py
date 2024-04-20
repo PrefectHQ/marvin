@@ -68,3 +68,14 @@ def _assert_equal(
     outputs. If instructions are provided, use them to compare the output to the
     expectation.
     """
+
+
+def assert_locations_equal(observed, expected):
+    """
+    Helpful LLM assert for comparing two locations (e.g. New York, New York City)
+    """
+    assert_equal(
+        observed,
+        expected,
+        instructions="The location models may not be literally identical, but do they refer to the same city?",
+    )
