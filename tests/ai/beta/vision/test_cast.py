@@ -90,7 +90,7 @@ class TestMapping:
         assert_locations_equal(result[0], Location(city="New York", state="NY"))
         assert_locations_equal(result[1], Location(city="Washington", state="DC"))
 
-    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.flaky(max_runs=2)
     async def test_async_map(self):
         ny = marvin.beta.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
