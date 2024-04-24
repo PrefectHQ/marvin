@@ -35,19 +35,35 @@ class ScopedContext:
     def get(self, key: str, default: Any = None) -> Any:
         return self._context_storage.get().get(key, default)
 
+    def __getitem__(self, key: str) -> Any:
+        notfound = object()
+        result = self.get(key, default=notfound)
+        if result == notfound:
+            raise KeyError(key)
+        return result
+
     def set(self, **kwargs: Any) -> None:
         ctx = self._context_storage.get()
         updated_ctx = {**ctx, **kwargs}
-        self._context_storage.set(updated_ctx)
+        token = self._context_storage.set(updated_ctx)
+        return token
 
     @contextmanager
     def __call__(self, **kwargs: Any) -> Generator[None, None, Any]:
-        current_context = self._context_storage.get().copy()
-        self.set(**kwargs)
+        current_context_copy = self._context_storage.get().copy()
+        token = self.set(**kwargs)
         try:
             yield
         finally:
-            self._context_storage.set(current_context)
+            try:
+                self._context_storage.reset(token)
+            except Exception:
+                # the only way we can reach this line is if the setup and
+                # teardown of this context are run in different frames or
+                # threads (which happens with pytest fixtures!), in which case
+                # the token is considered invalid. This catch serves as a
+                # "manual" reset of the context values
+                self._context_storage.set(current_context_copy)
 
 
 ctx = ScopedContext()
