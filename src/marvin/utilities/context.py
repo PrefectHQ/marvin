@@ -26,10 +26,10 @@ class ScopedContext:
         ```
     """
 
-    def __init__(self):
-        """Initializes the ScopedContext with a default empty dictionary."""
+    def __init__(self, initial_value: dict = None):
+        """Initializes the ScopedContext with an initial valuedictionary."""
         self._context_storage = contextvars.ContextVar(
-            "scoped_context_storage", default={}
+            "scoped_context_storage", default=initial_value or {}
         )
 
     def get(self, key: str, default: Any = None) -> Any:
