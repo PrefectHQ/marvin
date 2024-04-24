@@ -57,13 +57,16 @@ class ScopedContext:
         finally:
             try:
                 self._context_storage.reset(token)
-            except Exception:
-                # the only way we can reach this line is if the setup and
-                # teardown of this context are run in different frames or
-                # threads (which happens with pytest fixtures!), in which case
-                # the token is considered invalid. This catch serves as a
-                # "manual" reset of the context values
-                self._context_storage.set(current_context_copy)
+            except ValueError as exc:
+                if "was created in a different context" in str(exc).lower():
+                    # the only way we can reach this line is if the setup and
+                    # teardown of this context are run in different frames or
+                    # threads (which happens with pytest fixtures!), in which case
+                    # the token is considered invalid. This catch serves as a
+                    # "manual" reset of the context values
+                    self._context_storage.set(current_context_copy)
+                else:
+                    raise
 
 
 ctx = ScopedContext()
