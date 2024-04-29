@@ -97,7 +97,7 @@ def cast_type_to_labels(type_: Union[type, GenericAlias]) -> list[str]:
         except Exception as exc:
             raise ValueError(f"Unable to cast type to labels: {exc}")
     elif type_ is bool:
-        return ["false", "true"], [False, True]
+        return ["false", "true"]
     else:
         raise TypeError(f"Expected Literal, Enum, bool, or list, got {type_}.")
 
