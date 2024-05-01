@@ -290,6 +290,10 @@ class Settings(MarvinSettings):
             "Whether to log verbose messages, such as full API requests and responses."
         ),
     )
+    max_tool_output_length: int = Field(
+        150,
+        description="The maximum length of output from a tool before it is truncated.",
+    )
 
     @field_validator("log_level", mode="after")
     @classmethod

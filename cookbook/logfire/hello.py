@@ -31,6 +31,10 @@ def make_recipe(vibe: str) -> Recipe:
     """Generate a recipe based on a vibe"""
 
 
-if __name__ == "__main__":
+def main():
     recipe = make_recipe("italian, for 4 people")
     assert isinstance(recipe, Recipe)
+
+
+if __name__ == "__main__":
+    main()

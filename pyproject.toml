@@ -66,7 +66,9 @@ audio = [
     "simpleaudio>=1.0",
 ]
 video = ["opencv-python >= 4.5"]
+
 slackbot = ["marvin[prefect]", "numpy", "raggy", "turbopuffer"]
+logfire = ["logfire"]
 
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"
