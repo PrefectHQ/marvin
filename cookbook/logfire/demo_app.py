@@ -16,6 +16,8 @@ logfire.instrument_fastapi(app)
 
 
 class Seniority(Enum):
+    """ranked seniority levels for candidates"""
+
     JUNIOR = 1
     MID = 2
     SENIOR = 3
@@ -35,34 +37,43 @@ class Role(BaseModel):
 
 
 @fn(client=AsyncMarvinClient(client=client))
-def choose_among_candidates(candidates: list[Candidate], role: Role) -> Candidate:
+def choose_among_candidates(cohort: list[Candidate], role: Role) -> Candidate:
     return (
         f"We need a {role.desired_seniority.name} (at least) {role.title} that can "
         f"most likely fulfill a job of this description:\n{role.description}\n"
     )
 
 
-@logfire.instrument("Interview Process", extract_args=True)
+@logfire.instrument("Dystopian Interview Process", extract_args=True)
 def dystopian_interview_process(candidates: list[Candidate], role: Role) -> Candidate:
     senior_enough_candidates = [
         candidate
         for candidate in candidates
         if candidate.self_identified_seniority.value >= role.desired_seniority.value
     ]
+    logfire.info(
+        "Candidates at or above {seniority} level: {cohort}",
+        cohort=[c.name for c in senior_enough_candidates],
+        seniority=role.desired_seniority,
+    )
     if len(senior_enough_candidates) == 1:
         return senior_enough_candidates[0]
-    with logfire.span(
-        "Choose Among Candidates: {cohort}",
-        cohort=[c.name for c in senior_enough_candidates],
-    ):
+
+    with logfire.span("Choosing among candidates"):
         return choose_among_candidates(senior_enough_candidates, role)
 
 
 @app.post("/interview")
 async def interview(
-    candidates: list[Candidate] = Body(
-        ..., embed=True, description="List of candidates"
-    ),
-    role: Role = Body(..., embed=True, description="Role to fill"),
+    candidates: list[Candidate] = Body(..., description="List of candidates"),
+    role: Role = Body(..., description="Role to fill"),
 ) -> Candidate:
-    return dystopian_interview_process(candidates, role)
+    best_candidate = dystopian_interview_process(candidates, role)
+    logfire.info("Best candidate: {best_candidate}", best_candidate=best_candidate)
+    return best_candidate
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run(app, host="localhost", port=8000)

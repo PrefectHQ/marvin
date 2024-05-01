@@ -6,8 +6,13 @@ they also happen to wrap OpenAI pretty well out of the box! see `hello.py` for a
 
 ### setup
 ```conosle
-pip install 'marvin[logfire]'
+pip install marvin
 ```
+> ![TIP]
+> optionally, if you want to try out the fastapi integration
+> ```console
+> pip install 'logfire[fastapi]' uvicorn
+> ```
 
 login to logfire
 ```console
@@ -17,3 +22,20 @@ logfire auth
 ### usage
 use of marvin should be no different than any other library. check out [logfire's documentation](https://docs.pydantic.dev/logfire/#pydantic-logfire-the-observability-platform-you-deserve) for more information.
 
+
+### examples
+```console
+gh repo clone prefecthq/marvin && cd marvin
+uvicorn cookbook.logfire.demo_app:app
+```
+
+in another terminal
+```console
+python cookbook/logfire/send_demo_request.py
+```
+
+check out the api docs at http://localhost:8000/docs or your logfire dashboard to see the traces and logs like:
+
+<p align="center">
+  <img src="/docs/assets/images/docs/examples/logfire-span.jpeg" alt="logfire span"/>
+</p>
