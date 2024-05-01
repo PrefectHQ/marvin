@@ -8,7 +8,7 @@ they also happen to wrap OpenAI pretty well out of the box! see `hello.py` for a
 ```conosle
 pip install marvin
 ```
-> [!INFO]
+> [!NOTE]
 > optionally, if you want to try out the fastapi integration
 > ```console
 > pip install 'logfire[fastapi]' uvicorn
