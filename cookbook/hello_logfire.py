@@ -1,3 +1,9 @@
+"""
+Example of using logfire to instrument OpenAI API calls
+
+see https://x.com/Nathan_Nowack/status/1785413529232708087
+"""
+
 import logfire
 import openai
 from marvin import fn
