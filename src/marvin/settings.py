@@ -36,9 +36,7 @@ class ChatCompletionSettings(MarvinSettings):
     model_config = SettingsConfigDict(
         env_prefix="marvin_chat_completions_", extra="ignore"
     )
-    model: str = Field(
-        description="The default chat model to use.", default="gpt-4-1106-preview"
-    )
+    model: str = Field(description="The default chat model to use.", default="gpt-4")
 
     temperature: float = Field(description="The default temperature to use.", default=1)
 
