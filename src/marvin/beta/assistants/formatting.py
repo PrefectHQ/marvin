@@ -133,6 +133,8 @@ def format_step(step: RunStep) -> list[Panel]:
                     panel = format_code_interpreter_tool_call(step, tool_call)
                 elif tool_call.type == "function":
                     panel = format_function_tool_call(step, tool_call)
+                else:
+                    continue
                 panels.append(panel)
 
         elif step.type == "message_creation":
