@@ -66,6 +66,7 @@ audio = [
     "simpleaudio>=1.0",
 ]
 video = ["opencv-python >= 4.5"]
+
 slackbot = ["marvin[prefect]", "numpy", "raggy", "turbopuffer"]
 
 [project.urls]

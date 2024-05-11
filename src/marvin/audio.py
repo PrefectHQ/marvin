@@ -118,7 +118,6 @@ def record(duration: int = None) -> Audio:
         frames.close()
         audio = sr.audio.AudioData(frame_data, source.SAMPLE_RATE, source.SAMPLE_WIDTH)
 
-    return audio
     return Audio(data=audio.get_wav_data(), format="wav")
 
 

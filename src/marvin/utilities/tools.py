@@ -17,6 +17,7 @@ from pydantic import BaseModel, TypeAdapter, create_model
 from pydantic.fields import FieldInfo
 from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
 
+import marvin
 from marvin.types import Function, FunctionTool
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.logging import get_logger
@@ -168,12 +169,14 @@ def call_function_tool(
 
     arguments = json.loads(function_arguments_json)
     logger.debug_kv(
-        f"{tool.function.name}", f"called with arguments: {arguments}", "green"
+        f"{tool.function.name}",
+        f"called with arguments: {json.dumps(arguments, indent=2)}",
+        "green",
     )
     output = tool.function._python_fn(**arguments)
     if inspect.isawaitable(output):
         output = run_sync(output)
-    truncated_output = str(output)[:100]
+    truncated_output = str(output)[: marvin.settings.max_tool_output_length]
     if len(truncated_output) < len(str(output)):
         truncated_output += "..."
     logger.debug_kv(f"{tool.function.name}", f"returned: {truncated_output}", "green")

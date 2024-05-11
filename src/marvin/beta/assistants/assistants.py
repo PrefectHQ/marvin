@@ -223,7 +223,11 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     ):
         """Async method to start a chat session with the assistant."""
         history = Path(assistant_dir) / "chat_history.txt" if assistant_dir else None
-        session = PromptSession(history=FileHistory(str(history)) if history else None)
+        if not history.exists():
+            history.parent.mkdir(parents=True, exist_ok=True)
+        session = PromptSession(
+            history=FileHistory(str(history.absolute().resolve())) if history else None
+        )
         # send an initial message, if provided
         if initial_message is not None:
             await self.say_async(initial_message, **kwargs)
