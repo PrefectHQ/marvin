@@ -164,7 +164,7 @@ def call_function_tool(
         or not tool.function._python_fn
         or not tool.function.name
     ):
-        raise ValueError(f"Could not find function '{function_name}'")
+        raise ValueError(f"Tool not found: '{function_name}'")
 
     arguments = json.loads(function_arguments_json)
     logger.debug_kv(
