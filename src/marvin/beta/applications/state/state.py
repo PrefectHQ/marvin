@@ -5,6 +5,7 @@ from typing import Optional, Union
 from jsonpatch import JsonPatch
 from pydantic import BaseModel, Field, PrivateAttr, SerializeAsAny
 
+import marvin.settings
 from marvin.types import FunctionTool
 from marvin.utilities.tools import tool_from_function
 
@@ -75,7 +76,9 @@ class State(BaseModel):
                 f"Update the {name} object using JSON Patch documents. Updates will"
                 " fail if they do not comply with the following"
                 " schema:\n\n```json\n{schema}\n```"
-            ).format(schema=json.dumps(schema, indent=2))
+            ).format(schema=json.dumps(schema, indent=2))[
+                : marvin.settings.max_tool_description_length
+            ]
 
         else:
             description = "Update the application state using JSON Patch documents."

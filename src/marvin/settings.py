@@ -133,13 +133,13 @@ class AssistantSettings(MarvinSettings):
     """Settings for the assistant API.
 
     Attributes:
-        model: The default assistant model to use, defaults to `gpt-4-1106-preview`.
+        model: The default assistant model to use, defaults to `gpt-4`.
     """
 
     model_config = SettingsConfigDict(env_prefix="marvin_assistant_")
 
     model: str = Field(
-        default="gpt-4-1106-preview",
+        default="gpt-4",
         description="The default assistant model to use.",
     )
 
@@ -289,6 +289,10 @@ class Settings(MarvinSettings):
         description=(
             "Whether to log verbose messages, such as full API requests and responses."
         ),
+    )
+    max_tool_description_length: int = Field(
+        1000,
+        description="The maximum length of a tool description before it is truncated.",
     )
     max_tool_output_length: int = Field(
         150,

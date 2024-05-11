@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 logger = get_logger("Assistants")
 
 NOT_PROVIDED = "__NOT_PROVIDED__"
+ASSISTANTS_DIR = Path.home() / ".marvin/cli/assistants"
 
 
 def default_run_handler_class() -> type[AsyncAssistantEventHandler]:
@@ -222,11 +223,16 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         **kwargs,
     ):
         """Async method to start a chat session with the assistant."""
-        history = Path(assistant_dir) / "chat_history.txt" if assistant_dir else None
-        if not history.exists():
-            history.parent.mkdir(parents=True, exist_ok=True)
+        history_path = None
+        assistant_dir = assistant_dir or ASSISTANTS_DIR
+        history_path = Path(assistant_dir) / "chat_history.txt"
+        if not history_path.exists():
+            history_path.parent.mkdir(parents=True, exist_ok=True)
+
         session = PromptSession(
-            history=FileHistory(str(history.absolute().resolve())) if history else None
+            history=FileHistory(str(history_path.absolute().resolve()))
+            if history_path
+            else None
         )
         # send an initial message, if provided
         if initial_message is not None:
@@ -236,7 +242,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
                 message = await run_async(
                     session.prompt,
                     message="➤ ",
-                    auto_suggest=AutoSuggestFromHistory() if history else None,
+                    auto_suggest=AutoSuggestFromHistory() if history_path else None,
                 )
                 # if the user types exit, ask for confirmation
                 if message in ["exit", "!exit", ":q", "!quit"]:

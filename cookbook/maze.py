@@ -69,6 +69,8 @@ Or, in this maze position, you might say:
     
     - 😱 you feel a ACUTE SENSE OF DREAD to the west, palpable and overwhelming
     - is that a door to the southwest? 🤔
+
+REMEMBER to always convey which directions the user can move in, and which they can't.
 """
 
 CardinalDirection = Literal["N", "S", "E", "W"]
@@ -170,7 +172,6 @@ class Maze(BaseModel):
 
     def move(self, direction: CardinalDirection) -> str:
         """moves the user in the given direction."""
-        print(f"Moving {direction}")
         prev_location = self.user_location
         match direction:
             case "N":
@@ -229,5 +230,4 @@ if __name__ == "__main__":
         tools=[maze.look_around, maze.move, maze.reset],
         state=maze,
     ) as app:
-        app.say("where am i?")
-        app.chat()
+        app.chat(initial_message="where am I?")
