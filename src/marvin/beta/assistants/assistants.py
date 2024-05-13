@@ -223,7 +223,6 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         **kwargs,
     ):
         """Async method to start a chat session with the assistant."""
-        history_path = None
         assistant_dir = assistant_dir or ASSISTANTS_DIR
         history_path = Path(assistant_dir) / "chat_history.txt"
         if not history_path.exists():
@@ -231,8 +230,6 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
 
         session = PromptSession(
             history=FileHistory(str(history_path.absolute().resolve()))
-            if history_path
-            else None
         )
         # send an initial message, if provided
         if initial_message is not None:
@@ -242,7 +239,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
                 message = await run_async(
                     session.prompt,
                     message="➤ ",
-                    auto_suggest=AutoSuggestFromHistory() if history_path else None,
+                    auto_suggest=AutoSuggestFromHistory(),
                 )
                 # if the user types exit, ask for confirmation
                 if message in ["exit", "!exit", ":q", "!quit"]:
