@@ -164,7 +164,7 @@ async def daily_github_digest(
         contributors_activity=await data_future.result(),
     )
 
-    marvin.settings.openai.chat.completions.model = "gpt-4"
+    marvin.settings.openai.chat.completions.model = "gpt-4o"
 
     epic_story = write_a_tasteful_epic(markdown_digest)
 

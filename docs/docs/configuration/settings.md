@@ -11,7 +11,7 @@ Please set Marvin specific settings in `~/.marvin/.env`. One exception being `OP
     For example, in your `~/.marvin/.env` file you could have:
     ```shell
     MARVIN_LOG_LEVEL=INFO
-    MARVIN_CHAT_COMPLETIONS_MODEL=gpt-4
+    MARVIN_CHAT_COMPLETIONS_MODEL=gpt-4o
     MARVIN_OPENAI_API_KEY='sk-my-api-key'
     ```
     Settings these values will let you avoid setting an API key every time. 
@@ -24,7 +24,7 @@ A runtime settings object is accessible via `marvin.settings` and can be used to
     ```python
     import marvin
 
-    marvin.settings.openai.chat.completions.model = 'gpt-4'
+    marvin.settings.openai.chat.completions.model = 'gpt-4o'
     ```
 
 ## Settings for using Azure OpenAI models
