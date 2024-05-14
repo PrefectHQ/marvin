@@ -8,7 +8,7 @@ def use_gpt4o_for_all_tests(gpt_4):
     pass
 
 
-@pytest.mark.flaky(max_runs=2)
+@pytest.mark.flaky(reruns=2)
 class TestVisionCaption:
     def test_ny(self):
         img = marvin.Image(

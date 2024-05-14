@@ -16,7 +16,7 @@ def use_gpt4o_for_all_tests(gpt_4):
     pass
 
 
-@pytest.mark.flaky(max_runs=2)
+@pytest.mark.flaky(reruns=2)
 class TestVisionExtract:
     def test_ny_image_input(self):
         img = marvin.Image(
@@ -50,7 +50,7 @@ class TestVisionExtract:
         assert_locations_equal(locations[0], Location(city="New York", state="NY"))
         assert_locations_equal(locations[1], Location(city="Washington", state="DC"))
 
-    @pytest.mark.flaky(max_runs=3)
+    @pytest.mark.flaky(reruns=3)
     def test_dog(self):
         class Animal(BaseModel, frozen=True):
             type: Literal["cat", "dog", "bird", "frog", "horse", "pig"]

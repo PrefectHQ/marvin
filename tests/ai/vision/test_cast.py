@@ -14,7 +14,7 @@ def use_gpt4o_for_all_tests(gpt_4):
     pass
 
 
-@pytest.mark.flaky(max_runs=3)
+@pytest.mark.flaky(reruns=3)
 class TestVisionCast:
     def test_cast_ny(self):
         img = marvin.Image(
@@ -78,7 +78,7 @@ class TestMapping:
         assert_locations_equal(result[0], Location(city="New York", state="NY"))
         assert_locations_equal(result[1], Location(city="Washington", state="DC"))
 
-    @pytest.mark.flaky(max_runs=2)
+    @pytest.mark.flaky(reruns=2)
     async def test_async_map(self):
         ny = marvin.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
