@@ -16,6 +16,8 @@ CAPTION_PROMPT = inspect.cleandoc(
 
 CAPTION_FOR_OBJECTIVE_PROMPT = inspect.cleandoc(
     """
+    |SYSTEM|
+    
     The following data and images are being used to complete an objective. The
     objective itself will be performed by a different AI that can only process
     text, so you must process these images into text in a way that will maximize
@@ -41,7 +43,9 @@ CAPTION_FOR_OBJECTIVE_PROMPT = inspect.cleandoc(
     
     {{ instructions if instructions else "(No additional instructions were provided.)" }}
     
-    ASSISTANT: The description of the image(s) and data that is most relevant to the
+    |ASSISTANT| 
+    
+    The description of the image(s) and data that is most relevant to the
     objective is: 
     """
 )

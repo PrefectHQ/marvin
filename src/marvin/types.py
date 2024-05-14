@@ -108,7 +108,7 @@ class ImageUrl(MarvinType):
     url: str = Field(
         description="URL of the image to be sent or a base64 encoded image."
     )
-    detail: str = "auto"
+    detail: str = "auto"  # auto, low, high
 
 
 class ImageFileContentBlock(MarvinType):
