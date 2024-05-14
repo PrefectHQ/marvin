@@ -165,7 +165,7 @@ def call_function_tool(
         or not tool.function._python_fn
         or not tool.function.name
     ):
-        raise ValueError(f"Could not find function '{function_name}'")
+        raise ValueError(f"Tool not found: '{function_name}'")
 
     arguments = json.loads(function_arguments_json)
     logger.debug_kv(
@@ -176,8 +176,6 @@ def call_function_tool(
     output = tool.function._python_fn(**arguments)
     if inspect.isawaitable(output):
         output = run_sync(output)
-        if isinstance(output, BaseModel):
-            output = output.model_dump(mode="json")
     truncated_output = str(output)[: marvin.settings.max_tool_output_length]
     if len(truncated_output) < len(str(output)):
         truncated_output += "..."

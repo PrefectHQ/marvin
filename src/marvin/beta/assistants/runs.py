@@ -182,7 +182,7 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                     logger.debug(f"Ending run with data: {exc.data}")
                     raise
                 except Exception as exc:
-                    output = f"Error calling function {tool_call.function.name}: {exc}"
+                    output = f"Error calling tool {tool_call.function.name}: {exc}"
                     logger.error(output)
                 string_output = marvin.utilities.tools.output_to_string(output)
                 tool_outputs.append(
