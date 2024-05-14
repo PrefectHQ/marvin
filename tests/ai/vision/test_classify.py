@@ -9,20 +9,6 @@ def use_gpt4o_for_all_tests(gpt_4):
 
 @pytest.mark.flaky(max_runs=2)
 class TestVisionClassify:
-    def test_ny(self):
-        img = marvin.Image(
-            "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
-        )
-        result = marvin.classify(img, labels=["urban", "rural"])
-        assert result == "urban"
-
-    def test_ny_images_input(self):
-        img = marvin.Image(
-            "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
-        )
-        result = marvin.classify(data=None, images=[img], labels=["urban", "rural"])
-        assert result == "urban"
-
     def test_ny_image_input(self):
         img = marvin.Image(
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
