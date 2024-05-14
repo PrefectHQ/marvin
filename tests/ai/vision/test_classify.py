@@ -21,8 +21,7 @@ class TestVisionClassify:
             "https://images.unsplash.com/photo-1568515387631-8b650bbcdb90"
         )
         result = marvin.classify(
-            data="I see the empire state building",
-            images=[img],
+            data=["I see a tall building", img],
             labels=["urban", "rural"],
         )
         assert result == "urban"

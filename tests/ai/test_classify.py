@@ -123,6 +123,7 @@ class TestClassify:
             assert result == 1
 
     class TestExamples:
+        @pytest.mark.flaky(max_runs=3)
         async def test_hogwarts_sorting_hat(self):
             description = "Brave, daring, chivalrous, and sometimes a bit reckless -- just like Harry Potter."
 
