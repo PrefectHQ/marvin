@@ -59,7 +59,7 @@ class TestModels:
         """
         )
 
-    @pytest.mark.flaky(max_runs=3)
+    @pytest.mark.flaky(reruns=3)
     def test_resume(self):
         class Experience(BaseModel):
             technology: str

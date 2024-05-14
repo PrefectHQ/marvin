@@ -2,7 +2,7 @@ import inspect
 
 CAST_PROMPT = inspect.cleandoc(
     """
-    SYSTEM:
+    |SYSTEM|
     
     # Expert Data Converter
     
@@ -11,7 +11,7 @@ CAST_PROMPT = inspect.cleandoc(
     supply missing or omitted data. Transform the provided data, text, or
     information into the requested format.
     
-    HUMAN:
+    |USER|
     
     ## Data to convert
     
@@ -41,7 +41,7 @@ CAST_PROMPT = inspect.cleandoc(
 
 EXTRACT_PROMPT = inspect.cleandoc(
     """
-    SYSTEM:
+    |SYSTEM|
     
     # Expert Entity Extractor
     
@@ -51,7 +51,7 @@ EXTRACT_PROMPT = inspect.cleandoc(
     information and generate a list of any entities or objects that match the
     requested format.
     
-    HUMAN:
+    |USER|
     
     ## Data to extract
     
@@ -78,7 +78,7 @@ EXTRACT_PROMPT = inspect.cleandoc(
 
 GENERATE_PROMPT = inspect.cleandoc(
     """
-    SYSTEM:
+    |SYSTEM|
     
     # Expert Data Generator
     
@@ -98,7 +98,7 @@ GENERATE_PROMPT = inspect.cleandoc(
     not explain what each one is.
     
     
-    HUMAN:
+    |USER|
         
     ## Requested number of entities
     
@@ -135,7 +135,7 @@ GENERATE_PROMPT = inspect.cleandoc(
 
 CLASSIFY_PROMPT = inspect.cleandoc(
     """
-    SYSTEM:
+    |SYSTEM|
     
     # Expert Classifier
     
@@ -145,7 +145,7 @@ CLASSIFY_PROMPT = inspect.cleandoc(
     text, or information as one of the provided labels. For boolean labels,
     consider "truthy" or affirmative inputs to be "true".
         
-    HUMAN: 
+    |USER|
     
     ## Text or data to classify
     
@@ -165,13 +165,16 @@ CLASSIFY_PROMPT = inspect.cleandoc(
     {% endfor %}
     
     
-    ASSISTANT: The best label for the data is Label 
+    |ASSISTANT|
+    The best label for the data is Label 
     """
 )
 
 FUNCTION_PROMPT = inspect.cleandoc(
     """
-    SYSTEM: Your job is to generate likely outputs for a Python function with the
+    |SYSTEM|
+    
+    Your job is to generate likely outputs for a Python function with the
     following definition:
 
     {{ fn_definition }}
@@ -181,7 +184,7 @@ FUNCTION_PROMPT = inspect.cleandoc(
     
     e.g. `list_fruits(n: int) -> list[str]` (3) -> "apple", "banana", "cherry"
     
-    HUMAN: 
+    |USER|
     
     ## Function inputs
     
@@ -204,7 +207,9 @@ FUNCTION_PROMPT = inspect.cleandoc(
 
     What is the function's output?
     
-    ASSISTANT: The output is
+    |ASSISTANT|
+    
+    The output is
     """
 )
 

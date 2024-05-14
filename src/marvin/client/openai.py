@@ -34,7 +34,6 @@ from marvin.types import (
     ImageRequest,
     StreamingChatResponse,
     TranscriptRequest,
-    VisionRequest,
 )
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.logging import get_logger
@@ -200,20 +199,6 @@ class MarvinClient(pydantic.BaseModel):
             )
         return response
 
-    def generate_vision(
-        self,
-        *,
-        completion: Optional[Callable[..., "ChatCompletion"]] = None,
-        **kwargs: Any,
-    ) -> Union["ChatCompletion", T]:
-        create: Callable[..., "ChatCompletion"] = (
-            completion or self.client.chat.completions.create
-        )
-        # validate request
-        request = VisionRequest(**kwargs)
-        response: "ChatCompletion" = create(**request.model_dump(exclude_none=True))
-        return response
-
     def generate_image(
         self,
         **kwargs: Any,
@@ -306,22 +291,6 @@ class AsyncMarvinClient(pydantic.BaseModel):
             return await OpenAIStreamHandler(
                 callback=stream_callback
             ).handle_streaming_chat_async(response)
-        return response
-
-    async def generate_vision(
-        self,
-        *,
-        completion: Optional[Callable[..., "ChatCompletion"]] = None,
-        **kwargs: Any,
-    ) -> Union["ChatCompletion", T]:
-        create: Callable[..., "ChatCompletion"] = (
-            completion or self.client.chat.completions.create
-        )
-        # validate request
-        request = VisionRequest(**kwargs)
-        response: "ChatCompletion" = await create(
-            **request.model_dump(exclude_none=True)
-        )
         return response
 
     async def generate_image(
