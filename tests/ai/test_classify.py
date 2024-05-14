@@ -130,6 +130,7 @@ class TestClassify:
             house = marvin.classify(
                 description,
                 labels=["Gryffindor", "Hufflepuff", "Ravenclaw", "Slytherin"],
+                instructions="Select the best house for the student",
             )
 
             assert house == "Gryffindor"
