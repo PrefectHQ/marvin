@@ -108,7 +108,7 @@ class ImageUrl(MarvinType):
     url: str = Field(
         description="URL of the image to be sent or a base64 encoded image."
     )
-    detail: str = "auto"
+    detail: str = "auto"  # auto, low, high
 
 
 class ImageFileContentBlock(MarvinType):
@@ -167,30 +167,6 @@ class ChatRequest(Prompt[T]):
     user: Optional[str] = None
 
 
-class VisionRequest(MarvinType):
-    messages: list[BaseMessage] = Field(default_factory=list)
-    model: str = Field(default_factory=lambda: settings.openai.chat.vision.model)
-    logit_bias: Optional[LogitBias] = None
-    max_tokens: Optional[Annotated[int, Field(strict=True, ge=1)]] = Field(
-        default_factory=lambda: settings.openai.chat.vision.max_tokens
-    )
-    frequency_penalty: Optional[
-        Annotated[float, Field(strict=True, ge=-2.0, le=2.0)]
-    ] = 0
-    n: Optional[Annotated[int, Field(strict=True, ge=1)]] = 1
-    presence_penalty: Optional[
-        Annotated[float, Field(strict=True, ge=-2.0, le=2.0)]
-    ] = 0
-    seed: Optional[int] = None
-    stop: Optional[Union[str, list[str]]] = None
-    stream: Optional[bool] = False
-    temperature: Optional[Annotated[float, Field(strict=True, ge=0, le=2)]] = Field(
-        default_factory=lambda: settings.openai.chat.vision.temperature
-    )
-    top_p: Optional[Annotated[float, Field(strict=True, ge=0, le=1)]] = 1
-    user: Optional[str] = None
-
-
 class TranscriptRequest(MarvinType):
     model: Literal["whisper-1"] = "whisper-1"
     prompt: Optional[str] = Field(
@@ -209,7 +185,7 @@ class TranscriptRequest(MarvinType):
 
 class ChatResponse(MarvinType):
     model_config = dict(arbitrary_types_allowed=True)
-    request: Union[ChatRequest, VisionRequest]
+    request: ChatRequest
     response: ChatCompletion
     tool_outputs: list[Any] = []
 
@@ -319,25 +295,35 @@ class Image(MarvinType):
         with open(path, "rb") as f:
             data = f.read()
         format = path.split(".")[-1]
-        if format not in ["jpg", "jpeg", "png", "webm"]:
-            raise ValueError("Invalid audio format")
-        return cls(data=data, url=path, format=format)
+        if format not in ["jpg", "jpeg", "png", "webp"]:
+            raise ValueError("Invalid image format")
+        return cls(data=data, format=format)
 
     @classmethod
     def from_url(cls, url: str) -> "Image":
         return cls(url=url)
 
     def to_message_content(self) -> ImageFileContentBlock:
-        if self.url:
-            return ImageFileContentBlock(
-                image_url=dict(url=self.url, detail=self.detail)
-            )
-        elif self.data:
+        if self.data:
             b64_image = base64.b64encode(self.data).decode("utf-8")
             path = f"data:image/{self.format};base64,{b64_image}"
             return ImageFileContentBlock(image_url=dict(url=path, detail=self.detail))
+        elif self.url:
+            return ImageFileContentBlock(
+                image_url=dict(url=self.url, detail=self.detail)
+            )
         else:
             raise ValueError("Image source is not specified")
+
+    def render_for_transcript(self) -> str:
+        """
+        Renders a JSON representation of the image for use in a Transcript
+        object, including IMAGE and TEXT tags.
+        """
+
+        message_content = self.to_message_content()
+        json_content = message_content.image_url.model_dump_json()
+        return f"\n|IMAGE| {json_content} \n|TEXT|\n"
 
     def save(self, path: Union[str, Path]):
         if self.data is None:

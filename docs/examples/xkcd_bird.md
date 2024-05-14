@@ -8,11 +8,11 @@
     ```python
     import marvin
 
-    photo = marvin.beta.Image(
+    photo = marvin.Image(
         "https://images.unsplash.com/photo-1613891188927-14c2774fb8d7",
     )
 
-    result = marvin.beta.classify(
+    result = marvin.classify(
         photo,
         labels=["bird", "not bird"]
     )

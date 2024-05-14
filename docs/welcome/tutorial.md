@@ -272,7 +272,7 @@ Marvin's AI functions are especially useful when you want to map a complex set o
 
 ## Working with images
 
-Marvin is multi-modal! In addition to text, Marvin can also work with images. Most of Marvin's image and vision support is beta because it relies on the GPT-4 vision model, which is still in preview. But you wouldn't be here if you didn't love cutting-edge technology, right?
+Marvin is multi-modal! In addition to text, Marvin can also work with images. 
 
 ### 🎨 Generation
 
@@ -300,7 +300,7 @@ If you've already got an image, you can convert it to text using the `caption` f
     ```python
     import marvin
 
-    caption = marvin.beta.caption(marvin.beta.Image("path/to/coffee.png"))
+    caption = marvin.caption(marvin.Image.from_path("path/to/coffee.png"))
     ```
 
     !!! success "Result"
@@ -317,13 +317,11 @@ If you've already got an image, you can convert it to text using the `caption` f
 
 ### 🚀  Transformation, classification, and extraction
 
-Now that you've seen that Marvin can turn images into text, you're probably wondering if we can use that text with the `cast`, `extract`, and `classify` functions we saw earlier. The answer is yes -- but we can do even better.
+Now that you've seen how Marvin can turn images into text, you're probably wondering if we can use that text with the `cast`, `extract`, and `classify` functions we saw earlier. The answer is yes -- but we can do even better.
 
-If you caption an image, the resulting text might not capture the details that are most relevant to the text processing task you want to perform. For example, if you want to classify the breed of dog in an image, you're going to need very specific information that a generic caption might not provide.
+The trouble with passing a caption to Marvin's other functions is that the captioned text might not include details that are relevant for the text processing task you want to perform. For example, if you want to classify the breed of dog in an image, you're going to need very specific information that a generic caption might not provide.
 
-Therefore, Marvin has beta versions of `cast`, `extract`, and `classify` that accept images as inputs. Instead of generating generic captions, these functions process the image in a way that is most conducive to the task at hand.
-
-These functions are available under `marvin.beta` and work identically to their text-only counterparts except that they can take images as well as text inputs.
+Fortunately, the `cast`, `extract`, and `classify` functions can all accept images as inputs! Instead of generating generic captions, these functions process the image directly for the task at hand. You can even provide a list of images, or mix images and text, for total flexibility.
 
 !!! example "Identifying dog breeds in an image"
 
@@ -334,11 +332,11 @@ These functions are available under `marvin.beta` and work identically to their 
     ```python
     import marvin
     
-    img = marvin.beta.Image(
+    img = marvin.Image(
         'https://images.unsplash.com/photo-1548199973-03cce0bbc87b',
     )
 
-    result = marvin.beta.extract(img, target=str, instructions='dog breeds')
+    result = marvin.extract(img, target=str, instructions='dog breeds')
     ```
 
     !!! success "Result"

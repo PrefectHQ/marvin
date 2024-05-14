@@ -37,7 +37,7 @@ class TestTools:
         assert 85 <= output <= 95
 
 
-@pytest.mark.flaky(max_runs=2)
+@pytest.mark.flaky(reruns=2)
 class TestLifeCycle:
     @patch.object(client.beta.assistants, "delete", wraps=client.beta.assistants.delete)
     @patch.object(client.beta.assistants, "create", wraps=client.beta.assistants.create)

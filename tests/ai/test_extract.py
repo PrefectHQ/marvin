@@ -42,7 +42,7 @@ class TestExtract:
             )
             assert result == ["John", "Mary", "Bob"]
 
-        @pytest.mark.flaky(max_runs=3)
+        @pytest.mark.flaky(reruns=3)
         def test_float_to_int(self):
             # gpt 3.5 sometimes struggles with this test, marked as flaky
             # pydantic no longer casts floats to ints, but gpt-3.5 assumes it's

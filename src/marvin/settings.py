@@ -52,23 +52,9 @@ class ChatCompletionSettings(MarvinSettings):
         return encoding.encode
 
 
-class ChatVisionSettings(MarvinSettings):
-    model_config = SettingsConfigDict(env_prefix="marvin_chat_vision_", extra="ignore")
-    model: str = Field(description="The default vision model to use.", default="gpt-4o")
-    temperature: float = Field(description="The default temperature to use.", default=1)
-    max_tokens: int = 500
-
-    @property
-    def encoder(self):
-        import tiktoken
-
-        return tiktoken.encoding_for_model(self.model).encode
-
-
 class ChatSettings(MarvinSettings):
     model_config = SettingsConfigDict(env_prefix="marvin_chat_", extra="ignore")
     completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
-    vision: ChatVisionSettings = Field(default_factory=ChatVisionSettings)
 
 
 class ImageSettings(MarvinSettings):

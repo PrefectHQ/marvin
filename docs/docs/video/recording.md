@@ -26,7 +26,7 @@ counter = 0
 for image in recorder.stream():
     counter += 1
     # process each image
-    marvin.beta.caption(image)
+    marvin.caption(image)
 
     # stop recording
     if counter == 3:

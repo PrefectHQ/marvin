@@ -52,8 +52,8 @@ def build_damage_report_model(damages: list[DamagedPart]) -> type[M]:
 
 @task(cache_key_fn=task_input_hash)
 def marvin_extract_damages_from_url(image_url: str) -> list[DamagedPart]:
-    return marvin.beta.extract(
-        data=marvin.beta.Image.from_url(image_url),
+    return marvin.extract(
+        data=marvin.Image.from_url(image_url),
         target=DamagedPart,
         instructions=(
             "Give extremely brief, high-level descriptions of the damage. Only include"
