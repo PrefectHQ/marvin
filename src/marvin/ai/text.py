@@ -40,7 +40,7 @@ from marvin.client.openai import (
     ChatCompletion,
     get_default_async_client,
 )
-from marvin.types import ChatRequest, ChatResponse
+from marvin.types import ChatRequest, ChatResponse, Image
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.context import ctx
 from marvin.utilities.jinja import Transcript
@@ -51,10 +51,37 @@ from marvin.utilities.strings import count_tokens
 
 T = TypeVar("T")
 M = TypeVar("M", bound=BaseModel)
+FN_INPUT_TYPES = Union[str, Image, list[Union[str, Image]]]
 
 logger = get_logger(__name__)
 
 GENERATE_CACHE = LRUCache(maxsize=1000)
+
+
+def prepare_data(data: FN_INPUT_TYPES) -> list[str]:
+    """
+    Prepares the input data for the AI function.
+
+    This function prepares the input data for the AI function by converting it
+    into a list of strings. If the input data is a list of strings or images, the
+    function converts the images into strings.
+
+    Args:
+        data (Union[str, Image, list[Union[str, Image]]]): The input data to be prepared.
+
+    Returns:
+        list[str]: The prepared input data.
+    """
+    if not isinstance(data, list):
+        data = [data]
+
+    clean_data = []
+    for item in data:
+        if isinstance(item, Image):
+            clean_data.append(item.render_for_transcript())
+        else:
+            clean_data.append(marvin.utilities.tools.output_to_string(item))
+    return "\n".join(clean_data)
 
 
 class EjectRequest(Exception):
@@ -237,7 +264,7 @@ async def _generate_typed_llm_response_with_logit_bias(
 
 
 async def cast_async(
-    data: str,
+    data: FN_INPUT_TYPES,
     target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
@@ -252,7 +279,8 @@ async def cast_async(
     language model.
 
     Args:
-        data (str): The data to be converted.
+        data: Union[str, Image, list[Union[str, Image]]]: the data to which
+            the function will be applied.
         target (type): The type to convert the data into. If none is provided
             but instructions are provided, `str` is assumed.
         instructions (str, optional): Specific instructions for the conversion.
@@ -267,8 +295,7 @@ async def cast_async(
     """
     model_kwargs = model_kwargs or {}
 
-    if not isinstance(data, str):
-        data = marvin.utilities.tools.output_to_string(data)
+    data = prepare_data(data)
 
     if target is None and instructions is None:
         raise ValueError("Must provide either a target type or instructions.")
@@ -301,7 +328,7 @@ async def cast_async(
 
 
 async def extract_async(
-    data: str,
+    data: FN_INPUT_TYPES,
     target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
@@ -319,7 +346,8 @@ async def extract_async(
     string.
 
     Args:
-        data (str): The data from which to extract entities.
+        data: Union[str, Image, list[Union[str, Image]]]: the data to which
+            the function will be applied.
         target (type, optional): The type of entities to extract.
         instructions (str, optional): Specific instructions for the extraction.
             Defaults to None.
@@ -337,8 +365,7 @@ async def extract_async(
     elif target is None:
         target = str
 
-    if not isinstance(data, str):
-        data = marvin.utilities.tools.output_to_string(data)
+    data = prepare_data(data)
 
     return await _generate_typed_llm_response_with_tool(
         prompt_template=EXTRACT_PROMPT,
@@ -350,7 +377,7 @@ async def extract_async(
 
 
 async def classify_async(
-    data: str,
+    data: FN_INPUT_TYPES,
     labels: Union[Enum, list[T], type],
     instructions: str = None,
     return_index: bool = False,
@@ -366,7 +393,8 @@ async def classify_async(
     function will always return one of the provided labels.
 
     Args:
-        data (str): The data to be classified.
+        data: Union[str, Image, list[Union[str, Image]]]: the data to which
+            the function will be applied.
         labels (Union[Enum, list[T], type]): The labels to classify the data into.
         instructions (str, optional): Specific instructions for the
             classification. Defaults to None.
@@ -380,8 +408,8 @@ async def classify_async(
     """
 
     model_kwargs = model_kwargs or {}
-    if not isinstance(data, str):
-        data = marvin.utilities.tools.output_to_string(data)
+
+    data = prepare_data(data)
 
     return await _generate_typed_llm_response_with_logit_bias(
         prompt_template=CLASSIFY_PROMPT,
@@ -467,6 +495,36 @@ async def generate_async(
     if use_cache:
         for r in result:
             cached_responses.appendleft(r)
+    return result
+
+
+async def caption_async(
+    data: Union[Image, list[Image]],
+    instructions: str = None,
+    model_kwargs: dict = None,
+    client: Optional[AsyncMarvinClient] = None,
+) -> str:
+    """
+    Generates a caption for a set of images using a language model.
+
+    Args:
+        data (Union[Image, List[Image]]): The image or images to caption.
+        instructions (str, optional): Instructions for the caption generation.
+        model_kwargs (dict, optional): Additional arguments for the language model.
+
+    Returns:
+        str: Generated caption.
+    """
+    result = await cast_async(
+        data=data,
+        target=str,
+        instructions=(
+            f"Generate a descriptive caption for the provided image(s). "
+            f"Pay attention to the following instructions: {instructions}"
+        ),
+        model_kwargs=model_kwargs,
+        client=client,
+    )
     return result
 
 
@@ -736,7 +794,7 @@ def model(
 
 
 def cast(
-    data: str,
+    data: FN_INPUT_TYPES,
     target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
@@ -751,7 +809,8 @@ def cast(
     language model.
 
     Args:
-        data (str): The data to be converted.
+        data: Union[str, Image, list[Union[str, Image]]]: the data to which
+            the function will be applied.
         target (type): The type to convert the data into. If none is provided
             but instructions are provided, `str` is assumed.
         instructions (str, optional): Specific instructions for the conversion.
@@ -776,7 +835,7 @@ def cast(
 
 
 def classify(
-    data: str,
+    data: FN_INPUT_TYPES,
     labels: Union[Enum, list[T], type],
     instructions: str = None,
     return_index: bool = False,
@@ -792,7 +851,8 @@ def classify(
     function will always return one of the provided labels.
 
     Args:
-        data (str): The data to be classified.
+        data: Union[str, Image, list[Union[str, Image]]]: the data to which
+            the function will be applied.
         labels (Union[Enum, list[T], type]): The labels to classify the data into.
         instructions (str, optional): Specific instructions for the
             classification. Defaults to None.
@@ -817,7 +877,7 @@ def classify(
 
 
 def extract(
-    data: str,
+    data: FN_INPUT_TYPES,
     target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
@@ -835,7 +895,8 @@ def extract(
     string.
 
     Args:
-        data (str): The data from which to extract entities.
+        data: Union[str, Image, list[Union[str, Image]]]: the data to which
+            the function will be applied.
         target (type, optional): The type of entities to extract.
         instructions (str, optional): Specific instructions for the extraction.
             Defaults to None.
@@ -901,9 +962,36 @@ def generate(
     )
 
 
+def caption(
+    data: Union[Image, list[Image]],
+    instructions: str = None,
+    model_kwargs: dict = None,
+    client: Optional[AsyncMarvinClient] = None,
+) -> str:
+    """
+    Generates a caption for an image using a language model synchronously.
+
+    Args:
+        data (Union[Image, List[Image]]): The image or images to caption.
+        instructions (str, optional): Instructions for the caption generation.
+        model_kwargs (dict, optional): Additional arguments for the language model.
+
+    Returns:
+        str: Generated caption.
+    """
+    return run_sync(
+        caption_async(
+            data=data,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        )
+    )
+
+
 # --- Mapping
 async def classify_async_map(
-    data: list[str],
+    data: list[FN_INPUT_TYPES],
     labels: Union[Enum, list[T], type],
     instructions: Optional[str] = None,
     return_index: bool = False,
@@ -924,7 +1012,7 @@ async def classify_async_map(
 
 
 def classify_map(
-    data: list[str],
+    data: list[FN_INPUT_TYPES],
     labels: Union[Enum, list[T], type],
     instructions: Optional[str] = None,
     return_index: bool = False,
@@ -944,7 +1032,7 @@ def classify_map(
 
 
 async def cast_async_map(
-    data: list[str],
+    data: list[FN_INPUT_TYPES],
     target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
@@ -963,7 +1051,7 @@ async def cast_async_map(
 
 
 def cast_map(
-    data: list[str],
+    data: list[FN_INPUT_TYPES],
     target: type[T] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
@@ -981,7 +1069,7 @@ def cast_map(
 
 
 async def extract_async_map(
-    data: list[str],
+    data: list[FN_INPUT_TYPES],
     target: Optional[type[T]] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
@@ -1000,7 +1088,7 @@ async def extract_async_map(
 
 
 def extract_map(
-    data: list[str],
+    data: list[FN_INPUT_TYPES],
     target: Optional[type[T]] = None,
     instructions: Optional[str] = None,
     model_kwargs: Optional[dict] = None,
@@ -1017,9 +1105,44 @@ def extract_map(
     )
 
 
+def caption_async_map(
+    data: list[Union[Image, list[Image]]],
+    instructions: str = None,
+    model_kwargs: dict = None,
+    client: Optional[AsyncMarvinClient] = None,
+) -> list[str]:
+    return map_async(
+        fn=caption_async,
+        map_kwargs=dict(data=data),
+        unmapped_kwargs=dict(
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        ),
+    )
+
+
+def caption_map(
+    data: list[Union[Image, list[Image]]],
+    instructions: str = None,
+    model_kwargs: dict = None,
+    client: Optional[AsyncMarvinClient] = None,
+) -> list[str]:
+    return run_sync(
+        caption_async_map(
+            data=data,
+            instructions=instructions,
+            model_kwargs=model_kwargs,
+            client=client,
+        )
+    )
+
+
 cast_async.map = cast_async_map
 cast.map = cast_map
 classify_async.map = classify_async_map
 classify.map = classify_map
 extract_async.map = extract_async_map
 extract.map = extract_map
+caption_async.map = caption_async_map
+caption.map = caption_map

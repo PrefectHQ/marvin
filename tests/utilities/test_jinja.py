@@ -245,3 +245,25 @@ class TestTranscript:
                 ],
             ),
         ]
+
+    def test_transcript_with_empty_type_doesnt_render(self):
+        transcript = Transcript(
+            content='|SYSTEM| Hello there! \n|IMAGE| {"url": "https://example.com/image.png"} \n|TEXT|\n|IMAGE|\n|TEXT|\n|USER| hi'
+        )
+        assert transcript.render_to_messages() == [
+            BaseMessage(
+                role="system",
+                content=[
+                    TextContentBlock(text="Hello there!", type="text"),
+                    ImageFileContentBlock(
+                        image_url=ImageUrl(
+                            url="https://example.com/image.png", detail="auto"
+                        )
+                    ),
+                ],
+            ),
+            BaseMessage(
+                role="user",
+                content=[TextContentBlock(text="hi", type="text")],
+            ),
+        ]

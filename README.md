@@ -241,8 +241,8 @@ Learn more about image generation [here](https://askmarvin.ai/docs/images/genera
 In addition to text, Marvin has beta support for captioning, classifying, transforming, and extracting entities from images using the GPT-4 vision model:
 
 ```python
-marvin.beta.classify(
-    marvin.beta.Image("docs/images/coffee.png"),
+marvin.classify(
+    marvin.Image("docs/images/coffee.png"),
     labels=["drink", "food"],
 )
 

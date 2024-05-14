@@ -300,7 +300,7 @@ If you've already got an image, you can convert it to text using the `caption` f
     ```python
     import marvin
 
-    caption = marvin.beta.caption(marvin.beta.Image("path/to/coffee.png"))
+    caption = marvin.beta.caption(marvin.Image("path/to/coffee.png"))
     ```
 
     !!! success "Result"
@@ -334,11 +334,11 @@ These functions are available under `marvin.beta` and work identically to their 
     ```python
     import marvin
     
-    img = marvin.beta.Image(
+    img = marvin.Image(
         'https://images.unsplash.com/photo-1548199973-03cce0bbc87b',
     )
 
-    result = marvin.beta.extract(img, target=str, instructions='dog breeds')
+    result = marvin.extract(img, target=str, instructions='dog breeds')
     ```
 
     !!! success "Result"
