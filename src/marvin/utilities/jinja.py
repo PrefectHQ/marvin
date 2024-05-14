@@ -1,6 +1,7 @@
 """Module for Jinja utilities."""
 
 import inspect
+import json
 import os
 import re
 from datetime import datetime
@@ -11,10 +12,11 @@ from zoneinfo import ZoneInfo
 from jinja2 import Environment as JinjaEnvironment
 from jinja2 import StrictUndefined, select_autoescape
 from jinja2 import Template as BaseTemplate
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing_extensions import Self
 
 from marvin.types import BaseMessage as Message
+from marvin.types import ImageFileContentBlock, TextContentBlock
 
 
 class BaseEnvironment(BaseModel):
@@ -120,7 +122,7 @@ def split_text_by_tokens(
         (match.start(), match.end(), match.group().rstrip(":").strip())
         for token in split_tokens
         for match in re.finditer(
-            (r"(^|\n)" if only_on_newline else "") + re.escape(token) + r"(?::\s*)?",
+            (r"(^|\n\s*)" if only_on_newline else "") + re.escape(token) + r"(?::\s*)?",
             cleaned_text,
         )
     ]
@@ -145,7 +147,19 @@ def split_text_by_tokens(
 
 
 class Transcript(BaseModel):
-    """Transcript is a model representing a conversation involving multiple roles.
+    """
+    A Transcript is a model that represents a conversation involving multiple
+    roles as a single string. It can be parsed into discrete JSON messages.
+
+    Transcripts contain special tokens that indicate how to split the transcript
+    into discrete messages.
+
+    The first special token type indicates the message `role`. Default roles are
+    `|SYSTEM|`, `|HUMAN|`, `|USER|`, and `|ASSISTANT|`. When these tokens appear
+    at the start of a newline, all text following the token until the next
+    newline or token is considered part of the message with the given role.
+
+    The second special token type indicates the message `type`. By default, messages all have the `text` type. By supplying a token like `|IMAGE|`, you can indicate that a portion of the message is an image. Use `|TEXT|` to end the image portion and return to text. An
 
     Attributes:
         content: The content of the transcript.
@@ -158,8 +172,8 @@ class Transcript(BaseModel):
         from marvin.utilities.jinja import Transcript
 
         transcript = Transcript(
-            content="system: Hello, there! user: Hello, yourself!",
-            roles=["system", "user"],
+            content="|SYSTEM| Hello, there!\n\n|USER| Hello, yourself!",
+            roles={"|SYSTEM|": "system", "|USER|": "user"},
         )
         print(transcript.render_to_messages())
         # [
@@ -172,17 +186,34 @@ class Transcript(BaseModel):
     content: str
     roles: dict[str, str] = Field(
         default={
-            "SYSTEM": "system",
-            "HUMAN": "user",
-            "USER": "user",
-            "ASSISTANT": "assistant",
+            "|SYSTEM|": "system",
+            "|HUMAN|": "user",
+            "|USER|": "user",
+            "|ASSISTANT|": "assistant",
+        }
+    )
+    types: dict[str, str] = Field(
+        default={
+            "|IMAGE|": "image",
+            "|TEXT|": "text",
         }
     )
     environment: ClassVar[BaseEnvironment] = Environment
 
+    @field_validator("roles", "types")
+    def _check_trailing_colons(cls, dct):
+        for key in dct:
+            if key.endswith(":"):
+                raise ValueError(f"'{key}' should not end with a colon.")
+        return dct
+
     @cached_property
     def role_regex(self) -> Pattern[str]:
-        return re.compile("|".join([f"(^|\n){role}:" for role in self.roles]))
+        return re.compile("|".join([f"(^|\n){role}" for role in self.roles]))
+
+    @cached_property
+    def type_regex(self) -> Pattern[str]:
+        return re.compile("|".join([f"(^|\n){type_}" for type_ in self.types]))
 
     def render(self: Self, **kwargs: Any) -> str:
         return self.environment.render(self.content, **kwargs)
@@ -193,13 +224,39 @@ class Transcript(BaseModel):
     ) -> list[Message]:
         pairs = split_text_by_tokens(
             text=self.render(**kwargs).strip(),
-            split_tokens=[f"{role}" for role in self.roles.keys()],
+            split_tokens=[f"{key}" for key in (list(self.roles) + list(self.types))],
             only_on_newline=True,
         )
-        return [
-            Message(
-                role=self.roles.get(pair[0].strip(), "system"),
-                content=pair[1],
-            )
-            for pair in pairs
-        ]
+
+        messages = []
+
+        role = "system"
+        message_content = []
+
+        # iterate over every pair of token and content, accumlating content for
+        # each role. When the role changes, we create a new message containing
+        # the accumulated content
+        for pair in pairs:
+            token = pair[0].strip()
+            content = pair[1]
+
+            # if the token indicates a role, this is a new message, so "post"
+            # the previous message and start accumulating content
+            if token in self.roles:
+                if message_content:
+                    messages.append(Message(role=role, content=message_content))
+                    message_content.clear()
+                role = self.roles[token]
+
+            content_type = self.types.get(token, "text")
+            if content_type == "text":
+                message_content.append(TextContentBlock(text=content))
+            else:
+                message_content.append(
+                    ImageFileContentBlock(image_url=json.loads(content))
+                )
+
+        if message_content:
+            messages.append(Message(role=role, content=message_content))
+
+        return messages

@@ -105,11 +105,11 @@ Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](
         import marvin
 
         shopping_list = ["bagels", "cabbage", "eggs", "apples", "oranges"]
-        groceries = marvin.beta.Image(
+        groceries = marvin.Image(
             "https://images.unsplash.com/photo-1588964895597-cfccd6e2dbf9",
         )
         
-        missing_items = marvin.beta.cast(
+        missing_items = marvin.cast(
             groceries, 
             target=list[str], 
             instructions=f"Did I forget anything on my list: {shopping_list}?",

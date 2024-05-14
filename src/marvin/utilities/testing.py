@@ -57,7 +57,7 @@ def assert_equal(
     assert result.is_equal, assert_msg
 
 
-@marvin.fn(model_kwargs=dict(model="gpt-4-1106-preview"))
+@marvin.fn(model_kwargs=dict(model="gpt-4o"))
 def _assert_equal(
     llm_output: Any, expected: Any, instructions: str = None
 ) -> Assertion:

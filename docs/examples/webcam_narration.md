@@ -31,7 +31,7 @@ By combining a few Marvin tools, you can quickly create a live narration of your
         
         # if there are no more frames to process, generate a caption from the most recent 5
         if len(recorder) == 0:
-            caption = marvin.beta.caption(
+            caption = marvin.caption(
                 frames[-5:],
                 instructions=f"""
                     You are a parody of a nature documentary narrator, creating an

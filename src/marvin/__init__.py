@@ -8,11 +8,14 @@ from .ai.text import (
     extract_async,
     classify,
     classify_async,
+    caption,
+    caption_async,
     classifier,
     generate,
     generate_async,
     model,
     Model,
+    Image,
 )
 from .ai.images import paint, paint_async, image
 from .ai.audio import speak_async, speak, speech, transcribe, transcribe_async
@@ -29,8 +32,11 @@ except ImportError:
 __all__ = [
     # --- text ---
     "Model",
+    "Image",
     "cast",
     "cast_async",
+    "caption",
+    "caption_async",
     "classify",
     "classify_async",
     "classifier",
@@ -43,6 +49,7 @@ __all__ = [
     # --- images ---
     "image",
     "paint",
+    "paint_async",
     # --- audio ---
     "speak",
     "speak_async",

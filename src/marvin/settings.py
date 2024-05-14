@@ -36,7 +36,7 @@ class ChatCompletionSettings(MarvinSettings):
     model_config = SettingsConfigDict(
         env_prefix="marvin_chat_completions_", extra="ignore"
     )
-    model: str = Field(description="The default chat model to use.", default="gpt-4")
+    model: str = Field(description="The default chat model to use.", default="gpt-4o")
 
     temperature: float = Field(description="The default temperature to use.", default=1)
 
@@ -52,25 +52,9 @@ class ChatCompletionSettings(MarvinSettings):
         return encoding.encode
 
 
-class ChatVisionSettings(MarvinSettings):
-    model_config = SettingsConfigDict(env_prefix="marvin_chat_vision_", extra="ignore")
-    model: str = Field(
-        description="The default vision model to use.", default="gpt-4-vision-preview"
-    )
-    temperature: float = Field(description="The default temperature to use.", default=1)
-    max_tokens: int = 500
-
-    @property
-    def encoder(self):
-        import tiktoken
-
-        return tiktoken.encoding_for_model(self.model).encode
-
-
 class ChatSettings(MarvinSettings):
     model_config = SettingsConfigDict(env_prefix="marvin_chat_", extra="ignore")
     completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
-    vision: ChatVisionSettings = Field(default_factory=ChatVisionSettings)
 
 
 class ImageSettings(MarvinSettings):
@@ -133,13 +117,13 @@ class AssistantSettings(MarvinSettings):
     """Settings for the assistant API.
 
     Attributes:
-        model: The default assistant model to use, defaults to `gpt-4`.
+        model: The default assistant model to use
     """
 
     model_config = SettingsConfigDict(env_prefix="marvin_assistant_")
 
     model: str = Field(
-        default="gpt-4",
+        default="gpt-4o",
         description="The default assistant model to use.",
     )
 
