@@ -66,7 +66,7 @@ You can pass parameters to the underlying API via the `model_kwargs` argument of
 If you are using Marvin in an async environment, you can use `caption_async`:
 
 ```python
-caption = await marvin.beta.caption_async(image=Path('/path/to/marvin.png'))
+caption = await marvin.caption_async(image=Path('/path/to/marvin.png'))
 ```
 ## Mapping
 

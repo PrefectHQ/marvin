@@ -236,13 +236,13 @@ marvin.paint("a simple cup of coffee, still warm")
 
 Learn more about image generation [here](https://askmarvin.ai/docs/images/generation).
 
-## 🔍 Classify images (beta)
+## 🔍 Converting images to data
 
-In addition to text, Marvin has beta support for captioning, classifying, transforming, and extracting entities from images using the GPT-4 vision model:
+In addition to text, Marvin has support for captioning, classifying, transforming, and extracting entities from images using the GPT-4 vision model:
 
 ```python
 marvin.classify(
-    marvin.Image("docs/images/coffee.png"),
+    marvin.Image.from_path("docs/images/coffee.png"),
     labels=["drink", "food"],
 )
 
