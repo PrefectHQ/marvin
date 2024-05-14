@@ -36,7 +36,7 @@ class ChatCompletionSettings(MarvinSettings):
     model_config = SettingsConfigDict(
         env_prefix="marvin_chat_completions_", extra="ignore"
     )
-    model: str = Field(description="The default chat model to use.", default="gpt-4")
+    model: str = Field(description="The default chat model to use.", default="gpt-4o")
 
     temperature: float = Field(description="The default temperature to use.", default=1)
 
@@ -117,13 +117,13 @@ class AssistantSettings(MarvinSettings):
     """Settings for the assistant API.
 
     Attributes:
-        model: The default assistant model to use, defaults to `gpt-4-1106-preview`.
+        model: The default assistant model to use
     """
 
     model_config = SettingsConfigDict(env_prefix="marvin_assistant_")
 
     model: str = Field(
-        default="gpt-4-1106-preview",
+        default="gpt-4o",
         description="The default assistant model to use.",
     )
 

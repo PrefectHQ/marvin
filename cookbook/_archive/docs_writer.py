@@ -7,7 +7,7 @@ import marvin.tools.filesystem as fs
 from marvin.beta.applications import Application
 
 # marvin.settings.log_level = "DEBUG"
-marvin.settings.openai.chat.completions.model = "gpt-4-1106-preview"
+marvin.settings.openai.chat.completions.model = "gpt-4o"
 
 
 ROOT_DIR = Path(marvin.__file__).parents[2]

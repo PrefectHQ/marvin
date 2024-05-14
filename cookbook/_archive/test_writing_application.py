@@ -9,7 +9,7 @@ from marvin.beta.applications import Application
 from pydantic import BaseModel, Field
 
 marvin.settings.log_level = "DEBUG"
-marvin.settings.llm_model = "gpt-4"
+marvin.settings.llm_model = "gpt-4o"
 
 
 class TestWriterState(BaseModel):

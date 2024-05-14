@@ -44,7 +44,7 @@ class TestSpeechSettings:
 class TestAssistantSettings:
     def test_assistant_settings_default(self):
         settings = AssistantSettings()
-        assert settings.model == "gpt-4-1106-preview"
+        assert settings.model == "gpt-4o"
 
 
 class TestTemporarySettings:
