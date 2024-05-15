@@ -1,0 +1,83 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "anchors": [
+    {
+      "icon": "book-open-cover",
+      "name": "Documentation",
+      "url": "https://www.askmarvin.ai"
+    },
+    {
+      "icon": "github",
+      "name": "GitHub",
+      "url": "https://github.com/prefecthq/marvin"
+    },
+    {
+      "icon": "discord",
+      "name": "Community",
+      "url": "https://discord.gg/Kgw4HpcuYG"
+    }
+  ],
+  "colors": {
+    "anchors": {
+      "from": "#a58efb",
+      "to": "#41cebd"
+    },
+    "dark": "#41cebd",
+    "light": "#a58efb",
+    "primary": "#41cebd"
+  },
+  "favicon": "/logo.jpeg",
+  "footerSocials": {
+    "github": "https://github.com/prefecthq/marvin",
+    "x": "https://x.com/askmarvinai"
+  },
+  "logo": {
+    "dark": "/logo.jpeg",
+    "light": "/logo.jpeg"
+  },
+  "name": "Marvin",
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "welcome/what_is_marvin",
+        "welcome/installation",
+        "welcome/tutorial"
+      ]
+    },
+    {
+      "group": "Text",
+      "pages": [
+        "docs/text/transformation",
+        "docs/text/extraction",
+        "docs/text/classification",
+        "docs/text/generation",
+        "docs/text/functions"
+      ]
+    }
+  ],
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    },
+    {
+      "name": "Cookbook",
+      "url": "cookbook"
+    },
+    {
+      "name": "Community",
+      "url": "community"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Dashboard",
+    "url": "https://dashboard.mintlify.com"
+  },
+  "topbarLinks": [
+    {
+      "name": "Support",
+      "url": "mailto:hi@mintlify.com"
+    }
+  ]
+}
