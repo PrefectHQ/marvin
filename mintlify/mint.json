@@ -71,8 +71,8 @@
     }
   ],
   "topbarCtaButton": {
-    "name": "Dashboard",
-    "url": "https://dashboard.mintlify.com"
+    "type": "github",
+    "url": "https://github.com/prefecthq/marvin"
   },
   "topbarLinks": [
     {
