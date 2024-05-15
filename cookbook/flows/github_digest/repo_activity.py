@@ -1,5 +1,5 @@
 import inspect
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import marvin
 from marvin.utilities.jinja import BaseTemplate, JinjaEnvironment
@@ -145,7 +145,7 @@ async def daily_github_digest(
     if lookback_days is None:
         lookback_days = 1 if date.today().weekday() != 0 else 3
 
-    since = datetime.utcnow() - timedelta(days=lookback_days)
+    since = datetime.now(UTC) - timedelta(days=lookback_days)
 
     data_future = await get_repo_activity_data.submit(
         owner=owner,
@@ -163,8 +163,6 @@ async def daily_github_digest(
         repo=repo,
         contributors_activity=await data_future.result(),
     )
-
-    marvin.settings.openai.chat.completions.model = "gpt-4o"
 
     epic_story = write_a_tasteful_epic(markdown_digest)
 

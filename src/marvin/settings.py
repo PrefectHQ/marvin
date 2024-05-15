@@ -274,6 +274,10 @@ class Settings(MarvinSettings):
             "Whether to log verbose messages, such as full API requests and responses."
         ),
     )
+    max_tool_description_length: int = Field(
+        1000,
+        description="The maximum length of a tool description before it is truncated.",
+    )
     max_tool_output_length: int = Field(
         150,
         description="The maximum length of output from a tool before it is truncated.",
