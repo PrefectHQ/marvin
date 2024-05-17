@@ -216,9 +216,10 @@ def ls(path: str) -> str:
 
 def glob(pattern: str) -> list[str]:
     """
-    Returns a list of paths matching a valid glob pattern.
-    The pattern can include ** for recursive matching, such as
-    '~/path/to/root/**/*.py'
+    Returns a list of paths matching a valid glob pattern. The pattern can
+    include ** for recursive matching, such as '~/path/to/root/**/*.py'. Only
+    simple glob patterns are supported, no braces or other advanced features
+    like searching multiple file extensions at once.
     """
     return glob_module.glob(pattern, recursive=True)
 
