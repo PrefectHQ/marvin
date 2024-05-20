@@ -217,19 +217,26 @@ def ls(path: str) -> str:
 def glob(pattern: str) -> list[str]:
     """
     Returns a list of paths matching a valid glob pattern. The pattern can
-    include ** for recursive matching, such as '~/path/to/root/**/*.py'. Only
-    simple glob patterns are supported, no braces or other advanced features
-    like searching multiple file extensions at once.
+    include ** for recursive matching, such as '/path/**/dir/*.py'. Only simple
+    glob patterns are supported, compound queries like '/path/*.{py, md}' are
+    NOT supported.
     """
     return glob_module.glob(pattern, recursive=True)
 
 
 def concat(source_paths: list[str], dest_path: str, add_headers: bool = True) -> str:
     """
-    Concatenates the contents of multiple source files into a single
-    destination file. The result should be markdown. If add_headers is True, the
-    file path will be added as a header above the contents of each file.
+    Concatenates the contents of multiple source files into a single destination
+    file. The result should be markdown. If add_headers is True, the file path
+    will be added as a header above the contents of each file.
+
+    Note that source paths can include simple glob patterns, such as
+    '/path/**/dir/*.py'. Compound queries like '/path/*.{py, md}' are NOT
+    supported.
     """
+    # source_paths can include glob patterns
+    source_paths = [path for pattern in source_paths for path in glob(pattern)]
+
     dest_path = _safe_create_file(dest_path)
     with open(dest_path, "w") as dest_file:
         for source_path in source_paths:
