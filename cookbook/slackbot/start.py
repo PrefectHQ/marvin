@@ -108,7 +108,7 @@ async def handle_message(payload: SlackPayload) -> Completed:
                 " If a tool returns an irrelevant/bad result, you should try another tool."
                 " KEEP IN MIND that agents are deprecated in favor of workers, so you should"
                 " never recommend `prefect agent` commands, suggest `prefect worker` instead."
-                " that goes for `build_from_flow` too, instead use `Flow.deploy()`
+                " that goes for `build_from_flow` too, instead use `Flow.deploy()`"
             ),
         ) as ai:
             logger.debug_kv(
