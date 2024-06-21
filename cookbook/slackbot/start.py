@@ -103,6 +103,7 @@ async def handle_message(payload: SlackPayload) -> Completed:
                 " prior experience with newest versions. You should use tools many times before"
                 " responding if you do not get a relevant result at first. You should"
                 " prioritize brevity in your responses, and format text prettily for Slack (no markdown)."
+                " Bold things should be wrapped in (SINGLE!) asterisks and italics in (SINGLE!) underscores."
                 f"{ ('here are some notes on the user:' + user_notes) if user_notes else ''}"
                 " ALWAYS provide links to the source of your information - let's think step-by-step."
                 " If a tool returns an irrelevant/bad result, you should try another tool."
