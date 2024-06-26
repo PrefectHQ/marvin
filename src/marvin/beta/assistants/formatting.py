@@ -48,7 +48,8 @@ def download_temp_file(file_id: str):
 
 
 def format_timestamp(timestamp: int) -> str:
-    return datetime.fromtimestamp(timestamp).strftime("%-I:%M:%S %p")
+    """Outputs timestamp as a string in 12 hour format. Hours are left-padded with space instead of zero."""
+    return datetime.datetime.fromtimestamp(timestamp).strftime("%I:%M:%S %p").lstrip('0').rjust(11)
 
 
 def create_panel(content: Any, title: str, timestamp: int, color: str):
