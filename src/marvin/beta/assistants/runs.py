@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Literal, Optional, Union
 
 from openai import AsyncAssistantEventHandler
 from openai.types.beta.threads import Message
@@ -34,6 +34,8 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
                                                                for the run.
         additional_tools (list[AssistantTool], optional): Additional tools to append
                                                           to the assistant's tools.
+        tool_choice (Union[Literal["auto", "none", "required"], AssistantTool], optional):
+                                                    The tool use behaviour for the run.
         run (OpenAIRun): The OpenAI run object.
         data (Any): Any additional data associated with the run.
     """
@@ -66,6 +68,12 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
     additional_tools: Optional[list[AssistantTool]] = Field(
         None,
         description="Additional tools to append to the assistant's tools. ",
+    )
+    tool_choice: Optional[
+        Union[Literal["none", "auto", "required"], AssistantTool]
+    ] = Field(
+        default=None,
+        description="The tool use behaviour for the run. Can be 'none', 'auto', 'required', or a specific tool.",
     )
     run: OpenAIRun = Field(None, repr=False)
     data: Any = None
@@ -153,6 +161,13 @@ class Run(BaseModel, ExposeSyncMethodsMixin):
 
         if model := self._get_model():
             run_kwargs["model"] = model
+
+        if tool_choice := self.tool_choice:
+            run_kwargs["tool_choice"] = (
+                tool_choice.model_dump(mode="json")
+                if isinstance(tool_choice, Tool)
+                else tool_choice
+            )
 
         return run_kwargs
 
