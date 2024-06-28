@@ -52,7 +52,7 @@ def format_timestamp(timestamp: int) -> str:
     return (
         datetime.datetime.fromtimestamp(timestamp)
         .strftime("%I:%M:%S %p")
-        .lstrip('0')
+        .lstrip("0")
         .rjust(11)
     )
 
