@@ -243,7 +243,7 @@ class BackgroundAudioRecorder:
         if wait:
             self._thread.join()
         logger.info("Recording finished.")
-        self._is_recording = False
+        self.is_recording = False
 
 
 class BackgroundAudioStream:
