@@ -9,15 +9,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip install uv && uv venv
-
-ENV VIRTUAL_ENV=/app/.venv
+RUN pip install uv
 RUN uv venv
+RUN uv pip install -r requirements.txt
 
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN uv pip install ".[slackbot]"
-
-EXPOSE 4200
-
-CMD ["python", "cookbook/slackbot/start.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
