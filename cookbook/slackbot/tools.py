@@ -1,84 +1,72 @@
-import inspect
-from typing import Literal
+import asyncio
+import contextlib
+from contextvars import ContextVar
+from typing import Optional
 
-import httpx
-import marvin
-import turbopuffer as tpuf
-from prefect.blocks.system import Secret
+from marvin.utilities.slack import get_thread_messages, post_slack_message
 from raggy.vectorstores.tpuf import multi_query_tpuf
+from tenacity import retry, stop_after_attempt
 
-Topic = Literal["latest_prefect_version"]
-
-
-async def search_prefect_docs(queries: list[str]) -> str:
-    """Searches the Prefect documentation for the given queries.
-
-    It is best to use more than one, short query to get the best results.
-
-    For example, given a question like:
-    "Is there a way to get the task_run_id for a task from a flow run?"
-
-    You might use the following queries:
-    - "retrieve task run id from flow run"
-    - "retrieve run metadata dynamically"
-
-    """
-    if not tpuf.api_key:
-        tpuf.api_key = (await Secret.load("tpuf-api-key")).get()
-
-    return await multi_query_tpuf(queries, namespace="marvin-slackbot")
+USER_CONTEXT = ContextVar("user_context", default=None)
 
 
-async def get_latest_release_notes() -> str:
-    """Gets the first whole h2 section from the Prefect RELEASE_NOTES.md file."""
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://raw.githubusercontent.com/PrefectHQ/prefect/main/RELEASE-NOTES.md"
-        )
-        return response.text.split("\n## ")[1]
+@contextlib.contextmanager
+def user_context(user_id: str, channel_id: str, thread_ts: str):
+    token = USER_CONTEXT.set(
+        {"user_id": user_id, "channel_id": channel_id, "thread_ts": thread_ts}
+    )
+    try:
+        yield
+    finally:
+        USER_CONTEXT.reset(token)
 
 
-tool_map = {"latest_prefect_version": get_latest_release_notes}
+def get_current_user_context():
+    return USER_CONTEXT.get()
 
 
-async def get_info(topic: Topic) -> str:
-    """A tool that returns information about a topic using
-    one of many pre-existing helper functions. You need only
-    provide the topic name, and the appropriate function will
-    return information.
+async def get_current_message_text(channel: str, ts: str) -> str:
+    messages = await get_thread_messages(channel, ts)
+    for message in messages:
+        if message["ts"] == ts:
+            return message["text"]
+    raise ValueError("Message not found")
 
-    As of now, the only topic is "latest_prefect_version".
-    """
+
+@retry(stop=stop_after_attempt(2))
+async def get_more_info_from_user(prompt: str, timeout: int = 60) -> Optional[str]:
+    if not (context := get_current_user_context()):
+        raise ValueError("User context not set")
+
+    await post_slack_message(
+        message=prompt, channel_id=context["channel_id"], thread_ts=context["thread_ts"]
+    )
+
+    initial_content = await get_current_message_text(
+        context["channel_id"], context["thread_ts"]
+    )
+
+    async def check_for_edit():
+        while True:
+            current_content = await get_current_message_text(
+                context["channel_id"], context["thread_ts"]
+            )
+            if current_content != initial_content:
+                return current_content
+            await asyncio.sleep(1)
 
     try:
-        maybe_coro = tool_map[topic]()
-        if inspect.iscoroutine(maybe_coro):
-            return await maybe_coro
-        return maybe_coro
-    except KeyError:
-        raise ValueError(f"Invalid topic: {topic}")
-
-
-async def get_prefect_code_example(related_to: str) -> str:
-    """Gets a Prefect code example"""
-
-    base_url = "https://raw.githubusercontent.com/zzstoatzz/prefect-code-examples/main"
-
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{base_url}/views/README.json")
-
-        example_items = {
-            item.get("description"): item.get("relative_path")
-            for category in response.json().get("categories", [])
-            for item in category.get("examples", [])
-        }
-
-        key = await marvin.classify_async(
-            data=related_to, labels=list(example_items.keys())
+        return await asyncio.wait_for(check_for_edit(), timeout=timeout)
+    except asyncio.TimeoutError:
+        await post_slack_message(
+            message="No response received. Please try again if you need assistance.",
+            channel_id=context["channel_id"],
+            thread_ts=context["thread_ts"],
         )
+        return None
 
-        best_link = f"{base_url}/{example_items[key]}"
 
-        code_example_content = (await client.get(best_link)).text
-
-        return f"LINK:\n{best_link}\n\n EXAMPLE:\n{code_example_content}"
+async def search_knowledgebase(
+    queries: list[str], namespace: str = "marvin-slackbot"
+) -> str:
+    return await multi_query_tpuf(queries=queries, namespace=namespace)

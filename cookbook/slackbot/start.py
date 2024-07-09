@@ -1,91 +1,174 @@
-from concurrent.futures import ThreadPoolExecutor
-from typing import List
+import asyncio
+import re
+from enum import Enum, auto
+from typing import Any, Dict, List, Optional
 
 import controlflow as cf
 from fastapi import FastAPI, Request
-from pydantic import BaseModel, Field
+from marvin.utilities.logging import get_logger
+from marvin.utilities.slack import post_slack_message
+from marvin.utilities.strings import count_tokens, slice_tokens
+from models import Discovery, ExcerptSummary
+from prefect import flow
+from prefect.states import Completed
+from pydantic import BaseModel
+from tools import (
+    get_more_info_from_user,
+    search_knowledgebase,
+    user_context,
+)
 
-# Initialize FastAPI app
 app = FastAPI()
-executor = ThreadPoolExecutor(max_workers=30)
+logger = get_logger("slackbot")
+
+BOT_MENTION = r"<@(\w+)>"
+USER_MESSAGE_MAX_TOKENS = 300
+
+
+class EventType(Enum):
+    MESSAGE = auto()
+    MESSAGE_CHANGED = auto()
+    APP_MENTION = auto()
+    CHALLENGE = auto()
+    UNKNOWN = auto()
+
+
+class SlackEventAuthorization(BaseModel):
+    enterprise_id: Optional[str] = None
+    team_id: str
+    user_id: str
+    is_bot: bool
+    is_enterprise_install: bool
+
+
+class SlackEventMessage(BaseModel):
+    type: str
+    user: str
+    text: str
+    ts: str
 
 
 class SlackEvent(BaseModel):
     type: str
-    user: str
-    text: str
+    user: Optional[str] = None
+    text: Optional[str] = None
     channel: str
     ts: str
+    event_ts: str
+    thread_ts: Optional[str] = None
+    message: Optional[SlackEventMessage] = None
+    previous_message: Optional[Dict[str, Any]] = None
+    subtype: Optional[str] = None
 
 
-class SlackChallenge(BaseModel):
+class SlackPayload(BaseModel):
+    token: str
+    team_id: str
+    api_app_id: str
+    event: SlackEvent
+    type: str
+    event_id: str
+    event_time: int
+    authorizations: List[SlackEventAuthorization]
+    is_ext_shared_channel: bool
+    event_context: str
+
+
+class SlackChallengeResponse(BaseModel):
     token: str
     challenge: str
     type: str
 
 
-class Discovery(BaseModel):
-    question: str = Field(description="the question the user is actually asking")
-    prefect_version: str = Field(
-        description="the version of Prefect the user is mentioning or using"
-    )
+slackbot = cf.Agent(
+    name="Slackbot",
+    tools=[search_knowledgebase, get_more_info_from_user],
+    instructions=(
+        "You are a Slack bot for Prefect. Use *bold* for emphasis. "
+        "Always instruct users to *edit their original message* for more info."
+    ),
+)
 
 
-class ExcerptSummary(BaseModel):
-    executive_summary: str = Field(description="at most 3 sentences summary")
-    sources: List[str] = Field(
-        default_factory=list, description="sources cited in summary"
-    )
+@flow(name="Handle Slack Message", retries=1)
+async def handle_message(payload: SlackPayload) -> Completed:
+    event = payload.event
+    user_message = event.text or (event.message.text if event.message else "")
+    cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
+    thread = event.thread_ts or event.ts
 
+    if (count := count_tokens(cleaned_message)) > USER_MESSAGE_MAX_TOKENS:
+        exceeded_amt = count - USER_MESSAGE_MAX_TOKENS
+        await post_slack_message(
+            message=(
+                f"Your message was too long by {exceeded_amt} tokens - please shorten "
+                f"it and try again.\n\nFor reference, here's your message at the "
+                f"allowed limit:\n> {slice_tokens(cleaned_message, USER_MESSAGE_MAX_TOKENS)}"
+            ),
+            channel_id=event.channel,
+            thread_ts=thread,
+        )
+        return Completed(message="User message too long", name="SKIPPED")
 
-async def search_knowledgebase(query: str) -> str:
-    """Search knowledgebase for answer to user's question."""
-    # This is a placeholder. In a real implementation, you'd integrate with your actual knowledge base.
-    return f"Searched knowledge base for: {query}"
+    logger.debug_kv("Handling slack message", cleaned_message, "green")
 
+    user_id = event.user or (event.message.user if event.message else None)
 
-slackbot = cf.Agent(name="Slackbot", tools=[search_knowledgebase])
+    if (
+        is_edit := event.subtype == "message_changed"
+        or (user := re.search(BOT_MENTION, user_message))
+        and user.group(1) == payload.authorizations[0].user_id
+    ):
+        with user_context(user_id, event.channel, thread):
+            response = await asyncio.to_thread(answer_slack_question, event)
+
+        if is_edit:
+            response = f"I've detected an edit to your message. Here's my updated response:\n\n{response}"
+
+        await post_slack_message(
+            message=response, channel_id=event.channel, thread_ts=thread
+        )
+
+    return Completed(message="Message handled successfully")
 
 
 @cf.flow(agents=[slackbot])
 def answer_slack_question(event: SlackEvent):
-    """Answer user's Slack question."""
     discovery = cf.Task(
-        "Discover and gather the user's question and Prefect version",
-        user_access=True,
+        "Gather user's question and Prefect version. If more info is needed, "
+        "use get_more_info_from_user to ask them to *edit their original message*.",
         result_type=Discovery,
         context={"event": event},
     )
 
     summary = cf.Task(
-        "Get a summary of the answer from the knowledgebase",
+        "Summarize the answer from the knowledgebase",
         user_access=True,
         context=dict(discovery=discovery),
         result_type=ExcerptSummary,
     )
 
     return cf.Task(
-        "Compose the answer to the user's question",
+        "Compose the final answer",
         context=dict(summary=summary),
     )
 
 
-def handler(event: SlackEvent):
-    response = answer_slack_question(event)
-    print(response)
-
-
 @app.post("/chat")
-async def slack_events(request: Request):
+async def slack_events(request: Request) -> dict:
     body = await request.json()
 
     if "challenge" in body:
-        return SlackChallenge(**body)
+        return SlackChallengeResponse(**body)
 
-    event = SlackEvent(**body["event"])
+    try:
+        payload = SlackPayload(**body)
+    except ValueError as e:
+        logger.error(f"Invalid payload: {e}")
+        return {"status": "error", "message": "Invalid payload"}
 
-    if event.type == "message" and not event.text.startswith("Slackbot:"):
-        executor.submit(handler, event)
+    if payload.type == "event_callback":
+        asyncio.create_task(handle_message(payload))
 
     return {"status": "ok"}
 
@@ -93,4 +176,4 @@ async def slack_events(request: Request):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=4200)
+    uvicorn.run("start:app", host="0.0.0.0", port=4200, reload=True)

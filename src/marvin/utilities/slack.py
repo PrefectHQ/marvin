@@ -1,4 +1,5 @@
 """Module for Slack-related utilities."""
+
 import os
 import re
 from typing import List, Optional, Union
@@ -63,8 +64,8 @@ class SlackPayload(BaseModel):
 
     @field_validator("event")
     def validate_event(cls, v: Optional[SlackEvent]) -> Optional[SlackEvent]:
-        if v.type != "url_verification" and v is None:
-            raise ValueError("event is required")
+        if v is not None and v.type != "url_verification":
+            raise ValueError("event is required for non-url_verification events")
         return v
 
 
