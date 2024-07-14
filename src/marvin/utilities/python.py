@@ -90,7 +90,8 @@ class PythonFunction(BaseModel):
         try:
             source_code = inspect.getsource(func).strip()
         except OSError as e:
-            if "source code not available" in str(e):
+            error_message = str(e)
+            if "source code" in error_message:
                 source_code = None
             else:
                 raise
