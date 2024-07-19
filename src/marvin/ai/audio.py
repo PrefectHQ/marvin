@@ -169,7 +169,7 @@ def transcribe(
 
     This function converts audio from a file to text.
     """
-    return run_sync(transcribe_async(data=data, prompt=prompt, **model_kwargs or {}))
+    return run_sync(transcribe_async(data=data, prompt=prompt, model_kwargs=model_kwargs or {}))
 
 
 def speech(
