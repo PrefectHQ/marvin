@@ -39,7 +39,7 @@ class PythonFunction(BaseModel):
     return_annotation: Optional[Any] = Field(
         None, description="Return annotation of the function."
     )
-    source_code: str = Field(description="Source code of the function")
+    source_code: Optional[str] = Field(None, description="Source code of the function")
     bound_parameters: dict[str, Any] = Field(
         {}, description="Parameters bound with values"
     )
@@ -86,7 +86,15 @@ class PythonFunction(BaseModel):
             )
             for name, param in sig.parameters.items()
         ]
-        source_code = inspect.getsource(func).strip()
+
+        try:
+            source_code = inspect.getsource(func).strip()
+        except OSError as e:
+            error_message = str(e)
+            if "source code" in error_message:
+                source_code = None
+            else:
+                raise
 
         function_dict = {
             "function": func,
