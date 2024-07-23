@@ -104,6 +104,18 @@ class FunctionCall(MarvinType):
     name: str
 
 
+class AssistantResponseFormat(MarvinType):
+    type: Literal["json_object", "text"]
+
+
+class JsonObjectAssistantResponseFormat(AssistantResponseFormat):
+    type: Literal["json_object"] = "json_object"
+
+
+class TextAssistantResponseFormat(AssistantResponseFormat):
+    type: Literal["text"] = "text"
+
+
 class ImageUrl(MarvinType):
     url: str = Field(
         description="URL of the image to be sent or a base64 encoded image."
