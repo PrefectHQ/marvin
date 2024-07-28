@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union
 
 from openai import AsyncAssistantEventHandler
 from prompt_toolkit import PromptSession
@@ -13,7 +13,7 @@ import marvin.utilities.openai
 import marvin.utilities.tools
 from marvin.beta.assistants.handlers import PrintHandler
 from marvin.tools.assistants import AssistantTool
-from marvin.types import Tool
+from marvin.types import AssistantResponseFormat, Tool
 from marvin.utilities.asyncio import (
     ExposeSyncMethodsMixin,
     expose_sync_method,
@@ -64,6 +64,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
     tools: list[Union[AssistantTool, Callable]] = []
     tool_resources: dict[str, Any] = {}
     metadata: dict[str, str] = {}
+    response_format: Optional[Union[Literal["auto"], AssistantResponseFormat]] = "auto"
     # context level tracks nested assistant contexts
     _context_level: int = PrivateAttr(0)
 
@@ -173,6 +174,7 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
                     "metadata",
                     "tool_resources",
                     "metadata",
+                    "response_format",
                 }
             ),
             tools=[tool.model_dump() for tool in self.get_tools()],
