@@ -60,7 +60,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
       - name: Install Marvin
-        run: pip install ".[tests]"
+        run: pip install ".[tests, anthropic]"
 
       - name: Run tests without LLMs
         run: pytest -n auto -vv -m "${{ matrix.test-type }}"
