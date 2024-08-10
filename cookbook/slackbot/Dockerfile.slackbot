@@ -16,7 +16,7 @@ RUN uv venv
 
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-RUN uv pip install ".[slackbot]"
+RUN uv pip install -U ".[slackbot]" --force-reinstall
 
 EXPOSE 4200
 

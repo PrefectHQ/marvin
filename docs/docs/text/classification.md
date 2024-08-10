@@ -30,7 +30,11 @@ Categorize user feedback into labels such as "bug", "feature request", or "inqui
 <div class="admonition info">
   <p class="admonition-title">How it works</p>
   <p>
-    Marvin enumerates your options, and uses a <a href="https://twitter.com/AAAzzam/status/1669753721574633473">clever logit bias trick</a> to force the LLM to deductively choose the index of the best option given your provided input. It then returns the choice associated with that index.
+   Marvin enumerates your options, and uses a <strong>clever logit bias</strong> trick to force the LLM to deductively choose the index of the best option given your provided input. It then returns the choice associated with that index.
+  </p>
+  <p class="admonition-title">Logit Bias Trick</p>
+  <p>
+    You can configure ChatGPT as a logic gate or classifier by manipulating its token outputs using <strong>logit_bias</strong> and <strong>max_tokens</strong>. For a logic gate, set true to `1904` and false to `3934`, and restrict responses to these tokens with logit_bias and max_tokens set to 1. Similarly, for classification tasks, assign tokens for labels (e.g., 57621 for happy, 83214 for sad, and 20920 for mad) and use logit_bias to restrict outputs to these tokens. By setting max_tokens to 1, you ensure that the model will only output the predefined class labels.
   </p>
 </div>
 

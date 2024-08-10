@@ -28,7 +28,7 @@ class TestTools:
     def test_code_interpreter(self):
         ai = Assistant(tools=[CodeInterpreter])
         run = ai.say(
-            "use the code interpreter to compute a random number between 85 and 95"
+            "use the code interpreter to output a random number between 85 and 95 - you must use print"
         )
         assert run.steps[0].step_details.tool_calls[0].type == "code_interpreter"
         output = float(

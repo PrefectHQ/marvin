@@ -67,6 +67,7 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
         role: str = "user",
         code_interpreter_files: Optional[list[str]] = None,
         file_search_files: Optional[list[str]] = None,
+        image_files: Optional[list[str]] = None,
     ) -> Message:
         """
         Add a user message to the thread.
@@ -75,6 +76,8 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
 
         if self.id is None:
             await self.create_async()
+
+        content = [dict(text=message, type="text")]
 
         # Upload files and collect their IDs
         attachments = []
@@ -90,10 +93,16 @@ class Thread(BaseModel, ExposeSyncMethodsMixin):
                 attachments.append(
                     dict(file_id=response.id, tools=[dict(type="file_search")])
                 )
+        for fp in image_files or []:
+            with open(fp, mode="rb") as file:
+                response = await client.files.create(file=file, purpose="vision")
+                content.append(
+                    dict(image_file=dict(file_id=response.id), type="image_file")
+                )
 
         # Create the message with the attached files
         response = await client.beta.threads.messages.create(
-            thread_id=self.id, role=role, content=message, attachments=attachments
+            thread_id=self.id, role=role, content=content, attachments=attachments
         )
         return response
 
