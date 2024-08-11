@@ -19,8 +19,7 @@ class MarvinSettings(BaseSettings):
 
     def __setattr__(self, name: str, value: Any) -> None:
         # wrap bare strings in SecretStr if the field is annotated with SecretStr
-        field = self.model_fields.get(name)
-        if field:
+        if field := self.model_fields.get(name):
             annotation = field.annotation
             base_types = (
                 getattr(annotation, "__args__", None)
@@ -32,6 +31,18 @@ class MarvinSettings(BaseSettings):
         super().__setattr__(name, value)
 
 
+class TiktokenSettings(MarvinSettings):
+    model_config = SettingsConfigDict(env_prefix="marvin_tiktoken_", extra="ignore")
+
+    cache_dir: Optional[str] = Field(
+        default=None, description="Directory to store cached tiktoken encoding files."
+    )
+    verify_ssl: bool = Field(
+        default=True,
+        description="Whether to verify SSL certificates for tiktoken requests.",
+    )
+
+
 class ChatCompletionSettings(MarvinSettings):
     model_config = SettingsConfigDict(
         env_prefix="marvin_chat_completions_", extra="ignore"
@@ -40,9 +51,18 @@ class ChatCompletionSettings(MarvinSettings):
 
     temperature: float = Field(description="The default temperature to use.", default=1)
 
+    tiktoken: TiktokenSettings = Field(default_factory=TiktokenSettings)
+
     @property
     def encoder(self):
         import tiktoken
+
+        if self.tiktoken.cache_dir:
+            os.environ["TIKTOKEN_CACHE_DIR"] = self.tiktoken.cache_dir
+        if not self.tiktoken.verify_ssl:
+            import ssl
+
+            ssl._create_default_https_context = ssl._create_unverified_context
 
         try:
             encoding = tiktoken.encoding_for_model(self.model)
