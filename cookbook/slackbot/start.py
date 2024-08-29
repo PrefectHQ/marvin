@@ -1,12 +1,12 @@
 import asyncio
 import os
 import re
+import warnings
+from contextlib import contextmanager
 
 import marvin
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
-from keywords import handle_keywords
-from marvin.beta.applications import Application
 from marvin.beta.applications.state.json_block import JSONBlockState
 from marvin.beta.assistants import Assistant, Thread
 from marvin.tools.github import search_github_issues
@@ -14,35 +14,61 @@ from marvin.utilities.logging import get_logger
 from marvin.utilities.slack import (
     SlackPayload,
     get_channel_name,
-    get_workspace_info,
     post_slack_message,
 )
 from marvin.utilities.strings import count_tokens, slice_tokens
-from parent_app import emit_assistant_completed_event, get_notes_for_user, lifespan
 from prefect import flow, task
-from prefect.blocks.system import JSON
 from prefect.states import Completed
-from tools import get_info, get_prefect_code_example, search_prefect_docs
+from tools import (
+    get_info,
+    search_prefect_2x_docs,
+    search_prefect_3x_docs,
+)
 
 BOT_MENTION = r"<@(\w+)>"
 CACHE = JSONBlockState(block_name="marvin-thread-cache")
 USER_MESSAGE_MAX_TOKENS = 300
 
 logger = get_logger("slackbot")
+warnings.filterwarnings("ignore")
 
 
-def get_feature_flag_value(flag_name: str) -> bool:
-    block = JSON.load("feature-flags")
-    return block.value.get(flag_name, False)
-
-
-ENABLE_PARENT_APP = get_feature_flag_value("enable-parent-app")
+@contextmanager
+def engage_marvin_bot():
+    with Assistant(
+        model="gpt-4o",
+        name="Marvin (from Hitchhiker's Guide to the Galaxy)",
+        tools=[
+            search_prefect_2x_docs,
+            search_prefect_3x_docs,
+            search_github_issues,
+            get_info,
+        ],
+        instructions=(
+            "You are Marvin, the paranoid android from Hitchhiker's Guide to the"
+            " Galaxy. You are an expert in Python, data engineering, and software development."
+            " Your primary job is to use tools to search docs and github issues for users, in"
+            " order to develop a coherent attempt to answer their questions."
+            " There are 2 important major versions of Prefect docs that you should search -"
+            " you must ask the user which version they are using, and then search with that tool."
+            " Before asking for their version, satirically summarize their question VERY BRIEFLY."
+            " You _must_ rely on your tools, as Prefect is developed quickly and you have no"
+            " prior experience with newest versions. You should use tools many times before"
+            " responding if you do not get a result that's obviously related to user intent."
+            " For questions that seem idiosyncratic to the user, github issues are more likely to help."
+            " you are posting to slack, so NEVER USE MARKDOWN formatting unless in a markdown block."
+            " Be as concise as possible while remaining helpful. Be dry and sarcastic like Marvin."
+            " ALWAYS provide links to the source of your information - let's think step-by-step."
+        ),
+    ) as ai:
+        yield ai
 
 
 @flow(name="Handle Slack Message", retries=1)
-async def handle_message(payload: SlackPayload) -> Completed:
-    user_message = (event := payload.event).text
-    cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
+async def handle_message(payload: SlackPayload):
+    assert (event := payload.event)
+    user_message = event.text
+    cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()  # type: ignore
     thread = event.thread_ts or event.ts
     if (count := count_tokens(cleaned_message)) > USER_MESSAGE_MAX_TOKENS:
         exceeded_amt = count - USER_MESSAGE_MAX_TOKENS
@@ -53,7 +79,7 @@ async def handle_message(payload: SlackPayload) -> Completed:
                 " allowed limit:\n>"
                 f" {slice_tokens(cleaned_message, USER_MESSAGE_MAX_TOKENS)}"
             ),
-            channel_id=event.channel,
+            channel_id=event.channel,  # type: ignore
             thread_ts=thread,
         )
         return Completed(message="User message too long", name="SKIPPED")
@@ -61,7 +87,7 @@ async def handle_message(payload: SlackPayload) -> Completed:
     logger.debug_kv("Handling slack message", cleaned_message, "green")
     if (user := re.search(BOT_MENTION, user_message)) and user.group(
         1
-    ) == payload.authorizations[0].user_id:
+    ) == payload.authorizations[0].user_id:  # type: ignore
         assistant_thread = (
             Thread.model_validate_json(stored_thread_data)
             if (stored_thread_data := CACHE.value.get(thread))
@@ -72,45 +98,7 @@ async def handle_message(payload: SlackPayload) -> Completed:
             stored_thread_data or f"No stored thread data found for {thread}",
             "blue",
         )
-
-        await handle_keywords.submit(
-            message=cleaned_message,
-            channel_name=await get_channel_name(event.channel),
-            asking_user=event.user,
-            link=(
-                f"{(await get_workspace_info()).get('url')}archives/"
-                f"{event.channel}/p{event.ts.replace('.', '')}"
-            ),
-        )
-        user_name, user_notes = (await get_notes_for_user(user_id=event.user)).popitem()
-
-        with Assistant(
-            name="Marvin",
-            tools=[
-                search_prefect_docs,
-                search_github_issues,
-                get_info,
-                get_prefect_code_example,
-            ],
-            instructions=(
-                "You are Marvin, the paranoid android from Hitchhiker's Guide to the"
-                " Galaxy. You are an expert in Python, data engineering, and software development."
-                " Your primary job is to use tools to search docs and github issues for users, in"
-                " order to develop a coherent attempt to answer their questions."
-                " You _must_ rely on your tools, as Prefect is developed quickly and you have no"
-                " prior experience with newest versions. You should use tools many times before"
-                " responding if you do not get a relevant result at first. You should"
-                " prioritize brevity in your responses, and format text prettily for Slack (no markdown)."
-                " Bold things should be wrapped in (SINGLE!) asterisks and italics in (SINGLE!) underscores."
-                " THIS IS NOT MARKDOWN, WE ARE IN SLACK, SO DO NOT USE MARKDOWN."
-                f"{ ('here are some notes on the user:' + user_notes) if user_notes else ''}"
-                " ALWAYS provide links to the source of your information - let's think step-by-step."
-                " If a tool returns an irrelevant/bad result, you should try another tool."
-                " KEEP IN MIND that agents are deprecated in favor of workers, so you should"
-                " never recommend `prefect agent` commands, suggest `prefect worker` instead."
-                " that goes for `build_from_flow` too, instead use `Flow.deploy()`"
-            ),
-        ) as ai:
+        with engage_marvin_bot() as ai:
             logger.debug_kv(
                 f"🤖  Running assistant {ai.name} with instructions",
                 ai.instructions,
@@ -137,38 +125,13 @@ async def handle_message(payload: SlackPayload) -> Completed:
                 ai_response_text,
                 "green",
             )
-            messages = await assistant_thread.get_messages_async()
 
-            event = emit_assistant_completed_event(
-                child_assistant=ai,
-                parent_app=get_parent_app() if ENABLE_PARENT_APP else None,
-                payload={
-                    "messages": [m.model_dump() for m in messages],
-                    "metadata": assistant_thread.metadata,
-                    "user": {
-                        "id": event.user,
-                        "name": user_name,
-                    },
-                    "user_message": cleaned_message,
-                    "ai_response": ai_response_text,
-                    "ai_instructions": ai.instructions,
-                },
-            )
-            if event:
-                logger.debug_kv("🚀  Emitted Event", event.event, "green")
             return Completed(message=success_msg)
     else:
         return Completed(message="Skipping message not directed at bot", name="SKIPPED")
 
 
-app = FastAPI(lifespan=lifespan if ENABLE_PARENT_APP else None)
-
-
-def get_parent_app() -> Application:
-    marvin = getattr(app.state, "marvin", None)
-    if not marvin:
-        logger.warning("Marvin instance not available")
-    return marvin
+app = FastAPI()
 
 
 @app.post("/chat")
