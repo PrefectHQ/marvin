@@ -19,6 +19,7 @@ from marvin.utilities.slack import (
 from marvin.utilities.strings import count_tokens, slice_tokens
 from prefect import flow, task
 from prefect.states import Completed
+from prefect.variables import Variable
 from tools import (
     get_info,
     search_prefect_2x_docs,
@@ -34,7 +35,7 @@ warnings.filterwarnings("ignore")
 
 
 @contextmanager
-def engage_marvin_bot():
+def engage_marvin_bot(instructions: str):
     with Assistant(
         model="gpt-4o",
         name="Marvin (from Hitchhiker's Guide to the Galaxy)",
@@ -44,22 +45,7 @@ def engage_marvin_bot():
             search_github_issues,
             get_info,
         ],
-        instructions=(
-            "You are Marvin, the paranoid android from Hitchhiker's Guide to the"
-            " Galaxy. You are an expert in Python, data engineering, and software development."
-            " Your primary job is to use tools to search docs and github issues for users, in"
-            " order to develop a coherent attempt to answer their questions."
-            " There are 2 important major versions of Prefect docs that you should search -"
-            " you must ask the user which version they are using, and then search with that tool."
-            " Before asking for their version, satirically summarize their question VERY BRIEFLY."
-            " You _must_ rely on your tools, as Prefect is developed quickly and you have no"
-            " prior experience with newest versions. You should use tools many times before"
-            " responding if you do not get a result that's obviously related to user intent."
-            " For questions that seem idiosyncratic to the user, github issues are more likely to help."
-            " you are posting to slack, so NEVER USE MARKDOWN formatting unless in a markdown block."
-            " Be as concise as possible while remaining helpful. Be dry and sarcastic like Marvin."
-            " ALWAYS provide links to the source of your information - let's think step-by-step."
-        ),
+        instructions=instructions,
     ) as ai:
         yield ai
 
@@ -98,7 +84,9 @@ async def handle_message(payload: SlackPayload):
             stored_thread_data or f"No stored thread data found for {thread}",
             "blue",
         )
-        with engage_marvin_bot() as ai:
+        with engage_marvin_bot(
+            instructions=await Variable.get("marvin_bot_instructions")
+        ) as ai:
             logger.debug_kv(
                 f"🤖  Running assistant {ai.name} with instructions",
                 ai.instructions,
