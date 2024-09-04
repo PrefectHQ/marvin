@@ -24,8 +24,7 @@ dependencies = [
     "tiktoken>=0.4.0",
     "typer>=0.9.0",
     "typing_extensions>=4.0.0",
-    # need for windows
-    "tzdata>=2023.3",
+    "tzdata>=2023.3",           # need for windows
     "uvicorn>=0.22.0",
     "partialjson>=0.0.5",
 ]
@@ -33,7 +32,7 @@ dependencies = [
 [project.optional-dependencies]
 generator = ["datamodel-code-generator>=0.20.0"]
 chromadb = ["chromadb"]
-prefect = ["prefect>=2.14.9"]
+prefect = ["prefect@git+https://github.com/PrefectHQ/prefect.git"]
 dev = [
     "marvin[tests]",
     "black[jupyter]",
@@ -46,7 +45,6 @@ dev = [
     "mkdocstrings[python]~=0.22",
     "pdbpp~=0.10",
     "pre-commit>=2.21,<4.0",
-    "pydantic[dotenv]",
     "ruff",
 ]
 tests = [

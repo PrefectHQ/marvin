@@ -4,13 +4,15 @@ from typing import Literal
 import httpx
 import marvin
 import turbopuffer as tpuf
+from prefect import task
 from prefect.blocks.system import Secret
 from raggy.vectorstores.tpuf import multi_query_tpuf
 
 Topic = Literal["latest_prefect_version"]
 
 
-async def search_prefect_docs(queries: list[str]) -> str:
+@task
+async def search_prefect_2x_docs(queries: list[str]) -> str:
     """Searches the Prefect documentation for the given queries.
 
     It is best to use more than one, short query to get the best results.
@@ -24,9 +26,28 @@ async def search_prefect_docs(queries: list[str]) -> str:
 
     """
     if not tpuf.api_key:
-        tpuf.api_key = (await Secret.load("tpuf-api-key")).get()
+        tpuf.api_key = (await Secret.load("tpuf-api-key")).get()  # type: ignore
 
-    return await multi_query_tpuf(queries, namespace="marvin-slackbot")
+    return await multi_query_tpuf(queries, namespace="prefect-2")
+
+
+@task
+async def search_prefect_3x_docs(queries: list[str]) -> str:
+    """Searches the Prefect documentation for the given queries.
+
+    It is best to use more than one, short query to get the best results.
+
+    For example, given a question like:
+    "Is there a way to get the task_run_id for a task from a flow run?"
+
+    You might use the following queries:
+    - "retrieve task run id from flow run"
+
+    """
+    if not tpuf.api_key:
+        tpuf.api_key = (await Secret.load("tpuf-api-key")).get()  # type: ignore
+
+    return await multi_query_tpuf(queries, namespace="prefect-3")
 
 
 async def get_latest_release_notes() -> str:
@@ -41,6 +62,7 @@ async def get_latest_release_notes() -> str:
 tool_map = {"latest_prefect_version": get_latest_release_notes}
 
 
+@task
 async def get_info(topic: Topic) -> str:
     """A tool that returns information about a topic using
     one of many pre-existing helper functions. You need only
@@ -53,8 +75,8 @@ async def get_info(topic: Topic) -> str:
     try:
         maybe_coro = tool_map[topic]()
         if inspect.iscoroutine(maybe_coro):
-            return await maybe_coro
-        return maybe_coro
+            return await maybe_coro  # type: ignore
+        return maybe_coro  # type: ignore
     except KeyError:
         raise ValueError(f"Invalid topic: {topic}")
 

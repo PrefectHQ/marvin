@@ -1,4 +1,5 @@
 """Module for Slack-related utilities."""
+
 import os
 import re
 from typing import List, Optional, Union
@@ -99,6 +100,8 @@ def convert_md_links_to_slack(text) -> str:
 
     # Replace Markdown links with Slack-style links
     slack_text = re.sub(md_link_pattern, to_slack_link, text)
+
+    slack_text = re.sub(r"\*\*(.*?)\*\*", r"*\1*", slack_text)
 
     return slack_text
 

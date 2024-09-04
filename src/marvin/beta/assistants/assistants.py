@@ -56,14 +56,15 @@ class Assistant(BaseModel, ExposeSyncMethodsMixin):
         metadata (dict): Additional data about the assistant.
     """
 
-    id: Optional[str] = None
     name: str = "Assistant"
+
+    id: Optional[str] = None
     description: Optional[str] = None
     instructions: Optional[str] = Field(None)
-    model: str = Field(None, validate_default=True)
-    tools: list[Union[AssistantTool, Callable]] = []
-    tool_resources: dict[str, Any] = {}
-    metadata: dict[str, str] = {}
+    model: Optional[str] = Field(None, validate_default=True)
+    tools: list[Union[AssistantTool, Callable]] = Field(default_factory=list)
+    tool_resources: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, str] = Field(default_factory=dict)
     response_format: Optional[Union[Literal["auto"], AssistantResponseFormat]] = "auto"
     # context level tracks nested assistant contexts
     _context_level: int = PrivateAttr(0)
