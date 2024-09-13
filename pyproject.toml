@@ -52,7 +52,7 @@ tests = [
     "pytest-env>=0.8,<2.0",
     "pytest-rerunfailures>=10,<14",
     "pytest-sugar>=0.9,<2.0",
-    "pytest~=7.3.1",
+    "pytest>=7.3.1,<8.4.0",
     "pytest-timeout",
     "pytest-xdist",
 ]
