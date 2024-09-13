@@ -3,6 +3,7 @@ import os
 import re
 import warnings
 from contextlib import contextmanager
+from typing import cast
 
 import marvin
 import uvicorn
@@ -37,7 +38,7 @@ warnings.filterwarnings("ignore")
 @contextmanager
 def engage_marvin_bot(instructions: str):
     with Assistant(
-        model="gpt-4o",
+        model=cast(str, Variable.get("marvin_bot_model", "gpt-4o")),
         name="Marvin (from Hitchhiker's Guide to the Galaxy)",
         tools=[
             search_prefect_2x_docs,
