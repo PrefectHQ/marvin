@@ -90,6 +90,7 @@ def get_assistant_file_path(name: str) -> Path:
 
 def save_assistant(assistant_data: AssistantData):
     assistant_file = get_assistant_file_path(assistant_data.name)
+    assistant_file.parent.mkdir(parents=True, exist_ok=True)
     assistant_file.write_text(assistant_data.model_dump_json())
 
 
