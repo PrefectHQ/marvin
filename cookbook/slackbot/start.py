@@ -36,9 +36,9 @@ warnings.filterwarnings("ignore")
 
 
 @contextmanager
-def engage_marvin_bot(instructions: str):
+def engage_marvin_bot(instructions: str, model: str):
     with Assistant(
-        model=cast(str, Variable.get("marvin_bot_model", "gpt-4o")),
+        model=model,
         name="Marvin (from Hitchhiker's Guide to the Galaxy)",
         tools=[
             search_prefect_2x_docs,
@@ -86,7 +86,8 @@ async def handle_message(payload: SlackPayload):
             "blue",
         )
         with engage_marvin_bot(
-            instructions=await Variable.get("marvin_bot_instructions")
+            instructions=await Variable.get("marvin_bot_instructions"),
+            model=cast(str, await Variable.get("marvin_bot_model", "gpt-4o")),
         ) as ai:
             logger.debug_kv(
                 f"🤖  Running assistant {ai.name} with instructions",
