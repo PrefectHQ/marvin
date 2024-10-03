@@ -22,7 +22,6 @@ from prefect import flow, task
 from prefect.states import Completed
 from prefect.variables import Variable
 from tools import (
-    get_info,
     search_prefect_2x_docs,
     search_prefect_3x_docs,
 )
@@ -44,7 +43,6 @@ def engage_marvin_bot(instructions: str, model: str):
             search_prefect_2x_docs,
             search_prefect_3x_docs,
             search_github_issues,
-            get_info,
         ],
         instructions=instructions,
     ) as ai:

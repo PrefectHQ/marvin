@@ -1,4 +1,3 @@
-import inspect
 from typing import Literal
 
 import httpx
@@ -48,37 +47,6 @@ async def search_prefect_3x_docs(queries: list[str]) -> str:
         tpuf.api_key = (await Secret.load("tpuf-api-key")).get()  # type: ignore
 
     return await multi_query_tpuf(queries, namespace="prefect-3")
-
-
-async def get_latest_release_notes() -> str:
-    """Gets the first whole h2 section from the Prefect RELEASE_NOTES.md file."""
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://raw.githubusercontent.com/PrefectHQ/prefect/main/RELEASE-NOTES.md"
-        )
-        return response.text.split("\n## ")[1]
-
-
-tool_map = {"latest_prefect_version": get_latest_release_notes}
-
-
-@task
-async def get_info(topic: Topic) -> str:
-    """A tool that returns information about a topic using
-    one of many pre-existing helper functions. You need only
-    provide the topic name, and the appropriate function will
-    return information.
-
-    As of now, the only topic is "latest_prefect_version".
-    """
-
-    try:
-        maybe_coro = tool_map[topic]()
-        if inspect.iscoroutine(maybe_coro):
-            return await maybe_coro  # type: ignore
-        return maybe_coro  # type: ignore
-    except KeyError:
-        raise ValueError(f"Invalid topic: {topic}")
 
 
 async def get_prefect_code_example(related_to: str) -> str:
