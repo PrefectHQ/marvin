@@ -49,6 +49,16 @@ async def search_prefect_3x_docs(queries: list[str]) -> str:
     return await multi_query_tpuf(queries, namespace="prefect-3")
 
 
+async def get_latest_prefect_release_notes() -> str:
+    """Gets the latest Prefect release notes"""
+    url = "https://api.github.com/repos/PrefectHQ/prefect/releases/latest"
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url)
+        release_notes = response.json().get("body")
+        return release_notes
+
+
 async def get_prefect_code_example(related_to: str) -> str:
     """Gets a Prefect code example"""
 

@@ -22,6 +22,7 @@ from prefect import flow, task
 from prefect.states import Completed
 from prefect.variables import Variable
 from tools import (
+    get_latest_prefect_release_notes,
     search_prefect_2x_docs,
     search_prefect_3x_docs,
 )
@@ -40,6 +41,7 @@ def engage_marvin_bot(instructions: str, model: str):
         model=model,
         name="Marvin (from Hitchhiker's Guide to the Galaxy)",
         tools=[
+            get_latest_prefect_release_notes,
             search_prefect_2x_docs,
             search_prefect_3x_docs,
             search_github_issues,
