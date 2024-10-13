@@ -13,6 +13,9 @@ def mocked_client():
     return client
 
 
+pytest.skip("Assistants API is not stable", allow_module_level=True)
+
+
 @pytest.fixture(autouse=True)
 def mock_get_client(monkeypatch):
     # Use monkeypatch to replace get_client with special_get_client

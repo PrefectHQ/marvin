@@ -40,10 +40,13 @@ class TestVisionCaption:
             "https://images.unsplash.com/photo-1617581629397-a72507c3de9e"
         )
 
-        result = marvin.caption([img_ny, img_dc], instructions="what city is this?")
+        result = marvin.caption([img_ny, img_dc], instructions="what cities are these?")
 
         assert_equal(
             result,
             "New York City; Washington DC",
-            instructions="A caption was generated for two images. Ensure it mentions both cities.",
+            instructions=(
+                "A caption was generated for two images. Ensure it mentions both cities"
+                " but don't enforce the exact text, i.e. D.C. ~= Washington DC"
+            ),
         )
