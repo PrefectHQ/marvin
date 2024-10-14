@@ -19,6 +19,7 @@ from marvin.utilities.slack import (
 )
 from marvin.utilities.strings import count_tokens, slice_tokens
 from prefect import flow, task
+from prefect.blocks.notifications import SlackWebhook
 from prefect.states import Completed
 from prefect.variables import Variable
 from tools import (
@@ -126,7 +127,16 @@ app = FastAPI()
 
 @app.post("/chat")
 async def chat_endpoint(request: Request):
-    payload = SlackPayload(**await request.json())
+    try:
+        payload = SlackPayload(**await request.json())
+    except Exception as e:
+        logger.error(f"Error parsing Slack payload: {e}")
+        slack_webhook = await SlackWebhook.load("marvin-bot-pager")
+        await slack_webhook.notify(  # type: ignore
+            body=f"Error parsing Slack payload: {e}",
+            subject="Slackbot Error",
+        )
+        raise HTTPException(400, "Invalid event type")
     match payload.type:
         case "event_callback":
             options = dict(
