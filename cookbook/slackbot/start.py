@@ -156,6 +156,7 @@ async def chat_endpoint(request: Request):
 
 if __name__ == "__main__":
     if not os.getenv("OPENAI_API_KEY", None):  # TODO: Remove this
-        os.environ["OPENAI_API_KEY"] = marvin.settings.openai.api_key.get_secret_value()
+        assert (api_key := marvin.settings.openai.api_key), "OPENAI_API_KEY not set"
+        os.environ["OPENAI_API_KEY"] = api_key.get_secret_value()
 
     uvicorn.run(app, host="0.0.0.0", port=4200)
