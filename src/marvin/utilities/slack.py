@@ -2,10 +2,10 @@
 
 import os
 import re
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import httpx
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
 
 import marvin
 
@@ -31,7 +31,7 @@ class SlackEvent(BaseModel):
     client_msg_id: Optional[str] = None
     type: str
     text: Optional[str] = None
-    user: Optional[str] = None
+    user: Union[str, Dict[str, Any], None] = None
     ts: Optional[str] = None
     team: Optional[str] = None
     channel: Optional[str] = None
@@ -39,6 +39,13 @@ class SlackEvent(BaseModel):
     thread_ts: Optional[str] = None
     parent_user_id: Optional[str] = None
     blocks: Optional[List[EventBlock]] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def extract_user_id(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+        if isinstance(data.get("user"), dict):
+            data["user"] = data["user"].get("id")
+        return data
 
 
 class EventAuthorization(BaseModel):
@@ -63,8 +70,10 @@ class SlackPayload(BaseModel):
     challenge: Optional[str] = None
 
     @field_validator("event")
-    def validate_event(cls, v: Optional[SlackEvent]) -> Optional[SlackEvent]:
-        if v.type != "url_verification" and v is None:
+    def validate_event(
+        cls, v: Optional[SlackEvent], info: ValidationInfo
+    ) -> Optional[SlackEvent]:
+        if v is None and info.data.get("type") != "url_verification":
             raise ValueError("event is required")
         return v
 
