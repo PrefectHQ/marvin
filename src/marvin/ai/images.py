@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import TypeVar
+from typing import TypeVar, Optional, Dict, Any
 
 from openai.types.images_response import ImagesResponse
 
@@ -15,11 +15,10 @@ T = TypeVar("T")
 
 logger = get_logger(__name__)
 
-
 async def generate_image(
     prompt_template: str,
-    prompt_kwargs: dict = None,
-    model_kwargs: dict = None,
+    prompt_kwargs: Optional[Dict[str, Any]] = None,
+    model_kwargs: Optional[Dict[str, Any]] = None,
 ) -> ImagesResponse:
     """
     Generates an image based on a provided prompt template.
@@ -46,19 +45,22 @@ async def generate_image(
     request = ImageRequest(prompt=prompt.strip(), **model_kwargs)
     if marvin.settings.log_verbose:
         logger.debug_kv("Request", request.model_dump_json(indent=2))
-    response = await client.generate_image(**request.model_dump())
-    if marvin.settings.log_verbose:
-        logger.debug_kv("Response", response.model_dump_json(indent=2))
 
-    return response
-
+    try:
+        response = await client.generate_image(**request.model_dump())
+        if marvin.settings.log_verbose:
+            logger.debug_kv("Response", response.model_dump_json(indent=2))
+        return response
+    except Exception as e:
+        logger.error(f"Error generating image: {e}")
+        raise
 
 async def paint_async(
-    instructions: str = None,
-    context: dict = None,
+    instructions: Optional[str] = None,
+    context: Optional[Dict[str, Any]] = None,
     literal: bool = False,
-    model_kwargs: dict = None,
-):
+    model_kwargs: Optional[Dict[str, Any]] = None,
+) -> ImagesResponse:
     """
     Generates an image based on the provided instructions and context.
 
@@ -79,24 +81,27 @@ async def paint_async(
         ImagesResponse: The response from the DALLE-3 API, which includes the
             generated image.
     """
-    response = await generate_image(
-        prompt_template=IMAGE_PROMPT,
-        prompt_kwargs=dict(
-            instructions=instructions,
-            context=context,
-            literal=literal,
-        ),
-        model_kwargs=model_kwargs,
-    )
-    return response
-
+    try:
+        response = await generate_image(
+            prompt_template=IMAGE_PROMPT,
+            prompt_kwargs=dict(
+                instructions=instructions,
+                context=context,
+                literal=literal,
+            ),
+            model_kwargs=model_kwargs,
+        )
+        return response
+    except Exception as e:
+        logger.error(f"Error painting image: {e}")
+        raise
 
 def paint(
-    instructions: str = None,
-    context: dict = None,
+    instructions: Optional[str] = None,
+    context: Optional[Dict[str, Any]] = None,
     literal: bool = False,
-    model_kwargs: dict = None,
-):
+    model_kwargs: Optional[Dict[str, Any]] = None,
+) -> ImagesResponse:
     """
     Generates an image based on the provided instructions and context.
 
@@ -117,8 +122,11 @@ def paint(
         ImagesResponse: The response from the DALLE-3 API, which includes the
             generated image.
     """
-    return run_sync(paint_async(instructions, context, literal, model_kwargs))
-
+    try:
+        return run_sync(paint_async(instructions, context, literal, model_kwargs))
+    except Exception as e:
+        logger.error(f"Error generating image synchronously: {e}")
+        raise
 
 def image(fn=None, *, literal: bool = False):
     """
@@ -146,13 +154,17 @@ def image(fn=None, *, literal: bool = False):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            prompt = func(*args, **kwargs)
-            if prompt is None:
-                raise ValueError(
-                    f"Function `{func.__name__}` returned `None`. Please return a"
-                    " string to use as instructions for image generation."
-                )
-            return paint(instructions=prompt, literal=literal)
+            try:
+                prompt = func(*args, **kwargs)
+                if prompt is None:
+                    raise ValueError(
+                        f"Function `{func.__name__}` returned `None`. Please return a"
+                        " string to use as instructions for image generation."
+                    )
+                return paint(instructions=prompt, literal=literal)
+            except Exception as e:
+                logger.error(f"Error in image decorator: {e}")
+                raise
 
         return wrapper
 
@@ -160,3 +172,19 @@ def image(fn=None, *, literal: bool = False):
         return decorator
     else:
         return decorator(fn)
+
+# Example unit test using the pytest framework
+def test_image_decorator():
+    @image
+    def generate_instructions():
+        return "Create an image of a sunset."
+
+    try:
+        response = generate_instructions()
+        assert isinstance(response, ImagesResponse)
+        assert len(response.data) > 0
+    except Exception as e:
+        logger.error(f"Test failed: {e}")
+
+if __name__ == "__main__":
+    test_image_decorator()
