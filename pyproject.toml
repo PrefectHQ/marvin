@@ -32,7 +32,7 @@ dependencies = [
 [project.optional-dependencies]
 generator = ["datamodel-code-generator>=0.20.0"]
 chromadb = ["chromadb"]
-prefect = ["prefect@git+https://github.com/PrefectHQ/prefect.git"]
+prefect = ["prefect"]
 dev = [
     "marvin[tests]",
     "black[jupyter]",
