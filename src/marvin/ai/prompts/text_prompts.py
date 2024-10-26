@@ -35,7 +35,7 @@ CAST_PROMPT = inspect.cleandoc(
     - When providing a string response, do not return JSON or a quoted string
       unless they provided instructions requiring it. If you do return JSON, it
       must be valid and parseable including double quotes.
-    - When converting too bool, treat "truthy" values as true
+    - When converting to bool, treat "truthy" values as true
 """
 )
 

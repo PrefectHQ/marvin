@@ -13,7 +13,7 @@ on:
 
 env:
   MKDOCS_SOCIAL_CARDS: ${{ vars.MKDOCS_SOCIAL_CARDS }}
-  MKDOCS_MATERIAL_INSIDERS_REPO_RO: ${{ secrets.MKDOCS_MATERIAL_INSIDERS_REPO_RO }}
+  MKDOCS_MATERIAL_INSIDERS_CONTENTS_RO: ${{ secrets.MKDOCS_MATERIAL_INSIDERS_CONTENTS_RO }}
 
 permissions:
   contents: write
@@ -34,7 +34,7 @@ jobs:
         run: pip install -U uv && uv venv
       
       - name: Install Material Insiders
-        run: pip install git+https://oauth:${MKDOCS_MATERIAL_INSIDERS_REPO_RO}@github.com/PrefectHQ/mkdocs-material-insiders.git
+        run: pip install git+https://oauth:${MKDOCS_MATERIAL_INSIDERS_CONTENTS_RO}@github.com/PrefectHQ/mkdocs-material-insiders.git
 
       # for now, only install mkdocs. In the future may need to install Marvin itself.
       - name: Install dependencies for MKDocs Material

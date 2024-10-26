@@ -19,10 +19,11 @@ from marvin.utilities.slack import (
 )
 from marvin.utilities.strings import count_tokens, slice_tokens
 from prefect import flow, task
+from prefect.blocks.notifications import SlackWebhook
 from prefect.states import Completed
 from prefect.variables import Variable
 from tools import (
-    get_info,
+    get_latest_prefect_release_notes,
     search_prefect_2x_docs,
     search_prefect_3x_docs,
 )
@@ -41,10 +42,10 @@ def engage_marvin_bot(instructions: str, model: str):
         model=model,
         name="Marvin (from Hitchhiker's Guide to the Galaxy)",
         tools=[
+            get_latest_prefect_release_notes,
             search_prefect_2x_docs,
             search_prefect_3x_docs,
             search_github_issues,
-            get_info,
         ],
         instructions=instructions,
     ) as ai:
@@ -126,14 +127,30 @@ app = FastAPI()
 
 @app.post("/chat")
 async def chat_endpoint(request: Request):
-    payload = SlackPayload(**await request.json())
+    try:
+        payload = SlackPayload(**await request.json())
+    except Exception as e:
+        logger.error(f"Error parsing Slack payload: {e}")
+        slack_webhook = await SlackWebhook.load("marvin-bot-pager")
+        await slack_webhook.notify(  # type: ignore
+            body=f"Error parsing Slack payload: {e}",
+            subject="Slackbot Error",
+        )
+        raise HTTPException(400, "Invalid event type")
     match payload.type:
         case "event_callback":
-            options = dict(
-                flow_run_name=(
-                    "respond in"
-                    f" {await get_channel_name(payload.event.channel)}/{payload.event.thread_ts}"
+            channel_name = await get_channel_name(payload.event.channel)
+            if channel_name.startswith("D"):
+                # This is a DM channel, we should not respond
+                logger.warning(f"Attempted to respond in DM channel: {channel_name}")
+                slack_webhook = await SlackWebhook.load("marvin-bot-pager")
+                await slack_webhook.notify(
+                    body=f"Attempted to respond in DM channel: {channel_name}",
+                    subject="Slackbot DM Warning",
                 )
+                return Completed(message="Skipped DM channel", name="SKIPPED")
+            options = dict(
+                flow_run_name=f"respond in {channel_name}/{payload.event.thread_ts}"
             )
             asyncio.create_task(handle_message.with_options(**options)(payload))
         case "url_verification":
@@ -146,6 +163,7 @@ async def chat_endpoint(request: Request):
 
 if __name__ == "__main__":
     if not os.getenv("OPENAI_API_KEY", None):  # TODO: Remove this
-        os.environ["OPENAI_API_KEY"] = marvin.settings.openai.api_key.get_secret_value()
+        assert (api_key := marvin.settings.openai.api_key), "OPENAI_API_KEY not set"
+        os.environ["OPENAI_API_KEY"] = api_key.get_secret_value()
 
     uvicorn.run(app, host="0.0.0.0", port=4200)
