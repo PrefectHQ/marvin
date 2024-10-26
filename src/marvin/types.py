@@ -161,6 +161,8 @@ class ResponseModel(MarvinType):
 
 
 class ChatRequest(Prompt[T]):
+    model_config = dict(extra="allow")
+
     model: str = Field(default_factory=lambda: settings.openai.chat.completions.model)
     frequency_penalty: Optional[
         Annotated[float, Field(strict=True, ge=-2.0, le=2.0)]
@@ -177,6 +179,8 @@ class ChatRequest(Prompt[T]):
     )
     top_p: Optional[Annotated[float, Field(strict=True, ge=0, le=1)]] = 1
     user: Optional[str] = None
+    logprobs: Optional[bool] = None
+    max_completion_tokens: Optional[Annotated[int, Field(strict=True, ge=1)]] = None
 
 
 class TranscriptRequest(MarvinType):
