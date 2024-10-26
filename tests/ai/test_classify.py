@@ -125,7 +125,7 @@ class TestClassify:
     class TestExamples:
         @pytest.mark.flaky(max_runs=3)
         async def test_hogwarts_sorting_hat(self):
-            description = "Brave, daring, chivalrous -- canonical Harry or James Potter"
+            description = "Brave, daring, chivalrous -- Ron, Harry, and Hermione"
 
             house = marvin.classify(
                 description,
