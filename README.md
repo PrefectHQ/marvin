@@ -7,7 +7,7 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
 
 # Marvin
-<a name="top">Back To Top</a>
+<a name="top"></a>
 
 ### The AI engineering toolkit
 
