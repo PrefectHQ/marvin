@@ -7,6 +7,7 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
 
 # Marvin
+<a name="top">Back To Top</a>
 
 ### The AI engineering toolkit
 
@@ -20,6 +21,9 @@ Marvin aims to merge the best practices for building dependable, observable soft
 
 Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](https://www.prefect.io/).
 
+
+[⬆️ Back to top](#top)
+
 ## Installation
 
 Install the latest version with `pip`:
@@ -30,9 +34,12 @@ pip install marvin -U
 
 To verify your installation, run `marvin version` in your terminal.
 
+
 ## Tools
 
 Marvin consists of a variety of useful tools, all designed to be used independently. Each one represents a common LLM use case, and packages that power into a simple, self-documenting interface.
+
+[⬆️ Back to top](#top)
 
 ### General
 
@@ -77,6 +84,8 @@ Marvin consists of a variety of useful tools, all designed to be used independen
 🤖 [Chat with assistants](https://askmarvin.ai/docs/interactive/assistants) and use custom tools
 
 🧭 [Build applications](https://askmarvin.ai/docs/interactive/applications) that manage persistent state
+
+[⬆️ Back to top](#top)
 
 # Quickstart
 
@@ -200,6 +209,8 @@ Location("The Big Apple")
 
 Learn more about casting to types [here](https://askmarvin.ai/docs/text/transformation).
 
+[⬆️ Back to top](#top)
+
 ## 🦾 Build AI-powered functions
 
 Marvin functions let you combine any inputs, instructions, and output types to create custom AI-powered behaviors... without source code. These functions can go well beyond the capabilities of `extract` or `classify`, and are ideal for complex natural language processing or mapping combinations of inputs to outputs.
@@ -221,6 +232,8 @@ Marvin functions look exactly like regular Python functions, except that you don
 Note that Marvin does NOT work by generating or executing source code, which would be unsafe for most use cases. Instead, it uses the LLM itself as a "runtime" to predict function outputs. That's actually the source of its power: Marvin functions can handle complex use cases that would be difficult or impossible to express as code.
 
 You can learn more about functions [here](https://www.askmarvin.ai/docs/text/functions/).
+
+[⬆️ Back to top](#top)
 
 ## 🖼️ Generate images from text
 
@@ -273,10 +286,29 @@ ai_audio = marvin.speak(ai_text)
 ai_audio.play()
 ```
 
+
+[⬆️ Back to top](#top)
+
 # Get in touch!
 
-💡 **Feature idea?** share it in the `#development` channel in [our Discord](https://discord.com/invite/Kgw4HpcuYG).
+## Reporting Vulnerabilities
 
-🐛 **Found a bug?** feel free to [open an issue](https://github.com/PrefectHQ/marvin/issues/new/choose).
+We take security seriously and encourage users to report any vulnerabilities. Please follow these guidelines to ensure a safe and efficient disclosure process.
 
-👷 **Feedback?** Marvin is under active development, and we'd love to [hear it](https://github.com/PrefectHQ/marvin/discussions).
+### Reporting a Bug or Vulnerability
+
+🐛 **Found a bug?** If you've identified a bug that might pose a security risk, please [open an issue](https://github.com/PrefectHQ/marvin/issues/new/choose) to inform us. We’ll work to address it as quickly as possible. For security-related issues, please mark the issue as "confidential" to limit visibility.
+
+### Feature Requests
+
+💡 **Have a feature idea?** We’re open to new ideas for Marvin's development. Share your suggestions in the `#development` channel on [our Discord](https://discord.com/invite/Kgw4HpcuYG), and let us know how we can make Marvin better.
+
+### General Feedback
+
+👷 **Got feedback?** Marvin is under active development, and your feedback is valuable. Join [our discussions](https://github.com/PrefectHQ/marvin/discussions) on GitHub to share your thoughts or improvements.
+
+## Contact Us
+
+For urgent security concerns, please reach out via [our Discord](https://discord.com/invite/Kgw4HpcuYG) or submit a report on GitHub. We appreciate the community's support in helping us keep Marvin secure and continuously improving.
+
+[⬆️ Back to top](#top)
