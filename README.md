@@ -10,13 +10,13 @@
 
 ### The AI engineering toolkit
 
-Marvin is a lightweight AI toolkit for building natural language interfaces that are reliable, scalable, and easy to trust.
+Marvin is a lightweight AI toolkit for building reliable, scalable, and easy-to-trust natural language interfaces.
 
-Each of Marvin's tools is simple and self-documenting, using AI to solve common but complex challenges like entity extraction, classification, and generating synthetic data. Each tool is independent and incrementally adoptable, so you can use them on their own or in combination with any other library. Marvin is also multi-modal, supporting both image and audio generation as well as using images as inputs for extraction and classification.
+Each of Marvin's tools is simple and self-documenting. It uses AI to solve common but complex challenges like entity extraction, classification, and generating synthetic data. Each tool is independent and incrementally adoptable, so you can use it on its own or in combination with any other library. Marvin is also multi-modal, supporting both image and audio generation and using images as inputs for extraction and classification.
 
-Marvin is for developers who care more about _using_ AI than _building_ AI, and we are focused on creating an exceptional developer experience. Marvin users should feel empowered to bring tightly-scoped "AI magic" into any traditional software project with just a few extra lines of code.
+Marvin is for developers who care more about _using_ AI than _building_ AI. We are focused on creating an exceptional developer experience. Marvin users should feel empowered to bring tightly scoped "AI magic" into any traditional software project with just a few extra lines of code.
 
-Marvin aims to merge the best practices for building dependable, observable software with the best practices for building with generative AI into a single, easy-to-use library. It's a serious tool, but we hope you have fun with it.
+Marvin aims to merge the best practices for building dependable, observable software with the best practices for building generative AI into a single, easy-to-use library. It's a serious tool, but we hope you have fun with it.
 
 Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](https://www.prefect.io/).
 
@@ -32,7 +32,7 @@ To verify your installation, run `marvin version` in your terminal.
 
 ## Tools
 
-Marvin consists of a variety of useful tools, all designed to be used independently. Each one represents a common LLM use case, and packages that power into a simple, self-documenting interface.
+Marvin consists of a variety of useful tools, all designed to be used independently. Each one represents a common LLM use case and packages that power into a simple, self-documenting interface.
 
 ### General
 
@@ -218,7 +218,7 @@ sentiment("These examples could use some work...") # -0.2
 
 Marvin functions look exactly like regular Python functions, except that you don't have to write any source code. When these functions are called, an AI interprets their description and inputs and generates the output.
 
-Note that Marvin does NOT work by generating or executing source code, which would be unsafe for most use cases. Instead, it uses the LLM itself as a "runtime" to predict function outputs. That's actually the source of its power: Marvin functions can handle complex use cases that would be difficult or impossible to express as code.
+Note that Marvin does NOT work by generating or executing source code, which would be unsafe for most use cases. Instead, it uses the LLM itself as a "runtime" to predict function outputs. That's the source of its power: Marvin functions can handle complex use cases that would be difficult or impossible to express as code.
 
 You can learn more about functions [here](https://www.askmarvin.ai/docs/text/functions/).
 
