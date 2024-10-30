@@ -202,7 +202,7 @@ Learn more about casting to types [here](https://askmarvin.ai/docs/text/transfor
 
 ## 🦾 Build AI-powered functions
 
-Marvin functions let you combine any inputs, instructions, and output types to create custom AI-powered behaviors... without source code. These functions can go well beyond the capabilities of `extract` or `classify`, and are ideal for complex natural language processing or mapping combinations of inputs to outputs.
+Marvin functions let you combine any inputs, instructions, and output types to create custom AI-powered behaviors... without source code. These functions can go well beyond the capabilities of `extract` or `classify` and are ideal for complex natural language processing or mapping combinations of inputs to outputs.
 
 ```python
 @marvin.fn
