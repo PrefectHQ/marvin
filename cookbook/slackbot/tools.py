@@ -51,7 +51,9 @@ async def search_prefect_3x_docs(queries: list[str]) -> str:
 
 @task
 async def search_controlflow_docs(queries: list[str]) -> str:
-    """Searches the Prefect documentation for the given queries.
+    """Searches the ControlFlow documentation for the given queries.
+
+    ControlFlow is an agentic framework built on top of Prefect 3.x.
 
     It is best to use more than one, short query to get the best results.
     """
