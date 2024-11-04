@@ -49,6 +49,15 @@ async def search_prefect_3x_docs(queries: list[str]) -> str:
     return await multi_query_tpuf(queries, namespace="prefect-3")
 
 
+@task
+async def search_controlflow_docs(queries: list[str]) -> str:
+    """Searches the Prefect documentation for the given queries.
+
+    It is best to use more than one, short query to get the best results.
+    """
+    return await multi_query_tpuf(queries, namespace="controlflow")
+
+
 async def get_latest_prefect_release_notes() -> str:
     """Gets the latest Prefect release notes"""
     url = "https://api.github.com/repos/PrefectHQ/prefect/releases/latest"

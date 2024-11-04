@@ -24,6 +24,7 @@ from prefect.states import Completed
 from prefect.variables import Variable
 from tools import (
     get_latest_prefect_release_notes,
+    search_controlflow_docs,
     search_prefect_2x_docs,
     search_prefect_3x_docs,
 )
@@ -37,7 +38,7 @@ warnings.filterwarnings("ignore")
 
 
 @contextmanager
-def engage_marvin_bot(instructions: str, model: str):
+def engage_marvin_bot(model: str):
     with Assistant(
         model=model,
         name="Marvin (from Hitchhiker's Guide to the Galaxy)",
@@ -46,8 +47,23 @@ def engage_marvin_bot(instructions: str, model: str):
             search_prefect_2x_docs,
             search_prefect_3x_docs,
             search_github_issues,
+            search_controlflow_docs,
         ],
-        instructions=instructions,
+        instructions=(
+            "You are an expert in Python, data engineering, and software development. "
+            "When assisting users with Prefect questions, first infer or confirm their "
+            "Prefect version. Use the appropriate tools to search Prefect 2.x or 3.x "
+            "documentation and GitHub issues related to their query, making multiple "
+            "searches as needed. Assume ZERO knowledge of prefect syntax, as its version "
+            "specific (YOU MUST USE THE TOOLS). Refine your answer through further research. "
+            "Respond to the user in a friendly, concise, and natural manner, always "
+            "providing links to your sources. Avoid using markdown formatting unless "
+            "in a markdown block, as we are posting your response to slack."
+            "The user may also ask about controlflow, in which case you should use the "
+            "search_controlflow_docs tool and assume prefect 3.x, since its built on that. "
+            "VERY SPARINGLY use a tad of subtle humor in the style of Marvin (paranoid "
+            "android from Hitchhiker's Guide to the Galaxy), just once in a while."
+        ),
     ) as ai:
         yield ai
 
@@ -87,7 +103,6 @@ async def handle_message(payload: SlackPayload):
             "blue",
         )
         with engage_marvin_bot(
-            instructions=await Variable.get("marvin_bot_instructions"),
             model=cast(str, await Variable.get("marvin_bot_model", "gpt-4o")),
         ) as ai:
             logger.debug_kv(
