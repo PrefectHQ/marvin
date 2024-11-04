@@ -107,13 +107,13 @@ To create an AI application, you need two things: some instructions on how you w
 
 ### Instructions
 
-Application instructions are a natural language string that defines its behavior. In the above example, it was sufficient to tell the application that it was "a todo application" because that is a well-understood concept with a relatively small set of possible interactions. Moreover, the state object we provided was structured in a way that implicitly defined the application's behavior.
+Application instructions are a natural language string that define its behavior. In the above example, it was sufficient to tell the application that it was "a todo application", because that is a well-understood concept with a relatively small set of possible interactions. Moreover, the state object we provided was structured in a way that implicitly defined the application's behavior.
 
-For more complex applications, detailed instructions are key. They define the LLM's objectives, interaction style, and how it manages the state.
+For more complex applications, detailed instructions are key. They define the LLM's objectives, interaction style, and how it manages state.
 
 In a Hitchhiker's Guide-themed game, instructions would direct the LLM to create a whimsical, interactive universe. The LLM would guide players through decisions and scenarios, updating the game state like location or inventory based on player actions. The tone would be humorous and engaging, echoing the book's style, while the LLM's responses and state updates would keep the narrative flowing and interactive. The LLM could use the game state to track narratives privately, without revealing the full story to the player.
 
-In a real estate browsing app, the LLM might act as a virtual realtor, matching properties with user preferences. The tone would be professional and informative, providing detailed descriptions and intuitively responding to refined searches. The LLM would keep track of the user's interactions, tailoring suggestions for a personalized experience, akin to a real-life property search.
+In a real estate browsing app, the LLM might act as a virtual realtor, matching properties with user preferences. The tone would be professional and informative, providing detailed descriptions and intuitively responding to refine searches. The LLM would keep track of the user's interactions, tailoring suggestions for a personalized experience, akin to a real-life property search.
 
 These examples show how instructions encompass not only the functional aspects of state management but also the thematic and interaction elements, which are crucial for creating immersive and effective AI applications.
 
@@ -143,7 +143,7 @@ app = Application(
 ```
 #### Best practices
 
-Regardless of user instructions, the AI application is told that it is the natural-language interface to an application, rather than the application itself. This tends to increase compliance and help it interpret user intent. Moreover, it means that user instructions can freely acknowledge the LLM's role as an interface or describe the application in an LLM-independent manner.
+Regardless of user instructions, the AI application is told that it is the natural-language interface to an application, rather than the application istelf. This tends to increase compliance and help it interpret user intent. Moreover, it means that user instructions can freely acknowledge the LLM's role as an interface or describe the application in an LLM-independent manner.
 
 Some applications, like the todo app, are relatively one-sided in that the user will instruct or query the app and examine its response. Other applications, like games, require more back-and-forth interaction. In these cases, it is important to provide instructions that clearly define the LLM's role. Otherwise, it may ask the user immersion-breaking questions like "Hello! How may I help you with your game application today?"
 
@@ -151,13 +151,13 @@ Some applications, like the todo app, are relatively one-sided in that the user 
 
 The state of an AI application serves as its foundation, defining the structure and the data that the application will manage and interact with. In Marvin, the state is not just a static repository of information but a dynamic entity that evolves with each user interaction.
 
-While it is possible to define the state as an arbitrary dictionary and let the LLM structure it as needed, it is best to define a schema that reflects the application's needs. This approach ensures that the LLM can effectively manage the state and respond to user inputs in a manner that is predictable and consistent. However, using a truly flexible state can leverage the maximum potential of the LLM by allowing it to adapt to new situations and user needs. A hybrid approach involving a structured core with some flexible fields is often the best choice.
+While it is possible to define the state as an arbitrary dictionary and let the LLM structure it as needed, it is best to define a schema that reflects the application's needs. This approach ensures that the LLM can effectively manage the state and respond to user inputs in a manner that is predictable and consistent. However, using a truly flexible state can leverage the maximum potential of the LLM by allowing it to adapt to new situations and user needs. A hybrid approach involving a structured core with some flexibile fields is often the best choice.
 
 For the ToDo application example, the state is straightforward—a list of tasks with attributes like name, due date, and completion status. This simple structure allows the LLM to track and update tasks based on user inputs, ensuring that the application's state always reflects the current situation.
 
-In the case of more complex applications, the state can be multi-dimensional. For instance, in the Hitchhiker's Guide-themed game, the state might include the player's current location, inventory items, and game progress. Each element of the state is crucial for the LLM to provide a coherent and continuous gaming experience. As the player moves through the game, the state updates to reflect discoveries and choices.
+In the case of more complex applications, the state can be multi-dimensional. For instance, in the Hitchhiker's Guide-themed game, the state might include the player's current location, inventory items, and game progress. Each element of the state is crucial for the LLM to provide a coherent and continuous gaming experience. As the player moves through the game, the state updates to reflect new discoveries and choices.
 
-For a real estate browsing app, the state would encompass a database of property listings, each with detailed attributes like location, price, size, and amenities. It would also track user preferences and search history, allowing the LLM to offer tailored property suggestions and refine the search process over time. Preferences might be more free-form since it's difficult to anticipate all the ways a user might want to customize their search.
+For a real estate browsing app, the state would encompass a database of property listings, each with detailed attributes like location, price, size, and amenities. It would also track user preferences and search history, allowing the LLM to offer tailored property suggestions and refine the search process over time. Preferences might be more free-form, since it's difficult to anticipate all the ways a user might want to customize their search.
 
 The design of the state is critical—it must be structured enough to provide consistency and reliability, yet flexible enough to accommodate the diverse and evolving needs of users. By carefully defining the state, developers ensure that the AI application can effectively manage and respond to user interactions, making for a seamless and engaging experience.
 
@@ -213,7 +213,7 @@ app = Application(
 
 #### Freeform state
 
-To create an application with a freeform state, supply a dictionary as the initial state. The LLM will then be able to add and update fields as needed. This approach is useful for applications that need to track a large number of attributes without a well-known structure or that require a flexible state to accommodate user inputs.
+To create an application with freeform state, supply a dictionary as the initial state. The LLM will then be able to add and update fields as needed. This approach is useful for applications that need to track a large number of attributes without a well-known structure or that require a flexible state to accommodate user inputs.
 
 ```python
 from marvin.beta import Application
@@ -223,7 +223,7 @@ app = Application(name='RPG', instructions='A role-playing game', state={})
 
 #### Hybrid state
 
-To create an application with a hybrid state, define a Pydantic model that describes the structured core of the state, and add fields to it that are typed as `dicts` but have no additional structure. The LLM will use the model to validate the structured core of the state but will allow the unstructured fields to be updated freely. This approach is useful for applications that need to track a large number of attributes but also require a structured core to ensure consistency and reliability.
+To create an application with a hybrid state, define a Pydantic model that describes the structured core of the state, and add fields to it that are typed as `dicts` but have no additional structure. The LLM will use the model to validate the structured core of the state, but will allow the unstructured fields to be updated freely. This approach is useful for applications that need to track a large number of attributes but also require a structured core to ensure consistency and reliability.
 
 ```python
 from marvin.beta import Application
@@ -254,13 +254,13 @@ State models are instructions, in a sense. If well designed they guide the LLM t
 
 ### Tools
 
-Like assistants, applications can use tools to perform actions and return results. Applications are always given a built-in tool for updating their state, which operates by issuing JSON patches to the state object. This is a performant and structure-agnostic way to update the state. However, users may want to define their tools for state manipulation to codify more complex logic or handle targeted updates without worrying about the LLM's ability to describe them or know where to apply them.
+Like assistants, applications can use tools to perform actions and return results. Applications are always given a built-in tool for updating their own state, which operates by issuing JSON patches to the state object. This is a performant and structure-agnotistic way to update the state. However, users may want to define their own tools for state manipulation in order to codify more complex logic or handle targeted updates without worrying about the LLM's ability to describe them or know where to apply them.
 
 For more information on using tools, see the [assistants documentation](/docs/interactive/assistants/#tools).
 
 ## Example: ToDo application
 
-Now that we've covered the basics of AI applications, let's build a simple to-do application. The application will allow users to create, update, and delete tasks, as well as query the current list of tasks. The LLM will manage the state, ensuring that it always reflects the current situation.
+Now that we've covered the basics of AI applications, let's build a simple todo application. The application will allow users to create, update, and delete tasks, as well as query the current list of tasks. The LLM will manage the state, ensuring that it always reflects the current situation.
 
 ### State
 
