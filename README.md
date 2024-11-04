@@ -5,6 +5,7 @@
 [![PyPI version](https://badge.fury.io/py/marvin.svg)](https://badge.fury.io/py/marvin)
 [![Docs](https://img.shields.io/badge/docs-askmarvin.ai-blue)](https://www.askmarvin.ai)
 [![Twitter Follow](https://img.shields.io/twitter/follow/AskMarvinAI?style=social)](https://twitter.com/AskMarvinAI)
+[![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20Marvin%20Guru-006BFF)](https://gurubase.io/g/marvin)
 
 # Marvin
 
