@@ -160,12 +160,12 @@ async def chat_endpoint(request: Request):
                 user_id = payload.event.user
                 # get the welcome message from the variable store
                 message_var = await Variable.get("marvin_welcome_message")
-                message = message_var["text"]
+                message_template = message_var["text"]
                 # format the message with the user's id
-                f_string = message.format(user_id=user_id)
+                rendered_message = message_template.format(user_id=user_id)
                 # post the message to the user's DM channel
                 await task(post_slack_message)(
-                    message=(f_string),
+                    message=rendered_message,
                     channel_id=user_id,  # type: ignore
                 )
             else:
