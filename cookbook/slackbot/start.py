@@ -154,7 +154,7 @@ async def chat_endpoint(request: Request):
         raise HTTPException(400, "Invalid event type")
     match payload.type:
         case "event_callback":
-            print(payload.event)
+            assert payload.event is not None, "No event found!"
             # check if the event is a new user joining the workspace. If so, send a welcome message.
             if payload.event.type == "team_join":
                 user_id = payload.event.user
