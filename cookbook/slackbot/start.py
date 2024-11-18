@@ -154,20 +154,37 @@ async def chat_endpoint(request: Request):
         raise HTTPException(400, "Invalid event type")
     match payload.type:
         case "event_callback":
-            channel_name = await get_channel_name(payload.event.channel)
-            if channel_name.startswith("D"):
-                # This is a DM channel, we should not respond
-                logger.warning(f"Attempted to respond in DM channel: {channel_name}")
-                slack_webhook = await SlackWebhook.load("marvin-bot-pager")
-                await slack_webhook.notify(
-                    body=f"Attempted to respond in DM channel: {channel_name}",
-                    subject="Slackbot DM Warning",
+            assert payload.event is not None, "No event found!"
+            # check if the event is a new user joining the workspace. If so, send a welcome message.
+            if payload.event.type == "team_join":
+                user_id = payload.event.user
+                # get the welcome message from the variable store
+                message_var = await Variable.get("marvin_welcome_message")
+                message_template = message_var["text"]
+                # format the message with the user's id
+                rendered_message = message_template.format(user_id=user_id)
+                # post the message to the user's DM channel
+                await task(post_slack_message)(
+                    message=rendered_message,
+                    channel_id=user_id,  # type: ignore
                 )
-                return Completed(message="Skipped DM channel", name="SKIPPED")
-            options = dict(
-                flow_run_name=f"respond in {channel_name}/{payload.event.thread_ts}"
-            )
-            asyncio.create_task(handle_message.with_options(**options)(payload))
+            else:
+                channel_name = await get_channel_name(payload.event.channel)
+                if channel_name.startswith("D"):
+                    # This is a DM channel, we should not respond
+                    logger.warning(
+                        f"Attempted to respond in DM channel: {channel_name}"
+                    )
+                    slack_webhook = await SlackWebhook.load("marvin-bot-pager")
+                    await slack_webhook.notify(
+                        body=f"Attempted to respond in DM channel: {channel_name}",
+                        subject="Slackbot DM Warning",
+                    )
+                    return Completed(message="Skipped DM channel", name="SKIPPED")
+                options = dict(
+                    flow_run_name=f"respond in {channel_name}/{payload.event.thread_ts}"
+                )
+                asyncio.create_task(handle_message.with_options(**options)(payload))
         case "url_verification":
             return {"challenge": payload.challenge}
         case _:
