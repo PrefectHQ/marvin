@@ -25,7 +25,7 @@ def search_prefect_2x_docs(queries: list[str]) -> str:
 
     """
     if not tpuf.api_key:
-        tpuf.api_key = (await Secret.load("tpuf-api-key")).get()  # type: ignore
+        tpuf.api_key = Secret.load("tpuf-api-key").get()  # type: ignore
 
     return multi_query_tpuf(queries, namespace="prefect-2")
 
@@ -44,7 +44,7 @@ def search_prefect_3x_docs(queries: list[str]) -> str:
 
     """
     if not tpuf.api_key:
-        tpuf.api_key = (await Secret.load("tpuf-api-key")).get()  # type: ignore
+        tpuf.api_key = Secret.load("tpuf-api-key").get()  # type: ignore
 
     return multi_query_tpuf(queries, namespace="prefect-3")
 
