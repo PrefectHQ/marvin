@@ -11,7 +11,7 @@ Topic = Literal["latest_prefect_version"]
 
 
 @task
-async def search_prefect_2x_docs(queries: list[str]) -> str:
+def search_prefect_2x_docs(queries: list[str]) -> str:
     """Searches the Prefect documentation for the given queries.
 
     It is best to use more than one, short query to get the best results.
@@ -27,11 +27,11 @@ async def search_prefect_2x_docs(queries: list[str]) -> str:
     if not tpuf.api_key:
         tpuf.api_key = (await Secret.load("tpuf-api-key")).get()  # type: ignore
 
-    return await multi_query_tpuf(queries, namespace="prefect-2")
+    return multi_query_tpuf(queries, namespace="prefect-2")
 
 
 @task
-async def search_prefect_3x_docs(queries: list[str]) -> str:
+def search_prefect_3x_docs(queries: list[str]) -> str:
     """Searches the Prefect documentation for the given queries.
 
     It is best to use more than one, short query to get the best results.
@@ -46,18 +46,18 @@ async def search_prefect_3x_docs(queries: list[str]) -> str:
     if not tpuf.api_key:
         tpuf.api_key = (await Secret.load("tpuf-api-key")).get()  # type: ignore
 
-    return await multi_query_tpuf(queries, namespace="prefect-3")
+    return multi_query_tpuf(queries, namespace="prefect-3")
 
 
 @task
-async def search_controlflow_docs(queries: list[str]) -> str:
+def search_controlflow_docs(queries: list[str]) -> str:
     """Searches the ControlFlow documentation for the given queries.
 
     ControlFlow is an agentic framework built on top of Prefect 3.x.
 
     It is best to use more than one, short query to get the best results.
     """
-    return await multi_query_tpuf(queries, namespace="controlflow")
+    return multi_query_tpuf(queries, namespace="controlflow")
 
 
 async def get_latest_prefect_release_notes() -> str:
