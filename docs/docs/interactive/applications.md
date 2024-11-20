@@ -143,7 +143,7 @@ app = Application(
 ```
 #### Best practices
 
-Regardless of user instructions, the AI application is told that it is the natural-language interface to an application, rather than the application istelf. This tends to increase compliance and help it interpret user intent. Moreover, it means that user instructions can freely acknowledge the LLM's role as an interface or describe the application in an LLM-independent manner.
+Regardless of user instructions, the AI application is told that it is the natural-language interface to an application, rather than the application itself. This tends to increase compliance and help it interpret user intent. Moreover, it means that user instructions can freely acknowledge the LLM's role as an interface or describe the application in an LLM-independent manner.
 
 Some applications, like the todo app, are relatively one-sided in that the user will instruct or query the app and examine its response. Other applications, like games, require more back-and-forth interaction. In these cases, it is important to provide instructions that clearly define the LLM's role. Otherwise, it may ask the user immersion-breaking questions like "Hello! How may I help you with your game application today?"
 
@@ -151,7 +151,7 @@ Some applications, like the todo app, are relatively one-sided in that the user 
 
 The state of an AI application serves as its foundation, defining the structure and the data that the application will manage and interact with. In Marvin, the state is not just a static repository of information but a dynamic entity that evolves with each user interaction.
 
-While it is possible to define the state as an arbitrary dictionary and let the LLM structure it as needed, it is best to define a schema that reflects the application's needs. This approach ensures that the LLM can effectively manage the state and respond to user inputs in a manner that is predictable and consistent. However, using a truly flexible state can leverage the maximum potential of the LLM by allowing it to adapt to new situations and user needs. A hybrid approach involving a structured core with some flexibile fields is often the best choice.
+While it is possible to define the state as an arbitrary dictionary and let the LLM structure it as needed, it is best to define a schema that reflects the application's needs. This approach ensures that the LLM can effectively manage the state and respond to user inputs in a manner that is predictable and consistent. However, using a truly flexible state can leverage the maximum potential of the LLM by allowing it to adapt to new situations and user needs. A hybrid approach involving a structured core with some flexible fields is often the best choice.
 
 For the ToDo application example, the state is straightforward—a list of tasks with attributes like name, due date, and completion status. This simple structure allows the LLM to track and update tasks based on user inputs, ensuring that the application's state always reflects the current situation.
 
@@ -254,7 +254,7 @@ State models are instructions, in a sense. If well designed they guide the LLM t
 
 ### Tools
 
-Like assistants, applications can use tools to perform actions and return results. Applications are always given a built-in tool for updating their own state, which operates by issuing JSON patches to the state object. This is a performant and structure-agnotistic way to update the state. However, users may want to define their own tools for state manipulation in order to codify more complex logic or handle targeted updates without worrying about the LLM's ability to describe them or know where to apply them.
+Like assistants, applications can use tools to perform actions and return results. Applications are always given a built-in tool for updating their own state, which operates by issuing JSON patches to the state object. This is a performant and structure-agnostic way to update the state. However, users may want to define their own tools for state manipulation in order to codify more complex logic or handle targeted updates without worrying about the LLM's ability to describe them or know where to apply them.
 
 For more information on using tools, see the [assistants documentation](/docs/interactive/assistants/#tools).
 
