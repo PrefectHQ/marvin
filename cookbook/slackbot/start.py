@@ -70,6 +70,8 @@ def engage_marvin_bot(model: str):
 
 @flow(name="Handle Slack Message", retries=1)
 async def handle_message(payload: SlackPayload):
+    marvin.settings.openai.chat.completions.model = "gpt-4o-2024-11-20"
+    print(f"Using {marvin.settings.openai.chat.completions.model=}")
     assert (event := payload.event)
     user_message = event.text
     cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()  # type: ignore
