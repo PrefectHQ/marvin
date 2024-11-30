@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["marvin", "gh-util"]
+# ///
+
 from gh_util.api import functions  # pip install gh-util
 from marvin.beta.applications import Application
 from pydantic import BaseModel, Field
@@ -13,8 +17,6 @@ octocat = Application(
     tools=[f for f in functions if f.__name__ != "run_git_command"],
 )
 
-# $ marvin assistant register cookbook/gh_util/custom_assistant.py:octocat
-
-# > what's the latest release of prefecthq/marvin?
-
-# see https://github.com/PrefectHQ/marvin/pull/875
+if __name__ == "__main__":
+    # uv run cookbook/gh_util/custom_assistant.py
+    octocat.chat("what's the latest release of prefecthq/marvin?")
