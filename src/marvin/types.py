@@ -284,7 +284,7 @@ class Image(MarvinType):
     url: Optional[str] = None
     format: str = "png"
     timestamp: datetime.datetime = Field(
-        default_factory=lambda: datetime.datetime.now(datetime.UTC)
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc)
     )
     detail: Literal["auto", "low", "high"] = "auto"
 
@@ -357,7 +357,7 @@ class Audio(MarvinType):
     _data_stream: Optional[AsyncIterator[bytes]] = PrivateAttr()
     url: Optional[Path] = None
     timestamp: datetime.datetime = Field(
-        default_factory=lambda: datetime.datetime.now(datetime.UTC)
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc)
     )
     format: Literal["wav", "mp3", "pcm"] = "pcm"
 
