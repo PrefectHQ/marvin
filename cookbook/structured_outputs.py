@@ -7,7 +7,7 @@ from typing import Annotated
 import marvin
 from pydantic import AfterValidator, Field
 
-result = marvin.extract(
+result: list[str] = marvin.extract(
     data="nO, i HaVe NeVeR HeaRd oF uV",
     target=Annotated[
         str,

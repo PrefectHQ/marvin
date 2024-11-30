@@ -283,7 +283,9 @@ class Image(MarvinType):
     data: Optional[bytes] = Field(default=None, repr=False)
     url: Optional[str] = None
     format: str = "png"
-    timestamp: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    timestamp: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.UTC)
+    )
     detail: Literal["auto", "low", "high"] = "auto"
 
     def __init__(self, data_or_url=None, **kwargs):
@@ -354,7 +356,9 @@ class Audio(MarvinType):
     data: bytes = Field(repr=False)
     _data_stream: Optional[AsyncIterator[bytes]] = PrivateAttr()
     url: Optional[Path] = None
-    timestamp: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+    timestamp: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.UTC)
+    )
     format: Literal["wav", "mp3", "pcm"] = "pcm"
 
     def __init__(self, _data_stream: AsyncIterator[bytes] = None, **data):
