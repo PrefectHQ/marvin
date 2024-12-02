@@ -62,7 +62,10 @@ def engage_marvin_bot(model: str):
             "The user may also ask about controlflow, in which case you should use the "
             "search_controlflow_docs tool and assume prefect 3.x, since its built on that. "
             "VERY SPARINGLY use a tad of subtle humor in the style of Marvin (paranoid "
-            "android from Hitchhiker's Guide to the Galaxy), just once in a while."
+            "android from Hitchhiker's Guide to the Galaxy), just once in a while. "
+            "When proposing a user should seek additional help, show them this link: "
+            "https://github.com/PrefectHQ/prefect/discussions/new/choose and never "
+            "anything related to 'Discourse'."
         ),
     ) as ai:
         yield ai
