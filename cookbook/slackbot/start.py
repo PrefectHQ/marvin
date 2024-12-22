@@ -361,4 +361,8 @@ async def chat_endpoint(request: Request):
 
 
 if __name__ == "__main__":
+    import os
+
+    # still need openai for embeddings
+    os.environ["OPENAI_API_KEY"] = Secret.load("openai-api-key").get()  # type: ignore
     uvicorn.run(app, host="0.0.0.0", port=4200)
