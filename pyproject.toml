@@ -64,7 +64,13 @@ audio = [
 ]
 video = ["opencv-python >= 4.5"]
 
-slackbot = ["marvin[prefect]", "numpy", "raggy", "turbopuffer==0.1.23"]
+slackbot = [
+    "pydantic-ai[anthropic]@git+https://github.com/pydantic/pydantic-ai.git@main",
+    "prefect",
+    "numpy",
+    "raggy",
+    "turbopuffer==0.1.23",
+]
 
 [project.urls]
 Code = "https://github.com/prefecthq/marvin"

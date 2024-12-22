@@ -73,7 +73,10 @@ class GitHubIssue(BaseModel):
 
 
 async def search_github_issues(
-    query: str, repo: str = "prefecthq/prefect", n: int = 3
+    query: str,
+    repo: str = "prefecthq/prefect",
+    n: int = 3,
+    api_token: Optional[str] = None,
 ) -> str:
     """
     Use the GitHub API to search for issues in a given repository. Do
@@ -87,7 +90,7 @@ async def search_github_issues(
     """
     headers = {"Accept": "application/vnd.github.v3+json"}
 
-    headers["Authorization"] = f"Bearer {await get_token()}"
+    headers["Authorization"] = f"Bearer {api_token or await get_token()}"
 
     async with httpx.AsyncClient() as client:
         response = await client.get(
