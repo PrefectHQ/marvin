@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import ClassVar, Literal
 
@@ -66,7 +67,12 @@ class SlackbotSettings(BaseSettings):
     def slack_api_token(self) -> str:
         from prefect.blocks.system import Secret
 
-        return Secret.load("test-slack-api-token", _sync=True).get()  # type: ignore
+        if self.test_mode:
+            return Secret.load("test-slack-api-token", _sync=True).get()  # type: ignore
+        else:
+            token = os.getenv("MARVIN_SLACK_API_TOKEN")
+            assert token is not None, "MARVIN_SLACK_API_TOKEN is not set"
+            return token
 
 
 settings = SlackbotSettings()
