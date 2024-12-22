@@ -4,43 +4,74 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from core import (
-    USER_MESSAGE_MAX_TOKENS,
     Database,
+    UserContext,
     build_user_context,
     create_agent,
 )
 from fastapi import FastAPI, HTTPException, Request
-from marvin.utilities.logging import get_logger
 from marvin.utilities.slack import SlackPayload, get_channel_name, post_slack_message
 from marvin.utilities.strings import count_tokens
-from prefect import flow, task
+from prefect import flow, get_run_logger, task
 from prefect.blocks.notifications import SlackWebhook
+from prefect.cache_policies import NONE
+from prefect.logging.loggers import get_logger
 from prefect.states import Completed
 from prefect.variables import Variable
+from pydantic_ai.messages import ModelMessage
+from pydantic_ai.result import RunResult
 from settings import settings
+from wrap import WatchToolCalls
 
 BOT_MENTION = r"<@(\w+)>"
 
-agent = create_agent()
 
 logger = get_logger(__name__)
 
 
+@task(name="run agent loop")
+async def run_agent(
+    cleaned_message: str,
+    conversation: list[ModelMessage],
+    user_context: UserContext,
+    decorator_settings: dict[str, Any] | None = None,
+) -> RunResult[str]:
+    if decorator_settings is None:
+        decorator_settings = {
+            "cache_policy": NONE,
+            "task_run_name": "execute {self.function.__name__}",
+            "log_prints": True,
+        }
+
+    with WatchToolCalls(settings=decorator_settings):
+        result = await create_agent().run(
+            user_prompt=cleaned_message,
+            message_history=conversation,
+            deps=user_context,
+        )
+        return result
+
+
 @flow(name="Handle Slack Message", retries=1)
 async def handle_message(payload: SlackPayload, db: Database):
+    logger = get_run_logger()
     event = payload.event
     if not event or not all([event.text, event.channel, (event.thread_ts or event.ts)]):
         logger.debug("Skipping invalid event")
         return Completed(message="Invalid event", name="SKIPPED")
 
+    USER_MESSAGE_MAX_TOKENS = settings.user_message_max_tokens
     user_message = event.text or ""
     thread_ts = event.thread_ts or event.ts
-    assert thread_ts is not None
+    assert thread_ts is not None, "No thread_ts found"
     cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
+    msg_len = count_tokens(cleaned_message)
 
-    if (count := count_tokens(cleaned_message)) > USER_MESSAGE_MAX_TOKENS:
-        logger.warning(f"Message too long by {count - USER_MESSAGE_MAX_TOKENS} tokens")
-        exceeded = count - USER_MESSAGE_MAX_TOKENS
+    if msg_len > USER_MESSAGE_MAX_TOKENS:
+        logger.warning(
+            f"Message too long by {msg_len - USER_MESSAGE_MAX_TOKENS} tokens"
+        )
+        exceeded = msg_len - USER_MESSAGE_MAX_TOKENS
         assert event.channel is not None, "No channel found"
         await post_slack_message(
             message=f"Your message was too long by {exceeded} tokens...",
@@ -60,11 +91,8 @@ async def handle_message(payload: SlackPayload, db: Database):
             user_question=cleaned_message,
         )
 
-        result = await flow(agent.run)(
-            user_prompt=cleaned_message,
-            message_history=conversation,
-            deps=user_context,
-        )
+        result = await run_agent(cleaned_message, conversation, user_context)  # type: ignore
+
         await db.add_thread_messages(thread_ts, result.new_messages())
         assert event.channel is not None, "No channel found"
         await task(post_slack_message)(
@@ -88,7 +116,7 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.post("/chat")
-async def chat_endpoint(request: Request):
+async def chat_endpoint(request: Request) -> dict[str, Any]:
     try:
         payload = SlackPayload(**await request.json())
     except Exception as e:
@@ -135,8 +163,9 @@ async def chat_endpoint(request: Request):
             logger.info(f"Processing message in {channel_name}")
             ts = payload.event.thread_ts or payload.event.ts
             flow_opts: dict[str, Any] = dict(
-                flow_run_name=f"respond in {channel_name}/{ts}"
+                flow_run_name=f"respond in {channel_name}/{ts}",
             )
+
             asyncio.create_task(handle_message.with_options(**flow_opts)(payload, db))
     elif payload.type == "url_verification":
         return {"challenge": payload.challenge}

@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import ClassVar, Literal
 
+from prefect.variables import Variable
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -31,9 +32,6 @@ class SlackbotSettings(BaseSettings):
         default=Path("marvin_chat.sqlite"), description="Path to SQLite database file"
     )
 
-    model_name: str = Field(
-        default="claude-3-5-sonnet-latest", description="Name of the AI model to use"
-    )
     temperature: float = Field(
         default=0.5, description="Temperature for model inference"
     )
@@ -62,6 +60,14 @@ class SlackbotSettings(BaseSettings):
     test_mode: bool = Field(
         default=False, description="Enable test mode with auto-reload"
     )
+
+    @property
+    def model_name(self) -> str:
+        return Variable.get(
+            "marvin_ai_model",
+            default="claude-3-5-sonnet-latest",
+            _sync=True,  # type: ignore
+        )
 
     @property
     def slack_api_token(self) -> str:
