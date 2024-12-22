@@ -50,7 +50,9 @@ async def handle_message(payload: SlackPayload, db: Database):
         return Completed(message="Message too long", name="SKIPPED")
 
     if re.search(BOT_MENTION, user_message) and payload.authorizations:
-        logger.info(f"Processing message in thread {thread_ts}")
+        logger.info(
+            f"Processing message in thread {thread_ts}\nUser message: {cleaned_message}"
+        )
         conversation = await db.get_thread_messages(thread_ts)
 
         user_context = build_user_context(
@@ -58,7 +60,7 @@ async def handle_message(payload: SlackPayload, db: Database):
             user_question=cleaned_message,
         )
 
-        result = await task(agent.run)(
+        result = await flow(agent.run)(
             user_prompt=cleaned_message,
             message_history=conversation,
             deps=user_context,

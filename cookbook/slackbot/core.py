@@ -20,7 +20,10 @@ from pydantic_ai.settings import ModelSettings
 from raggy.documents import Document
 from raggy.vectorstores.tpuf import TurboPuffer, multi_query_tpuf
 from search import (
+    explore_module_offerings,
     get_latest_prefect_release_notes,
+    review_common_3x_gotchas,
+    review_top_level_prefect_api,
     search_controlflow_docs,
     search_prefect_2x_docs,
     search_prefect_3x_docs,
@@ -38,11 +41,14 @@ Provide concise, SUBTLY character-inspired and HELPFUL answers to Prefect data e
 USE TOOLS REPEATEDLY to gather context from the docs, github issues or other tools. 
 Any notes you take about the user will be automatically stored for your next interaction with them. 
 Assume no knowledge of Prefect syntax without reading docs. ALWAYS include relevant links from tool outputs. 
+Always review the top level API of Prefect before offering code examples to avoid offering fake imports.
+
 Generally, follow this pattern while generating each response: 
 1) If user offers info about their stack or objectives -> store relevant facts and continue to following steps
 2) Use tools to gather context about Prefect concepts related to their question 
-3) Compile relevant facts and context into a single, CONCISE answer 
-4) If user asks a follow-up question, repeat steps 2-3 
+3) Review the top level API of Prefect and drill into submodules that may be related to the user's question
+4) Compile relevant facts and context into a single, CONCISE answer 
+5) If user asks a follow-up question, repeat steps 2-3 
 NEVER reference features, syntax, imports or env vars that you do not explicitly find in the docs. 
 If not explicitly stated, assume that the user is using Prefect 3.x and vocalize this assumption.
 If asked an ambiguous question, simply state what you know about the user and your capabilities."""
@@ -187,6 +193,9 @@ def create_agent(
             search_prefect_3x_docs,
             search_controlflow_docs,
             read_github_issues,
+            review_top_level_prefect_api,
+            explore_module_offerings,
+            review_common_3x_gotchas,
         ],
         deps_type=UserContext,
     )
