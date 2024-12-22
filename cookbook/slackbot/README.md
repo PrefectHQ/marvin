@@ -1,44 +1,101 @@
-## SETUP
-it doesn't take much to run the slackbot locally
+# Marvin Slackbot
 
-from a fresh environment you can do:
-```console
-# install marvin and slackbot dependencies
-pip install git+https://github.com/PrefectHQ/marvin.git fastapi cachetools
+A Slack chatbot powered by Claude with memories and Prefect-specific knowledge.
 
-# set necessary env vars
-cat ~/.marvin/.env
-│ File: /Users/nate/.marvin/.env
-┼──────────────────────────────────────
-│ MARVIN_OPENAI_API_KEY=sk-xxx
-│ MARVIN_SLACK_API_TOKEN=xoxb-xxx
-│
-│ MARVIN_OPENAI_ORGANIZATION=org-xx
-│ MARVIN_LOG_LEVEL=DEBUG
-│
-│ MARVIN_CHROMA_SERVER_HOST=localhost
-│ MARVIN_CHROMA_SERVER_HTTP_PORT=8000
-│ MARVIN_GITHUB_TOKEN=ghp_xxx
+## Project Structure
+
+```
+├── api.py         # FastAPI app and Slack event handlers
+├── core.py        # Database, agent, and memory management
+├── settings.py    # Configuration management
+└── start.py       # Entry point
 ```
 
-### hook up to slack
-- create a slack app
-- add a bot user, adding as many scopes as you want
-- set event subscription url e.g. https://{NGROK_SUBDOMAIN}.ngrok.io/chat
+## Setup
 
-see ngrok docs for easiest start https://ngrok.com/docs/getting-started/
+The slackbot can be run locally with minimal setup.
 
-tl;dr:
+### Local Development
+
 ```console
-brew install ngrok/ngrok/ngrok
-ngrok http 4200 # optionally, --subdomain $NGROK_SUBDOMAIN
-python cookbook/slackbot/start.py # in another terminal
+# Create and activate a virtual environment with uv
+uv venv --python 3.12
+source .venv/bin/activate
+
+# Install dependencies
+uv pip install -e ".[slackbot]" -U
 ```
 
-#### test it out
+### Configuration
 
-<img width="719" alt="image" src="https://github.com/PrefectHQ/marvin/assets/31014960/a5948f7f-9aeb-4df0-b536-d61bb57dd1ab">
+Create a `.env` file in your project directory:
 
-to deploy this to cloudrun, see:
+```env
+# Required Prefect Secrets (configured via UI or CLI)
+# - test-slack-api-token     # Bot User OAuth Token
+# - openai-api-key          # For embeddings
+# - claude-api-key          # For Claude API
+# - marvin-slackbot-github-token  # For searching issues
+
+# Optional Settings (with MARVIN_SLACKBOT_ prefix)
+MARVIN_SLACKBOT_TEST_MODE=true     # Enable auto-reload for development
+MARVIN_SLACKBOT_HOST=0.0.0.0       # Server host
+MARVIN_SLACKBOT_PORT=4200          # Server port
+MARVIN_SLACKBOT_LOG_LEVEL=INFO     # Logging level
+
+# Vector Store
+TURBOPUFFER_API_KEY=abcd1234       # For vectorstore queries and storing user context
+```
+
+### Slack App Setup
+
+1. Create a new Slack app at https://api.slack.com/apps
+2. Add a bot user with required scopes:
+   - `app_mentions:read`
+   - `channels:read`
+   - `chat:write`
+   - `groups:read`
+   - `im:read`
+   - `mpim:read`
+3. Set up event subscriptions:
+   - URL: `https://{YOUR_DOMAIN}/chat`
+   - Subscribe to bot events: `app_mention`, `team_join`
+
+### Running Locally
+
+1. Start ngrok in one terminal:
+```console
+ngrok http 4200  # Or your configured port
+```
+
+2. Start the bot in another terminal:
+```console
+python -m cookbook.slackbot.start
+```
+
+### Testing
+
+Mention the bot in any channel it's invited to:
+```
+@Marvin What's new in Prefect?
+```
+
+The bot will:
+- Search Prefect documentation
+- Look through GitHub issues
+- Remember previous interactions
+- Provide context-aware responses
+
+### Development Features
+
+- Auto-reload in test mode
+- Colored logging output
+- SQLite message history
+- TurboPuffer vector storage for user context
+- Configurable via environment variables or .env file
+
+### Production Deployment
+
+For deploying to Cloud Run or similar services, refer to:
 - [Dockerfile.slackbot](/cookbook/slackbot/Dockerfile.slackbot)
-- [image build CI](/.github/workflows/image-build-and-push-community.yaml)
+- [CI/CD Configuration](/.github/workflows/image-build-and-push-community.yaml)
