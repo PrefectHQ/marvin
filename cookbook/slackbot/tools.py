@@ -1,7 +1,6 @@
 from typing import Literal
 
 import httpx
-import marvin
 import turbopuffer as tpuf
 from prefect import task
 from prefect.blocks.system import Secret
@@ -60,36 +59,12 @@ def search_controlflow_docs(queries: list[str]) -> str:
     return multi_query_tpuf(queries, namespace="controlflow")
 
 
-async def get_latest_prefect_release_notes() -> str:
+@task
+def get_latest_prefect_release_notes() -> str:
     """Gets the latest Prefect release notes"""
     url = "https://api.github.com/repos/PrefectHQ/prefect/releases/latest"
 
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
+    with httpx.Client() as client:
+        response = client.get(url)
         release_notes = response.json().get("body")
         return release_notes
-
-
-async def get_prefect_code_example(related_to: str) -> str:
-    """Gets a Prefect code example"""
-
-    base_url = "https://raw.githubusercontent.com/zzstoatzz/prefect-code-examples/main"
-
-    async with httpx.AsyncClient() as client:
-        response = await client.get(f"{base_url}/views/README.json")
-
-        example_items = {
-            item.get("description"): item.get("relative_path")
-            for category in response.json().get("categories", [])
-            for item in category.get("examples", [])
-        }
-
-        key = await marvin.classify_async(
-            data=related_to, labels=list(example_items.keys())
-        )
-
-        best_link = f"{base_url}/{example_items[key]}"
-
-        code_example_content = (await client.get(best_link)).text
-
-        return f"LINK:\n{best_link}\n\n EXAMPLE:\n{code_example_content}"

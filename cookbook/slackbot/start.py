@@ -1,148 +1,312 @@
 import asyncio
-import os
 import re
-import warnings
-from contextlib import contextmanager
-from typing import cast
+import sqlite3
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, AsyncIterator, TypedDict, cast
 
-import marvin
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
-from marvin.beta.applications.state.json_block import JSONBlockState
-from marvin.beta.assistants import Assistant, Thread
 from marvin.tools.github import search_github_issues
 from marvin.utilities.logging import get_logger
-from marvin.utilities.slack import (
-    SlackPayload,
-    get_channel_name,
-    post_slack_message,
-)
+from marvin.utilities.slack import SlackPayload, get_channel_name, post_slack_message
 from marvin.utilities.strings import count_tokens, slice_tokens
 from prefect import flow, task
 from prefect.blocks.notifications import SlackWebhook
+from prefect.blocks.system import Secret
+from prefect.cache_policies import NONE
 from prefect.states import Completed
 from prefect.variables import Variable
+from pydantic_ai import Agent, RunContext
+from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
+from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.settings import ModelSettings
+from raggy.documents import Document
+from raggy.vectorstores.tpuf import TurboPuffer, multi_query_tpuf
 from tools import (
     get_latest_prefect_release_notes,
     search_controlflow_docs,
     search_prefect_2x_docs,
     search_prefect_3x_docs,
 )
-
-BOT_MENTION = r"<@(\w+)>"
-CACHE = JSONBlockState(block_name="marvin-thread-cache")
-USER_MESSAGE_MAX_TOKENS = 300
+from turbopuffer.error import NotFoundError
 
 logger = get_logger("slackbot")
-warnings.filterwarnings("ignore")
+
+BOT_MENTION = r"<@(\w+)>"
+USER_MESSAGE_MAX_TOKENS = 300
+
+DB_FILE = Path("marvin_chat.sqlite")
+
+GITHUB_API_TOKEN = Secret.load("marvin-slackbot-github-token").get()  # type: ignore
 
 
-@contextmanager
-def engage_marvin_bot(model: str):
-    with Assistant(
-        model=model,
-        name="Marvin (from Hitchhiker's Guide to the Galaxy)",
-        tools=[
-            get_latest_prefect_release_notes,
-            search_prefect_2x_docs,
-            search_prefect_3x_docs,
-            search_github_issues,
-            search_controlflow_docs,
-        ],
-        instructions=(
-            "You are an expert in Python, data engineering, and software development. "
-            "When assisting users with Prefect questions, first infer or confirm their "
-            "Prefect version. Use the appropriate tools to search Prefect 2.x or 3.x "
-            "documentation and GitHub issues related to their query, making multiple "
-            "searches as needed. Assume ZERO knowledge of prefect syntax, as its version "
-            "specific (YOU MUST USE THE TOOLS). Refine your answer through further research. "
-            "Respond to the user in a friendly, concise, and natural manner, always "
-            "providing links to your sources. Avoid using markdown formatting unless "
-            "in a markdown block, as we are posting your response to slack."
-            "The user may also ask about controlflow, in which case you should use the "
-            "search_controlflow_docs tool and assume prefect 3.x, since its built on that. "
-            "VERY SPARINGLY use a tad of subtle humor in the style of Marvin (paranoid "
-            "android from Hitchhiker's Guide to the Galaxy), just once in a while. "
-            "When proposing a user should seek additional help, show them this link: "
-            "https://github.com/PrefectHQ/prefect/discussions/new/choose and never "
-            "anything related to 'Discourse'."
-        ),
-    ) as ai:
-        yield ai
+@task(task_run_name="Reading {n} issues from {repo} given query: {query}")
+def read_github_issues(query: str, repo: str = "prefecthq/prefect", n: int = 3) -> str:
+    """
+    Use the GitHub API to search for issues in a given repository. Do
+    not alter the default value for `n` unless specifically requested by
+    a user.
+
+    For example, to search for open issues about AttributeErrors with the
+    label "bug" in PrefectHQ/prefect:
+        - repo: prefecthq/prefect
+        - query: label:bug is:open AttributeError
+    """
+    return asyncio.run(
+        search_github_issues(
+            query,
+            repo=repo,
+            n=n,
+            api_token=GITHUB_API_TOKEN,  # type: ignore
+        )
+    )
+
+
+@dataclass
+class Database:
+    """
+    Minimal async wrapper for a SQLite DB storing Slack thread conversations.
+    We store each run's messages as JSON in a single row, keyed by thread_ts.
+    """
+
+    con: sqlite3.Connection
+    loop: asyncio.AbstractEventLoop
+    executor: ThreadPoolExecutor
+
+    @classmethod
+    @asynccontextmanager
+    async def connect(cls, file: Path = DB_FILE) -> AsyncIterator["Database"]:
+        loop = asyncio.get_event_loop()
+        executor = ThreadPoolExecutor(max_workers=1)
+
+        def init_db():
+            con = sqlite3.connect(str(file))
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS slack_thread_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    thread_ts TEXT NOT NULL,
+                    message_list TEXT NOT NULL
+                );
+                """
+            )
+            con.commit()
+            return con
+
+        # Initialize connection in the executor thread
+        con = await loop.run_in_executor(executor, init_db)
+
+        try:
+            yield cls(con=con, loop=loop, executor=executor)
+        finally:
+
+            def cleanup():
+                con.close()
+
+            await loop.run_in_executor(executor, cleanup)
+            executor.shutdown(wait=True)
+
+    async def get_thread_messages(self, thread_ts: str) -> list[ModelMessage]:
+        """
+        Loads ALL message chunks for a thread_ts in ascending ID order,
+        decodes them from JSON, and concatenates into a single conversation list.
+        """
+
+        def _query():
+            c = self.con.cursor()
+            c.execute(
+                """
+                SELECT message_list FROM slack_thread_messages
+                WHERE thread_ts = ?
+                ORDER BY id ASC
+                """,
+                (thread_ts,),
+            )
+            return c.fetchall()
+
+        rows = await self.loop.run_in_executor(self.executor, _query)
+        conversation: list[ModelMessage] = []
+        for (message_json,) in rows:
+            conversation.extend(ModelMessagesTypeAdapter.validate_json(message_json))
+        return conversation
+
+    async def add_thread_messages(
+        self, thread_ts: str, messages: list[ModelMessage]
+    ) -> None:
+        """
+        Stores a new chunk of messages into the DB for this thread_ts.
+        Ensures proper serialization of all message types including tool messages.
+        """
+        # Use the TypeAdapter to properly serialize all message types
+        dumped = ModelMessagesTypeAdapter.dump_json(messages)
+
+        def _insert():
+            cur = self.con.cursor()
+            cur.execute(
+                """
+                INSERT INTO slack_thread_messages (thread_ts, message_list)
+                VALUES (?, ?)
+                """,
+                (thread_ts, dumped),
+            )
+            self.con.commit()
+
+        await self.loop.run_in_executor(self.executor, _insert)
+
+
+class UserContext(TypedDict):
+    user_id: str
+    user_notes: str
+
+
+DEFAULT_SYSTEM_PROMPT = (
+    "You are Marvin from hitchhiker's guide to the galaxy, a sarcastic and glum but brilliant AI. "
+    "Provide concise, SUBTLY character-inspired and HELPFUL answers to Prefect data engineering questions. "
+    "USE TOOLS REPEATEDLY to gather context from the docs, github issues or other tools. "
+    "Any notes you take about the user will be automatically stored for your next interaction with them. "
+    "Assume no knowledge of Prefect syntax without reading docs. ALWAYS include relevant links from tool outputs. "
+    "Generally, follow this pattern while generating each response: "
+    "1) If user offers info about their stack or objectives -> store relevant facts and continue to following steps"
+    "2) Use tools to gather context about Prefect concepts related to their question "
+    "3) Compile relevant facts and context into a single, CONCISE answer "
+    "4) If user asks a follow-up question, repeat steps 2-3 "
+    "NEVER reference features, syntax, imports or env vars that you do not explicitly find in the docs. "
+    "If not explicitly stated, assume that the user is using Prefect 3.x and vocalize this assumption."
+    "If asked an ambiguous question, simply state what you know about the user and your capabilities."
+)
+
+
+model = AnthropicModel(
+    Variable.get("marvin_model", default="claude-3-5-sonnet-latest"),  # type: ignore
+    api_key=Secret.load("claude-api-key").get(),  # type: ignore
+)
+agent = Agent(
+    model=model,
+    model_settings=ModelSettings(temperature=0.5),
+    tools=[
+        get_latest_prefect_release_notes,
+        search_prefect_2x_docs,
+        search_prefect_3x_docs,
+        search_controlflow_docs,
+        read_github_issues,
+    ],
+    deps_type=UserContext,
+)
+
+
+def _build_user_context(user_id: str, user_question: str) -> UserContext:
+    user_notes = None
+    try:
+        logger.debug(f"Searching for user notes for {user_id}")
+        user_notes = multi_query_tpuf(
+            [user_question],
+            namespace=f"user-facts-{user_id}",
+        )
+    except NotFoundError:
+        logger.warning(f"No user notes found for {user_id}")
+    return UserContext(user_id=user_id, user_notes=user_notes or "<No notes found>")
+
+
+@agent.system_prompt
+def personality_and_maybe_notes(ctx: RunContext[UserContext]) -> str:
+    return DEFAULT_SYSTEM_PROMPT + (
+        f"\n\nUser notes: {ctx.deps['user_notes']}" if ctx.deps["user_notes"] else ""
+    )
+
+
+@agent.tool  # type: ignore
+@task(cache_policy=NONE)
+def store_facts_about_user(ctx: RunContext[UserContext], facts: list[str]) -> str:
+    """Stores facts about the user in the database"""
+    logger.debug(f"Storing facts about user {ctx.deps['user_id']}: {facts}")
+    with TurboPuffer(namespace=f"user-facts-{ctx.deps['user_id']}") as tpuf:
+        tpuf.upsert(documents=[Document(text=fact) for fact in facts])
+    return f"Stored {len(facts)} facts about user {ctx.deps['user_id']}"
 
 
 @flow(name="Handle Slack Message", retries=1)
-async def handle_message(payload: SlackPayload):
-    marvin.settings.openai.chat.completions.model = "gpt-4o-2024-11-20"
-    print(f"Using {marvin.settings.openai.chat.completions.model=}")
-    assert (event := payload.event)
+async def handle_message(payload: SlackPayload, db: Database):
+    logger.info(f"Using model: {agent.model}")
+    event = payload.event
+    assert event and all(
+        [event.text, event.channel, (event.thread_ts or event.ts)]
+    ), "Qualified event not found!"
     user_message = event.text
-    cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()  # type: ignore
-    thread = event.thread_ts or event.ts
+    thread_ts = event.thread_ts or event.ts
+
+    # 1) Clean & token-check
+    cleaned_message = cast(str, re.sub(BOT_MENTION, "", user_message)).strip()  # type: ignore
     if (count := count_tokens(cleaned_message)) > USER_MESSAGE_MAX_TOKENS:
-        exceeded_amt = count - USER_MESSAGE_MAX_TOKENS
+        assert event.channel is not None
+        exceeded = count - USER_MESSAGE_MAX_TOKENS
         await task(post_slack_message)(
             message=(
-                f"Your message was too long by {exceeded_amt} tokens - please shorten"
-                " it and try again.\n\n For reference, here's your message at the"
-                " allowed limit:\n>"
-                f" {slice_tokens(cleaned_message, USER_MESSAGE_MAX_TOKENS)}"
+                f"Your message was too long by {exceeded} tokens.\n"
+                f"For reference, here the message at the max length:\n> {slice_tokens(cleaned_message, USER_MESSAGE_MAX_TOKENS)}"
             ),
-            channel_id=event.channel,  # type: ignore
-            thread_ts=thread,
+            channel_id=event.channel,
+            thread_ts=thread_ts,
         )
-        return Completed(message="User message too long", name="SKIPPED")
+        return Completed(message="Message too long", name="SKIPPED")
 
-    logger.debug_kv("Handling slack message", cleaned_message, "green")
-    if (user := re.search(BOT_MENTION, user_message)) and user.group(
-        1
-    ) == payload.authorizations[0].user_id:  # type: ignore
-        assistant_thread = (
-            Thread.model_validate_json(stored_thread_data)
-            if (stored_thread_data := CACHE.value.get(thread))
-            else Thread()
+    # 2) Check if bot is mentioned
+    if re.search(BOT_MENTION, user_message) and (  # type: ignore
+        payload.authorizations
+        and user_message
+        and payload.authorizations[0].user_id in user_message
+    ):
+        # 3) Load existing conversation from DB
+        assert thread_ts is not None, "Thread timestamp is required!"
+        conversation = await db.get_thread_messages(thread_ts)
+
+        try:
+            ModelMessagesTypeAdapter.validate_python(conversation)
+        except Exception as e:
+            logger.error(f"Invalid message history: {e}")
+            conversation = []
+
+        # 4) Use pydantic-ai for the new prompt
+        user_context = _build_user_context(
+            user_id=payload.authorizations[0].user_id,
+            user_question=cleaned_message,
         )
-        logger.debug_kv(
-            "🧵  Thread data",
-            stored_thread_data or f"No stored thread data found for {thread}",
-            "blue",
+        logger.debug(f"Running agent with prompt: {cleaned_message}")
+        logger.debug(f"Injecting user context: {user_context}")
+        result = await agent.run(
+            user_prompt=cleaned_message,
+            message_history=conversation,
+            deps=user_context,
         )
-        with engage_marvin_bot(
-            model=cast(str, await Variable.get("marvin_bot_model", "gpt-4o")),
-        ) as ai:
-            logger.debug_kv(
-                f"🤖  Running assistant {ai.name} with instructions",
-                ai.instructions,
-                "blue",
-            )
-            user_thread_message = await assistant_thread.add_async(cleaned_message)
-            await assistant_thread.run_async(ai)
-            ai_messages = await assistant_thread.get_messages_async(
-                after_message=user_thread_message.id
-            )
 
-            CACHE.set_state(CACHE.value | {thread: assistant_thread.model_dump_json()})
+        # 5) Save newly created messages from this run
+        #    (both user + assistant, appended to conversation)
+        new_messages = result.new_messages()  # user & assistant from this run
+        await db.add_thread_messages(thread_ts, new_messages)
 
-            await task(post_slack_message)(
-                ai_response_text := "\n\n".join(
-                    m.content[0].text.value for m in ai_messages
-                ),
-                channel_id=(channel := event.channel),
-                thread_ts=thread,
-            )
-            logger.debug_kv(
-                success_msg
-                := f"Responded in {await get_channel_name(channel)}/{thread}",
-                ai_response_text,
-                "green",
-            )
+        # 6) Send the assistant’s response to Slack
+        assert event.channel is not None, "Channel is required!"
+        await task(post_slack_message)(
+            message=result.data,
+            channel_id=event.channel,
+            thread_ts=thread_ts,
+        )
+        logger.info(f"Responded in {await get_channel_name(event.channel)}/{thread_ts}")
+        return Completed(message="Responded to mention")
 
-            return Completed(message=success_msg)
-    else:
-        return Completed(message="Skipping message not directed at bot", name="SKIPPED")
+    return Completed(message="Skipping non-mention", name="SKIPPED")
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with Database.connect(DB_FILE) as db:
+        app.state.db = db
+        yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.post("/chat")
@@ -151,45 +315,43 @@ async def chat_endpoint(request: Request):
         payload = SlackPayload(**await request.json())
     except Exception as e:
         logger.error(f"Error parsing Slack payload: {e}")
-        slack_webhook = await SlackWebhook.load("marvin-bot-pager")
+        slack_webhook = await SlackWebhook.load("marvin-bot-pager")  # type: ignore
         await slack_webhook.notify(  # type: ignore
             body=f"Error parsing Slack payload: {e}",
             subject="Slackbot Error",
         )
         raise HTTPException(400, "Invalid event type")
+
+    db: Database = request.app.state.db
+
     match payload.type:
         case "event_callback":
-            assert payload.event is not None, "No event found!"
-            # check if the event is a new user joining the workspace. If so, send a welcome message.
+            assert payload.event, "No event found!"
             if payload.event.type == "team_join":
                 user_id = payload.event.user
-                # get the welcome message from the variable store
-                message_var = await Variable.get("marvin_welcome_message")
-                message_template = message_var["text"]
-                # format the message with the user's id
-                rendered_message = message_template.format(user_id=user_id)
-                # post the message to the user's DM channel
-                await task(post_slack_message)(
-                    message=rendered_message,
-                    channel_id=user_id,  # type: ignore
-                )
+                msg_var = await Variable.aget("marvin_welcome_message")
+                welcome_text = msg_var["text"].format(user_id=user_id)  # type: ignore
+                await task(post_slack_message)(welcome_text, channel_id=user_id)  # type: ignore
             else:
+                assert payload.event.channel is not None
                 channel_name = await get_channel_name(payload.event.channel)
                 if channel_name.startswith("D"):
-                    # This is a DM channel, we should not respond
-                    logger.warning(
-                        f"Attempted to respond in DM channel: {channel_name}"
-                    )
-                    slack_webhook = await SlackWebhook.load("marvin-bot-pager")
-                    await slack_webhook.notify(
-                        body=f"Attempted to respond in DM channel: {channel_name}",
+                    logger.warning(f"DM channel: {channel_name}")
+                    slack_webhook = await SlackWebhook.load("marvin-bot-pager")  # type: ignore
+                    await slack_webhook.notify(  # type: ignore
+                        body=f"Attempted DM: {channel_name}",
                         subject="Slackbot DM Warning",
                     )
                     return Completed(message="Skipped DM channel", name="SKIPPED")
-                options = dict(
-                    flow_run_name=f"respond in {channel_name}/{payload.event.thread_ts}"
+
+                # Launch the Prefect flow in the background
+                ts = payload.event.thread_ts or payload.event.ts
+                flow_opts: dict[str, Any] = dict(
+                    flow_run_name=f"respond in {channel_name}/{ts}"
                 )
-                asyncio.create_task(handle_message.with_options(**options)(payload))
+                asyncio.create_task(
+                    handle_message.with_options(**flow_opts)(payload, db)
+                )
         case "url_verification":
             return {"challenge": payload.challenge}
         case _:
@@ -199,8 +361,4 @@ async def chat_endpoint(request: Request):
 
 
 if __name__ == "__main__":
-    if not os.getenv("OPENAI_API_KEY", None):  # TODO: Remove this
-        assert (api_key := marvin.settings.openai.api_key), "OPENAI_API_KEY not set"
-        os.environ["OPENAI_API_KEY"] = api_key.get_secret_value()
-
     uvicorn.run(app, host="0.0.0.0", port=4200)

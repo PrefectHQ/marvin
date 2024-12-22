@@ -118,7 +118,7 @@ def convert_md_links_to_slack(text) -> str:
 async def post_slack_message(
     message: str,
     channel_id: str,
-    attachments: Union[list, None] = None,
+    attachments: Union[list[dict[str, Any]], None] = None,
     thread_ts: Union[str, None] = None,
     auth_token: Union[str, None] = None,
 ) -> httpx.Response:

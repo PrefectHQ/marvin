@@ -180,3 +180,6 @@ src/marvin/_version.py
 .prefect/
 .prefect/*.json
 .prefectignore
+
+# uv
+uv.lock
