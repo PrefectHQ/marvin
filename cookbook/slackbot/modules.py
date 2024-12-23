@@ -4,6 +4,8 @@ import pkgutil
 from types import ModuleType
 from typing import Any
 
+from prefect.utilities.importtools import import_object
+
 
 class ModuleTreeExplorer:
     def __init__(self, root_module_path: str, max_depth: int = 2):
@@ -188,3 +190,86 @@ class ModuleTreeExplorer:
             )
 
         return "\n".join(lines)
+
+
+def display_signature(import_path: str) -> str:
+    """
+    Format a function's signature with clear visual organization.
+
+    Args:
+        import_path: Import path to the function (e.g., 'prefect.serve' or 'prefect.flows:serve')
+
+    Returns:
+        A formatted string showing the function signature
+
+    Example:
+        >>> print(display_signature('prefect.flows:serve'))
+        📎 serve
+        ├── Parameters:
+        ├── flow: Flow
+        └── name: str = None
+        └── Returns:
+            └── DeploymentResponse
+    """
+    try:
+        func = import_object(import_path)
+        if not callable(func):
+            raise ValueError(f"Imported object {import_path!r} is not callable")
+    except Exception as e:
+        return f"Error: Could not import {import_path!r}: {str(e)}"
+
+    sig = inspect.signature(func)
+
+    # Get function name and build header
+    func_name = func.__name__
+    lines = [f"📎 {func_name}", "├── Parameters:"]
+
+    # Process parameters
+    for idx, (name, param) in enumerate(sig.parameters.items()):
+        is_last = idx == len(sig.parameters) - 1
+        prefix = "└── " if is_last else "├── "
+
+        # Determine parameter kind
+        if param.kind == inspect.Parameter.VAR_POSITIONAL:
+            kind_str = "*args"
+        elif param.kind == inspect.Parameter.VAR_KEYWORD:
+            kind_str = "**kwargs"
+        elif param.kind == inspect.Parameter.KEYWORD_ONLY:
+            kind_str = "keyword-only"
+        elif param.kind == inspect.Parameter.POSITIONAL_ONLY:
+            kind_str = "positional-only"
+        else:
+            kind_str = ""
+
+        # Format type annotation
+        type_str = (
+            ""
+            if param.annotation == inspect.Parameter.empty
+            else f": {param.annotation}"
+        )
+
+        # Format default value
+        if param.default == inspect.Parameter.empty:
+            default_str = ""
+        else:
+            default_str = f" = {repr(param.default)}"
+
+        # Build the parameter line
+        param_parts = []
+        param_parts.append(name)
+        if type_str:
+            param_parts.append(type_str)
+        if default_str:
+            param_parts.append(default_str)
+        if kind_str:
+            param_parts.append(f" ({kind_str})")
+
+        lines.append(f"{prefix}{''.join(param_parts)}")
+
+    # Add return type if present
+    return_annotation = sig.return_annotation
+    if return_annotation != inspect.Signature.empty:
+        lines.append("└── Returns:")
+        lines.append(f"    └── {return_annotation}")
+
+    return "\n".join(lines)

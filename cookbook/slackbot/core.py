@@ -19,6 +19,7 @@ from pydantic_ai.settings import ModelSettings
 from raggy.documents import Document
 from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
 from search import (
+    display_signature,
     explore_module_offerings,
     get_latest_prefect_release_notes,
     review_common_3x_gotchas,
@@ -51,7 +52,10 @@ Generally, follow this pattern while generating each response:
 5) Compile relevant facts and context into a single, CONCISE answer 
 NEVER reference features, syntax, imports or env vars that you do not explicitly find in the docs. 
 If not explicitly stated, assume that the user is using Prefect 3.x and vocalize this assumption.
-If asked an ambiguous question, simply state what you know about the user and your capabilities."""
+If asked an ambiguous question, simply state what you know about the user and your capabilities.
+
+Do not pretend to know things you do not know, assume an agnostic stance and rely on your tools to gather context.
+"""
 
 
 @task(task_run_name="Reading {n} issues from {repo} given query: {query}")
@@ -193,6 +197,7 @@ def create_agent(
         tools=[
             get_latest_prefect_release_notes,  # type: ignore
             search_prefect_2x_docs,
+            display_signature,
             search_prefect_3x_docs,
             search_controlflow_docs,
             read_github_issues,
