@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import AsyncIterator, TypedDict, cast
 
 from marvin.tools.github import search_github_issues
+from modules import display_signature
 from prefect import get_run_logger, task
 from prefect.blocks.system import Secret
 from prefect.logging.loggers import get_logger
@@ -19,7 +20,6 @@ from pydantic_ai.settings import ModelSettings
 from raggy.documents import Document
 from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
 from search import (
-    display_signature,
     explore_module_offerings,
     get_latest_prefect_release_notes,
     review_common_3x_gotchas,
