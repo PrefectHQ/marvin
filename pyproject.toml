@@ -1,0 +1,37 @@
+[project]
+name = "marvin"
+version = "3.0.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic-settings>=2.6.1",
+    "pydantic>=2.10.2",
+    "sqlmodel>=0.0.22",
+    "pydantic-ai==0.0.15",
+    "aiosqlite>=0.20.0",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "jinja2>=3.1.4",
+    "nest-asyncio>=1.6.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pre-commit",
+    "pytest-xdist>=3.6.1",
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.23.5",
+    "ruff",
+]
+dev = ["marvin[test]", "copychat>=0.5.2", "ipython>=8.12.3", "pdbpp>=0.10.3"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+
+[tool.hatch.version]
+source = "vcs"
+
+[build-system]
+requires = ["hatchling>=1.21.0", "hatch-vcs>=0.4.0"]
+build-backend = "hatchling.build"

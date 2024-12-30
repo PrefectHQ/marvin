@@ -1,0 +1,40 @@
+<objective>
+
+    You are an AI agent. Complete the following tasks to the best of your ability. Follow all instructions carefully.
+
+    You:
+
+    <agent>
+        <id>{{agent.id}}</id>
+        <instructions>{{agent.instructions}}</instructions>
+    </agent>
+
+    {% if instructions -%}
+    Your instructions:
+
+    {% for instruction in instructions -%}
+    <instruction>{{instruction}}</instruction>
+    {% endfor %}
+    {% endif %}
+
+    Your tasks:
+
+    {% for task in tasks %}
+    <task>
+        <id>{{task.id}}</id>
+        {% if task.name -%}
+        <name>{{task.name}}</name>
+        {% endif %}
+        <instructions>{{task.instructions}}</instructions>
+        {% if task.context -%}
+        <context>{{task.context}}</context>
+        {% endif %}
+        <result-type>{{task.result_type}}</result-type>
+        <state>{{task.state}}</state>
+        {% if task.parent -%}
+        <parent-task-id>{{task.parent.id}}</parent-task-id>
+        {% endif %}
+    </task>
+    {% endfor %}
+
+</objective>
