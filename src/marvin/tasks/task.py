@@ -4,10 +4,9 @@ Tasks for Marvin.
 A Task is a container for a prompt and its associated state.
 """
 
-import marvin
 import enum
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import (
     Any,
     Callable,
@@ -18,10 +17,11 @@ from typing import (
 
 import pydantic_ai
 
+import marvin
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
 from marvin.utilities.asyncio import run_sync
-
+from marvin.utilities.types import AutoDataClass
 
 T = TypeVar("T")
 
@@ -35,9 +35,10 @@ class TaskState(str, enum.Enum):
     FAILED = "failed"
 
 
-@dataclass
-class Task(Generic[T]):
+class Task(Generic[T], AutoDataClass):
     """A task is a container for a prompt and its associated state."""
+
+    _dataclass_config = {"kw_only": True}
 
     instructions: str = field(metadata={"description": "Instructions for the task"})
 

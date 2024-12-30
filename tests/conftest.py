@@ -1,9 +1,10 @@
 """Test configuration and fixtures."""
 
-import pytest
 from pathlib import Path
-from sqlmodel import create_engine, SQLModel
 from tempfile import TemporaryDirectory
+
+import pytest
+from sqlmodel import SQLModel, create_engine
 
 from marvin import settings
 from marvin.engine import database

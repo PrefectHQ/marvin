@@ -1,4 +1,7 @@
 from dataclasses import dataclass
+
+from pydantic_ai.models import Model
+
 import marvin
 from marvin import Agent
 
@@ -6,7 +9,7 @@ from marvin import Agent
 @dataclass
 class Defaults:
     agent: Agent
-    model: str
+    model: str | Model
 
 
 defaults = Defaults(

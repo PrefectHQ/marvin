@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+from marvin.utilities.types import AutoDataClass
 
 
-@dataclass
-class Actor:
+class Actor(AutoDataClass):
+    _dataclass_config = {"kw_only": True}
     pass

@@ -4,23 +4,27 @@ Agents for Marvin.
 An Agent is an entity that can process tasks and maintain state across interactions.
 """
 
-import uuid
-from typing import Any, Callable, Optional
-from dataclasses import dataclass, field
 import random
+import uuid
+from dataclasses import field
+from typing import Any, Callable, Optional
+
+from pydantic_ai.models import Model
+
+import marvin
+import marvin.engine.llm
 from marvin.agents.names import AGENT_NAMES
 from marvin.engine.thread import Thread, get_thread
 from marvin.tools.tools import Tool
-import marvin
-import marvin.engine.llm
-
 from marvin.utilities.asyncio import run_sync
+
 from .actor import Actor
 
 
-@dataclass
 class Agent(Actor):
     """An agent that can process tasks and maintain state."""
+
+    _dataclass_config = {"kw_only": True}
 
     id: uuid.UUID = field(
         default_factory=uuid.uuid4,
@@ -41,7 +45,7 @@ class Agent(Actor):
         metadata={"description": "Name of the agent"},
     )
 
-    model: Optional[str] = field(
+    model: Optional[str | Model] = field(
         default=None,
         metadata={
             "description": "The model to use for the agent. If not provided, the default model will be used. A compatible string can be passed to automatically retrieve the model."

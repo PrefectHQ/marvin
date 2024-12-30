@@ -32,6 +32,12 @@ asyncio_default_fixture_loop_scope = "session"
 [tool.hatch.version]
 source = "vcs"
 
+[tool.ruff]
+extend-select = ["I"]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["I"]
+
 [build-system]
 requires = ["hatchling>=1.21.0", "hatch-vcs>=0.4.0"]
 build-backend = "hatchling.build"

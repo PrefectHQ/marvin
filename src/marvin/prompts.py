@@ -10,40 +10,41 @@ This module provides a flexible prompt system that supports:
 
 import inspect
 import re
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Type, get_type_hints
 
-from pydantic import field_validator, model_validator
-from marvin.utilities.models import MarvinModel
+from marvin.engine.llm import AgentMessage, Message, SystemMessage, UserMessage
 from marvin.utilities.jinja import prompt_env
-from marvin.engine.llm import Message, SystemMessage, UserMessage, AgentMessage
+from marvin.utilities.types import AutoDataClass
 
 
-class Template(MarvinModel):
+class Template(AutoDataClass):
     """A template for generating prompts."""
 
-    model_config = dict(extra="allow")
+    _dataclass_config = {"kw_only": True}
 
     template: Optional[str] = None
     template_path: Optional[Path] = None
 
-    @field_validator("template_path", mode="before")
-    def _validate_template_path(cls, v):
-        if v is not None:
-            return Path(v)
-        return v
-
-    @model_validator(mode="after")
-    def _validate(self):
-        if not self.template and not self.template_path:
-            raise ValueError("Template or template_path must be provided.")
-        return self
+    def __init__(
+        self,
+        template: Optional[str] = None,
+        template_path: Optional[Path] = None,
+        **kwargs,
+    ):
+        if template and template_path:
+            raise ValueError("Either template or template_path must be provided.")
+        elif not template and not template_path:
+            raise ValueError("Either template or template_path must be provided.")
+        if template_path:
+            template_path = Path(template_path)
+        super().__init__(template=template, template_path=template_path, **kwargs)
 
     def render(self, **kwargs) -> str:
-        render_kwargs = dict(self)
-        del render_kwargs["template"]
-        del render_kwargs["template_path"]
+        render_kwargs = asdict(self)
+        render_kwargs.pop("template", None)
+        render_kwargs.pop("template_path", None)
 
         if self.template is not None:
             template = prompt_env.from_string(self.template)

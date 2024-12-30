@@ -2,8 +2,46 @@ import asyncio
 import inspect
 import textwrap
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional, List
-from marvin.utilities.jinja import Environment
+from typing import Any, Callable, List, Optional
+
+from marvin.utilities.jinja import prompt_env
+
+
+class AutoDataClass:
+    """
+    Base class for automatically applying `@dataclass` to subclasses with configurable behavior.
+
+    Subclasses can define their dataclass configuration by setting the `_dataclass_config`
+    attribute directly. The configuration is applied during class creation.
+
+    Attributes:
+        _dataclass_config (dict): Configuration options passed to the
+            `dataclass` decorator, for example `{"kw_only": True}`.
+
+    Example:
+        >>> from dataclasses import asdict
+        >>> class Base(AutoDataClass):
+        ...     common_field: str
+        ...
+        >>> class Derived(Base):
+        ...     _dataclass_config = {"kw_only": True}
+        ...     specific_field: int
+        ...
+        >>> obj = Derived(common_field="example", specific_field=42)
+        >>> asdict(obj)
+        {'common_field': 'example', 'specific_field': 42}
+    """
+
+    _dataclass_config = {}
+
+    def __new__(cls, *args, **kwargs):
+        """
+        Automatically applies `@dataclass` to the class during creation.
+
+        Subclasses can define their specific configuration by setting `_dataclass_config`.
+        """
+        cls = dataclass(cls, **cls._dataclass_config)
+        return super().__new__(cls)
 
 
 @dataclass
@@ -129,8 +167,8 @@ class PythonFunction:
                 return_value = loop.run_until_complete(return_value)
 
         # render the docstring with the bound arguments, if it was supplied as jinja
-        docstring = Environment.render(
-            func.__doc__ or "", **dict(bound.arguments.items())
+        docstring = prompt_env.from_string(func.__doc__ or "").render(
+            **dict(bound.arguments.items())
         )
 
         instance = cls.from_function(
