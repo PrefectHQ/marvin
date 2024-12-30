@@ -18,6 +18,7 @@ from marvin.engine.events import (
 from marvin.engine.handlers import AsyncHandler, Handler
 from marvin.engine.print_handler import PrintHandler
 from marvin.engine.thread import Thread, get_thread
+from marvin.instructions import get_instructions
 from marvin.prompts import Template
 from marvin.tasks.task import Task
 
@@ -90,7 +91,10 @@ class Orchestrator:
                 system_prompt = OrchestratorPrompt(
                     agent=agent,
                     tasks=incomplete_tasks,
-                    instructions=[],
+                    instructions=get_instructions(),
+                )
+                system_message = marvin.engine.llm.SystemMessage(
+                    content=system_prompt.render()
                 )
 
                 task_results = []
@@ -100,7 +104,6 @@ class Orchestrator:
                 agentlet = marvin.engine.llm.create_agentlet(
                     model=agent.get_model(),
                     result_type=Union[tuple(task_results)],
-                    system_prompt=system_prompt.render(),
                     tools=agent.tools,
                 )
 
@@ -125,7 +128,8 @@ class Orchestrator:
                     return result
 
                 messages = await self.thread.get_messages()
-                result = await agentlet.run("", message_history=messages)
+                all_messages = [system_message] + messages
+                result = await agentlet.run("", message_history=all_messages)
 
                 for message in result.new_messages():
                     for event in message_to_events(agent=agent, message=message):

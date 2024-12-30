@@ -2,8 +2,6 @@
 Utility functions for LLM completions using Pydantic AI.
 """
 
-from typing_extensions import TypeVar
-import pydantic_ai
 from typing import (
     Callable,
     List,
@@ -11,15 +9,19 @@ from typing import (
     Type,
     get_type_hints,
 )
+
+import pydantic_ai
 from pydantic_ai import RunContext
-from pydantic_ai.result import RunResult
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
     SystemPromptPart,
-    UserPromptPart,
     TextPart,
+    UserPromptPart,
 )
+from pydantic_ai.result import RunResult
+from typing_extensions import TypeVar
+
 import marvin
 
 # Define Message type union
@@ -68,16 +70,11 @@ def bind_tool(agent: pydantic_ai.Agent, func: Callable) -> None:
 def create_agentlet(
     model: str,
     result_type: Type[T],
-    system_prompt: Optional[
-        str | Callable[[], str] | Callable[[RunContext], str]
-    ] = None,
     tools: Optional[List[Callable]] = None,
 ) -> pydantic_ai.Agent:
     kwargs = {}
     if tools:
         kwargs["tools"] = tools
-    if system_prompt and isinstance(system_prompt, str):
-        kwargs["system_prompt"] = system_prompt
 
     agentlet = pydantic_ai.Agent(
         model=model,
@@ -85,10 +82,6 @@ def create_agentlet(
         retries=marvin.settings.agent_retries,
         **kwargs,
     )
-
-    # dynamic system prompt
-    if system_prompt and isinstance(system_prompt, Callable):
-        agentlet.system_prompt(system_prompt)
 
     return agentlet
 

@@ -3,9 +3,9 @@ Settings for Marvin.
 """
 
 from pathlib import Path
-from typing import Union
+from typing import Literal, Union
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     )
 
     # Logging settings
-    log_level: str = Field(
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
         default="INFO",
         description="Logging level",
     )
@@ -64,6 +64,15 @@ class Settings(BaseSettings):
         path.parent.mkdir(parents=True, exist_ok=True)
 
         return path
+
+    @model_validator(mode="after")
+    def finalize(self) -> None:
+        """Finalize the settings."""
+        import marvin.utilities.logging
+
+        marvin.utilities.logging.setup_logging(self.log_level)
+
+        return self
 
 
 # Global settings instance
