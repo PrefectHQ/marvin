@@ -34,14 +34,26 @@ class AutoDataClass:
 
     _dataclass_config = {}
 
-    def __new__(cls, *args, **kwargs):
+    def __init_subclass__(cls, **kwargs):
         """
-        Automatically applies `@dataclass` to the class during creation.
+        Initialize subclass with inherited dataclass configuration.
 
-        Subclasses can define their specific configuration by setting `_dataclass_config`.
+        Merges parent class _dataclass_config with subclass-specific config.
+        Subclass config takes precedence over parent config.
         """
-        cls = dataclass(cls, **cls._dataclass_config)
-        return super().__new__(cls)
+        super().__init_subclass__(**kwargs)
+        parent_config = {}
+        for base in reversed(cls.__mro__[1:]):  # reverse to respect MRO
+            if hasattr(base, "_dataclass_config"):
+                parent_config.update(base._dataclass_config)
+
+        # Create new dict to avoid modifying parent's config
+        if not hasattr(cls, "_dataclass_config"):
+            cls._dataclass_config = {}
+        cls._dataclass_config = {**parent_config, **cls._dataclass_config}
+
+        # Apply dataclass decorator with merged config
+        return dataclass(cls, **cls._dataclass_config)
 
 
 @dataclass

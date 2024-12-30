@@ -3,7 +3,7 @@ from pydantic_ai import UnexpectedModelBehavior
 from pydantic_ai.models.test import TestModel
 
 import marvin
-import marvin.orchestrator
+import marvin.engine.orchestrator
 
 
 def test_simple_run(test_model: TestModel):

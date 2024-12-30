@@ -117,7 +117,7 @@ class Task(Generic[T], AutoDataClass):
         thread: Optional[Thread | str] = None,
         raise_on_failure: bool = True,
     ):
-        orchestrator = marvin.orchestrator.Orchestrator(tasks=[self], thread=thread)
+        orchestrator = marvin.engine.Orchestrator(tasks=[self], thread=thread)
         await orchestrator.run(raise_on_failure=raise_on_failure)
         return self.result
 

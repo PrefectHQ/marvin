@@ -1,7 +1,7 @@
 from typing import Optional, TypeVar
 
-from marvin import Task, Agent, Thread
-from marvin.orchestrator import Orchestrator
+from marvin import Agent, Task, Thread
+from marvin.engine.orchestrator import Orchestrator
 from marvin.utilities.asyncio import run_sync
 
 T = TypeVar("T")

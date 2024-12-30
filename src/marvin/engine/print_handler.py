@@ -1,0 +1,251 @@
+import datetime
+from typing import Optional, Union
+
+import rich
+from pydantic import BaseModel
+from rich import box
+from rich.console import Group
+from rich.live import Live
+from rich.markdown import Markdown
+from rich.panel import Panel
+from rich.spinner import Spinner
+from rich.table import Table
+
+from marvin.engine.events import (
+    AgentMessageEvent,
+    OrchestratorEndEvent,
+    OrchestratorExceptionEvent,
+    OrchestratorStartEvent,
+    ToolCallEvent,
+    ToolReturnEvent,
+)
+from marvin.engine.handlers import Handler
+
+# Global spinner for consistent animation
+RUNNING_SPINNER = Spinner("dots")
+
+
+class DisplayState(BaseModel):
+    """Base class for content to be displayed."""
+
+    agent_name: str
+    first_timestamp: datetime.datetime
+
+    def format_timestamp(self) -> str:
+        """Format the timestamp for display."""
+        local_timestamp = self.first_timestamp.astimezone()
+        return local_timestamp.strftime("%I:%M:%S %p").lstrip("0").rjust(11)
+
+
+class ContentState(DisplayState):
+    """State for content being streamed."""
+
+    content: str = ""
+
+    @staticmethod
+    def _convert_content_to_str(content) -> str:
+        """Convert various content formats to a string."""
+        if isinstance(content, str):
+            return content
+
+        if isinstance(content, dict):
+            return content.get("content", content.get("text", ""))
+
+        if isinstance(content, list):
+            parts = []
+            for item in content:
+                if isinstance(item, str):
+                    parts.append(item)
+                elif isinstance(item, dict):
+                    part = item.get("content", item.get("text", ""))
+                    if part:
+                        parts.append(part)
+            return "\n".join(parts)
+
+        return str(content)
+
+    def update_content(self, new_content) -> None:
+        """Update content, converting complex content types to string."""
+        self.content = self._convert_content_to_str(new_content)
+
+    def render_panel(self) -> Panel:
+        """Render content as a markdown panel."""
+        return Panel(
+            Markdown(self.content),
+            title=f"[bold]{self.agent_name}[/]",
+            subtitle=f"[italic]{self.format_timestamp()}[/]",
+            title_align="left",
+            subtitle_align="right",
+            border_style="blue",
+            box=box.ROUNDED,
+            width=100,
+            padding=(1, 2),
+        )
+
+
+class ToolState(DisplayState):
+    """State for a tool call and its result."""
+
+    name: str
+    args: dict
+    result: Optional[str] = None
+    is_error: bool = False
+    is_complete: bool = False
+
+    def get_status_style(self) -> tuple[Union[str, Spinner], str, str]:
+        """Returns (icon, text style, border style) for current status."""
+        if self.is_complete:
+            if self.is_error:
+                return "❌", "red", "red"
+            else:
+                return "✅", "green", "green3"  # Slightly softer green
+        return (
+            RUNNING_SPINNER,
+            "yellow",
+            "gray50",
+        )  # Use shared spinner instance
+
+    def render_panel(self) -> Panel:
+        """Render tool state as a panel with status indicator."""
+        icon, text_style, border_style = self.get_status_style()
+        table = Table.grid(padding=0, expand=True)
+
+        header = Table.grid(padding=1)
+        header.add_column(width=2)
+        header.add_column()
+        tool_name = self.name.replace("_", " ").title()
+        header.add_row(icon, f"[{text_style} bold]{tool_name}[/]")
+        table.add_row(header)
+
+        details = Table.grid(padding=(0, 2))
+        details.add_column(style="dim", width=9)
+        details.add_column()
+
+        if self.args:
+            details.add_row(
+                "    Input:",
+                rich.pretty.Pretty(self.args, indent_size=2, expand_all=True),
+            )
+
+        if self.is_complete and self.result:
+            label = "Error" if self.is_error else "Output"
+            style = "red" if self.is_error else "green3"
+            details.add_row(
+                f"    {label}:",
+                f"[{style}]{self.result}[/]",
+            )
+
+        table.add_row(details)
+
+        return Panel(
+            table,
+            title=f"[bold]{self.agent_name}[/]",
+            subtitle=f"[italic]{self.format_timestamp()}[/]",
+            title_align="left",
+            subtitle_align="right",
+            border_style=border_style,
+            box=box.ROUNDED,
+            width=100,
+            padding=(0, 1),
+        )
+
+
+class PrintHandler(Handler):
+    """A handler that prints events to the console in a rich, interactive format."""
+
+    def __init__(self):
+        self.live: Optional[Live] = None
+        self.states: dict[str, DisplayState] = {}
+
+    def update_display(self):
+        """Render all current state as panels and update display."""
+        if not self.live or not self.live.is_started:
+            return
+
+        sorted_states = sorted(self.states.values(), key=lambda s: s.first_timestamp)
+        panels = []
+
+        for state in sorted_states:
+            panels.append(state.render_panel())
+
+        if panels:
+            self.live.update(Group(*panels), refresh=True)
+
+    def on_orchestrator_start(self, event: OrchestratorStartEvent):
+        """Initialize live display when orchestrator starts."""
+        if not self.live:
+            self.live = Live(
+                vertical_overflow="visible",
+                auto_refresh=True,
+            )
+            try:
+                self.live.start()
+            except rich.errors.LiveError:
+                pass
+
+    def on_orchestrator_end(self, event: OrchestratorEndEvent):
+        """Clean up live display when orchestrator ends."""
+        if self.live and self.live.is_started:
+            try:
+                self.live.stop()
+            except rich.errors.LiveError:
+                pass
+            self.live = None
+            self.states.clear()
+
+    def on_orchestrator_exception(self, event: OrchestratorExceptionEvent):
+        """Clean up live display when orchestrator encounters an error."""
+        if self.live and self.live.is_started:
+            try:
+                self.live.stop()
+            except rich.errors.LiveError:
+                pass
+            self.live = None
+            self.states.clear()
+
+    def on_agent_message(self, event: AgentMessageEvent):
+        """Handle agent message events by updating content state."""
+        if not event.message.content:
+            return
+
+        if str(event.id) not in self.states:
+            state = ContentState(
+                agent_name=event.agent.name,
+                first_timestamp=event.timestamp,
+            )
+            state.update_content(event.message.content)
+            self.states[str(event.id)] = state
+        else:
+            state = self.states[str(event.id)]
+            if isinstance(state, ContentState):
+                state.update_content(event.message.content)
+
+        self.update_display()
+
+    def on_tool_call(self, event: ToolCallEvent):
+        """Handle tool call events by updating tool state."""
+        tool_id = str(event.id)
+        if tool_id not in self.states:
+            self.states[tool_id] = ToolState(
+                agent_name=event.agent.name,
+                first_timestamp=event.timestamp,
+                name=event.message.tool_name,
+                args=event.message.args_as_dict(),
+            )
+        else:
+            state = self.states[tool_id]
+            if isinstance(state, ToolState):
+                state.args = event.message.args_as_dict()
+
+        self.update_display()
+
+    def on_tool_return(self, event: ToolReturnEvent):
+        """Handle tool return events by updating tool state."""
+        tool_id = str(event.message.tool_call_id)
+        if tool_id in self.states:
+            state = self.states[tool_id]
+            if isinstance(state, ToolState):
+                state.is_complete = True
+                state.result = event.message.content
+
+        self.update_display()

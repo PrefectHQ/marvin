@@ -46,6 +46,11 @@ class Settings(BaseSettings):
         description="The number of times the agent is allowed to retry when it generates an invalid result.",
     )
 
+    enable_default_print_handler: bool = Field(
+        default=True,
+        description="Whether to enable the default print handler.",
+    )
+
     @field_validator("database_path")
     def validate_database_path(cls, v: Union[str, Path]) -> Path:
         """Validate and normalize the database path."""

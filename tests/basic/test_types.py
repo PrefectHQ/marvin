@@ -68,3 +68,30 @@ class TestAutoDataClass:
         assert outer.inner.value == 42
         assert outer.name == "test"
         assert asdict(outer) == {"inner": {"value": 42}, "name": "test"}
+
+    def test_autodataclass_config_inheritance(self):
+        """Test that _dataclass_config is properly inherited and merged."""
+
+        class Parent(AutoDataClass):
+            _dataclass_config = {"frozen": True}
+            x: int
+
+        class Child(Parent):
+            _dataclass_config = {"kw_only": True}
+            y: str
+
+        # Child should inherit parent's frozen=True and combine with its own kw_only=True
+        assert Child._dataclass_config == {"frozen": True, "kw_only": True}
+
+        # Test that config is applied correctly
+        obj = Child(x=1, y="test")
+        assert obj.x == 1
+        assert obj.y == "test"
+
+        # Should fail with positional args (kw_only=True)
+        with pytest.raises(TypeError):
+            Child(1, "test")
+
+        # Should fail when trying to modify (frozen=True)
+        with pytest.raises(Exception):
+            obj.x = 2
