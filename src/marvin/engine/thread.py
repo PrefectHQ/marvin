@@ -4,15 +4,17 @@ Thread management for conversations.
 This module provides the Thread class for managing conversation context.
 """
 
-from datetime import datetime, UTC
 import uuid
-from typing import Optional, List
 from contextvars import ContextVar
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from typing import List, Optional
+
 from sqlmodel import select
 
 from .database import get_async_session
-from .models import DBThread, DBMessage, message_adapter
 from .llm import Message, UserMessage
+from .models import DBMessage, DBThread, message_adapter
 
 
 def utc_now() -> datetime:
@@ -26,23 +28,13 @@ current_thread: ContextVar[Optional["Thread"]] = ContextVar(
 )
 
 
+@dataclass
 class Thread:
     """Main runtime object for managing conversation context."""
 
-    def __init__(
-        self,
-        id: Optional[str] = None,
-        parent_id: Optional[str] = None,
-    ):
-        """Initialize a thread.
-
-        Args:
-            id: Optional thread ID. If not provided, a new one will be created.
-            parent_id: Optional parent thread ID for branching conversations.
-        """
-        self.id = id or str(uuid.uuid4())
-        self.parent_id = parent_id
-        self._db_thread: Optional[DBThread] = None
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    parent_id: Optional[str] = None
+    _db_thread: Optional[DBThread] = field(default=None, init=False, repr=False)
 
     async def _ensure_thread_exists(self) -> None:
         """Ensure thread exists in database."""

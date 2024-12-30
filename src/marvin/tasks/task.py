@@ -40,7 +40,9 @@ class Task(Generic[T], AutoDataClass):
 
     _dataclass_config = {"kw_only": True}
 
-    instructions: str = field(metadata={"description": "Instructions for the task"})
+    instructions: str = field(
+        metadata={"description": "Instructions for the task"}, kw_only=False
+    )
 
     result_type: type[T] = field(
         default=str,
@@ -111,6 +113,7 @@ class Task(Generic[T], AutoDataClass):
 
     async def run_async(
         self,
+        *,
         thread: Optional[Thread | str] = None,
         raise_on_failure: bool = True,
     ):
@@ -118,8 +121,12 @@ class Task(Generic[T], AutoDataClass):
         await orchestrator.run(raise_on_failure=raise_on_failure)
         return self.result
 
-    def run(self, thread: Optional[Thread | str] = None, raise_on_failure: bool = True):
-        return run_sync(self.run_async(thread, raise_on_failure))
+    def run(
+        self, *, thread: Optional[Thread | str] = None, raise_on_failure: bool = True
+    ):
+        return run_sync(
+            self.run_async(thread=thread, raise_on_failure=raise_on_failure)
+        )
 
     def mark_successful(self, result: T = None) -> None:
         """Mark the task as successful with an optional result."""

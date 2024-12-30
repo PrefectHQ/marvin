@@ -6,7 +6,7 @@ from marvin.agents.agent import Agent
 from marvin.tasks.task import Task
 
 from marvin.run import run, run_async, run_tasks_async
-from marvin.defaults import defaults
+from marvin.defaults import defaults, override_defaults
 import marvin.utilities.asyncio
 
 

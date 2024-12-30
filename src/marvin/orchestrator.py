@@ -2,13 +2,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Generic, Optional, TypeVar, Union
 from uuid import UUID
+
+import pydantic_ai
+
 import marvin
 import marvin.engine.llm
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread, get_thread
 from marvin.prompts import Template
 from marvin.tasks.task import Task
-import pydantic_ai
 
 T = TypeVar("T")
 
@@ -49,6 +51,7 @@ class Orchestrator:
     async def run(self, raise_on_failure: bool = True):
         # TODO: expand to include all children of provided tasks
         while incomplete_tasks := [t for t in self.tasks if t.is_incomplete()]:
+            breakpoint()
             task = incomplete_tasks[0]
 
             if task.is_pending():
@@ -80,6 +83,7 @@ class Orchestrator:
             async def validate_result(
                 ctx: pydantic_ai.RunContext, result: TaskResult
             ) -> TaskResult:
+                breakpoint()
                 task_id = result.task_id
                 task = next((t for t in self.tasks if t.id == task_id), None)
                 if not task:
