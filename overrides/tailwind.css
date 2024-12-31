@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --marvin-blue: rgba(24, 21, 68);
+    --md-primary-fg-color: var(--marvin-blue);
+  }
+
+body {
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+p {
+    margin-bottom: 15px !important;
+}
+
+h2 {
+    margin-top: 16px !important;
+}
+
+h1, .admonition > p:first-of-type {
+    margin-bottom: 15px !important
+}

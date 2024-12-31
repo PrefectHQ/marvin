@@ -1,0 +1,22 @@
+{#-
+    This file was automatically generated - do not edit
+  -#}
+  <footer class="md-footer">
+    {% if "navigation.footer" in features %}
+      {% if page.previous_page or page.next_page %}
+        {% if page.meta and page.meta.hide %}
+          {% set hidden = "hidden" if "footer" in page.meta.hide %}
+        {% endif %}
+
+      {% endif %}
+    {% endif %}
+    <div class="md-footer-meta md-typeset">
+      <div class="md-footer-meta__inner md-grid">
+
+        {% if config.extra.social %}
+          {% include "partials/social.html" %}
+        {% endif %}
+      </div>
+    </div>
+  </footer>
+  
