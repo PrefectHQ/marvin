@@ -113,6 +113,7 @@ class Orchestrator:
 
         messages = await self.thread.get_messages()
         all_messages = [system_message] + messages
+
         result = await agentlet.run("", message_history=all_messages)
 
         if task.report_state_change and task.is_successful():
