@@ -5,7 +5,7 @@ import pytest
 
 from marvin.agents.agent import Agent
 from marvin.tasks.task import Task, TaskState
-from marvin.utilities.types import create_enum, get_labels
+from marvin.utilities.types import Labels, create_enum, get_labels
 
 
 class TestClassification:
@@ -40,6 +40,24 @@ class TestClassification:
         task2 = Task("Choose colors", result_type=list[Colors])
         assert task2._is_classifier()
         assert task2.get_result_type() == list[int]
+
+    def test_labels_classifier(self):
+        """Test using Labels as classifier."""
+        # Test single-label
+        task = Task("Choose color", result_type=Labels(["red", "green", "blue"]))
+        assert task._is_classifier()
+        assert get_labels(task.result_type) == ("red", "green", "blue")
+
+        # Test multi-label
+        task = Task(
+            "Choose colors", result_type=Labels(["red", "green", "blue"], many=True)
+        )
+        assert task._is_classifier()
+        assert task.get_result_type() == list[int]
+
+        # Test validation
+        task.mark_successful([0, 2])
+        assert task.result == ["red", "blue"]
 
     def test_classifier_validation(self):
         """Test validation of classifier results."""
@@ -161,6 +179,59 @@ def test_task_with_context():
     context = {"key": "value"}
     task = Task(instructions="Test context", context=context)
     assert task.context == context
+
+
+def test_task_prompt_customization():
+    """Test customizing task prompts."""
+    # Test default prompt
+    task = Task(
+        name="test task",
+        instructions="Do something",
+        context={"key": "value"},
+    )
+    prompt = task.get_prompt()
+    assert "<id>" in prompt
+    assert "<name>test task</name>" in prompt
+    assert "<instructions>Do something</instructions>" in prompt
+    assert "<context>" in prompt
+    assert "<state>pending</state>" in prompt
+
+    # Test custom prompt
+    task = Task(
+        name="test task",
+        instructions="Do something",
+        context={"key": "value"},
+        prompt_template="Task {{task.name}}: {{task.instructions}}",
+    )
+    prompt = task.get_prompt()
+    assert prompt == "Task test task: Do something"
+
+    # Test custom prompt with conditional logic
+    task = Task(
+        name="test task",
+        instructions="Do something",
+        context={"key": "value"},
+        prompt_template="""
+            {% if task.name %}NAME: {{task.name}}{% endif %}
+            INSTRUCTIONS: {{task.instructions}}
+            {% if task.context %}CONTEXT: {{task.context}}{% endif %}
+        """.strip(),
+    )
+    prompt = task.get_prompt()
+    assert "NAME: test task" in prompt
+    assert "INSTRUCTIONS: Do something" in prompt
+    assert "CONTEXT: {'key': 'value'}" in prompt
+
+    # Test accessing task methods in template
+    task = Task(
+        instructions="Do something",
+        prompt_template="Task is complete: {{task.is_complete()}}",
+    )
+    prompt = task.get_prompt()
+    assert prompt == "Task is complete: False"
+    task.mark_successful()
+    prompt = task.get_prompt()
+    assert prompt == "Task is complete: True"
 
 
 def test_task_mark_running():

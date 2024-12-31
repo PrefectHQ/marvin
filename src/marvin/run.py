@@ -14,7 +14,11 @@ async def run_async(
     agent: Optional[Agent | str] = None,
     raise_on_failure: bool = True,
 ) -> T:
-    task = Task(instructions=instructions, result_type=result_type, agent=agent)
+    task = Task(
+        instructions=instructions,
+        result_type=result_type,
+        agent=agent,
+    )
     await run_tasks_async([task], thread=thread, raise_on_failure=raise_on_failure)
     return task.result
 
@@ -37,5 +41,11 @@ def run(
     raise_on_failure: bool = True,
 ) -> T:
     return run_sync(
-        run_async(instructions, result_type, thread, agent, raise_on_failure)
+        run_async(
+            instructions=instructions,
+            result_type=result_type,
+            thread=thread,
+            agent=agent,
+            raise_on_failure=raise_on_failure,
+        )
     )

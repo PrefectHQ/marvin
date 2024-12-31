@@ -42,7 +42,6 @@ class EndTurn:
 class TaskResult(Generic[T]):
     """
     To mark a task successful, provide its ID and a result.
-    For special sequence types (like Labels), the result will be converted to an index.
     """
 
     task_id: UUID

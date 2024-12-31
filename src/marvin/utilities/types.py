@@ -252,3 +252,20 @@ class PythonFunction:
         )
 
         return instance
+
+
+@dataclass
+class Labels:
+    """A helper class for creating classification labels.
+
+    Args:
+        values: list[Any]
+        many: bool = False
+
+    Example:
+        >>> Task(result_type=Labels(['a', 'b']))  # single-label classification
+        >>> Task(result_type=Labels(['a', 'b'], many=True))  # multi-label classification
+    """
+
+    values: list[Any]
+    many: bool = False

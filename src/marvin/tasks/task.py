@@ -5,8 +5,9 @@ A Task is a container for a prompt and its associated state.
 """
 
 import enum
+import inspect
 import uuid
-from dataclasses import field
+from dataclasses import dataclass, field
 from typing import (
     Any,
     Callable,
@@ -18,10 +19,27 @@ from typing import (
 import marvin
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
+from marvin.prompts import Template
 from marvin.utilities.asyncio import run_sync
-from marvin.utilities.types import AutoDataClass
+from marvin.utilities.types import Labels, get_labels
 
 T = TypeVar("T")
+
+DEFAULT_PROMPT_TEMPLATE = inspect.cleandoc("""
+    <id>{{task.id}}</id>
+    {% if task.name %}
+    <name>{{task.name}}</name>
+    {% endif %}
+    <instructions>{{task.instructions}}</instructions>
+    {% if task.context %}
+    <context>{{task.context}}</context>
+    {% endif %}
+    <result-type>{{task.result_type}}</result-type>
+    <state>{{task.state}}</state>
+    {% if task.parent %}
+    <parent-task-id>{{task.parent.id}}</parent-task-id>
+    {% endif %}
+""")
 
 
 class TaskState(str, enum.Enum):
@@ -33,13 +51,21 @@ class TaskState(str, enum.Enum):
     FAILED = "failed"
 
 
-class Task(Generic[T], AutoDataClass):
+@dataclass
+class Task(Generic[T]):
     """A task is a container for a prompt and its associated state."""
 
     _dataclass_config = {"kw_only": True}
 
     instructions: str = field(
         metadata={"description": "Instructions for the task"}, kw_only=False
+    )
+
+    prompt_template: Optional[str] = field(
+        default=None,
+        metadata={
+            "description": "Optional Jinja template for customizing how the task appears in prompts. Will be rendered with a `task` variable containing this task instance."
+        },
     )
 
     result_type: type[T] = field(
@@ -94,10 +120,16 @@ class Task(Generic[T], AutoDataClass):
 
     def __post_init__(self):
         # Convert list result_type to Enum for convenience
-        if isinstance(self.result_type, (list, tuple)):
+        if isinstance(self.result_type, (list, tuple, set)):
             from marvin.utilities.types import create_enum
 
             self.result_type = create_enum(self.result_type)
+        # Handle Labels type
+        elif isinstance(self.result_type, Labels):
+            from marvin.utilities.types import create_enum
+
+            enum_type = create_enum(self.result_type.values)
+            self.result_type = list[enum_type] if self.result_type.many else enum_type
 
     def get_agent(self) -> Agent:
         return self.agent or marvin.defaults.agent
@@ -168,14 +200,16 @@ class Task(Generic[T], AutoDataClass):
         *,
         thread: Optional[Thread | str] = None,
         raise_on_failure: bool = True,
-    ):
-        orchestrator = marvin.engine.Orchestrator(tasks=[self], thread=thread)
+    ) -> T:
+        orchestrator = marvin.engine.orchestrator.Orchestrator(
+            tasks=[self], thread=thread
+        )
         await orchestrator.run(raise_on_failure=raise_on_failure)
         return self.result
 
     def run(
         self, *, thread: Optional[Thread | str] = None, raise_on_failure: bool = True
-    ):
+    ) -> T:
         return run_sync(
             self.run_async(thread=thread, raise_on_failure=raise_on_failure)
         )
@@ -217,3 +251,21 @@ class Task(Generic[T], AutoDataClass):
     def is_complete(self) -> bool:
         """Check if the task is complete."""
         return self.state in (TaskState.SUCCESSFUL, TaskState.FAILED)
+
+    def get_prompt(self) -> str:
+        """Get the rendered prompt for this task.
+
+        Uses the task's prompt_template (or default if None) and renders it with
+        this task instance as the `task` variable.
+        """
+        template = self.prompt_template or DEFAULT_PROMPT_TEMPLATE
+
+        prompt = Template(template=template).render(task=self)
+
+        if self._is_classifier():
+            prompt += (
+                f"\n\nRespond with the integer index(es) of the labels you're "
+                f"choosing: {dict(enumerate(get_labels(self.result_type)))}"
+            )
+
+        return prompt

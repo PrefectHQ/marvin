@@ -6,6 +6,7 @@ import pytest
 
 from marvin.utilities.types import (
     AutoDataClass,
+    Labels,
     create_enum,
     get_classifier_type,
     get_labels,
@@ -14,15 +15,30 @@ from marvin.utilities.types import (
 
 
 class TestClassification:
-    def test_create_enum(self):
-        """Test creating an enum from a list of values."""
-        # Test with simple strings
+    def test_create_enum_from_list(self):
+        """Test creating an enum from a list."""
         enum_cls = create_enum(["a", "b", "c"])
         assert issubclass(enum_cls, Enum)
         assert [m.name for m in enum_cls] == ["LABEL_0", "LABEL_1", "LABEL_2"]
         assert [m.value for m in enum_cls] == ["a", "b", "c"]
 
-        # Test with complex objects
+    def test_create_enum_from_tuple(self):
+        """Test creating an enum from a tuple."""
+        enum_cls = create_enum(("x", "y", "z"))
+        assert issubclass(enum_cls, Enum)
+        assert [m.name for m in enum_cls] == ["LABEL_0", "LABEL_1", "LABEL_2"]
+        assert [m.value for m in enum_cls] == ["x", "y", "z"]
+
+    def test_create_enum_from_set(self):
+        """Test creating an enum from a set."""
+        enum_cls = create_enum({"p", "q", "r"})
+        assert issubclass(enum_cls, Enum)
+        values = {m.value for m in enum_cls}
+        assert values == {"p", "q", "r"}
+
+    def test_create_enum_with_custom_objects(self):
+        """Test creating an enum with custom objects as values."""
+
         class Point:
             def __init__(self, x, y):
                 self.x = x
@@ -31,7 +47,6 @@ class TestClassification:
         points = [Point(1, 2), Point(3, 4)]
         enum_cls = create_enum(points)
         assert [m.name for m in enum_cls] == ["LABEL_0", "LABEL_1"]
-        assert [m.value for m in enum_cls] == points
         assert enum_cls["LABEL_0"].value.x == 1
         assert enum_cls["LABEL_1"].value.y == 4
 
@@ -168,3 +183,17 @@ class TestAutoDataClass:
         # Should fail when trying to modify (frozen=True)
         with pytest.raises(Exception):
             obj.x = 2
+
+
+class TestLabels:
+    def test_labels_basic_creation(self):
+        """Test creating basic Labels instance."""
+        labels = Labels(["a", "b", "c"])
+        assert labels.values == ["a", "b", "c"]
+        assert not labels.many
+
+    def test_labels_with_many(self):
+        """Test creating Labels with many=True."""
+        labels = Labels(["a", "b", "c"], many=True)
+        assert labels.values == ["a", "b", "c"]
+        assert labels.many

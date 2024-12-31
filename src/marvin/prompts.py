@@ -10,7 +10,7 @@ This module provides a flexible prompt system that supports:
 
 import inspect
 import re
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Type, get_type_hints
 
@@ -27,24 +27,20 @@ class Template(AutoDataClass):
     template: Optional[str] = None
     template_path: Optional[Path] = None
 
-    def __init__(
-        self,
-        template: Optional[str] = None,
-        template_path: Optional[Path] = None,
-        **kwargs,
-    ):
-        if template and template_path:
+    def __post_init__(self):
+        if self.template and self.template_path:
             raise ValueError("Either template or template_path must be provided.")
-        elif not template and not template_path:
+        elif not self.template and not self.template_path:
             raise ValueError("Either template or template_path must be provided.")
-        if template_path:
-            template_path = Path(template_path)
-        super().__init__(template=template, template_path=template_path, **kwargs)
+        if self.template_path:
+            self.template_path = Path(self.template_path)
 
     def render(self, **kwargs) -> str:
-        render_kwargs = asdict(self)
-        render_kwargs.pop("template", None)
-        render_kwargs.pop("template_path", None)
+        render_kwargs = {
+            k: v
+            for k, v in self.__dict__.items()
+            if k not in ["template", "template_path", "_dataclass_config"]
+        }
 
         if self.template is not None:
             template = prompt_env.from_string(self.template)
