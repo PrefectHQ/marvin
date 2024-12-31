@@ -22,7 +22,7 @@ requested format.
 
 def extract(
     data: Any,
-    target: T = str,
+    target: type[T] = str,
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
@@ -39,7 +39,7 @@ def extract(
         target: The type of entities to extract. Defaults to str.
         instructions: Optional additional instructions to guide the extraction.
             Used to provide specific guidance about what to extract or how to
-            process the data.
+            process the data. Required when target is str.
         agent: Optional custom agent to use for extraction. If not provided,
             the default agent will be used.
         thread: Optional thread for maintaining conversation context. Can be
@@ -48,11 +48,11 @@ def extract(
     Returns:
         A list of extracted entities of type T.
 
-    Note:
-        *Either* a target type or instructions must be provided (or both).
-        If only instructions are provided, the target type is assumed to be a
-        string.
+    Raises:
+        ValueError: If target is str and no instructions are provided.
     """
+    if target is str and instructions is None:
+        raise ValueError("Instructions are required when target type is str.")
 
     task = marvin.Task(
         name="Extraction Task",
@@ -68,7 +68,7 @@ def extract(
 
 async def extract_async(
     data: Any,
-    target: T = str,
+    target: type[T] = str,
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
@@ -85,7 +85,7 @@ async def extract_async(
         target: The type of entities to extract. Defaults to str.
         instructions: Optional additional instructions to guide the extraction.
             Used to provide specific guidance about what to extract or how to
-            process the data.
+            process the data. Required when target is str.
         agent: Optional custom agent to use for extraction. If not provided,
             the default agent will be used.
         thread: Optional thread for maintaining conversation context. Can be
@@ -94,11 +94,11 @@ async def extract_async(
     Returns:
         A list of extracted entities of type T.
 
-    Note:
-        *Either* a target type or instructions must be provided (or both).
-        If only instructions are provided, the target type is assumed to be a
-        string.
+    Raises:
+        ValueError: If target is str and no instructions are provided.
     """
+    if target is str and instructions is None:
+        raise ValueError("Instructions are required when target type is str.")
 
     task = marvin.Task(
         name="Extraction Task",
