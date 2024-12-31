@@ -17,6 +17,7 @@ from typing import (
 )
 
 import marvin
+from marvin.agents.actor import Actor
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
 from marvin.prompts import Template
@@ -80,8 +81,9 @@ class Task(Generic[T]):
         metadata={"description": "Unique identifier for this task"},
     )
 
-    agent: Optional[Agent] = field(
-        default=None, metadata={"description": "Optional agent to execute this task"}
+    agent: Optional[Actor] = field(
+        default=None,
+        metadata={"description": "Optional agent or team to execute this task"},
     )
 
     context: dict[str, Any] = field(
@@ -92,6 +94,11 @@ class Task(Generic[T]):
         default=None, metadata={"description": "Optional name for this task"}
     )
 
+    tools: list[Callable] = field(
+        default_factory=list,
+        metadata={"description": "Tools to make available to the agent"},
+    )
+
     state: TaskState = field(
         default=TaskState.PENDING, metadata={"description": "Current state of the task"}
     )
@@ -100,6 +107,13 @@ class Task(Generic[T]):
         default=None,
         metadata={
             "description": "Optional function that validates the result. Takes the raw result and returns a validated result or raises an error."
+        },
+    )
+
+    report_state_change: bool = field(
+        default=True,
+        metadata={
+            "description": "Whether to report the state change of this task to the thread."
         },
     )
 
@@ -132,6 +146,7 @@ class Task(Generic[T]):
             self.result_type = list[enum_type] if self.result_type.many else enum_type
 
     def get_agent(self) -> Agent:
+        """Retrieve the agent assigned to this task."""
         return self.agent or marvin.defaults.agent
 
     def _is_classifier(self) -> bool:
