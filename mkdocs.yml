@@ -191,8 +191,6 @@ extra:
       link: https://github.com/prefecthq/marvin
     - icon: fontawesome/brands/discord
       link: https://discord.gg/Kgw4HpcuYG
-    - icon: fontawesome/brands/twitter
-      link: https://twitter.com/askmarvinai
 
 extra_css:
   - /static/css/global.css
