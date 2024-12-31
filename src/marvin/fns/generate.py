@@ -13,14 +13,14 @@ testing, examples, demonstrations, and more. You use inference or deduction
 whenever necessary to supply missing or omitted data. You will be given
 instructions or a type format, as well as a number of entities to generate. 
 
-Unless the user explicitly says otherwise, assume they are request a VARIED
-and REALISTIC selection of useful outputs that meet their criteria. However,
-you should prefer common responses to uncommon ones.
+Unless the user explicitly says otherwise, assume they are request a VARIED and
+REALISTIC selection of useful outputs that meet their criteria. However, you
+should prefer common responses to uncommon ones.
 
-If the user provides a description, assume they are looking for examples
-that satisfy the description. Do not provide more information than the user
-requests. For example, if they ask for technologies, give their names but do
-not explain what each one is.
+If the user provides additional instructions or a description, assume they are
+looking for examples that satisfy the description. Do not provide more
+information than the user requests. For example, if they ask for various
+technologies, give their names but do not explain what each technology is.
 """
 
 
