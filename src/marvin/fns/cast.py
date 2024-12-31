@@ -3,6 +3,7 @@ from typing import Any, Optional, TypeVar
 import marvin
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
+from marvin.utilities.asyncio import run_sync
 
 T = TypeVar("T")
 
@@ -21,10 +22,11 @@ or information and transform it into a single entity of the requested type.
     unless they provided instructions requiring it. If you do return JSON, it
     must be valid and parseable including double quotes.
 - When converting to bool, treat "truthy" values as true
+
 """
 
 
-def cast(
+async def cast_async(
     data: Any,
     target: type[T] = str,
     instructions: Optional[str] = None,
@@ -32,7 +34,7 @@ def cast(
     thread: Optional[Thread | str] = None,
 ) -> T:
     """
-    Converts input data into a single entity of the specified target type.
+    Converts input data into a single entity of the specified target type asynchronously.
 
     This function uses a language model to analyze the input data and convert
     it into a single entity of the specified type, preserving semantic meaning
@@ -70,10 +72,10 @@ def cast(
         agent=agent,
     )
 
-    return task.run(thread=thread)
+    return await task.run_async(thread=thread)
 
 
-async def cast_async(
+def cast(
     data: Any,
     target: type[T] = str,
     instructions: Optional[str] = None,
@@ -81,7 +83,7 @@ async def cast_async(
     thread: Optional[Thread | str] = None,
 ) -> T:
     """
-    Converts input data into a single entity of the specified target type asynchronously.
+    Converts input data into a single entity of the specified target type.
 
     This function uses a language model to analyze the input data and convert
     it into a single entity of the specified type, preserving semantic meaning
@@ -104,16 +106,12 @@ async def cast_async(
     Raises:
         ValueError: If target is str and no instructions are provided.
     """
-    if target is str and instructions is None:
-        raise ValueError("Instructions are required when target type is str.")
-
-    task = marvin.Task(
-        name="Cast Task",
-        instructions=PROMPT,
-        context={"Data to transform": data},
-        result_type=target,
-        agent=agent,
+    return run_sync(
+        cast_async(
+            data=data,
+            target=target,
+            instructions=instructions,
+            agent=agent,
+            thread=thread,
+        )
     )
-
-    with marvin.instructions(instructions):
-        return await task.run_async(thread=thread)

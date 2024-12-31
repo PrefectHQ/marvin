@@ -14,7 +14,7 @@ from typing import (
     get_origin,
 )
 
-from marvin.utilities.jinja import prompt_env
+from marvin.utilities.jinja import jinja_env
 
 T = TypeVar("T")
 
@@ -28,7 +28,10 @@ def create_enum(values: list[Any], name: str = "Labels") -> type[enum.Enum]:
 
 def is_classifier(typ) -> bool:
     """Check if a type represents a classification task.
-    This includes both single-label (Enum/Literal) and multi-label (list[Enum/Literal]) classification."""
+    This includes both single-label (Enum/Literal) and multi-label (list[Enum/Literal]) classification,
+    as well as Labels objects."""
+    if isinstance(typ, Labels):
+        return True
     origin = get_origin(typ)
     if origin is list:
         # Check if it's list[Enum] or list[Literal]
@@ -247,7 +250,7 @@ class PythonFunction:
                 return_value = loop.run_until_complete(return_value)
 
         # render the docstring with the bound arguments, if it was supplied as jinja
-        docstring = prompt_env.from_string(func.__doc__ or "").render(
+        docstring = jinja_env.from_string(func.__doc__ or "").render(
             **dict(bound.arguments.items())
         )
 

@@ -51,8 +51,7 @@ class TestCast:
                 "pink",
                 target=str,
                 instructions=(
-                    "Return the nearest color of the rainbow as a JSON"
-                    " object with a `color` key"
+                    'Return the nearest color of the rainbow in the form {"color": <color>}'
                 ),
             )
 
