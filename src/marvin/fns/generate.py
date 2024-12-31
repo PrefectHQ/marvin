@@ -1,4 +1,4 @@
-from typing import Optional, TypeVar, type
+from typing import Optional, TypeVar
 
 import marvin
 from marvin.agents.agent import Agent
@@ -51,6 +51,9 @@ def generate(
     Returns:
         A list of n generated entities of type T.
     """
+    if target is str and instructions is None:
+        raise ValueError("Instructions are required when target type is str.")
+
     task = marvin.Task(
         name="Generation Task",
         instructions=PROMPT,
