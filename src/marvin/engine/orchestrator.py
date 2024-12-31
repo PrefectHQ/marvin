@@ -52,7 +52,6 @@ class TaskResult(Generic[T]):
 class Orchestrator:
     tasks: list[Task]
     thread: Thread
-    # prompt: str = None
     handlers: list[Handler | AsyncHandler] = field(default_factory=list)
 
     def __post_init__(self):
@@ -67,87 +66,82 @@ class Orchestrator:
             else:
                 handler.handle(event)
 
+    def _create_system_prompt(
+        self, incomplete_tasks: list[Task]
+    ) -> "marvin.engine.llm.ModelRequest":
+        agent = incomplete_tasks[0].get_agent()
+        system_prompt = OrchestratorPrompt(
+            agent=agent,
+            tasks=incomplete_tasks,
+            instructions=get_instructions(),
+        )
+        return marvin.engine.llm.SystemMessage(content=system_prompt.render())
+
+    def _create_result_validator(self):
+        async def validate_result(
+            ctx: pydantic_ai.RunContext,
+            result: TaskResult,
+        ) -> TaskResult:
+            task_id = result.task_id
+            task = next((t for t in self.tasks if t.id == task_id), None)
+            if not task:
+                raise pydantic_ai.ModelRetry(
+                    f'Task ID "{task_id}" not found. Valid task IDs: {[t.id for t in self.tasks]}'
+                )
+
+            try:
+                task.mark_successful(result.result)
+            except Exception as e:
+                raise pydantic_ai.ModelRetry(f'Task "{task_id}" failed: {e}') from e
+            return result
+
+        return validate_result
+
+    async def _execute_task(self, task: Task, incomplete_tasks: list[Task]):
+        if task.is_pending():
+            task.mark_running()
+            await self.thread.add_messages(
+                [marvin.engine.llm.UserMessage(content=f"New task started: {task}")]
+            )
+
+        agent = task.get_agent()
+        system_message = self._create_system_prompt(incomplete_tasks)
+
+        task_results = [TaskResult[t.result_type] for t in incomplete_tasks]
+        agentlet = marvin.engine.llm.create_agentlet(
+            model=agent.get_model(),
+            result_type=Union[tuple(task_results)],
+            tools=agent.tools,
+        )
+        agentlet.result_validator(self._create_result_validator())
+
+        messages = await self.thread.get_messages()
+        all_messages = [system_message] + messages
+        return await agentlet.run("", message_history=all_messages)
+
+    async def _handle_agent_messages(self, agent: Agent, result):
+        for message in result.new_messages():
+            for event in message_to_events(agent=agent, message=message):
+                await self.handle_event(event)
+        await self.thread.add_messages(result.new_messages())
+
     async def run(self, raise_on_failure: bool = True):
-        # Emit start event
         await self.handle_event(OrchestratorStartEvent())
 
         try:
-            # TODO: expand to include all children of provided tasks
             while incomplete_tasks := [t for t in self.tasks if t.is_incomplete()]:
                 task = incomplete_tasks[0]
+                result = await self._execute_task(task, incomplete_tasks)
+                await self._handle_agent_messages(task.get_agent(), result)
 
-                if task.is_pending():
-                    task.mark_running()
-                    await self.thread.add_messages(
-                        [
-                            marvin.engine.llm.UserMessage(
-                                content=f"New task started: {task}"
-                            )
-                        ]
-                    )
-
-                agent = task.get_agent()
-
-                system_prompt = OrchestratorPrompt(
-                    agent=agent,
-                    tasks=incomplete_tasks,
-                    instructions=get_instructions(),
-                )
-                system_message = marvin.engine.llm.SystemMessage(
-                    content=system_prompt.render()
-                )
-
-                task_results = []
-                for task in incomplete_tasks:
-                    task_results.append(TaskResult[task.result_type])
-
-                agentlet = marvin.engine.llm.create_agentlet(
-                    model=agent.get_model(),
-                    result_type=Union[tuple(task_results)],
-                    tools=agent.tools,
-                )
-
-                @agentlet.result_validator
-                async def validate_result(
-                    ctx: pydantic_ai.RunContext,
-                    result: TaskResult,
-                ) -> TaskResult:
-                    task_id = result.task_id
-                    task = next((t for t in self.tasks if t.id == task_id), None)
-                    if not task:
-                        raise pydantic_ai.ModelRetry(
-                            f'Task ID "{task_id}" not found. Valid task IDs: {[t.id for t in self.tasks]}'
-                        )
-
-                    try:
-                        task.mark_successful(result.result)
-                    except Exception as e:
-                        raise pydantic_ai.ModelRetry(
-                            f'Task "{task_id}" failed: {e}'
-                        ) from e
-                    return result
-
-                messages = await self.thread.get_messages()
-                all_messages = [system_message] + messages
-                result = await agentlet.run("", message_history=all_messages)
-
-                for message in result.new_messages():
-                    for event in message_to_events(agent=agent, message=message):
-                        await self.handle_event(event)
-
-                await self.thread.add_messages(result.new_messages())
-
-                if raise_on_failure and (
-                    failed := next(
+                if raise_on_failure:
+                    if failed := next(
                         (t for t in incomplete_tasks if t.is_failed()), False
-                    )
-                ):
-                    raise ValueError(f"Task {failed.id} failed")
+                    ):
+                        raise ValueError(f"Task {failed.id} failed")
 
-            # Emit end event on successful completion
             await self.handle_event(OrchestratorEndEvent())
 
         except Exception as e:
-            # Emit exception event
             await self.handle_event(OrchestratorExceptionEvent(error=str(e)))
             raise
