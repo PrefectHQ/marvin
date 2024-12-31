@@ -19,5 +19,6 @@ from marvin.fns.classify import classify
 from marvin.fns.extract import extract
 from marvin.fns.cast import cast
 from marvin.fns.generate import generate
+from marvin.fns.fn import fn
 
 __version__ = _version("marvin")
