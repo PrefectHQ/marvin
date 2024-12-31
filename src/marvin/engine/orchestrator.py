@@ -41,7 +41,8 @@ class EndTurn:
 @dataclass
 class TaskResult(Generic[T]):
     """
-    To mark a task successful, provide its ID and a result
+    To mark a task successful, provide its ID and a result.
+    For special sequence types (like Labels), the result will be converted to an index.
     """
 
     task_id: UUID
@@ -91,7 +92,7 @@ class Orchestrator:
 
             try:
                 task.mark_successful(result.result)
-            except Exception as e:
+            except ValueError as e:
                 raise pydantic_ai.ModelRetry(f'Task "{task_id}" failed: {e}') from e
             return result
 
@@ -107,7 +108,8 @@ class Orchestrator:
         agent = task.get_agent()
         system_message = self._create_system_prompt(incomplete_tasks)
 
-        task_results = [TaskResult[t.result_type] for t in incomplete_tasks]
+        # Create task results with appropriate result types
+        task_results = [TaskResult[t.get_result_type()] for t in incomplete_tasks]
         agentlet = marvin.engine.llm.create_agentlet(
             model=agent.get_model(),
             result_type=Union[tuple(task_results)],

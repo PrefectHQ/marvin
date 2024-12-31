@@ -1,10 +1,71 @@
 import asyncio
+import enum
 import inspect
 import textwrap
 from dataclasses import dataclass, field
-from typing import Any, Callable, List, Optional
+from typing import (
+    Any,
+    Callable,
+    List,
+    Literal,
+    Optional,
+    TypeVar,
+    get_args,
+    get_origin,
+)
 
 from marvin.utilities.jinja import prompt_env
+
+T = TypeVar("T")
+
+
+def create_enum(values: list[Any], name: str = "Labels") -> type[enum.Enum]:
+    """Create an Enum from a list of values.
+    The enum names will be LABEL_<index> (e.g., LABEL_0, LABEL_1, LABEL_2)
+    and the values will be the original objects."""
+    return enum.Enum(name, {f"LABEL_{i}": v for i, v in enumerate(values)})
+
+
+def is_classifier(typ) -> bool:
+    """Check if a type represents a classification task.
+    This includes both single-label (Enum/Literal) and multi-label (list[Enum/Literal]) classification."""
+    origin = get_origin(typ)
+    if origin is list:
+        # Check if it's list[Enum] or list[Literal]
+        arg = get_args(typ)[0]
+        return (isinstance(arg, type) and issubclass(arg, enum.Enum)) or get_origin(
+            arg
+        ) is Literal
+    return (isinstance(typ, type) and issubclass(typ, enum.Enum)) or get_origin(
+        typ
+    ) is Literal
+
+
+def get_labels(typ) -> Optional[tuple[Any, ...]]:
+    """Get the label values from a classification type.
+    Works with both Enum/Literal and list[Enum/Literal] types."""
+    origin = get_origin(typ)
+    if origin is list:
+        # Get labels from list[Enum/Literal]
+        arg = get_args(typ)[0]
+        if isinstance(arg, type) and issubclass(arg, enum.Enum):
+            return tuple(v.value for v in arg)
+        elif get_origin(arg) is Literal:
+            return get_args(arg)
+    elif isinstance(typ, type) and issubclass(typ, enum.Enum):
+        return tuple(v.value for v in typ)
+    elif origin is Literal:
+        return get_args(typ)
+    return None
+
+
+def get_classifier_type(typ) -> type:
+    """Get the type that should be used for validation of a classifier.
+    Returns int for Enum/Literal and list[int] for list[Enum/Literal]."""
+    origin = get_origin(typ)
+    if origin is list:
+        return list[int]
+    return int
 
 
 class AutoDataClass:

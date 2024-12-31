@@ -1,8 +1,81 @@
 from dataclasses import asdict, is_dataclass
+from enum import Enum
+from typing import Literal
 
 import pytest
 
-from marvin.utilities.types import AutoDataClass
+from marvin.utilities.types import (
+    AutoDataClass,
+    create_enum,
+    get_classifier_type,
+    get_labels,
+    is_classifier,
+)
+
+
+class TestClassification:
+    def test_create_enum(self):
+        """Test creating an enum from a list of values."""
+        # Test with simple strings
+        enum_cls = create_enum(["a", "b", "c"])
+        assert issubclass(enum_cls, Enum)
+        assert [m.name for m in enum_cls] == ["LABEL_0", "LABEL_1", "LABEL_2"]
+        assert [m.value for m in enum_cls] == ["a", "b", "c"]
+
+        # Test with complex objects
+        class Point:
+            def __init__(self, x, y):
+                self.x = x
+                self.y = y
+
+        points = [Point(1, 2), Point(3, 4)]
+        enum_cls = create_enum(points)
+        assert [m.name for m in enum_cls] == ["LABEL_0", "LABEL_1"]
+        assert [m.value for m in enum_cls] == points
+        assert enum_cls["LABEL_0"].value.x == 1
+        assert enum_cls["LABEL_1"].value.y == 4
+
+    def test_is_classifier(self):
+        """Test classifier type detection."""
+        # Test Enum
+        enum_cls = create_enum(["a", "b"])
+        assert is_classifier(enum_cls)
+        assert is_classifier(list[enum_cls])
+
+        # Test Literal
+        assert is_classifier(Literal["x", "y"])
+        assert is_classifier(list[Literal["x", "y"]])
+
+        # Test non-classifiers
+        assert not is_classifier(str)
+        assert not is_classifier(list[str])
+        assert not is_classifier(int)
+
+    def test_get_labels(self):
+        """Test extracting labels from classifier types."""
+        # Test Enum
+        enum_cls = create_enum(["a", "b", "c"])
+        assert get_labels(enum_cls) == ("a", "b", "c")
+        assert get_labels(list[enum_cls]) == ("a", "b", "c")
+
+        # Test Literal
+        assert get_labels(Literal["x", "y"]) == ("x", "y")
+        assert get_labels(list[Literal["x", "y"]]) == ("x", "y")
+
+        # Test non-classifiers
+        assert get_labels(str) is None
+        assert get_labels(list[str]) is None
+
+    def test_get_classifier_type(self):
+        """Test getting validation types for classifiers."""
+        # Test single-label
+        enum_cls = create_enum(["a", "b"])
+        assert get_classifier_type(enum_cls) == int
+        assert get_classifier_type(Literal["x", "y"]) == int
+
+        # Test multi-label
+        assert get_classifier_type(list[enum_cls]) == list[int]
+        assert get_classifier_type(list[Literal["x", "y"]]) == list[int]
 
 
 class TestAutoDataClass:

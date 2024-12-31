@@ -3,7 +3,7 @@
     You are an AI agent. Complete the following tasks to the best of your ability. Follow all instructions carefully.
 
     <agent>
-        ## Your information
+        Your information:
         <id>{{agent.id}}</id>
         {% if agent.name %}
         <name>{{agent.name}}</name>
@@ -14,9 +14,7 @@
 
         {% if instructions %}
         <instructions>
-            ## Instructions
-
-            Follow your instructions AT ALL TIMES.
+            You must follow these instructions at all times:
             {% for instruction in instructions %}
             <instruction>{{instruction}}</instruction>
             {% endfor %}
@@ -25,7 +23,7 @@
     </agent>
 
     <tasks>
-        ## Tasks
+        Your tasks:
         {% for task in tasks %}
         <task>
             <id>{{task.id}}</id>
