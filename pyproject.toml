@@ -23,13 +23,35 @@ test = [
     "pytest>=8.3.3",
     "pytest-asyncio>=0.23.5",
     "ruff",
+    "pytest-timeout>=2.3.1",
+    "pytest-env>=1.1.5",
 ]
 dev = ["marvin[test]", "copychat>=0.5.2", "ipython>=8.12.3", "pdbpp>=0.10.3"]
 
+# pytest configuration
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
+timeout = 10
+testpaths = ["tests"]
+norecursedirs = [
+    "*.egg-info",
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".vscode",
+    "node_modules",
+]
 
+
+env = [
+    "MARVIN_TEST_MODE=1",
+    'D:MARVIN_AGENT_MODEL=openai:gpt-4o-mini',
+    'D:MARVIN_AGENT_TEMPERATURE=0.0',
+    'D:MARVIN_LOG_LEVEL=DEBUG',
+    'D:MARVIN_ENABLE_DEFAULT_PRINT_HANDLER=0',
+]
 [tool.hatch.version]
 source = "vcs"
 
