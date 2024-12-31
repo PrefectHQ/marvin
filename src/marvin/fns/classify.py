@@ -60,16 +60,19 @@ def classify(
         If multi_label is True, returns a list of labels of type T.
     """
 
+    context = {"Data to classify": data}
+    if instructions:
+        context["Additional instructions"] = instructions
+
     task = marvin.Task(
         name="Classification Task",
         instructions=PROMPT,
-        context={"Data to classify": data},
+        context=context,
         result_type=Labels(labels, many=multi_label),
         agent=agent,
     )
 
-    with marvin.instructions(instructions):
-        return task.run(thread=thread)
+    return task.run(thread=thread)
 
 
 async def classify_async(
@@ -104,13 +107,16 @@ async def classify_async(
         If multi_label is True, returns a list of labels of type T.
     """
 
+    context = {"Data to classify": data}
+    if instructions:
+        context["Additional instructions"] = instructions
+
     task = marvin.Task(
         name="Classification Task",
         instructions=PROMPT,
-        context={"Data to classify": data},
+        context=context,
         result_type=Labels(labels, many=multi_label),
         agent=agent,
     )
 
-    with marvin.instructions(instructions):
-        return await task.run_async(thread=thread)
+    return await task.run_async(thread=thread)

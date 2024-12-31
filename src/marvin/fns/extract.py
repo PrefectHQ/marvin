@@ -54,16 +54,19 @@ def extract(
     if target is str and instructions is None:
         raise ValueError("Instructions are required when target type is str.")
 
+    context = {"Data to extract": data}
+    if instructions:
+        context["Additional instructions"] = instructions
+
     task = marvin.Task(
         name="Extraction Task",
         instructions=PROMPT,
-        context={"Data to extract": data},
+        context=context,
         result_type=list[target],
         agent=agent,
     )
 
-    with marvin.instructions(instructions):
-        return task.run(thread=thread)
+    return task.run(thread=thread)
 
 
 async def extract_async(
@@ -100,13 +103,16 @@ async def extract_async(
     if target is str and instructions is None:
         raise ValueError("Instructions are required when target type is str.")
 
+    context = {"Data to extract": data}
+    if instructions:
+        context["Additional instructions"] = instructions
+
     task = marvin.Task(
         name="Extraction Task",
         instructions=PROMPT,
-        context={"Data to extract": data},
+        context=context,
         result_type=list[target],
         agent=agent,
     )
 
-    with marvin.instructions(instructions):
-        return await task.run_async(thread=thread)
+    return await task.run_async(thread=thread)

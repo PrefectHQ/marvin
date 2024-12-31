@@ -104,16 +104,19 @@ def _fn(
         if k not in {"bound_parameters", "function"}
     }
 
+    context = {
+        "Function definition": model_context,
+        "Function arguments": model.bound_parameters,
+    }
+    if instructions:
+        context["Additional instructions"] = instructions
+
     task = marvin.Task(
         name="Function Output Prediction",
         instructions=PROMPT,
-        context={
-            "Function definition": model_context,
-            "Function arguments": model.bound_parameters,
-        },
+        context=context,
         result_type=model.return_annotation,
         agent=agent,
     )
 
-    with marvin.instructions(instructions):
-        return task.run(thread=thread)
+    return task.run(thread=thread)

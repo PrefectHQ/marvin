@@ -58,16 +58,19 @@ def cast(
     if target is str and instructions is None:
         raise ValueError("Instructions are required when target type is str.")
 
+    context = {"Data to transform": data}
+    if instructions:
+        context["Additional instructions"] = instructions
+
     task = marvin.Task(
         name="Cast Task",
         instructions=PROMPT,
-        context={"Data to transform": data},
+        context=context,
         result_type=target,
         agent=agent,
     )
 
-    with marvin.instructions(instructions):
-        return task.run(thread=thread)
+    return task.run(thread=thread)
 
 
 async def cast_async(

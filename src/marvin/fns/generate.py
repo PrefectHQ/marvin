@@ -54,16 +54,19 @@ def generate(
     if target is str and instructions is None:
         raise ValueError("Instructions are required when target type is str.")
 
+    context = {"Number to generate": n}
+    if instructions:
+        context["Additional instructions"] = instructions
+
     task = marvin.Task(
         name="Generation Task",
         instructions=PROMPT,
-        context={"Number to generate": n},
+        context=context,
         result_type=list[target],
         agent=agent,
     )
 
-    with marvin.instructions(instructions):
-        return task.run(thread=thread)
+    return task.run(thread=thread)
 
 
 async def generate_async(
@@ -93,13 +96,19 @@ async def generate_async(
     Returns:
         A list of n generated entities of type T.
     """
+    if target is str and instructions is None:
+        raise ValueError("Instructions are required when target type is str.")
+
+    context = {"Number to generate": n}
+    if instructions:
+        context["Additional instructions"] = instructions
+
     task = marvin.Task(
         name="Generation Task",
         instructions=PROMPT,
-        context={"Number to generate": n},
+        context=context,
         result_type=list[target],
         agent=agent,
     )
 
-    with marvin.instructions(instructions):
-        return await task.run_async(thread=thread)
+    return await task.run_async(thread=thread)
