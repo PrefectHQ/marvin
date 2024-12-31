@@ -16,5 +16,6 @@ from marvin.defaults import defaults, override_defaults
 
 # marvin fns
 from marvin.fns.classify import classify
+from marvin.fns.extract import extract
 
 __version__ = _version("marvin")
