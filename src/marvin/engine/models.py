@@ -4,12 +4,13 @@ SQLModel interfaces for persistence.
 This module provides SQLModel interfaces for tracking threads, messages, and LLM calls.
 """
 
-from datetime import datetime, UTC
 import json
 import uuid
-from typing import Optional, Dict, Any, List
-from sqlmodel import Field, SQLModel, JSON, Column, Relationship, select
+from datetime import UTC, datetime
+from typing import Any, Dict, List, Optional
+
 from pydantic import TypeAdapter, field_serializer, field_validator
+from sqlmodel import JSON, Column, Field, Relationship, SQLModel, select
 
 from .database import get_async_session
 from .llm import Message

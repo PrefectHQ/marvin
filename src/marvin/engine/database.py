@@ -6,12 +6,12 @@ This module provides utilities for managing database sessions and migrations.
 
 from contextlib import asynccontextmanager, contextmanager
 from typing import AsyncGenerator, Generator
+
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel import Session, SQLModel, create_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.ext.asyncio import create_async_engine
 
 from marvin.settings import settings
-
 
 # Sync engine and session
 _engine = create_engine(

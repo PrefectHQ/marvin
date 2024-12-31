@@ -19,13 +19,15 @@ consider "truthy" or affirmative inputs to be "true".
 @overload
 def classify(
     data: Any, labels: Sequence[T], multi_label: Literal[False] = False, **kwargs
-) -> T: ...
+) -> T:
+    ...
 
 
 @overload
 def classify(
     data: Any, labels: Sequence[T], multi_label: Literal[True], **kwargs
-) -> list[T]: ...
+) -> list[T]:
+    ...
 
 
 def classify(

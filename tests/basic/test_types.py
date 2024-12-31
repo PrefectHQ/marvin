@@ -3,7 +3,6 @@ from enum import Enum
 from typing import Literal
 
 import pytest
-
 from marvin.utilities.types import (
     AutoDataClass,
     Labels,

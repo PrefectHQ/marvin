@@ -4,10 +4,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import pytest
-from sqlmodel import SQLModel, create_engine
-
 from marvin import settings
 from marvin.engine import database
+from sqlmodel import SQLModel, create_engine
 
 
 @pytest.fixture(autouse=True)

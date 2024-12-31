@@ -2,8 +2,8 @@
 Tests for thread functionality and message handling.
 """
 
+from marvin.engine.llm import AgentMessage, SystemMessage, UserMessage
 from marvin.engine.thread import Thread
-from marvin.engine.llm import UserMessage, AgentMessage, SystemMessage
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
 
 

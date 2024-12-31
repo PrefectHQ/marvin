@@ -1,7 +1,6 @@
+import marvin
 import pydantic_ai.models.test
 import pytest
-
-import marvin
 
 
 @pytest.fixture(autouse=True)
