@@ -1,3 +1,6 @@
+# uv generated files
+.python-version
+
 # Python-generated files
 __pycache__/
 *.py[oc]
@@ -9,3 +12,7 @@ wheels/
 # Virtual environments
 .venv
 .DS_Store
+
+# Secrets
+.env
+**/.env
