@@ -59,6 +59,13 @@ def get_labels(typ) -> Optional[tuple[Any, ...]]:
     return None
 
 
+def get_indexed_labels(typ) -> dict[int, Any]:
+    """Get the indexed labels and string representations from a classification type."""
+    labels = get_labels(typ)
+
+    return {i: str(v) for i, v in enumerate(labels)}
+
+
 def get_classifier_type(typ) -> type:
     """Get the type that should be used for validation of a classifier.
     Returns int for Enum/Literal and list[int] for list[Enum/Literal]."""

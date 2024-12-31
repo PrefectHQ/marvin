@@ -21,7 +21,7 @@ from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
 from marvin.prompts import Template
 from marvin.utilities.asyncio import run_sync
-from marvin.utilities.types import Labels, get_labels
+from marvin.utilities.types import Labels, get_indexed_labels
 
 T = TypeVar("T")
 
@@ -262,10 +262,10 @@ class Task(Generic[T]):
 
         prompt = Template(template=template).render(task=self)
 
-        if self._is_classifier():
+        if self._is_classifier() and not self.prompt_template:
             prompt += (
                 f"\n\nRespond with the integer index(es) of the labels you're "
-                f"choosing: {dict(enumerate(get_labels(self.result_type)))}"
+                f"choosing: {get_indexed_labels(self.result_type)}"
             )
 
         return prompt

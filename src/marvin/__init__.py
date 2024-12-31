@@ -14,5 +14,7 @@ from marvin.instructions import instructions
 from marvin.run import run, run_async, run_tasks_async
 from marvin.defaults import defaults, override_defaults
 
+# marvin fns
+from marvin.fns.classify import classify
 
 __version__ = _version("marvin")

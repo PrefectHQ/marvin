@@ -95,6 +95,26 @@ class TestClassification:
         with pytest.raises(ValueError):
             task.mark_successful(["red"])  # Should be integers
 
+    def test_classifier_prompt_instruction(self):
+        """Test that classifier tasks include the additional instruction in their default prompt."""
+        task = Task("Choose color", result_type=["red", "green", "blue"])
+        prompt = task.get_prompt()
+        expected_instruction = (
+            "\n\nRespond with the integer index(es) of the labels you're "
+            "choosing: {0: 'red', 1: 'green', 2: 'blue'}"
+        )
+        assert expected_instruction in prompt
+
+        # Test that custom prompts don't include the instruction
+        task = Task(
+            "Choose color",
+            result_type=["red", "green", "blue"],
+            prompt_template="Custom prompt: {{task.instructions}}",
+        )
+        prompt = task.get_prompt()
+        assert expected_instruction not in prompt
+        assert prompt == "Custom prompt: Choose color"
+
 
 def test_task_initialization():
     """Test basic task initialization."""
