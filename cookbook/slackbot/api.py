@@ -44,7 +44,7 @@ async def run_agent(
         }
 
     with WatchToolCalls(settings=decorator_settings):
-        result = await create_agent().run(
+        result = await create_agent(model="openai:gpt-4o").run(
             user_prompt=cleaned_message,
             message_history=conversation,
             deps=user_context,

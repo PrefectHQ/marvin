@@ -187,7 +187,7 @@ def create_agent(
     ai_model = model or AnthropicModel(
         cast(
             str,
-            Variable.get("marvin_model", default=settings.model_name, _sync=True),  # type: ignore
+            Variable.get("marvin_bot_model", default=settings.model_name, _sync=True),  # type: ignore
         ),
         api_key=Secret.load(settings.claude_key_secret_name, _sync=True).get(),  # type: ignore
     )
