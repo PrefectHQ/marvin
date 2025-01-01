@@ -59,7 +59,7 @@ class Agent(Actor):
     )
 
     model_settings: ModelSettings = field(
-        default_factory=dict,
+        default_factory=ModelSettings,
         metadata={"description": "Settings to pass to the model"},
     )
 
@@ -70,27 +70,27 @@ class Agent(Actor):
         return self.tools + [t for m in self.memories for t in m.get_tools()]
 
     def get_model_settings(self) -> ModelSettings:
-        defaults = {}
+        defaults: ModelSettings = {}
         if marvin.settings.agent_temperature is not None:
             defaults["temperature"] = marvin.settings.agent_temperature
         return defaults | self.model_settings
 
-    async def say_async(self, message: str, thread: Thread | str = None):
+    async def say_async(self, message: str, thread: Thread | str | None = None):
         thread = get_thread(thread)
         await thread.add_user_message(message=message)
         return await marvin.run_async("Respond to the user.", agent=self, thread=thread)
 
-    def say(self, message: str, thread: Thread | str = None):
+    def say(self, message: str, thread: Thread | str | None = None):
         return run_sync(self.say_async(message, thread))
 
     def get_agentlet(
         self,
         result_types: list[type],
-        tools: list[Callable] = None,
+        tools: list[Callable] | None = None,
     ) -> pydantic_ai.Agent:
         return marvin.engine.llm.create_agentlet(
             model=self.get_model(),
-            result_type=Union[tuple(result_types)],
+            result_type=Union[tuple(result_types)],  # type: ignore
             tools=self.get_tools() + (tools or []),
             model_settings=self.get_model_settings(),
         )

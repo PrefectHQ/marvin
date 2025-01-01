@@ -4,6 +4,7 @@ import marvin
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
 from marvin.utilities.asyncio import run_sync
+from marvin.utilities.types import TargetType
 
 T = TypeVar("T")
 
@@ -23,11 +24,11 @@ requested format.
 
 async def extract_async(
     data: Any,
-    target: type[T] = str,
+    target: TargetType[T] = str,
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> list[T]:
+) -> list[TargetType[T]]:
     """
     Extracts entities of a specific type from the provided data asynchronously.
 
@@ -59,7 +60,7 @@ async def extract_async(
     if instructions:
         context["Additional instructions"] = instructions
 
-    task = marvin.Task(
+    task = marvin.Task[list[target]](
         name="Extraction Task",
         instructions=PROMPT,
         context=context,
@@ -67,16 +68,16 @@ async def extract_async(
         agent=agent,
     )
 
-    return await task.run_async(thread=thread)
+    return await task.run_async(thread=thread)  # type: ignore
 
 
 def extract(
     data: Any,
-    target: type[T] = str,
+    target: TargetType[T] = str,
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> list[T]:
+) -> list[TargetType[T]]:
     """
     Extracts entities of a specific type from the provided data.
 

@@ -3,7 +3,7 @@ Settings for Marvin.
 """
 
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal, Optional, Self
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def validate_database_path(self) -> "Settings":
+    def validate_database_path(self) -> Self:
         """Set and validate the database path."""
         # Set default if not provided
         if self.database_path is None:
@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def finalize(self) -> None:
+    def setup_logging(self) -> Self:
         """Finalize the settings."""
         import marvin.utilities.logging
 
