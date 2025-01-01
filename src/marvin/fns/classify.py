@@ -1,14 +1,13 @@
 import enum
-from typing import Any, Literal, Optional, Sequence, TypeVar, Union, overload
+from typing import Any, Literal, Optional, Sequence, TypeVar, overload
 
 import marvin
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
 from marvin.utilities.asyncio import run_sync
-from marvin.utilities.types import issubclass_safe
+from marvin.utilities.types import Labels, issubclass_safe
 
 T = TypeVar("T")
-E = TypeVar("E", bound=enum.Enum)
 
 PROMPT = """
 You are an expert classifier that always maintains as much semantic meaning
@@ -21,36 +20,24 @@ consider "truthy" or affirmative inputs to be "true".
 
 @overload
 async def classify_async(
-    data: Any, labels: Sequence[T], multi_label: Literal[False] = False, **kwargs
+    data: Any, labels: Sequence[T] | type[T], multi_label: Literal[False], **kwargs
 ) -> T: ...
 
 
 @overload
 async def classify_async(
-    data: Any, labels: type[E], multi_label: Literal[False] = False, **kwargs
-) -> E: ...
-
-
-@overload
-async def classify_async(
-    data: Any, labels: Sequence[T], multi_label: Literal[True], **kwargs
+    data: Any, labels: Sequence[T] | type[T], multi_label: Literal[True], **kwargs
 ) -> list[T]: ...
-
-
-@overload
-async def classify_async(
-    data: Any, labels: type[E], multi_label: Literal[True], **kwargs
-) -> list[E]: ...
 
 
 async def classify_async(
     data: Any,
-    labels: Union[Sequence[T], type[E]],
+    labels: Sequence[T] | type[T],
     multi_label: bool = False,
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> Union[T, E, list[T], list[E]]:
+) -> T | list[T]:
     """
     Asynchronously classifies input data into one or more predefined labels using a language model.
 
@@ -96,6 +83,10 @@ async def classify_async(
         >>> # Multi-label classification
         >>> await classify_async("red and blue car", Colors, multi_label=True)
         [<Colors.RED: 'red'>, <Colors.BLUE: 'blue'>]
+
+        >>> # Boolean classification
+        >>> await classify_async("2+2=4", bool)
+        True
     """
 
     context = {"Data to classify": data}
@@ -103,16 +94,13 @@ async def classify_async(
         context["Additional instructions"] = instructions
 
     # Convert Enum class to sequence of values if needed
-    if issubclass_safe(labels, enum.Enum):
-        label_values = [e.value for e in labels]
-        result_type = labels  # Keep original enum type
+    if labels is bool or issubclass_safe(labels, enum.Enum):
+        if multi_label:
+            result_type = list[labels]
+        else:
+            result_type = labels
     else:
-        label_values = list(labels)
-        result_type = label_values  # Keep original sequence
-
-    # Handle multi-label by wrapping in a list
-    if multi_label:
-        result_type = [result_type]
+        result_type = Labels(labels, many=multi_label)
 
     task = marvin.Task(
         name="Classification Task",
@@ -127,36 +115,24 @@ async def classify_async(
 
 @overload
 def classify(
-    data: Any, labels: Sequence[T], multi_label: Literal[False] = False, **kwargs
+    data: Any, labels: Sequence[T] | type[T], multi_label: Literal[False], **kwargs
 ) -> T: ...
 
 
 @overload
 def classify(
-    data: Any, labels: type[E], multi_label: Literal[False] = False, **kwargs
-) -> E: ...
-
-
-@overload
-def classify(
-    data: Any, labels: Sequence[T], multi_label: Literal[True], **kwargs
+    data: Any, labels: Sequence[T] | type[T], multi_label: Literal[True], **kwargs
 ) -> list[T]: ...
-
-
-@overload
-def classify(
-    data: Any, labels: type[E], multi_label: Literal[True], **kwargs
-) -> list[E]: ...
 
 
 def classify(
     data: Any,
-    labels: Union[Sequence[T], type[E]],
+    labels: Sequence[T] | type[T],
     multi_label: bool = False,
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> Union[T, E, list[T], list[E]]:
+) -> T | list[T]:
     """
     Classifies input data into one or more predefined labels using a language model.
 
@@ -202,6 +178,10 @@ def classify(
         >>> # Multi-label classification
         >>> classify("red and blue car", Colors, multi_label=True)
         [<Colors.RED: 'red'>, <Colors.BLUE: 'blue'>]
+
+        >>> # Boolean classification
+        >>> classify("2+2=4", bool)
+        True
     """
     return run_sync(
         classify_async(
