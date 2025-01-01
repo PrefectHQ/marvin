@@ -34,8 +34,12 @@ __all__ = [
     "defaults",
     "override_defaults",
     "classify",
+    "classify_async",
     "extract",
+    "extract_async",
     "cast",
+    "cast_async",
     "generate",
+    "generate_async",
     "fn",
 ]

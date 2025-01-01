@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager, contextmanager
 from typing import AsyncGenerator, Generator
 
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlmodel import Session, SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine, inspect
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from marvin.settings import settings
@@ -20,17 +20,6 @@ _engine = create_engine(
     connect_args={"check_same_thread": False},
 )
 
-
-@contextmanager
-def get_session() -> Generator[Session, None, None]:
-    """Get a database session."""
-    session = Session(_engine)
-    try:
-        yield session
-    finally:
-        session.close()
-
-
 # Async engine and session
 _async_engine = create_async_engine(
     f"sqlite+aiosqlite:///{settings.database_path}",
@@ -39,9 +28,28 @@ _async_engine = create_async_engine(
 )
 
 
+def _ensure_tables_exist():
+    """Initialize database tables if they don't exist yet."""
+    inspector = inspect(_engine)
+    if not inspector.get_table_names():
+        SQLModel.metadata.create_all(_engine)
+
+
+@contextmanager
+def get_session() -> Generator[Session, None, None]:
+    """Get a database session."""
+    _ensure_tables_exist()
+    session = Session(_engine)
+    try:
+        yield session
+    finally:
+        session.close()
+
+
 @asynccontextmanager
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """Get an async database session."""
+    _ensure_tables_exist()
     session = AsyncSession(_async_engine)
     try:
         yield session
