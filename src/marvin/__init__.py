@@ -7,11 +7,12 @@ from marvin.settings import settings
 from marvin.engine.thread import Thread
 from marvin.agents.agent import Agent
 from marvin.tasks.task import Task
+from marvin.memory.memory import Memory
 
 # public functions
 from marvin.instructions import instructions
 from marvin.run import run, run_async, run_tasks_async
-from marvin.defaults import defaults, override_defaults
+from marvin.defaults import defaults
 
 # marvin fns
 from marvin.fns.classify import classify, classify_async
@@ -26,13 +27,13 @@ __all__ = [
     "settings",
     "Thread",
     "Agent",
+    "Memory",
     "Task",
     "instructions",
     "run",
     "run_async",
     "run_tasks_async",
     "defaults",
-    "override_defaults",
     "classify",
     "classify_async",
     "extract",

@@ -12,11 +12,13 @@ from marvin import Agent
 class Defaults:
     agent: Agent
     model: str | Model
+    memory_provider: str
 
 
 defaults = Defaults(
     agent=Agent(name="Marvin"),
     model=marvin.settings.agent_model,
+    memory_provider=marvin.settings.memory_provider,
 )
 
 
