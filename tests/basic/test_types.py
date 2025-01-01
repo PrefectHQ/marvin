@@ -4,7 +4,12 @@ from typing import Literal
 
 import pytest
 
-from marvin.utilities.types import AutoDataClass, Labels, as_classifier, is_classifier
+from marvin.utilities.types import (
+    AutoDataClass,
+    Labels,
+    as_classifier,
+    is_classifier,
+)
 
 
 class Colors(enum.Enum):

@@ -26,7 +26,8 @@ from marvin.utilities.types import Labels, as_classifier, is_classifier
 
 T = TypeVar("T")
 
-DEFAULT_PROMPT_TEMPLATE = inspect.cleandoc("""
+DEFAULT_PROMPT_TEMPLATE = inspect.cleandoc(
+    """
     <id>{{task.id}}</id>
     {% if task.name %}
     <name>{{task.name}}</name>
@@ -40,7 +41,8 @@ DEFAULT_PROMPT_TEMPLATE = inspect.cleandoc("""
     {% if task.parent %}
     <parent-task-id>{{task.parent.id}}</parent-task-id>
     {% endif %}
-""")
+"""
+)
 
 
 class TaskState(str, enum.Enum):

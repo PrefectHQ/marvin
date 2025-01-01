@@ -2,13 +2,7 @@
 Utility functions for LLM completions using Pydantic AI.
 """
 
-from typing import (
-    Callable,
-    List,
-    Optional,
-    Type,
-    get_type_hints,
-)
+from typing import Callable, get_type_hints
 
 import pydantic_ai
 from pydantic_ai import RunContext
@@ -19,7 +13,7 @@ from pydantic_ai.messages import (
     TextPart,
     UserPromptPart,
 )
-from pydantic_ai.models import ModelSettings
+from pydantic_ai.models import KnownModelName, Model, ModelSettings
 from pydantic_ai.result import RunResult
 from typing_extensions import TypeVar
 
@@ -69,10 +63,11 @@ def bind_tool(agent: pydantic_ai.Agent, func: Callable) -> None:
 
 
 def create_agentlet(
-    model: str,
-    result_type: Type[T],
-    tools: Optional[List[Callable]] = None,
-    model_settings: Optional[ModelSettings] = None,
+    model: KnownModelName | Model | str,
+    result_type: type[T],
+    tools: list[Callable] | None = None,
+    deps_type: type[T] | None = None,
+    model_settings: ModelSettings | None = None,
 ) -> pydantic_ai.Agent:
     kwargs = {}
     if tools:
@@ -80,7 +75,7 @@ def create_agentlet(
     if model_settings:
         kwargs["model_settings"] = model_settings
 
-    agentlet = pydantic_ai.Agent(
+    agentlet = pydantic_ai.Agent[deps_type, result_type](
         model=model,
         result_type=result_type,
         retries=marvin.settings.agent_retries,
@@ -92,8 +87,8 @@ def create_agentlet(
 
 async def generate_response(
     agentlet: pydantic_ai.Agent,
-    messages: List[Message] = None,
-    user_prompt: Optional[str] = None,
+    messages: list[Message] | None = None,
+    user_prompt: str | None = None,
 ) -> RunResult:
     user_prompt = user_prompt or ""
     return await agentlet.run(user_prompt=user_prompt, message_history=messages)

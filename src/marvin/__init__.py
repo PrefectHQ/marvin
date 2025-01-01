@@ -2,7 +2,6 @@ from importlib.metadata import version as _version
 
 # necessary imports
 from marvin.settings import settings
-import marvin.engine
 
 # core classes
 from marvin.engine.thread import Thread
@@ -22,3 +21,21 @@ from marvin.fns.generate import generate, generate_async
 from marvin.fns.fn import fn
 
 __version__ = _version("marvin")
+
+__all__ = [
+    "settings",
+    "Thread",
+    "Agent",
+    "Task",
+    "instructions",
+    "run",
+    "run_async",
+    "run_tasks_async",
+    "defaults",
+    "override_defaults",
+    "classify",
+    "extract",
+    "cast",
+    "generate",
+    "fn",
+]
