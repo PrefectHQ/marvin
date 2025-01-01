@@ -65,7 +65,7 @@ class Labels:
 
     def __post_init__(self):
         # Convert values to a tuple of labels
-        if isinstance(self.values, type) and issubclass(self.values, enum.Enum):
+        if issubclass_safe(self.values, enum.Enum):
             self._labels = tuple(self.values)  # Returns enum members
         elif get_origin(self.values) is Literal:
             self._labels = get_args(self.values)
@@ -219,7 +219,7 @@ def is_classifier(typ) -> bool:
         arg = get_args(typ)[0]
         # Check for list[Enum], list[Literal], or list[list]
         return (
-            (isinstance(arg, type) and issubclass(arg, enum.Enum))
+            issubclass_safe(arg, enum.Enum)
             or get_origin(arg) is Literal
             or isinstance(arg, (list, tuple, set))
         )
@@ -227,7 +227,7 @@ def is_classifier(typ) -> bool:
     # Handle single-label cases
     return (
         # Enum type
-        (isinstance(typ, type) and issubclass(typ, enum.Enum))
+        issubclass_safe(typ, enum.Enum)
         # Literal type
         or get_origin(typ) is Literal
         # Any sequence of values

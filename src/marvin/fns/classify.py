@@ -5,7 +5,7 @@ import marvin
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
 from marvin.utilities.asyncio import run_sync
-from marvin.utilities.types import Labels
+from marvin.utilities.types import issubclass_safe
 
 T = TypeVar("T")
 E = TypeVar("E", bound=enum.Enum)
@@ -103,16 +103,22 @@ async def classify_async(
         context["Additional instructions"] = instructions
 
     # Convert Enum class to sequence of values if needed
-    if isinstance(labels, type) and issubclass(labels, enum.Enum):
+    if issubclass_safe(labels, enum.Enum):
         label_values = [e.value for e in labels]
+        result_type = labels  # Keep original enum type
     else:
         label_values = list(labels)
+        result_type = label_values  # Keep original sequence
+
+    # Handle multi-label by wrapping in a list
+    if multi_label:
+        result_type = [result_type]
 
     task = marvin.Task(
         name="Classification Task",
         instructions=PROMPT,
         context=context,
-        result_type=Labels(label_values, many=multi_label),
+        result_type=result_type,
         agent=agent,
     )
 
