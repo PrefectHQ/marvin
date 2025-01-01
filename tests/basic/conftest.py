@@ -1,6 +1,7 @@
-import marvin
 import pydantic_ai.models.test
 import pytest
+
+from marvin.defaults import override_defaults
 
 
 @pytest.fixture(autouse=True)
@@ -12,5 +13,5 @@ def prevent_model_requests():
 @pytest.fixture(autouse=True)
 def test_model():
     model = pydantic_ai.models.test.TestModel()
-    with marvin.override_defaults(model=model):
+    with override_defaults(model=model):
         yield model

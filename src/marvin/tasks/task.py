@@ -20,6 +20,7 @@ import marvin
 from marvin.agents.actor import Actor
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
+from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.types import Labels, as_classifier, is_classifier
@@ -98,7 +99,16 @@ class Task(Generic[T]):
 
     tools: list[Callable] = field(
         default_factory=list,
-        metadata={"description": "Tools to make available to the agent"},
+        metadata={
+            "description": "Tools to make available to any agents assigned to this task"
+        },
+    )
+
+    memories: list[Memory] = field(
+        default_factory=list,
+        metadata={
+            "description": "Memories to make available to any agents assigned to this task"
+        },
     )
 
     state: TaskState = field(
@@ -178,6 +188,10 @@ class Task(Generic[T]):
     def get_agent(self) -> Agent:
         """Retrieve the agent assigned to this task."""
         return self.agent or marvin.defaults.agent
+
+    def get_tools(self) -> list[Callable]:
+        """Get the tools assigned to this task."""
+        return self.tools + [t for m in self.memories for t in m.get_tools()]
 
     def is_classifier(self) -> bool:
         """Return True if this task is a classification task."""
