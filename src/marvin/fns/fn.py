@@ -7,9 +7,11 @@ import marvin
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
 from marvin.utilities.asyncio import run_sync
+from marvin.utilities.logging import get_logger
 from marvin.utilities.types import PythonFunction
 
 T = TypeVar("T")
+logger = get_logger(__name__)
 
 PROMPT = """
 You are an expert at predicting the output of Python functions. You will be given:
@@ -54,7 +56,7 @@ def fn(
     """
 
     def decorator(f: Callable[..., T]) -> Callable[..., T]:
-        is_coroutine = inspect.iscoroutinefunction(f)
+        is_coroutine_fn = inspect.iscoroutinefunction(f)
 
         @wraps(f)
         def wrapper(
@@ -72,7 +74,7 @@ def fn(
                 agent=_agent or agent,
                 thread=_thread or thread,
             )
-            if is_coroutine:
+            if is_coroutine_fn:
                 return coro
             return run_sync(coro)
 
@@ -96,20 +98,23 @@ async def _fn(
 
     Args:
         func: The function to predict output for
-        *args: Positional arguments that would be passed to the function
+        fn_args: Positional arguments that would be passed to the function
+        fn_kwargs: Keyword arguments that would be passed to the function
         instructions: Optional instructions to guide the prediction
         agent: Optional custom agent to use
         thread: Optional thread for maintaining conversation context
-        **kwargs: Keyword arguments that would be passed to the function
 
     Returns:
         The predicted output matching the function's return type
     """
     model = PythonFunction.from_function_call(func, *fn_args, **fn_kwargs)
 
+    # Get the return annotation, defaulting to str if not specified
     original_return_annotation = model.return_annotation
-    if model.return_annotation is inspect._empty:
-        model.return_annotation = str
+    has_return_annotation = original_return_annotation is not inspect.Signature.empty
+    model.return_annotation = (
+        original_return_annotation if has_return_annotation else str
+    )
 
     model_context = {
         k: v
@@ -130,7 +135,9 @@ async def _fn(
     if instructions:
         context["Additional instructions"] = instructions
 
-    task = marvin.Task(
+    assert model.return_annotation is not None, "No return annotation found"
+
+    task = marvin.Task[T](
         name="Function Output Prediction",
         instructions=PROMPT,
         context=context,
@@ -140,9 +147,11 @@ async def _fn(
 
     result = await task.run_async(thread=thread)
 
-    if original_return_annotation is inspect._empty:
+    # If no return annotation was specified, try to parse as JSON first
+    if not has_return_annotation:
         try:
-            result = json.loads(result)
+            result = json.loads(result)  # type: ignore
         except Exception:
-            pass
+            logger.warning("Failed to parse result as JSON, returning raw result")
+
     return result

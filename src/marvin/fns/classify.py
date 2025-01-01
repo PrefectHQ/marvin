@@ -1,5 +1,5 @@
 import enum
-from typing import Any, Literal, Optional, Sequence, TypeVar, overload
+from typing import Any, Literal, Sequence, TypeVar, overload
 
 import marvin
 from marvin.agents.agent import Agent
@@ -20,23 +20,37 @@ consider "truthy" or affirmative inputs to be "true".
 
 @overload
 async def classify_async(
-    data: Any, labels: Sequence[T] | type[T], multi_label: Literal[False], **kwargs
-) -> T: ...
+    data: Any,
+    labels: Sequence[T] | type[T],
+    multi_label: Literal[False] = False,
+    *,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
+) -> T:
+    ...
 
 
 @overload
 async def classify_async(
-    data: Any, labels: Sequence[T] | type[T], multi_label: Literal[True], **kwargs
-) -> list[T]: ...
+    data: Any,
+    labels: Sequence[T] | type[T],
+    multi_label: Literal[True],
+    *,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
+) -> list[T]:
+    ...
 
 
 async def classify_async(
     data: Any,
     labels: Sequence[T] | type[T],
     multi_label: bool = False,
-    instructions: Optional[str] = None,
-    agent: Optional[Agent] = None,
-    thread: Optional[Thread | str] = None,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
 ) -> T | list[T]:
     """
     Asynchronously classifies input data into one or more predefined labels using a language model.
@@ -102,7 +116,7 @@ async def classify_async(
     else:
         result_type = Labels(labels, many=multi_label)
 
-    task = marvin.Task(
+    task = marvin.Task[result_type](
         name="Classification Task",
         instructions=PROMPT,
         context=context,
@@ -115,23 +129,37 @@ async def classify_async(
 
 @overload
 def classify(
-    data: Any, labels: Sequence[T] | type[T], multi_label: Literal[False], **kwargs
-) -> T: ...
+    data: Any,
+    labels: Sequence[T] | type[T],
+    multi_label: Literal[False] = False,
+    *,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
+) -> T:
+    ...
 
 
 @overload
 def classify(
-    data: Any, labels: Sequence[T] | type[T], multi_label: Literal[True], **kwargs
-) -> list[T]: ...
+    data: Any,
+    labels: Sequence[T] | type[T],
+    multi_label: Literal[True],
+    *,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
+) -> list[T]:
+    ...
 
 
 def classify(
     data: Any,
     labels: Sequence[T] | type[T],
     multi_label: bool = False,
-    instructions: Optional[str] = None,
-    agent: Optional[Agent] = None,
-    thread: Optional[Thread | str] = None,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
 ) -> T | list[T]:
     """
     Classifies input data into one or more predefined labels using a language model.

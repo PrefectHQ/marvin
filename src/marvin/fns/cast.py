@@ -4,6 +4,7 @@ import marvin
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
 from marvin.utilities.asyncio import run_sync
+from marvin.utilities.types import TargetType
 
 T = TypeVar("T")
 
@@ -28,11 +29,11 @@ or information and transform it into a single entity of the requested type.
 
 async def cast_async(
     data: Any,
-    target: type[T] = str,
+    target: TargetType[T] = str,
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> T:
+) -> TargetType[T]:
     """
     Converts input data into a single entity of the specified target type asynchronously.
 
@@ -64,7 +65,7 @@ async def cast_async(
     if instructions:
         context["Additional instructions"] = instructions
 
-    task = marvin.Task(
+    task = marvin.Task[target](
         name="Cast Task",
         instructions=PROMPT,
         context=context,
@@ -77,11 +78,11 @@ async def cast_async(
 
 def cast(
     data: Any,
-    target: type[T] = str,
+    target: TargetType[T] = str,
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> T:
+) -> TargetType[T]:
     """
     Converts input data into a single entity of the specified target type.
 

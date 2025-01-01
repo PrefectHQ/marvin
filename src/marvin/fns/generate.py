@@ -1,9 +1,10 @@
-from typing import Optional, TypeVar
+from typing import Any, Optional, TypeVar
 
 import marvin
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
 from marvin.utilities.asyncio import run_sync
+from marvin.utilities.types import TargetType
 
 T = TypeVar("T")
 
@@ -26,12 +27,12 @@ technologies, give their names but do not explain what each technology is.
 
 
 async def generate_async(
-    target: type[T] = str,
+    target: TargetType[T] = str,
     n: int = 1,
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> list[T]:
+) -> list[TargetType[T]]:
     """
     Generates examples of a specific type or matching a description asynchronously.
 
@@ -55,11 +56,11 @@ async def generate_async(
     if target is str and instructions is None:
         raise ValueError("Instructions are required when target type is str.")
 
-    context = {"Number to generate": n}
+    context: dict[str, Any] = {"Number to generate": n}
     if instructions:
         context["Additional instructions"] = instructions
 
-    task = marvin.Task(
+    task = marvin.Task[list[target]](
         name="Generation Task",
         instructions=PROMPT,
         context=context,
@@ -71,12 +72,12 @@ async def generate_async(
 
 
 def generate(
-    target: type[T] = str,
+    target: TargetType[T] = str,
     n: int = 1,
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> list[T]:
+) -> list[TargetType[T]]:
     """
     Generates examples of a specific type or matching a description.
 

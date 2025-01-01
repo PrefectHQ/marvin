@@ -3,12 +3,17 @@ import inspect
 import textwrap
 from dataclasses import dataclass, field
 from typing import (
+    TYPE_CHECKING,
+    Annotated,
     Any,
     Callable,
+    Generic,
     List,
     Literal,
     Optional,
+    ParamSpec,
     Sequence,
+    TypeAlias,
     TypeVar,
     Union,
     get_args,
@@ -19,6 +24,10 @@ from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import jinja_env
 
 T = TypeVar("T")
+P = ParamSpec("P")
+R = TypeVar("R")
+
+TargetType: TypeAlias = type[T] | Annotated[T, Any]
 
 
 @dataclass
@@ -60,7 +69,7 @@ class Labels:
         (<Colors.RED: 'red'>, <Colors.GREEN: 'green'>, <Colors.BLUE: 'blue'>)
     """
 
-    values: Union[type[enum.Enum], Sequence[Any], Any]
+    values: type[enum.Enum] | Sequence[Any] | Any
     many: bool = False
 
     def __post_init__(self):
@@ -70,7 +79,7 @@ class Labels:
         elif get_origin(self.values) is Literal:
             self._labels = get_args(self.values)
         elif isinstance(self.values, (list, tuple, set)):
-            self._labels = tuple(self.values)
+            self._labels = tuple(self.values)  # type: ignore
         else:
             raise ValueError(f"Invalid label type: {type(self.values)}")
 
@@ -83,7 +92,7 @@ class Labels:
         """Get the type that should be used for validation."""
         return list[int] if self.many else int
 
-    def validate(self, value: Union[int, list[int]]) -> Union[Any, list[Any]]:
+    def validate(self, value: int | list[int] | None) -> Any | list[Any]:
         """Validate a value against the labels.
 
         Args:
@@ -109,7 +118,7 @@ class Labels:
                 raise ValueError(
                     "Empty list is not allowed for multi-label classification"
                 )
-            if not all(isinstance(i, int) for i in value):
+            if not all(isinstance(i, int) for i in value):  # type: ignore[reportUnnecessaryIsinstance]
                 raise ValueError("All elements must be integers")
             if not all(0 <= i < len(self._labels) for i in value):
                 raise ValueError(
@@ -132,7 +141,7 @@ class Labels:
     def get_indexed_labels(self) -> dict[int, str]:
         """Get a mapping of indices to label string representations."""
 
-        def format_value(v):
+        def format_value(v: Any) -> str:
             if isinstance(v, enum.Enum):
                 return repr(v.value)  # Show the enum's value, not its name
             elif isinstance(v, str):
@@ -143,7 +152,7 @@ class Labels:
         return {i: format_value(v) for i, v in enumerate(self._labels)}
 
 
-def as_classifier(typ) -> Labels:
+def as_classifier(type_: type[T]) -> Labels:
     """Convert a type to a Labels instance.
     This should only be called on types that have been verified as classifiers via is_classifier().
 
@@ -156,6 +165,7 @@ def as_classifier(typ) -> Labels:
     Raises:
         ValueError: If the type is not a valid classifier
     """
+    typ = type_
     if isinstance(typ, Labels):
         return typ
 
@@ -175,7 +185,7 @@ def as_classifier(typ) -> Labels:
         and len(typ) == 1
         and isinstance(typ[0], (list, tuple, set))
     ):
-        return Labels(typ[0], many=True)
+        return Labels(typ[0], many=True)  # type: ignore
 
     # Convert raw sequences to Labels
     if isinstance(typ, (list, tuple, set)):
@@ -185,7 +195,7 @@ def as_classifier(typ) -> Labels:
     return Labels(typ)
 
 
-def is_classifier(typ) -> bool:
+def is_classifier(type_: type[T]) -> bool:
     """Check if a type represents a classification task.
     This includes:
     - Single-label: Enum, Literal, or any sequence of values
@@ -210,6 +220,7 @@ def is_classifier(typ) -> bool:
         >>> is_classifier(list[["a", 1, MyClass()]])  # multi-label shorthand
         True
     """
+    typ = type_
     if isinstance(typ, Labels):
         return True
 
@@ -285,9 +296,9 @@ class AutoDataClass:
         {'common_field': 'example', 'specific_field': 42}
     """
 
-    _dataclass_config = {}
+    _dataclass_config: dict[str, Any] = {}
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any):
         """
         Initialize subclass with inherited dataclass configuration.
 
@@ -295,9 +306,11 @@ class AutoDataClass:
         Subclass config takes precedence over parent config.
         """
         super().__init_subclass__(**kwargs)
-        parent_config = {}
+        parent_config: dict[str, Any] = {}
         for base in reversed(cls.__mro__[1:]):  # reverse to respect MRO
             if hasattr(base, "_dataclass_config"):
+                if TYPE_CHECKING:
+                    assert issubclass(base, AutoDataClass)
                 parent_config.update(base._dataclass_config)
 
         # Create new dict to avoid modifying parent's config
@@ -317,7 +330,7 @@ class ParameterModel:
 
 
 @dataclass
-class PythonFunction:
+class PythonFunction(Generic[P, R]):
     """
     A dataclass representing a Python function.
 
@@ -333,7 +346,7 @@ class PythonFunction:
         return_value (Optional[Any]): The return value of the function call.
     """
 
-    function: Callable
+    function: Callable[P, R]
     signature: inspect.Signature
     name: str
     parameters: List[ParameterModel]
@@ -353,7 +366,9 @@ class PythonFunction:
         return f"def {self.name}{self.signature}:\n{formatted_docstring}".strip()
 
     @classmethod
-    def from_function(cls, func: Callable, **kwargs) -> "PythonFunction":
+    def from_function(
+        cls, func: Callable[P, R], **kwargs: Any
+    ) -> "PythonFunction[P, R]":
         """
         Create a PythonFunction instance from a function.
 
@@ -391,7 +406,7 @@ class PythonFunction:
             else:
                 raise
 
-        function_dict = {
+        function_dict: dict[str, Any] = {
             "function": func,
             "signature": sig,
             "name": name,
@@ -406,7 +421,9 @@ class PythonFunction:
         return cls(**function_dict)
 
     @classmethod
-    def from_function_call(cls, func: Callable, *args, **kwargs) -> "PythonFunction":
+    def from_function_call(
+        cls, func: Callable[P, R], *args: P.args, **kwargs: P.kwargs
+    ) -> "PythonFunction[P, R]":
         """
         Create a PythonFunction instance from a function call.
 
