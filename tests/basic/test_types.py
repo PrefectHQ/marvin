@@ -1,95 +1,139 @@
+import enum
 from dataclasses import asdict, is_dataclass
-from enum import Enum
 from typing import Literal
 
 import pytest
+
 from marvin.utilities.types import (
     AutoDataClass,
     Labels,
-    create_enum,
-    get_classifier_type,
-    get_labels,
+    as_classifier,
     is_classifier,
 )
 
 
+class Colors(enum.Enum):
+    RED = "red"
+    GREEN = "green"
+    BLUE = "blue"
+
+
 class TestClassification:
-    def test_create_enum_from_list(self):
-        """Test creating an enum from a list."""
-        enum_cls = create_enum(["a", "b", "c"])
-        assert issubclass(enum_cls, Enum)
-        assert [m.name for m in enum_cls] == ["LABEL_0", "LABEL_1", "LABEL_2"]
-        assert [m.value for m in enum_cls] == ["a", "b", "c"]
+    def test_is_classifier_with_raw_types(self):
+        """Test classifier detection with raw types."""
+        # Raw collections
+        assert is_classifier(["alpha", "beta", "gamma"])  # single-label
+        assert is_classifier([["alpha", "beta", "gamma"]])  # multi-label shorthand
 
-    def test_create_enum_from_tuple(self):
-        """Test creating an enum from a tuple."""
-        enum_cls = create_enum(("x", "y", "z"))
-        assert issubclass(enum_cls, Enum)
-        assert [m.name for m in enum_cls] == ["LABEL_0", "LABEL_1", "LABEL_2"]
-        assert [m.value for m in enum_cls] == ["x", "y", "z"]
+        # Non-classifiers
+        assert not is_classifier(42)  # Number
+        assert not is_classifier("string")  # String
+        assert not is_classifier(list[str])  # List of any strings
 
-    def test_create_enum_from_set(self):
-        """Test creating an enum from a set."""
-        enum_cls = create_enum({"p", "q", "r"})
-        assert issubclass(enum_cls, Enum)
-        values = {m.value for m in enum_cls}
-        assert values == {"p", "q", "r"}
+    def test_is_classifier_with_type_hints(self):
+        """Test classifier detection with type hints."""
+        # Enum types
+        assert is_classifier(Colors)
+        assert is_classifier(list[Colors])
 
-    def test_create_enum_with_custom_objects(self):
-        """Test creating an enum with custom objects as values."""
+        # Literal types
+        assert is_classifier(Literal["alpha", "beta"])
+        assert is_classifier(list[Literal["alpha", "beta"]])
 
-        class Point:
-            def __init__(self, x, y):
-                self.x = x
-                self.y = y
+        # Labels
+        assert is_classifier(Labels(["alpha", "beta"]))
+        assert is_classifier(Labels(["alpha", "beta"], many=True))
 
-        points = [Point(1, 2), Point(3, 4)]
-        enum_cls = create_enum(points)
-        assert [m.name for m in enum_cls] == ["LABEL_0", "LABEL_1"]
-        assert enum_cls["LABEL_0"].value.x == 1
-        assert enum_cls["LABEL_1"].value.y == 4
-
-    def test_is_classifier(self):
-        """Test classifier type detection."""
-        # Test Enum
-        enum_cls = create_enum(["a", "b"])
-        assert is_classifier(enum_cls)
-        assert is_classifier(list[enum_cls])
-
-        # Test Literal
-        assert is_classifier(Literal["x", "y"])
-        assert is_classifier(list[Literal["x", "y"]])
-
-        # Test non-classifiers
+        # Non-classifier types
         assert not is_classifier(str)
         assert not is_classifier(list[str])
-        assert not is_classifier(int)
+        assert not is_classifier(list[int])
+        assert not is_classifier(dict[str, int])
 
-    def test_get_labels(self):
-        """Test extracting labels from classifier types."""
-        # Test Enum
-        enum_cls = create_enum(["a", "b", "c"])
-        assert get_labels(enum_cls) == ("a", "b", "c")
-        assert get_labels(list[enum_cls]) == ("a", "b", "c")
+    def test_as_classifier_with_raw_types(self):
+        """Test converting raw types to Labels."""
+        # Single-label
+        labels = as_classifier(["red", "green", "blue"])
+        assert isinstance(labels, Labels)
+        assert not labels.many
+        assert labels.labels == ("red", "green", "blue")
 
-        # Test Literal
-        assert get_labels(Literal["x", "y"]) == ("x", "y")
-        assert get_labels(list[Literal["x", "y"]]) == ("x", "y")
+        # Multi-label shorthand
+        labels = as_classifier([["red", "green", "blue"]])
+        assert isinstance(labels, Labels)
+        assert labels.many
+        assert labels.labels == ("red", "green", "blue")
 
-        # Test non-classifiers
-        assert get_labels(str) is None
-        assert get_labels(list[str]) is None
+    def test_as_classifier_with_type_hints(self):
+        """Test converting type hints to Labels."""
+        # Enum types
+        labels = as_classifier(Colors)
+        assert isinstance(labels, Labels)
+        assert not labels.many
+        assert [x.value for x in labels.labels] == ["red", "green", "blue"]
 
-    def test_get_classifier_type(self):
-        """Test getting validation types for classifiers."""
-        # Test single-label
-        enum_cls = create_enum(["a", "b"])
-        assert get_classifier_type(enum_cls) == int
-        assert get_classifier_type(Literal["x", "y"]) == int
+        # Multi-label enum
+        labels = as_classifier(list[Colors])
+        assert isinstance(labels, Labels)
+        assert labels.many
+        assert [x.value for x in labels.labels] == ["red", "green", "blue"]
 
-        # Test multi-label
-        assert get_classifier_type(list[enum_cls]) == list[int]
-        assert get_classifier_type(list[Literal["x", "y"]]) == list[int]
+        # Literal types
+        labels = as_classifier(Literal["alpha", "beta"])
+        assert isinstance(labels, Labels)
+        assert not labels.many
+        assert labels.labels == ("alpha", "beta")
+
+        # Multi-label literal
+        labels = as_classifier(list[Literal["alpha", "beta"]])
+        assert isinstance(labels, Labels)
+        assert labels.many
+        assert labels.labels == ("alpha", "beta")
+
+    def test_labels_validation(self):
+        """Test validation of Labels."""
+        # Single-label
+        labels = Labels(["red", "green", "blue"])
+        assert labels.validate(0) == "red"
+        assert labels.validate(1) == "green"
+        with pytest.raises(ValueError):
+            labels.validate(3)  # Out of range
+        with pytest.raises(ValueError):
+            labels.validate([0])  # Wrong type
+
+        # Multi-label
+        labels = Labels(["red", "green", "blue"], many=True)
+        assert labels.validate([0, 2]) == ["red", "blue"]
+        with pytest.raises(ValueError):
+            labels.validate(0)  # Wrong type
+        with pytest.raises(ValueError):
+            labels.validate([3])  # Out of range
+
+    def test_labels_indexed_labels(self):
+        """Test getting indexed labels."""
+        # Raw values
+        labels = Labels(["red", "green", "blue"])
+        assert labels.get_indexed_labels() == {
+            0: "'red'",
+            1: "'green'",
+            2: "'blue'",
+        }
+
+        # Enum values
+        labels = Labels(Colors)
+        assert labels.get_indexed_labels() == {
+            0: "'red'",
+            1: "'green'",
+            2: "'blue'",
+        }
+
+        # Mixed types
+        labels = Labels(["string", 42, True])
+        assert labels.get_indexed_labels() == {
+            0: "'string'",
+            1: "42",
+            2: "True",
+        }
 
 
 class TestAutoDataClass:
@@ -182,17 +226,3 @@ class TestAutoDataClass:
         # Should fail when trying to modify (frozen=True)
         with pytest.raises(Exception):
             obj.x = 2
-
-
-class TestLabels:
-    def test_labels_basic_creation(self):
-        """Test creating basic Labels instance."""
-        labels = Labels(["a", "b", "c"])
-        assert labels.values == ["a", "b", "c"]
-        assert not labels.many
-
-    def test_labels_with_many(self):
-        """Test creating Labels with many=True."""
-        labels = Labels(["a", "b", "c"], many=True)
-        assert labels.values == ["a", "b", "c"]
-        assert labels.many

@@ -13,7 +13,7 @@ from pydantic_ai.messages import (
     TextPart,
     UserPromptPart,
 )
-from pydantic_ai.models import KnownModelName, Model
+from pydantic_ai.models import KnownModelName, Model, ModelSettings
 from pydantic_ai.result import RunResult
 from typing_extensions import TypeVar
 
@@ -67,10 +67,13 @@ def create_agentlet(
     result_type: type[T],
     tools: list[Callable] | None = None,
     deps_type: type[T] | None = None,
+    model_settings: ModelSettings | None = None,
 ) -> pydantic_ai.Agent:
     kwargs = {}
     if tools:
-        kwargs["tools"] = tools
+        kwargs["tools"] = list(set(tools))
+    if model_settings:
+        kwargs["model_settings"] = model_settings
 
     agentlet = pydantic_ai.Agent[deps_type, result_type](
         model=model,

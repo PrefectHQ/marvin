@@ -3,7 +3,7 @@ Settings for Marvin.
 """
 
 from pathlib import Path
-from typing import Literal, Union
+from typing import Literal, Optional, Union
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -12,8 +12,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Settings for Marvin.
 
-    Settings can be set via environment variables with the prefix MARVIN_.
-    For example, MARVIN_DEFAULT_MODEL="gpt-4"
+    Settings can be set via environment variables with the prefix MARVIN_. For
+    example, MARVIN_AGENT_MODEL="openai:gpt-4o-mini"
     """
 
     model_config = SettingsConfigDict(
@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     agent_model: str = Field(
         default="openai:gpt-4o",
         description="The default model for agents.",
+    )
+
+    agent_temperature: Optional[float] = Field(
+        default=None,
+        description="The temperature for the agent.",
     )
 
     agent_retries: int = Field(

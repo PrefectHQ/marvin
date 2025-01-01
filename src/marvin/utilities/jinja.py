@@ -13,7 +13,7 @@ global_fns = {
     "zip": zip,
 }
 
-prompt_env = JinjaEnvironment(
+jinja_env = JinjaEnvironment(
     loader=PackageLoader("marvin", "templates"),
     autoescape=select_autoescape(default_for_string=False),
     trim_blocks=True,
@@ -22,4 +22,4 @@ prompt_env = JinjaEnvironment(
     undefined=StrictUndefined,
 )
 
-prompt_env.globals.update(global_fns)
+jinja_env.globals.update(global_fns)

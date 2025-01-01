@@ -1,10 +1,12 @@
-from dataclasses import asdict
+import inspect
+import json
 from functools import wraps
 from typing import Any, Callable, Optional, TypeVar
 
 import marvin
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
+from marvin.utilities.asyncio import run_sync
 from marvin.utilities.types import PythonFunction
 
 T = TypeVar("T")
@@ -52,20 +54,27 @@ def fn(
     """
 
     def decorator(f: Callable[..., T]) -> Callable[..., T]:
-        @wraps(f)
-        def wrapper(*args: Any, **kwargs: Any) -> T:
-            # Extract marvin-specific kwargs
-            _agent = kwargs.pop("_agent", None)
-            _thread = kwargs.pop("_thread", None)
+        is_coroutine = inspect.iscoroutinefunction(f)
 
-            return _fn(
+        @wraps(f)
+        def wrapper(
+            *args: Any,
+            _agent: Optional[Agent] = None,
+            _thread: Optional[Thread | str] = None,
+            _instructions: Optional[str] = None,
+            **kwargs: Any,
+        ) -> T:
+            coro = _fn(
                 f,
                 args,
                 kwargs,
-                instructions=instructions,
+                instructions=_instructions or instructions,
                 agent=_agent or agent,
                 thread=_thread or thread,
             )
+            if is_coroutine:
+                return coro
+            return run_sync(coro)
 
         return wrapper
 
@@ -74,7 +83,7 @@ def fn(
     return decorator(func)
 
 
-def _fn(
+async def _fn(
     func: Callable[..., T],
     fn_args: tuple[Any, ...],
     fn_kwargs: dict[str, Any],
@@ -98,22 +107,42 @@ def _fn(
     """
     model = PythonFunction.from_function_call(func, *fn_args, **fn_kwargs)
 
+    original_return_annotation = model.return_annotation
+    if model.return_annotation is inspect._empty:
+        model.return_annotation = str
+
     model_context = {
         k: v
-        for k, v in asdict(model).items()
-        if k not in {"bound_parameters", "function"}
+        for k, v in model.__dict__.items()
+        # Don't include bound parameters, function, source code, or return value
+        # bound parameters and return value are provided directly as context;
+        # the function object isn't interpretable by an LLM; and the source code
+        # is misleading because (if it exists) it produces useful context but
+        # isn't actually what we're trying to predict
+        if k not in {"bound_parameters", "function", "source_code", "return_value"}
     }
+
+    context = {
+        "Function definition": model_context,
+        "Function arguments": model.bound_parameters,
+        "Additional context provided at runtime": model.return_value,
+    }
+    if instructions:
+        context["Additional instructions"] = instructions
 
     task = marvin.Task(
         name="Function Output Prediction",
         instructions=PROMPT,
-        context={
-            "Function definition": model_context,
-            "Function arguments": model.bound_parameters,
-        },
+        context=context,
         result_type=model.return_annotation,
         agent=agent,
     )
 
-    with marvin.instructions(instructions):
-        return task.run(thread=thread)
+    result = await task.run_async(thread=thread)
+
+    if original_return_annotation is inspect._empty:
+        try:
+            result = json.loads(result)
+        except Exception:
+            pass
+    return result

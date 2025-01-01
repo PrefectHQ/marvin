@@ -17,11 +17,12 @@ from typing import (
 )
 
 import marvin
+from marvin.agents.actor import Actor
 from marvin.agents.agent import Agent
 from marvin.engine.thread import Thread
 from marvin.prompts import Template
 from marvin.utilities.asyncio import run_sync
-from marvin.utilities.types import Labels, get_indexed_labels
+from marvin.utilities.types import Labels, as_classifier, is_classifier
 
 T = TypeVar("T")
 
@@ -53,14 +54,26 @@ class TaskState(str, enum.Enum):
     FAILED = "failed"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class Task(Generic[T]):
     """A task is a container for a prompt and its associated state."""
 
-    _dataclass_config = {"kw_only": True}
-
     instructions: str = field(
         metadata={"description": "Instructions for the task"}, kw_only=False
+    )
+
+    result_type: type[T] | Labels = field(
+        default=str,
+        metadata={
+            "description": "The expected type of the result. This can be a type or None if no result is expected."
+        },
+        kw_only=False,
+    )
+
+    id: uuid.UUID = field(
+        default_factory=uuid.uuid4,
+        metadata={"description": "Unique identifier for this task"},
+        init=False,
     )
 
     prompt_template: Optional[str] = field(
@@ -70,20 +83,9 @@ class Task(Generic[T]):
         },
     )
 
-    result_type: type[T] = field(
-        default=str,
-        metadata={
-            "description": "The expected type of the result. This can be a type or None if no result is expected."
-        },
-    )
-
-    id: uuid.UUID = field(
-        default_factory=uuid.uuid4,
-        metadata={"description": "Unique identifier for this task"},
-    )
-
-    agent: Optional[Agent] = field(
-        default=None, metadata={"description": "Optional agent to execute this task"}
+    agent: Optional[Actor] = field(
+        default=None,
+        metadata={"description": "Optional agent or team to execute this task"},
     )
 
     context: dict[str, Any] = field(
@@ -94,14 +96,28 @@ class Task(Generic[T]):
         default=None, metadata={"description": "Optional name for this task"}
     )
 
+    tools: list[Callable] = field(
+        default_factory=list,
+        metadata={"description": "Tools to make available to the agent"},
+    )
+
     state: TaskState = field(
-        default=TaskState.PENDING, metadata={"description": "Current state of the task"}
+        default=TaskState.PENDING,
+        metadata={"description": "Current state of the task"},
+        init=False,
     )
 
     result_validator: Optional[Callable] = field(
         default=None,
         metadata={
             "description": "Optional function that validates the result. Takes the raw result and returns a validated result or raises an error."
+        },
+    )
+
+    report_state_change: bool = field(
+        default=True,
+        metadata={
+            "description": "Whether to report the state change of this task to the thread."
         },
     )
 
@@ -118,38 +134,61 @@ class Task(Generic[T]):
         metadata={
             "description": "The result of the task. Can be either the expected type T or an error string."
         },
+        init=False,
     )
 
     def __post_init__(self):
-        # Convert list result_type to Enum for convenience
-        if isinstance(self.result_type, (list, tuple, set)):
-            from marvin.utilities.types import create_enum
+        """Transform raw sequences into Labels for classification tasks.
 
-            self.result_type = create_enum(self.result_type)
-        # Handle Labels type
-        elif isinstance(self.result_type, Labels):
-            from marvin.utilities.types import create_enum
+        We convert two types of shorthands:
+        1. Raw sequences like ["red", "blue"] -> Labels(values=["red", "blue"])
+           for single-label classification
+        2. Double-nested lists like [["red", "blue"]] -> Labels(values=["red", "blue"], many=True)
+           for multi-label classification
 
-            enum_type = create_enum(self.result_type.values)
-            self.result_type = list[enum_type] if self.result_type.many else enum_type
+        Other classifier types (Enum, Literal, list[Enum], list[Literal]) are left as-is
+        and only converted to Labels when needed via as_classifier().
+
+        Raises:
+            ValueError: If an empty list or invalid nested list is provided
+        """
+        # Handle double-nested list shorthand for multi-label
+        if (
+            isinstance(self.result_type, list)
+            and len(self.result_type) == 1
+            and isinstance(self.result_type[0], (list, tuple, set))
+        ):
+            if not self.result_type[0]:
+                raise ValueError(
+                    "Empty nested list is not allowed for multi-label classification"
+                )
+            self.result_type = Labels(self.result_type[0], many=True)
+        # Handle raw sequences for single-label
+        elif isinstance(self.result_type, (list, tuple, set)):
+            if not self.result_type:
+                raise ValueError("Empty list is not allowed for classification")
+            if isinstance(self.result_type, list) and any(
+                isinstance(x, (list, tuple, set)) for x in self.result_type
+            ):
+                raise ValueError(
+                    "Invalid nested list format - use [['a', 'b']] for multi-label"
+                )
+            self.result_type = Labels(self.result_type)
 
     def get_agent(self) -> Agent:
+        """Retrieve the agent assigned to this task."""
         return self.agent or marvin.defaults.agent
 
-    def _is_classifier(self) -> bool:
+    def is_classifier(self) -> bool:
         """Return True if this task is a classification task."""
-        from marvin.utilities.types import is_classifier
-
         return is_classifier(self.result_type)
 
     def get_result_type(self) -> type[T]:
         """Get the effective result type for this task.
         For classification tasks, returns the type that should be used
         for validation (e.g., int or list[int])."""
-        from marvin.utilities.types import get_classifier_type
-
-        if self._is_classifier():
-            return get_classifier_type(self.result_type)
+        if self.is_classifier():
+            return as_classifier(self.result_type).get_type()
         return self.result_type
 
     def validate_result(self, raw_result: Any) -> T:
@@ -162,40 +201,28 @@ class Task(Generic[T]):
                 raise ValueError(f"Error validating task result: {e}")
 
         # Handle classification types
-        if self._is_classifier():
-            from typing import get_origin
-
-            from marvin.utilities.types import get_classifier_type, get_labels
-
-            labels = get_labels(self.result_type)
-            if not labels:
-                raise ValueError("Invalid classification type")
-
-            expected_type = get_classifier_type(self.result_type)
-            if get_origin(expected_type) is list:
-                if not isinstance(raw_result, (list, tuple)):
-                    raise ValueError(
-                        f"Expected a list of indices for multi-label classification, got {type(raw_result)}"
-                    )
-                if not all(isinstance(i, int) for i in raw_result):
-                    raise ValueError("All elements must be integers")
-                if not all(0 <= i < len(labels) for i in raw_result):
-                    raise ValueError(
-                        f"All indices must be between 0 and {len(labels)-1}"
-                    )
-                return [labels[i] for i in raw_result]
-            else:
-                if not isinstance(raw_result, int):
-                    raise ValueError(
-                        f"Expected an integer index for classification, got {type(raw_result)}"
-                    )
-                if not (0 <= raw_result < len(labels)):
-                    raise ValueError(
-                        f"Invalid index {raw_result}. Must be between 0 and {len(labels)-1}"
-                    )
-                return labels[raw_result]
+        if self.is_classifier():
+            return as_classifier(self.result_type).validate(raw_result)
 
         return raw_result
+
+    def get_prompt(self) -> str:
+        """Get the rendered prompt for this task.
+
+        Uses the task's prompt_template (or default if None) and renders it with
+        this task instance as the `task` variable.
+        """
+        template = self.prompt_template or DEFAULT_PROMPT_TEMPLATE
+
+        prompt = Template(template=template).render(task=self)
+
+        if self.is_classifier() and not self.prompt_template:
+            prompt += (
+                f"\n\nRespond with the integer index(es) of the labels you're "
+                f"choosing: {as_classifier(self.result_type).get_indexed_labels()}"
+            )
+
+        return prompt
 
     async def run_async(
         self,
@@ -253,21 +280,3 @@ class Task(Generic[T]):
     def is_complete(self) -> bool:
         """Check if the task is complete."""
         return self.state in (TaskState.SUCCESSFUL, TaskState.FAILED)
-
-    def get_prompt(self) -> str:
-        """Get the rendered prompt for this task.
-
-        Uses the task's prompt_template (or default if None) and renders it with
-        this task instance as the `task` variable.
-        """
-        template = self.prompt_template or DEFAULT_PROMPT_TEMPLATE
-
-        prompt = Template(template=template).render(task=self)
-
-        if self._is_classifier() and not self.prompt_template:
-            prompt += (
-                f"\n\nRespond with the integer index(es) of the labels you're "
-                f"choosing: {get_indexed_labels(self.result_type)}"
-            )
-
-        return prompt
