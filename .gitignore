@@ -16,3 +16,6 @@ wheels/
 # Secrets
 .env
 **/.env
+
+# IDE-related files
+.vscode/
