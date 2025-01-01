@@ -26,7 +26,7 @@ technologies, give their names but do not explain what each technology is.
 
 
 async def generate_async(
-    target: type[T],
+    target: type[T] = str,
     n: int = 1,
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
@@ -71,7 +71,7 @@ async def generate_async(
 
 
 def generate(
-    target: type[T],
+    target: type[T] = str,
     n: int = 1,
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
