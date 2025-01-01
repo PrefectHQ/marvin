@@ -3,10 +3,14 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import chromadb
 import pytest
+from sqlmodel import SQLModel, create_engine
+
+import marvin
 from marvin import settings
 from marvin.engine import database
-from sqlmodel import SQLModel, create_engine
+from marvin.memory.providers.chroma import ChromaMemory
 
 
 @pytest.fixture(autouse=True)
@@ -31,3 +35,16 @@ def setup_test_db():
         database._engine.dispose()
         database._engine = original_engine
         settings.database_path = original_path
+
+
+@pytest.fixture(autouse=True)
+def setup_memory(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        marvin.defaults,
+        "memory_provider",
+        ChromaMemory(
+            client=chromadb.PersistentClient(path=str(tmp_path / "controlflow-memory"))
+        ),
+    )
+
+    yield

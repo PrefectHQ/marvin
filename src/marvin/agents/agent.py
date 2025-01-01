@@ -16,6 +16,7 @@ import marvin
 import marvin.engine.llm
 from marvin.agents.names import AGENT_NAMES
 from marvin.engine.thread import Thread, get_thread
+from marvin.memory.memory import Memory
 from marvin.utilities.asyncio import run_sync
 
 from .actor import Actor
@@ -40,6 +41,11 @@ class Agent(Actor):
         metadata={"description": "List of tools available to the agent"},
     )
 
+    memories: list[Memory] = field(
+        default_factory=list,
+        metadata={"description": "List of memory modules available to the agent"},
+    )
+
     name: str = field(
         default_factory=lambda: random.choice(AGENT_NAMES),
         metadata={"description": "Name of the agent"},
@@ -59,6 +65,9 @@ class Agent(Actor):
 
     def get_model(self):
         return self.model or marvin.defaults.model
+
+    def get_tools(self) -> list[Callable]:
+        return self.tools + [t for m in self.memories for t in m.get_tools()]
 
     def get_model_settings(self) -> ModelSettings:
         defaults = {}
@@ -82,6 +91,6 @@ class Agent(Actor):
         return marvin.engine.llm.create_agentlet(
             model=self.get_model(),
             result_type=Union[tuple(result_types)],
-            tools=self.tools + (tools or []),
+            tools=self.get_tools() + (tools or []),
             model_settings=self.get_model_settings(),
         )

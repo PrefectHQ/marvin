@@ -108,7 +108,7 @@ class Orchestrator:
 
         # Create task results with appropriate result types
         task_results = [TaskResult[t.get_result_type()] for t in incomplete_tasks]
-        agentlet = agent.get_agentlet(tools=task.tools, result_types=task_results)
+        agentlet = agent.get_agentlet(tools=task.get_tools(), result_types=task_results)
         agentlet.result_validator(self._create_result_validator())
 
         messages = await self.thread.get_messages()

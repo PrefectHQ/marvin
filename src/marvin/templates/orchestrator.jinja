@@ -11,6 +11,18 @@
         {% if agent.instructions %}
         <instructions>{{agent.instructions}}</instructions>
         {% endif %}
+        {% if agent.memories %}
+        <memories>
+            {% for memory in agent.memories %}
+            <memory>
+                <key>{{memory.key}}</key>
+                {% if memory.instructions %}
+                <instructions>{{memory.instructions}}</instructions>
+                {% endif %}
+            </memory>
+            {% endfor %}
+        </memories>
+        {% endif %}
 
         {% if instructions %}
         <instructions>
