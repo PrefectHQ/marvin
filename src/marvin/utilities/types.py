@@ -1,4 +1,3 @@
-import asyncio
 import enum
 import inspect
 import textwrap
@@ -16,6 +15,7 @@ from typing import (
     get_origin,
 )
 
+from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import jinja_env
 
 T = TypeVar("T")
@@ -425,11 +425,7 @@ class PythonFunction:
 
         return_value = func(*bound.args, **bound.kwargs)
         if inspect.iscoroutine(return_value):
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                return_value = asyncio.create_task(return_value)
-            else:
-                return_value = loop.run_until_complete(return_value)
+            return_value = run_sync(return_value)
 
         # render the docstring with the bound arguments, if it was supplied as jinja
         docstring = jinja_env.from_string(func.__doc__ or "").render(
