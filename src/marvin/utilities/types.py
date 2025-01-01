@@ -9,7 +9,9 @@ from typing import (
     List,
     Literal,
     Optional,
+    Sequence,
     TypeVar,
+    Union,
     get_args,
     get_origin,
 )
@@ -19,63 +21,243 @@ from marvin.utilities.jinja import jinja_env
 T = TypeVar("T")
 
 
-def create_enum(values: list[Any], name: str = "Labels") -> type[enum.Enum]:
-    """Create an Enum from a list of values.
-    The enum names will be LABEL_<index> (e.g., LABEL_0, LABEL_1, LABEL_2)
-    and the values will be the original objects."""
-    return enum.Enum(name, {f"LABEL_{i}": v for i, v in enumerate(values)})
+@dataclass
+class Labels:
+    """A container for classification labels.
+
+    This class provides a consistent interface for working with labels,
+    whether they come from enums, literals, lists, or other sources.
+
+    Args:
+        values: The label values. Can be an enum class, a sequence of values,
+            or a Literal type.
+        many: Whether this is a multi-label classifier (i.e., can select
+            multiple values).
+
+    Examples:
+        >>> # Single-label classification with raw values
+        >>> labels = Labels(["red", "green", "blue"])
+        >>> labels.values
+        ("red", "green", "blue")
+
+        >>> # Multi-label classification with raw values
+        >>> labels = Labels(["red", "green", "blue"], many=True)
+        >>> labels.values
+        ("red", "green", "blue")
+
+        >>> # Single-label classification with enum
+        >>> class Colors(enum.Enum):
+        ...     RED = "red"
+        ...     GREEN = "green"
+        ...     BLUE = "blue"
+        >>> labels = Labels(Colors)
+        >>> labels.values  # Returns enum members
+        (<Colors.RED: 'red'>, <Colors.GREEN: 'green'>, <Colors.BLUE: 'blue'>)
+
+        >>> # Multi-label classification with enum
+        >>> labels = Labels(Colors, many=True)
+        >>> labels.values  # Returns enum members
+        (<Colors.RED: 'red'>, <Colors.GREEN: 'green'>, <Colors.BLUE: 'blue'>)
+    """
+
+    values: Union[type[enum.Enum], Sequence[Any], Any]
+    many: bool = False
+
+    def __post_init__(self):
+        # Convert values to a tuple of labels
+        if isinstance(self.values, type) and issubclass(self.values, enum.Enum):
+            self._labels = tuple(self.values)  # Returns enum members
+        elif get_origin(self.values) is Literal:
+            self._labels = get_args(self.values)
+        elif isinstance(self.values, (list, tuple, set)):
+            self._labels = tuple(self.values)
+        else:
+            raise ValueError(f"Invalid label type: {type(self.values)}")
+
+    @property
+    def labels(self) -> tuple[Any, ...]:
+        """Get the label values."""
+        return self._labels
+
+    def get_type(self) -> type:
+        """Get the type that should be used for validation."""
+        return list[int] if self.many else int
+
+    def validate(self, value: Union[int, list[int]]) -> Union[Any, list[Any]]:
+        """Validate a value against the labels.
+
+        Args:
+            value: An integer index or list of integer indices.
+
+        Returns:
+            The label value(s) at the given index(es).
+            For enum types, returns the enum member(s).
+            For other types, returns the raw value(s).
+
+        Raises:
+            ValueError: If the value is invalid.
+        """
+        if value is None:
+            raise ValueError("None is not a valid value for classification")
+
+        if self.many:
+            if not isinstance(value, (list, tuple)):
+                raise ValueError(
+                    f"Expected a list of indices for multi-label classification, got {type(value)}"
+                )
+            if not value:
+                raise ValueError(
+                    "Empty list is not allowed for multi-label classification"
+                )
+            if not all(isinstance(i, int) for i in value):
+                raise ValueError("All elements must be integers")
+            if not all(0 <= i < len(self._labels) for i in value):
+                raise ValueError(
+                    f"All indices must be between 0 and {len(self._labels)-1}"
+                )
+            if len(set(value)) != len(value):
+                raise ValueError("Duplicate indices are not allowed")
+            return [self._labels[i] for i in value]
+        else:
+            if not isinstance(value, int):
+                raise ValueError(
+                    f"Expected an integer index for classification, got {type(value)}"
+                )
+            if not (0 <= value < len(self._labels)):
+                raise ValueError(
+                    f"Invalid index {value}. Must be between 0 and {len(self._labels)-1}"
+                )
+            return self._labels[value]
+
+    def get_indexed_labels(self) -> dict[int, str]:
+        """Get a mapping of indices to label string representations."""
+
+        def format_value(v):
+            if isinstance(v, enum.Enum):
+                return repr(v.value)  # Show the enum's value, not its name
+            elif isinstance(v, str):
+                return f"'{v}'"  # Single quotes for strings
+            else:
+                return str(v)
+
+        return {i: format_value(v) for i, v in enumerate(self._labels)}
+
+
+def as_classifier(typ) -> Labels:
+    """Convert a type to a Labels instance.
+    This should only be called on types that have been verified as classifiers via is_classifier().
+
+    Args:
+        typ: A type that represents a classifier (Enum, Literal, sequence, or list thereof)
+
+    Returns:
+        Labels: A Labels instance representing the classifier
+
+    Raises:
+        ValueError: If the type is not a valid classifier
+    """
+    if isinstance(typ, Labels):
+        return typ
+
+    # Handle list[T] case for type-level classifiers
+    origin = get_origin(typ)
+    if origin is list:
+        arg = get_args(typ)[0]
+        # Handle list[Enum] or list[Literal]
+        if (isinstance(arg, type) and issubclass(arg, enum.Enum)) or get_origin(
+            arg
+        ) is Literal:
+            return Labels(arg, many=True)
+
+    # Handle double-nested list shorthand
+    if (
+        isinstance(typ, list)
+        and len(typ) == 1
+        and isinstance(typ[0], (list, tuple, set))
+    ):
+        return Labels(typ[0], many=True)
+
+    # Convert raw sequences to Labels
+    if isinstance(typ, (list, tuple, set)):
+        return Labels(typ)
+
+    # Handle remaining single-label cases (Enum, Literal)
+    return Labels(typ)
 
 
 def is_classifier(typ) -> bool:
     """Check if a type represents a classification task.
-    This includes both single-label (Enum/Literal) and multi-label (list[Enum/Literal]) classification,
-    as well as Labels objects."""
+    This includes:
+    - Single-label: Enum, Literal, or any sequence of values
+    - Multi-label: list[Enum], list[Literal], or list[list]
+
+    Examples:
+        >>> class Colors(enum.Enum):
+        ...     RED = "red"
+        ...     GREEN = "green"
+        >>> is_classifier(Colors)  # enum
+        True
+        >>> is_classifier(Literal["a", "b"])  # literal
+        True
+        >>> is_classifier(["a", "b"])  # list of values
+        True
+        >>> is_classifier([1, "red", MyClass()])  # mixed values
+        True
+        >>> is_classifier(list[Colors])  # multi-label enum
+        True
+        >>> is_classifier(list[Literal["a", "b"]])  # multi-label literal
+        True
+        >>> is_classifier(list[["a", 1, MyClass()]])  # multi-label shorthand
+        True
+    """
     if isinstance(typ, Labels):
         return True
+
+    # Handle list[T] case
     origin = get_origin(typ)
     if origin is list:
-        # Check if it's list[Enum] or list[Literal]
         arg = get_args(typ)[0]
-        return (isinstance(arg, type) and issubclass(arg, enum.Enum)) or get_origin(
-            arg
-        ) is Literal
-    return (isinstance(typ, type) and issubclass(typ, enum.Enum)) or get_origin(
-        typ
-    ) is Literal
+        # Check for list[Enum], list[Literal], or list[list]
+        return (
+            (isinstance(arg, type) and issubclass(arg, enum.Enum))
+            or get_origin(arg) is Literal
+            or isinstance(arg, (list, tuple, set))
+        )
+
+    # Handle single-label cases
+    return (
+        # Enum type
+        (isinstance(typ, type) and issubclass(typ, enum.Enum))
+        # Literal type
+        or get_origin(typ) is Literal
+        # Any sequence of values
+        or isinstance(typ, (list, tuple, set))
+    )
 
 
-def get_labels(typ) -> Optional[tuple[Any, ...]]:
-    """Get the label values from a classification type.
-    Works with both Enum/Literal and list[Enum/Literal] types."""
-    origin = get_origin(typ)
-    if origin is list:
-        # Get labels from list[Enum/Literal]
-        arg = get_args(typ)[0]
-        if isinstance(arg, type) and issubclass(arg, enum.Enum):
-            return tuple(v.value for v in arg)
-        elif get_origin(arg) is Literal:
-            return get_args(arg)
-    elif isinstance(typ, type) and issubclass(typ, enum.Enum):
-        return tuple(v.value for v in typ)
-    elif origin is Literal:
-        return get_args(typ)
-    return None
+def issubclass_safe(x: Any, cls: Union[type, tuple[type, ...]]) -> bool:
+    """
+    Safely check if x is a subclass of cls without raising errors.
 
+    This combines isinstance(x, type) and issubclass(x, cls) checks in a safe way
+    that won't raise TypeError if x is not a type.
 
-def get_indexed_labels(typ) -> dict[int, Any]:
-    """Get the indexed labels and string representations from a classification type."""
-    labels = get_labels(typ)
+    Args:
+        x: The value to check
+        cls: A type or tuple of types to check against
 
-    return {i: str(v) for i, v in enumerate(labels)}
+    Returns:
+        bool: True if x is a type and is a subclass of cls, False otherwise
 
-
-def get_classifier_type(typ) -> type:
-    """Get the type that should be used for validation of a classifier.
-    Returns int for Enum/Literal and list[int] for list[Enum/Literal]."""
-    origin = get_origin(typ)
-    if origin is list:
-        return list[int]
-    return int
+    Example:
+        >>> issubclass_safe(str, object)  # type is subclass
+        True
+        >>> issubclass_safe(42, object)  # not a type
+        False
+        >>> issubclass_safe(str, (int, float))  # not a subclass
+        False
+    """
+    return isinstance(x, type) and issubclass(x, cls)
 
 
 class AutoDataClass:
@@ -262,20 +444,3 @@ class PythonFunction:
         )
 
         return instance
-
-
-@dataclass
-class Labels:
-    """A helper class for creating classification labels.
-
-    Args:
-        values: list[Any]
-        many: bool = False
-
-    Example:
-        >>> Task(result_type=Labels(['a', 'b']))  # single-label classification
-        >>> Task(result_type=Labels(['a', 'b'], many=True))  # multi-label classification
-    """
-
-    values: list[Any]
-    many: bool = False
