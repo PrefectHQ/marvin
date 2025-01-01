@@ -37,3 +37,23 @@ if __name__ == "__main__":
         instructions="Convert Epic allergy record to Cerner format. Map 'severe' severity to 'high' risk. Format reaction as a list.",
     )
     print(f"Converted to format B: {allergy_record_b}")
+"""
+» python examples/hello_cast.py
+╭─ Marvin ─────────────────────────────────────────────────────────────────────────────────────────╮
+│ ⠋   Final Result                                                                                 │
+│     Input:   {                                                                                   │
+│                'response': {                                                                     │
+│                  'task_id': '895be677-29f6-4642-ac99-d63171a46444',                              │
+│                  'result': {                                                                     │
+│                    'agent': 'penicillin',                                                        │
+│                    'riskLevel': 'high',                                                          │
+│                    'clinicalManifestations': [                                                   │
+│                      'anaphylaxis'                                                               │
+│                    ],                                                                            │
+│                    'documentationDate': '2020-01-01'                                             │
+│                  }                                                                               │
+│                }                                                                                 │
+│              }                                                                                   │
+╰──────────────────────────────────────────────────────────────────────────────────── 12:23:47 AM ─╯
+Converted to format B: agent='penicillin' riskLevel='high' manifestations=['anaphylaxis'] documentation_date='2020-01-01'
+"""

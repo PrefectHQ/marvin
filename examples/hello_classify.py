@@ -33,3 +33,16 @@ if __name__ == "__main__":
     ]
 
     print(asyncio.run(bucket_criticism(customer_feedbacks)))
+"""
+» python examples/hello_classify.py
+╭─ Marvin ─────────────────────────────────────────────────────────────────────────────────────────╮
+│ ⠋   Final Result                                                                                 │
+│     Input:   {                                                                                   │
+│                'response': {                                                                     │
+│                  'task_id': '87d67841-f19f-4279-8629-d8f7ad9c3069',                              │
+│                  'result': 0                                                                     │
+│                }                                                                                 │
+│              }                                                                                   │
+╰──────────────────────────────────────────────────────────────────────────────────── 12:24:11 AM ─╯
+[<CustomerDissatisfaction.IMPERCEPTIBLE: 0>, <CustomerDissatisfaction.SUBSTANTIAL: 3>, <CustomerDissatisfaction.EXTREME: 4>]
+"""
