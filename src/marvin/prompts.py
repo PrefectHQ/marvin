@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional, Type, get_type_hints
 
 from marvin.engine.llm import AgentMessage, Message, SystemMessage, UserMessage
-from marvin.utilities.jinja import prompt_env
+from marvin.utilities.jinja import jinja_env
 from marvin.utilities.types import AutoDataClass
 
 
@@ -43,9 +43,9 @@ class Template(AutoDataClass):
         }
 
         if self.template is not None:
-            template = prompt_env.from_string(self.template)
+            template = jinja_env.from_string(self.template)
         else:
-            template = prompt_env.get_template(str(self.template_path))
+            template = jinja_env.get_template(str(self.template_path))
         return template.render(**render_kwargs | kwargs)
 
 
@@ -89,9 +89,9 @@ class Prompt:
 
         # Get the template
         if self.template is not None:
-            template = prompt_env.from_string(self.template)
+            template = jinja_env.from_string(self.template)
         else:
-            template = prompt_env.get_template(str(self.template_path))
+            template = jinja_env.get_template(str(self.template_path))
 
         # Render with provided kwargs taking precedence
         return template.render(**render_kwargs | kwargs)

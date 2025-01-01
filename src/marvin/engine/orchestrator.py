@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Generic, TypeVar, Union
+from typing import Generic, TypeVar
 from uuid import UUID
 
 import pydantic_ai
@@ -100,25 +100,28 @@ class Orchestrator:
     async def _execute_task(self, task: Task, incomplete_tasks: list[Task]):
         if task.is_pending():
             task.mark_running()
-            await self.thread.add_messages(
-                [marvin.engine.llm.UserMessage(content=f"New task started: {task}")]
-            )
+            if task.report_state_change:
+                await self.thread.add_user_message(f"Task started: {task}")
 
         agent = task.get_agent()
         system_message = self._create_system_prompt(incomplete_tasks)
 
         # Create task results with appropriate result types
         task_results = [TaskResult[t.get_result_type()] for t in incomplete_tasks]
-        agentlet = marvin.engine.llm.create_agentlet(
-            model=agent.get_model(),
-            result_type=Union[tuple(task_results)],
-            tools=agent.tools,
-        )
+        agentlet = agent.get_agentlet(tools=task.tools, result_types=task_results)
         agentlet.result_validator(self._create_result_validator())
 
         messages = await self.thread.get_messages()
         all_messages = [system_message] + messages
-        return await agentlet.run("", message_history=all_messages)
+
+        result = await agentlet.run("", message_history=all_messages)
+
+        if task.report_state_change and task.is_successful():
+            await self.thread.add_user_message(f'Task "{task.id}" completed: {result}')
+        elif task.report_state_change and task.is_failed():
+            await self.thread.add_user_message(f'Task "{task.id}" failed.')
+
+        return result
 
     async def _handle_agent_messages(self, agent: Agent, result):
         for message in result.new_messages():

@@ -15,10 +15,10 @@ from marvin.run import run, run_async, run_tasks_async
 from marvin.defaults import defaults, override_defaults
 
 # marvin fns
-from marvin.fns.classify import classify
-from marvin.fns.extract import extract
-from marvin.fns.cast import cast
-from marvin.fns.generate import generate
+from marvin.fns.classify import classify, classify_async
+from marvin.fns.extract import extract, extract_async
+from marvin.fns.cast import cast, cast_async
+from marvin.fns.generate import generate, generate_async
 from marvin.fns.fn import fn
 
 __version__ = _version("marvin")
