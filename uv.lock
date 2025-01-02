@@ -1036,6 +1036,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "rich" },
     { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "typer" },
 ]
 
 [package.optional-dependencies]
@@ -1088,6 +1089,7 @@ requires-dist = [
     { name = "rich", specifier = ">=13.9.4" },
     { name = "ruff", marker = "extra == 'test'" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
+    { name = "typer", specifier = ">=0.15.1" },
 ]
 
 [[package]]
