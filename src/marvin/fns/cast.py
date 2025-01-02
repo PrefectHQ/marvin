@@ -33,7 +33,7 @@ async def cast_async(
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> TargetType[T]:
+) -> T:
     """
     Converts input data into a single entity of the specified target type asynchronously.
 
@@ -82,7 +82,7 @@ def cast(
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> TargetType[T]:
+) -> T:
     """
     Converts input data into a single entity of the specified target type.
 
