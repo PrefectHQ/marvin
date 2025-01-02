@@ -77,7 +77,8 @@ class Agent(Actor):
 
     async def say_async(self, message: str, thread: Thread | str | None = None):
         thread = get_thread(thread)
-        await thread.add_user_message(message=message)
+        if message:
+            await thread.add_user_message_async(message=message)
         return await marvin.run_async("Respond to the user.", agent=self, thread=thread)
 
     def say(self, message: str, thread: Thread | str | None = None):

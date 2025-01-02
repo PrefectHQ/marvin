@@ -101,7 +101,7 @@ class Orchestrator:
         if task.is_pending():
             task.mark_running()
             if task.report_state_change:
-                await self.thread.add_user_message(f"Task started: {task}")
+                await self.thread.add_user_message_async(f"Task started: {task}")
 
         agent = task.get_agent()
         system_message = self._create_system_prompt(incomplete_tasks)
@@ -111,15 +111,21 @@ class Orchestrator:
         agentlet = agent.get_agentlet(tools=task.get_tools(), result_types=task_results)
         agentlet.result_validator(self._create_result_validator())
 
-        messages = await self.thread.get_messages()
+        messages = await self.thread.get_messages_async()
         all_messages = [system_message] + messages
 
         result = await agentlet.run("", message_history=all_messages)
 
-        if task.report_state_change and task.is_successful():
-            await self.thread.add_user_message(f'Task "{task.id}" completed: {result}')
-        elif task.report_state_change and task.is_failed():
-            await self.thread.add_user_message(f'Task "{task.id}" failed.')
+        if task.report_state_change:
+            if result:
+                await self.thread.add_user_message_async(
+                    f'Task "{task.id}" completed: {result}'
+                )
+            else:
+                await self.thread.add_user_message_async(f'Task "{task.id}" failed.')
+
+        if result and hasattr(result, "new_messages"):
+            await self.thread.add_messages_async(result.new_messages())
 
         return result
 
@@ -127,7 +133,7 @@ class Orchestrator:
         for message in result.new_messages():
             for event in message_to_events(agent=agent, message=message):
                 await self.handle_event(event)
-        await self.thread.add_messages(result.new_messages())
+        await self.thread.add_messages_async(result.new_messages())
 
     async def run(self, raise_on_failure: bool = True):
         await self.handle_event(OrchestratorStartEvent())

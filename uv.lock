@@ -1036,7 +1036,6 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "rich" },
     { name = "sqlalchemy", extra = ["asyncio"] },
-    { name = "sqlmodel" },
 ]
 
 [package.optional-dependencies]
@@ -1089,7 +1088,6 @@ requires-dist = [
     { name = "rich", specifier = ">=13.9.4" },
     { name = "ruff", marker = "extra == 'test'" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
-    { name = "sqlmodel", specifier = ">=0.0.22" },
 ]
 
 [[package]]
@@ -2320,19 +2318,6 @@ wheels = [
 [package.optional-dependencies]
 asyncio = [
     { name = "greenlet" },
-]
-
-[[package]]
-name = "sqlmodel"
-version = "0.0.22"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pydantic" },
-    { name = "sqlalchemy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b5/39/8641040ab0d5e1d8a1c2325ae89a01ae659fc96c61a43d158fb71c9a0bf0/sqlmodel-0.0.22.tar.gz", hash = "sha256:7d37c882a30c43464d143e35e9ecaf945d88035e20117bf5ec2834a23cbe505e", size = 116392 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/dd/b1/3af5104b716c420e40a6ea1b09886cae3a1b9f4538343875f637755cae5b/sqlmodel-0.0.22-py3-none-any.whl", hash = "sha256:a1ed13e28a1f4057cbf4ff6cdb4fc09e85702621d3259ba17b3c230bfb2f941b", size = 28276 },
 ]
 
 [[package]]
