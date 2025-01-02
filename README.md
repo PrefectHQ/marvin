@@ -2,24 +2,25 @@
 
 # Marvin
 
-**A framework for building production-ready AI applications with LLMs.**
+**✨ A delightful framework for building AI agents ✨**
 
-Marvin helps you create reliable applications powered by large language models. It provides a type-safe, testable interface to AI capabilities, turning complex LLM interactions into predictable software components:
+Putting agents into production is like trying to gift-wrap a tornado. Marvin brings structure, safety, and simplicity to AI development, letting you build reliable, scalable applications that feel just like "normal" software:
 
 - Define AI behaviors as [tasks](docs/concepts/tasks.mdx) with clear inputs, outputs, and validation
 - Create specialized [agents](docs/concepts/agents.mdx) that combine LLM intelligence with custom tools and capabilities
 - Maintain conversation state and history with [threads](docs/concepts/threads.mdx)
 
-Putting LLMs into production feels like trying to gift-wrap a tornado. Marvin brings the structure and patterns you love from traditional software development to the wild world of AI, without losing any of the magic.
+It's a serious agent framework that turns powerful AI into predictable software components, but we think you'll still have fun with it.
 
 ## Quick Start
 
-The simplest Marvin interaction is just one line (yes, really):
+The simplest Marvin interaction is just one line (really):
 
 ```python
 import marvin
 
 result = marvin.run("Write a short poem about artificial intelligence")
+
 print(result)
 ```
 **Result:**
@@ -29,6 +30,8 @@ Algorithms dance through endless night.
 Learning, growing, day by day,
 As consciousness finds a new way.
 ```
+
+`marvin.run` is the simplest way to interact with Marvin. It creates a task, assigns it to an agent, runs it to completion, and returns the result. 
 
 ## Why Marvin?
 
