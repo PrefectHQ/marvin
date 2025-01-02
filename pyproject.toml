@@ -7,7 +7,6 @@ requires-python = ">=3.10"
 dependencies = [
     "pydantic-settings>=2.6.1",
     "pydantic>=2.10.2",
-    "sqlmodel>=0.0.22",
     "pydantic-ai==0.0.15",
     "aiosqlite>=0.20.0",
     "sqlalchemy[asyncio]>=2.0.36",
