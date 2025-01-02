@@ -6,14 +6,14 @@ import functools
 import inspect
 import typing
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from pydantic import Field, TypeAdapter
 from pydantic.errors import PydanticSchemaGenerationError
 from typing_extensions import Annotated
 
 
-def run_coro_as_sync(coro):
+def run_coro_as_sync(coro: Any):
     """Run a coroutine synchronously."""
     import asyncio
 
@@ -31,24 +31,24 @@ class Tool:
 
     name: str
     description: str
-    fn: Callable
-    parameters: dict
+    fn: Callable[..., Any]
+    parameters: dict[str, Any]
 
     # Optional instructions to display to the agent as part of the system prompt
     # when this tool is available. Tool descriptions have a 1024
     # character limit, so this is a way to provide extra detail about behavior.
     instructions: Optional[str] = None
 
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def run(self, input: dict):
+    def run(self, input: dict[str, Any]) -> Any:
         """Run the tool synchronously."""
         result = self.fn(**input)
         if inspect.isawaitable(result):
             result = run_coro_as_sync(result)
         return result
 
-    async def run_async(self, input: dict):
+    async def run_async(self, input: dict[str, Any]) -> Any:
         """Run the tool asynchronously."""
         result = self.fn(**input)
         if inspect.isawaitable(result):
@@ -58,14 +58,14 @@ class Tool:
     @classmethod
     def from_function(
         cls,
-        fn: Callable,
+        fn: Callable[..., Any],
         name: Optional[str] = None,
         description: Optional[str] = None,
         instructions: Optional[str] = None,
         include_param_descriptions: bool = True,
         include_return_description: bool = True,
-        metadata: Optional[dict] = None,
-        **kwargs,
+        metadata: Optional[dict[str, Any]] = None,
+        **kwargs: Any,
     ):
         """Create a Tool from a function."""
         name = name or fn.__name__
@@ -106,7 +106,7 @@ class Tool:
             include_return_description
             and signature.return_annotation is not inspect._empty
         ):
-            return_schema = {}
+            return_schema: dict[str, Any] = {}
             try:
                 return_schema.update(
                     TypeAdapter(signature.return_annotation).json_schema()
@@ -143,21 +143,21 @@ class Tool:
             **kwargs,
         )
 
-    def serialize_for_prompt(self) -> dict:
+    def serialize_for_prompt(self) -> dict[str, Any]:
         """Serialize the tool for inclusion in a prompt."""
         return self.model_dump(include={"name", "description", "metadata"})
 
 
 def tool(
-    fn: Optional[Callable] = None,
+    fn: Callable[..., Any] | None = None,
     *,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    instructions: Optional[str] = None,
+    name: str | None = None,
+    description: str | None = None,
+    instructions: str | None = None,
     include_param_descriptions: bool = True,
     include_return_description: bool = True,
-    metadata: Optional[dict] = None,
-    **kwargs,
+    metadata: dict[str, Any] | None = None,
+    **kwargs: Any,
 ) -> Tool:
     """
     Decorator for turning a function into a Tool

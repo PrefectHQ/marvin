@@ -1,9 +1,8 @@
 from enum import Enum
 
+import marvin
 import pytest
 from pydantic import BaseModel
-
-import marvin
 
 sentiment = ["Negative", "Positive"]
 
@@ -135,7 +134,7 @@ class TestClassify:
                 ("*angry noises*", "support"),
             ],
         )
-        async def test_call_routing(self, user_input, expected_selection):
+        async def test_call_routing(self, user_input: str, expected_selection: str):
             class Department(Enum):
                 SALES = "sales"
                 SUPPORT = "support"
