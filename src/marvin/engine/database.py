@@ -28,7 +28,7 @@ _async_engine = create_async_engine(
 )
 
 
-def _ensure_tables_exist():
+def ensure_tables_exist():
     """Initialize database tables if they don't exist yet."""
     inspector = inspect(_engine)
     if not inspector.get_table_names():
@@ -38,7 +38,6 @@ def _ensure_tables_exist():
 @contextmanager
 def get_session() -> Generator[Session, None, None]:
     """Get a database session."""
-    _ensure_tables_exist()
     session = Session(_engine)
     try:
         yield session
@@ -49,7 +48,6 @@ def get_session() -> Generator[Session, None, None]:
 @asynccontextmanager
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """Get an async database session."""
-    _ensure_tables_exist()
     session = AsyncSession(_async_engine)
     try:
         yield session

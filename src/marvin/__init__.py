@@ -2,6 +2,7 @@ from importlib.metadata import version as _version
 
 # necessary imports
 from marvin.settings import settings
+from marvin.engine.database import ensure_tables_exist
 
 # core classes
 from marvin.engine.thread import Thread
@@ -20,6 +21,8 @@ from marvin.fns.extract import extract, extract_async
 from marvin.fns.cast import cast, cast_async
 from marvin.fns.generate import generate, generate_async
 from marvin.fns.fn import fn
+
+ensure_tables_exist()
 
 __version__ = _version("marvin")
 
