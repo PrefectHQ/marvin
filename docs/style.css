@@ -1,0 +1,17 @@
+.version-badge {
+  display: inline-block;
+  padding: 0.2em 0.5em;
+  font-size: 0.75em;
+  font-weight: bold;
+  color: #e44bf4;
+  background-color: #fce8fd;
+  border: 1px solid #f2a5f9;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+.dark .version-badge {
+  color: #f17afc;
+  background-color: rgba(228, 75, 244, 0.2);
+  border-color: #783d7e;
+}
