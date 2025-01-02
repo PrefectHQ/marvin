@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     # ------------ General settings ------------
 
     home_path: Path = Field(
-        default="~/.marvin",
+        default=Path("~/.marvin"),
         description="The home path for Marvin.",
     )
 
@@ -122,6 +122,13 @@ class Settings(BaseSettings):
     chroma_cloud_database: str | None = Field(
         default=None,
         description="The database for the Chroma Cloud.",
+    )
+
+    # ------------ Async settings ------------
+
+    apply_nest_asyncio: bool = Field(
+        default=True,
+        description="Whether to apply nest_asyncio.",
     )
 
 
