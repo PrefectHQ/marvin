@@ -27,7 +27,7 @@ T = TypeVar("T")
 P = ParamSpec("P")
 R = TypeVar("R")
 
-TargetType: TypeAlias = type[Any] | Annotated[Any, Any]
+TargetType: TypeAlias = type[T] | Annotated[T, Any]
 
 
 @dataclass
