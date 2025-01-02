@@ -1,0 +1,210 @@
+---
+title: Tasks
+description: The building blocks of AI workflows.
+icon: list-check
+---
+
+Tasks are the fundamental building blocks of AI workflows in Marvin. They represent discrete, well-defined objectives that need to be accomplished by an AI agent.
+
+```python
+import marvin
+
+task = marvin.run("Write a concise summary of this article", result_type=str)
+```
+
+## What are tasks?
+
+LLMs excel when given clear, specific objectives that allow them to focus their capabilities on a well-defined goal. A task in Marvin is a structured way to define these objectives and guide the AI's behavior. Each task represents a "checkpoint" that requires the AI to produce a specific, verifiable result.
+
+This task-centric approach allows you to leverage the full power of AI while maintaining precise control over outputs. Each task becomes a checkpoint where you can validate results, ensuring that the AI's work aligns with your application's requirements and constraints.
+
+## Creating and running tasks
+
+The most common way to create and run a task is using the `marvin.run()` function:
+
+```python
+import marvin
+
+summary = marvin.run(
+    instructions="Summarize the key points of this text",
+    result_type=str,
+    context={"text": "..."},
+)
+```
+
+For more control, you can create a task explicitly using the `Task` class:
+
+```python
+import marvin
+
+task = marvin.Task(
+    instructions="Summarize the key points of this text",
+    result_type=str,
+    context={"text": "..."},
+)
+result = task.run()
+```
+
+## Task properties
+
+### Instructions
+
+The instructions tell the agent what needs to be accomplished. They should be clear and specific about what you want the agent to do.
+
+```python
+task = marvin.run(
+    instructions="Write a haiku about programming",
+    result_type=str,
+)
+```
+
+### Result Type
+
+The result type specifies what kind of value the task should return. This helps validate the task's output and guides the agent in formatting their response appropriately.
+
+Marvin supports a variety of result types:
+
+```python
+# Basic types
+text = marvin.run("Write a greeting", result_type=str)
+number = marvin.run("Choose a number between 1-10", result_type=int)
+is_valid = marvin.run("Is this email valid?", result_type=bool)
+
+# Lists and dictionaries
+keywords = marvin.run("List 3 keywords", result_type=list[str])
+scores = marvin.run("Score these aspects", result_type=dict[str, float])
+
+# Pydantic models for structured data
+from pydantic import BaseModel
+
+class Person(BaseModel):
+    name: str
+    age: int
+    
+person = marvin.run("Parse this bio", result_type=Person)
+
+# Literal values for classification
+sentiment = marvin.run(
+    "Analyze the sentiment",
+    result_type=["positive", "negative", "neutral"]
+)
+```
+
+The default result type is `str`.
+
+### Context
+
+Context provides additional information that the agent needs to complete the task. This could include input text, parameters, or any other relevant data.
+
+```python
+summary = marvin.run(
+    "Summarize this article",
+    context={
+        "article": "...",
+        "max_length": 100,
+        "style": "academic"
+    }
+)
+```
+
+### Agent
+
+You can specify which agent should work on the task. If no agent is provided, Marvin will use the default agent.
+
+```python
+agent = marvin.Agent(
+    name="Summarizer",
+    instructions="Create clear, concise summaries"
+)
+
+summary = marvin.run(
+    "Summarize this article",
+    agent=agent,
+    context={"article": "..."}
+)
+```
+
+### Tools
+
+Tools are functions that the agent can use to help complete the task. These are in addition to any tools provided by the agent itself.
+
+```python
+def fetch_article(url: str) -> str:
+    """Fetch the content of an article from a URL."""
+    ...
+
+summary = marvin.run(
+    "Summarize the article at this URL",
+    tools=[fetch_article],
+    context={"url": "https://example.com/article"}
+)
+```
+
+### Thread
+
+Tasks can be run in a specific thread to maintain context across multiple interactions. If no thread is provided, Marvin will create a new one.
+
+```python
+with marvin.Thread() as thread:
+    # First task
+    topic = marvin.run(
+        "What should we write about?",
+        interactive=True,
+        thread=thread
+    )
+    
+    # Second task can reference the first
+    article = marvin.run(
+        f"Write an article about {topic}",
+        thread=thread
+    )
+```
+
+## Running Multiple Tasks
+
+You can run multiple tasks in sequence using the same thread to maintain context:
+
+```python
+tasks = [
+    marvin.Task("Research the topic"),
+    marvin.Task("Write an outline"),
+    marvin.Task("Write the first draft"),
+    marvin.Task("Edit and polish")
+]
+
+results = marvin.run_tasks(tasks)
+```
+
+Each task will have access to the context and history from previous tasks in the sequence.
+
+## Task Results
+
+When using `marvin.run()`, the result is returned directly:
+
+```python
+task = marvin.run("Write a haiku")
+print(task)  # Prints the haiku
+```
+
+If you create a task explicitly, you can access its result after running it:
+
+```python
+task = marvin.Task("Write a haiku")
+task.run()
+print(task.result)  # Prints the haiku
+```
+
+If a task fails and `raise_on_failure=True` (the default), an exception will be raised with details about the failure. If `raise_on_failure=False`, the task's result will contain an error message instead.
+
+```python
+# This will raise an exception
+task = marvin.run("This task will fail", result_type=int)
+
+# This will return an error message
+task = marvin.run(
+    "This task will fail",
+    result_type=int,
+    raise_on_failure=False
+)
+print(task)  # Prints the error message
+```
