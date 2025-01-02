@@ -7,7 +7,7 @@ This module provides utilities for managing database sessions and migrations.
 import uuid
 from contextlib import asynccontextmanager, contextmanager
 from datetime import UTC, datetime
-from typing import AsyncGenerator, Generator, Optional
+from typing import Any, AsyncGenerator, Generator, Optional
 
 from sqlalchemy import JSON, ForeignKey, String, create_engine, inspect
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -41,7 +41,7 @@ class DBThread(Base):
 
     @classmethod
     async def create(
-        cls, session, parent_thread_id: Optional[str] = None
+        cls, session: AsyncSession, parent_thread_id: Optional[str] = None
     ) -> "DBThread":
         thread = cls(id=str(uuid.uuid4()), parent_thread_id=parent_thread_id)
         session.add(thread)
@@ -58,7 +58,7 @@ class DBMessage(Base):
     llm_call_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         ForeignKey("llm_calls.id"), default=None
     )
-    message: Mapped[dict] = mapped_column(JSON)
+    message: Mapped[dict[str, Any]] = mapped_column(JSON)
     timestamp: Mapped[datetime] = mapped_column(default=utc_now)
 
     thread: Mapped[DBThread] = relationship(back_populates="messages")
@@ -71,8 +71,8 @@ class DBLLMCall(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     thread_id: Mapped[str] = mapped_column(ForeignKey("threads.id"), index=True)
     model: Mapped[str] = mapped_column(String, index=True)
-    prompt: Mapped[dict] = mapped_column(JSON)
-    cost: Mapped[dict] = mapped_column(JSON)
+    prompt: Mapped[dict[str, Any]] = mapped_column(JSON)
+    cost: Mapped[dict[str, Any]] = mapped_column(JSON)
     timestamp: Mapped[datetime] = mapped_column(default=utc_now)
 
     messages: Mapped[list[DBMessage]] = relationship(back_populates="llm_call")

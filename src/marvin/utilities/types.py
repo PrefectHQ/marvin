@@ -23,11 +23,12 @@ from typing import (
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import jinja_env
 
-T = TypeVar("T")
+T = TypeVar("T", infer_variance=True)
 P = ParamSpec("P")
 R = TypeVar("R")
 
-TargetType: TypeAlias = type[T] | Annotated[type[T], Any]
+# A type that can be used as a target for type conversion
+TargetType: TypeAlias = type[T] | T | Annotated[T, Any]
 
 
 @dataclass

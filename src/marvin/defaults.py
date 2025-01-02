@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Unpack
 
-from pydantic_ai.models import Model
+from pydantic_ai.models import KnownModelName, Model
 
 import marvin
 from marvin import Agent
@@ -11,7 +11,7 @@ from marvin import Agent
 @dataclass
 class Defaults:
     agent: Agent
-    model: str | Model
+    model: KnownModelName | Model
     memory_provider: str
 
 

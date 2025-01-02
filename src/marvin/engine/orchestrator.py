@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 from uuid import UUID
 
 import pydantic_ai
@@ -26,10 +26,10 @@ T = TypeVar("T")
 
 
 class OrchestratorPrompt(Template):
-    template_path: Path = Path("orchestrator.jinja")
+    template_path: Path | None = Path("orchestrator.jinja")
 
     agent: Agent
-    tasks: list[Task]
+    tasks: list[Task[Any]]
     instructions: list[str]
 
 
@@ -50,7 +50,7 @@ class TaskResult(Generic[T]):
 
 @dataclass(kw_only=True)
 class Orchestrator:
-    tasks: list[Task]
+    tasks: list[Task[Any]]
     thread: Thread
     handlers: list[Handler | AsyncHandler] = field(default_factory=list)
 
@@ -67,7 +67,7 @@ class Orchestrator:
                 handler.handle(event)
 
     def _create_system_prompt(
-        self, incomplete_tasks: list[Task]
+        self, incomplete_tasks: list[Task[Any]]
     ) -> "marvin.engine.llm.ModelRequest":
         agent = incomplete_tasks[0].get_agent()
         system_prompt = OrchestratorPrompt(
@@ -79,9 +79,9 @@ class Orchestrator:
 
     def _create_result_validator(self):
         async def validate_result(
-            ctx: pydantic_ai.RunContext,
-            result: TaskResult,
-        ) -> TaskResult:
+            ctx: pydantic_ai.RunContext[Any],
+            result: TaskResult[Any],
+        ) -> TaskResult[Any]:
             task_id = result.task_id
             task = next((t for t in self.tasks if t.id == task_id), None)
             if not task:
@@ -97,7 +97,7 @@ class Orchestrator:
 
         return validate_result
 
-    async def _execute_task(self, task: Task, incomplete_tasks: list[Task]):
+    async def _execute_task(self, task: Task[T], incomplete_tasks: list[Task[T]]) -> T:
         if task.is_pending():
             task.mark_running()
             if task.report_state_change:

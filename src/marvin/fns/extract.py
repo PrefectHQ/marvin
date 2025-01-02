@@ -28,7 +28,7 @@ async def extract_async(
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> list[TargetType[T]]:
+) -> list[T]:
     """
     Extracts entities of a specific type from the provided data asynchronously.
 
@@ -77,7 +77,7 @@ def extract(
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> list[TargetType[T]]:
+) -> list[T]:
     """
     Extracts entities of a specific type from the provided data.
 

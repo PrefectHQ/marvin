@@ -7,10 +7,10 @@ An Agent is an entity that can process tasks and maintain state across interacti
 import random
 import uuid
 from dataclasses import field
-from typing import Callable, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import pydantic_ai
-from pydantic_ai.models import Model, ModelSettings
+from pydantic_ai.models import KnownModelName, Model, ModelSettings
 
 import marvin
 import marvin.engine.llm
@@ -36,7 +36,7 @@ class Agent(Actor):
         default=None, metadata={"description": "Instructions for the agent"}
     )
 
-    tools: list[Callable] = field(
+    tools: list[Callable[..., Any]] = field(
         default_factory=list,
         metadata={"description": "List of tools available to the agent"},
     )
@@ -51,7 +51,7 @@ class Agent(Actor):
         metadata={"description": "Name of the agent"},
     )
 
-    model: Optional[str | Model] = field(
+    model: Optional[KnownModelName | Model] = field(
         default=None,
         metadata={
             "description": "The model to use for the agent. If not provided, the default model will be used. A compatible string can be passed to automatically retrieve the model."
@@ -63,10 +63,10 @@ class Agent(Actor):
         metadata={"description": "Settings to pass to the model"},
     )
 
-    def get_model(self):
+    def get_model(self) -> Model | KnownModelName:
         return self.model or marvin.defaults.model
 
-    def get_tools(self) -> list[Callable]:
+    def get_tools(self) -> list[Callable[..., Any]]:
         return self.tools + [t for m in self.memories for t in m.get_tools()]
 
     def get_model_settings(self) -> ModelSettings:
@@ -87,8 +87,8 @@ class Agent(Actor):
     def get_agentlet(
         self,
         result_types: list[type],
-        tools: list[Callable] | None = None,
-    ) -> pydantic_ai.Agent:
+        tools: list[Callable[..., Any]] | None = None,
+    ) -> pydantic_ai.Agent[Any, Any]:
         return marvin.engine.llm.create_agentlet(
             model=self.get_model(),
             result_type=Union[tuple(result_types)],  # type: ignore

@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Any, Callable
 
 import pydantic_ai
 
@@ -11,6 +11,6 @@ class Actor(AutoDataClass):
     def get_agentlet(
         self,
         result_types: list[type],
-        tools: list[Callable] = None,
-    ) -> pydantic_ai.Agent:
+        tools: list[Callable[..., Any]] | None = None,
+    ) -> pydantic_ai.Agent[Any, Any]:
         raise NotImplementedError("Subclass must implement get_agent")

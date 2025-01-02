@@ -1,6 +1,6 @@
 import random
 from dataclasses import field
-from typing import Callable
+from typing import Any, Callable
 
 import pydantic_ai
 
@@ -12,7 +12,7 @@ class Team(Actor):
     _dataclass_config = {"kw_only": True}
 
     agents: list[Actor]
-    tools: list[Callable] = field(default_factory=list)
+    tools: list[Callable[..., Any]] = field(default_factory=list)
     name: str = field(
         default_factory=lambda: random.choice(TEAM_NAMES),
         metadata={"description": "Name of the team"},
@@ -26,8 +26,8 @@ class Team(Actor):
     def get_agentlet(
         self,
         result_types: list[type],
-        tools: list[Callable] = None,
-    ) -> pydantic_ai.Agent:
+        tools: list[Callable[..., Any]] | None = None,
+    ) -> pydantic_ai.Agent[Any, Any]:
         return self._active_agent.get_agentlet(
             tools=self.tools + (tools or []), result_types=result_types
         )

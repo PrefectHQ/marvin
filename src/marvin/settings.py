@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Literal, Optional, Self
 
 from pydantic import Field, field_validator, model_validator
+from pydantic_ai.models import KnownModelName
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -80,7 +81,7 @@ class Settings(BaseSettings):
 
     # ------------ Agent settings ------------
 
-    agent_model: str = Field(
+    agent_model: KnownModelName = Field(
         default="openai:gpt-4o",
         description="The default model for agents.",
     )

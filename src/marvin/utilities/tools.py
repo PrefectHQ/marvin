@@ -1,16 +1,17 @@
 from functools import wraps
-from typing import Callable, Optional, TypeVar, Union, overload
+from typing import Any, Callable, Optional, TypeVar, overload
 
 T = TypeVar("T")
 
 
 @overload
 def update_fn(
-    name_or_func: Union[str, Callable[..., T]] = None,
+    name_or_func: str | Callable[..., T] | None = None,
     *,
     name: Optional[str] = None,
     description: Optional[str] = None,
-) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    ...
 
 
 @overload
@@ -19,15 +20,16 @@ def update_fn(
     *,
     name: str,
     description: Optional[str] = None,
-) -> Callable[..., T]: ...
+) -> Callable[..., T]:
+    ...
 
 
 def update_fn(
-    name_or_func: Union[str, Callable[..., T], None] = None,
+    name_or_func: str | Callable[..., T] | None = None,
     *,
     name: Optional[str] = None,
     description: Optional[str] = None,
-) -> Union[Callable[[Callable[..., T]], Callable[..., T]], Callable[..., T]]:
+) -> Callable[[Callable[..., T]], Callable[..., T]] | Callable[..., T]:
     """Rename a function and optionally set its docstring.
 
     Can be used as a decorator or called directly on a function.
@@ -56,7 +58,7 @@ def update_fn(
 
     def apply(func: Callable[..., T], new_name: str) -> Callable[..., T]:
         @wraps(func)
-        def wrapper(*args, **kwargs) -> T:
+        def wrapper(*args: Any, **kwargs: Any) -> T:
             return func(*args, **kwargs)
 
         wrapper.__name__ = new_name

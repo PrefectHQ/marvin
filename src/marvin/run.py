@@ -1,4 +1,4 @@
-from typing import Optional, TypeVar
+from typing import Any, Optional, TypeVar
 
 from marvin import Agent, Task, Thread
 from marvin.engine.orchestrator import Orchestrator
@@ -14,7 +14,7 @@ async def run_async(
     agent: Optional[Agent | str] = None,
     raise_on_failure: bool = True,
 ) -> T:
-    task = Task(
+    task = Task[result_type](
         instructions=instructions,
         result_type=result_type,
         agent=agent,
@@ -24,10 +24,10 @@ async def run_async(
 
 
 async def run_tasks_async(
-    tasks: list[Task],
+    tasks: list[Task[Any]],
     thread: Optional[Thread | str] = None,
     raise_on_failure: bool = True,
-) -> list[Task]:
+) -> list[Task[Any]]:
     orchestrator = Orchestrator(tasks=tasks, thread=thread)
     await orchestrator.run(raise_on_failure=raise_on_failure)
     return tasks

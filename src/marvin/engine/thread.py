@@ -8,10 +8,11 @@ import uuid
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import List, Optional, Tuple
+from typing import Any, Optional
 
 from pydantic import TypeAdapter
 from sqlalchemy import and_, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from marvin.utilities.asyncio import run_sync
 
@@ -19,7 +20,7 @@ from .database import DBMessage, DBThread, get_async_session
 from .llm import Message, UserMessage
 
 # Message serialization adapter
-message_adapter = TypeAdapter(Message)
+message_adapter: TypeAdapter[Message] = TypeAdapter(Message)
 
 
 def utc_now() -> datetime:
@@ -88,14 +89,14 @@ class Thread:
         await self.add_messages_async([UserMessage(content=message)])
 
     async def _get_thread_hierarchy(
-        self, session, max_depth: int = 10
-    ) -> List[Tuple[str, datetime]]:
+        self, session: AsyncSession, max_depth: int = 10
+    ) -> list[tuple[str, datetime]]:
         """Get the thread hierarchy (thread_id, created_at) pairs up to max_depth levels.
 
         Returns:
             List of (thread_id, created_at) pairs, ordered from current thread to oldest ancestor.
         """
-        hierarchy: List[Tuple[str, datetime]] = []
+        hierarchy: list[tuple[str, datetime]] = []
         current_thread = self._db_thread
         depth = 0
 
@@ -112,7 +113,7 @@ class Thread:
 
     def get_messages(
         self, include_parent: bool = True, include_system_messages: bool = False
-    ) -> List[Message]:
+    ) -> list[Message]:
         """Get all messages in this thread."""
         return run_sync(
             self.get_messages_async(include_parent, include_system_messages)
@@ -120,7 +121,7 @@ class Thread:
 
     async def get_messages_async(
         self, include_parent: bool = True, include_system_messages: bool = False
-    ) -> List[Message]:
+    ) -> list[Message]:
         """Get all messages in this thread.
 
         Args:
@@ -147,8 +148,8 @@ class Thread:
 
             # Build a query that gets messages from all threads in the hierarchy,
             # but only messages that were created before their child thread
-            conditions = []
-            for i, (thread_id, created_at) in enumerate(hierarchy):
+            conditions: list[Any] = []
+            for i, (thread_id, _) in enumerate(hierarchy):
                 if i == 0:  # Current thread - get all messages
                     conditions.append(and_(DBMessage.thread_id == thread_id))
                 else:  # Parent thread - get messages before child was created
@@ -173,7 +174,7 @@ class Thread:
         self._token = current_thread.set(self)
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
         """Reset the current thread in context."""
         current_thread.reset(self._token)
 

@@ -35,7 +35,7 @@ class Template(AutoDataClass):
         if self.template_path:
             self.template_path = Path(self.template_path)
 
-    def render(self, **kwargs) -> str:
+    def render(self, **kwargs: Any) -> str:
         render_kwargs = {
             k: v
             for k, v in self.__dict__.items()
@@ -80,7 +80,7 @@ class Prompt:
             return self._extra_fields[name]
         raise AttributeError(f"'{self.__class__.__name__}' has no attribute '{name}'")
 
-    def _render_template(self, **kwargs) -> str:
+    def _render_template(self, **kwargs: Any) -> str:
         """Render the template with variables."""
         # Get all fields except template/template_path
         render_kwargs = {
@@ -114,7 +114,7 @@ class Prompt:
         )
 
         # Split text into chunks at role markers
-        chunks = []
+        chunks: list[tuple[str, str]] = []
         last_end = 0
 
         for match in pattern.finditer(text):
@@ -143,7 +143,7 @@ class Prompt:
                 chunks.append(("user", content))
 
         # Convert role/content pairs to appropriate Message types
-        messages = []
+        messages: list[Message] = []
         for role, content in chunks:
             if role == "system":
                 messages.append(SystemMessage(content))
@@ -153,7 +153,7 @@ class Prompt:
                 messages.append(AgentMessage(content))
         return messages
 
-    def to_messages(self, **kwargs) -> List[Message]:
+    def to_messages(self, **kwargs: Any) -> list[Message]:
         """Convert the prompt to a list of messages with roles.
 
         The template can contain role markers (SYSTEM:, USER:, ASSISTANT:) to
@@ -174,7 +174,7 @@ class Prompt:
         return self._parse_messages(text)
 
     @classmethod
-    def from_fn(cls, fn: Callable) -> Type["Prompt"]:
+    def from_fn(cls, fn: Callable[..., Any]) -> Type["Prompt"]:
         """Create a Prompt class from a function's docstring and signature.
 
         Args:
@@ -198,14 +198,14 @@ class Prompt:
         # Get function signature and docstring
         sig = inspect.signature(fn)
         hints = get_type_hints(fn)
-        template = inspect.getdoc(fn)
-        if not template:
+        _template = inspect.getdoc(fn)
+        if not _template:
             raise ValueError(f"Function {fn.__name__} must have a docstring")
 
         # Create the dynamic prompt class
         @dataclass
         class DynamicPrompt(cls):
-            template: str = field(default=template)
+            template: str | None = field(default=_template)
             __qualname__ = f"{fn.__name__.title()}Prompt"  # Set the class name
 
             # Add the function parameters as fields

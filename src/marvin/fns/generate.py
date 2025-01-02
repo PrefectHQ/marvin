@@ -1,4 +1,4 @@
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional, TypeVar, cast
 
 import marvin
 from marvin.agents.agent import Agent
@@ -32,7 +32,7 @@ async def generate_async(
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> list[TargetType[T]]:
+) -> list[T]:
     """
     Generates examples of a specific type or matching a description asynchronously.
 
@@ -68,7 +68,7 @@ async def generate_async(
         agent=agent,
     )
 
-    return await task.run_async(thread=thread)
+    return cast(list[T], await task.run_async(thread=thread))
 
 
 def generate(
@@ -77,7 +77,7 @@ def generate(
     instructions: Optional[str] = None,
     agent: Optional[Agent] = None,
     thread: Optional[Thread | str] = None,
-) -> list[TargetType[T]]:
+) -> list[T]:
     """
     Generates examples of a specific type or matching a description.
 
