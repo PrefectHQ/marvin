@@ -1,9 +1,12 @@
 import asyncio
 from typing import Any, Coroutine, TypeVar
 
-import nest_asyncio
+from marvin.settings import settings
 
-nest_asyncio.apply()  # type: ignore
+if settings.apply_nest_asyncio:
+    import nest_asyncio
+
+    nest_asyncio.apply()  # type: ignore
 
 T = TypeVar("T")
 

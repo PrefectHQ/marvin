@@ -2,11 +2,10 @@ import inspect
 from enum import Enum
 from typing import Dict, List, Literal
 
-import pytest
-from pydantic import BaseModel
-
 import marvin
+import pytest
 from marvin.utilities.testing import assert_llm_equal
+from pydantic import BaseModel
 
 
 @marvin.fn
@@ -248,7 +247,7 @@ class TestFunctions:
                 """Returns the name of a fruit"""
                 return {"hint": "This fruit is yellow and curved"}
 
-            result = get_fruit("unknown")
+            result = get_fruit("?????its such a mystery??????")
             assert result.lower() == "banana"
 
         async def test_async_fn_with_instructions(self):

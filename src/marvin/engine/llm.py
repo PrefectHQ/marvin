@@ -2,7 +2,7 @@
 Utility functions for LLM completions using Pydantic AI.
 """
 
-from typing import Callable, get_type_hints
+from typing import Any, Callable, get_type_hints
 
 import pydantic_ai
 from pydantic_ai import RunContext
@@ -39,7 +39,7 @@ def AgentMessage(content: str) -> ModelResponse:
 T = TypeVar("T")
 
 
-def bind_tool(agent: pydantic_ai.Agent, func: Callable) -> None:
+def bind_tool(agent: pydantic_ai.Agent[Any, Any], func: Callable[..., Any]) -> None:
     """Bind a function as a tool to an agent.
 
     Inspects the function signature to see if it accepts a RunContext parameter.
@@ -63,13 +63,13 @@ def bind_tool(agent: pydantic_ai.Agent, func: Callable) -> None:
 
 
 def create_agentlet(
-    model: KnownModelName | Model | str,
+    model: KnownModelName | Model,
     result_type: type[T],
-    tools: list[Callable] | None = None,
+    tools: list[Callable[..., Any]] | None = None,
     deps_type: type[T] | None = None,
     model_settings: ModelSettings | None = None,
-) -> pydantic_ai.Agent:
-    kwargs = {}
+) -> pydantic_ai.Agent[Any, Any]:
+    kwargs: dict[str, Any] = {}
     if tools:
         kwargs["tools"] = list(set(tools))
     if model_settings:
@@ -86,7 +86,7 @@ def create_agentlet(
 
 
 async def generate_response(
-    agentlet: pydantic_ai.Agent,
+    agentlet: pydantic_ai.Agent[Any, Any],
     messages: list[Message] | None = None,
     user_prompt: str | None = None,
 ) -> RunResult:

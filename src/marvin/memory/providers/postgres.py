@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Optional
+from typing import Callable
 
 import sqlalchemy
 from pgvector.sqlalchemy import Vector
@@ -74,9 +74,9 @@ class PostgresMemory(MemoryProvider):
     )
 
     # Internal: keep a cached Session maker
-    _SessionLocal: Optional[sessionmaker] = None
+    _SessionLocal: sessionmaker | None = None
     # This dict will map "table_name" -> "model class"
-    _table_class_cache: Dict[str, Base] = {}
+    _table_class_cache: dict[str, Base] = {}
 
     def configure(self, memory_key: str) -> None:
         """
@@ -177,7 +177,7 @@ class PostgresMemory(MemoryProvider):
             session.query(model_cls).filter(model_cls.id == memory_id).delete()
             session.commit()
 
-    def search(self, memory_key: str, query: str, n: int = 20) -> Dict[str, str]:
+    def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
         """
         Uses pgvector's approximate nearest neighbor search with the `<->` operator to find
         the top N matching records for the embedded query. Returns a dict of {id: text}.

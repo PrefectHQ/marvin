@@ -1,3 +1,4 @@
+import asyncio
 from typing import Literal
 
 import marvin
@@ -23,7 +24,7 @@ class AllergyFormatB(BaseModel):
     )
 
 
-if __name__ == "__main__":
+async def main():
     allergy_record_a = AllergyFormatA(
         substance="penicillin",
         severity="severe",
@@ -31,12 +32,16 @@ if __name__ == "__main__":
         dateIdentified="2020-01-01",
     )
 
-    allergy_record_b = marvin.cast(
+    allergy_record_b = await marvin.cast_async(
         allergy_record_a,
         AllergyFormatB,
         instructions="Convert Epic allergy record to Cerner format. Map 'severe' severity to 'high' risk. Format reaction as a list.",
     )
     print(f"Converted to format B: {allergy_record_b}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 """
 » python examples/hello_cast.py
 ╭─ Marvin ─────────────────────────────────────────────────────────────────────────────────────────╮

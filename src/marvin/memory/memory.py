@@ -2,7 +2,7 @@ import abc
 import inspect
 import re
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List
+from typing import Any, Callable, Dict
 
 import marvin
 from marvin.utilities.logging import get_logger
@@ -104,7 +104,7 @@ class Memory:
     def search(self, query: str, n: int = 20) -> Dict[str, str]:
         return self.provider.search(self.key, query, n)
 
-    def get_tools(self) -> List[Callable]:
+    def get_tools(self) -> list[Callable[..., Any]]:
         return [
             update_fn(
                 self.add,

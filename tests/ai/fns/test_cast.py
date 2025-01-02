@@ -1,9 +1,8 @@
 import json
 
+import marvin
 import pytest
 from pydantic import BaseModel, Field
-
-import marvin
 
 
 class Location(BaseModel):
@@ -63,7 +62,7 @@ class TestCast:
 
     class TestPydantic:
         @pytest.mark.parametrize("text", ["New York, NY", "NYC", "the big apple"])
-        def test_cast_text_to_location(self, text):
+        def test_cast_text_to_location(self, text: str):
             result = marvin.cast(f"I live in {text}", Location)
             assert result == Location(city="New York", state="NY")
 

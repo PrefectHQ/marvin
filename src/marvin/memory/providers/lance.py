@@ -1,11 +1,17 @@
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
-import lancedb
-from lancedb.embeddings import get_registry
-from lancedb.pydantic import LanceModel, Vector
+try:
+    import lancedb
+    from lancedb.embeddings import get_registry
+    from lancedb.pydantic import LanceModel, Vector
+except ImportError:
+    raise ImportError(
+        "LanceDB is not installed. Please install it with `pip install lancedb`."
+    )
+
 from pydantic import Field
 
 import marvin
@@ -28,7 +34,7 @@ class LanceMemory(MemoryProvider):
             """
         },
     )
-    embedding_fn: Callable = field(
+    embedding_fn: Callable[..., Any] = field(
         default_factory=lambda: get_registry()
         .get("openai")
         .create(name="text-embedding-ada-002"),

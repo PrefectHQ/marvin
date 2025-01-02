@@ -2,10 +2,12 @@
 Settings for Marvin.
 """
 
+import inspect
 from pathlib import Path
 from typing import Literal, Optional, Self
 
 from pydantic import Field, field_validator, model_validator
+from pydantic_ai.models import KnownModelName
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,7 +29,7 @@ class Settings(BaseSettings):
     # ------------ General settings ------------
 
     home_path: Path = Field(
-        default="~/.marvin",
+        default=Path("~/.marvin"),
         description="The home path for Marvin.",
     )
 
@@ -80,7 +82,7 @@ class Settings(BaseSettings):
 
     # ------------ Agent settings ------------
 
-    agent_model: str = Field(
+    agent_model: KnownModelName = Field(
         default="openai:gpt-4o",
         description="The default model for agents.",
     )
@@ -122,6 +124,18 @@ class Settings(BaseSettings):
     chroma_cloud_database: str | None = Field(
         default=None,
         description="The database for the Chroma Cloud.",
+    )
+
+    # ------------ Async settings ------------
+
+    apply_nest_asyncio: bool = Field(
+        default=True,
+        description=inspect.cleandoc("""
+            Whether to apply nest_asyncio (default: True). In many cases,
+            nest_asyncio makes Marvin's synchronous interface run transparently.
+            You can disable it if you're only using async functions, or if
+            you're using asyncio in a way that doesn't support nest_asyncio.
+            """),
     )
 
 

@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Any, Dict
 
 import chromadb
 
@@ -48,14 +48,15 @@ class ChromaMemory(MemoryProvider):
         results = self.get_collection(memory_key).query(
             query_texts=[query], n_results=n
         )
+        assert results["ids"] and results["documents"], "No results found"
         return dict(zip(results["ids"][0], results["documents"][0]))
 
 
-def ChromaEphemeralMemory(**kwargs) -> ChromaMemory:
+def ChromaEphemeralMemory(**kwargs: Any) -> ChromaMemory:
     return ChromaMemory(client=chromadb.EphemeralClient(**kwargs))
 
 
-def ChromaPersistentMemory(path: str = None, **kwargs) -> ChromaMemory:
+def ChromaPersistentMemory(path: str | None = None, **kwargs: Any) -> ChromaMemory:
     return ChromaMemory(
         client=chromadb.PersistentClient(
             path=path or str(marvin.settings.home_path / "memory" / "chroma"),
@@ -68,13 +69,17 @@ def ChromaCloudMemory(
     tenant: str | None = None,
     database: str | None = None,
     api_key: str | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> ChromaMemory:
+    tenant = tenant or marvin.settings.chroma_cloud_tenant
+    assert tenant, "Tenant is required"
+    database = database or marvin.settings.chroma_cloud_database
+    assert database, "Database is required"
     return ChromaMemory(
         client=chromadb.CloudClient(
             api_key=api_key or marvin.settings.chroma_cloud_api_key,
-            tenant=tenant or marvin.settings.chroma_cloud_tenant,
-            database=database or marvin.settings.chroma_cloud_database,
+            tenant=tenant,
+            database=database,
             **kwargs,
         )
     )

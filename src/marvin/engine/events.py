@@ -15,11 +15,22 @@ from marvin.agents.agent import Agent
 from marvin.engine.llm import Message
 from marvin.utilities.types import AutoDataClass
 
+EventType = Literal[
+    "user-message",
+    "tool-return",
+    "tool-retry",
+    "tool-call",
+    "agent-message",
+    "orchestrator-start",
+    "orchestrator-end",
+    "orchestrator-exception",
+]
+
 
 class Event(AutoDataClass):
     _dataclass_config = dict(kw_only=True)
 
-    type: str
+    type: EventType
     id: uuid.UUID = field(default_factory=lambda: uuid.uuid4())
     timestamp: datetime.datetime = field(
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc)
@@ -27,42 +38,42 @@ class Event(AutoDataClass):
 
 
 class UserMessageEvent(Event):
-    type: Literal["user-message"] = "user-message"
+    type: EventType = "user-message"
     message: UserPromptPart
 
 
 class ToolReturnEvent(Event):
-    type: Literal["tool-return"] = "tool-return"
+    type: EventType = "tool-return"
     message: ToolReturnPart
 
 
 class ToolRetryEvent(Event):
-    type: Literal["tool-retry"] = "tool-retry"
+    type: EventType = "tool-retry"
     message: RetryPromptPart
 
 
 class ToolCallEvent(Event):
-    type: Literal["tool-call"] = "tool-call"
+    type: EventType = "tool-call"
     agent: Agent
     message: ToolCallPart
 
 
 class AgentMessageEvent(Event):
-    type: Literal["agent-message"] = "agent-message"
+    type: EventType = "agent-message"
     agent: Agent
     message: TextPart
 
 
 class OrchestratorStartEvent(Event):
-    type: Literal["orchestrator-start"] = "orchestrator-start"
+    type: EventType = "orchestrator-start"
 
 
 class OrchestratorEndEvent(Event):
-    type: Literal["orchestrator-end"] = "orchestrator-end"
+    type: EventType = "orchestrator-end"
 
 
 class OrchestratorExceptionEvent(Event):
-    type: Literal["orchestrator-exception"] = "orchestrator-exception"
+    type: EventType = "orchestrator-exception"
     error: str
 
 

@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import rich
 from pydantic import BaseModel
@@ -43,7 +43,7 @@ class ContentState(DisplayState):
     content: str = ""
 
     @staticmethod
-    def _convert_content_to_str(content) -> str:
+    def _convert_content_to_str(content: Any) -> str:
         """Convert various content formats to a string."""
         if isinstance(content, str):
             return content
@@ -52,7 +52,7 @@ class ContentState(DisplayState):
             return content.get("content", content.get("text", ""))
 
         if isinstance(content, list):
-            parts = []
+            parts: list[str] = []
             for item in content:
                 if isinstance(item, str):
                     parts.append(item)
@@ -64,7 +64,7 @@ class ContentState(DisplayState):
 
         return str(content)
 
-    def update_content(self, new_content) -> None:
+    def update_content(self, new_content: Any) -> None:
         """Update content, converting complex content types to string."""
         self.content = self._convert_content_to_str(new_content)
 
@@ -87,7 +87,7 @@ class ToolState(DisplayState):
     """State for a tool call and its result."""
 
     name: str
-    args: dict
+    args: dict[str, Any]
     result: Optional[str] = None
     is_error: bool = False
     is_complete: bool = False
@@ -163,7 +163,7 @@ class PrintHandler(Handler):
             return
 
         sorted_states = sorted(self.states.values(), key=lambda s: s.first_timestamp)
-        panels = []
+        panels: list[Panel] = []
 
         for state in sorted_states:
             panels.append(state.render_panel())

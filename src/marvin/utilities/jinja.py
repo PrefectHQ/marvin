@@ -1,12 +1,13 @@
 import inspect
 import os
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from jinja2 import Environment as JinjaEnvironment
 from jinja2 import PackageLoader, StrictUndefined, select_autoescape
 
-global_fns = {
+global_fns: dict[str, Any] = {
     "now": lambda: datetime.now(ZoneInfo("UTC")),
     "inspect": inspect,
     "getcwd": os.getcwd,

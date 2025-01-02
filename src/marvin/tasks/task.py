@@ -97,7 +97,7 @@ class Task(Generic[T]):
         default=None, metadata={"description": "Optional name for this task"}
     )
 
-    tools: list[Callable] = field(
+    tools: list[Callable[..., Any]] = field(
         default_factory=list,
         metadata={
             "description": "Tools to make available to any agents assigned to this task"
@@ -117,7 +117,7 @@ class Task(Generic[T]):
         init=False,
     )
 
-    result_validator: Optional[Callable] = field(
+    result_validator: Optional[Callable[..., Any]] = field(
         default=None,
         metadata={
             "description": "Optional function that validates the result. Takes the raw result and returns a validated result or raises an error."
@@ -131,11 +131,11 @@ class Task(Generic[T]):
         },
     )
 
-    parent: Optional["Task"] = field(
+    parent: Optional["Task[T]"] = field(
         default=None, metadata={"description": "Optional parent task"}
     )
 
-    _children: list["Task"] = field(
+    _children: list["Task[T]"] = field(
         default_factory=list, metadata={"description": "List of child tasks"}
     )
 
@@ -189,7 +189,7 @@ class Task(Generic[T]):
         """Retrieve the agent assigned to this task."""
         return self.agent or marvin.defaults.agent
 
-    def get_tools(self) -> list[Callable]:
+    def get_tools(self) -> list[Callable[..., Any]]:
         """Get the tools assigned to this task."""
         return self.tools + [t for m in self.memories for t in m.get_tools()]
 
@@ -251,7 +251,10 @@ class Task(Generic[T]):
         return self.result
 
     def run(
-        self, *, thread: Optional[Thread | str] = None, raise_on_failure: bool = True
+        self,
+        *,
+        thread: Optional[Thread | str] = None,
+        raise_on_failure: bool = True,
     ) -> T:
         return run_sync(
             self.run_async(thread=thread, raise_on_failure=raise_on_failure)
