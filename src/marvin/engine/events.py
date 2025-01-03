@@ -1,6 +1,6 @@
 import datetime
 import uuid
-from dataclasses import field
+from dataclasses import dataclass, field
 from typing import Generator, Literal
 
 from pydantic_ai.messages import (
@@ -13,7 +13,6 @@ from pydantic_ai.messages import (
 
 from marvin.agents.agent import Agent
 from marvin.engine.llm import Message
-from marvin.utilities.types import AutoDataClass
 
 EventType = Literal[
     "user-message",
@@ -27,7 +26,8 @@ EventType = Literal[
 ]
 
 
-class Event(AutoDataClass):
+@dataclass(kw_only=True)
+class Event:
     _dataclass_config = dict(kw_only=True)
 
     type: EventType
@@ -37,43 +37,51 @@ class Event(AutoDataClass):
     )
 
 
+@dataclass(kw_only=True)
 class UserMessageEvent(Event):
-    type: EventType = "user-message"
+    type: EventType = field(default="user-message", init=False)
     message: UserPromptPart
 
 
+@dataclass(kw_only=True)
 class ToolReturnEvent(Event):
-    type: EventType = "tool-return"
+    type: EventType = field(default="tool-return", init=False)
     message: ToolReturnPart
 
 
+@dataclass(kw_only=True)
 class ToolRetryEvent(Event):
-    type: EventType = "tool-retry"
+    type: EventType = field(default="tool-retry", init=False)
     message: RetryPromptPart
 
 
+@dataclass(kw_only=True)
 class ToolCallEvent(Event):
-    type: EventType = "tool-call"
+    type: EventType = field(default="tool-call", init=False)
     agent: Agent
     message: ToolCallPart
 
 
+@dataclass(kw_only=True)
 class AgentMessageEvent(Event):
-    type: EventType = "agent-message"
+    type: EventType = field(default="agent-message", init=False)
     agent: Agent
     message: TextPart
 
 
+@dataclass(kw_only=True)
 class OrchestratorStartEvent(Event):
-    type: EventType = "orchestrator-start"
+    type: EventType = field(default="orchestrator-start", init=False)
 
 
+@dataclass(kw_only=True)
 class OrchestratorEndEvent(Event):
-    type: EventType = "orchestrator-end"
+    type: EventType = field(default="orchestrator-end", init=False)
 
 
+@dataclass(kw_only=True)
 class OrchestratorExceptionEvent(Event):
-    type: EventType = "orchestrator-exception"
+    type: EventType = field(default="orchestrator-exception", init=False)
     error: str
 
 

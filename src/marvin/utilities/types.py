@@ -3,7 +3,6 @@ import inspect
 import textwrap
 from dataclasses import dataclass, field
 from typing import (
-    TYPE_CHECKING,
     Annotated,
     Any,
     Callable,
@@ -270,57 +269,6 @@ def issubclass_safe(x: Any, cls: Union[type, tuple[type, ...]]) -> bool:
         False
     """
     return isinstance(x, type) and issubclass(x, cls)
-
-
-class AutoDataClass:
-    """
-    Base class for automatically applying `@dataclass` to subclasses with configurable behavior.
-
-    Subclasses can define their dataclass configuration by setting the `_dataclass_config`
-    attribute directly. The configuration is applied during class creation.
-
-    Attributes:
-        _dataclass_config (dict): Configuration options passed to the
-            `dataclass` decorator, for example `{"kw_only": True}`.
-
-    Example:
-        >>> from dataclasses import asdict
-        >>> class Base(AutoDataClass):
-        ...     common_field: str
-        ...
-        >>> class Derived(Base):
-        ...     _dataclass_config = {"kw_only": True}
-        ...     specific_field: int
-        ...
-        >>> obj = Derived(common_field="example", specific_field=42)
-        >>> asdict(obj)
-        {'common_field': 'example', 'specific_field': 42}
-    """
-
-    _dataclass_config: dict[str, Any] = {}
-
-    def __init_subclass__(cls, **kwargs: Any):
-        """
-        Initialize subclass with inherited dataclass configuration.
-
-        Merges parent class _dataclass_config with subclass-specific config.
-        Subclass config takes precedence over parent config.
-        """
-        super().__init_subclass__(**kwargs)
-        parent_config: dict[str, Any] = {}
-        for base in reversed(cls.__mro__[1:]):  # reverse to respect MRO
-            if hasattr(base, "_dataclass_config"):
-                if TYPE_CHECKING:
-                    assert issubclass(base, AutoDataClass)
-                parent_config.update(base._dataclass_config)
-
-        # Create new dict to avoid modifying parent's config
-        if not hasattr(cls, "_dataclass_config"):
-            cls._dataclass_config = {}
-        cls._dataclass_config = {**parent_config, **cls._dataclass_config}
-
-        # Apply dataclass decorator with merged config
-        return dataclass(cls, **cls._dataclass_config)
 
 
 @dataclass
