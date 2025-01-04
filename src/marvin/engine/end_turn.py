@@ -1,7 +1,8 @@
+import abc
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Generic, TypeVar
-from uuid import UUID
 
+import marvin.agents.team
 from marvin.engine.llm import AgentMessage
 from marvin.utilities.logging import get_logger
 
@@ -13,9 +14,18 @@ logger = get_logger(__name__)
 
 
 @dataclass(kw_only=True)
-class EndTurn:
+class EndTurn(abc.ABC):
+    @abc.abstractmethod
     async def run(self, orchestrator: "Orchestrator") -> None:
         pass
+
+    @staticmethod
+    @abc.abstractmethod
+    def instructions() -> str:
+        """
+        Put instructions here since they docstrings do not survive all transformations (e.g. typing a generic)
+        """
+        return ""
 
 
 @dataclass(kw_only=True)
@@ -24,7 +34,7 @@ class TaskSuccess(EndTurn, Generic[TaskResult]):
     Mark a task successful and provide a result.
     """
 
-    task_id: UUID
+    task_id: str
     result: TaskResult
 
     async def run(self, orchestrator: "Orchestrator") -> None:
@@ -40,6 +50,10 @@ class TaskSuccess(EndTurn, Generic[TaskResult]):
         )
         tasks[self.task_id].mark_successful(self.result)
 
+    @staticmethod
+    def instructions() -> str:
+        return "Mark a task successful and provide a result."
+
 
 @dataclass(kw_only=True)
 class TaskFailed(EndTurn):
@@ -47,7 +61,7 @@ class TaskFailed(EndTurn):
     Mark a task failed and provide a message.
     """
 
-    task_id: UUID
+    task_id: str
     message: str | None = None
 
     async def run(self, orchestrator: "Orchestrator") -> None:
@@ -59,6 +73,10 @@ class TaskFailed(EndTurn):
         )
         tasks[self.task_id].mark_failed(self.message)
 
+    @staticmethod
+    def instructions() -> str:
+        return "Mark a task failed and provide a message."
+
 
 @dataclass(kw_only=True)
 class TaskSkipped(EndTurn):
@@ -66,7 +84,7 @@ class TaskSkipped(EndTurn):
     Mark a task skipped.
     """
 
-    task_id: UUID
+    task_id: str
 
     async def run(self, orchestrator: "Orchestrator") -> None:
         tasks = {t.id: t for t in orchestrator.tasks}
@@ -74,6 +92,10 @@ class TaskSkipped(EndTurn):
             raise ValueError(f"Task ID {self.task_id} not found in tasks")
         logger.debug(f"Marking {tasks[self.task_id].friendly_name()} skipped")
         tasks[self.task_id].mark_skipped()
+
+    @staticmethod
+    def instructions() -> str:
+        return "Mark a task skipped."
 
 
 @dataclass(kw_only=True)
@@ -88,6 +110,10 @@ class PostMessage(EndTurn):
         logger.debug(f"Posting message to thread: {self.message}")
         await orchestrator.thread.add_message_async(AgentMessage(content=self.message))
 
+    @staticmethod
+    def instructions() -> str:
+        return "Post a message to the thread."
+
 
 @dataclass(kw_only=True)
 class DelegateToAgent(EndTurn):
@@ -95,21 +121,37 @@ class DelegateToAgent(EndTurn):
     Delegate your turn to another agent.
     """
 
-    agent_id: UUID
+    agent_id: str
     message: str | None = field(
         default=None,
         metadata={"description": "An optional message to send to the delegate"},
     )
 
     async def run(self, orchestrator: "Orchestrator") -> None:
-        delegates = {d.id: d for d in orchestrator.active_team.get_delegates()}
+        delegates = {d.id: d for d in orchestrator.get_delegates()}
         if self.agent_id not in delegates:
             raise ValueError(f"Agent ID {self.agent_id} not found in delegates")
         logger.debug(
-            f'Delegating to agent "{delegates[self.agent_id].name}" with message "{self.message}"'
+            f'Delegating to actor "{delegates[self.agent_id].name}" with message "{self.message}"'
         )
-        orchestrator.active_team.active_agent = delegates[self.agent_id]
+
+        # walk active_agents to find the delegate
+        current = orchestrator.team
+
+        while self.agent_id not in {a.id for a in current.members}:
+            if not isinstance(current, marvin.agents.team.Team):
+                raise ValueError(f"Agent ID {self.agent_id} not found in delegates")
+            current = current.active_member
+
+        current.active_member = next(
+            a for a in current.members if a.id == self.agent_id
+        )
+
         if self.message:
             await orchestrator.thread.add_messages_async(
                 [AgentMessage(content=self.message)]
             )
+
+    @staticmethod
+    def instructions() -> str:
+        return "Delegate your turn to another agent."

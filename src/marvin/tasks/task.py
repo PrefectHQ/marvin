@@ -43,6 +43,10 @@ class TaskState(str, enum.Enum):
 class Task(Generic[T]):
     """A task is a container for a prompt and its associated state."""
 
+    name: str | None = field(
+        default=None, metadata={"description": "Optional name for this task"}
+    )
+
     instructions: str = field(
         metadata={"description": "Instructions for the task"}, kw_only=False
     )
@@ -55,10 +59,11 @@ class Task(Generic[T]):
         kw_only=False,
     )
 
-    id: uuid.UUID = field(
-        default_factory=uuid.uuid4,
+    id: str = field(
+        default_factory=lambda: uuid.uuid4().hex[:8],
         metadata={"description": "Unique identifier for this task"},
         init=False,
+        repr=False,
     )
 
     prompt_template: str | Path = field(
@@ -66,6 +71,7 @@ class Task(Generic[T]):
         metadata={
             "description": "Optional Jinja template for customizing how the task appears in prompts. Will be rendered with a `task` variable containing this task instance."
         },
+        repr=False,
     )
 
     agent: Actor | None = field(
@@ -75,10 +81,6 @@ class Task(Generic[T]):
 
     context: dict[str, Any] = field(
         default_factory=dict, metadata={"description": "Context for the task"}
-    )
-
-    name: str | None = field(
-        default=None, metadata={"description": "Optional name for this task"}
     )
 
     tools: list[Callable[..., Any]] = field(
@@ -106,13 +108,7 @@ class Task(Generic[T]):
         metadata={
             "description": "Optional function that validates the result. Takes the raw result and returns a validated result or raises an error."
         },
-    )
-
-    report_state_change: bool = field(
-        default=True,
-        metadata={
-            "description": "Whether to report the state change of this task to the thread."
-        },
+        repr=False,
     )
 
     parent: "Task[T] | None" = field(
@@ -120,7 +116,10 @@ class Task(Generic[T]):
     )
 
     _children: list["Task[T]"] = field(
-        default_factory=list, metadata={"description": "List of child tasks"}
+        default_factory=list,
+        metadata={"description": "List of child tasks"},
+        init=False,
+        repr=False,
     )
 
     result: T | str | None = field(
@@ -129,13 +128,18 @@ class Task(Generic[T]):
             "description": "The result of the task. Can be either the expected type T or an error string."
         },
         init=False,
+        repr=False,
     )
 
     allow_fail: bool = field(
-        default=False, metadata={"description": "Whether to allow the task to fail"}
+        default=False,
+        metadata={"description": "Whether to allow the task to fail"},
+        repr=False,
     )
     allow_skip: bool = field(
-        default=False, metadata={"description": "Whether to allow the task to skip"}
+        default=False,
+        metadata={"description": "Whether to allow the task to skip"},
+        repr=False,
     )
 
     def __post_init__(self):
@@ -157,7 +161,10 @@ class Task(Generic[T]):
             self.result_type = str
 
         if isinstance(self.agent, (list, tuple, set)):
-            self.agent = Swarm(agents=self.agent)
+            self.agent = Swarm(members=self.agent)
+
+    def __hash__(self) -> int:
+        return hash(self.id)
 
     def _validate_result_type(self) -> None:
         """
@@ -195,7 +202,7 @@ class Task(Generic[T]):
         """Get a friendly name for this task."""
         if self.name:
             return f'Task "{self.name}"'
-        return f'Task {self.id.hex[:8]} ("{self.instructions[:40]}...")'
+        return f'Task {self.id} ("{self.instructions[:40]}...")'
 
     def get_agent(self) -> Actor:
         """Retrieve the agent assigned to this task."""

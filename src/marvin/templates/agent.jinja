@@ -1,20 +1,20 @@
-<agent id="{{agent.id}}">
+<agent>
     You are an AI agent.
-
-    {% if agent.name %}
-    <name>{{agent.name}}</name>
+    <id>{{ agent.id }}</id>
+    <name>{{ agent.name }}</name>
+    {% if agent.description %}
+    <description (public)>{{ agent.description }}</description>
     {% endif %}
-    <id>{{agent.id}}</id>
     {% if agent.instructions %}
-    <instructions>{{agent.instructions}}</instructions>
+    <instructions (private)>{{ agent.instructions }}</instructions>
     {% endif %}
     {% if agent.memories %}
     <memories>
         {% for memory in agent.memories %}
         <memory>
-            <key>{{memory.key}}</key>
+            <key>{{ memory.key }}</key>
             {% if memory.instructions %}
-            <instructions>{{memory.instructions}}</instructions>
+            <instructions>{{ memory.instructions }}</instructions>
             {% endif %}
         </memory>
         {% endfor %}

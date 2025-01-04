@@ -18,6 +18,7 @@ from marvin.agents.names import AGENT_NAMES
 from marvin.agents.team import SoloTeam, Swarm, Team
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
+from marvin.tools.thread import post_message
 
 from .actor import Actor
 
@@ -47,11 +48,13 @@ class Agent(Actor):
         metadata={
             "description": "The model to use for the agent. If not provided, the default model will be used. A compatible string can be passed to automatically retrieve the model."
         },
+        repr=False,
     )
 
     model_settings: ModelSettings = field(
         default_factory=ModelSettings,
         metadata={"description": "Settings to pass to the model"},
+        repr=False,
     )
 
     delegates: list[Actor] | None = field(
@@ -65,7 +68,11 @@ class Agent(Actor):
     prompt: str | Path = field(
         default=Path("agent.jinja"),
         metadata={"description": "Template for the agent's prompt"},
+        repr=False,
     )
+
+    def __hash__(self) -> int:
+        return super().__hash__()
 
     def get_delegates(self) -> list[Actor] | None:
         return self.delegates
@@ -74,7 +81,11 @@ class Agent(Actor):
         return self.model or marvin.defaults.model
 
     def get_tools(self) -> list[Callable[..., Any]]:
-        return self.tools + [t for m in self.memories for t in m.get_tools()]
+        return (
+            self.tools
+            + [t for m in self.memories for t in m.get_tools()]
+            + [post_message]
+        )
 
     def get_model_settings(self) -> ModelSettings:
         defaults: ModelSettings = {}

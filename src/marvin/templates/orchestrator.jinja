@@ -1,24 +1,20 @@
 <orchestrator>
+    Complete tasks to the best of your ability by using the appropriate tool. Follow all instructions carefully.
 
-    Complete tasks to the best of your ability. Follow all instructions carefully.
-
-    {{orchestrator.active_team.get_prompt()}}
+    {{ orchestrator.active_team().get_prompt() | indent(4) }}
 
     {% if instructions %}
     <instructions>
         You must follow these instructions at all times:
         {% for instruction in instructions %}
-        <instruction>{{instruction}}</instruction>
+        <instruction> {{ instruction | indent(8) }} </instruction>
         {% endfor %}
     </instructions>
     {% endif %}
 
     <tasks>
-        Your tasks:
         {% for task in tasks %}
-        <task>
-            {{task.get_prompt()}}
-        </task>
+        {{ task.get_prompt() | indent(8) }}
         {% endfor %}
     </tasks>
 
@@ -27,11 +23,27 @@
 
         {% for tool in end_turn_tools %}
         <tool>
-            <name>end_turn_{{tool.__name__}}</name>
-            <instructions>{{tool.__doc__}}</instructions>
+            <name> end_turn_{{ tool.__name__ }} </name>
+            <instructions> {{ tool.instructions() | indent(8) }} </instructions>
         </tool>
         {% endfor %}
     </end-turn>
 
+    {% if orchestrator.get_delegates() %}
+    <delegates>
+        You can delegate your turn to one of the following agents or teams:
+        {% for delegate in orchestrator.get_delegates() %}
+        <delegate>
+            <id> {{ delegate.id }} </id>
+            <name> {{ delegate.name }} </name>
+            <description> {{ delegate.description }} </description>
+        </delegate>
+        {% endfor %}
+    </delegates>
+    {% endif %}
 
+    <agent-tree>
+        All teams and agents.
+        {{ pretty_print(orchestrator.get_agent_tree()) | indent(8) }}
+    </agent-tree>
 </orchestrator>

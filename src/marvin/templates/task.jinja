@@ -1,13 +1,15 @@
-<task id="{{task.id}}">
+<task>
+    <id>{{ task.id }}</id>
     {% if task.name %}
-    <name>{{task.name}}</name>
+    <name>{{ task.name }}</name>
     {% endif %}
-    <instructions>{{task.instructions}}</instructions>
+    <instructions>{{ task.instructions }}</instructions>
     {% if task.context %}
-    <context>{{task.context}}</context>
+    <context>{{ task.context }}</context>
     {% endif %}
-    <result-type>{{task.result_type}}</result-type>
+    <result-type>{{ task.result_type }}</result-type>
     {% if task.parent %}
-    <parent-task-id>{{task.parent.id}}</parent-task-id>
+    <parent-task-id>{{ task.parent.id }}</parent-task-id>
     {% endif %}
+    <assigned-agent-id>{{ task.get_agent().id }}</assigned-agent-id>
 </task>

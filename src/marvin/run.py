@@ -8,6 +8,26 @@ from marvin.utilities.asyncio import run_sync
 T = TypeVar("T")
 
 
+async def run_tasks_async(
+    tasks: list[Task[Any]],
+    agents: list[Actor] | None = None,
+    thread: Thread | str | None = None,
+    raise_on_failure: bool = True,
+) -> list[Task[Any]]:
+    orchestrator = Orchestrator(tasks=tasks, agents=agents, thread=thread)
+    await orchestrator.run(raise_on_failure=raise_on_failure)
+    return tasks
+
+
+def run_tasks(
+    tasks: list[Task[Any]],
+    agents: list[Actor] | None = None,
+    thread: Thread | str | None = None,
+    raise_on_failure: bool = True,
+) -> list[Task[Any]]:
+    return run_sync(run_tasks_async(tasks, agents, thread, raise_on_failure))
+
+
 async def run_async(
     instructions: str,
     result_type: type[T] = str,
@@ -22,16 +42,6 @@ async def run_async(
     )
     await run_tasks_async([task], thread=thread, raise_on_failure=raise_on_failure)
     return task.result
-
-
-async def run_tasks_async(
-    tasks: list[Task[Any]],
-    thread: Thread | str | None = None,
-    raise_on_failure: bool = True,
-) -> list[Task[Any]]:
-    orchestrator = Orchestrator(tasks=tasks, thread=thread)
-    await orchestrator.run(raise_on_failure=raise_on_failure)
-    return tasks
 
 
 def run(

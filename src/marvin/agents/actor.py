@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Callable
 import pydantic_ai
 
 import marvin
-from marvin.engine.thread import Thread, get_thread
+from marvin.engine.thread import Thread
 from marvin.prompts import Template
 from marvin.utilities.asyncio import run_sync
 
@@ -16,16 +16,33 @@ if TYPE_CHECKING:
 
 @dataclass(kw_only=True)
 class Actor:
-    id: uuid.UUID = field(
-        default_factory=uuid.uuid4,
+    id: str = field(
+        default_factory=lambda: uuid.uuid4().hex[:8],
         metadata={"description": "Unique identifier for this actor"},
+        # repr=False,
+        init=False,
+    )
+
+    name: str = field(
+        metadata={"description": "Name of the actor"},
     )
 
     instructions: str | None = field(
-        default=None, metadata={"description": "Instructions for the actor"}
+        default=None,
+        metadata={"description": "Instructions for the actor, private to the actor."},
+        repr=False,
     )
 
-    prompt: str | Path
+    description: str | None = field(
+        default=None,
+        metadata={"description": "Description of the actor, visible to other actors."},
+        repr=False,
+    )
+
+    prompt: str | Path = field(repr=False)
+
+    def __hash__(self) -> int:
+        return hash(self.id)
 
     def get_delegates(self) -> list["Actor"] | None:
         """
@@ -68,11 +85,27 @@ class Actor:
     def get_prompt(self) -> str:
         return Template(source=self.prompt).render()
 
+    async def run_async(
+        self,
+        instructions: str,
+        thread: Thread | str | None = None,
+        raise_on_failure: bool = True,
+    ) -> Any:
+        return marvin.run_async(
+            instructions, agent=self, thread=thread, raise_on_failure=raise_on_failure
+        )
+
+    def run(
+        self,
+        instructions: str,
+        thread: Thread | str | None = None,
+        raise_on_failure: bool = True,
+    ) -> Any:
+        return run_sync(self.run_async(instructions, thread, raise_on_failure))
+
     async def say_async(self, message: str, thread: Thread | str | None = None):
-        thread = get_thread(thread)
-        if message:
-            await thread.add_user_message_async(message=message)
-        return await marvin.run_async("Respond to the user.", agent=self, thread=thread)
+        await thread.add_user_message_async(message=message)
+        return await self.run_async("Respond to the user.", agent=self, thread=thread)
 
     def say(self, message: str, thread: Thread | str | None = None):
         return run_sync(self.say_async(message, thread))

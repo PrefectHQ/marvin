@@ -33,6 +33,9 @@ current_thread: ContextVar[Optional["Thread"]] = ContextVar(
     "current_thread", default=None
 )
 
+# Track the last thread globally
+_last_thread: Optional["Thread"] = None
+
 
 @dataclass
 class Thread:
@@ -41,6 +44,7 @@ class Thread:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     parent_id: Optional[str] = None
     _db_thread: Optional[DBThread] = field(default=None, init=False, repr=False)
+    _last_token: Optional[Any] = field(default=None, init=False, repr=False)
 
     async def _ensure_thread_exists(self) -> None:
         """Ensure thread exists in database."""
@@ -175,7 +179,10 @@ class Thread:
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
-        """Reset the current thread in context."""
+        """Reset the current thread in context and store it as the last thread."""
+        global _last_thread
+        # Store this thread as the last thread before resetting current
+        _last_thread = self
         current_thread.reset(self._token)
 
     @classmethod
@@ -191,6 +198,15 @@ def get_current_thread() -> Optional[Thread]:
         The current Thread instance or None if no thread is active.
     """
     return Thread.get_current()
+
+
+def get_last_thread() -> Optional[Thread]:
+    """Get the last thread that was set as current.
+
+    This function is for debugging purposes only, and will only work in certain
+    contexts.
+    """
+    return _last_thread
 
 
 def get_thread(thread: Thread | str | None) -> Thread:

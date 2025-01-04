@@ -89,7 +89,7 @@ class OrchestratorExceptionEvent(Event):
 
 def message_to_events(agent: Agent, message: Message) -> Generator[Event, None, None]:
     for part in message.parts:
-        if isinstance(part, UserPromptPart):
+        if isinstance(part, UserPromptPart) and part.content:
             yield UserMessageEvent(message=part)
         elif isinstance(part, ToolReturnPart):
             yield ToolReturnEvent(message=part)
