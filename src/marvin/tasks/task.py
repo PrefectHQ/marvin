@@ -272,14 +272,14 @@ class Task(Generic[T]):
 
     def get_end_turn_tools(self) -> list[type["marvin.engine.end_turn_tools.EndTurn"]]:
         """Get the result tool for this task."""
-        import marvin.engine.end_turn_tools
+        import marvin.engine.end_turn
 
         tools = []
-        tools.append(marvin.engine.end_turn_tools.TaskSuccess[self.get_result_type()])
+        tools.append(marvin.engine.end_turn.TaskSuccess[self.get_result_type()])
         if self.allow_fail:
-            tools.append(marvin.engine.end_turn_tools.TaskFailed)
+            tools.append(marvin.engine.end_turn.TaskFailed)
         if self.allow_skip:
-            tools.append(marvin.engine.end_turn_tools.TaskSkipped)
+            tools.append(marvin.engine.end_turn.TaskSkipped)
 
         return tools
 
