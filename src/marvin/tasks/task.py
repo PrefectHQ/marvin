@@ -270,7 +270,7 @@ class Task(Generic[T]):
             self.run_async(thread=thread, raise_on_failure=raise_on_failure)
         )
 
-    def get_end_turn_tools(self) -> list[type["marvin.engine.end_turn_tools.EndTurn"]]:
+    def get_end_turn_tools(self) -> list[type["marvin.engine.end_turn.EndTurn"]]:
         """Get the result tool for this task."""
         import marvin.engine.end_turn
 

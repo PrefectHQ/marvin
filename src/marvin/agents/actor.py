@@ -59,7 +59,7 @@ class Actor:
         """
         return []
 
-    def get_end_turn_tools(self) -> list[type["marvin.engine.end_turn_tools.EndTurn"]]:
+    def get_end_turn_tools(self) -> list[type["marvin.engine.end_turn.EndTurn"]]:
         """
         A list of `EndTurn` tools that this actor can use to end its turn.
         """

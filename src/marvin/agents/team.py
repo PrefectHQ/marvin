@@ -7,11 +7,11 @@ import pydantic_ai
 
 from marvin.agents.actor import Actor
 from marvin.agents.names import TEAM_NAMES
-from marvin.engine.end_turn_tools import DelegateToAgent
+from marvin.engine.end_turn import DelegateToAgent
 from marvin.prompts import Template
 
 if TYPE_CHECKING:
-    from marvin.engine.end_turn_tools import EndTurn
+    from marvin.engine.end_turn import EndTurn
 
 
 @dataclass(kw_only=True)
