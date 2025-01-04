@@ -72,6 +72,11 @@ class Settings(BaseSettings):
         description="Logging level",
     )
 
+    log_events: bool = Field(
+        default=False,
+        description="Whether to log all events (as debug logs).",
+    )
+
     @model_validator(mode="after")
     def setup_logging(self) -> Self:
         """Finalize the settings."""
@@ -101,7 +106,7 @@ class Settings(BaseSettings):
     # ------------ DX settings ------------
 
     enable_default_print_handler: bool = Field(
-        default=True,
+        default=False,
         description="Whether to enable the default print handler.",
     )
 

@@ -74,6 +74,9 @@ class Agent(Actor):
     def __hash__(self) -> int:
         return super().__hash__()
 
+    def friendly_name(self) -> str:
+        return f'Agent "{self.name}" ({self.id})'
+
     def get_delegates(self) -> list[Actor] | None:
         return self.delegates
 

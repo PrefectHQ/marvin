@@ -74,7 +74,8 @@ class Orchestrator:
                 self.handlers = []
 
     async def handle_event(self, event: Event):
-        logger.debug(f"Handling event: {event.__class__.__name__}\n{event}")
+        if marvin.settings.log_events:
+            logger.debug(f"Handling event: {event.__class__.__name__}\n{event}")
 
         for handler in self.handlers:
             if isinstance(handler, AsyncHandler):

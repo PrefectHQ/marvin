@@ -1,9 +1,9 @@
 from typing import Any, TypeVar
 
+import marvin.utilities.asyncio
 from marvin import Task, Thread
 from marvin.agents.actor import Actor
 from marvin.engine.orchestrator import Orchestrator
-from marvin.utilities.asyncio import run_sync
 
 T = TypeVar("T")
 
@@ -25,7 +25,9 @@ def run_tasks(
     thread: Thread | str | None = None,
     raise_on_failure: bool = True,
 ) -> list[Task[Any]]:
-    return run_sync(run_tasks_async(tasks, agents, thread, raise_on_failure))
+    return marvin.utilities.asyncio.run_sync(
+        run_tasks_async(tasks, agents, thread, raise_on_failure)
+    )
 
 
 async def run_async(
@@ -51,7 +53,7 @@ def run(
     agent: Actor | None = None,
     raise_on_failure: bool = True,
 ) -> T:
-    return run_sync(
+    return marvin.utilities.asyncio.run_sync(
         run_async(
             instructions=instructions,
             result_type=result_type,

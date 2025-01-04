@@ -202,7 +202,9 @@ class Task(Generic[T]):
         """Get a friendly name for this task."""
         if self.name:
             return f'Task "{self.name}"'
-        return f'Task {self.id} ("{self.instructions[:40]}...")'
+        # Replace consecutive newlines with a single space
+        instructions = " ".join(self.instructions.split())
+        return f'Task {self.id} ("{instructions[:40]}...")'
 
     def get_agent(self) -> Actor:
         """Retrieve the agent assigned to this task."""

@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING, Any, Callable
 import pydantic_ai
 
 import marvin
-from marvin.engine.thread import Thread
+import marvin.utilities.asyncio
+from marvin.engine.thread import Thread, get_thread
 from marvin.prompts import Template
-from marvin.utilities.asyncio import run_sync
 
 if TYPE_CHECKING:
     from marvin.agents.team import Team
@@ -85,13 +85,16 @@ class Actor:
     def get_prompt(self) -> str:
         return Template(source=self.prompt).render()
 
+    def friendly_name(self) -> str:
+        return f'{self.__class__.__name__} "{self.name}" ({self.id})'
+
     async def run_async(
         self,
         instructions: str,
         thread: Thread | str | None = None,
         raise_on_failure: bool = True,
     ) -> Any:
-        return marvin.run_async(
+        return await marvin.run_async(
             instructions, agent=self, thread=thread, raise_on_failure=raise_on_failure
         )
 
@@ -101,14 +104,17 @@ class Actor:
         thread: Thread | str | None = None,
         raise_on_failure: bool = True,
     ) -> Any:
-        return run_sync(self.run_async(instructions, thread, raise_on_failure))
+        return marvin.utilities.asyncio.run_sync(
+            self.run_async(instructions, thread, raise_on_failure)
+        )
 
     async def say_async(self, message: str, thread: Thread | str | None = None):
+        thread = get_thread(thread)
         await thread.add_user_message_async(message=message)
-        return await self.run_async("Respond to the user.", agent=self, thread=thread)
+        return await self.run_async("Respond to the user.", thread=thread)
 
     def say(self, message: str, thread: Thread | str | None = None):
-        return run_sync(self.say_async(message, thread))
+        return marvin.utilities.asyncio.run_sync(self.say_async(message, thread))
 
     def as_team(self) -> "Team":
         raise NotImplementedError(

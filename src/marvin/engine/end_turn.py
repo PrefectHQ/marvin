@@ -46,7 +46,7 @@ class TaskSuccess(EndTurn, Generic[TaskResult]):
             f'"{self.result}"' if isinstance(self.result, str) else self.result
         )
         logger.debug(
-            f"Marking {tasks[self.task_id].friendly_name()} successful with result {debug_result}"
+            f"{orchestrator.active_agent().friendly_name()}: Marking {tasks[self.task_id].friendly_name()} successful with result {debug_result}"
         )
         tasks[self.task_id].mark_successful(self.result)
 
@@ -69,7 +69,7 @@ class TaskFailed(EndTurn):
         if self.task_id not in tasks:
             raise ValueError(f"Task ID {self.task_id} not found in tasks")
         logger.debug(
-            f'Marking {tasks[self.task_id].friendly_name()} failed with message "{self.message}"'
+            f'{orchestrator.active_agent().friendly_name()}: Marking {tasks[self.task_id].friendly_name()} failed with message "{self.message}"'
         )
         tasks[self.task_id].mark_failed(self.message)
 
@@ -90,7 +90,9 @@ class TaskSkipped(EndTurn):
         tasks = {t.id: t for t in orchestrator.tasks}
         if self.task_id not in tasks:
             raise ValueError(f"Task ID {self.task_id} not found in tasks")
-        logger.debug(f"Marking {tasks[self.task_id].friendly_name()} skipped")
+        logger.debug(
+            f"{orchestrator.active_agent().friendly_name()}: Marking {tasks[self.task_id].friendly_name()} skipped"
+        )
         tasks[self.task_id].mark_skipped()
 
     @staticmethod
@@ -107,7 +109,9 @@ class PostMessage(EndTurn):
     message: str
 
     async def run(self, orchestrator: "Orchestrator") -> None:
-        logger.debug(f"Posting message to thread: {self.message}")
+        logger.debug(
+            f"{orchestrator.active_agent().friendly_name()}: Posting message to thread: {self.message}"
+        )
         await orchestrator.thread.add_message_async(AgentMessage(content=self.message))
 
     @staticmethod
@@ -128,11 +132,12 @@ class DelegateToAgent(EndTurn):
     )
 
     async def run(self, orchestrator: "Orchestrator") -> None:
+        current_agent_name = orchestrator.active_agent().friendly_name()
         delegates = {d.id: d for d in orchestrator.get_delegates()}
         if self.agent_id not in delegates:
             raise ValueError(f"Agent ID {self.agent_id} not found in delegates")
         logger.debug(
-            f'Delegating to actor "{delegates[self.agent_id].name}" with message "{self.message}"'
+            f'{current_agent_name}: Delegating to actor "{delegates[self.agent_id].friendly_name()}" with message "{self.message}"'
         )
 
         # walk active_agents to find the delegate
@@ -149,7 +154,7 @@ class DelegateToAgent(EndTurn):
 
         if self.message:
             await orchestrator.thread.add_messages_async(
-                [AgentMessage(content=self.message)]
+                [AgentMessage(content=f"{current_agent_name}: {self.message}")]
             )
 
     @staticmethod
