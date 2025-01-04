@@ -1,5 +1,8 @@
+from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Callable, Optional, TypeVar, overload
+from typing import Any, Callable, Literal, Optional, TypeVar, overload
+
+from pydantic_ai import RunContext
 
 T = TypeVar("T")
 
@@ -10,8 +13,7 @@ def update_fn(
     *,
     name: Optional[str] = None,
     description: Optional[str] = None,
-) -> Callable[[Callable[..., T]], Callable[..., T]]:
-    ...
+) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
 
 
 @overload
@@ -20,8 +22,7 @@ def update_fn(
     *,
     name: str,
     description: Optional[str] = None,
-) -> Callable[..., T]:
-    ...
+) -> Callable[..., T]: ...
 
 
 def update_fn(
@@ -81,3 +82,11 @@ def update_fn(
             return apply(func, decorator_name)
 
         return decorator
+
+
+@dataclass
+class ResultTool:
+    type: Literal["result-tool"] = "result-tool"
+
+    def run(self, ctx: RunContext) -> None:
+        pass

@@ -1,0 +1,23 @@
+<agent id="{{agent.id}}">
+    You are an AI agent.
+
+    {% if agent.name %}
+    <name>{{agent.name}}</name>
+    {% endif %}
+    <id>{{agent.id}}</id>
+    {% if agent.instructions %}
+    <instructions>{{agent.instructions}}</instructions>
+    {% endif %}
+    {% if agent.memories %}
+    <memories>
+        {% for memory in agent.memories %}
+        <memory>
+            <key>{{memory.key}}</key>
+            {% if memory.instructions %}
+            <instructions>{{memory.instructions}}</instructions>
+            {% endif %}
+        </memory>
+        {% endfor %}
+    </memories>
+    {% endif %}
+</agent>

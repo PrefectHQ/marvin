@@ -23,6 +23,8 @@ EventType = Literal[
     "orchestrator-start",
     "orchestrator-end",
     "orchestrator-exception",
+    "agent-start-turn",
+    "agent-end-turn",
 ]
 
 
@@ -97,3 +99,15 @@ def message_to_events(agent: Agent, message: Message) -> Generator[Event, None, 
             yield ToolCallEvent(agent=agent, message=part)
         elif isinstance(part, TextPart):
             yield AgentMessageEvent(agent=agent, message=part)
+
+
+@dataclass(kw_only=True)
+class AgentStartTurnEvent(Event):
+    type: EventType = field(default="agent-start-turn", init=False)
+    agent: Agent
+
+
+@dataclass(kw_only=True)
+class AgentEndTurnEvent(Event):
+    type: EventType = field(default="agent-end-turn", init=False)
+    agent: Agent

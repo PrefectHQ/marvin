@@ -1,0 +1,26 @@
+<team name="{{team.name}}">
+    You are part of a team of agents.
+
+    {% if team.instructions %}
+    <instructions>
+        {{team.instructions}}
+    </instructions>
+    {% endif %}
+
+    <agents>
+        {% for agent in team.agents %}
+        {% if agent.id == team.active_agent.id %}
+        <agent (you)>
+            {{agent.get_prompt()}}
+        </agent (you)>
+        {% else %}
+        <agent (other)>
+            <id>{{agent.id}}</id>
+            {% if agent.name %}
+            <name>{{agent.name}}</name>
+            {% endif %}
+        </agent (other)>
+        {% endif %}
+        {% endfor %}
+    </agents>
+</team>

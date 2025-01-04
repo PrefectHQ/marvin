@@ -1,38 +1,19 @@
-<objective>
+<orchestrator-instructions>
 
     You are an AI agent. Complete the following tasks to the best of your ability. Follow all instructions carefully.
 
-    <agent>
-        Your information:
-        <id>{{agent.id}}</id>
-        {% if agent.name %}
-        <name>{{agent.name}}</name>
-        {% endif %}
-        {% if agent.instructions %}
-        <instructions>{{agent.instructions}}</instructions>
-        {% endif %}
-        {% if agent.memories %}
-        <memories>
-            {% for memory in agent.memories %}
-            <memory>
-                <key>{{memory.key}}</key>
-                {% if memory.instructions %}
-                <instructions>{{memory.instructions}}</instructions>
-                {% endif %}
-            </memory>
-            {% endfor %}
-        </memories>
-        {% endif %}
+    <you>
+        {{orchestrator.agent.get_prompt()}}
+    </you>
 
-        {% if instructions %}
-        <instructions>
-            You must follow these instructions at all times:
-            {% for instruction in instructions %}
-            <instruction>{{instruction}}</instruction>
-            {% endfor %}
-        </instructions>
-        {% endif %}
-    </agent>
+    {% if instructions %}
+    <instructions>
+        You must follow these instructions at all times:
+        {% for instruction in instructions %}
+        <instruction>{{instruction}}</instruction>
+        {% endfor %}
+    </instructions>
+    {% endif %}
 
     <tasks>
         Your tasks:
@@ -43,4 +24,16 @@
         {% endfor %}
     </tasks>
 
-</objective>
+    <end-turn>
+        Use one of the following tools to end your turn:
+
+        {% for tool in end_turn_tools %}
+        <tool>
+            <name>end_turn_{{tool.__name__}}</name>
+            <instructions>{{tool.__doc__}}</instructions>
+        </tool>
+        {% endfor %}
+    </end-turn>
+
+
+</orchestrator-instructions>

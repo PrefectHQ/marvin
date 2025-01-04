@@ -12,40 +12,37 @@ import inspect
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Type, get_type_hints
+from typing import Any, Callable, List, Type, get_type_hints
 
 from marvin.engine.llm import AgentMessage, Message, SystemMessage, UserMessage
 from marvin.utilities.jinja import jinja_env
-from marvin.utilities.types import AutoDataClass
 
 
-class Template(AutoDataClass):
-    """A template for generating prompts."""
+@dataclass(kw_only=True)
+class Template:
+    """A template for generating prompts.
+
+    Args:
+        source: Either a string template or a Path to a template file
+    """
 
     _dataclass_config = {"kw_only": True}
 
-    template: Optional[str] = None
-    template_path: Optional[Path] = None
-
-    def __post_init__(self):
-        if self.template and self.template_path:
-            raise ValueError("Either template or template_path must be provided.")
-        elif not self.template and not self.template_path:
-            raise ValueError("Either template or template_path must be provided.")
-        if self.template_path:
-            self.template_path = Path(self.template_path)
+    source: str | Path
 
     def render(self, **kwargs: Any) -> str:
+        """Render the template with variables."""
         render_kwargs = {
             k: v
             for k, v in self.__dict__.items()
-            if k not in ["template", "template_path", "_dataclass_config"]
+            if k not in ["source", "_dataclass_config"]
         }
 
-        if self.template is not None:
-            template = jinja_env.from_string(self.template)
+        if isinstance(self.source, Path):
+            template = jinja_env.get_template(str(self.source))
         else:
-            template = jinja_env.get_template(str(self.template_path))
+            template = jinja_env.from_string(self.source)
+
         return template.render(**render_kwargs | kwargs)
 
 
@@ -57,20 +54,19 @@ class Prompt:
     Additional attributes can be added by subclassing and will be type-checked.
     """
 
-    template: Optional[str] = field(
-        default=None, metadata={"description": "The template string"}
-    )
-    template_path: Optional[str] = field(
-        default=None, metadata={"description": "Path to the template file"}
+    source: str | Path = field(
+        metadata={
+            "description": "The template source - either a string template or path to template file"
+        }
     )
     _extra_fields: dict[str, Any] = field(default_factory=dict, repr=False)
 
     def __post_init__(self):
-        if not self.template and not self.template_path:
-            raise ValueError("Template or template_path must be provided.")
+        if not self.source:
+            raise ValueError("source must be provided")
 
     def __setattr__(self, name: str, value: Any) -> None:
-        if name in ["template", "template_path", "_extra_fields"]:
+        if name in ["source", "_extra_fields"]:
             super().__setattr__(name, value)
         else:
             self._extra_fields[name] = value
@@ -82,18 +78,12 @@ class Prompt:
 
     def _render_template(self, **kwargs: Any) -> str:
         """Render the template with variables."""
-        # Get all fields except template/template_path
+        # Get all fields except source
         render_kwargs = {
             **self._extra_fields,
         }
 
-        # Get the template
-        if self.template is not None:
-            template = jinja_env.from_string(self.template)
-        else:
-            template = jinja_env.get_template(str(self.template_path))
-
-        # Render with provided kwargs taking precedence
+        template = Template(source=self.source)
         return template.render(**render_kwargs | kwargs)
 
     def _parse_messages(self, text: str) -> List[Message]:
@@ -205,7 +195,7 @@ class Prompt:
         # Create the dynamic prompt class
         @dataclass
         class DynamicPrompt(cls):
-            template: str | None = field(default=_template)
+            source: str | Path = field(default=_template)
             __qualname__ = f"{fn.__name__.title()}Prompt"  # Set the class name
 
             # Add the function parameters as fields

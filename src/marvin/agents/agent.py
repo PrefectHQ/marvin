@@ -5,8 +5,8 @@ An Agent is an entity that can process tasks and maintain state across interacti
 """
 
 import random
-import uuid
-from dataclasses import field
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable, Optional, Union
 
 import pydantic_ai
@@ -17,23 +17,20 @@ import marvin.engine.llm
 from marvin.agents.names import AGENT_NAMES
 from marvin.engine.thread import Thread, get_thread
 from marvin.memory.memory import Memory
+from marvin.prompts import Template
 from marvin.utilities.asyncio import run_sync
 
 from .actor import Actor
 
 
+@dataclass(kw_only=True)
 class Agent(Actor):
     """An agent that can process tasks and maintain state."""
 
-    _dataclass_config = {"kw_only": True}
-
-    id: uuid.UUID = field(
-        default_factory=uuid.uuid4,
-        metadata={"description": "Unique identifier for this agent"},
-    )
-
-    instructions: Optional[str] = field(
-        default=None, metadata={"description": "Instructions for the agent"}
+    name: str = field(
+        default_factory=lambda: random.choice(AGENT_NAMES),
+        metadata={"description": "Name of the agent"},
+        kw_only=False,
     )
 
     tools: list[Callable[..., Any]] = field(
@@ -44,11 +41,6 @@ class Agent(Actor):
     memories: list[Memory] = field(
         default_factory=list,
         metadata={"description": "List of memory modules available to the agent"},
-    )
-
-    name: str = field(
-        default_factory=lambda: random.choice(AGENT_NAMES),
-        metadata={"description": "Name of the agent"},
     )
 
     model: Optional[KnownModelName | Model] = field(
@@ -62,6 +54,22 @@ class Agent(Actor):
         default_factory=ModelSettings,
         metadata={"description": "Settings to pass to the model"},
     )
+
+    delegates: list[Actor] | None = field(
+        default=None,
+        repr=False,
+        metadata={
+            "description": "List of agents that this agent can delegate to. Provide an empty list if this agent can not delegate."
+        },
+    )
+
+    prompt: str | Path = field(
+        default=Path("agent.jinja"),
+        metadata={"description": "Template for the agent's prompt"},
+    )
+
+    def get_delegates(self) -> list[Actor] | None:
+        return self.delegates
 
     def get_model(self) -> Model | KnownModelName:
         return self.model or marvin.defaults.model
@@ -88,10 +96,16 @@ class Agent(Actor):
         self,
         result_types: list[type],
         tools: list[Callable[..., Any]] | None = None,
+        **kwargs,
     ) -> pydantic_ai.Agent[Any, Any]:
-        return marvin.engine.llm.create_agentlet(
+        return pydantic_ai.Agent[None, result_types](
             model=self.get_model(),
             result_type=Union[tuple(result_types)],  # type: ignore
             tools=self.get_tools() + (tools or []),
             model_settings=self.get_model_settings(),
+            end_strategy="exhaustive",
+            **kwargs,
         )
+
+    def get_prompt(self) -> str:
+        return Template(source=self.prompt).render(agent=self)
