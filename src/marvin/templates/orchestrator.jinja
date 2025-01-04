@@ -1,10 +1,8 @@
-<orchestrator-instructions>
+<orchestrator>
 
-    You are an AI agent. Complete the following tasks to the best of your ability. Follow all instructions carefully.
+    Complete tasks to the best of your ability. Follow all instructions carefully.
 
-    <you>
-        {{orchestrator.agent.get_prompt()}}
-    </you>
+    {{orchestrator.active_team.get_prompt()}}
 
     {% if instructions %}
     <instructions>
@@ -36,4 +34,4 @@
     </end-turn>
 
 
-</orchestrator-instructions>
+</orchestrator>

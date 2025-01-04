@@ -1,6 +1,7 @@
-<team name="{{team.name}}">
+<team>
     You are part of a team of agents.
-
+    <id>{{team.id}}</id>
+    <name>{{team.name}}</name>
     {% if team.instructions %}
     <instructions>
         {{team.instructions}}
@@ -14,12 +15,12 @@
             {{agent.get_prompt()}}
         </agent (you)>
         {% else %}
-        <agent (other)>
+        <agent (delegate)>
             <id>{{agent.id}}</id>
             {% if agent.name %}
             <name>{{agent.name}}</name>
             {% endif %}
-        </agent (other)>
+        </agent (delegate)>
         {% endif %}
         {% endfor %}
     </agents>

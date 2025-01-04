@@ -73,9 +73,9 @@ class Thread:
 
         async with get_async_session() as session:
             for message in messages:
-                db_message = DBMessage(
+                db_message = DBMessage.from_message(
                     thread_id=self.id,
-                    message=message_adapter.dump_python(message, mode="json"),
+                    message=message,
                 )
                 session.add(db_message)
             await session.commit()

@@ -2,6 +2,8 @@ import logging
 from functools import lru_cache
 from typing import Optional
 
+from rich.logging import RichHandler
+
 import marvin
 
 
@@ -43,10 +45,21 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     return logger
 
 
-def setup_logging(level: Optional[str] = None) -> None:
+def setup_logging(
+    level: Optional[str] = None,
+) -> None:
     logger = get_logger()
 
     if level is not None:
         logger.setLevel(level)
     else:
         logger.setLevel(marvin.settings.log_level)
+
+    logger.handlers.clear()
+
+    handler = RichHandler(rich_tracebacks=True, markup=False)
+    formatter = logging.Formatter("%(name)s: %(message)s")
+    handler.setFormatter(formatter)
+
+    logger.addHandler(handler)
+    logger.propagate = False

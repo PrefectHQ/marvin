@@ -15,10 +15,9 @@ from pydantic_ai.models import KnownModelName, Model, ModelSettings
 import marvin
 import marvin.engine.llm
 from marvin.agents.names import AGENT_NAMES
-from marvin.engine.thread import Thread, get_thread
+from marvin.agents.team import SoloTeam, Swarm, Team
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
-from marvin.utilities.asyncio import run_sync
 
 from .actor import Actor
 
@@ -83,15 +82,6 @@ class Agent(Actor):
             defaults["temperature"] = marvin.settings.agent_temperature
         return defaults | self.model_settings
 
-    async def say_async(self, message: str, thread: Thread | str | None = None):
-        thread = get_thread(thread)
-        if message:
-            await thread.add_user_message_async(message=message)
-        return await marvin.run_async("Respond to the user.", agent=self, thread=thread)
-
-    def say(self, message: str, thread: Thread | str | None = None):
-        return run_sync(self.say_async(message, thread))
-
     def get_agentlet(
         self,
         result_types: list[type],
@@ -109,3 +99,11 @@ class Agent(Actor):
 
     def get_prompt(self) -> str:
         return Template(source=self.prompt).render(agent=self)
+
+    def as_team(self, team_class: Callable[[list[Actor]], Team] | None = None) -> Team:
+        all_agents = [self] + (self.delegates or [])
+        if len(all_agents) == 1:
+            team_class = team_class or SoloTeam
+        else:
+            team_class = team_class or Swarm
+        return team_class(agents=all_agents)

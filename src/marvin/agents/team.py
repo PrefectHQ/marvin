@@ -1,7 +1,7 @@
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Self
 
 import pydantic_ai
 
@@ -31,7 +31,12 @@ class Team(Actor):
     _active_agent: Actor = field(init=False)
 
     def get_delegates(self) -> list[Actor]:
-        return []
+        """
+        By default, agents can delegate only to pre-defined agents. If no delegates are defined,
+        none are returned.
+        """
+        delegates = self.active_agent.get_delegates()
+        return delegates or []
 
     def __post_init__(self):
         self.agents_by_id = {a.id: a for a in self.agents}
@@ -63,6 +68,33 @@ class Team(Actor):
     def get_end_turn_tools(self) -> list[type["EndTurn"]]:
         return []
 
+    def as_team(self) -> Self:
+        return self
+
+    def start_turn(self):
+        if self.active_agent:
+            self.active_agent.start_turn()
+
+    def end_turn(self):
+        if self.active_agent:
+            self.active_agent.end_turn()
+
+
+@dataclass(kw_only=True)
+class SoloTeam(Team):
+    prompt: str | Path = Path("agent.jinja")
+
+    def __post_init__(self):
+        if len(self.agents) != 1:
+            raise ValueError("SoloTeam must have exactly one agent")
+        super().__post_init__()
+
+    def get_delegates(self) -> list[Actor]:
+        return []
+
+    def get_prompt(self) -> str:
+        return self.agents[0].get_prompt()
+
 
 @dataclass(kw_only=True)
 class Swarm(Team):
@@ -90,9 +122,11 @@ class RoundRobinTeam(Team):
     def start_turn(self):
         index = self.agents.index(self.active_agent)
         self.active_agent = self.agents[(index + 1) % len(self.agents)]
+        super().start_turn()
 
 
 @dataclass(kw_only=True)
 class RandomTeam(Team):
     def start_turn(self):
         self.set_active_agent(random.choice(self.agents))
+        super().start_turn()

@@ -12,13 +12,12 @@ from typing import (
     Any,
     Callable,
     Generic,
-    Optional,
     TypeVar,
 )
 
 import marvin
 from marvin.agents.actor import Actor
-from marvin.agents.team import Team
+from marvin.agents.team import Swarm
 from marvin.engine.thread import Thread
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
@@ -69,7 +68,7 @@ class Task(Generic[T]):
         },
     )
 
-    agent: Optional[Actor] = field(
+    agent: Actor | None = field(
         default=None,
         metadata={"description": "Optional agent or team to execute this task"},
     )
@@ -78,7 +77,7 @@ class Task(Generic[T]):
         default_factory=dict, metadata={"description": "Context for the task"}
     )
 
-    name: Optional[str] = field(
+    name: str | None = field(
         default=None, metadata={"description": "Optional name for this task"}
     )
 
@@ -116,7 +115,7 @@ class Task(Generic[T]):
         },
     )
 
-    parent: Optional["Task[T]"] = field(
+    parent: "Task[T] | None" = field(
         default=None, metadata={"description": "Optional parent task"}
     )
 
@@ -124,7 +123,7 @@ class Task(Generic[T]):
         default_factory=list, metadata={"description": "List of child tasks"}
     )
 
-    result: Optional[T | str] = field(
+    result: T | str | None = field(
         default=None,
         metadata={
             "description": "The result of the task. Can be either the expected type T or an error string."
@@ -158,7 +157,7 @@ class Task(Generic[T]):
             self.result_type = str
 
         if isinstance(self.agent, (list, tuple, set)):
-            self.agent = Team(agents=self.agent)
+            self.agent = Swarm(agents=self.agent)
 
     def _validate_result_type(self) -> None:
         """
@@ -191,6 +190,12 @@ class Task(Generic[T]):
                     "Invalid nested list format - use [['a', 'b']] for multi-label"
                 )
             self.result_type = Labels(self.result_type)
+
+    def friendly_name(self) -> str:
+        """Get a friendly name for this task."""
+        if self.name:
+            return f'Task "{self.name}"'
+        return f'Task {self.id.hex[:8]} ("{self.instructions[:40]}...")'
 
     def get_agent(self) -> Actor:
         """Retrieve the agent assigned to this task."""
@@ -246,7 +251,7 @@ class Task(Generic[T]):
     async def run_async(
         self,
         *,
-        thread: Optional[Thread | str] = None,
+        thread: Thread | str | None = None,
         raise_on_failure: bool = True,
     ) -> T:
         orchestrator = marvin.engine.orchestrator.Orchestrator(
@@ -258,7 +263,7 @@ class Task(Generic[T]):
     def run(
         self,
         *,
-        thread: Optional[Thread | str] = None,
+        thread: Thread | str | None = None,
         raise_on_failure: bool = True,
     ) -> T:
         return run_sync(
@@ -270,15 +275,11 @@ class Task(Generic[T]):
         import marvin.engine.end_turn_tools
 
         tools = []
-        tools.append(
-            marvin.engine.end_turn_tools.MarkTaskSuccess[self.get_result_type()]
-        )
+        tools.append(marvin.engine.end_turn_tools.TaskSuccess[self.get_result_type()])
         if self.allow_fail:
-            tools.append(
-                marvin.engine.end_turn_tools.TaskFailure.prepare_for_task(self)
-            )
+            tools.append(marvin.engine.end_turn_tools.TaskFailed)
         if self.allow_skip:
-            tools.append(marvin.engine.end_turn_tools.TaskSkip.prepare_for_task(self))
+            tools.append(marvin.engine.end_turn_tools.TaskSkipped)
 
         return tools
 
