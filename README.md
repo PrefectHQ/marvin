@@ -106,7 +106,7 @@ Marvin can `extract` structured entities from text:
 
 ```python
 import pydantic
-
+import marvin
 
 class Location(pydantic.BaseModel):
     city: str
