@@ -137,7 +137,7 @@ class DelegateToAgent(EndTurn):
         if self.agent_id not in delegates:
             raise ValueError(f"Agent ID {self.agent_id} not found in delegates")
         logger.debug(
-            f'{current_agent_name}: Delegating to actor "{delegates[self.agent_id].friendly_name()}" with message "{self.message}"'
+            f'{current_agent_name}: Delegating to {delegates[self.agent_id].friendly_name()} with message "{self.message}"'
         )
 
         # walk active_agents to find the delegate
