@@ -13,11 +13,8 @@ from pydantic_ai.messages import (
     TextPart,
     UserPromptPart,
 )
-from pydantic_ai.models import KnownModelName, Model, ModelSettings
 from pydantic_ai.result import RunResult
 from typing_extensions import TypeVar
-
-import marvin
 
 # Define Message type union
 Message = ModelRequest | ModelResponse
@@ -60,29 +57,6 @@ def bind_tool(agent: pydantic_ai.Agent[Any, Any], func: Callable[..., Any]) -> N
         agent.tool()(func)
     else:
         agent.tool_plain()(func)
-
-
-def create_agentlet(
-    model: KnownModelName | Model,
-    result_type: type[T],
-    tools: list[Callable[..., Any]] | None = None,
-    deps_type: type[T] | None = None,
-    model_settings: ModelSettings | None = None,
-) -> pydantic_ai.Agent[Any, Any]:
-    kwargs: dict[str, Any] = {}
-    if tools:
-        kwargs["tools"] = list(set(tools))
-    if model_settings:
-        kwargs["model_settings"] = model_settings
-
-    agentlet = pydantic_ai.Agent[deps_type, result_type](
-        model=model,
-        result_type=result_type,
-        retries=marvin.settings.agent_retries,
-        **kwargs,
-    )
-
-    return agentlet
 
 
 async def generate_response(

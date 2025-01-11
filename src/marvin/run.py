@@ -1,17 +1,40 @@
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 
-from marvin import Agent, Task, Thread
+import marvin.utilities.asyncio
+from marvin import Task, Thread
+from marvin.agents.actor import Actor
 from marvin.engine.orchestrator import Orchestrator
-from marvin.utilities.asyncio import run_sync
 
 T = TypeVar("T")
+
+
+async def run_tasks_async(
+    tasks: list[Task[Any]],
+    agents: list[Actor] | None = None,
+    thread: Thread | str | None = None,
+    raise_on_failure: bool = True,
+) -> list[Task[Any]]:
+    orchestrator = Orchestrator(tasks=tasks, agents=agents, thread=thread)
+    await orchestrator.run(raise_on_failure=raise_on_failure)
+    return tasks
+
+
+def run_tasks(
+    tasks: list[Task[Any]],
+    agents: list[Actor] | None = None,
+    thread: Thread | str | None = None,
+    raise_on_failure: bool = True,
+) -> list[Task[Any]]:
+    return marvin.utilities.asyncio.run_sync(
+        run_tasks_async(tasks, agents, thread, raise_on_failure)
+    )
 
 
 async def run_async(
     instructions: str,
     result_type: type[T] = str,
-    thread: Optional[Thread | str] = None,
-    agent: Optional[Agent | str] = None,
+    thread: Thread | str | None = None,
+    agent: Actor | None = None,
     raise_on_failure: bool = True,
 ) -> T:
     task = Task[result_type](
@@ -23,24 +46,14 @@ async def run_async(
     return task.result
 
 
-async def run_tasks_async(
-    tasks: list[Task[Any]],
-    thread: Optional[Thread | str] = None,
-    raise_on_failure: bool = True,
-) -> list[Task[Any]]:
-    orchestrator = Orchestrator(tasks=tasks, thread=thread)
-    await orchestrator.run(raise_on_failure=raise_on_failure)
-    return tasks
-
-
 def run(
     instructions: str,
     result_type: type[T] = str,
-    thread: Optional[Thread | str] = None,
-    agent: Optional[Agent | str] = None,
+    thread: Thread | str | None = None,
+    agent: Actor | None = None,
     raise_on_failure: bool = True,
 ) -> T:
-    return run_sync(
+    return marvin.utilities.asyncio.run_sync(
         run_async(
             instructions=instructions,
             result_type=result_type,

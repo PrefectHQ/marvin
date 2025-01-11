@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager, contextmanager
 from datetime import UTC, datetime
 from typing import Any, AsyncGenerator, Generator, Optional
 
+from pydantic import TypeAdapter
 from sqlalchemy import JSON, ForeignKey, String, create_engine, inspect
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import (
@@ -20,6 +21,10 @@ from sqlalchemy.orm import (
 )
 
 from marvin.settings import settings
+
+from .llm import Message
+
+message_adapter: TypeAdapter[Message] = TypeAdapter(Message)
 
 
 def utc_now() -> datetime:
@@ -63,6 +68,19 @@ class DBMessage(Base):
 
     thread: Mapped[DBThread] = relationship(back_populates="messages")
     llm_call: Mapped[Optional["DBLLMCall"]] = relationship(back_populates="messages")
+
+    @classmethod
+    def from_message(
+        cls,
+        thread_id: str,
+        message: Message,
+        llm_call_id: uuid.UUID | None = None,
+    ) -> "DBMessage":
+        return cls(
+            thread_id=thread_id,
+            message=message_adapter.dump_python(message, mode="json"),
+            llm_call_id=llm_call_id,
+        )
 
 
 class DBLLMCall(Base):

@@ -24,6 +24,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="forbid",
+        validate_assignment=True,
     )
 
     # ------------ General settings ------------
@@ -51,24 +52,29 @@ class Settings(BaseSettings):
         """Set and validate the database path."""
         # Set default if not provided
         if self.database_path is None:
-            self.database_path = self.home_path / "marvin.db"
+            self.__dict__["database_path"] = self.home_path / "marvin.db"
 
         # Convert to Path if string
-        self.database_path = Path(self.database_path)
+        self.__dict__["database_path"] = Path(self.database_path)
 
         # Expand user and resolve to absolute path
-        self.database_path = self.database_path.expanduser().resolve()
+        self.__dict__["database_path"] = self.database_path.expanduser().resolve()
 
         # Ensure parent directory exists
-        self.database_path.parent.mkdir(parents=True, exist_ok=True)
+        self.__dict__["database_path"].parent.mkdir(parents=True, exist_ok=True)
 
         return self
 
     # ------------ Logging settings ------------
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
-        default="INFO",
+        default="DEBUG",
         description="Logging level",
+    )
+
+    log_events: bool = Field(
+        default=False,
+        description="Whether to log all events (as debug logs).",
     )
 
     @model_validator(mode="after")
@@ -100,7 +106,7 @@ class Settings(BaseSettings):
     # ------------ DX settings ------------
 
     enable_default_print_handler: bool = Field(
-        default=True,
+        default=False,
         description="Whether to enable the default print handler.",
     )
 

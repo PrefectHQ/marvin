@@ -5,20 +5,19 @@ A Task is a container for a prompt and its associated state.
 """
 
 import enum
-import inspect
 import uuid
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import (
     Any,
     Callable,
     Generic,
-    Optional,
     TypeVar,
 )
 
 import marvin
 from marvin.agents.actor import Actor
-from marvin.agents.agent import Agent
+from marvin.agents.team import Swarm
 from marvin.engine.thread import Thread
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
@@ -27,23 +26,7 @@ from marvin.utilities.types import Labels, as_classifier, is_classifier
 
 T = TypeVar("T")
 
-DEFAULT_PROMPT_TEMPLATE = inspect.cleandoc(
-    """
-    <id>{{task.id}}</id>
-    {% if task.name %}
-    <name>{{task.name}}</name>
-    {% endif %}
-    <instructions>{{task.instructions}}</instructions>
-    {% if task.context %}
-    <context>{{task.context}}</context>
-    {% endif %}
-    <result-type>{{task.result_type}}</result-type>
-    <state>{{task.state}}</state>
-    {% if task.parent %}
-    <parent-task-id>{{task.parent.id}}</parent-task-id>
-    {% endif %}
-"""
-)
+NOTSET = "__NOTSET__"
 
 
 class TaskState(str, enum.Enum):
@@ -53,48 +36,51 @@ class TaskState(str, enum.Enum):
     RUNNING = "running"
     SUCCESSFUL = "successful"
     FAILED = "failed"
+    SKIPPED = "skipped"
 
 
 @dataclass(kw_only=True)
 class Task(Generic[T]):
     """A task is a container for a prompt and its associated state."""
 
+    name: str | None = field(
+        default=None, metadata={"description": "Optional name for this task"}
+    )
+
     instructions: str = field(
         metadata={"description": "Instructions for the task"}, kw_only=False
     )
 
     result_type: type[T] | Labels = field(
-        default=str,
+        default=NOTSET,
         metadata={
-            "description": "The expected type of the result. This can be a type or None if no result is expected."
+            "description": "The expected type of the result. This can be a type or None if no result is expected. If not set, the result type will be str."
         },
         kw_only=False,
     )
 
-    id: uuid.UUID = field(
-        default_factory=uuid.uuid4,
+    id: str = field(
+        default_factory=lambda: uuid.uuid4().hex[:8],
         metadata={"description": "Unique identifier for this task"},
         init=False,
+        repr=False,
     )
 
-    prompt_template: Optional[str] = field(
-        default=None,
+    prompt_template: str | Path = field(
+        default=Path("task.jinja"),
         metadata={
             "description": "Optional Jinja template for customizing how the task appears in prompts. Will be rendered with a `task` variable containing this task instance."
         },
+        repr=False,
     )
 
-    agent: Optional[Actor] = field(
+    agent: Actor | None = field(
         default=None,
         metadata={"description": "Optional agent or team to execute this task"},
     )
 
     context: dict[str, Any] = field(
         default_factory=dict, metadata={"description": "Context for the task"}
-    )
-
-    name: Optional[str] = field(
-        default=None, metadata={"description": "Optional name for this task"}
     )
 
     tools: list[Callable[..., Any]] = field(
@@ -117,34 +103,43 @@ class Task(Generic[T]):
         init=False,
     )
 
-    result_validator: Optional[Callable[..., Any]] = field(
+    result_validator: Callable[..., Any] | None = field(
         default=None,
         metadata={
             "description": "Optional function that validates the result. Takes the raw result and returns a validated result or raises an error."
         },
+        repr=False,
     )
 
-    report_state_change: bool = field(
-        default=True,
-        metadata={
-            "description": "Whether to report the state change of this task to the thread."
-        },
-    )
-
-    parent: Optional["Task[T]"] = field(
+    parent: "Task[T] | None" = field(
         default=None, metadata={"description": "Optional parent task"}
     )
 
     _children: list["Task[T]"] = field(
-        default_factory=list, metadata={"description": "List of child tasks"}
+        default_factory=list,
+        metadata={"description": "List of child tasks"},
+        init=False,
+        repr=False,
     )
 
-    result: Optional[T | str] = field(
+    result: T | str | None = field(
         default=None,
         metadata={
             "description": "The result of the task. Can be either the expected type T or an error string."
         },
         init=False,
+        repr=False,
+    )
+
+    allow_fail: bool = field(
+        default=False,
+        metadata={"description": "Whether to allow the task to fail"},
+        repr=False,
+    )
+    allow_skip: bool = field(
+        default=False,
+        metadata={"description": "Whether to allow the task to skip"},
+        repr=False,
     )
 
     def __post_init__(self):
@@ -161,6 +156,24 @@ class Task(Generic[T]):
 
         Raises:
             ValueError: If an empty list or invalid nested list is provided
+        """
+        if self.result_type is NOTSET:
+            self.result_type = str
+
+        if isinstance(self.agent, (list, tuple, set)):
+            self.agent = Swarm(members=self.agent)
+
+    def __hash__(self) -> int:
+        return hash(self.id)
+
+    def _validate_result_type(self) -> None:
+        """
+        Validates the result type by converting classification shorthand into
+        Labels and ensuring that the result type is a valid type.
+
+        Valid shorthand:
+        - result_type = ["red", "blue"] -> Labels(values=["red", "blue"])
+        - result_type = [["red", "blue"]] -> Labels(values=["red", "blue"], many=True)
         """
         # Handle double-nested list shorthand for multi-label
         if (
@@ -185,7 +198,15 @@ class Task(Generic[T]):
                 )
             self.result_type = Labels(self.result_type)
 
-    def get_agent(self) -> Agent:
+    def friendly_name(self) -> str:
+        """Get a friendly name for this task."""
+        if self.name:
+            return f'Task "{self.name}"'
+        # Replace consecutive newlines with a single space
+        instructions = " ".join(self.instructions.split())
+        return f'Task {self.id} ("{instructions[:40]}...")'
+
+    def get_agent(self) -> Actor:
         """Retrieve the agent assigned to this task."""
         return self.agent or marvin.defaults.agent
 
@@ -226,11 +247,9 @@ class Task(Generic[T]):
         Uses the task's prompt_template (or default if None) and renders it with
         this task instance as the `task` variable.
         """
-        template = self.prompt_template or DEFAULT_PROMPT_TEMPLATE
+        prompt = Template(source=self.prompt_template).render(task=self)
 
-        prompt = Template(template=template).render(task=self)
-
-        if self.is_classifier() and not self.prompt_template:
+        if self.is_classifier():
             prompt += (
                 f"\n\nRespond with the integer index(es) of the labels you're "
                 f"choosing: {as_classifier(self.result_type).get_indexed_labels()}"
@@ -241,7 +260,7 @@ class Task(Generic[T]):
     async def run_async(
         self,
         *,
-        thread: Optional[Thread | str] = None,
+        thread: Thread | str | None = None,
         raise_on_failure: bool = True,
     ) -> T:
         orchestrator = marvin.engine.orchestrator.Orchestrator(
@@ -253,12 +272,27 @@ class Task(Generic[T]):
     def run(
         self,
         *,
-        thread: Optional[Thread | str] = None,
+        thread: Thread | str | None = None,
         raise_on_failure: bool = True,
     ) -> T:
         return run_sync(
             self.run_async(thread=thread, raise_on_failure=raise_on_failure)
         )
+
+    def get_end_turn_tools(self) -> list[type["marvin.engine.end_turn.EndTurn"]]:
+        """Get the result tool for this task."""
+        import marvin.engine.end_turn
+
+        tools = []
+        tools.append(marvin.engine.end_turn.TaskSuccess[self.get_result_type()])
+        if self.allow_fail:
+            tools.append(marvin.engine.end_turn.TaskFailed)
+        if self.allow_skip:
+            tools.append(marvin.engine.end_turn.TaskSkipped)
+
+        return tools
+
+    # ------ State Management ------
 
     def mark_successful(self, result: T = None) -> None:
         """Mark the task as successful with an optional result."""
@@ -273,6 +307,10 @@ class Task(Generic[T]):
     def mark_running(self) -> None:
         """Mark the task as running."""
         self.state = TaskState.RUNNING
+
+    def mark_skipped(self) -> None:
+        """Mark the task as skipped."""
+        self.state = TaskState.SKIPPED
 
     def is_pending(self) -> bool:
         """Check if the task is pending."""
@@ -290,10 +328,14 @@ class Task(Generic[T]):
         """Check if the task is failed."""
         return self.state == TaskState.FAILED
 
+    def is_skipped(self) -> bool:
+        """Check if the task is skipped."""
+        return self.state == TaskState.SKIPPED
+
     def is_incomplete(self) -> bool:
         """Check if the task is incomplete."""
         return self.state in (TaskState.PENDING, TaskState.RUNNING)
 
     def is_complete(self) -> bool:
         """Check if the task is complete."""
-        return self.state in (TaskState.SUCCESSFUL, TaskState.FAILED)
+        return self.state in (TaskState.SUCCESSFUL, TaskState.FAILED, TaskState.SKIPPED)
