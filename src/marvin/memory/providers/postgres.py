@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Callable, Dict, Optional
 
 import sqlalchemy
 from pgvector.sqlalchemy import Vector
@@ -41,7 +41,7 @@ class SQLMemoryTable(Base):
 @dataclass(kw_only=True)
 class PostgresMemory(MemoryProvider):
     """
-    A ControlFlow MemoryProvider that stores text + embeddings in PostgreSQL
+    A Marvin MemoryProvider that stores text + embeddings in PostgreSQL
     using SQLAlchemy and pg_vector. Each Memory module gets its own table.
     """
 
@@ -60,12 +60,14 @@ class PostgresMemory(MemoryProvider):
             """
         },
     )
+
     embedding_dimension: int = field(
         default=1536,
         metadata={
             "description": "Dimension of the embedding vectors. Match your model's output."
         },
     )
+
     embedding_fn: Callable = field(
         default_factory=lambda: OpenAIEmbeddings(
             model="text-embedding-ada-002",
@@ -73,17 +75,57 @@ class PostgresMemory(MemoryProvider):
         metadata={"description": "A function that turns a string into a vector."},
     )
 
+    # Connection pool settings
+    pool_size: int = field(
+        default=5,
+        metadata={"description": "Number of connections to keep open in the pool."},
+    )
+
+    max_overflow: int = field(
+        default=10,
+        metadata={
+            "description": "Number of connections to allow that can overflow the pool."
+        },
+    )
+
+    pool_timeout: int = field(
+        default=30,
+        metadata={
+            "description": "Number of seconds to wait before giving up on getting a connection."
+        },
+    )
+
+    pool_recycle: int = field(
+        default=1800,
+        metadata={
+            "description": "Number of seconds a connection can be idle before being recycled."
+        },
+    )
+
+    pool_pre_ping: bool = field(
+        default=True,
+        metadata={"description": "Check the connection health upon checkout."},
+    )
+
     # Internal: keep a cached Session maker
-    _SessionLocal: sessionmaker | None = None
+    _SessionLocal: Optional[sessionmaker] = None
+
     # This dict will map "table_name" -> "model class"
-    _table_class_cache: dict[str, Base] = {}
+    _table_class_cache: Dict[str, Base] = {}
 
     def configure(self, memory_key: str) -> None:
         """
-        Configure a SQLAlchemy session and ensure the table for this
+        Configure a SQLAlchemy session w/connection pooling and ensure the table for this
         memory partition is created if it does not already exist.
         """
-        engine = sqlalchemy.create_engine(self.database_url)
+        engine = sqlalchemy.create_engine(
+            self.database_url,
+            pool_size=self.pool_size,
+            max_overflow=self.max_overflow,
+            pool_timeout=self.pool_timeout,
+            pool_recycle=self.pool_recycle,
+            pool_pre_ping=self.pool_pre_ping,
+        )
 
         # 2) If DB doesn't exist, create it!
         if not database_exists(engine.url):
@@ -177,7 +219,7 @@ class PostgresMemory(MemoryProvider):
             session.query(model_cls).filter(model_cls.id == memory_id).delete()
             session.commit()
 
-    def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
+    def search(self, memory_key: str, query: str, n: int = 20) -> Dict[str, str]:
         """
         Uses pgvector's approximate nearest neighbor search with the `<->` operator to find
         the top N matching records for the embedded query. Returns a dict of {id: text}.
