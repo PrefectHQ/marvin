@@ -14,10 +14,14 @@ from typing import (
     Callable,
     Generic,
     TypeVar,
+    cast,
 )
+
+from pydantic_ai.models import KnownModelName
 
 import marvin
 from marvin.agents.actor import Actor
+from marvin.agents.agent import Agent
 from marvin.agents.team import Swarm
 from marvin.engine.thread import Thread
 from marvin.memory.memory import Memory
@@ -43,7 +47,7 @@ class TaskState(str, enum.Enum):
     SKIPPED = "skipped"
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, init=False)
 class Task(Generic[T]):
     """A task is a container for a prompt and its associated state."""
 
@@ -153,26 +157,89 @@ class Task(Generic[T]):
         },
     )
 
-    def __post_init__(self):
-        """Transform raw sequences into Labels for classification tasks.
+    def __init__(
+        self,
+        instructions: str,
+        *,
+        name: str | None = None,
+        result_type: type[T] | Labels = NOTSET,
+        prompt_template: str | Path = Path("task.jinja"),
+        agent: Actor | str | list | tuple | set | None = None,
+        context: dict[str, Any] | None = None,
+        tools: list[Callable[..., Any]] | None = None,
+        memories: list[Memory] | None = None,
+        result_validator: Callable[..., Any] | None = None,
+        parent: "Task[T] | None" = None,
+        allow_fail: bool = False,
+        allow_skip: bool = False,
+        cli: bool = False,
+    ) -> None:
+        """Initialize a Task.
 
-        We convert two types of shorthands:
-        1. Raw sequences like ["red", "blue"] -> Labels(values=["red", "blue"])
-           for single-label classification
-        2. Double-nested lists like [["red", "blue"]] -> Labels(values=["red", "blue"], many=True)
-           for multi-label classification
-
-        Other classifier types (Enum, Literal, list[Enum], list[Literal]) are left as-is
-        and only converted to Labels when needed via as_classifier().
-
-        Raises:
-            ValueError: If an empty list or invalid nested list is provided
+        Args:
+            instructions: Instructions for the task
+            name: Optional name for this task
+            result_type: Expected type of the result
+            prompt_template: Optional Jinja template for customizing task appearance
+            agent: Optional agent or team to execute this task
+            context: Context for the task
+            tools: Tools to make available to agents
+            memories: Memories to make available to agents
+            result_validator: Optional function to validate results
+            parent: Optional parent task
+            allow_fail: Whether to allow the task to fail
+            allow_skip: Whether to allow the task to skip
+            cli: Whether to enable CLI interaction tools
         """
-        if self.result_type is NOTSET:
-            self.result_type = str
+        # Required fields
+        self.instructions = instructions
 
-        if isinstance(self.agent, (list, tuple, set)):
-            self.agent = Swarm(members=self.agent)
+        # Optional fields with defaults
+        self.name = name
+        self.result_type = result_type if result_type is not NOTSET else str
+        self.prompt_template = prompt_template
+        self.context = context or {}
+        self.tools = tools or []
+        self.memories = memories or []
+        self.result_validator = result_validator
+        self.parent = parent
+        self.allow_fail = allow_fail
+        self.allow_skip = allow_skip
+        self.cli = cli
+
+        # Fields with init=False
+        self.id = uuid.uuid4().hex[:8]
+        self.state = TaskState.PENDING
+        self._children = []
+        self.result = None
+
+        # Handle agent conversion (from post_init)
+        if isinstance(agent, str):
+            cast(agent, KnownModelName)  # mypy
+            self.agent = Agent(model=agent)
+        elif isinstance(agent, (list, tuple, set)):
+            self.agent = Swarm(members=agent)
+        else:
+            self.agent = agent
+
+        # Handle result type validation (from post_init)
+        if isinstance(self.result_type, list):
+            if len(self.result_type) == 1 and isinstance(
+                self.result_type[0], (list, tuple, set)
+            ):
+                if not self.result_type[0]:
+                    raise ValueError(
+                        "Empty nested list is not allowed for multi-label classification"
+                    )
+                self.result_type = Labels(self.result_type[0], many=True)
+            else:
+                if not self.result_type:
+                    raise ValueError("Empty list is not allowed for classification")
+                if any(isinstance(x, (list, tuple, set)) for x in self.result_type):
+                    raise ValueError(
+                        "Invalid nested list format - use [['a', 'b']] for multi-label"
+                    )
+                self.result_type = Labels(self.result_type)
 
     def __hash__(self) -> int:
         return hash(self.id)
