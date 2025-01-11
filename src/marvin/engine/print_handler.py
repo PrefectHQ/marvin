@@ -17,6 +17,7 @@ from marvin.engine.events import (
     OrchestratorExceptionEvent,
     OrchestratorStartEvent,
     ToolCallEvent,
+    ToolRetryEvent,
     ToolReturnEvent,
 )
 from marvin.engine.handlers import Handler
@@ -98,7 +99,7 @@ class ToolState(DisplayState):
             if self.is_error:
                 return "❌", "red", "red"
             else:
-                return "✅", "green", "green3"  # Slightly softer green
+                return "✅", "green", "green"  # Slightly softer green
         return (
             RUNNING_SPINNER,
             "yellow",
@@ -108,37 +109,34 @@ class ToolState(DisplayState):
     def render_panel(self) -> Panel:
         """Render tool state as a panel with status indicator."""
         icon, text_style, border_style = self.get_status_style()
-        table = Table.grid(padding=0, expand=True)
-
-        header = Table.grid(padding=1)
-        header.add_column(width=2)
-        header.add_column()
-        tool_name = self.name.replace("_", " ").title()
-        header.add_row(icon, f"[{text_style} bold]{tool_name}[/]")
-        table.add_row(header)
+        # table = Table.grid(padding=0, expand=True)
 
         details = Table.grid(padding=(0, 2))
-        details.add_column(style="dim", width=9)
+        details.add_column(style="dim")
         details.add_column()
+
+        details.add_row("Tool:", f"[{text_style} bold]{self.name}[/]")
 
         if self.args:
             details.add_row(
-                "    Input:",
-                rich.pretty.Pretty(self.args, indent_size=2, expand_all=True),
+                "Input:",
+                rich.pretty.Pretty(self.args, indent_size=2, expand_all=False),
             )
 
+        details.add_row("Status:", icon)
         if self.is_complete and self.result:
             label = "Error" if self.is_error else "Output"
-            style = "red" if self.is_error else "green3"
-            details.add_row(
-                f"    {label}:",
-                f"[{style}]{self.result}[/]",
+            output = (
+                f"[red]{self.result}[/]"
+                if self.is_error
+                else rich.pretty.Pretty(self.result)
             )
+            details.add_row(f"{label}:", output)
 
-        table.add_row(details)
+        # table.add_row(details)
 
         return Panel(
-            table,
+            details,
             title=f"[bold]{self.agent_name}[/]",
             subtitle=f"[italic]{self.format_timestamp()}[/]",
             title_align="left",
@@ -224,7 +222,7 @@ class PrintHandler(Handler):
 
     def on_tool_call(self, event: ToolCallEvent):
         """Handle tool call events by updating tool state."""
-        tool_id = str(event.id)
+        tool_id = event.message.tool_call_id
         if tool_id not in self.states:
             self.states[tool_id] = ToolState(
                 agent_name=event.agent.name,
@@ -241,11 +239,23 @@ class PrintHandler(Handler):
 
     def on_tool_return(self, event: ToolReturnEvent):
         """Handle tool return events by updating tool state."""
-        tool_id = str(event.message.tool_call_id)
+        tool_id = event.message.tool_call_id
         if tool_id in self.states:
             state = self.states[tool_id]
             if isinstance(state, ToolState):
                 state.is_complete = True
+                state.result = event.message.content
+
+        self.update_display()
+
+    def on_tool_retry(self, event: ToolRetryEvent):
+        """Handle tool retry events by updating tool state."""
+        tool_id = event.message.tool_call_id
+        if tool_id in self.states:
+            state = self.states[tool_id]
+            if isinstance(state, ToolState):
+                state.is_complete = True
+                state.is_error = True
                 state.result = event.message.content
 
         self.update_display()

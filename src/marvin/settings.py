@@ -106,7 +106,7 @@ class Settings(BaseSettings):
     # ------------ DX settings ------------
 
     enable_default_print_handler: bool = Field(
-        default=False,
+        default=True,
         description="Whether to enable the default print handler.",
     )
 
