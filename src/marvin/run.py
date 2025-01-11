@@ -3,6 +3,7 @@ from typing import Any, Callable, TypeVar
 import marvin.utilities.asyncio
 from marvin import Task, Thread
 from marvin.agents.actor import Actor
+from marvin.engine.handlers import AsyncHandler, Handler
 from marvin.engine.orchestrator import Orchestrator
 
 T = TypeVar("T")
@@ -13,8 +14,11 @@ async def run_tasks_async(
     agents: list[Actor] | None = None,
     thread: Thread | str | None = None,
     raise_on_failure: bool = True,
+    handlers: list[Handler | AsyncHandler] | None = None,
 ) -> list[Task[Any]]:
-    orchestrator = Orchestrator(tasks=tasks, agents=agents, thread=thread)
+    orchestrator = Orchestrator(
+        tasks=tasks, agents=agents, thread=thread, handlers=handlers
+    )
     await orchestrator.run(raise_on_failure=raise_on_failure)
     return tasks
 
@@ -24,9 +28,16 @@ def run_tasks(
     agents: list[Actor] | None = None,
     thread: Thread | str | None = None,
     raise_on_failure: bool = True,
+    handlers: list[Handler | AsyncHandler] | None = None,
 ) -> list[Task[Any]]:
     return marvin.utilities.asyncio.run_sync(
-        run_tasks_async(tasks, agents, thread, raise_on_failure)
+        run_tasks_async(
+            tasks=tasks,
+            agents=agents,
+            thread=thread,
+            raise_on_failure=raise_on_failure,
+            handlers=handlers,
+        )
     )
 
 
@@ -36,6 +47,7 @@ async def run_async(
     tools: list[Callable[..., Any]] = [],
     thread: Thread | str | None = None,
     agent: Actor | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
     raise_on_failure: bool = True,
     **kwargs,
 ) -> T:
@@ -46,7 +58,12 @@ async def run_async(
         tools=tools,
         **kwargs,
     )
-    await run_tasks_async([task], thread=thread, raise_on_failure=raise_on_failure)
+    await run_tasks_async(
+        [task],
+        thread=thread,
+        raise_on_failure=raise_on_failure,
+        handlers=handlers,
+    )
     return task.result
 
 
@@ -57,6 +74,7 @@ def run(
     thread: Thread | str | None = None,
     agent: Actor | None = None,
     raise_on_failure: bool = True,
+    handlers: list[Handler | AsyncHandler] | None = None,
     **kwargs,
 ) -> T:
     return marvin.utilities.asyncio.run_sync(
@@ -67,6 +85,7 @@ def run(
             thread=thread,
             agent=agent,
             raise_on_failure=raise_on_failure,
+            handlers=handlers,
             **kwargs,
         )
     )

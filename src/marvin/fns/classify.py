@@ -27,8 +27,7 @@ async def classify_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-) -> T:
-    ...
+) -> T: ...
 
 
 @overload
@@ -40,8 +39,7 @@ async def classify_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-) -> list[T]:
-    ...
+) -> list[T]: ...
 
 
 async def classify_async(
@@ -124,7 +122,7 @@ async def classify_async(
         agent=agent,
     )
 
-    return await task.run_async(thread=thread)
+    return await task.run_async(thread=thread, handlers=[])
 
 
 @overload
@@ -136,8 +134,7 @@ def classify(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-) -> T:
-    ...
+) -> T: ...
 
 
 @overload
@@ -149,8 +146,7 @@ def classify(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-) -> list[T]:
-    ...
+) -> list[T]: ...
 
 
 def classify(

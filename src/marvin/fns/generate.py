@@ -68,7 +68,7 @@ async def generate_async(
         agent=agent,
     )
 
-    return cast(list[T], await task.run_async(thread=thread))
+    return cast(list[T], await task.run_async(thread=thread, handlers=[]))
 
 
 def generate(
