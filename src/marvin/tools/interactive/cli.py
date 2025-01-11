@@ -1,5 +1,8 @@
-from controlflow.tools import tool
+import inspect
+
 from rich.prompt import Prompt as RichPrompt
+
+from marvin.engine.orchestrator import get_current_orchestrator
 
 INSTRUCTIONS = """
 If a task requires you to interact with a user, it will show
@@ -29,16 +32,23 @@ class Prompt(RichPrompt):
     prompt_suffix = " "
 
 
-@tool(instructions=INSTRUCTIONS, include_return_description=False)
-def cli_input(message: str, wait_for_response: bool = True) -> str:
+async def cli(message: str) -> str:
     """
-    Send a message to a human user and optionally wait for a response from the CLI
+    Send a message to a human user and wait for a response
     """
+    orchestrator = get_current_orchestrator()
+    if orchestrator:
+        agent = orchestrator.active_agent().name
+    else:
+        agent = "Agent"
 
-    if wait_for_response:
-        result = RichPrompt.ask(
-            f"\n[bold blue]🤖 Agent:[/] [blue]{message}[/]\nType your response"
+    result = Prompt.ask(
+        inspect.cleandoc(
+            f"""
+            [bold blue]🤖 {agent}:[/] [blue]{message}[/]
+            
+            :computer: [bold green]You:[/]
+            """
         )
-        return f"User response: {result}"
-
-    return "Message sent to user."
+    )
+    return f"User response: {result}"
