@@ -1,20 +1,30 @@
-import asyncio
 from typing import Any, Coroutine, TypeVar
 
-from marvin.settings import settings
-
-if settings.apply_nest_asyncio:
-    import nest_asyncio
-
-    nest_asyncio.apply()  # type: ignore
+from unsync import unsync
 
 T = TypeVar("T")
 
 
 def run_sync(coroutine: Coroutine[Any, Any, T]) -> T:
-    try:
-        loop = asyncio.get_running_loop()
-        task = loop.create_task(coroutine)
-        return loop.run_until_complete(task)
-    except RuntimeError:  # No running loop
-        return asyncio.run(coroutine)
+    """
+    Run a coroutine synchronously.
+
+    This is a wrapper around unsync.unsync that allows you to run a coroutine
+    synchronously.
+
+    Example:
+
+    ```python
+    async def f(x: int) -> int:
+        return x + 1
+
+    result = run_sync(f(1))
+    ```
+    """
+
+    @unsync
+    async def _wrapper(coroutine: Coroutine[Any, Any, T]) -> T:
+        return await coroutine
+
+    unfuture = _wrapper(coroutine)
+    return unfuture.result()

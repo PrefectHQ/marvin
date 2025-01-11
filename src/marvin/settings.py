@@ -2,7 +2,6 @@
 Settings for Marvin.
 """
 
-import inspect
 from pathlib import Path
 from typing import Literal, Optional, Self
 
@@ -130,18 +129,6 @@ class Settings(BaseSettings):
     chroma_cloud_database: str | None = Field(
         default=None,
         description="The database for the Chroma Cloud.",
-    )
-
-    # ------------ Async settings ------------
-
-    apply_nest_asyncio: bool = Field(
-        default=True,
-        description=inspect.cleandoc("""
-            Whether to apply nest_asyncio (default: True). In many cases,
-            nest_asyncio makes Marvin's synchronous interface run transparently.
-            You can disable it if you're only using async functions, or if
-            you're using asyncio in a way that doesn't support nest_asyncio.
-            """),
     )
 
 

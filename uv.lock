@@ -1030,13 +1030,13 @@ source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
     { name = "jinja2" },
-    { name = "nest-asyncio" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
     { name = "pydantic-settings" },
     { name = "rich" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "typer" },
+    { name = "unsync" },
 ]
 
 [package.optional-dependencies]
@@ -1074,7 +1074,6 @@ requires-dist = [
     { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.12.3" },
     { name = "jinja2", specifier = ">=3.1.4" },
     { name = "marvin", extras = ["test"], marker = "extra == 'dev'" },
-    { name = "nest-asyncio", specifier = ">=1.6.0" },
     { name = "pdbpp", marker = "extra == 'dev'", specifier = ">=0.10.3" },
     { name = "pre-commit", marker = "extra == 'test'" },
     { name = "pydantic", specifier = ">=2.10.2" },
@@ -1090,6 +1089,7 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'test'" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
     { name = "typer", specifier = ">=0.15.1" },
+    { name = "unsync", specifier = ">=1.4.0" },
 ]
 
 [[package]]
@@ -1227,15 +1227,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/98/a4/1ab47638b92648243faf97a5aeb6ea83059cc3624972ab6b8d2316078d3f/mypy_extensions-1.0.0.tar.gz", hash = "sha256:75dbf8955dc00442a438fc4d0666508a9a97b6bd41aa2f0ffe9d2f2725af0782", size = 4433 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2a/e2/5d3f6ada4297caebe1a2add3b126fe800c96f56dbe5d1988a2cbe0b267aa/mypy_extensions-1.0.0-py3-none-any.whl", hash = "sha256:4392f6c0eb8a5668a69e23d168ffa70f0be9ccfd32b5cc2d26a34ae5b844552d", size = 4695 },
-]
-
-[[package]]
-name = "nest-asyncio"
-version = "1.6.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/83/f8/51569ac65d696c8ecbee95938f89d4abf00f47d58d48f6fbabfe8f0baefe/nest_asyncio-1.6.0.tar.gz", hash = "sha256:6f172d5449aca15afd6c646851f4e31e02c598d553a667e38cafa997cfec55fe", size = 7418 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a0/c4/c2971a3ba4c6103a3d10c4b0f24f461ddc027f0f09763220cf35ca1401b3/nest_asyncio-1.6.0-py3-none-any.whl", hash = "sha256:87af6efd6b5e897c81050477ef65c62e2b2f35d51703cae01aff2905b1852e1c", size = 5195 },
 ]
 
 [[package]]
@@ -2526,6 +2517,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/dc/74/1789779d91f1961fa
 wheels = [
     { url = "https://files.pythonhosted.org/packages/65/f3/107a22063bf27bdccf2024833d3445f4eea42b2e598abfbd46f6a63b6cb0/typing_inspect-0.9.0-py3-none-any.whl", hash = "sha256:9ee6fc59062311ef8547596ab6b955e1b8aa46242d854bfc78f4f6b0eff35f9f", size = 8827 },
 ]
+
+[[package]]
+name = "unsync"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ea/6b/8d9699d37fe8c43c76fda4a7f93ae6aef129576f75c3cacfc9a78a7cc984/unsync-1.4.0.tar.gz", hash = "sha256:a29e0f8952ffb0b3a0453ce436819a5a1ba2febbb5caa707c319f6f98d35f3c5", size = 8796 }
 
 [[package]]
 name = "urllib3"

@@ -11,9 +11,9 @@ dependencies = [
     "aiosqlite>=0.20.0",
     "sqlalchemy[asyncio]>=2.0.36",
     "jinja2>=3.1.4",
-    "nest-asyncio>=1.6.0",
     "rich>=13.9.4",
     "typer>=0.15.1",
+    "unsync>=1.4.0",
 ]
 
 [project.optional-dependencies]
