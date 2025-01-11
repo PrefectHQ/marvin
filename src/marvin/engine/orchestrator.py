@@ -188,7 +188,6 @@ class Orchestrator:
                         KeyboardInterrupt,
                         CancelledError,
                     ) as e:
-                        breakpoint()
                         raise e
                     except Exception as e:
                         raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
@@ -267,7 +266,6 @@ class Orchestrator:
                             raise ValueError(f"Task {failed.id} failed")
 
             except (Exception, KeyboardInterrupt, CancelledError) as e:
-                breakpoint()
                 await self.handle_event(OrchestratorExceptionEvent(error=str(e)))
                 raise
             finally:
