@@ -1,10 +1,13 @@
-import itertools
+import inspect
+from asyncio import CancelledError
 from dataclasses import dataclass, field
+from functools import wraps
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any, Callable, TypeVar
 
 import pydantic_ai
-from pydantic_ai.result import RunResult
+from pydantic_ai.messages import ModelRequestPart, RetryPromptPart, ToolCallPart
+from pydantic_ai.result import AgentDeps, RunContext, RunResult
 
 import marvin
 import marvin.agents.team
@@ -19,6 +22,9 @@ from marvin.engine.events import (
     OrchestratorEndEvent,
     OrchestratorExceptionEvent,
     OrchestratorStartEvent,
+    ToolCallEvent,
+    ToolRetryEvent,
+    ToolReturnEvent,
     message_to_events,
 )
 from marvin.engine.handlers import AsyncHandler, Handler
@@ -102,11 +108,9 @@ class Orchestrator:
         tools = set()
         for t in active_tasks:
             tools.update(t.get_tools())
-        tools.update(self.team.get_tools())
         tools = list(tools)
 
         # --- get end turn tools
-
         end_turn_tools = set()
         for t in active_tasks:
             end_turn_tools.update(t.get_end_turn_tools())
@@ -129,16 +133,7 @@ class Orchestrator:
         ] + messages
 
         # --- run agent
-        agentlet = self.team.get_agentlet(
-            tools=list(
-                itertools.chain.from_iterable(t.get_tools() for t in active_tasks)
-            ),
-            result_types=end_turn_tools,
-            result_tool_name="end_turn",
-            result_tool_description="This tool will end your turn.",
-            retries=marvin.settings.agent_retries,
-        )
-        agentlet.result_validator(self.validate_end_turn)
+        agentlet = self._get_agentlet(tools=tools, end_turn_tools=end_turn_tools)
 
         result = await agentlet.run("", message_history=all_messages)
 
@@ -150,6 +145,88 @@ class Orchestrator:
         await self.handle_event(AgentEndTurnEvent(agent=self.team))
 
         return result
+
+    def _get_agentlet(self, tools: list, end_turn_tools: list) -> Any:
+        """Get an agentlet with wrapped tools and configured result validator.
+
+        Args:
+            tools: List of tools to provide to the agentlet
+            end_turn_tools: List of end turn tools to provide to the agentlet
+
+        Returns:
+            The configured agentlet
+        """
+
+        # Pydantic AI doesn't catch errors except for ModelRetry, so we need to make sure we catch them
+        # ourselves and raise a ModelRetry.
+        def wrap_tool(tool: Callable[..., Any]):
+            if inspect.iscoroutinefunction(tool):
+
+                @wraps(tool)
+                async def _fn(*args, **kwargs):
+                    try:
+                        return await tool(*args, **kwargs)
+                    except (
+                        pydantic_ai.ModelRetry,
+                        KeyboardInterrupt,
+                        CancelledError,
+                    ) as e:
+                        raise e
+                    except Exception as e:
+                        raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
+
+                return _fn
+
+            else:
+
+                @wraps(tool)
+                def _fn(*args, **kwargs):
+                    try:
+                        return tool(*args, **kwargs)
+                    except (
+                        pydantic_ai.ModelRetry,
+                        KeyboardInterrupt,
+                        CancelledError,
+                    ) as e:
+                        breakpoint()
+                        raise e
+                    except Exception as e:
+                        raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
+
+                return _fn
+
+        tools = [wrap_tool(tool) for tool in tools]
+
+        agentlet = self.team.get_agentlet(
+            tools=tools,
+            result_types=end_turn_tools,
+            result_tool_name="end_turn",
+            result_tool_description="This tool will end your turn.",
+            retries=marvin.settings.agent_retries,
+        )
+        agentlet.result_validator(self.validate_end_turn)
+
+        for tool in agentlet._function_tools.values():
+            original_run = tool.run
+
+            # Wrap the tool run function to emit events for each call / result
+            async def run(
+                message: ToolCallPart,
+                run_context: RunContext[AgentDeps],
+            ) -> ModelRequestPart:
+                await self.handle_event(
+                    ToolCallEvent(agent=self.active_agent(), message=message)
+                )
+                result = await original_run(message, run_context)
+                if isinstance(result, RetryPromptPart):
+                    await self.handle_event(ToolRetryEvent(message=result))
+                else:
+                    await self.handle_event(ToolReturnEvent(message=result))
+                return result
+
+            tool.run = run
+
+        return agentlet
 
     def get_delegates(self) -> list[Actor]:
         delegates = []
@@ -189,11 +266,12 @@ class Orchestrator:
                         ):
                             raise ValueError(f"Task {failed.id} failed")
 
-                await self.handle_event(OrchestratorEndEvent())
-
-            except Exception as e:
+            except (Exception, KeyboardInterrupt, CancelledError) as e:
+                breakpoint()
                 await self.handle_event(OrchestratorExceptionEvent(error=str(e)))
                 raise
+            finally:
+                await self.handle_event(OrchestratorEndEvent())
 
         return results
 

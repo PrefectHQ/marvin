@@ -1,9 +1,10 @@
-from typing import Any, TypeVar
+from typing import Any, Callable, TypeVar
 
 import marvin.utilities.asyncio
 from marvin import Task, Thread
 from marvin.agents.actor import Actor
 from marvin.engine.orchestrator import Orchestrator
+from marvin.memory.memory import Memory
 
 T = TypeVar("T")
 
@@ -33,6 +34,9 @@ def run_tasks(
 async def run_async(
     instructions: str,
     result_type: type[T] = str,
+    tools: list[Callable[..., Any]] = [],
+    memories: list[Memory] = [],
+    context: dict[str, Any] = {},
     thread: Thread | str | None = None,
     agent: Actor | None = None,
     raise_on_failure: bool = True,
@@ -41,6 +45,9 @@ async def run_async(
         instructions=instructions,
         result_type=result_type,
         agent=agent,
+        tools=tools,
+        memories=memories,
+        context=context,
     )
     await run_tasks_async([task], thread=thread, raise_on_failure=raise_on_failure)
     return task.result
@@ -49,6 +56,9 @@ async def run_async(
 def run(
     instructions: str,
     result_type: type[T] = str,
+    tools: list[Callable[..., Any]] = [],
+    memories: list[Memory] = [],
+    context: dict[str, Any] = {},
     thread: Thread | str | None = None,
     agent: Actor | None = None,
     raise_on_failure: bool = True,
@@ -57,6 +67,9 @@ def run(
         run_async(
             instructions=instructions,
             result_type=result_type,
+            tools=tools,
+            memories=memories,
+            context=context,
             thread=thread,
             agent=agent,
             raise_on_failure=raise_on_failure,
