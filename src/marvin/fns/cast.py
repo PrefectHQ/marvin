@@ -73,7 +73,7 @@ async def cast_async(
         agent=agent,
     )
 
-    return await task.run_async(thread=thread)
+    return await task.run_async(thread=thread, handlers=[])
 
 
 def cast(

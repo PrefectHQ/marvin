@@ -68,7 +68,7 @@ async def extract_async(
         agent=agent,
     )
 
-    return await task.run_async(thread=thread)  # type: ignore
+    return await task.run_async(thread=thread, handlers=[])
 
 
 def extract(

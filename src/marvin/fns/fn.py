@@ -145,7 +145,7 @@ async def _fn(
         agent=agent,
     )
 
-    result = await task.run_async(thread=thread)
+    result = await task.run_async(thread=thread, handlers=[])
 
     # If no return annotation was specified, try to parse as JSON first
     if not has_return_annotation:

@@ -9,6 +9,7 @@ import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Generic,
@@ -23,6 +24,9 @@ from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.types import Labels, as_classifier, is_classifier
+
+if TYPE_CHECKING:
+    from marvin.engine.handlers import AsyncHandler, Handler
 
 T = TypeVar("T")
 
@@ -276,9 +280,10 @@ class Task(Generic[T]):
         *,
         thread: Thread | str | None = None,
         raise_on_failure: bool = True,
+        handlers: list["Handler | AsyncHandler"] = None,
     ) -> T:
         orchestrator = marvin.engine.orchestrator.Orchestrator(
-            tasks=[self], thread=thread
+            tasks=[self], thread=thread, handlers=handlers
         )
         await orchestrator.run(raise_on_failure=raise_on_failure)
         return self.result
