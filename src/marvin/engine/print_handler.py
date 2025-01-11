@@ -109,21 +109,20 @@ class ToolState(DisplayState):
     def render_panel(self) -> Panel:
         """Render tool state as a panel with status indicator."""
         icon, text_style, border_style = self.get_status_style()
-        # table = Table.grid(padding=0, expand=True)
 
-        details = Table.grid(padding=(0, 2))
-        details.add_column(style="dim")
-        details.add_column()
+        table = Table.grid(padding=(0, 2))
+        table.add_column(style="dim")
+        table.add_column()
 
-        details.add_row("Tool:", f"[{text_style} bold]{self.name}[/]")
+        table.add_row("Tool:", f"[{text_style} bold]{self.name}[/]")
 
         if self.args:
-            details.add_row(
+            table.add_row(
                 "Input:",
                 rich.pretty.Pretty(self.args, indent_size=2, expand_all=False),
             )
 
-        details.add_row("Status:", icon)
+        table.add_row("Status:", icon)
         if self.is_complete and self.result:
             label = "Error" if self.is_error else "Output"
             output = (
@@ -131,12 +130,10 @@ class ToolState(DisplayState):
                 if self.is_error
                 else rich.pretty.Pretty(self.result)
             )
-            details.add_row(f"{label}:", output)
-
-        # table.add_row(details)
+            table.add_row(f"{label}:", output)
 
         return Panel(
-            details,
+            table,
             title=f"[bold]{self.agent_name}[/]",
             subtitle=f"[italic]{self.format_timestamp()}[/]",
             title_align="left",
@@ -154,6 +151,7 @@ class PrintHandler(Handler):
     def __init__(self):
         self.live: Optional[Live] = None
         self.states: dict[str, DisplayState] = {}
+        self.paused_id: Optional[str] = None
 
     def update_display(self):
         """Render all current state as panels and update display."""
@@ -172,10 +170,7 @@ class PrintHandler(Handler):
     def on_orchestrator_start(self, event: OrchestratorStartEvent):
         """Initialize live display when orchestrator starts."""
         if not self.live:
-            self.live = Live(
-                vertical_overflow="visible",
-                auto_refresh=True,
-            )
+            self.live = Live(vertical_overflow="visible", auto_refresh=True)
             try:
                 self.live.start()
             except rich.errors.LiveError:
@@ -223,6 +218,12 @@ class PrintHandler(Handler):
     def on_tool_call(self, event: ToolCallEvent):
         """Handle tool call events by updating tool state."""
         tool_id = event.message.tool_call_id
+        if not self.paused_id and event.message.tool_name == "cli":
+            self.paused_id = tool_id
+            if self.live and self.live.is_started:
+                self.live.stop()
+            return
+
         if tool_id not in self.states:
             self.states[tool_id] = ToolState(
                 agent_name=event.agent.name,
@@ -240,6 +241,15 @@ class PrintHandler(Handler):
     def on_tool_return(self, event: ToolReturnEvent):
         """Handle tool return events by updating tool state."""
         tool_id = event.message.tool_call_id
+
+        if event.message.tool_name == "cli":
+            if self.paused_id == tool_id:
+                self.paused_id = None
+
+                self.live = Live(vertical_overflow="visible", auto_refresh=True)
+                self.live.start()
+            return
+
         if tool_id in self.states:
             state = self.states[tool_id]
             if isinstance(state, ToolState):

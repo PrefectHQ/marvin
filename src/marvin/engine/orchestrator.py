@@ -1,9 +1,10 @@
 import inspect
 from asyncio import CancelledError
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
 import pydantic_ai
 from pydantic_ai.messages import ModelRequestPart, RetryPromptPart, ToolCallPart
@@ -39,6 +40,11 @@ T = TypeVar("T")
 
 logger = get_logger(__name__)
 
+# Global context var for current orchestrator
+current_orchestrator: ContextVar[Optional["Orchestrator"]] = ContextVar(
+    "current_orchestrator", default=None
+)
+
 
 @dataclass(kw_only=True)
 class OrchestratorPrompt(Template):
@@ -58,6 +64,7 @@ class Orchestrator:
     handlers: list[Handler | AsyncHandler] = None
 
     team: marvin.agents.team.Team = field(init=False, repr=False)
+    _token: Any = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
         all_agents = {t.get_agent() for t in self.tasks}
@@ -251,25 +258,31 @@ class Orchestrator:
 
     async def run(self, raise_on_failure: bool = True) -> list[RunResult]:
         results = []
-        with self.thread:
-            await self.handle_event(OrchestratorStartEvent())
+        token = current_orchestrator.set(self)
+        try:
+            with self.thread:
+                await self.handle_event(OrchestratorStartEvent())
 
-            try:
-                while self.incomplete_tasks():
-                    result = await self._run_turn()
-                    results.append(result)
+                try:
+                    while self.incomplete_tasks():
+                        result = await self._run_turn()
+                        results.append(result)
 
-                    if raise_on_failure:
-                        if failed := next(
-                            (t for t in self.incomplete_tasks() if t.is_failed()), False
-                        ):
-                            raise ValueError(f"Task {failed.id} failed")
+                        if raise_on_failure:
+                            if failed := next(
+                                (t for t in self.incomplete_tasks() if t.is_failed()),
+                                False,
+                            ):
+                                raise ValueError(f"Task {failed.id} failed")
 
-            except (Exception, KeyboardInterrupt, CancelledError) as e:
-                await self.handle_event(OrchestratorExceptionEvent(error=str(e)))
-                raise
-            finally:
-                await self.handle_event(OrchestratorEndEvent())
+                except (Exception, KeyboardInterrupt, CancelledError) as e:
+                    await self.handle_event(OrchestratorExceptionEvent(error=str(e)))
+                    raise
+                finally:
+                    await self.handle_event(OrchestratorEndEvent())
+
+        finally:
+            current_orchestrator.reset(token)
 
         return results
 
@@ -341,3 +354,17 @@ class Orchestrator:
                 }
 
         return _build_tree(self.team)
+
+    @classmethod
+    def get_current(cls) -> Optional["Orchestrator"]:
+        """Get the current orchestrator from context."""
+        return current_orchestrator.get()
+
+
+def get_current_orchestrator() -> Optional[Orchestrator]:
+    """Get the currently active orchestrator from context.
+
+    Returns:
+        The current Orchestrator instance or None if no orchestrator is active.
+    """
+    return Orchestrator.get_current()
