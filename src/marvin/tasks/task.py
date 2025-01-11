@@ -182,7 +182,8 @@ class Task(Generic[T]):
             name: Optional name for this task
             result_type: Expected type of the result
             prompt_template: Optional Jinja template for customizing task appearance
-            agent: Optional agent or team to execute this task
+            agent: Optional agent or team to execute this task. A string can be
+                provided, which will be inferred as a model name.
             context: Context for the task
             tools: Tools to make available to agents
             memories: Memories to make available to agents
