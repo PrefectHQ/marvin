@@ -13,6 +13,7 @@ from typing import (
     Any,
     Callable,
     Generic,
+    Literal,
     TypeVar,
     cast,
 )
@@ -162,7 +163,7 @@ class Task(Generic[T]):
         instructions: str,
         *,
         name: str | None = None,
-        result_type: type[T] | Labels = NOTSET,
+        result_type: type[T] | Labels | Literal["__NOTSET__"] = NOTSET,
         prompt_template: str | Path = Path("task.jinja"),
         agent: Actor | str | list | tuple | set | None = None,
         context: dict[str, Any] | None = None,
@@ -349,6 +350,8 @@ class Task(Generic[T]):
         raise_on_failure: bool = True,
         handlers: list["Handler | AsyncHandler"] = None,
     ) -> T:
+        import marvin.engine.orchestrator
+
         orchestrator = marvin.engine.orchestrator.Orchestrator(
             tasks=[self], thread=thread, handlers=handlers
         )

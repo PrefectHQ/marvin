@@ -22,7 +22,7 @@ from typing import (
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import jinja_env
 
-T = TypeVar("T", infer_variance=True)
+T = TypeVar("T")
 P = ParamSpec("P")
 R = TypeVar("R")
 
