@@ -142,6 +142,13 @@ class Task(Generic[T]):
         repr=False,
     )
 
+    cli: bool = field(
+        default=False,
+        metadata={
+            "description": "If True, agents will be given a tool for interacting with users on the CLI."
+        },
+    )
+
     def __post_init__(self):
         """Transform raw sequences into Labels for classification tasks.
 
@@ -212,7 +219,14 @@ class Task(Generic[T]):
 
     def get_tools(self) -> list[Callable[..., Any]]:
         """Get the tools assigned to this task."""
-        return self.tools + [t for m in self.memories for t in m.get_tools()]
+        tools = []
+        tools.extend(self.tools)
+        tools.extend([t for m in self.memories for t in m.get_tools()])
+        if self.cli:
+            import marvin.tools.interactive.cli
+
+            tools.append(marvin.tools.interactive.cli.cli)
+        return tools
 
     def is_classifier(self) -> bool:
         """Return True if this task is a classification task."""
