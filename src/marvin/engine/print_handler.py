@@ -1,13 +1,15 @@
 import datetime
+import re
+from dataclasses import dataclass
 from typing import Any, Optional, Union
 
 import rich
-from pydantic import BaseModel
 from rich import box
 from rich.console import Group
 from rich.live import Live
 from rich.markdown import Markdown
 from rich.panel import Panel
+from rich.pretty import Pretty
 from rich.spinner import Spinner
 from rich.table import Table
 
@@ -26,7 +28,8 @@ from marvin.engine.handlers import Handler
 RUNNING_SPINNER = Spinner("dots")
 
 
-class DisplayState(BaseModel):
+@dataclass(kw_only=True)
+class DisplayState:
     """Base class for content to be displayed."""
 
     agent_name: str
@@ -38,6 +41,7 @@ class DisplayState(BaseModel):
         return local_timestamp.strftime("%I:%M:%S %p").lstrip("0").rjust(11)
 
 
+@dataclass(kw_only=True)
 class ContentState(DisplayState):
     """State for content being streamed."""
 
@@ -84,6 +88,7 @@ class ContentState(DisplayState):
         )
 
 
+@dataclass(kw_only=True)
 class ToolState(DisplayState):
     """State for a tool call and its result."""
 
@@ -92,6 +97,11 @@ class ToolState(DisplayState):
     result: Optional[str] = None
     is_error: bool = False
     is_complete: bool = False
+
+    def is_end_turn_tool(self) -> bool:
+        from marvin.engine.orchestrator import RESULT_TOOL_PREFIX
+
+        return self.name.startswith(RESULT_TOOL_PREFIX)
 
     def get_status_style(self) -> tuple[Union[str, Spinner], str, str]:
         """Returns (icon, text style, border style) for current status."""
@@ -114,22 +124,32 @@ class ToolState(DisplayState):
         table.add_column(style="dim")
         table.add_column()
 
-        table.add_row("Tool:", f"[{text_style} bold]{self.name}[/]")
+        if self.is_end_turn_tool():
+            from marvin.engine.orchestrator import RESULT_TOOL_PREFIX
+
+            if self.name == RESULT_TOOL_PREFIX:
+                name = "TaskSuccess"
+            else:
+                name = self.name[len(RESULT_TOOL_PREFIX) + 1 :]
+        else:
+            name = self.name
+
+        name = re.sub(r"(?<!^)(?=[A-Z])", " ", name)
+
+        table.add_row("Tool:", f"[{text_style} bold]{name}[/]")
 
         if self.args:
-            table.add_row(
-                "Input:",
-                rich.pretty.Pretty(self.args, indent_size=2, expand_all=False),
-            )
+            if self.is_end_turn_tool():
+                args = self.args.get("response", self.args)
+            else:
+                args = self.args
+
+            table.add_row("Input:", Pretty(args, indent_size=2))
 
         table.add_row("Status:", icon)
-        if self.is_complete and self.result:
+        if self.is_complete and self.result and not self.is_end_turn_tool():
             label = "Error" if self.is_error else "Output"
-            output = (
-                f"[red]{self.result}[/]"
-                if self.is_error
-                else rich.pretty.Pretty(self.result)
-            )
+            output = f"[red]{self.result}[/]" if self.is_error else Pretty(self.result)
             table.add_row(f"{label}:", output)
 
         return Panel(

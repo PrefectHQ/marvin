@@ -104,22 +104,25 @@ class Memory:
     def search(self, query: str, n: int = 20) -> Dict[str, str]:
         return self.provider.search(self.key, query, n)
 
+    def friendly_name(self) -> str:
+        return f"Memory: {self.key}"
+
     def get_tools(self) -> list[Callable[..., Any]]:
         return [
             update_fn(
                 self.add,
                 name=f"store_memory_{self.key}",
-                description=f'Create a new memory in Memory: "{self.key}".',
+                description=f"Create a new memory in {self.friendly_name()}.",
             ),
             update_fn(
                 self.delete,
                 name=f"delete_memory_{self.key}",
-                description=f'Delete a memory by its ID from Memory: "{self.key}".',
+                description=f"Delete a memory by ID from {self.friendly_name()}.",
             ),
             update_fn(
                 self.search,
                 name=f"search_memories_{self.key}",
-                description=f'Search for memories relevant to a string query in Memory: "{self.key}". Returns a dictionary of memory IDs and their contents.',
+                description=f"Search {self.friendly_name()}. {self.instructions or ''}".rstrip(),
             ),
         ]
 

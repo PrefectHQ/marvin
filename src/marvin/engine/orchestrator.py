@@ -41,9 +41,10 @@ T = TypeVar("T")
 logger = get_logger(__name__)
 
 # Global context var for current orchestrator
-current_orchestrator: ContextVar[Optional["Orchestrator"]] = ContextVar(
+current_orchestrator: ContextVar["Orchestrator|None"] = ContextVar(
     "current_orchestrator", default=None
 )
+RESULT_TOOL_PREFIX = "_EndTurn_"
 
 
 @dataclass(kw_only=True)
@@ -206,7 +207,7 @@ class Orchestrator:
         agentlet = self.team.get_agentlet(
             tools=tools,
             result_types=end_turn_tools,
-            result_tool_name="end_turn",
+            result_tool_name=RESULT_TOOL_PREFIX,
             result_tool_description="This tool will end your turn.",
             retries=marvin.settings.agent_retries,
         )
