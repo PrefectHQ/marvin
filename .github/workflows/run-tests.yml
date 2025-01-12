@@ -1,0 +1,41 @@
+name: Run tests
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  run_tests:
+    # Skip the entire job for fork PRs
+    if: ${{ !(github.event.pull_request.head.repo.fork) }}
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        # os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
+        python-version: ["3.10"]
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: download uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: Run tests
+        run: uv run pytest -vv

@@ -44,3 +44,4 @@ class TestMemoryProvider:
             client=chromadb.PersistentClient(path=str(tmp_path / "test_path")),
         )
         m = marvin.Memory(key="test", instructions="test", provider=mp)
+        assert m
