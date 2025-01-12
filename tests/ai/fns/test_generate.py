@@ -22,7 +22,9 @@ class TestGenerate:
 
         def test_generate_locations_with_instructions(self):
             result = marvin.generate(
-                Location, n=3, instructions="major cities in California"
+                Location,
+                n=3,
+                instructions="major cities in California",
             )
             assert_llm_equal(
                 result,

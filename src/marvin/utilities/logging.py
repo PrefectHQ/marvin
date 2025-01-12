@@ -1,16 +1,14 @@
 import logging
 from functools import lru_cache
-from typing import Optional
 
 from rich.logging import RichHandler
 
 import marvin
 
 
-@lru_cache()
-def get_logger(name: Optional[str] = None) -> logging.Logger:
-    """
-    Retrieves a logger with the given name, or the root logger if no name is given.
+@lru_cache
+def get_logger(name: str | None = None) -> logging.Logger:
+    """Retrieves a logger with the given name, or the root logger if no name is given.
 
     Args:
         name: The name of the logger to retrieve.
@@ -29,6 +27,7 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
         debug_logger = get_logger("marvin.debug")
         debug_logger.debug_kv("TITLE", "log message", "green")
         ```
+
     """
     parent_logger = logging.getLogger("marvin")
 
@@ -46,7 +45,7 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
 
 
 def setup_logging(
-    level: Optional[str] = None,
+    level: str | None = None,
 ) -> None:
     logger = get_logger()
 

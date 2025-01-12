@@ -1,5 +1,6 @@
 import enum
-from typing import Any, Literal, Sequence, TypeVar, overload
+from collections.abc import Sequence
+from typing import Any, Literal, TypeVar, overload
 
 import marvin
 from marvin.agents.agent import Agent
@@ -50,8 +51,7 @@ async def classify_async(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
 ) -> T | list[T]:
-    """
-    Asynchronously classifies input data into one or more predefined labels using a language model.
+    """Asynchronously classifies input data into one or more predefined labels using a language model.
 
     This function uses a language model to analyze the input data and assign it to
     the most appropriate label(s) from the provided sequence of labels or Enum class.
@@ -99,8 +99,8 @@ async def classify_async(
         >>> # Boolean classification
         >>> await classify_async("2+2=4", bool)
         True
-    """
 
+    """
     context = {"Data to classify": data}
     if instructions:
         context["Additional instructions"] = instructions
@@ -157,8 +157,7 @@ def classify(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
 ) -> T | list[T]:
-    """
-    Classifies input data into one or more predefined labels using a language model.
+    """Classifies input data into one or more predefined labels using a language model.
 
     This function uses a language model to analyze the input data and assign it to
     the most appropriate label(s) from the provided sequence of labels or Enum class.
@@ -206,6 +205,7 @@ def classify(
         >>> # Boolean classification
         >>> classify("2+2=4", bool)
         True
+
     """
     return run_sync(
         classify_async(
@@ -215,5 +215,5 @@ def classify(
             instructions=instructions,
             agent=agent,
             thread=thread,
-        )
+        ),
     )

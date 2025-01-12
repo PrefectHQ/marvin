@@ -1,13 +1,13 @@
-"""
-Database management for persistence.
+"""Database management for persistence.
 
 This module provides utilities for managing database sessions and migrations.
 """
 
 import uuid
+from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager, contextmanager
 from datetime import UTC, datetime
-from typing import Any, AsyncGenerator, Generator, Optional
+from typing import Any, Optional
 
 from pydantic import TypeAdapter
 from sqlalchemy import JSON, ForeignKey, String, create_engine, inspect
@@ -39,14 +39,16 @@ class DBThread(Base):
     __tablename__ = "threads"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
-    parent_thread_id: Mapped[Optional[str]] = mapped_column(ForeignKey("threads.id"))
+    parent_thread_id: Mapped[str | None] = mapped_column(ForeignKey("threads.id"))
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
 
     messages: Mapped[list["DBMessage"]] = relationship(back_populates="thread")
 
     @classmethod
     async def create(
-        cls, session: AsyncSession, parent_thread_id: Optional[str] = None
+        cls,
+        session: AsyncSession,
+        parent_thread_id: str | None = None,
     ) -> "DBThread":
         thread = cls(id=str(uuid.uuid4()), parent_thread_id=parent_thread_id)
         session.add(thread)
@@ -60,8 +62,9 @@ class DBMessage(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     thread_id: Mapped[str] = mapped_column(ForeignKey("threads.id"), index=True)
-    llm_call_id: Mapped[Optional[uuid.UUID]] = mapped_column(
-        ForeignKey("llm_calls.id"), default=None
+    llm_call_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("llm_calls.id"),
+        default=None,
     )
     message: Mapped[dict[str, Any]] = mapped_column(JSON)
     timestamp: Mapped[datetime] = mapped_column(default=utc_now)
@@ -143,6 +146,7 @@ def create_db_and_tables(*, force: bool = False):
 
     Args:
         force: If True, drops all existing tables before creating new ones.
+
     """
     if force:
         Base.metadata.drop_all(_engine)

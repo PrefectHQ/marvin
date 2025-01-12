@@ -1,4 +1,4 @@
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 
 import marvin
 from marvin.agents.agent import Agent
@@ -25,12 +25,11 @@ requested format.
 async def extract_async(
     data: Any,
     target: TargetType[T] = str,
-    instructions: Optional[str] = None,
-    agent: Optional[Agent] = None,
-    thread: Optional[Thread | str] = None,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
 ) -> list[T]:
-    """
-    Extracts entities of a specific type from the provided data asynchronously.
+    """Extracts entities of a specific type from the provided data asynchronously.
 
     This function uses a language model to identify and extract entities of the
     specified type from the input data. The extracted entities are returned as a
@@ -52,6 +51,7 @@ async def extract_async(
 
     Raises:
         ValueError: If target is str and no instructions are provided.
+
     """
     if target is str and instructions is None:
         raise ValueError("Instructions are required when target type is str.")
@@ -74,12 +74,11 @@ async def extract_async(
 def extract(
     data: Any,
     target: TargetType[T] = str,
-    instructions: Optional[str] = None,
-    agent: Optional[Agent] = None,
-    thread: Optional[Thread | str] = None,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
 ) -> list[T]:
-    """
-    Extracts entities of a specific type from the provided data.
+    """Extracts entities of a specific type from the provided data.
 
     This function uses a language model to identify and extract entities of the
     specified type from the input data. The extracted entities are returned as a
@@ -101,6 +100,7 @@ def extract(
 
     Raises:
         ValueError: If target is str and no instructions are provided.
+
     """
     return run_sync(
         extract_async(
@@ -109,5 +109,5 @@ def extract(
             instructions=instructions,
             agent=agent,
             thread=thread,
-        )
+        ),
     )

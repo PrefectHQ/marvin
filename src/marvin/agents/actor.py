@@ -1,7 +1,8 @@
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 import pydantic_ai
 
@@ -45,9 +46,7 @@ class Actor:
         return hash(self.id)
 
     def get_delegates(self) -> list["Actor"] | None:
-        """
-        A list of actors that this actor can delegate to.
-        """
+        """A list of actors that this actor can delegate to."""
         return None
 
     def get_agentlet(
@@ -59,27 +58,17 @@ class Actor:
         raise NotImplementedError("Subclass must implement get_agentlet")
 
     def start_turn(self):
-        """
-        Called when the actor starts its turn.
-        """
-        pass
+        """Called when the actor starts its turn."""
 
     def end_turn(self):
-        """
-        Called when the actor ends its turn.
-        """
-        pass
+        """Called when the actor ends its turn."""
 
     def get_tools(self) -> list[Callable[..., Any]]:
-        """
-        A list of tools that this actor can use during its turn.
-        """
+        """A list of tools that this actor can use during its turn."""
         return []
 
     def get_end_turn_tools(self) -> list[type["marvin.engine.end_turn.EndTurn"]]:
-        """
-        A list of `EndTurn` tools that this actor can use to end its turn.
-        """
+        """A list of `EndTurn` tools that this actor can use to end its turn."""
         return []
 
     def get_prompt(self) -> str:
@@ -95,7 +84,10 @@ class Actor:
         raise_on_failure: bool = True,
     ) -> Any:
         return await marvin.run_async(
-            instructions, agent=self, thread=thread, raise_on_failure=raise_on_failure
+            instructions,
+            agent=self,
+            thread=thread,
+            raise_on_failure=raise_on_failure,
         )
 
     def run(
@@ -105,7 +97,7 @@ class Actor:
         raise_on_failure: bool = True,
     ) -> Any:
         return marvin.utilities.asyncio.run_sync(
-            self.run_async(instructions, thread, raise_on_failure)
+            self.run_async(instructions, thread, raise_on_failure),
         )
 
     async def say_async(self, message: str, thread: Thread | str | None = None):
@@ -118,5 +110,5 @@ class Actor:
 
     def as_team(self) -> "Team":
         raise NotImplementedError(
-            "Subclass must implement as_team in order to be properly orchestrated."
+            "Subclass must implement as_team in order to be properly orchestrated.",
         )

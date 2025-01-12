@@ -9,9 +9,7 @@ dev_app = typer.Typer(no_args_is_help=True)
 
 @dev_app.command()
 def docs():
-    """
-    Run the Marvin documentation locally. Equivalent to 'cd docs && mintlify dev' from the Marvin root.
-    """
+    """Run the Marvin documentation locally. Equivalent to 'cd docs && mintlify dev' from the Marvin root."""
     try:
         # Get the absolute path of the Marvin main repo
         repo_root = Path(__file__).resolve().parents[3]
@@ -28,8 +26,8 @@ def docs():
         subprocess.run(["mintlify", "dev"], check=True)
 
     except subprocess.CalledProcessError as e:
-        typer.echo(f"Error running 'mintlify dev': {str(e)}", err=True)
+        typer.echo(f"Error running 'mintlify dev': {e!s}", err=True)
         raise typer.Exit(code=1)
     except Exception as e:
-        typer.echo(f"An error occurred: {str(e)}", err=True)
+        typer.echo(f"An error occurred: {e!s}", err=True)
         raise typer.Exit(code=1)

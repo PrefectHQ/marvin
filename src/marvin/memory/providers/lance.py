@@ -1,7 +1,8 @@
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any
 
 try:
     import lancedb
@@ -9,7 +10,7 @@ try:
     from lancedb.pydantic import LanceModel, Vector
 except ImportError:
     raise ImportError(
-        "LanceDB is not installed. Please install it with `pip install lancedb`."
+        "LanceDB is not installed. Please install it with `pip install lancedb`.",
     )
 
 from pydantic import Field
@@ -31,7 +32,7 @@ class LanceMemory(MemoryProvider):
             Optional; the name of the table to use. This should be a 
             string optionally formatted with the variable `key`, which 
             will be provided by the memory module. The default is `"memory-{key}"`.
-            """
+            """,
         },
     )
     embedding_fn: Callable[..., Any] = field(
@@ -39,10 +40,10 @@ class LanceMemory(MemoryProvider):
         .get("openai")
         .create(name="text-embedding-ada-002"),
         metadata={
-            "description": "The LanceDB embedding function to use. Defaults to `get_registry().get('openai').create(name='text-embedding-ada-002')`."
+            "description": "The LanceDB embedding function to use. Defaults to `get_registry().get('openai').create(name='text-embedding-ada-002')`.",
         },
     )
-    _cached_model: Optional[LanceModel] = None
+    _cached_model: LanceModel | None = None
 
     def get_model(self) -> LanceModel:
         if self._cached_model is None:
@@ -51,7 +52,7 @@ class LanceMemory(MemoryProvider):
             class Memory(LanceModel):
                 id: str = Field(..., description="The ID of the memory.")
                 text: str = fn.SourceField()
-                vector: Vector(fn.ndims()) = fn.VectorField()  # noqa
+                vector: Vector(fn.ndims()) = fn.VectorField()
 
             self._cached_model = Memory
 
@@ -79,7 +80,7 @@ class LanceMemory(MemoryProvider):
         table = self.get_table(memory_key)
         table.delete(f'id = "{memory_id}"')
 
-    def search(self, memory_key: str, query: str, n: int = 20) -> Dict[str, str]:
+    def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
         table = self.get_table(memory_key)
         results = table.search(query).limit(n).to_pydantic(self.get_model())
         return {r.id: r.text for r in results}

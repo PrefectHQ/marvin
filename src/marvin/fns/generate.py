@@ -1,4 +1,4 @@
-from typing import Any, Optional, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 import marvin
 from marvin.agents.agent import Agent
@@ -29,12 +29,11 @@ technologies, give their names but do not explain what each technology is.
 async def generate_async(
     target: TargetType[T] = str,
     n: int = 1,
-    instructions: Optional[str] = None,
-    agent: Optional[Agent] = None,
-    thread: Optional[Thread | str] = None,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
 ) -> list[T]:
-    """
-    Generates examples of a specific type or matching a description asynchronously.
+    """Generates examples of a specific type or matching a description asynchronously.
 
     This function uses a language model to generate high-quality, random examples
     that match the specified type or description. The examples are returned as a
@@ -52,6 +51,7 @@ async def generate_async(
 
     Returns:
         A list of n generated entities of type T.
+
     """
     if target is str and instructions is None:
         raise ValueError("Instructions are required when target type is str.")
@@ -74,12 +74,11 @@ async def generate_async(
 def generate(
     target: TargetType[T] = str,
     n: int = 1,
-    instructions: Optional[str] = None,
-    agent: Optional[Agent] = None,
-    thread: Optional[Thread | str] = None,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
 ) -> list[T]:
-    """
-    Generates examples of a specific type or matching a description.
+    """Generates examples of a specific type or matching a description.
 
     This function uses a language model to generate high-quality, random examples
     that match the specified type or description. The examples are returned as a
@@ -97,6 +96,7 @@ def generate(
 
     Returns:
         A list of n generated entities of type T.
+
     """
     return run_sync(
         generate_async(
@@ -105,5 +105,5 @@ def generate(
             instructions=instructions,
             agent=agent,
             thread=thread,
-        )
+        ),
     )

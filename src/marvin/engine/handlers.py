@@ -13,8 +13,7 @@ from marvin.engine.events import (
 
 class Handler:
     def handle(self, event: Event):
-        """
-        Handle is called whenever an event is emitted.
+        """Handle is called whenever an event is emitted.
 
         By default, it dispatches to a method named after the event type e.g.
         `self.on_{event_type}(event=event)`.
@@ -57,8 +56,7 @@ class Handler:
 
 class AsyncHandler:
     async def handle(self, event: Event):
-        """
-        Handle is called whenever an event is emitted.
+        """Handle is called whenever an event is emitted.
 
         By default, it dispatches to a method named after the event type e.g.
         `self.on_{event_type}(event=event)`.

@@ -41,6 +41,6 @@ class TestMemoryProvider:
 
     def test_load_from_instance(self, tmp_path):
         mp = ChromaMemory(
-            client=chromadb.PersistentClient(path=str(tmp_path / "test_path"))
+            client=chromadb.PersistentClient(path=str(tmp_path / "test_path")),
         )
         m = marvin.Memory(key="test", instructions="test", provider=mp)

@@ -14,7 +14,7 @@ if __name__ == "__main__":
         marvin.extract(
             "After flying ORD to Heathrow, I exchanged my greenbacks for local currency.",
             target=Currency,
-        )
+        ),
     )
 """
 » python examples/hello_extract.py

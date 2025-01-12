@@ -1,20 +1,16 @@
 import enum
 import inspect
 import textwrap
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import (
     Annotated,
     Any,
-    Callable,
     Generic,
-    List,
     Literal,
-    Optional,
     ParamSpec,
-    Sequence,
     TypeAlias,
     TypeVar,
-    Union,
     get_args,
     get_origin,
 )
@@ -67,6 +63,7 @@ class Labels:
         >>> labels = Labels(Colors, many=True)
         >>> labels.values  # Returns enum members
         (<Colors.RED: 'red'>, <Colors.GREEN: 'green'>, <Colors.BLUE: 'blue'>)
+
     """
 
     values: type[enum.Enum] | Sequence[Any] | Any
@@ -105,6 +102,7 @@ class Labels:
 
         Raises:
             ValueError: If the value is invalid.
+
         """
         if value is None:
             raise ValueError("None is not a valid value for classification")
@@ -112,31 +110,30 @@ class Labels:
         if self.many:
             if not isinstance(value, (list, tuple)):
                 raise ValueError(
-                    f"Expected a list of indices for multi-label classification, got {type(value)}"
+                    f"Expected a list of indices for multi-label classification, got {type(value)}",
                 )
             if not value:
                 raise ValueError(
-                    "Empty list is not allowed for multi-label classification"
+                    "Empty list is not allowed for multi-label classification",
                 )
             if not all(isinstance(i, int) for i in value):  # type: ignore[reportUnnecessaryIsinstance]
                 raise ValueError("All elements must be integers")
             if not all(0 <= i < len(self._labels) for i in value):
                 raise ValueError(
-                    f"All indices must be between 0 and {len(self._labels)-1}"
+                    f"All indices must be between 0 and {len(self._labels) - 1}",
                 )
             if len(set(value)) != len(value):
                 raise ValueError("Duplicate indices are not allowed")
             return [self._labels[i] for i in value]
-        else:
-            if not isinstance(value, int):
-                raise ValueError(
-                    f"Expected an integer index for classification, got {type(value)}"
-                )
-            if not (0 <= value < len(self._labels)):
-                raise ValueError(
-                    f"Invalid index {value}. Must be between 0 and {len(self._labels)-1}"
-                )
-            return self._labels[value]
+        if not isinstance(value, int):
+            raise ValueError(
+                f"Expected an integer index for classification, got {type(value)}",
+            )
+        if not (0 <= value < len(self._labels)):
+            raise ValueError(
+                f"Invalid index {value}. Must be between 0 and {len(self._labels) - 1}",
+            )
+        return self._labels[value]
 
     def get_indexed_labels(self) -> dict[int, str]:
         """Get a mapping of indices to label string representations."""
@@ -144,10 +141,9 @@ class Labels:
         def format_value(v: Any) -> str:
             if isinstance(v, enum.Enum):
                 return repr(v.value)  # Show the enum's value, not its name
-            elif isinstance(v, str):
+            if isinstance(v, str):
                 return f"'{v}'"  # Single quotes for strings
-            else:
-                return str(v)
+            return str(v)
 
         return {i: format_value(v) for i, v in enumerate(self._labels)}
 
@@ -164,6 +160,7 @@ def as_classifier(type_: type[T]) -> Labels:
 
     Raises:
         ValueError: If the type is not a valid classifier
+
     """
     typ = type_
     if isinstance(typ, Labels):
@@ -175,7 +172,7 @@ def as_classifier(type_: type[T]) -> Labels:
         arg = get_args(typ)[0]
         # Handle list[Enum] or list[Literal]
         if (isinstance(arg, type) and issubclass(arg, enum.Enum)) or get_origin(
-            arg
+            arg,
         ) is Literal:
             return Labels(arg, many=True)
 
@@ -219,6 +216,7 @@ def is_classifier(type_: type[T]) -> bool:
         True
         >>> is_classifier(list[["a", 1, MyClass()]])  # multi-label shorthand
         True
+
     """
     typ = type_
     if isinstance(typ, Labels):
@@ -246,9 +244,8 @@ def is_classifier(type_: type[T]) -> bool:
     )
 
 
-def issubclass_safe(x: Any, cls: Union[type, tuple[type, ...]]) -> bool:
-    """
-    Safely check if x is a subclass of cls without raising errors.
+def issubclass_safe(x: Any, cls: type | tuple[type, ...]) -> bool:
+    """Safely check if x is a subclass of cls without raising errors.
 
     This combines isinstance(x, type) and issubclass(x, cls) checks in a safe way
     that won't raise TypeError if x is not a type.
@@ -267,6 +264,7 @@ def issubclass_safe(x: Any, cls: Union[type, tuple[type, ...]]) -> bool:
         False
         >>> issubclass_safe(str, (int, float))  # not a subclass
         False
+
     """
     return isinstance(x, type) and issubclass(x, cls)
 
@@ -274,14 +272,13 @@ def issubclass_safe(x: Any, cls: Union[type, tuple[type, ...]]) -> bool:
 @dataclass
 class ParameterModel:
     name: str
-    annotation: Optional[str]
-    default: Optional[str]
+    annotation: str | None
+    default: str | None
 
 
 @dataclass
 class PythonFunction(Generic[P, R]):
-    """
-    A dataclass representing a Python function.
+    """A dataclass representing a Python function.
 
     Attributes:
         function (Callable): The original function object.
@@ -293,17 +290,18 @@ class PythonFunction(Generic[P, R]):
         source_code (str): The source code of the function.
         bound_parameters (dict[str, Any]): The parameters of the function bound with values.
         return_value (Optional[Any]): The return value of the function call.
+
     """
 
     function: Callable[P, R]
     signature: inspect.Signature
     name: str
-    parameters: List[ParameterModel]
-    docstring: Optional[str] = None
-    return_annotation: Optional[Any] = None
-    source_code: Optional[str] = None
+    parameters: list[ParameterModel]
+    docstring: str | None = None
+    return_annotation: Any | None = None
+    source_code: str | None = None
     bound_parameters: dict[str, Any] = field(default_factory=dict)
-    return_value: Optional[Any] = None
+    return_value: Any | None = None
 
     @property
     def definition(self) -> str:
@@ -316,10 +314,11 @@ class PythonFunction(Generic[P, R]):
 
     @classmethod
     def from_function(
-        cls, func: Callable[P, R], **kwargs: Any
+        cls,
+        func: Callable[P, R],
+        **kwargs: Any,
     ) -> "PythonFunction[P, R]":
-        """
-        Create a PythonFunction instance from a function.
+        """Create a PythonFunction instance from a function.
 
         Args:
             func (Callable): The function to create a PythonFunction instance from.
@@ -327,6 +326,7 @@ class PythonFunction(Generic[P, R]):
 
         Returns:
             PythonFunction: The created PythonFunction instance.
+
         """
         name = kwargs.pop("name", func.__name__)
         docstring = kwargs.pop("docstring", func.__doc__)
@@ -371,10 +371,12 @@ class PythonFunction(Generic[P, R]):
 
     @classmethod
     def from_function_call(
-        cls, func: Callable[P, R], *args: P.args, **kwargs: P.kwargs
+        cls,
+        func: Callable[P, R],
+        *args: P.args,
+        **kwargs: P.kwargs,
     ) -> "PythonFunction[P, R]":
-        """
-        Create a PythonFunction instance from a function call.
+        """Create a PythonFunction instance from a function call.
 
         Args:
             func (Callable): The function to call.
@@ -383,6 +385,7 @@ class PythonFunction(Generic[P, R]):
 
         Returns:
             PythonFunction: The created PythonFunction instance, with the return value of the function call set as an attribute.
+
         """
         sig = inspect.signature(func)
 
@@ -395,7 +398,7 @@ class PythonFunction(Generic[P, R]):
 
         # render the docstring with the bound arguments, if it was supplied as jinja
         docstring = jinja_env.from_string(func.__doc__ or "").render(
-            **dict(bound.arguments.items())
+            **dict(bound.arguments.items()),
         )
 
         instance = cls.from_function(

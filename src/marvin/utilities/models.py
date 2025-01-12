@@ -1,6 +1,4 @@
-"""
-Base models for Marvin.
-"""
+"""Base models for Marvin."""
 
 from pydantic import BaseModel, ConfigDict
 

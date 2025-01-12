@@ -1,11 +1,12 @@
 import inspect
 from enum import Enum
-from typing import Dict, List, Literal
+from typing import Literal
+
+import pytest
+from pydantic import BaseModel
 
 import marvin
-import pytest
 from marvin.utilities.testing import assert_llm_equal
-from pydantic import BaseModel
 
 
 @marvin.fn
@@ -32,7 +33,7 @@ class TestFunctions:
         def test_no_annotations(self):
             @marvin.fn
             def f(x):
-                """returns x + 1"""
+                """Returns x + 1"""
 
             result = f(3)
             assert result == 4
@@ -40,7 +41,7 @@ class TestFunctions:
         def test_arg_annotations(self):
             @marvin.fn
             def f(x: int):
-                """returns x + 1"""
+                """Returns x + 1"""
 
             result = f(3)
             assert result == 4
@@ -50,7 +51,7 @@ class TestFunctions:
             # gracefully fall back to the string
             @marvin.fn
             def f(x):
-                """returns x + 1 with a trailing comma e.g. '9,'"""
+                """Returns x + 1 with a trailing comma e.g. '9,'"""
 
             result = f("3")
             assert result == "4,"
@@ -58,14 +59,14 @@ class TestFunctions:
         def test_return_annotations(self):
             @marvin.fn
             def f(x) -> int:
-                """returns x + 1"""
+                """Returns x + 1"""
 
             result = f("3")
             assert result == 4
 
         def test_list_fruit_with_generic_type_hints(self):
             @marvin.fn
-            def list_fruit(n: int) -> List[str]:
+            def list_fruit(n: int) -> list[str]:
                 """Returns a list of `n` fruit"""
 
             result = list_fruit(3)
@@ -95,7 +96,7 @@ class TestFunctions:
         def test_plain_dict_return_type(self):
             @marvin.fn
             def describe_fruit(description: str) -> dict:
-                """guess the fruit and return the name and color as keys"""
+                """Guess the fruit and return the name and color as keys"""
 
             fruit = describe_fruit("the one thats loved by monkeys")
             assert fruit["name"].lower() == "banana"
@@ -104,7 +105,7 @@ class TestFunctions:
         def test_annotated_dict_return_type(self):
             @marvin.fn
             def describe_fruit(description: str) -> dict[str, str]:
-                """guess the fruit and return the name and color as keys"""
+                """Guess the fruit and return the name and color as keys"""
 
             fruit = describe_fruit("the one thats loved by monkeys")
             assert fruit["name"].lower() == "banana"
@@ -112,8 +113,8 @@ class TestFunctions:
 
         def test_generic_dict_return_type(self):
             @marvin.fn
-            def describe_fruit(description: str) -> Dict[str, str]:
-                """guess the fruit and return the name and color as keys"""
+            def describe_fruit(description: str) -> dict[str, str]:
+                """Guess the fruit and return the name and color as keys"""
 
             fruit = describe_fruit("the one thats loved by monkeys")
             assert fruit["name"].lower() == "banana"
@@ -128,7 +129,7 @@ class TestFunctions:
 
             @marvin.fn
             def describe_fruit(description: str) -> Fruit:
-                """guess the fruit and return the name and color as keys"""
+                """Guess the fruit and return the name and color as keys"""
 
             fruit = describe_fruit("the one thats loved by monkeys")
             assert fruit["name"].lower() == "banana"
@@ -164,8 +165,7 @@ class TestFunctions:
         def test_typed_tuple_return_type(self):
             @marvin.fn
             def get_letter_index(letter: str) -> tuple[str, int]:
-                """
-                returns a tuple of the provided letter and its position in the
+                """Returns a tuple of the provided letter and its position in the
                 alphabet. For example, a -> (a, 1); b -> (b, 2); etc.
                 """
 
@@ -184,7 +184,7 @@ class TestFunctions:
                 """Returns the letters in the provided fruit name"""
 
             assert get_fruit_letters("orange") == frozenset(
-                {"a", "e", "g", "n", "o", "r"}
+                {"a", "e", "g", "n", "o", "r"},
             )
 
         def test_enum_return_type(self):

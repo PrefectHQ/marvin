@@ -1,6 +1,6 @@
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Optional
 
 import sqlalchemy
 from pgvector.sqlalchemy import Vector
@@ -17,7 +17,7 @@ try:
 except ImportError:
     raise ImportError(
         "To use an embedding function similar to LanceDB's default, "
-        "please install lancedb with: pip install lancedb"
+        "please install lancedb with: pip install lancedb",
     )
 
 # SQLAlchemy base class for declarative models
@@ -25,8 +25,7 @@ Base = declarative_base()
 
 
 class SQLMemoryTable(Base):
-    """
-    A simple declarative model that represents a memory record.
+    """A simple declarative model that represents a memory record.
 
     We'll dynamically set the __tablename__ at runtime.
     """
@@ -40,15 +39,14 @@ class SQLMemoryTable(Base):
 
 @dataclass(kw_only=True)
 class PostgresMemory(MemoryProvider):
-    """
-    A Marvin MemoryProvider that stores text + embeddings in PostgreSQL
+    """A Marvin MemoryProvider that stores text + embeddings in PostgreSQL
     using SQLAlchemy and pg_vector. Each Memory module gets its own table.
     """
 
     database_url: str = field(
         default="postgresql://user:password@localhost:5432/your_database",
         metadata={
-            "description": "SQLAlchemy-compatible database URL to a Postgres instance with pgvector."
+            "description": "SQLAlchemy-compatible database URL to a Postgres instance with pgvector.",
         },
     )
     table_name: str = field(
@@ -57,14 +55,14 @@ class PostgresMemory(MemoryProvider):
             "description": """
             Name of the table to store this memory partition. "{key}" will be replaced 
             by the memory's key attribute.
-            """
+            """,
         },
     )
 
     embedding_dimension: int = field(
         default=1536,
         metadata={
-            "description": "Dimension of the embedding vectors. Match your model's output."
+            "description": "Dimension of the embedding vectors. Match your model's output.",
         },
     )
 
@@ -84,21 +82,21 @@ class PostgresMemory(MemoryProvider):
     max_overflow: int = field(
         default=10,
         metadata={
-            "description": "Number of connections to allow that can overflow the pool."
+            "description": "Number of connections to allow that can overflow the pool.",
         },
     )
 
     pool_timeout: int = field(
         default=30,
         metadata={
-            "description": "Number of seconds to wait before giving up on getting a connection."
+            "description": "Number of seconds to wait before giving up on getting a connection.",
         },
     )
 
     pool_recycle: int = field(
         default=1800,
         metadata={
-            "description": "Number of seconds a connection can be idle before being recycled."
+            "description": "Number of seconds a connection can be idle before being recycled.",
         },
     )
 
@@ -108,14 +106,13 @@ class PostgresMemory(MemoryProvider):
     )
 
     # Internal: keep a cached Session maker
-    _SessionLocal: Optional[sessionmaker] = None
+    _SessionLocal: sessionmaker | None = None
 
     # This dict will map "table_name" -> "model class"
-    _table_class_cache: Dict[str, Base] = {}
+    _table_class_cache: dict[str, Base] = {}
 
     def configure(self, memory_key: str) -> None:
-        """
-        Configure a SQLAlchemy session w/connection pooling and ensure the table for this
+        """Configure a SQLAlchemy session w/connection pooling and ensure the table for this
         memory partition is created if it does not already exist.
         """
         engine = sqlalchemy.create_engine(
@@ -162,13 +159,12 @@ class PostgresMemory(MemoryProvider):
     def _get_session(self) -> Session:
         if not self._SessionLocal:
             raise RuntimeError(
-                "Session is not initialized. Make sure to call configure() first."
+                "Session is not initialized. Make sure to call configure() first.",
             )
         return self._SessionLocal()
 
     def _get_table(self, memory_key: str) -> Base:
-        """
-        Return a dynamically generated declarative model class
+        """Return a dynamically generated declarative model class
         mapped to the memory_{key} table. Each memory partition
         has a separate table.
         """
@@ -191,8 +187,7 @@ class PostgresMemory(MemoryProvider):
         return memory_model
 
     def add(self, memory_key: str, content: str) -> str:
-        """
-        Insert a new memory record into the Postgres table,
+        """Insert a new memory record into the Postgres table,
         generating an embedding and storing it in a vector column.
         Returns the memory's ID (uuid).
         """
@@ -210,18 +205,15 @@ class PostgresMemory(MemoryProvider):
         return memory_id
 
     def delete(self, memory_key: str, memory_id: str) -> None:
-        """
-        Delete a memory record by its UUID.
-        """
+        """Delete a memory record by its UUID."""
         model_cls = self._get_table(memory_key)
 
         with self._get_session() as session:
             session.query(model_cls).filter(model_cls.id == memory_id).delete()
             session.commit()
 
-    def search(self, memory_key: str, query: str, n: int = 20) -> Dict[str, str]:
-        """
-        Uses pgvector's approximate nearest neighbor search with the `<->` operator to find
+    def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
+        """Uses pgvector's approximate nearest neighbor search with the `<->` operator to find
         the top N matching records for the embedded query. Returns a dict of {id: text}.
         """
         model_cls = self._get_table(memory_key)
@@ -233,7 +225,7 @@ class PostgresMemory(MemoryProvider):
             results = session.execute(
                 select(model_cls.id, model_cls.text)
                 .order_by(embedding_col.l2_distance(query_embedding))
-                .limit(n)
+                .limit(n),
             ).all()
 
         return {row.id: row.text for row in results}

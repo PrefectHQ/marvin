@@ -1,7 +1,8 @@
 import inspect
 import json
+from collections.abc import Callable
 from functools import wraps
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, TypeVar
 
 import marvin
 from marvin.agents.agent import Agent
@@ -25,14 +26,13 @@ Use the type hints, docstring, and parameter values to make an accurate predicti
 
 
 def fn(
-    func: Optional[Callable[..., T]] = None,
+    func: Callable[..., T] | None = None,
     *,
-    instructions: Optional[str] = None,
-    agent: Optional[Agent] = None,
-    thread: Optional[Thread | str] = None,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
 ) -> Callable[..., T]:
-    """
-    A decorator that predicts the output of a Python function without executing it.
+    """A decorator that predicts the output of a Python function without executing it.
 
     Can be used with or without parameters:
         @fn
@@ -53,6 +53,7 @@ def fn(
 
     Returns:
         A wrapped function that predicts output instead of executing
+
     """
 
     def decorator(f: Callable[..., T]) -> Callable[..., T]:
@@ -61,9 +62,9 @@ def fn(
         @wraps(f)
         def wrapper(
             *args: Any,
-            _agent: Optional[Agent] = None,
-            _thread: Optional[Thread | str] = None,
-            _instructions: Optional[str] = None,
+            _agent: Agent | None = None,
+            _thread: Thread | str | None = None,
+            _instructions: str | None = None,
             **kwargs: Any,
         ) -> T:
             coro = _fn(
@@ -89,12 +90,11 @@ async def _fn(
     func: Callable[..., T],
     fn_args: tuple[Any, ...],
     fn_kwargs: dict[str, Any],
-    instructions: Optional[str] = None,
-    agent: Optional[Agent] = None,
-    thread: Optional[Thread | str] = None,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
 ) -> T:
-    """
-    Predicts the output of a Python function without executing it.
+    """Predicts the output of a Python function without executing it.
 
     Args:
         func: The function to predict output for
@@ -106,6 +106,7 @@ async def _fn(
 
     Returns:
         The predicted output matching the function's return type
+
     """
     model = PythonFunction.from_function_call(func, *fn_args, **fn_kwargs)
 

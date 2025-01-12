@@ -1,7 +1,8 @@
 import random
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import pydantic_ai
 
@@ -31,7 +32,7 @@ class Team(Actor):
     allow_message_posting: bool = field(
         default=True,
         metadata={
-            "description": "Whether to allow the team to post messages to the thread"
+            "description": "Whether to allow the team to post messages to the thread",
         },
     )
 
@@ -41,11 +42,10 @@ class Team(Actor):
         return super().__hash__()
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(name={repr(self.name)}, agents={[a.name for a in self.members]})"
+        return f"{self.__class__.__name__}(name={self.name!r}, agents={[a.name for a in self.members]})"
 
     def get_delegates(self) -> list[Actor]:
-        """
-        By default, agents can delegate only to pre-defined agents. If no delegates are defined,
+        """By default, agents can delegate only to pre-defined agents. If no delegates are defined,
         none are returned.
         """
         delegates = self.active_member.get_delegates()
@@ -121,9 +121,7 @@ class SoloTeam(Team):
 
 @dataclass(kw_only=True)
 class Swarm(Team):
-    """
-    A swarm is a team that permits all agents to delegate to each other.
-    """
+    """A swarm is a team that permits all agents to delegate to each other."""
 
     instructions: str | None = None
 
@@ -139,8 +137,7 @@ class Swarm(Team):
         delegates = self.active_member.get_delegates()
         if delegates is None:
             return [a for a in self.members if a is not self.active_member]
-        else:
-            return delegates
+        return delegates
 
     def get_end_turn_tools(self) -> list[type["EndTurn"]]:
         return [DelegateToAgent]

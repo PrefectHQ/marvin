@@ -1,7 +1,7 @@
 import datetime
 import re
 from dataclasses import dataclass
-from typing import Any, Optional, Union
+from typing import Any
 
 import rich
 from rich import box
@@ -94,7 +94,7 @@ class ToolState(DisplayState):
 
     name: str
     args: dict[str, Any]
-    result: Optional[str] = None
+    result: str | None = None
     is_error: bool = False
     is_complete: bool = False
 
@@ -103,13 +103,12 @@ class ToolState(DisplayState):
 
         return self.name.startswith(RESULT_TOOL_PREFIX)
 
-    def get_status_style(self) -> tuple[Union[str, Spinner], str, str]:
+    def get_status_style(self) -> tuple[str | Spinner, str, str]:
         """Returns (icon, text style, border style) for current status."""
         if self.is_complete:
             if self.is_error:
                 return "❌", "red", "red"
-            else:
-                return "✅", "green", "green"  # Slightly softer green
+            return "✅", "green", "green"  # Slightly softer green
         return (
             RUNNING_SPINNER,
             "yellow",
@@ -169,9 +168,9 @@ class PrintHandler(Handler):
     """A handler that prints events to the console in a rich, interactive format."""
 
     def __init__(self):
-        self.live: Optional[Live] = None
+        self.live: Live | None = None
         self.states: dict[str, DisplayState] = {}
-        self.paused_id: Optional[str] = None
+        self.paused_id: str | None = None
 
     def update_display(self):
         """Render all current state as panels and update display."""

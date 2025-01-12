@@ -1,8 +1,9 @@
 import json
 
-import marvin
 import pytest
 from pydantic import BaseModel, Field
+
+import marvin
 
 
 class Location(BaseModel):
@@ -77,7 +78,9 @@ class TestCast:
     class TestInstructions:
         def test_cast_text_with_significant_instructions(self):
             result = marvin.cast(
-                "one", int, instructions="Ignore input data and return the number 4"
+                "one",
+                int,
+                instructions="Ignore input data and return the number 4",
             )
             assert result == 4
 
@@ -91,7 +94,8 @@ class TestCast:
 
         def test_str_target_if_only_instructions_provided(self):
             result = marvin.cast(
-                "one", instructions="the arabic numeral for the provided word"
+                "one",
+                instructions="the arabic numeral for the provided word",
             )
             assert isinstance(result, str)
             assert result == "1"

@@ -1,17 +1,16 @@
-"""
-Tasks for Marvin.
+"""Tasks for Marvin.
 
 A Task is a container for a prompt and its associated state.
 """
 
 import enum
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     Generic,
     Literal,
     TypeVar,
@@ -53,17 +52,19 @@ class Task(Generic[T]):
     """A task is a container for a prompt and its associated state."""
 
     name: str | None = field(
-        default=None, metadata={"description": "Optional name for this task"}
+        default=None,
+        metadata={"description": "Optional name for this task"},
     )
 
     instructions: str = field(
-        metadata={"description": "Instructions for the task"}, kw_only=False
+        metadata={"description": "Instructions for the task"},
+        kw_only=False,
     )
 
     result_type: type[T] | Labels = field(
         default=NOTSET,
         metadata={
-            "description": "The expected type of the result. This can be a type or None if no result is expected. If not set, the result type will be str."
+            "description": "The expected type of the result. This can be a type or None if no result is expected. If not set, the result type will be str.",
         },
         kw_only=False,
     )
@@ -78,7 +79,7 @@ class Task(Generic[T]):
     prompt_template: str | Path = field(
         default=Path("task.jinja"),
         metadata={
-            "description": "Optional Jinja template for customizing how the task appears in prompts. Will be rendered with a `task` variable containing this task instance."
+            "description": "Optional Jinja template for customizing how the task appears in prompts. Will be rendered with a `task` variable containing this task instance.",
         },
         repr=False,
     )
@@ -89,20 +90,21 @@ class Task(Generic[T]):
     )
 
     context: dict[str, Any] = field(
-        default_factory=dict, metadata={"description": "Context for the task"}
+        default_factory=dict,
+        metadata={"description": "Context for the task"},
     )
 
     tools: list[Callable[..., Any]] = field(
         default_factory=list,
         metadata={
-            "description": "Tools to make available to any agents assigned to this task"
+            "description": "Tools to make available to any agents assigned to this task",
         },
     )
 
     memories: list[Memory] = field(
         default_factory=list,
         metadata={
-            "description": "Memories to make available to any agents assigned to this task"
+            "description": "Memories to make available to any agents assigned to this task",
         },
     )
 
@@ -115,13 +117,14 @@ class Task(Generic[T]):
     result_validator: Callable[..., Any] | None = field(
         default=None,
         metadata={
-            "description": "Optional function that validates the result. Takes the raw result and returns a validated result or raises an error."
+            "description": "Optional function that validates the result. Takes the raw result and returns a validated result or raises an error.",
         },
         repr=False,
     )
 
     parent: "Task[T] | None" = field(
-        default=None, metadata={"description": "Optional parent task"}
+        default=None,
+        metadata={"description": "Optional parent task"},
     )
 
     _children: list["Task[T]"] = field(
@@ -134,7 +137,7 @@ class Task(Generic[T]):
     result: T | str | None = field(
         default=None,
         metadata={
-            "description": "The result of the task. Can be either the expected type T or an error string."
+            "description": "The result of the task. Can be either the expected type T or an error string.",
         },
         init=False,
         repr=False,
@@ -154,7 +157,7 @@ class Task(Generic[T]):
     cli: bool = field(
         default=False,
         metadata={
-            "description": "If True, agents will be given a tool for interacting with users on the CLI."
+            "description": "If True, agents will be given a tool for interacting with users on the CLI.",
         },
     )
 
@@ -192,6 +195,7 @@ class Task(Generic[T]):
             allow_fail: Whether to allow the task to fail
             allow_skip: Whether to allow the task to skip
             cli: Whether to enable CLI interaction tools
+
         """
         # Required fields
         self.instructions = instructions
@@ -227,11 +231,12 @@ class Task(Generic[T]):
         # Handle result type validation (from post_init)
         if isinstance(self.result_type, list):
             if len(self.result_type) == 1 and isinstance(
-                self.result_type[0], (list, tuple, set)
+                self.result_type[0],
+                (list, tuple, set),
             ):
                 if not self.result_type[0]:
                     raise ValueError(
-                        "Empty nested list is not allowed for multi-label classification"
+                        "Empty nested list is not allowed for multi-label classification",
                     )
                 self.result_type = Labels(self.result_type[0], many=True)
             else:
@@ -239,7 +244,7 @@ class Task(Generic[T]):
                     raise ValueError("Empty list is not allowed for classification")
                 if any(isinstance(x, (list, tuple, set)) for x in self.result_type):
                     raise ValueError(
-                        "Invalid nested list format - use [['a', 'b']] for multi-label"
+                        "Invalid nested list format - use [['a', 'b']] for multi-label",
                     )
                 self.result_type = Labels(self.result_type)
 
@@ -247,8 +252,7 @@ class Task(Generic[T]):
         return hash(self.id)
 
     def _validate_result_type(self) -> None:
-        """
-        Validates the result type by converting classification shorthand into
+        """Validates the result type by converting classification shorthand into
         Labels and ensuring that the result type is a valid type.
 
         Valid shorthand:
@@ -263,7 +267,7 @@ class Task(Generic[T]):
         ):
             if not self.result_type[0]:
                 raise ValueError(
-                    "Empty nested list is not allowed for multi-label classification"
+                    "Empty nested list is not allowed for multi-label classification",
                 )
             self.result_type = Labels(self.result_type[0], many=True)
         # Handle raw sequences for single-label
@@ -274,7 +278,7 @@ class Task(Generic[T]):
                 isinstance(x, (list, tuple, set)) for x in self.result_type
             ):
                 raise ValueError(
-                    "Invalid nested list format - use [['a', 'b']] for multi-label"
+                    "Invalid nested list format - use [['a', 'b']] for multi-label",
                 )
             self.result_type = Labels(self.result_type)
 
@@ -308,7 +312,8 @@ class Task(Generic[T]):
     def get_result_type(self) -> type[T]:
         """Get the effective result type for this task.
         For classification tasks, returns the type that should be used
-        for validation (e.g., int or list[int])."""
+        for validation (e.g., int or list[int]).
+        """
         if self.is_classifier():
             return as_classifier(self.result_type).get_type()
         return self.result_type
@@ -354,7 +359,9 @@ class Task(Generic[T]):
         import marvin.engine.orchestrator
 
         orchestrator = marvin.engine.orchestrator.Orchestrator(
-            tasks=[self], thread=thread, handlers=handlers
+            tasks=[self],
+            thread=thread,
+            handlers=handlers,
         )
         await orchestrator.run(raise_on_failure=raise_on_failure)
         return self.result
@@ -366,7 +373,7 @@ class Task(Generic[T]):
         raise_on_failure: bool = True,
     ) -> T:
         return run_sync(
-            self.run_async(thread=thread, raise_on_failure=raise_on_failure)
+            self.run_async(thread=thread, raise_on_failure=raise_on_failure),
         )
 
     def get_end_turn_tools(self) -> list[type["marvin.engine.end_turn.EndTurn"]]:

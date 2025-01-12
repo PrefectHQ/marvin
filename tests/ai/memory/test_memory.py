@@ -11,7 +11,8 @@ def test_agent_memory():
 def test_task_memory():
     t = marvin.Task("remember the number 123", memories=[marvin.Memory(key="numbers")])
     t2 = marvin.Task(
-        "what number did you remember?", memories=[marvin.Memory(key="numbers")]
+        "what number did you remember?",
+        memories=[marvin.Memory(key="numbers")],
     )
 
     t.run()

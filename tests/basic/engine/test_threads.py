@@ -1,6 +1,4 @@
-"""
-Tests for thread functionality and message handling.
-"""
+"""Tests for thread functionality and message handling."""
 
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
 
@@ -77,7 +75,7 @@ def test_thread_inheritance():
         [
             UserMessage("Parent message"),
             AgentMessage("Parent response"),
-        ]
+        ],
     )
 
     # Child thread
@@ -127,7 +125,7 @@ def test_thread_hierarchy():
             AgentMessage("Parent response 1"),
             UserMessage("Parent message 2"),
             AgentMessage("Parent response 2"),
-        ]
+        ],
     )
 
     child = Thread(parent_id=parent.id)

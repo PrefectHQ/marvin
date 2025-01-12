@@ -1,7 +1,8 @@
 from typing import Annotated
 
-import marvin
 from pydantic import Field, TypeAdapter
+
+import marvin
 
 # you can use Annotated to add extra detail to your types
 Fruit = Annotated[str, Field(description="A fruit")]
@@ -18,7 +19,7 @@ if __name__ == "__main__":
             target=str,
             n=len(fruits),
             instructions=f"bizarro sitcom character names based on these fruit: {fruits}",
-        )
+        ),
     )
 """
 » python examples/hello.py

@@ -1,11 +1,9 @@
-"""
-Thread management for Marvin.
+"""Thread management for Marvin.
 
 This module provides the Thread class for managing conversation context.
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 from marvin.engine.thread import Thread as EngineThread
 
@@ -18,9 +16,10 @@ class Thread(EngineThread):
     It maintains the old interface while using the new implementation.
     """
 
-    name: Optional[str] = None
+    name: str | None = None
 
     def __post_init__(self):
         super().__init__(
-            id=getattr(self, "id", None), parent_id=getattr(self, "parent_id", None)
+            id=getattr(self, "id", None),
+            parent_id=getattr(self, "parent_id", None),
         )
