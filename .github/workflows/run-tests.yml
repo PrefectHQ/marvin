@@ -38,4 +38,4 @@ jobs:
         run: uv sync --extra test
 
       - name: Run tests
-        run: uv run pytest
+        run: uv run pytest -v -n auto
