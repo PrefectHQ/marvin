@@ -26,6 +26,42 @@ from .llm import Message
 
 message_adapter: TypeAdapter[Message] = TypeAdapter(Message)
 
+# Module-level cache for engines
+_engine_cache = {}
+_async_engine_cache = {}
+
+
+def get_engine():
+    """Get the SQLAlchemy engine for sync operations."""
+    if "default" not in _engine_cache:
+        _engine_cache["default"] = create_engine(
+            f"sqlite:///{settings.database_path}",
+            echo=False,
+            connect_args={"check_same_thread": False},
+        )
+    return _engine_cache["default"]
+
+
+def get_async_engine():
+    """Get the SQLAlchemy engine for async operations."""
+    if "default" not in _async_engine_cache:
+        _async_engine_cache["default"] = create_async_engine(
+            f"sqlite+aiosqlite:///{settings.database_path}",
+            echo=False,
+            connect_args={"check_same_thread": False},
+        )
+    return _async_engine_cache["default"]
+
+
+def set_engine(engine):
+    """Set the SQLAlchemy engine for sync operations."""
+    _engine_cache["default"] = engine
+
+
+def set_async_engine(engine):
+    """Set the SQLAlchemy engine for async operations."""
+    _async_engine_cache["default"] = engine
+
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
@@ -99,32 +135,17 @@ class DBLLMCall(Base):
     messages: Mapped[list[DBMessage]] = relationship(back_populates="llm_call")
 
 
-# Sync engine and session
-_engine = create_engine(
-    f"sqlite:///{settings.database_path}",
-    echo=False,
-    connect_args={"check_same_thread": False},
-)
-
-# Async engine and session
-_async_engine = create_async_engine(
-    f"sqlite+aiosqlite:///{settings.database_path}",
-    echo=False,
-    connect_args={"check_same_thread": False},
-)
-
-
 def ensure_tables_exist():
     """Initialize database tables if they don't exist yet."""
-    inspector = inspect(_engine)
+    inspector = inspect(get_engine())
     if not inspector.get_table_names():
-        Base.metadata.create_all(_engine)
+        Base.metadata.create_all(get_engine())
 
 
 @contextmanager
 def get_session() -> Generator[Session, None, None]:
     """Get a database session."""
-    session = Session(_engine)
+    session = Session(get_engine())
     try:
         yield session
     finally:
@@ -134,7 +155,7 @@ def get_session() -> Generator[Session, None, None]:
 @asynccontextmanager
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """Get an async database session."""
-    session = AsyncSession(_async_engine)
+    session = AsyncSession(get_async_engine())
     try:
         yield session
     finally:
@@ -149,5 +170,5 @@ def create_db_and_tables(*, force: bool = False):
 
     """
     if force:
-        Base.metadata.drop_all(_engine)
-    Base.metadata.create_all(_engine)
+        Base.metadata.drop_all(get_engine())
+    Base.metadata.create_all(get_engine())

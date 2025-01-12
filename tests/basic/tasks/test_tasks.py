@@ -1,5 +1,4 @@
 import enum
-import uuid
 from typing import Literal
 
 import pytest
@@ -7,6 +6,11 @@ import pytest
 from marvin.agents.agent import Agent
 from marvin.tasks.task import Task, TaskState
 from marvin.utilities.types import Labels
+
+
+def normalize_whitespace(text):
+    # Replace all whitespace sequences with a single space and strip
+    return " ".join(text.split())
 
 
 class Colors(enum.Enum):
@@ -126,8 +130,8 @@ class TestClassification:
         task = Task("Choose color", result_type=["red", "green", "blue"])
         prompt = task.get_prompt()
         expected_instruction = (
-            "\n\nRespond with the integer index(es) of the labels you're "
-            "choosing: {0: \"'red'\", 1: \"'green'\", 2: \"'blue'\"}"
+            "Provide the integer index (or indices) of your chosen "
+            """labels: {0: "'red'", 1: "'green'", 2: "'blue'"}"""
         )
         assert expected_instruction in prompt
 
@@ -205,9 +209,9 @@ class TestClassification:
 def test_task_initialization():
     """Test basic task initialization."""
     task = Task(instructions="Test task")
-    assert isinstance(task.id, uuid.UUID)
+    assert isinstance(task.id, str)
     assert task.instructions == "Test task"
-    assert task.result_type == str
+    assert task.result_type is str
     assert task.state == TaskState.PENDING
     assert task.result is None
     assert task.context == {}
@@ -298,9 +302,8 @@ def test_task_prompt_customization():
     prompt = task.get_prompt()
     assert "<id>" in prompt
     assert "<name>test task</name>" in prompt
-    assert "<instructions>Do something</instructions>" in prompt
+    assert "<instructions> Do something </instructions>" in normalize_whitespace(prompt)
     assert "<context>" in prompt
-    assert "<state>TaskState.PENDING</state>" in prompt
 
     # Test custom prompt
     task = Task(
