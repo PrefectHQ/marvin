@@ -1,6 +1,7 @@
 import inspect
 import json
 from collections.abc import Callable
+from dataclasses import asdict
 from functools import wraps
 from typing import Any, TypeVar
 
@@ -18,7 +19,8 @@ PROMPT = """
 You are an expert at predicting the output of Python functions. You will be given:
 1. A function definition with all relevant details, including its docstring, type hints, and parameters
 2. The actual values that will be passed to the function
-3. You will NOT be given the function's implementation or source code, only its definition
+3. Any additional context that was provided at runtime
+4. You will NOT be given the function's implementation or source code, only its definition
 
 Your job is to predict what this function would return if it were actually executed.
 Use the type hints, docstring, and parameter values to make an accurate prediction.
@@ -46,26 +48,34 @@ def _build_task(
     Returns:
         A Task configured to predict the function's output
     """
+    context = {}
+
     model = PythonFunction.from_function_call(func, *fn_args, **fn_kwargs)
 
     # Get the return annotation, defaulting to str if not specified
     original_return_annotation = model.return_annotation
-    has_return_annotation = original_return_annotation is not inspect.Signature.empty
-    model.return_annotation = (
-        original_return_annotation if has_return_annotation else str
-    )
+    if original_return_annotation is inspect.Signature.empty:
+        model.return_annotation = str
+        context["JSON result"] = (
+            "If possible, your answer will be parsed by json.loads()"
+        )
 
+    # exclude bound_parameters, function, source_code, return_value
     model_context = {
-        k: v
-        for k, v in model.__dict__.items()
-        if k not in {"bound_parameters", "function", "source_code", "return_value"}
+        "signature": str(model.signature),
+        "name": model.name,
+        "parameters": [asdict(p) for p in model.parameters],
+        "docstring": model.docstring,
+        "return_annotation": model.return_annotation,
     }
 
-    context = {
-        "Function definition": model_context,
-        "Function arguments": model.bound_parameters,
-        "Additional context provided at runtime": model.return_value,
-    }
+    context.update(
+        {
+            "Function definition": model_context,
+            "Function arguments": model.bound_parameters,
+            "Additional context": model.return_value,
+        }
+    )
     if instructions:
         context["Additional instructions"] = instructions
 
@@ -99,6 +109,9 @@ def fn(
     The decorated function accepts additional kwargs:
         - _agent: Override the agent at call time
         - _thread: Override the thread at call time
+
+    If the function does not have a return annotation, the result will be
+    returned as a string and attempted to be parsed as JSON.
 
     The decorated function also gains an as_task() method that returns the underlying
     marvin Task without executing it.
@@ -185,11 +198,10 @@ async def _fn(
     task = _build_task(func, fn_args, fn_kwargs, instructions=instructions, agent=agent)
     result = await task.run_async(thread=thread, handlers=[])
 
-    # If no return annotation was specified, try to parse as JSON first
-    if not task.is_classifier() and not isinstance(task.result_type, type):
+    if "JSON result" in task.context:
         try:
             result = json.loads(result)  # type: ignore
         except Exception:
-            logger.warning("Failed to parse result as JSON, returning raw result")
+            logger.debug("Failed to parse result as JSON, returning raw result")
 
     return result

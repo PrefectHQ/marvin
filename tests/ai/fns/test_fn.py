@@ -247,8 +247,8 @@ class TestFunctions:
 
         def test_fn_with_return_value_context(self):
             @marvin.fn
-            def get_fruit(name: str) -> str:
-                """Returns the name of a fruit"""
+            def get_fruit(name_or_description: str) -> str:
+                """Return the name of a fruit"""
                 return {"hint": "This fruit is yellow and curved"}
 
             result = get_fruit("?????its such a mystery??????")

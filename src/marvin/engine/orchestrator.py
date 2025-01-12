@@ -219,12 +219,12 @@ class Orchestrator:
         agentlet.result_validator(self.validate_end_turn)
 
         for tool in agentlet._function_tools.values():
-            original_run = tool.run
-
             # Wrap the tool run function to emit events for each call / result
             async def run(
                 message: ToolCallPart,
                 run_context: RunContext[AgentDeps],
+                # pass as arg to avoid late binding issues
+                original_run: Callable[..., Any] = tool.run,
             ) -> ModelRequestPart:
                 await self.handle_event(
                     ToolCallEvent(agent=self.active_agent(), message=message),

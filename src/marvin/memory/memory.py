@@ -108,17 +108,17 @@ class Memory:
         return [
             update_fn(
                 self.add,
-                name=f"store_memory_{self.key}",
+                name=f"add_memory__{self.key}",
                 description=f"Create a new memory in {self.friendly_name()}.",
             ),
             update_fn(
                 self.delete,
-                name=f"delete_memory_{self.key}",
+                name=f"delete_memory__{self.key}",
                 description=f"Delete a memory by ID from {self.friendly_name()}.",
             ),
             update_fn(
                 self.search,
-                name=f"search_memories_{self.key}",
+                name=f"search_memories__{self.key}",
                 description=f"Search {self.friendly_name()}. {self.instructions or ''}".rstrip(),
             ),
         ]
