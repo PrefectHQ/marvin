@@ -182,8 +182,10 @@ class Orchestrator:
                         KeyboardInterrupt,
                         CancelledError,
                     ) as e:
+                        logger.debug(f"Tool failed: {e}")
                         raise e
                     except Exception as e:
+                        logger.debug(f"Tool failed: {e}")
                         raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
 
                 return _fn
@@ -197,8 +199,10 @@ class Orchestrator:
                     KeyboardInterrupt,
                     CancelledError,
                 ) as e:
+                    logger.debug(f"Tool failed: {e}")
                     raise e
                 except Exception as e:
+                    logger.debug(f"Tool failed: {e}")
                     raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
 
             return _fn

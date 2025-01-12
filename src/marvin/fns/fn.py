@@ -22,7 +22,62 @@ You are an expert at predicting the output of Python functions. You will be give
 
 Your job is to predict what this function would return if it were actually executed.
 Use the type hints, docstring, and parameter values to make an accurate prediction.
+
+When returning a string, do not add unecessary quotes.
 """
+
+
+def _build_task(
+    func: Callable[..., T],
+    fn_args: tuple[Any, ...],
+    fn_kwargs: dict[str, Any],
+    instructions: str | None = None,
+    agent: Agent | None = None,
+) -> marvin.Task[T]:
+    """Build a Task for predicting the output of a Python function.
+
+    Args:
+        func: The function to predict output for
+        fn_args: Positional arguments that would be passed to the function
+        fn_kwargs: Keyword arguments that would be passed to the function
+        instructions: Optional instructions to guide the prediction
+        agent: Optional custom agent to use
+
+    Returns:
+        A Task configured to predict the function's output
+    """
+    model = PythonFunction.from_function_call(func, *fn_args, **fn_kwargs)
+
+    # Get the return annotation, defaulting to str if not specified
+    original_return_annotation = model.return_annotation
+    has_return_annotation = original_return_annotation is not inspect.Signature.empty
+    model.return_annotation = (
+        original_return_annotation if has_return_annotation else str
+    )
+
+    model_context = {
+        k: v
+        for k, v in model.__dict__.items()
+        if k not in {"bound_parameters", "function", "source_code", "return_value"}
+    }
+
+    context = {
+        "Function definition": model_context,
+        "Function arguments": model.bound_parameters,
+        "Additional context provided at runtime": model.return_value,
+    }
+    if instructions:
+        context["Additional instructions"] = instructions
+
+    assert model.return_annotation is not None, "No return annotation found"
+
+    return marvin.Task[T](
+        name=f"Predict output of {func.__name__}",
+        instructions=PROMPT,
+        context=context,
+        result_type=model.return_annotation,
+        agent=agent,
+    )
 
 
 def fn(
@@ -44,6 +99,9 @@ def fn(
     The decorated function accepts additional kwargs:
         - _agent: Override the agent at call time
         - _thread: Override the thread at call time
+
+    The decorated function also gains an as_task() method that returns the underlying
+    marvin Task without executing it.
 
     Args:
         func: The function to decorate
@@ -79,6 +137,22 @@ def fn(
                 return coro
             return run_sync(coro)
 
+        def as_task(
+            *args: Any,
+            _agent: Agent | None = None,
+            _instructions: str | None = None,
+            **kwargs: Any,
+        ) -> marvin.Task[T]:
+            """Return a Task configured to predict this function's output."""
+            return _build_task(
+                f,
+                args,
+                kwargs,
+                instructions=_instructions or instructions,
+                agent=_agent or agent,
+            )
+
+        wrapper.as_task = as_task  # type: ignore
         return wrapper
 
     if func is None:
@@ -108,48 +182,11 @@ async def _fn(
         The predicted output matching the function's return type
 
     """
-    model = PythonFunction.from_function_call(func, *fn_args, **fn_kwargs)
-
-    # Get the return annotation, defaulting to str if not specified
-    original_return_annotation = model.return_annotation
-    has_return_annotation = original_return_annotation is not inspect.Signature.empty
-    model.return_annotation = (
-        original_return_annotation if has_return_annotation else str
-    )
-
-    model_context = {
-        k: v
-        for k, v in model.__dict__.items()
-        # Don't include bound parameters, function, source code, or return value
-        # bound parameters and return value are provided directly as context;
-        # the function object isn't interpretable by an LLM; and the source code
-        # is misleading because (if it exists) it produces useful context but
-        # isn't actually what we're trying to predict
-        if k not in {"bound_parameters", "function", "source_code", "return_value"}
-    }
-
-    context = {
-        "Function definition": model_context,
-        "Function arguments": model.bound_parameters,
-        "Additional context provided at runtime": model.return_value,
-    }
-    if instructions:
-        context["Additional instructions"] = instructions
-
-    assert model.return_annotation is not None, "No return annotation found"
-
-    task = marvin.Task[T](
-        name="Function Output Prediction",
-        instructions=PROMPT,
-        context=context,
-        result_type=model.return_annotation,
-        agent=agent,
-    )
-
+    task = _build_task(func, fn_args, fn_kwargs, instructions=instructions, agent=agent)
     result = await task.run_async(thread=thread, handlers=[])
 
     # If no return annotation was specified, try to parse as JSON first
-    if not has_return_annotation:
+    if not task.is_classifier() and not isinstance(task.result_type, type):
         try:
             result = json.loads(result)  # type: ignore
         except Exception:

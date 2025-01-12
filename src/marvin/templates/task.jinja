@@ -3,11 +3,20 @@
     {% if task.name %}
     <name>{{ task.name }}</name>
     {% endif %}
-    <instructions>{{ task.instructions }}</instructions>
+    <instructions>
+        {{ task.instructions | indent(8) }}
+    </instructions>
     {% if task.context %}
-    <context>{{ task.context }}</context>
+    <context>
+        {{ task.context }}
+    </context>
     {% endif %}
-    <result-type>{{ task.result_type }}</result-type>
+
+    <result-type>
+        {{ task.get_result_type_str() }}
+
+        Note: result types must be provided as part of a complete TaskSuccess payload.
+    </result-type>
     {% if task.parent %}
     <parent-task-id>{{ task.parent.id }}</parent-task-id>
     {% endif %}
