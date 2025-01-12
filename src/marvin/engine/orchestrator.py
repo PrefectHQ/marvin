@@ -1,4 +1,5 @@
 import inspect
+import math
 from asyncio import CancelledError
 from collections.abc import Callable
 from contextvars import ContextVar
@@ -275,7 +276,14 @@ class Orchestrator:
     def incomplete_tasks(self) -> list[Task]:
         return [t for t in self.tasks if t.is_incomplete()]
 
-    async def run(self, raise_on_failure: bool = True) -> list[RunResult]:
+    async def run(
+        self, raise_on_failure: bool = True, max_turns: int | None = None
+    ) -> list[RunResult]:
+        if max_turns is None:
+            max_turns = marvin.settings.max_agent_turns
+        if max_turns is None:
+            max_turns = math.inf
+
         results = []
         token = current_orchestrator.set(self)
         try:
@@ -283,9 +291,11 @@ class Orchestrator:
                 await self.handle_event(OrchestratorStartEvent())
 
                 try:
-                    while self.incomplete_tasks():
+                    turns = 0
+                    while self.incomplete_tasks() or turns < max_turns:
                         result = await self._run_turn()
                         results.append(result)
+                        turns += 1
 
                         if raise_on_failure:
                             if failed := next(
@@ -293,6 +303,8 @@ class Orchestrator:
                                 False,
                             ):
                                 raise ValueError(f"Task {failed.id} failed")
+                    if turns >= max_turns:
+                        raise ValueError("Max agent turns reached")
 
                 except (Exception, KeyboardInterrupt, CancelledError) as e:
                     await self.handle_event(OrchestratorExceptionEvent(error=str(e)))
