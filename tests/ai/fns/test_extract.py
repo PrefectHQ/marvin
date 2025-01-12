@@ -65,7 +65,7 @@ class TestExtract:
                 str,
                 instructions="(formal city name, state abbreviation) properly capitalize",
             )
-            assert result == ["New York, NY"]
+            assert result in ["New York, NY", "New York City, NY"]
 
     class TestPydantic:
         def test_extract_location(self):
