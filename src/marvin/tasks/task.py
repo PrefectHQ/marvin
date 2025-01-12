@@ -228,8 +228,8 @@ class Task(Generic[T]):
         else:
             self.agent = agent
 
-        # Handle result type validation (from post_init)
-        if isinstance(self.result_type, list):
+        # Handle result type validation
+        if isinstance(self.result_type, (list, tuple, set)):
             if len(self.result_type) == 1 and isinstance(
                 self.result_type[0],
                 (list, tuple, set),
@@ -318,6 +318,16 @@ class Task(Generic[T]):
             return as_classifier(self.result_type).get_type()
         return self.result_type
 
+    def get_result_type_str(self) -> str:
+        """Get a string representation of the result type."""
+        if self.is_classifier():
+            return (
+                f"Provide the integer index (or indices) of your chosen labels: "
+                f"{as_classifier(self.result_type).get_indexed_labels()}"
+            )
+        else:
+            return str(self.get_result_type())
+
     def validate_result(self, raw_result: Any) -> T:
         """Validate a result against the expected type and custom validator."""
         # Apply custom validation if provided
@@ -340,12 +350,6 @@ class Task(Generic[T]):
         this task instance as the `task` variable.
         """
         prompt = Template(source=self.prompt_template).render(task=self)
-
-        if self.is_classifier():
-            prompt += (
-                f"\n\nRespond with the integer index(es) of the labels you're "
-                f"choosing: {as_classifier(self.result_type).get_indexed_labels()}"
-            )
 
         return prompt
 
