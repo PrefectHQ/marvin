@@ -69,7 +69,7 @@ def test_force_recreate_tables():
         assert result.scalars().first() is not None
 
         result = session.execute(
-            select(DBMessage).where(DBMessage.thread_id == "test-thread")
+            select(DBMessage).where(DBMessage.thread_id == "test-thread"),
         )
         assert result.scalars().first() is not None
 
@@ -82,7 +82,7 @@ def test_force_recreate_tables():
         assert result.scalars().first() is None
 
         result = session.execute(
-            select(DBMessage).where(DBMessage.thread_id == "test-thread")
+            select(DBMessage).where(DBMessage.thread_id == "test-thread"),
         )
         assert result.scalars().first() is None
 
@@ -125,7 +125,7 @@ def test_relationship_operations():
 
         # Verify all gone
         result = session.execute(
-            select(DBMessage).where(DBMessage.thread_id == "test-thread")
+            select(DBMessage).where(DBMessage.thread_id == "test-thread"),
         )
         assert result.scalars().first() is None
 

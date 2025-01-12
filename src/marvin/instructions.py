@@ -1,6 +1,6 @@
+from collections.abc import Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Generator
 
 from marvin.utilities.logging import get_logger
 
@@ -8,14 +8,14 @@ logger = get_logger(__name__)
 
 # Global context var for current instructions
 current_instructions: ContextVar[list[str]] = ContextVar(
-    "current_instructions", default=[]
+    "current_instructions",
+    default=[],
 )
 
 
 @contextmanager
 def instructions(instruction: str) -> Generator[None, None, None]:
-    """
-    Temporarily add instructions to the current instruction stack. The
+    """Temporarily add instructions to the current instruction stack. The
     instruction is removed when the context is exited.
 
     with instructions("talk like a pirate"):
@@ -34,7 +34,5 @@ def instructions(instruction: str) -> Generator[None, None, None]:
 
 
 def get_instructions() -> list[str]:
-    """
-    Get the current instruction stack.
-    """
+    """Get the current instruction stack."""
     return current_instructions.get()

@@ -22,17 +22,13 @@ class EndTurn(abc.ABC):
     @staticmethod
     @abc.abstractmethod
     def instructions() -> str:
-        """
-        Put instructions here since they docstrings do not survive all transformations (e.g. typing a generic)
-        """
+        """Put instructions here since they docstrings do not survive all transformations (e.g. typing a generic)"""
         return ""
 
 
 @dataclass(kw_only=True)
 class TaskSuccess(EndTurn, Generic[TaskResult]):
-    """
-    Mark a task successful and provide a result.
-    """
+    """Mark a task successful and provide a result."""
 
     task_id: str
     result: TaskResult
@@ -46,7 +42,7 @@ class TaskSuccess(EndTurn, Generic[TaskResult]):
             f'"{self.result}"' if isinstance(self.result, str) else self.result
         )
         logger.debug(
-            f"{orchestrator.active_agent().friendly_name()}: Marking {tasks[self.task_id].friendly_name()} successful with result {debug_result}"
+            f"{orchestrator.active_agent().friendly_name()}: Marking {tasks[self.task_id].friendly_name()} successful with result {debug_result}",
         )
         tasks[self.task_id].mark_successful(self.result)
 
@@ -57,9 +53,7 @@ class TaskSuccess(EndTurn, Generic[TaskResult]):
 
 @dataclass(kw_only=True)
 class TaskFailed(EndTurn):
-    """
-    Mark a task failed and provide a message.
-    """
+    """Mark a task failed and provide a message."""
 
     task_id: str
     message: str | None = None
@@ -69,7 +63,7 @@ class TaskFailed(EndTurn):
         if self.task_id not in tasks:
             raise ValueError(f"Task ID {self.task_id} not found in tasks")
         logger.debug(
-            f'{orchestrator.active_agent().friendly_name()}: Marking {tasks[self.task_id].friendly_name()} failed with message "{self.message}"'
+            f'{orchestrator.active_agent().friendly_name()}: Marking {tasks[self.task_id].friendly_name()} failed with message "{self.message}"',
         )
         tasks[self.task_id].mark_failed(self.message)
 
@@ -80,9 +74,7 @@ class TaskFailed(EndTurn):
 
 @dataclass(kw_only=True)
 class TaskSkipped(EndTurn):
-    """
-    Mark a task skipped.
-    """
+    """Mark a task skipped."""
 
     task_id: str
 
@@ -91,7 +83,7 @@ class TaskSkipped(EndTurn):
         if self.task_id not in tasks:
             raise ValueError(f"Task ID {self.task_id} not found in tasks")
         logger.debug(
-            f"{orchestrator.active_agent().friendly_name()}: Marking {tasks[self.task_id].friendly_name()} skipped"
+            f"{orchestrator.active_agent().friendly_name()}: Marking {tasks[self.task_id].friendly_name()} skipped",
         )
         tasks[self.task_id].mark_skipped()
 
@@ -102,15 +94,13 @@ class TaskSkipped(EndTurn):
 
 @dataclass(kw_only=True)
 class PostMessage(EndTurn):
-    """
-    Post a message to the thread.
-    """
+    """Post a message to the thread."""
 
     message: str
 
     async def run(self, orchestrator: "Orchestrator") -> None:
         logger.debug(
-            f"{orchestrator.active_agent().friendly_name()}: Posting message to thread: {self.message}"
+            f"{orchestrator.active_agent().friendly_name()}: Posting message to thread: {self.message}",
         )
         await orchestrator.thread.add_message_async(AgentMessage(content=self.message))
 
@@ -121,9 +111,7 @@ class PostMessage(EndTurn):
 
 @dataclass(kw_only=True)
 class DelegateToAgent(EndTurn):
-    """
-    Delegate your turn to another agent.
-    """
+    """Delegate your turn to another agent."""
 
     agent_id: str
     message: str | None = field(
@@ -137,7 +125,7 @@ class DelegateToAgent(EndTurn):
         if self.agent_id not in delegates:
             raise ValueError(f"Agent ID {self.agent_id} not found in delegates")
         logger.debug(
-            f'{current_agent_name}: Delegating to {delegates[self.agent_id].friendly_name()} with message "{self.message}"'
+            f'{current_agent_name}: Delegating to {delegates[self.agent_id].friendly_name()} with message "{self.message}"',
         )
 
         # walk active_agents to find the delegate
@@ -154,7 +142,7 @@ class DelegateToAgent(EndTurn):
 
         if self.message:
             await orchestrator.thread.add_messages_async(
-                [AgentMessage(content=f"{current_agent_name}: {self.message}")]
+                [AgentMessage(content=f"{current_agent_name}: {self.message}")],
             )
 
     @staticmethod

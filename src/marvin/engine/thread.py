@@ -1,5 +1,4 @@
-"""
-Thread management for conversations.
+"""Thread management for conversations.
 
 This module provides the Thread class for managing conversation context.
 """
@@ -30,7 +29,8 @@ def utc_now() -> datetime:
 
 # Global context var for current thread
 current_thread: ContextVar[Optional["Thread"]] = ContextVar(
-    "current_thread", default=None
+    "current_thread",
+    default=None,
 )
 
 # Track the last thread globally
@@ -42,9 +42,9 @@ class Thread:
     """Main runtime object for managing conversation context."""
 
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    parent_id: Optional[str] = None
-    _db_thread: Optional[DBThread] = field(default=None, init=False, repr=False)
-    _last_token: Optional[Any] = field(default=None, init=False, repr=False)
+    parent_id: str | None = None
+    _db_thread: DBThread | None = field(default=None, init=False, repr=False)
+    _last_token: Any | None = field(default=None, init=False, repr=False)
 
     async def _ensure_thread_exists(self) -> None:
         """Ensure thread exists in database."""
@@ -64,6 +64,7 @@ class Thread:
 
         Args:
             messages: List of messages to add (UserMessage, AssistantMessage, etc.)
+
         """
         return run_sync(self.add_messages_async(messages))
 
@@ -72,6 +73,7 @@ class Thread:
 
         Args:
             messages: List of messages to add (UserMessage, AssistantMessage, etc.)
+
         """
         await self._ensure_thread_exists()
 
@@ -93,12 +95,15 @@ class Thread:
         await self.add_messages_async([UserMessage(content=message)])
 
     async def _get_thread_hierarchy(
-        self, session: AsyncSession, max_depth: int = 10
+        self,
+        session: AsyncSession,
+        max_depth: int = 10,
     ) -> list[tuple[str, datetime]]:
         """Get the thread hierarchy (thread_id, created_at) pairs up to max_depth levels.
 
         Returns:
             List of (thread_id, created_at) pairs, ordered from current thread to oldest ancestor.
+
         """
         hierarchy: list[tuple[str, datetime]] = []
         current_thread = self._db_thread
@@ -109,28 +114,34 @@ class Thread:
             if not current_thread.parent_thread_id:
                 break
             current_thread = await session.get(
-                DBThread, current_thread.parent_thread_id
+                DBThread,
+                current_thread.parent_thread_id,
             )
             depth += 1
 
         return hierarchy
 
     def get_messages(
-        self, include_parent: bool = True, include_system_messages: bool = False
+        self,
+        include_parent: bool = True,
+        include_system_messages: bool = False,
     ) -> list[Message]:
         """Get all messages in this thread."""
         return run_sync(
-            self.get_messages_async(include_parent, include_system_messages)
+            self.get_messages_async(include_parent, include_system_messages),
         )
 
     async def get_messages_async(
-        self, include_parent: bool = True, include_system_messages: bool = False
+        self,
+        include_parent: bool = True,
+        include_system_messages: bool = False,
     ) -> list[Message]:
         """Get all messages in this thread.
 
         Args:
             include_parent: Whether to include messages from parent thread
             include_system_messages: Whether to include system messages in the response
+
         """
         await self._ensure_thread_exists()
 
@@ -161,7 +172,7 @@ class Thread:
                         and_(
                             DBMessage.thread_id == thread_id,
                             DBMessage.timestamp <= hierarchy[i - 1][1],
-                        )
+                        ),
                     )
 
             query = select(DBMessage).where(or_(*conditions))
@@ -191,16 +202,17 @@ class Thread:
         return current_thread.get()
 
 
-def get_current_thread() -> Optional[Thread]:
+def get_current_thread() -> Thread | None:
     """Get the currently active thread from context.
 
     Returns:
         The current Thread instance or None if no thread is active.
+
     """
     return Thread.get_current()
 
 
-def get_last_thread() -> Optional[Thread]:
+def get_last_thread() -> Thread | None:
     """Get the last thread that was set as current.
 
     This function is for debugging purposes only, and will only work in certain
@@ -217,10 +229,10 @@ def get_thread(thread: Thread | str | None) -> Thread:
 
     Returns:
         A Thread instance
+
     """
     if isinstance(thread, Thread):
         return thread
-    elif isinstance(thread, str):
+    if isinstance(thread, str):
         return Thread(id=thread)
-    else:
-        return get_current_thread() or Thread()
+    return get_current_thread() or Thread()

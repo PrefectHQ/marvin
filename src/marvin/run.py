@@ -1,4 +1,5 @@
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 import marvin.utilities.asyncio
 from marvin import Task, Thread
@@ -17,7 +18,10 @@ async def run_tasks_async(
     handlers: list[Handler | AsyncHandler] | None = None,
 ) -> list[Task[Any]]:
     orchestrator = Orchestrator(
-        tasks=tasks, agents=agents, thread=thread, handlers=handlers
+        tasks=tasks,
+        agents=agents,
+        thread=thread,
+        handlers=handlers,
     )
     await orchestrator.run(raise_on_failure=raise_on_failure)
     return tasks
@@ -37,7 +41,7 @@ def run_tasks(
             thread=thread,
             raise_on_failure=raise_on_failure,
             handlers=handlers,
-        )
+        ),
     )
 
 
@@ -87,5 +91,5 @@ def run(
             raise_on_failure=raise_on_failure,
             handlers=handlers,
             **kwargs,
-        )
+        ),
     )

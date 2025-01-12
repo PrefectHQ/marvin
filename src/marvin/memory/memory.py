@@ -1,8 +1,9 @@
 import abc
 import inspect
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict
+from typing import Any
 
 import marvin
 from marvin.utilities.logging import get_logger
@@ -20,28 +21,23 @@ def sanitize_memory_key(key: str) -> str:
 class MemoryProvider(abc.ABC):
     def configure(self, memory_key: str) -> None:
         """Configure the provider for a specific memory."""
-        pass
 
     @abc.abstractmethod
     def add(self, memory_key: str, content: str) -> str:
         """Create a new memory and return its ID."""
-        pass
 
     @abc.abstractmethod
     def delete(self, memory_key: str, memory_id: str) -> None:
         """Delete a memory by its ID."""
-        pass
 
     @abc.abstractmethod
-    def search(self, memory_key: str, query: str, n: int = 20) -> Dict[str, str]:
+    def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
         """Search for n memories using a string query."""
-        pass
 
 
 @dataclass(kw_only=True)
 class Memory:
-    """
-    A memory module is a partitioned collection of memories that are stored in a
+    """A memory module is a partitioned collection of memories that are stored in a
     vector database, configured by a MemoryProvider.
     """
 
@@ -49,11 +45,12 @@ class Memory:
     instructions: str | None = field(
         default=None,
         metadata={
-            "description": "Explain what this memory is for and how it should be used."
+            "description": "Explain what this memory is for and how it should be used.",
         },
     )
     provider: MemoryProvider = field(
-        default_factory=lambda: marvin.defaults.memory_provider, repr=False
+        default_factory=lambda: marvin.defaults.memory_provider,
+        repr=False,
     )
 
     def __hash__(self) -> int:
@@ -64,7 +61,7 @@ class Memory:
         sanitized = sanitize_memory_key(self.key)
         if sanitized != self.key:
             raise ValueError(
-                "Memory key must contain only alphanumeric characters and underscores"
+                "Memory key must contain only alphanumeric characters and underscores",
             )
 
         # Validate and process provider
@@ -88,8 +85,8 @@ class Memory:
                     Please note that if you are using ControlFlow for the first
                     time, this error is expected because ControlFlow does not include
                     vector dependencies by default.
-                    """
-                )
+                    """,
+                ),
             )
 
         # Configure provider
@@ -101,7 +98,7 @@ class Memory:
     def delete(self, memory_id: str) -> None:
         self.provider.delete(self.key, memory_id)
 
-    def search(self, query: str, n: int = 20) -> Dict[str, str]:
+    def search(self, query: str, n: int = 20) -> dict[str, str]:
         return self.provider.search(self.key, query, n)
 
     def friendly_name(self) -> str:
@@ -137,16 +134,16 @@ def get_memory_provider(provider: str) -> MemoryProvider:
             import chromadb  # noqa: F401
         except ImportError:
             raise ImportError(
-                "To use Chroma as a memory provider, please install the `chromadb` package."
+                "To use Chroma as a memory provider, please install the `chromadb` package.",
             )
 
         import marvin.memory.providers.chroma as chroma_providers
 
         if provider == "chroma-ephemeral":
             return chroma_providers.ChromaEphemeralMemory()
-        elif provider == "chroma-db":
+        if provider == "chroma-db":
             return chroma_providers.ChromaPersistentMemory()
-        elif provider == "chroma-cloud":
+        if provider == "chroma-cloud":
             return chroma_providers.ChromaCloudMemory()
 
     # --- LanceDB ---
@@ -156,7 +153,7 @@ def get_memory_provider(provider: str) -> MemoryProvider:
             import lancedb  # noqa: F401
         except ImportError:
             raise ImportError(
-                "To use LanceDB as a memory provider, please install the `lancedb` package."
+                "To use LanceDB as a memory provider, please install the `lancedb` package.",
             )
 
         import marvin.memory.providers.lance as lance_providers
@@ -169,7 +166,7 @@ def get_memory_provider(provider: str) -> MemoryProvider:
             import sqlalchemy  # noqa: F401
         except ImportError:
             raise ImportError(
-                "To use Postgres as a memory provider, please install the `sqlalchemy` package."
+                "To use Postgres as a memory provider, please install the `sqlalchemy` package.",
             )
 
         import marvin.memory.providers.postgres as postgres_providers

@@ -1,5 +1,4 @@
-"""
-Prompt system for Marvin.
+"""Prompt system for Marvin.
 
 This module provides a flexible prompt system that supports:
 1. Prompts defined as strings or paths to template files
@@ -10,9 +9,10 @@ This module provides a flexible prompt system that supports:
 
 import inspect
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, List, Type, get_type_hints
+from typing import Any, get_type_hints
 
 from marvin.engine.llm import AgentMessage, Message, SystemMessage, UserMessage
 from marvin.utilities.jinja import jinja_env
@@ -24,6 +24,7 @@ class Template:
 
     Args:
         source: Either a string template or a Path to a template file
+
     """
 
     _dataclass_config = {"kw_only": True}
@@ -56,8 +57,8 @@ class Prompt:
 
     source: str | Path = field(
         metadata={
-            "description": "The template source - either a string template or path to template file"
-        }
+            "description": "The template source - either a string template or path to template file",
+        },
     )
     _extra_fields: dict[str, Any] = field(default_factory=dict, repr=False)
 
@@ -86,7 +87,7 @@ class Prompt:
         template = Template(source=self.source)
         return template.render(**render_kwargs | kwargs)
 
-    def _parse_messages(self, text: str) -> List[Message]:
+    def _parse_messages(self, text: str) -> list[Message]:
         """Parse text into messages with roles.
 
         The text can contain role markers in the format "ROLE:" or "role:".
@@ -97,10 +98,12 @@ class Prompt:
             SYSTEM: You are a helpful assistant.
             USER: Hi!
             ASSISTANT: Hello! How can I help you?
+
         """
         # Split on role markers, keeping the marker
         pattern = re.compile(
-            r"^(SYSTEM:|USER:|ASSISTANT:|system:|user:|assistant:)\s*", re.MULTILINE
+            r"^(SYSTEM:|USER:|ASSISTANT:|system:|user:|assistant:)\s*",
+            re.MULTILINE,
         )
 
         # Split text into chunks at role markers
@@ -164,7 +167,7 @@ class Prompt:
         return self._parse_messages(text)
 
     @classmethod
-    def from_fn(cls, fn: Callable[..., Any]) -> Type["Prompt"]:
+    def from_fn(cls, fn: Callable[..., Any]) -> type["Prompt"]:
         """Create a Prompt class from a function's docstring and signature.
 
         Args:
@@ -184,6 +187,7 @@ class Prompt:
             GreetPrompt = Prompt.from_fn(greet)
             prompt = GreetPrompt(name="Alice", age=30)
             messages = prompt.to_messages()
+
         """
         # Get function signature and docstring
         sig = inspect.signature(fn)

@@ -7,26 +7,29 @@ from tempfile import TemporaryDirectory
 from typing import Any
 
 import chromadb
-import marvin
 import pytest
-from marvin import settings
-from marvin.engine import database
-from marvin.memory.providers.chroma import ChromaMemory
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 from sqlalchemy.pool import NullPool
+
+import marvin
+from marvin import settings
+from marvin.engine import database
+from marvin.memory.providers.chroma import ChromaMemory
 
 
 # Configure SQLite to use WAL mode for better concurrency
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(
-    dbapi_connection: sqlite3.Connection, connection_record: Any
+    dbapi_connection: sqlite3.Connection,
+    connection_record: Any,
 ) -> None:
     """Configure SQLite connection for better concurrency.
 
     Args:
         dbapi_connection: The SQLite connection
         connection_record: SQLAlchemy connection record (unused)
+
     """
     cursor = dbapi_connection.cursor()
     # Use WAL mode for better concurrency
@@ -94,8 +97,6 @@ def setup_memory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         marvin.defaults,
         "memory_provider",
         ChromaMemory(
-            client=chromadb.PersistentClient(path=str(tmp_path / "controlflow-memory"))
+            client=chromadb.PersistentClient(path=str(tmp_path / "controlflow-memory")),
         ),
     )
-
-    yield

@@ -1,8 +1,9 @@
 import asyncio
 from typing import Literal
 
-import marvin
 from pydantic import BaseModel, Field
+
+import marvin
 
 
 class AllergyFormatA(BaseModel):
@@ -16,7 +17,8 @@ class AllergyFormatB(BaseModel):
     agent: str = Field(description="Name of the allergic substance")
     riskLevel: Literal["low", "medium", "high"] = Field(description="Risk level")
     manifestations: list[str] = Field(
-        description="List of observed reactions", alias="clinicalManifestations"
+        description="List of observed reactions",
+        alias="clinicalManifestations",
     )
     documentation_date: str = Field(
         description="Date allergy was documented (YYYY-MM-DD)",

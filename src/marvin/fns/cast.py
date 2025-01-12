@@ -1,4 +1,4 @@
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 
 import marvin
 from marvin.agents.agent import Agent
@@ -30,12 +30,11 @@ or information and transform it into a single entity of the requested type.
 async def cast_async(
     data: Any,
     target: TargetType[T] = str,
-    instructions: Optional[str] = None,
-    agent: Optional[Agent] = None,
-    thread: Optional[Thread | str] = None,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
 ) -> T:
-    """
-    Converts input data into a single entity of the specified target type asynchronously.
+    """Converts input data into a single entity of the specified target type asynchronously.
 
     This function uses a language model to analyze the input data and convert
     it into a single entity of the specified type, preserving semantic meaning
@@ -57,6 +56,7 @@ async def cast_async(
 
     Raises:
         ValueError: If target is str and no instructions are provided.
+
     """
     if target is str and instructions is None:
         raise ValueError("Instructions are required when target type is str.")
@@ -79,12 +79,11 @@ async def cast_async(
 def cast(
     data: Any,
     target: TargetType[T] = str,
-    instructions: Optional[str] = None,
-    agent: Optional[Agent] = None,
-    thread: Optional[Thread | str] = None,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
 ) -> T:
-    """
-    Converts input data into a single entity of the specified target type.
+    """Converts input data into a single entity of the specified target type.
 
     This function uses a language model to analyze the input data and convert
     it into a single entity of the specified type, preserving semantic meaning
@@ -106,6 +105,7 @@ def cast(
 
     Raises:
         ValueError: If target is str and no instructions are provided.
+
     """
     return run_sync(
         cast_async(
@@ -114,5 +114,5 @@ def cast(
             instructions=instructions,
             agent=agent,
             thread=thread,
-        )
+        ),
     )

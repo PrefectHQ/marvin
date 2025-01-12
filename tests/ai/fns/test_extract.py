@@ -60,7 +60,8 @@ class TestExtract:
 
         def test_extract_multiple_locations(self):
             result = marvin.extract(
-                "I live in New York, NY and work in San Francisco, CA", Location
+                "I live in New York, NY and work in San Francisco, CA",
+                Location,
             )
             assert result == [
                 Location(city="New York", state="NY"),

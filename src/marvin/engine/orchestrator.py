@@ -1,10 +1,11 @@
 import inspect
 from asyncio import CancelledError
+from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Optional, TypeVar
 
 import pydantic_ai
 from pydantic_ai.messages import ModelRequestPart, RetryPromptPart, ToolCallPart
@@ -42,7 +43,8 @@ logger = get_logger(__name__)
 
 # Global context var for current orchestrator
 current_orchestrator: ContextVar["Orchestrator|None"] = ContextVar(
-    "current_orchestrator", default=None
+    "current_orchestrator",
+    default=None,
 )
 RESULT_TOOL_PREFIX = "_EndTurn_"
 
@@ -137,7 +139,7 @@ class Orchestrator:
 
         messages = await self.thread.get_messages_async()
         all_messages = [
-            marvin.engine.llm.SystemMessage(content=orchestrator_prompt)
+            marvin.engine.llm.SystemMessage(content=orchestrator_prompt),
         ] + messages
 
         # --- run agent
@@ -163,6 +165,7 @@ class Orchestrator:
 
         Returns:
             The configured agentlet
+
         """
 
         # Pydantic AI doesn't catch errors except for ModelRetry, so we need to make sure we catch them
@@ -185,22 +188,20 @@ class Orchestrator:
 
                 return _fn
 
-            else:
+            @wraps(tool)
+            def _fn(*args, **kwargs):
+                try:
+                    return tool(*args, **kwargs)
+                except (
+                    pydantic_ai.ModelRetry,
+                    KeyboardInterrupt,
+                    CancelledError,
+                ) as e:
+                    raise e
+                except Exception as e:
+                    raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
 
-                @wraps(tool)
-                def _fn(*args, **kwargs):
-                    try:
-                        return tool(*args, **kwargs)
-                    except (
-                        pydantic_ai.ModelRetry,
-                        KeyboardInterrupt,
-                        CancelledError,
-                    ) as e:
-                        raise e
-                    except Exception as e:
-                        raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
-
-                return _fn
+            return _fn
 
         tools = [wrap_tool(tool) for tool in tools]
 
@@ -222,7 +223,7 @@ class Orchestrator:
                 run_context: RunContext[AgentDeps],
             ) -> ModelRequestPart:
                 await self.handle_event(
-                    ToolCallEvent(agent=self.active_agent(), message=message)
+                    ToolCallEvent(agent=self.active_agent(), message=message),
                 )
                 result = await original_run(message, run_context)
                 if isinstance(result, RetryPromptPart):
@@ -249,7 +250,8 @@ class Orchestrator:
     async def _record_messages(self, result):
         for message in result.new_messages():
             for event in message_to_events(
-                agent=self.team.active_member, message=message
+                agent=self.team.active_member,
+                message=message,
             ):
                 await self.handle_event(event)
         await self.thread.add_messages_async(result.new_messages())
@@ -297,24 +299,19 @@ class Orchestrator:
         return result
 
     def active_team(self) -> marvin.agents.team.Team:
-        """
-        Returns the currently active team that contains the currently active agent.
-        """
+        """Returns the currently active team that contains the currently active agent."""
         active_team = self.team
         while not isinstance(active_team.active_member, Agent):
             active_team = active_team.active_member
         return active_team
 
     def active_agent(self) -> Agent:
-        """
-        Returns the currently active agent.
-        """
+        """Returns the currently active agent."""
         active_team = self.active_team()
         return active_team.active_member
 
     def active_actors(self) -> list[Actor]:
-        """
-        Returns a list of all active actors in the hierarchy, starting with the
+        """Returns a list of all active actors in the hierarchy, starting with the
         orchestrator's team and following the team hierarchy to the active
         agent.
         """
@@ -336,6 +333,7 @@ class Orchestrator:
                      "id": str,
                      "members": [...] # only present for teams
                  }
+
         """
         active_actors = self.active_actors()
 
@@ -347,12 +345,11 @@ class Orchestrator:
                     "members": [_build_tree(agent) for agent in node.members],
                     "active": node in active_actors,
                 }
-            else:
-                return {
-                    # "type": "agent",
-                    "id": node.id,
-                    "active": node in active_actors,
-                }
+            return {
+                # "type": "agent",
+                "id": node.id,
+                "active": node in active_actors,
+            }
 
         return _build_tree(self.team)
 
@@ -362,10 +359,11 @@ class Orchestrator:
         return current_orchestrator.get()
 
 
-def get_current_orchestrator() -> Optional[Orchestrator]:
+def get_current_orchestrator() -> Orchestrator | None:
     """Get the currently active orchestrator from context.
 
     Returns:
         The current Orchestrator instance or None if no orchestrator is active.
+
     """
     return Orchestrator.get_current()

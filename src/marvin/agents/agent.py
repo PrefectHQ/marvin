@@ -1,13 +1,13 @@
-"""
-Agents for Marvin.
+"""Agents for Marvin.
 
 An Agent is an entity that can process tasks and maintain state across interactions.
 """
 
 import random
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Optional, Union
+from typing import Any, Union
 
 import pydantic_ai
 from pydantic_ai.models import KnownModelName, Model, ModelSettings
@@ -43,10 +43,10 @@ class Agent(Actor):
         metadata={"description": "List of memory modules available to the agent"},
     )
 
-    model: Optional[KnownModelName | Model] = field(
+    model: KnownModelName | Model | None = field(
         default=None,
         metadata={
-            "description": "The model to use for the agent. If not provided, the default model will be used. A compatible string can be passed to automatically retrieve the model."
+            "description": "The model to use for the agent. If not provided, the default model will be used. A compatible string can be passed to automatically retrieve the model.",
         },
         repr=False,
     )
@@ -61,7 +61,7 @@ class Agent(Actor):
         default=None,
         repr=False,
         metadata={
-            "description": "List of agents that this agent can delegate to. Provide an empty list if this agent can not delegate."
+            "description": "List of agents that this agent can delegate to. Provide an empty list if this agent can not delegate.",
         },
     )
 

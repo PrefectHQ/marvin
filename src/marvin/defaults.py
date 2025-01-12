@@ -33,6 +33,7 @@ def override_defaults(**kwargs: Unpack[Defaults]):
         >>> with override_defaults(model="gpt-4", agent=Agent(name="Custom")):
         ...     # code that uses the temporary defaults
         ...     pass
+
     """
     original_values = {}
 

@@ -1,7 +1,8 @@
 import datetime
 import uuid
+from collections.abc import Generator
 from dataclasses import dataclass, field
-from typing import Generator, Literal
+from typing import Literal
 
 from pydantic_ai.messages import (
     RetryPromptPart,
@@ -35,7 +36,7 @@ class Event:
     type: EventType
     id: uuid.UUID = field(default_factory=lambda: uuid.uuid4())
     timestamp: datetime.datetime = field(
-        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc)
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
     )
 
 

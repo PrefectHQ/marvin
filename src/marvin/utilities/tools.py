@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Callable, Literal, Optional, TypeVar, overload
+from typing import Any, Literal, TypeVar, overload
 
 from pydantic_ai import RunContext
 
@@ -11,8 +12,8 @@ T = TypeVar("T")
 def update_fn(
     name_or_func: str | Callable[..., T] | None = None,
     *,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
+    name: str | None = None,
+    description: str | None = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
 
 
@@ -21,15 +22,15 @@ def update_fn(
     func: Callable[..., T],
     *,
     name: str,
-    description: Optional[str] = None,
+    description: str | None = None,
 ) -> Callable[..., T]: ...
 
 
 def update_fn(
     name_or_func: str | Callable[..., T] | None = None,
     *,
-    name: Optional[str] = None,
-    description: Optional[str] = None,
+    name: str | None = None,
+    description: str | None = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]] | Callable[..., T]:
     """Rename a function and optionally set its docstring.
 
@@ -55,6 +56,7 @@ def update_fn(
         def add_stuff(x):
             return x + 1
         new_fn = update_fn(add_stuff, name='add_stuff_123', description='Adds stuff')
+
     """
 
     def apply(func: Callable[..., T], new_name: str) -> Callable[..., T]:
@@ -72,16 +74,15 @@ def update_fn(
         if name is None:
             raise ValueError("name must be provided when used as a function")
         return apply(name_or_func, name)
-    else:
-        # Used as decorator
-        decorator_name = name_or_func if name_or_func is not None else name
-        if decorator_name is None:
-            raise ValueError("name must be provided either as argument or keyword")
+    # Used as decorator
+    decorator_name = name_or_func if name_or_func is not None else name
+    if decorator_name is None:
+        raise ValueError("name must be provided either as argument or keyword")
 
-        def decorator(func: Callable[..., T]) -> Callable[..., T]:
-            return apply(func, decorator_name)
+    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        return apply(func, decorator_name)
 
-        return decorator
+    return decorator
 
 
 @dataclass

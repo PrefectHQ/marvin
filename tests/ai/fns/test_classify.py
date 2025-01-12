@@ -1,8 +1,9 @@
 from enum import Enum
 
-import marvin
 import pytest
 from pydantic import BaseModel
+
+import marvin
 
 sentiment = ["Negative", "Positive"]
 
@@ -29,7 +30,8 @@ class TestClassify:
 
         def classify_bug_tag(self):
             result = marvin.classify(
-                "This is a bug", ["bug", "feature", "enhancement", "docs"]
+                "This is a bug",
+                ["bug", "feature", "enhancement", "docs"],
             )
             assert result == "bug"
 
@@ -40,9 +42,7 @@ class TestClassify:
             assert result == "number"
 
         def test_classify_object(self):
-            """
-            Test that objects are returned from classify
-            """
+            """Test that objects are returned from classify"""
 
             class Person(BaseModel):
                 name: str
@@ -91,20 +91,26 @@ class TestClassify:
 
         def test_classify_trueish(self):
             result = marvin.classify(
-                "y", bool, instructions="map the input to true/false"
+                "y",
+                bool,
+                instructions="map the input to true/false",
             )
             assert result is True
 
         def test_classify_falseish(self):
             result = marvin.classify(
-                "nope", bool, instructions="map the input to true/false"
+                "nope",
+                bool,
+                instructions="map the input to true/false",
             )
             assert result is False
 
     class TestInstructions:
         def test_classify_positive_sentiment_with_instructions(self):
             result = marvin.classify(
-                "This is a great feature!", sentiment, instructions="It's opposite day."
+                "This is a great feature!",
+                sentiment,
+                instructions="It's opposite day.",
             )
             assert result == "Negative"
 
@@ -156,7 +162,8 @@ class TestClassify:
                 last: str
 
             result = marvin.classify(
-                Name(first="Alice", last="Smith"), ["Alice", "Bob"]
+                Name(first="Alice", last="Smith"),
+                ["Alice", "Bob"],
             )
             assert result == "Alice"
 

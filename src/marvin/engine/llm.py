@@ -1,8 +1,7 @@
-"""
-Utility functions for LLM completions using Pydantic AI.
-"""
+"""Utility functions for LLM completions using Pydantic AI."""
 
-from typing import Any, Callable, get_type_hints
+from collections.abc import Callable
+from typing import Any, get_type_hints
 
 import pydantic_ai
 from pydantic_ai import RunContext
@@ -45,6 +44,7 @@ def bind_tool(agent: pydantic_ai.Agent[Any, Any], func: Callable[..., Any]) -> N
     Args:
         agent: The Pydantic AI agent to bind the tool to
         func: The function to bind as a tool
+
     """
     # Get type hints including RunContext if present
     type_hints = get_type_hints(func)

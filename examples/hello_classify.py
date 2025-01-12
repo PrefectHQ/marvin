@@ -21,7 +21,7 @@ async def bucket_criticism(feedbacks: list[str]) -> list[CustomerDissatisfaction
                 instructions="Decide how bad the customer's experience was",
             )
             for feedback in feedbacks
-        ]
+        ],
     )
 
 

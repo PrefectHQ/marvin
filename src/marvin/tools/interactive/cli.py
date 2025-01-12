@@ -33,9 +33,7 @@ class Prompt(RichPrompt):
 
 
 async def cli(message: str) -> str:
-    """
-    Send a message to a human user and wait for a response
-    """
+    """Send a message to a human user and wait for a response"""
     orchestrator = get_current_orchestrator()
     if orchestrator:
         agent = orchestrator.active_agent().name
@@ -48,7 +46,7 @@ async def cli(message: str) -> str:
             [bold blue]🤖 {agent}:[/] [blue]{message}[/]
             
             :computer: [bold green]You:[/]
-            """
-        )
+            """,
+        ),
     )
     return f"User response: {result}"

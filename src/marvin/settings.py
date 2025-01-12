@@ -1,9 +1,7 @@
-"""
-Settings for Marvin.
-"""
+"""Settings for Marvin."""
 
 from pathlib import Path
-from typing import Literal, Optional, Self
+from typing import Literal, Self
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_ai.models import KnownModelName
@@ -41,7 +39,7 @@ class Settings(BaseSettings):
         path.mkdir(parents=True, exist_ok=True)
         return path
 
-    database_path: Optional[Path] = Field(
+    database_path: Path | None = Field(
         default=None,
         description="Path to the database file. Defaults to `home_path / 'marvin.db'`.",
     )
@@ -92,7 +90,7 @@ class Settings(BaseSettings):
         description="The default model for agents.",
     )
 
-    agent_temperature: Optional[float] = Field(
+    agent_temperature: float | None = Field(
         default=None,
         description="The temperature for the agent.",
     )
