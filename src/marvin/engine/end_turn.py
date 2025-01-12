@@ -27,7 +27,7 @@ class EndTurn(abc.ABC):
 
 
 @dataclass(kw_only=True)
-class TaskSuccess(EndTurn, Generic[TaskResult]):
+class MarkTaskSuccessful(EndTurn, Generic[TaskResult]):
     """Mark a task successful and provide a result."""
 
     task_id: str
@@ -52,7 +52,7 @@ class TaskSuccess(EndTurn, Generic[TaskResult]):
 
 
 @dataclass(kw_only=True)
-class TaskFailed(EndTurn):
+class MarkTaskFailed(EndTurn):
     """Mark a task failed and provide a message."""
 
     task_id: str
@@ -73,7 +73,7 @@ class TaskFailed(EndTurn):
 
 
 @dataclass(kw_only=True)
-class TaskSkipped(EndTurn):
+class MarkTaskSkipped(EndTurn):
     """Mark a task skipped."""
 
     task_id: str

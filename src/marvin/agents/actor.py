@@ -8,7 +8,7 @@ import pydantic_ai
 
 import marvin
 import marvin.utilities.asyncio
-from marvin.engine.thread import Thread, get_thread
+from marvin.engine.thread import Thread
 from marvin.prompts import Template
 
 if TYPE_CHECKING:
@@ -100,13 +100,30 @@ class Actor:
             self.run_async(instructions, thread, raise_on_failure),
         )
 
-    async def say_async(self, message: str, thread: Thread | str | None = None):
-        thread = get_thread(thread)
-        await thread.add_user_message_async(message=message)
-        return await self.run_async("Respond to the user.", thread=thread)
+    async def say_async(
+        self,
+        message: str,
+        instructions: str | None = None,
+        thread: Thread | str | None = None,
+    ):
+        """Responds to a user message in a conversational way."""
+        return await marvin.say_async(
+            message=message,
+            instructions=instructions,
+            agent=self,
+            thread=thread,
+        )
 
-    def say(self, message: str, thread: Thread | str | None = None):
-        return marvin.utilities.asyncio.run_sync(self.say_async(message, thread))
+    def say(
+        self,
+        message: str,
+        instructions: str | None = None,
+        thread: Thread | str | None = None,
+    ):
+        """Responds to a user message in a conversational way."""
+        return marvin.utilities.asyncio.run_sync(
+            self.say_async(message=message, instructions=instructions, thread=thread),
+        )
 
     def as_team(self) -> "Team":
         raise NotImplementedError(

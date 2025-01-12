@@ -12,15 +12,16 @@ from marvin.memory.memory import Memory
 
 # public functions
 from marvin.instructions import instructions
-from marvin.run import run, run_async, run_tasks_async
 from marvin.defaults import defaults
 
 # marvin fns
+from marvin.fns.run import run, run_async, run_tasks_async, run_tasks
 from marvin.fns.classify import classify, classify_async
 from marvin.fns.extract import extract, extract_async
 from marvin.fns.cast import cast, cast_async
 from marvin.fns.generate import generate, generate_async
 from marvin.fns.fn import fn
+from marvin.fns.say import say, say_async
 
 ensure_tables_exist()
 
@@ -44,6 +45,9 @@ __all__ = [
     "instructions",
     "run",
     "run_async",
+    "run_tasks",
     "run_tasks_async",
     "settings",
+    "say",
+    "say_async",
 ]

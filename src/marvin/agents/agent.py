@@ -18,7 +18,7 @@ from marvin.agents.names import AGENT_NAMES
 from marvin.agents.team import SoloTeam, Swarm, Team
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
-from marvin.tools.thread import post_message
+from marvin.tools.thread import post_message_to_agents
 
 from .actor import Actor
 
@@ -87,7 +87,7 @@ class Agent(Actor):
         return (
             self.tools
             + [t for m in self.memories for t in m.get_tools()]
-            + [post_message]
+            + [post_message_to_agents]
         )
 
     def get_model_settings(self) -> ModelSettings:

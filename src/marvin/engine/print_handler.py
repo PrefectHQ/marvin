@@ -127,7 +127,7 @@ class ToolState(DisplayState):
             from marvin.engine.orchestrator import RESULT_TOOL_PREFIX
 
             if self.name == RESULT_TOOL_PREFIX:
-                name = "TaskSuccess"
+                name = "MarkTaskSuccessful"
             else:
                 name = self.name[len(RESULT_TOOL_PREFIX) + 1 :]
         else:
