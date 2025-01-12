@@ -1,8 +1,8 @@
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Unpack
 
 from pydantic_ai.models import KnownModelName, Model
+from typing_extensions import Unpack
 
 import marvin
 from marvin import Agent

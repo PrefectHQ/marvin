@@ -3,7 +3,7 @@
 This module provides the Thread class for managing conversation context.
 """
 
-from .thread import Thread, Message
+from .thread import Message, Thread
 
 __all__ = [
     "Message",

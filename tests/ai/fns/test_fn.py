@@ -185,7 +185,7 @@ class TestFunctions:
         def test_frozenset_return_type(self):
             @marvin.fn
             def get_fruit_letters(name: str) -> frozenset:
-                """Returns the letters in the provided fruit name"""
+                """Returns a list of the letters in the provided fruit name"""
 
             assert get_fruit_letters("orange") == frozenset(
                 {"a", "e", "g", "n", "o", "r"},

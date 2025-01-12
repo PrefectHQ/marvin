@@ -1,11 +1,12 @@
 """Settings for Marvin."""
 
 from pathlib import Path
-from typing import Literal, Self
+from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_ai.models import KnownModelName
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing_extensions import Self
 
 
 class Settings(BaseSettings):

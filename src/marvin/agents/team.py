@@ -2,9 +2,10 @@ import random
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any
 
 import pydantic_ai
+from typing_extensions import Self
 
 from marvin.agents.actor import Actor
 from marvin.agents.names import TEAM_NAMES

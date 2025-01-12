@@ -7,7 +7,9 @@ import marvin
 
 
 class Location(BaseModel):
-    city: str = Field(description="The city's proper name")
+    city: str = Field(
+        description="The city's proper name. For New York City, use 'New York'"
+    )
     state: str = Field(description="2-letter state abbreviation")
 
 
@@ -65,10 +67,7 @@ class TestPydantic:
     @pytest.mark.parametrize("text", ["New York, NY", "NYC", "the big apple"])
     def test_cast_text_to_location(self, text: str):
         result = marvin.cast(f"I live in {text}", Location)
-        assert result in (
-            Location(city="New York", state="NY"),
-            Location(city="New York City", state="NY"),
-        )
+        assert result == Location(city="New York", state="NY")
 
     def test_pay_attention_to_field_descriptions(self):
         # GPT-3.5 gets this wrong

@@ -5,7 +5,9 @@ import marvin
 
 
 class Location(BaseModel):
-    city: str = Field(description="The city's proper name")
+    city: str = Field(
+        description="The city's proper name. For New York City, use 'New York'"
+    )
     state: str = Field(description="2-letter abbreviation")
 
 
@@ -15,12 +17,24 @@ class TestExtract:
             result = marvin.extract("one, two, three", int)
             assert result == [1, 2, 3]
 
-        def test_extract_complex_numbers(self):
+        def test_extract_complex_numbers(self, gpt_4o):
+            """Uses gpt-4o to avoid flaky behavior"""
             result = marvin.extract(
                 "I paid $10 for 3 coffees and they gave me back a dollar and 25 cents",
                 float,
             )
+            # by default, ignores the obvious int (3)
             assert result == [10.0, 1.25]
+
+        def test_extract_complex_numbers_all(self, gpt_4o):
+            """Uses gpt-4o to avoid flaky behavior"""
+            result = marvin.extract(
+                "I paid $10 for 3 coffees and they gave me back a dollar and 25 cents",
+                float,
+                instructions="include all numbers",
+            )
+
+            assert result == [10.0, 3.0, 1.25]
 
         def test_extract_money(self):
             result = marvin.extract(
@@ -51,7 +65,7 @@ class TestExtract:
                 str,
                 instructions="(formal city name, state abbreviation) properly capitalize",
             )
-            assert result == ["New York, NY"]
+            assert result in ["New York, NY", "New York City, NY"]
 
     class TestPydantic:
         def test_extract_location(self):

@@ -6,7 +6,7 @@ This module provides the Thread class for managing conversation context.
 import uuid
 from contextvars import ContextVar
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any, Optional
 
 from pydantic import TypeAdapter
@@ -20,11 +20,6 @@ from .llm import Message, UserMessage
 
 # Message serialization adapter
 message_adapter: TypeAdapter[Message] = TypeAdapter(Message)
-
-
-def utc_now() -> datetime:
-    """Get current UTC datetime."""
-    return datetime.now(UTC)
 
 
 # Global context var for current thread
