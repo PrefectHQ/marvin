@@ -75,6 +75,12 @@ class Settings(BaseSettings):
         description="Whether to log all events (as debug logs).",
     )
 
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def _validate_log_level(cls, v: str) -> str:
+        """Validate the log level."""
+        return v.upper()
+
     @model_validator(mode="after")
     def setup_logging(self) -> Self:
         """Finalize the settings."""
@@ -99,6 +105,11 @@ class Settings(BaseSettings):
     agent_retries: int = Field(
         default=10,
         description="The number of times the agent is allowed to retry when it generates an invalid result.",
+    )
+
+    max_agent_turns: int | None = Field(
+        default=100,
+        description="The maximum number of turns any agents can take when running orchestrated tasks. Note this is per-invocation.",
     )
 
     # ------------ DX settings ------------

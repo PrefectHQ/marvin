@@ -1,4 +1,5 @@
 import inspect
+import math
 from asyncio import CancelledError
 from collections.abc import Callable
 from contextvars import ContextVar
@@ -67,6 +68,9 @@ class Orchestrator:
     handlers: list[Handler | AsyncHandler] = None
 
     team: marvin.agents.team.Team = field(init=False, repr=False)
+    _staged_delegate: tuple[marvin.agents.team.Team, Actor] | None = field(
+        default=None, init=False, repr=False
+    )
     _token: Any = field(default=None, init=False, repr=False)
 
     def __post_init__(self):
@@ -74,13 +78,13 @@ class Orchestrator:
         if self.agents:
             all_agents.update(self.agents)
         if len(all_agents) > 1:
-            self.team = marvin.agents.team.Swarm(members=list(all_agents))
+            self.team = marvin.agents.team.Swarm(agents=list(all_agents))
         else:
             agent = next(iter(all_agents))
             if isinstance(agent, marvin.agents.team.Team):
                 self.team = agent
             else:
-                self.team = marvin.agents.team.SoloTeam(members=[agent])
+                self.team = marvin.agents.team.SoloTeam(agents=[agent])
 
         self.thread = get_thread(self.thread)
         if self.handlers is None:
@@ -153,7 +157,7 @@ class Orchestrator:
         await self._record_messages(result)
 
         # --- end turn
-        self.team.end_turn()
+        self.end_turn()
         await self.handle_event(AgentEndTurnEvent(agent=self.team))
 
         for task in active_tasks:
@@ -259,14 +263,50 @@ class Orchestrator:
         # Follow active_agent chain, collecting delegates at each level
         while isinstance(current, marvin.agents.team.Team):
             delegates.extend(current.get_delegates())
-            current = current.active_member
+            current = current.active_agent
 
         return delegates
+
+    def stage_delegate(self, agent_id: str) -> None:
+        """
+        Stage a delegation to another agent. The delegation will be applied at
+        the end of the turn. This allows all messages created during the turn to
+        be properly attributed to the currently active agent, without confusion
+        about whether the new delegate was active.
+
+        Validates the agent_id and stores the team/agent pair that will be
+        updated at the end of the turn.
+        """
+        delegates = {d.id: d for d in self.get_delegates()}
+        if agent_id not in delegates:
+            raise ValueError(f"Agent ID {agent_id} not found in delegates")
+
+        logger.debug(
+            f"{self.active_agent().friendly_name()}: Delegating to {delegates[agent_id].friendly_name()}",
+        )
+
+        # walk active_agents to find the delegate
+        current = self.team
+        while agent_id not in {a.id for a in current.agents}:
+            if not isinstance(current, marvin.agents.team.Team):
+                raise ValueError(f"Agent ID {agent_id} not found in delegates")
+            current = current.active_agent
+
+        agent = next(a for a in current.agents if a.id == agent_id)
+        self._staged_delegate = (current, agent)
+
+    def end_turn(self) -> None:
+        """End the current turn, applying any staged delegation and notifying the team."""
+        if self._staged_delegate is not None:
+            team, agent = self._staged_delegate
+            team.active_agent = agent
+            self._staged_delegate = None
+        self.team.end_turn()
 
     async def _record_messages(self, result):
         for message in result.new_messages():
             for event in message_to_events(
-                agent=self.team.active_member,
+                agent=self.team.active_agent,
                 message=message,
             ):
                 await self.handle_event(event)
@@ -275,7 +315,14 @@ class Orchestrator:
     def incomplete_tasks(self) -> list[Task]:
         return [t for t in self.tasks if t.is_incomplete()]
 
-    async def run(self, raise_on_failure: bool = True) -> list[RunResult]:
+    async def run(
+        self, raise_on_failure: bool = True, max_turns: int | None = None
+    ) -> list[RunResult]:
+        if max_turns is None:
+            max_turns = marvin.settings.max_agent_turns
+        if max_turns is None:
+            max_turns = math.inf
+
         results = []
         token = current_orchestrator.set(self)
         try:
@@ -283,9 +330,11 @@ class Orchestrator:
                 await self.handle_event(OrchestratorStartEvent())
 
                 try:
-                    while self.incomplete_tasks():
+                    turns = 0
+                    while self.incomplete_tasks() and turns < max_turns:
                         result = await self._run_turn()
                         results.append(result)
+                        turns += 1
 
                         if raise_on_failure:
                             if failed := next(
@@ -293,6 +342,8 @@ class Orchestrator:
                                 False,
                             ):
                                 raise ValueError(f"Task {failed.id} failed")
+                    if turns >= max_turns:
+                        raise ValueError("Max agent turns reached")
 
                 except (Exception, KeyboardInterrupt, CancelledError) as e:
                     await self.handle_event(OrchestratorExceptionEvent(error=str(e)))
@@ -317,14 +368,14 @@ class Orchestrator:
     def active_team(self) -> marvin.agents.team.Team:
         """Returns the currently active team that contains the currently active agent."""
         active_team = self.team
-        while not isinstance(active_team.active_member, Agent):
-            active_team = active_team.active_member
+        while not isinstance(active_team.active_agent, Agent):
+            active_team = active_team.active_agent
         return active_team
 
     def active_agent(self) -> Agent:
         """Returns the currently active agent."""
         active_team = self.active_team()
-        return active_team.active_member
+        return active_team.active_agent
 
     def active_actors(self) -> list[Actor]:
         """Returns a list of all active actors in the hierarchy, starting with the
@@ -335,7 +386,7 @@ class Orchestrator:
         actor = self.team
         while not isinstance(actor, Agent):
             actors.append(actor)
-            actor = actor.active_member
+            actor = actor.active_agent
         actors.append(actor)
         return actors
 
@@ -347,7 +398,7 @@ class Orchestrator:
                  Format: {
                      "type": "team"|"agent",
                      "id": str,
-                     "members": [...] # only present for teams
+                     "agents": [...] # only present for teams
                  }
 
         """
@@ -356,13 +407,13 @@ class Orchestrator:
         def _build_tree(node: Agent | marvin.agents.team.Team) -> dict:
             if isinstance(node, marvin.agents.team.Team):
                 return {
-                    # "type": "team",
+                    "type": "team",
                     "id": node.id,
-                    "members": [_build_tree(agent) for agent in node.members],
+                    "agents": [_build_tree(agent) for agent in node.agents],
                     "active": node in active_actors,
                 }
             return {
-                # "type": "agent",
+                "type": "agent",
                 "id": node.id,
                 "active": node in active_actors,
             }
