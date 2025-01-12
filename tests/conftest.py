@@ -8,8 +8,9 @@ from typing import Any
 
 import chromadb
 import pytest
-from sqlalchemy import event
+from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 import marvin
@@ -66,14 +67,23 @@ def setup_test_db(monkeypatch: pytest.MonkeyPatch, worker_id: str):
             # Configure database settings
             monkeypatch.setattr(settings, "database_path", temp_path)
 
-            # Patch the engine creation to use NullPool
-            original_create_engine = database.create_engine
+            # Create engines with NullPool
+            sync_engine = create_engine(
+                f"sqlite:///{temp_path}",
+                echo=False,
+                connect_args={"check_same_thread": False},
+                poolclass=NullPool,
+            )
+            async_engine = create_async_engine(
+                f"sqlite+aiosqlite:///{temp_path}",
+                echo=False,
+                connect_args={"check_same_thread": False},
+                poolclass=NullPool,
+            )
 
-            def patched_create_engine(*args: Any, **kwargs: Any) -> Engine:
-                kwargs["poolclass"] = NullPool
-                return original_create_engine(*args, **kwargs)
-
-            monkeypatch.setattr(database, "create_engine", patched_create_engine)
+            # Set the engines
+            database.set_engine(sync_engine)
+            database.set_async_engine(async_engine)
 
             # Create tables with retries
             max_retries = 3
@@ -89,14 +99,19 @@ def setup_test_db(monkeypatch: pytest.MonkeyPatch, worker_id: str):
         yield
 
         settings.database_path = original_path
+        # Clear engine cache
+        database._engine_cache.clear()
+        database._async_engine_cache.clear()
 
 
 @pytest.fixture(autouse=True)
-def setup_memory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+def setup_memory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, worker_id: str):
     monkeypatch.setattr(
         marvin.defaults,
         "memory_provider",
         ChromaMemory(
-            client=chromadb.PersistentClient(path=str(tmp_path / "controlflow-memory")),
+            client=chromadb.PersistentClient(
+                path=str(tmp_path / "controlflow-memory" / worker_id)
+            ),
         ),
     )

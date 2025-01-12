@@ -1,4 +1,3 @@
-import pytest
 from sqlalchemy import select
 
 from marvin.engine.database import (
@@ -8,12 +7,6 @@ from marvin.engine.database import (
     get_async_session,
     get_session,
 )
-
-
-@pytest.fixture(autouse=True)
-def setup_database():
-    """Create tables before each test."""
-    create_db_and_tables(force=True)
 
 
 def test_sync_session():
