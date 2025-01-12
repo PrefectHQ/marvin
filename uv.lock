@@ -1036,7 +1036,6 @@ dependencies = [
     { name = "rich" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "typer" },
-    { name = "unsync" },
 ]
 
 [package.optional-dependencies]
@@ -1089,7 +1088,6 @@ requires-dist = [
     { name = "ruff", marker = "extra == 'test'" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
     { name = "typer", specifier = ">=0.15.1" },
-    { name = "unsync", specifier = ">=1.4.0" },
 ]
 
 [[package]]
@@ -2517,12 +2515,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/dc/74/1789779d91f1961fa
 wheels = [
     { url = "https://files.pythonhosted.org/packages/65/f3/107a22063bf27bdccf2024833d3445f4eea42b2e598abfbd46f6a63b6cb0/typing_inspect-0.9.0-py3-none-any.whl", hash = "sha256:9ee6fc59062311ef8547596ab6b955e1b8aa46242d854bfc78f4f6b0eff35f9f", size = 8827 },
 ]
-
-[[package]]
-name = "unsync"
-version = "1.4.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/ea/6b/8d9699d37fe8c43c76fda4a7f93ae6aef129576f75c3cacfc9a78a7cc984/unsync-1.4.0.tar.gz", hash = "sha256:a29e0f8952ffb0b3a0453ce436819a5a1ba2febbb5caa707c319f6f98d35f3c5", size = 8796 }
 
 [[package]]
 name = "urllib3"

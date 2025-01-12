@@ -39,7 +39,7 @@ class Thread:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     parent_id: str | None = None
     _db_thread: DBThread | None = field(default=None, init=False, repr=False)
-    _last_token: Any | None = field(default=None, init=False, repr=False)
+    _tokens: list[Any] = field(default_factory=list, init=False, repr=False)
 
     async def _ensure_thread_exists(self) -> None:
         """Ensure thread exists in database."""
@@ -181,7 +181,8 @@ class Thread:
 
     def __enter__(self):
         """Set this thread as the current thread in context."""
-        self._token = current_thread.set(self)
+        token = current_thread.set(self)
+        self._tokens.append(token)
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
@@ -189,7 +190,8 @@ class Thread:
         global _last_thread
         # Store this thread as the last thread before resetting current
         _last_thread = self
-        current_thread.reset(self._token)
+        if self._tokens:  # Only reset if we have tokens
+            current_thread.reset(self._tokens.pop())
 
     @classmethod
     def get_current(cls) -> Optional["Thread"]:

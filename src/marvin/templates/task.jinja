@@ -15,7 +15,7 @@
     <result-type>
         {{ task.get_result_type_str() }}
 
-        Note: result types must be provided as part of a complete TaskSuccess payload.
+        Note: result types must be provided as part of a complete MarkTaskSuccessful payload.
     </result-type>
     {% if task.parent %}
     <parent-task-id>{{ task.parent.id }}</parent-task-id>

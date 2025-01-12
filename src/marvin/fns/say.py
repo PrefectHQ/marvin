@@ -34,7 +34,7 @@ async def say_async(
         context["Additional instructions"] = instructions
 
     with get_thread(thread) as thread:
-        thread.add_user_message(message)
+        await thread.add_user_message_async(message)
         task = marvin.Task[str](
             name="Response",
             instructions="Respond to the user",

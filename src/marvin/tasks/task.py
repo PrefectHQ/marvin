@@ -385,11 +385,11 @@ class Task(Generic[T]):
         import marvin.engine.end_turn
 
         tools = []
-        tools.append(marvin.engine.end_turn.TaskSuccess[self.get_result_type()])
+        tools.append(marvin.engine.end_turn.MarkTaskSuccessful[self.get_result_type()])
         if self.allow_fail:
-            tools.append(marvin.engine.end_turn.TaskFailed)
+            tools.append(marvin.engine.end_turn.MarkTaskFailed)
         if self.allow_skip:
-            tools.append(marvin.engine.end_turn.TaskSkipped)
+            tools.append(marvin.engine.end_turn.MarkTaskSkipped)
 
         return tools
 
