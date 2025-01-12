@@ -237,6 +237,29 @@ class TestAsync:
         assert len(result) == 3
 
 
+class TestAsTask:
+    def test_as_task_method(self):
+        @marvin.fn
+        def list_fruit(n: int) -> list[str]:
+            """Returns a list of `n` fruit"""
+
+        task = list_fruit.as_task(3)
+        assert isinstance(task, marvin.Task)
+        assert task.result_type == list[str]
+        assert task.name == "Predict output of list_fruit"
+        assert "Function definition" in task.context
+        assert task.context["Function arguments"] == {"n": 3}
+
+    def test_as_task_with_instructions(self):
+        @marvin.fn(instructions="Only return citrus fruits")
+        def list_fruit(n: int) -> list[str]:
+            """Returns a list of `n` fruit"""
+
+        task = list_fruit.as_task(3, _instructions="Only return tropical fruits")
+        assert isinstance(task, marvin.Task)
+        assert task.context["Additional instructions"] == "Only return tropical fruits"
+
+
 class TestContextAndInstructions:
     def test_fn_with_instructions(self):
         @marvin.fn(instructions="Only return citrus fruits")

@@ -109,7 +109,9 @@ class Orchestrator:
         for task in active_tasks:
             if task.is_pending():
                 task.mark_running()
-                await self.thread.add_user_message_async(f"Task started: {task}")
+                await self.thread.add_user_message_async(
+                    f"Task started: {task.friendly_name()}"
+                )
 
         self.team.start_turn()
         await self.handle_event(AgentStartTurnEvent(agent=self.team))
@@ -153,6 +155,16 @@ class Orchestrator:
         # --- end turn
         self.team.end_turn()
         await self.handle_event(AgentEndTurnEvent(agent=self.team))
+
+        for task in active_tasks:
+            if task.is_successful():
+                await self.thread.add_user_message_async(
+                    f"Task completed: {task.friendly_name()}"
+                )
+            elif task.is_failed():
+                await self.thread.add_user_message_async(
+                    f"Task failed: {task.friendly_name()}"
+                )
 
         return result
 
