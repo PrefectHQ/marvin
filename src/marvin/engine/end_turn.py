@@ -2,7 +2,6 @@ import abc
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Generic, TypeVar
 
-import marvin.agents.team
 from marvin.engine.llm import AgentMessage
 from marvin.utilities.logging import get_logger
 
@@ -120,30 +119,13 @@ class DelegateToAgent(EndTurn):
     )
 
     async def run(self, orchestrator: "Orchestrator") -> None:
-        current_agent_name = orchestrator.active_agent().friendly_name()
-        delegates = {d.id: d for d in orchestrator.get_delegates()}
-        if self.agent_id not in delegates:
-            raise ValueError(f"Agent ID {self.agent_id} not found in delegates")
-        logger.debug(
-            f'{current_agent_name}: Delegating to {delegates[self.agent_id].friendly_name()} with message "{self.message}"',
-        )
+        orchestrator.stage_delegate(self.agent_id)
 
-        # walk active_agents to find the delegate
-        current = orchestrator.team
-
-        while self.agent_id not in {a.id for a in current.members}:
-            if not isinstance(current, marvin.agents.team.Team):
-                raise ValueError(f"Agent ID {self.agent_id} not found in delegates")
-            current = current.active_member
-
-        current.active_member = next(
-            a for a in current.members if a.id == self.agent_id
-        )
-
-        if self.message:
-            await orchestrator.thread.add_messages_async(
-                [AgentMessage(content=f"{current_agent_name}: {self.message}")],
-            )
+        # TODO: this may be redundant because the message can be seen in the tool call
+        # if self.message:
+        #     await orchestrator.thread.add_messages_async(
+        #         [AgentMessage(content=f"{current_agent_name}: {self.message}")],
+        #     )
 
     @staticmethod
     def instructions() -> str:

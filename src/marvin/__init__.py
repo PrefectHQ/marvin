@@ -10,9 +10,10 @@ from marvin.agents.agent import Agent
 from marvin.tasks.task import Task
 from marvin.memory.memory import Memory
 
-# public functions
+# public access
 from marvin.instructions import instructions
 from marvin.defaults import defaults
+from marvin.agents.team import Swarm
 
 # marvin fns
 from marvin.fns.run import run, run_async, run_tasks_async, run_tasks
@@ -30,6 +31,7 @@ __version__ = _version("marvin")
 __all__ = [
     "Agent",
     "Memory",
+    "Swarm",
     "Task",
     "Thread",
     "cast",

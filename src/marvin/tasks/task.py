@@ -224,7 +224,7 @@ class Task(Generic[T]):
             cast(agent, KnownModelName)  # mypy
             self.agent = Agent(model=agent)
         elif isinstance(agent, (list, tuple, set)):
-            self.agent = Swarm(members=agent)
+            self.agent = Swarm(agents=agent)
         else:
             self.agent = agent
 

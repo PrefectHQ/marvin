@@ -9,7 +9,7 @@
     {% if team.description %}
     <description>{{ team.description }}</description>
     {% endif %}
-    <you>
-        {{ team.active_member.get_prompt() | indent(8) }}
-    </you>
+    <active>
+        {{ team.active_agent.get_prompt() | indent(8) }}
+    </active>
 </team>

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 @dataclass(kw_only=True)
 class Team(Actor):
-    members: list[Actor]
+    agents: list[Actor]
     tools: list[Callable[..., Any]] = field(default_factory=list)
     name: str = field(
         default_factory=lambda: random.choice(TEAM_NAMES),
@@ -37,24 +37,24 @@ class Team(Actor):
         },
     )
 
-    _active_member: Actor = field(init=False)
+    active_agent: Actor = field(init=False)
 
     def __hash__(self) -> int:
         return super().__hash__()
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(name={self.name!r}, agents={[a.name for a in self.members]})"
+        return f"{self.__class__.__name__}(name={self.name!r}, agents={[a.name for a in self.agents]})"
 
     def get_delegates(self) -> list[Actor]:
         """By default, agents can delegate only to pre-defined agents. If no delegates are defined,
         none are returned.
         """
-        delegates = self.active_member.get_delegates()
+        delegates = self.active_agent.get_delegates()
         return delegates or []
 
     def __post_init__(self):
-        self.agents_by_id = {a.id: a for a in self.members}
-        self.active_member = self.members[0]
+        self.agents_by_id = {a.id: a for a in self.agents}
+        self.active_agent = self.agents[0]
 
     def get_agentlet(
         self,
@@ -62,25 +62,17 @@ class Team(Actor):
         tools: list[Callable[..., Any]] | None = None,
         **kwargs,
     ) -> pydantic_ai.Agent[Any, Any]:
-        return self.active_member.get_agentlet(
+        return self.active_agent.get_agentlet(
             tools=self.tools + self.get_end_turn_tools() + (tools or []),
             result_types=result_types,
             **kwargs,
         )
 
-    @property
-    def active_member(self) -> Actor:
-        return self._active_member
-
-    @active_member.setter
-    def active_member(self, agent: Actor):
-        self._active_member = agent
-
     def get_prompt(self) -> str:
         return Template(source=self.prompt).render(team=self)
 
     def get_tools(self) -> list[Callable[..., Any]]:
-        tools = self.tools + self.active_member.get_tools()
+        tools = self.tools + self.active_agent.get_tools()
         return tools
 
     def get_end_turn_tools(self) -> list[type["EndTurn"]]:
@@ -90,12 +82,12 @@ class Team(Actor):
         return self
 
     def start_turn(self):
-        if self.active_member:
-            self.active_member.start_turn()
+        if self.active_agent:
+            self.active_agent.start_turn()
 
     def end_turn(self):
-        if self.active_member:
-            self.active_member.end_turn()
+        if self.active_agent:
+            self.active_agent.end_turn()
 
 
 @dataclass(kw_only=True)
@@ -109,7 +101,7 @@ class SoloTeam(Team):
         return super().__hash__()
 
     def __post_init__(self):
-        if len(self.members) != 1:
+        if len(self.agents) != 1:
             raise ValueError("SoloTeam must have exactly one agent")
         super().__post_init__()
 
@@ -117,7 +109,7 @@ class SoloTeam(Team):
         return []
 
     def get_prompt(self) -> str:
-        return self.members[0].get_prompt()
+        return self.agents[0].get_prompt()
 
 
 @dataclass(kw_only=True)
@@ -135,9 +127,9 @@ class Swarm(Team):
         return super().__hash__()
 
     def get_delegates(self) -> list[Actor]:
-        delegates = self.active_member.get_delegates()
+        delegates = self.active_agent.get_delegates()
         if delegates is None:
-            return [a for a in self.members if a is not self.active_member]
+            return [a for a in self.agents if a is not self.active_agent]
         return delegates
 
     def get_end_turn_tools(self) -> list[type["EndTurn"]]:
@@ -155,8 +147,8 @@ class RoundRobinTeam(Team):
         return super().__hash__()
 
     def start_turn(self):
-        index = self.members.index(self.active_member)
-        self.active_member = self.members[(index + 1) % len(self.members)]
+        index = self.agents.index(self.active_agent)
+        self.active_agent = self.agents[(index + 1) % len(self.agents)]
         super().start_turn()
 
 
@@ -171,5 +163,5 @@ class RandomTeam(Team):
         return super().__hash__()
 
     def start_turn(self):
-        self.set_active_agent(random.choice(self.members))
+        self.active_agent = random.choice(self.agents)
         super().start_turn()
