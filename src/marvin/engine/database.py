@@ -6,7 +6,7 @@ This module provides utilities for managing database sessions and migrations.
 import uuid
 from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager, contextmanager
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from pydantic import TypeAdapter
@@ -64,7 +64,7 @@ def set_async_engine(engine):
 
 
 def utc_now() -> datetime:
-    return datetime.now(UTC)
+    return datetime.now(timezone.utc)
 
 
 class Base(DeclarativeBase):
