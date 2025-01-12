@@ -5,7 +5,9 @@ import marvin
 
 
 class Location(BaseModel):
-    city: str = Field(description="The city's proper name")
+    city: str = Field(
+        description="The city's proper name. For New York City, use 'New York'"
+    )
     state: str = Field(description="2-letter abbreviation")
 
 
