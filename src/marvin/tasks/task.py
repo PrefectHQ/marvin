@@ -430,11 +430,11 @@ class Task(Generic[T]):
         import marvin.engine.end_turn
 
         tools = []
-        tools.append(marvin.engine.end_turn.MarkTaskSuccessful[self.get_result_type()])
+        tools.append(marvin.engine.end_turn.MarkTaskSuccessful.prepare_for_task(self))
         if self.allow_fail:
-            tools.append(marvin.engine.end_turn.MarkTaskFailed)
+            tools.append(marvin.engine.end_turn.MarkTaskFailed.prepare_for_task(self))
         if self.allow_skip:
-            tools.append(marvin.engine.end_turn.MarkTaskSkipped)
+            tools.append(marvin.engine.end_turn.MarkTaskSkipped.prepare_for_task(self))
 
         return tools
 
@@ -485,6 +485,15 @@ class Task(Generic[T]):
     def is_complete(self) -> bool:
         """Check if the task is complete."""
         return self.state in (TaskState.SUCCESSFUL, TaskState.FAILED, TaskState.SKIPPED)
+
+    def is_ready(self) -> bool:
+        """Check if the task is ready to run.
+
+        A task is ready if it is incomplete and all of its dependencies (including subtasks) are complete.
+        """
+        return self.is_incomplete() and all(
+            t.is_complete() for t in (self.depends_on | self.subtasks)
+        )
 
     def __enter__(self):
         """Set this task as the current task in context."""

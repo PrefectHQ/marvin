@@ -6,7 +6,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from functools import wraps
 from pathlib import Path
-from typing import Any, Optional, TypeVar
+from typing import Any, Literal, Optional, TypeVar, Union
 
 import pydantic_ai
 from pydantic_ai.messages import ModelRequestPart, RetryPromptPart, ToolCallPart
@@ -105,12 +105,10 @@ class Orchestrator:
 
     async def _run_turn(self):
         # Get tasks for the current active agent
-        active_tasks = [
-            t for t in self.incomplete_tasks() if t.get_agent() in self.active_actors()
-        ]
+        tasks = self.get_all_tasks(filter="assigned")
 
         # Mark tasks as running if they're pending
-        for task in active_tasks:
+        for task in tasks:
             if task.is_pending():
                 task.mark_running()
                 await self.thread.add_user_message_async(
@@ -122,14 +120,20 @@ class Orchestrator:
 
         # --- get tools
         tools = set()
-        for t in active_tasks:
+        for t in tasks:
             tools.update(t.get_tools())
         tools = list(tools)
 
         # --- get end turn tools
         end_turn_tools = set()
-        for t in active_tasks:
-            end_turn_tools.update(t.get_end_turn_tools())
+
+        # wrap task tools in a list of tuples to permit parallel calls
+        task_tools = set()
+        for t in tasks:
+            task_tools.update(t.get_end_turn_tools())
+        if task_tools:
+            end_turn_tools.add(list[Union[tuple(task_tools)]])
+
         if self.get_delegates():
             end_turn_tools.add(DelegateToAgent)
         end_turn_tools.update(self.team.get_end_turn_tools())
@@ -138,7 +142,7 @@ class Orchestrator:
         # --- prepare messages
         orchestrator_prompt = OrchestratorPrompt(
             orchestrator=self,
-            tasks=self.incomplete_tasks(),
+            tasks=self.get_all_tasks(),
             instructions=get_instructions(),
             end_turn_tools=end_turn_tools,
         ).render()
@@ -154,13 +158,20 @@ class Orchestrator:
         result = await agentlet.run("", message_history=all_messages)
 
         # --- record messages
-        await self._record_messages(result)
+        for message in result.new_messages():
+            for event in message_to_events(
+                agent=self.team.active_agent,
+                message=message,
+                agentlet=agentlet,
+            ):
+                await self.handle_event(event)
+        await self.thread.add_messages_async(result.new_messages())
 
         # --- end turn
         self.end_turn()
         await self.handle_event(AgentEndTurnEvent(agent=self.team))
 
-        for task in active_tasks:
+        for task in tasks:
             if task.is_successful():
                 await self.thread.add_user_message_async(
                     f"Task completed: {task.friendly_name()}"
@@ -228,7 +239,11 @@ class Orchestrator:
         agentlet = self.team.get_agentlet(
             tools=tools,
             result_types=end_turn_tools,
-            result_tool_name=RESULT_TOOL_PREFIX,
+            result_tool_name=(
+                RESULT_TOOL_PREFIX
+                if len(end_turn_tools) > 1
+                else end_turn_tools[0].__name__
+            ),
             result_tool_description="This tool will end your turn.",
             retries=marvin.settings.agent_retries,
         )
@@ -303,17 +318,56 @@ class Orchestrator:
             self._staged_delegate = None
         self.team.end_turn()
 
-    async def _record_messages(self, result):
-        for message in result.new_messages():
-            for event in message_to_events(
-                agent=self.team.active_agent,
-                message=message,
-            ):
-                await self.handle_event(event)
-        await self.thread.add_messages_async(result.new_messages())
+    def get_all_tasks(
+        self, filter: Literal["incomplete", "ready", "assigned"] | None = None
+    ) -> list[Task]:
+        """Get all tasks, optionally filtered by status.
 
-    def incomplete_tasks(self) -> list[Task]:
-        return [t for t in self.tasks if t.is_incomplete()]
+        Filters:
+            - incomplete: tasks that are not yet complete
+            - ready: tasks that are ready to be run
+            - assigned: tasks that are ready and assigned to the active agents
+        """
+        all_tasks: set[Task] = set()
+        ordered_tasks: list[Task] = []
+
+        def collect_tasks(task: Task) -> list[Task]:
+            if task in all_tasks:
+                return
+
+            all_tasks.add(task)
+
+            # collect subtasks
+            for subtask in task.subtasks:
+                collect_tasks(subtask)
+
+            # collect dependencies
+            for dep in task.depends_on:
+                collect_tasks(dep)
+
+            # add this task after its dependencies
+            ordered_tasks.append(task)
+
+            # collect parent
+            if task.parent:
+                collect_tasks(task.parent)
+
+        for task in self.tasks:
+            collect_tasks(task)
+
+        if filter == "incomplete":
+            return [t for t in ordered_tasks if t.is_incomplete()]
+        elif filter == "ready":
+            return [t for t in ordered_tasks if t.is_ready()]
+        elif filter == "assigned":
+            return [
+                t
+                for t in ordered_tasks
+                if t.is_ready() and t.get_agent() in self.active_actors()
+            ]
+        elif filter:
+            raise ValueError(f"Invalid filter: {filter}")
+        return ordered_tasks
 
     async def run(
         self, raise_on_failure: bool = True, max_turns: int | None = None
@@ -324,6 +378,7 @@ class Orchestrator:
             max_turns = math.inf
 
         results = []
+        incomplete_tasks: set[Task] = {t for t in self.tasks if t.is_incomplete()}
         token = _current_orchestrator.set(self)
         try:
             with self.thread:
@@ -331,17 +386,27 @@ class Orchestrator:
 
                 try:
                     turns = 0
-                    while self.incomplete_tasks() and turns < max_turns:
+
+                    # the while loop continues until all the tasks that were
+                    # provided to the orchestrator are complete OR max turns is
+                    # reached. Note this is not the same as checking *every*
+                    # task that `get_all_tasks()` returns. If a task has
+                    # incomplete dependencies, they will be evaluated as part of
+                    # the orchestrator logic, but not considered part of the
+                    # termination condition.
+                    while incomplete_tasks and turns < max_turns:
                         result = await self._run_turn()
                         results.append(result)
                         turns += 1
 
                         if raise_on_failure:
-                            if failed := next(
-                                (t for t in self.incomplete_tasks() if t.is_failed()),
-                                False,
-                            ):
-                                raise ValueError(f"Task {failed.id} failed")
+                            for task in self.tasks:
+                                if task.is_failed() and task in incomplete_tasks:
+                                    raise ValueError(
+                                        f"{task.friendly_name()} failed: {task.result}"
+                                    )
+                        incomplete_tasks = {t for t in self.tasks if t.is_incomplete()}
+
                     if turns >= max_turns:
                         raise ValueError("Max agent turns reached")
 
@@ -356,13 +421,20 @@ class Orchestrator:
 
         return results
 
-    async def validate_end_turn(self, result: EndTurn):
-        if isinstance(result, EndTurn):
-            try:
-                await result.run(orchestrator=self)
-            except Exception as e:
-                logger.debug(f"End turn tool failed: {e}")
-                raise pydantic_ai.ModelRetry(message=f"End turn tool failed: {e}")
+    async def validate_end_turn(self, result: EndTurn | list[EndTurn]):
+        if not isinstance(result, list):
+            tmp_result = [result]
+        else:
+            tmp_result = result
+
+        for r in tmp_result:
+            if isinstance(r, EndTurn):
+                try:
+                    await r.run(orchestrator=self)
+                except Exception as e:
+                    logger.debug(f"End turn tool failed: {e}")
+                    raise pydantic_ai.ModelRetry(message=f"End turn tool failed: {e}")
+
         return result
 
     def active_team(self) -> marvin.agents.team.Team:

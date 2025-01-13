@@ -102,9 +102,14 @@ class Agent(Actor):
         tools: list[Callable[..., Any]] | None = None,
         **kwargs,
     ) -> pydantic_ai.Agent[Any, Any]:
-        return pydantic_ai.Agent[None, result_types](
+        if len(result_types) == 1:
+            result_type = result_types[0]
+        else:
+            result_type = Union[tuple(result_types)]  # type: ignore
+
+        return pydantic_ai.Agent[None, result_type](
             model=self.get_model(),
-            result_type=Union[tuple(result_types)],  # type: ignore
+            result_type=result_type,
             tools=self.get_tools() + (tools or []),
             model_settings=self.get_model_settings(),
             end_strategy="exhaustive",

@@ -21,4 +21,8 @@
     <parent-task-id>{{ task.parent.id }}</parent-task-id>
     {% endif %}
     <assigned-agent-id>{{ task.get_agent().id }}</assigned-agent-id>
+    {% if task.is_incomplete()%}
+    <allow-fail>{{ task.allow_fail }}</allow-fail>
+    <allow-skip>{{ task.allow_skip }}</allow-skip>
+    {% endif %}
 </task>
