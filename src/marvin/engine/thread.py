@@ -23,7 +23,7 @@ message_adapter: TypeAdapter[Message] = TypeAdapter(Message)
 
 
 # Global context var for current thread
-current_thread: ContextVar[Optional["Thread"]] = ContextVar(
+_current_thread: ContextVar[Optional["Thread"]] = ContextVar(
     "current_thread",
     default=None,
 )
@@ -181,7 +181,7 @@ class Thread:
 
     def __enter__(self):
         """Set this thread as the current thread in context."""
-        token = current_thread.set(self)
+        token = _current_thread.set(self)
         self._tokens.append(token)
         return self
 
@@ -191,12 +191,12 @@ class Thread:
         # Store this thread as the last thread before resetting current
         _last_thread = self
         if self._tokens:  # Only reset if we have tokens
-            current_thread.reset(self._tokens.pop())
+            _current_thread.reset(self._tokens.pop())
 
     @classmethod
     def get_current(cls) -> Optional["Thread"]:
         """Get the current thread from context."""
-        return current_thread.get()
+        return _current_thread.get()
 
 
 def get_current_thread() -> Thread | None:

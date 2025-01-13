@@ -43,7 +43,7 @@ T = TypeVar("T")
 logger = get_logger(__name__)
 
 # Global context var for current orchestrator
-current_orchestrator: ContextVar["Orchestrator|None"] = ContextVar(
+_current_orchestrator: ContextVar["Orchestrator|None"] = ContextVar(
     "current_orchestrator",
     default=None,
 )
@@ -324,7 +324,7 @@ class Orchestrator:
             max_turns = math.inf
 
         results = []
-        token = current_orchestrator.set(self)
+        token = _current_orchestrator.set(self)
         try:
             with self.thread:
                 await self.handle_event(OrchestratorStartEvent())
@@ -352,7 +352,7 @@ class Orchestrator:
                     await self.handle_event(OrchestratorEndEvent())
 
         finally:
-            current_orchestrator.reset(token)
+            _current_orchestrator.reset(token)
 
         return results
 
@@ -423,7 +423,7 @@ class Orchestrator:
     @classmethod
     def get_current(cls) -> Optional["Orchestrator"]:
         """Get the current orchestrator from context."""
-        return current_orchestrator.get()
+        return _current_orchestrator.get()
 
 
 def get_current_orchestrator() -> Orchestrator | None:

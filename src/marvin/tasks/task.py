@@ -40,7 +40,7 @@ T = TypeVar("T")
 NOTSET = "__NOTSET__"
 
 # Global context var for current task
-current_task: ContextVar[Optional["Task"]] = ContextVar(
+_current_task: ContextVar[Optional["Task"]] = ContextVar(
     "current_task",
     default=None,
 )
@@ -243,7 +243,7 @@ class Task(Generic[T]):
         self.result = None
 
         # if no parent is provided, use the current task from context
-        self.parent = parent if parent is not None else current_task.get()
+        self.parent = parent if parent is not None else _current_task.get()
         self.subtasks = set()
         self.depends_on = set(depends_on or [])
 
@@ -488,11 +488,11 @@ class Task(Generic[T]):
 
     def __enter__(self):
         """Set this task as the current task in context."""
-        token = current_task.set(self)
+        token = _current_task.set(self)
         self._tokens.append(token)
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
         """Reset the current task in context."""
         if self._tokens:  # Only reset if we have tokens
-            current_task.reset(self._tokens.pop())
+            _current_task.reset(self._tokens.pop())
