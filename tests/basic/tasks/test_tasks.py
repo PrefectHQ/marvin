@@ -216,7 +216,7 @@ def test_task_initialization():
     assert task.result is None
     assert task.context == {}
     assert task.name is None
-    assert task._children == []
+    assert task.subtasks == set()
     assert task.parent is None
 
 
@@ -280,8 +280,150 @@ def test_task_parent_child_relationship():
     child_task = Task(instructions="Child task", parent=parent_task)
 
     assert child_task.parent is parent_task
-    parent_task._children.append(child_task)
-    assert child_task in parent_task._children
+    assert child_task in parent_task.subtasks
+
+
+def test_task_parent_child_bidirectional():
+    """Test that parent-child relationship is properly maintained when changed."""
+    parent1 = Task(instructions="Parent 1")
+    parent2 = Task(instructions="Parent 2")
+    child = Task(instructions="Child task")
+
+    # Test setting parent directly
+    child.parent = parent1
+    assert child.parent is parent1
+    assert child in parent1.subtasks
+
+    # Test changing parent
+    child.parent = parent2
+    assert child.parent is parent2
+    assert child in parent2.subtasks
+    assert child not in parent1.subtasks
+
+    # Test removing parent
+    child.parent = None
+    assert child.parent is None
+    assert child not in parent2.subtasks
+
+
+def test_task_dependencies():
+    """Test task dependencies."""
+    task1 = Task(instructions="Task 1")
+    task2 = Task(instructions="Task 2")
+    task3 = Task(instructions="Task 3", depends_on=[task1, task2])
+
+    assert task1 in task3.depends_on
+    assert task2 in task3.depends_on
+
+    # Test initialization with empty dependencies
+    task4 = Task(instructions="Task 4", depends_on=[])
+    assert len(task4.depends_on) == 0
+
+    # Test initialization with None dependencies
+    task5 = Task(instructions="Task 5", depends_on=None)
+    assert len(task5.depends_on) == 0
+
+
+def test_task_complex_relationships():
+    """Test complex task relationships with multiple parents, children, and dependencies."""
+    # Create a network of tasks
+    root = Task(instructions="Root")
+    child1 = Task(instructions="Child 1", parent=root)
+    child2 = Task(instructions="Child 2", parent=root)
+    grandchild = Task(instructions="Grandchild", parent=child1, depends_on=[child2])
+
+    # Test parent relationships
+    assert child1.parent is root
+    assert child2.parent is root
+    assert grandchild.parent is child1
+
+    # Test subtasks
+    assert child1 in root.subtasks
+    assert child2 in root.subtasks
+    assert grandchild in child1.subtasks
+
+    # Test dependencies
+    assert child2 in grandchild.depends_on
+
+    # Test relationship changes
+    # Move grandchild to child2
+    grandchild.parent = child2
+    assert grandchild.parent is child2
+    assert grandchild not in child1.subtasks
+    assert grandchild in child2.subtasks
+    assert child2 in grandchild.depends_on  # Dependencies remain unchanged
+
+
+def test_task_context_basic():
+    """Test that tasks created in a context inherit the parent."""
+    parent = Task(instructions="Parent")
+
+    # Outside context - no parent
+    task1 = Task(instructions="Task 1")
+    assert task1.parent is None
+
+    # Inside context - inherits parent
+    with parent:
+        task2 = Task(instructions="Task 2")
+        task3 = Task(instructions="Task 3")
+        assert task2.parent is parent
+        assert task3.parent is parent
+        assert task2 in parent.subtasks
+        assert task3 in parent.subtasks
+
+
+def test_task_context_nested():
+    """Test that tasks use the most recent context as parent."""
+    parent1 = Task(instructions="Parent 1")
+    parent2 = Task(instructions="Parent 2")
+
+    with parent1:
+        task1 = Task(instructions="Task 1")  # uses parent1
+        assert task1.parent is parent1
+
+        with parent2:
+            task2 = Task(instructions="Task 2")  # uses parent2
+            assert task2.parent is parent2
+            assert task2 not in parent1.subtasks
+
+        task3 = Task(instructions="Task 3")  # uses parent1 again
+        assert task3.parent is parent1
+
+
+def test_task_context_override():
+    """Test that explicitly passed parent overrides context parent."""
+    context_parent = Task(instructions="Context parent")
+    manual_parent = Task(instructions="Manual parent")
+
+    with context_parent:
+        # Uses context
+        task1 = Task(instructions="Task 1")
+        assert task1.parent is context_parent
+
+        # Overrides context
+        task2 = Task(instructions="Task 2", parent=manual_parent)
+        assert task2.parent is manual_parent
+        assert task2 not in context_parent.subtasks
+        assert task2 in manual_parent.subtasks
+
+
+def test_task_context_reenter():
+    """Test that reentering a context works correctly."""
+    parent = Task(instructions="Parent")
+
+    with parent:
+        task1 = Task(instructions="Task 1")
+        assert task1.parent is parent
+
+    # Outside context
+    task2 = Task(instructions="Task 2")
+    assert task2.parent is None
+
+    # Reenter context
+    with parent:
+        task3 = Task(instructions="Task 3")
+        assert task3.parent is parent
+        assert task3 in parent.subtasks
 
 
 def test_task_with_context():
