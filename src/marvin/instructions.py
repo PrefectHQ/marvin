@@ -7,7 +7,7 @@ from marvin.utilities.logging import get_logger
 logger = get_logger(__name__)
 
 # Global context var for current instructions
-current_instructions: ContextVar[list[str]] = ContextVar(
+_current_instructions: ContextVar[list[str]] = ContextVar(
     "current_instructions",
     default=[],
 )
@@ -25,14 +25,14 @@ def instructions(instruction: str) -> Generator[None, None, None]:
         yield
         return
 
-    stack = current_instructions.get()
-    token = current_instructions.set(stack + [instruction])
+    stack = _current_instructions.get()
+    token = _current_instructions.set(stack + [instruction])
     try:
         yield
     finally:
-        current_instructions.reset(token)
+        _current_instructions.reset(token)
 
 
 def get_instructions() -> list[str]:
     """Get the current instruction stack."""
-    return current_instructions.get()
+    return _current_instructions.get()

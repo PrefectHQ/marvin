@@ -6,6 +6,7 @@ A Task is a container for a prompt and its associated state.
 import enum
 import uuid
 from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (
@@ -13,6 +14,8 @@ from typing import (
     Any,
     Generic,
     Literal,
+    Optional,
+    Sequence,
     TypeVar,
     cast,
 )
@@ -35,6 +38,12 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 NOTSET = "__NOTSET__"
+
+# Global context var for current task
+_current_task: ContextVar[Optional["Task"]] = ContextVar(
+    "current_task",
+    default=None,
+)
 
 
 class TaskState(str, enum.Enum):
@@ -122,15 +131,26 @@ class Task(Generic[T]):
         repr=False,
     )
 
-    parent: "Task[T] | None" = field(
+    _parent: "Task | None" = field(
         default=None,
         metadata={"description": "Optional parent task"},
+        init=False,
     )
 
-    _children: list["Task[T]"] = field(
-        default_factory=list,
-        metadata={"description": "List of child tasks"},
+    subtasks: set["Task"] = field(
+        default_factory=set,
+        metadata={
+            "description": "List of subtasks, or tasks for which this task is the parent"
+        },
         init=False,
+        repr=False,
+    )
+
+    depends_on: set["Task"] = field(
+        default_factory=set,
+        metadata={
+            "description": "List of tasks that must be completed before this task can be run"
+        },
         repr=False,
     )
 
@@ -161,6 +181,9 @@ class Task(Generic[T]):
         },
     )
 
+    # Add _tokens field for context management
+    _tokens: list[Any] = field(default_factory=list, init=False, repr=False)
+
     def __init__(
         self,
         instructions: str,
@@ -174,6 +197,7 @@ class Task(Generic[T]):
         memories: list[Memory] | None = None,
         result_validator: Callable[..., Any] | None = None,
         parent: "Task[T] | None" = None,
+        depends_on: Sequence["Task[T]"] | None = None,
         allow_fail: bool = False,
         allow_skip: bool = False,
         cli: bool = False,
@@ -191,16 +215,17 @@ class Task(Generic[T]):
             tools: Tools to make available to agents
             memories: Memories to make available to agents
             result_validator: Optional function to validate results
-            parent: Optional parent task
+            parent: Optional parent task. If not provided and there is a current task
+                in the context, that task will be used as the parent.
             allow_fail: Whether to allow the task to fail
             allow_skip: Whether to allow the task to skip
             cli: Whether to enable CLI interaction tools
 
         """
-        # Required fields
+        # required fields
         self.instructions = instructions
 
-        # Optional fields with defaults
+        # optional fields with defaults
         self.name = name
         self.result_type = result_type if result_type is not NOTSET else str
         self.prompt_template = prompt_template
@@ -208,16 +233,22 @@ class Task(Generic[T]):
         self.tools = tools or []
         self.memories = memories or []
         self.result_validator = result_validator
-        self.parent = parent
         self.allow_fail = allow_fail
         self.allow_skip = allow_skip
         self.cli = cli
 
-        # Fields with init=False
+        # key fields
         self.id = uuid.uuid4().hex[:8]
         self.state = TaskState.PENDING
-        self._children = []
         self.result = None
+
+        # if no parent is provided, use the current task from context
+        self.parent = parent if parent is not None else _current_task.get()
+        self.subtasks = set()
+        self.depends_on = set(depends_on or [])
+
+        # internal fields
+        self._tokens = []
 
         # Handle agent conversion (from post_init)
         if isinstance(agent, str):
@@ -289,6 +320,20 @@ class Task(Generic[T]):
         # Replace consecutive newlines with a single space
         instructions = " ".join(self.instructions.split())
         return f'Task {self.id} ("{instructions[:40]}...")'
+
+    @property
+    def parent(self) -> "Task | None":
+        """Get the parent task of this task."""
+        return self._parent
+
+    @parent.setter
+    def parent(self, value: "Task | None") -> None:
+        """Set the parent task of this task."""
+        if self._parent is not None:
+            self._parent.subtasks.discard(self)
+        self._parent = value
+        if self._parent is not None:
+            self._parent.subtasks.add(self)
 
     def get_agent(self) -> Actor:
         """Retrieve the agent assigned to this task."""
@@ -440,3 +485,14 @@ class Task(Generic[T]):
     def is_complete(self) -> bool:
         """Check if the task is complete."""
         return self.state in (TaskState.SUCCESSFUL, TaskState.FAILED, TaskState.SKIPPED)
+
+    def __enter__(self):
+        """Set this task as the current task in context."""
+        token = _current_task.set(self)
+        self._tokens.append(token)
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+        """Reset the current task in context."""
+        if self._tokens:  # Only reset if we have tokens
+            _current_task.reset(self._tokens.pop())
