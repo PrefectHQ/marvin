@@ -151,6 +151,7 @@ class TestAnnotations:
 
         assert get_pi(5) == 3.14159
 
+    @pytest.mark.flaky(reruns=3)
     def test_tuple_return_type(self):
         @marvin.fn
         def get_fruit(name: str) -> tuple:
@@ -184,6 +185,7 @@ class TestAnnotations:
 
         assert get_fruit_letters("banana") == {"a", "b", "n"}
 
+    @pytest.mark.flaky(reruns=3)
     def test_frozenset_return_type(self):
         """Use GPT-4o"""
 

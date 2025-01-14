@@ -93,7 +93,7 @@ class TestInstructions:
         result = marvin.cast(
             "My name is marvin",
             str,
-            instructions="Rewrite with uppercase names e.g. JOHN",
+            instructions="Rewrite with uppercase names e.g. JOHN, but leave all other text unchanged",
         )
         assert result == "My name is MARVIN"
 
