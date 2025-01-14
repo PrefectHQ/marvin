@@ -6,7 +6,7 @@ from contextvars import ContextVar
 from dataclasses import dataclass, field
 from functools import wraps
 from pathlib import Path
-from typing import Any, Literal, Optional, TypeVar, Union
+from typing import Any, Literal, Optional, TypeVar
 
 import pydantic_ai
 from pydantic_ai.messages import ModelRequestPart, RetryPromptPart, ToolCallPart
@@ -17,7 +17,7 @@ import marvin.agents.team
 import marvin.engine.llm
 from marvin.agents.actor import Actor
 from marvin.agents.agent import Agent
-from marvin.engine.end_turn import DelegateToAgent, EndTurn, TaskStateEndTurn
+from marvin.engine.end_turn import DelegateToAgent, EndTurn
 from marvin.engine.events import (
     AgentEndTurnEvent,
     AgentStartTurnEvent,
@@ -124,17 +124,10 @@ class Orchestrator:
         tools = list(tools)
 
         # --- get end turn tools
-        # the signature of the end turn tools is Union[list[TaskStateEndTurn], EndTurn]
-        # meaning that multiple task states can be provided as a list OR a
-        # different end turn tool can be used.
         end_turn_tools = set()
 
-        # wrap task tools in a list of tuples to permit parallel calls
-        task_tools = set()
         for t in tasks:
-            task_tools.update(t.get_end_turn_tools())
-        if task_tools:
-            end_turn_tools.add(list[Union[tuple(task_tools)]])
+            end_turn_tools.update(t.get_end_turn_tools())
 
         if self.get_delegates():
             end_turn_tools.add(DelegateToAgent)
@@ -240,26 +233,22 @@ class Orchestrator:
 
         agentlet = self.team.get_agentlet(
             tools=tools,
-            # this is implicitly list[TaskStateEndTurn] | EndTurn
             result_types=end_turn_tools,
-            result_tool_name="EndTurn_",
+            result_tool_name="EndTurn",
             result_tool_description="This tool will end your turn.",
             retries=marvin.settings.agent_retries,
         )
 
         @agentlet.result_validator
-        async def validate_end_turn(result: EndTurn | list[TaskStateEndTurn]):
-            try:
-                if isinstance(result, list):
-                    for r in result:
-                        await r.run(orchestrator=self)
-                else:
+        async def validate_end_turn(result: EndTurn):
+            if isinstance(result, EndTurn):
+                try:
                     await result.run(orchestrator=self)
-            except pydantic_ai.ModelRetry as e:
-                raise e
-            except Exception as e:
-                logger.debug(f"End turn tool failed: {e}")
-                raise pydantic_ai.ModelRetry(message=f"End turn tool failed: {e}")
+                except pydantic_ai.ModelRetry as e:
+                    raise e
+                except Exception as e:
+                    logger.debug(f"End turn tool failed: {e}")
+                    raise pydantic_ai.ModelRetry(message=f"End turn tool failed: {e}")
 
             # return the original result
             return result

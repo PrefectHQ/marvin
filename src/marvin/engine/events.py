@@ -17,6 +17,7 @@ from pydantic_ai.messages import (
 from marvin.agents.agent import Agent
 from marvin.engine.end_turn import EndTurn
 from marvin.engine.llm import Message
+from marvin.utilities.types import issubclass_safe
 
 EventType = Literal[
     "user-message",
@@ -126,6 +127,8 @@ def message_to_events(
             end_turn_tool = agentlet._result_schema.tools.get(part.tool_name)
             if end_turn_tool:
                 end_turn_tool = end_turn_tool.type_adapter._type
+                if issubclass_safe(end_turn_tool, dict):
+                    end_turn_tool = end_turn_tool.__annotations__.get("response")
 
             yield ToolCallEvent(
                 agent=agent,

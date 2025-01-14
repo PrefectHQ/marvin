@@ -1,6 +1,6 @@
 import datetime
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, get_origin
 
 import rich
 from rich import box
@@ -113,11 +113,8 @@ class ToolState(DisplayState):
             if self.is_error:
                 return "❌", "red", "red"
             return "✅", "green", "green"  # Slightly softer green
-        return (
-            RUNNING_SPINNER,
-            "yellow",
-            "gray50",
-        )  # Use shared spinner instance
+
+        return (RUNNING_SPINNER, "yellow", "gray50")  # Use shared spinner instance
 
     def render_panel(self) -> Panel:
         """Render tool state as a panel with status indicator."""
@@ -129,7 +126,7 @@ class ToolState(DisplayState):
 
         name = self.name
         if self.end_turn_tool:
-            if issubclass_safe(self.end_turn_tool, MarkTaskSuccessful):
+            if issubclass_safe(get_origin(self.end_turn_tool), MarkTaskSuccessful):
                 name = f"Mark Task Successful: {self.end_turn_tool.task_id}"
             elif issubclass_safe(self.end_turn_tool, MarkTaskFailed):
                 name = f"Mark Task Failed: {self.end_turn_tool.task_id}"
@@ -146,7 +143,7 @@ class ToolState(DisplayState):
         if self.args:
             if self.end_turn_tool:
                 args = self.args.get("response", self.args)
-                if issubclass_safe(self.end_turn_tool, MarkTaskSuccessful):
+                if issubclass_safe(get_origin(self.end_turn_tool), MarkTaskSuccessful):
                     args = args.get("result", args)
             else:
                 args = self.args
