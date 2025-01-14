@@ -1,4 +1,0 @@
-INHERIT: mkdocs.yml
-plugins:
-    meta:
-    typeset:

@@ -1,3 +1,0 @@
-# Marvin API reference
-
-::: marvin
