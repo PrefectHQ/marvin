@@ -4,6 +4,7 @@ from typing import Literal
 import pytest
 
 from marvin.agents.agent import Agent
+from marvin.agents.team import Swarm
 from marvin.tasks.task import Task, TaskState
 from marvin.utilities.types import Labels
 
@@ -130,7 +131,7 @@ class TestClassification:
         task = Task("Choose color", result_type=["red", "green", "blue"])
         prompt = task.get_prompt()
         expected_instruction = (
-            "Provide the integer index (or indices) of your chosen "
+            "Provide the integer indices of your chosen "
             """labels: {0: "'red'", 1: "'green'", 2: "'blue'"}"""
         )
         assert expected_instruction in prompt
@@ -223,9 +224,18 @@ def test_task_initialization():
 def test_task_with_agent():
     """Test task with custom agent."""
     agent = Agent()
-    task = Task(instructions="Test with agent", agent=agent)
+    task = Task(instructions="Test with agent", agents=[agent])
     assert task.agent is agent
     assert task.get_agent() is agent
+
+
+def test_task_with_multiple_agents():
+    """Test task with multiple agents."""
+    agent1 = Agent()
+    agent2 = Agent()
+    task = Task(instructions="Test with multiple agents", agents=[agent1, agent2])
+    assert isinstance(task.agent, Swarm)
+    assert task.get_agent() is task.agent
 
 
 def test_task_get_default_agent():
@@ -480,6 +490,6 @@ def test_task_prompt_customization():
     )
     prompt = task.get_prompt()
     assert prompt == "Task is complete: False"
-    task.mark_successful()
+    task.mark_successful("test result")
     prompt = task.get_prompt()
     assert prompt == "Task is complete: True"

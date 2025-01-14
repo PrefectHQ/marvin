@@ -4,6 +4,8 @@ from collections.abc import Generator
 from dataclasses import dataclass, field
 from typing import Literal
 
+import pydantic_ai
+import pydantic_ai._result
 from pydantic_ai.messages import (
     RetryPromptPart,
     TextPart,
@@ -13,6 +15,7 @@ from pydantic_ai.messages import (
 )
 
 from marvin.agents.agent import Agent
+from marvin.engine.end_turn import EndTurn
 from marvin.engine.llm import Message
 
 EventType = Literal[
@@ -50,12 +53,14 @@ class UserMessageEvent(Event):
 class ToolReturnEvent(Event):
     type: EventType = field(default="tool-return", init=False)
     message: ToolReturnPart
+    end_turn_tool: EndTurn | None = None
 
 
 @dataclass(kw_only=True)
 class ToolRetryEvent(Event):
     type: EventType = field(default="tool-retry", init=False)
     message: RetryPromptPart
+    end_turn_tool: EndTurn | None = None
 
 
 @dataclass(kw_only=True)
@@ -63,6 +68,7 @@ class ToolCallEvent(Event):
     type: EventType = field(default="tool-call", init=False)
     agent: Agent
     message: ToolCallPart
+    end_turn_tool: EndTurn | None = None
 
 
 @dataclass(kw_only=True)
@@ -88,16 +94,44 @@ class OrchestratorExceptionEvent(Event):
     error: str
 
 
-def message_to_events(agent: Agent, message: Message) -> Generator[Event, None, None]:
+def message_to_events(
+    agent: Agent,
+    message: Message,
+    agentlet: pydantic_ai.Agent = None,
+    end_turn_tools: list[EndTurn] = [],
+) -> Generator[Event, None, None]:  # noqa: F821
     for part in message.parts:
         if isinstance(part, UserPromptPart) and part.content:
             yield UserMessageEvent(message=part)
         elif isinstance(part, ToolReturnPart):
-            yield ToolReturnEvent(message=part)
+            end_turn_tool = agentlet._result_schema.tools.get(part.tool_name)
+            if end_turn_tool:
+                end_turn_tool = end_turn_tool.type_adapter._type
+
+            end_turn_tools
+            yield ToolReturnEvent(
+                message=part,
+                end_turn_tool=end_turn_tool,
+            )
         elif isinstance(part, RetryPromptPart):
-            yield ToolRetryEvent(message=part)
+            end_turn_tool = agentlet._result_schema.tools.get(part.tool_name)
+            if end_turn_tool:
+                end_turn_tool = end_turn_tool.type_adapter._type
+
+            yield ToolRetryEvent(
+                message=part,
+                end_turn_tool=end_turn_tool,
+            )
         elif isinstance(part, ToolCallPart):
-            yield ToolCallEvent(agent=agent, message=part)
+            end_turn_tool = agentlet._result_schema.tools.get(part.tool_name)
+            if end_turn_tool:
+                end_turn_tool = end_turn_tool.type_adapter._type
+
+            yield ToolCallEvent(
+                agent=agent,
+                message=part,
+                end_turn_tool=end_turn_tool,
+            )
         elif isinstance(part, TextPart):
             yield AgentMessageEvent(agent=agent, message=part)
 

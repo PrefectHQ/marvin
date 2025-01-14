@@ -109,7 +109,7 @@ summary = marvin.run(
 
 ### Agent
 
-You can specify which agent should work on the task. If no agent is provided, Marvin will use the default agent.
+You can specify which agent(s) should work on the task. If no agent is provided, Marvin will use the default agent.
 
 ```python
 agent = marvin.Agent(
@@ -119,8 +119,26 @@ agent = marvin.Agent(
 
 summary = marvin.run(
     "Summarize this article",
-    agent=agent,
+    agents=[agent],
     context={"article": "..."}
+)
+```
+
+You can also assign multiple agents to work together on a task:
+
+```python
+researcher = marvin.Agent(
+    name="Researcher",
+    instructions="Research and analyze topics thoroughly"
+)
+writer = marvin.Agent(
+    name="Writer",
+    instructions="Write engaging content"
+)
+
+article = marvin.run(
+    "Research and write an article about AI",
+    agents=[researcher, writer]
 )
 ```
 

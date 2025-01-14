@@ -12,13 +12,19 @@
     </context>
     {% endif %}
 
+    {% if task.is_ready()%}
     <result-type>
         {{ task.get_result_type_str() }}
 
         Note: result types must be provided as part of a complete MarkTaskSuccessful payload.
     </result-type>
+    {% endif %}
     {% if task.parent %}
     <parent-task-id>{{ task.parent.id }}</parent-task-id>
     {% endif %}
     <assigned-agent-id>{{ task.get_agent().id }}</assigned-agent-id>
+    {% if task.is_incomplete()%}
+    <allow-fail>{{ task.allow_fail }}</allow-fail>
+    <allow-skip>{{ task.allow_skip }}</allow-skip>
+    {% endif %}
 </task>

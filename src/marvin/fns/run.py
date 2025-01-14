@@ -58,7 +58,7 @@ async def run_async(
     task = Task[result_type](
         instructions=instructions,
         result_type=result_type,
-        agent=agent,
+        agents=[agent] if agent else None,
         tools=tools,
         **kwargs,
     )

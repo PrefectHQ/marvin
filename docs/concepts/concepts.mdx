@@ -90,19 +90,19 @@ with marvin.Thread() as thread:
     # Run multiple tasks with different agents
     topic = marvin.run(
         "What topic should we research?",
-        agent=researcher,
+        agents=[researcher],
         interactive=True,
     )
     
     research = marvin.run(
         f"Research key points about {topic}",
-        agent=researcher,
+        agents=[researcher],
         result_type=list[str]
     )
     
     article = marvin.run(
         "Write an article using the research",
-        agent=writer,
+        agents=[writer],
         context={"research": research}
     )
 ```

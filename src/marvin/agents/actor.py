@@ -85,7 +85,7 @@ class Actor:
     ) -> Any:
         return await marvin.run_async(
             instructions,
-            agent=self,
+            agents=[self],
             thread=thread,
             raise_on_failure=raise_on_failure,
         )

@@ -4,6 +4,7 @@ A Task is a container for a prompt and its associated state.
 """
 
 import enum
+import json
 import uuid
 from collections.abc import Callable
 from contextvars import ContextVar
@@ -17,14 +18,12 @@ from typing import (
     Optional,
     Sequence,
     TypeVar,
-    cast,
 )
 
-from pydantic_ai.models import KnownModelName
+from pydantic import TypeAdapter
 
 import marvin
 from marvin.agents.actor import Actor
-from marvin.agents.agent import Agent
 from marvin.agents.team import Swarm
 from marvin.engine.thread import Thread
 from marvin.memory.memory import Memory
@@ -44,6 +43,14 @@ _current_task: ContextVar[Optional["Task"]] = ContextVar(
     "current_task",
     default=None,
 )
+
+_type_adapters: dict[type[T], TypeAdapter[T]] = {}
+
+
+def get_type_adapter(result_type: type[T]) -> TypeAdapter[T]:
+    if result_type not in _type_adapters:
+        _type_adapters[result_type] = TypeAdapter(result_type)
+    return _type_adapters[result_type]
 
 
 class TaskState(str, enum.Enum):
@@ -95,7 +102,7 @@ class Task(Generic[T]):
 
     agent: Actor | None = field(
         default=None,
-        metadata={"description": "Optional agent or team to execute this task"},
+        metadata={"description": "Optional agent or team assigned to this task"},
     )
 
     context: dict[str, Any] = field(
@@ -187,11 +194,11 @@ class Task(Generic[T]):
     def __init__(
         self,
         instructions: str,
+        result_type: type[T] | Labels | Literal["__NOTSET__"] = NOTSET,
         *,
         name: str | None = None,
-        result_type: type[T] | Labels | Literal["__NOTSET__"] = NOTSET,
         prompt_template: str | Path = Path("task.jinja"),
-        agent: Actor | str | list | tuple | set | None = None,
+        agents: list[Actor] | None = None,
         context: dict[str, Any] | None = None,
         tools: list[Callable[..., Any]] | None = None,
         memories: list[Memory] | None = None,
@@ -209,8 +216,9 @@ class Task(Generic[T]):
             name: Optional name for this task
             result_type: Expected type of the result
             prompt_template: Optional Jinja template for customizing task appearance
-            agent: Optional agent or team to execute this task. A string can be
-                provided, which will be inferred as a model name.
+            agents: Optional list of agents to execute this task. If more than
+                one agent or team is provided, they will automatically be combined
+                into a team.
             context: Context for the task
             tools: Tools to make available to agents
             memories: Memories to make available to agents
@@ -250,14 +258,12 @@ class Task(Generic[T]):
         # internal fields
         self._tokens = []
 
-        # Handle agent conversion (from post_init)
-        if isinstance(agent, str):
-            cast(agent, KnownModelName)  # mypy
-            self.agent = Agent(model=agent)
-        elif isinstance(agent, (list, tuple, set)):
-            self.agent = Swarm(agents=agent)
-        else:
-            self.agent = agent
+        # handle agents
+        if agents:
+            if len(agents) > 1:
+                self.agent = Swarm(agents=agents)
+            else:
+                self.agent = agents[0]
 
         # Handle result type validation
         if isinstance(self.result_type, (list, tuple, set)):
@@ -367,11 +373,15 @@ class Task(Generic[T]):
         """Get a string representation of the result type."""
         if self.is_classifier():
             return (
-                f"Provide the integer index (or indices) of your chosen labels: "
+                f"Provide the integer indices of your chosen labels: "
                 f"{as_classifier(self.result_type).get_indexed_labels()}"
             )
         else:
-            return str(self.get_result_type())
+            type_adapter = get_type_adapter(self.get_result_type())
+            try:
+                return json.dumps(type_adapter.json_schema())
+            except Exception:
+                return str(self.get_result_type())
 
     def validate_result(self, raw_result: Any) -> T:
         """Validate a result against the expected type and custom validator."""
@@ -386,7 +396,18 @@ class Task(Generic[T]):
         if self.is_classifier():
             return as_classifier(self.result_type).validate(raw_result)
 
-        return raw_result
+        result_type = self.get_result_type()
+
+        if result_type is None:
+            if raw_result is None:
+                return None
+            else:
+                raise ValueError("Result type is None but result is not None")
+        elif raw_result is None:
+            raise ValueError("Result is None but result type is not None")
+
+        type_adapter = get_type_adapter(result_type)
+        return type_adapter.validate_python(raw_result)
 
     def get_prompt(self) -> str:
         """Get the rendered prompt for this task.
@@ -430,11 +451,11 @@ class Task(Generic[T]):
         import marvin.engine.end_turn
 
         tools = []
-        tools.append(marvin.engine.end_turn.MarkTaskSuccessful[self.get_result_type()])
+        tools.append(marvin.engine.end_turn.MarkTaskSuccessful.prepare_for_task(self))
         if self.allow_fail:
-            tools.append(marvin.engine.end_turn.MarkTaskFailed)
+            tools.append(marvin.engine.end_turn.MarkTaskFailed.prepare_for_task(self))
         if self.allow_skip:
-            tools.append(marvin.engine.end_turn.MarkTaskSkipped)
+            tools.append(marvin.engine.end_turn.MarkTaskSkipped.prepare_for_task(self))
 
         return tools
 
@@ -485,6 +506,15 @@ class Task(Generic[T]):
     def is_complete(self) -> bool:
         """Check if the task is complete."""
         return self.state in (TaskState.SUCCESSFUL, TaskState.FAILED, TaskState.SKIPPED)
+
+    def is_ready(self) -> bool:
+        """Check if the task is ready to run.
+
+        A task is ready if it is incomplete and all of its dependencies (including subtasks) are complete.
+        """
+        return self.is_incomplete() and all(
+            t.is_complete() for t in (self.depends_on | self.subtasks)
+        )
 
     def __enter__(self):
         """Set this task as the current task in context."""

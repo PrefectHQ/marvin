@@ -18,17 +18,6 @@
         {% endfor %}
     </tasks>
 
-    <end-turn>
-        Use one of the following tools to end your turn:
-
-        {% for tool in end_turn_tools %}
-        <tool>
-            <name> end_turn_{{ tool.__name__ }} </name>
-            <instructions> {{ tool.instructions() | indent(8) }} </instructions>
-        </tool>
-        {% endfor %}
-    </end-turn>
-
     {% if orchestrator.get_delegates() %}
     <delegates>
         You can delegate your turn to one of the following agents or teams:

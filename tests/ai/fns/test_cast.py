@@ -69,13 +69,15 @@ class TestPydantic:
         result = marvin.cast(f"I live in {text}", Location)
         assert result == Location(city="New York", state="NY")
 
-    def test_pay_attention_to_field_descriptions(self):
-        # GPT-3.5 gets this wrong
+    def test_field_descriptions_are_included_in_prompt(self, gpt_4o):
         class Car(BaseModel):
-            make: str = Field(description="The manufacturer, must ALWAYS be Ford")
+            make: str
+            make2: str = Field(
+                description="The manufacturer, must always be iNVERSE cASE"
+            )
 
         result = marvin.cast("I bought a Chevrolet", Car)
-        assert result == Car(make="Ford")
+        assert result == Car(make="Chevrolet", make2="cHEVROLET")
 
 
 class TestInstructions:
@@ -91,7 +93,7 @@ class TestInstructions:
         result = marvin.cast(
             "My name is marvin",
             str,
-            instructions="Rewrite with names (and only names) uppercase",
+            instructions="Rewrite with uppercase names e.g. JOHN",
         )
         assert result == "My name is MARVIN"
 

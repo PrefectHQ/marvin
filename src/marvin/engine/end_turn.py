@@ -2,11 +2,14 @@ import abc
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Generic, TypeVar
 
+from pydantic_ai import ModelRetry
+
 from marvin.engine.llm import AgentMessage
 from marvin.utilities.logging import get_logger
 
 if TYPE_CHECKING:
     from marvin.engine.orchestrator import Orchestrator
+    from marvin.tasks.task import Task
 TaskResult = TypeVar("TaskResult")
 
 logger = get_logger(__name__)
@@ -18,77 +21,116 @@ class EndTurn(abc.ABC):
     async def run(self, orchestrator: "Orchestrator") -> None:
         pass
 
-    @staticmethod
-    @abc.abstractmethod
-    def instructions() -> str:
-        """Put instructions here since they docstrings do not survive all transformations (e.g. typing a generic)"""
-        return ""
+
+@dataclass(kw_only=True)
+class TaskStateEndTurn(EndTurn):
+    task_id: str
 
 
 @dataclass(kw_only=True)
-class MarkTaskSuccessful(EndTurn, Generic[TaskResult]):
+class MarkTaskSuccessful(TaskStateEndTurn, Generic[TaskResult]):
     """Mark a task successful and provide a result."""
 
     task_id: str
     result: TaskResult
 
     async def run(self, orchestrator: "Orchestrator") -> None:
-        tasks = {t.id: t for t in orchestrator.tasks}
+        tasks = {t.id: t for t in orchestrator.get_all_tasks()}
         if self.task_id not in tasks:
-            raise ValueError(f"Task ID {self.task_id} not found in tasks")
+            raise ModelRetry(f"Task ID {self.task_id} not found in tasks")
 
-        debug_result = (
-            f'"{self.result}"' if isinstance(self.result, str) else self.result
-        )
+        task = tasks[self.task_id]
+        agent_name = orchestrator.active_agent().friendly_name()
+        result = repr(self.result) if isinstance(self.result, str) else self.result
         logger.debug(
-            f"{orchestrator.active_agent().friendly_name()}: Marking {tasks[self.task_id].friendly_name()} successful with result {debug_result}",
+            f"{agent_name}: Marking {task.friendly_name()} successful with result {result}",
         )
-        tasks[self.task_id].mark_successful(self.result)
+        task.mark_successful(self.result)
 
-    @staticmethod
-    def instructions() -> str:
-        return "Mark a task successful and provide a result."
+    @classmethod
+    def prepare_for_task(cls, task: "Task") -> None:
+        """
+        We could let the LLM fill out the task_id itself, but Pydantic AI doesn't support multiple calls
+        to final tools with the same name, which prevents parallel end turn calls.
+
+        Therefore, we create custom classes for each task, which are named after the task ID.
+        """
+
+        @dataclass(kw_only=True)
+        class MarkTaskSuccessful(cls, Generic[TaskResult]):
+            task_id: str = field(default=task.id, init=False)
+
+        MarkTaskSuccessful.__name__ = f"MarkTaskSuccessful_{task.id}"
+        return MarkTaskSuccessful[task.get_result_type()]
 
 
 @dataclass(kw_only=True)
-class MarkTaskFailed(EndTurn):
+class MarkTaskFailed(TaskStateEndTurn):
     """Mark a task failed and provide a message."""
 
     task_id: str
     message: str | None = None
 
     async def run(self, orchestrator: "Orchestrator") -> None:
-        tasks = {t.id: t for t in orchestrator.tasks}
+        tasks = {t.id: t for t in orchestrator.get_all_tasks()}
         if self.task_id not in tasks:
-            raise ValueError(f"Task ID {self.task_id} not found in tasks")
-        logger.debug(
-            f'{orchestrator.active_agent().friendly_name()}: Marking {tasks[self.task_id].friendly_name()} failed with message "{self.message}"',
-        )
-        tasks[self.task_id].mark_failed(self.message)
+            raise ModelRetry(f"Task ID {self.task_id} not found in tasks")
 
-    @staticmethod
-    def instructions() -> str:
-        return "Mark a task failed and provide a message."
+        task = tasks[self.task_id]
+        agent_name = orchestrator.active_agent().friendly_name()
+        if self.message:
+            logger.debug(
+                f"{agent_name}: Marking {task.friendly_name()} failed with message {repr(self.message)}",
+            )
+        else:
+            logger.debug(
+                f"{agent_name}: Marking {task.friendly_name()} failed",
+            )
+        task.mark_failed(self.message)
+
+    @classmethod
+    def prepare_for_task(cls, task: "Task") -> None:
+        """
+        Create a custom class for this task to support parallel end turn calls.
+        """
+
+        @dataclass(kw_only=True)
+        class MarkTaskFailed(cls):
+            task_id: str = field(default=task.id, init=False)
+
+        MarkTaskFailed.__name__ = f"MarkTaskFailed_{task.id}"
+        return MarkTaskFailed
 
 
 @dataclass(kw_only=True)
-class MarkTaskSkipped(EndTurn):
+class MarkTaskSkipped(TaskStateEndTurn):
     """Mark a task skipped."""
 
     task_id: str
 
     async def run(self, orchestrator: "Orchestrator") -> None:
-        tasks = {t.id: t for t in orchestrator.tasks}
+        tasks = {t.id: t for t in orchestrator.get_all_tasks()}
         if self.task_id not in tasks:
-            raise ValueError(f"Task ID {self.task_id} not found in tasks")
-        logger.debug(
-            f"{orchestrator.active_agent().friendly_name()}: Marking {tasks[self.task_id].friendly_name()} skipped",
-        )
-        tasks[self.task_id].mark_skipped()
+            raise ModelRetry(f"Task ID {self.task_id} not found in tasks")
 
-    @staticmethod
-    def instructions() -> str:
-        return "Mark a task skipped."
+        task = tasks[self.task_id]
+        logger.debug(
+            f"{orchestrator.active_agent().friendly_name()}: Marking {task.friendly_name()} skipped",
+        )
+        task.mark_skipped()
+
+    @classmethod
+    def prepare_for_task(cls, task: "Task") -> None:
+        """
+        Create a custom class for this task to support parallel end turn calls.
+        """
+
+        @dataclass(kw_only=True)
+        class MarkTaskSkipped(cls):
+            task_id: str = field(default=task.id, init=False)
+
+        MarkTaskSkipped.__name__ = f"MarkTaskSkipped_{task.id}"
+        return MarkTaskSkipped
 
 
 @dataclass(kw_only=True)
@@ -102,10 +144,6 @@ class PostMessage(EndTurn):
             f"{orchestrator.active_agent().friendly_name()}: Posting message to thread: {self.message}",
         )
         await orchestrator.thread.add_message_async(AgentMessage(content=self.message))
-
-    @staticmethod
-    def instructions() -> str:
-        return "Post a message to the thread."
 
 
 @dataclass(kw_only=True)
@@ -126,7 +164,3 @@ class DelegateToAgent(EndTurn):
         #     await orchestrator.thread.add_messages_async(
         #         [AgentMessage(content=f"{current_agent_name}: {self.message}")],
         #     )
-
-    @staticmethod
-    def instructions() -> str:
-        return "Delegate your turn to another agent."

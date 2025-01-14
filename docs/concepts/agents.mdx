@@ -149,7 +149,7 @@ agent = marvin.Agent(name="Assistant")
 # This will allow the agent to chat with the user
 response = marvin.run(
     "Help the user with their task",
-    agent=agent,
+    agents=[agent],
     interactive=True
 )
 ```
