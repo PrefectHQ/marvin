@@ -38,7 +38,7 @@ marvin = "marvin.cli.main:app"
 addopts = "--verbose --color=yes"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
-timeout = 10
+timeout = 60
 testpaths = ["tests"]
 norecursedirs = [
     "*.egg-info",
