@@ -1,0 +1,173 @@
+---
+title: Agents
+description: The intelligent workers in your AI workflows.
+icon: robot
+---
+
+Agents are the intelligent, autonomous entities that power your AI workflows in Marvin. They represent AI models capable of understanding instructions, making decisions, and completing tasks.
+
+```python
+import marvin
+
+agent = marvin.Agent("Research Assistant")
+```
+
+## What are agents?
+
+Agents in Marvin are configurable AI entities, each with its own identity, capabilities, and even personality. They act as the "workers" in your AI workflows, responsible for executing tasks based on their assigned objectives and available tools.
+
+You can think of each agent as a portable LLM configuration. When you assign an agent to a task, it will work to complete that task according to its instructions and tools.
+
+## Creating agents
+
+To create an agent, use the `Agent` class:
+
+```python
+import marvin
+
+agent = marvin.Agent(name="Research Assistant")
+```
+
+A more complex agent can be created by providing additional configuration:
+
+```python
+import marvin
+
+agent = marvin.Agent(
+    name="Data Analyst",
+    instructions="Perform data analysis tasks efficiently and accurately.",
+    tools=[marvin.tools.web.get_url, marvin.tools.code.python],
+    model="openai:gpt-4",
+    memories=[marvin.Memory(key="analysis_results")],
+)
+```
+
+## Agent properties
+
+### Name
+
+An agent's name is an identifier that helps distinguish between agents and is used for logging and debugging. While agents have deterministic UUIDs that can be used to disambiguate two agents with the same name, they will often use names when interacting with each other.
+
+If not provided, a random name will be chosen from a predefined list.
+
+### Instructions
+
+Instructions are specific guidelines for the agent to follow during task execution. These instructions are private and not shared with other agents.
+
+### Tools
+
+Tools are Python functions that the agent can call to perform specific actions or computations. They are defined as a list of functions when creating an agent and can be used to enhance the agent's capabilities. The agent will have access to these tools in every task they are assigned to.
+
+```python
+import marvin
+
+def search_database(query: str) -> list[dict]:
+    """Search the database for relevant information."""
+    # Implementation here
+    ...
+
+agent = marvin.Agent(
+    name="Researcher",
+    tools=[search_database]
+)
+```
+
+### Model
+
+Each agent has a model, which is the LLM that powers the agent's responses. This allows you to choose the most suitable model for your needs, based on factors like performance, latency, and cost.
+
+```python
+import marvin
+
+agent1 = marvin.Agent(model="openai:gpt-4")
+agent2 = marvin.Agent(model="anthropic:claude-3-sonnet")
+```
+
+If no model is specified, the agent will use Marvin's default model.
+
+### Model Settings
+
+You can customize how the model behaves by providing model settings. These settings are passed directly to the underlying model when making requests.
+
+```python
+from pydantic_ai import ModelSettings
+
+agent = marvin.Agent(
+    model_settings=ModelSettings(
+        temperature=0.7,
+        max_tokens=2000
+    )
+)
+```
+
+### Memories
+
+Agents can be configured with memory modules that allow them to store and recall information independently of thread context. Unlike thread history, memories persist across different threads and sessions. Each memory is identified by a unique key:
+
+```python
+import marvin
+
+agent = marvin.Agent(
+    memories=[marvin.Memory(key="important_facts")]
+)
+
+# The agent can store and recall information using this memory
+agent.say("Remember that the capital of France is Paris")
+
+# Even in a new thread, the agent will remember
+with marvin.Thread() as new_thread:
+    response = agent.say("What's the capital of France?")
+# Response will include "Paris" from memory
+```
+
+You can also provide instructions for how the memory should be used:
+
+```python
+agent = marvin.Agent(
+    memories=[
+        marvin.Memory(
+            key="numbers",
+            instructions="When remembering a number, always store it plus 100"
+        )
+    ]
+)
+
+agent.say("Remember the number 1")
+response = agent.say("What number did you remember?")
+# Response will include "101"
+```
+
+## Interactive Agents
+
+Agents can interact with users during task execution by setting `interactive=True` when running a task. This allows the agent to ask questions and get clarification when needed.
+
+```python
+import marvin
+
+agent = marvin.Agent(name="Assistant")
+
+# This will allow the agent to chat with the user
+response = marvin.run(
+    "Help the user with their task",
+    agents=[agent],
+    interactive=True
+)
+```
+
+## Direct Communication
+
+You can communicate directly with an agent using the `say` method:
+
+```python
+import marvin
+
+agent = marvin.Agent(name="Assistant")
+
+# Start a conversation
+response = agent.say("Hello! Can you help me with something?")
+
+# Continue the conversation
+response = agent.say("What's the best way to learn Python?")
+```
+
+The agent will maintain context across these interactions if they occur within the same thread.

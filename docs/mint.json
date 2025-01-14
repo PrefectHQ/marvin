@@ -1,0 +1,59 @@
+{
+    "$schema": "https://mintlify.com/schema.json",
+    "anchors": [
+        {
+            "icon": "github",
+            "name": "Code",
+            "url": "https://github.com/PrefectHQ/Marvin"
+        },
+        {
+            "icon": "slack",
+            "name": "Community",
+            "url": "https://prefect.io/slack?utm_source=marvin&utm_medium=docs"
+        }
+    ],
+    "colors": {
+        "anchors": {
+            "from": "#2D6DF6",
+            "to": "#E44BF4"
+        },
+        "dark": "#2D6DF6",
+        "light": "#E44BF4",
+        "primary": "#2D6DF6"
+    },
+    "favicon": "/assets/brand/controlflow_logo.svg",
+    "footerSocials": {
+        "github": "https://github.com/PrefectHQ/Marvin",
+        "slack": "https://prefect.io/slack?utm_source=marvin&utm_medium=docs"
+    },
+    "logo": {
+        "dark": "/assets/brand/controlflow_logo_pink_black_bg.svg",
+        "light": "/assets/brand/controlflow_logo.svg"
+    },
+    "name": "Marvin",
+    "navigation": [
+        {
+            "group": "Get Started",
+            "pages": [
+                "welcome",
+                "installation",
+                "quickstart"
+            ]
+        },
+        {
+            "group": "Concepts",
+            "pages": [
+                "concepts/tasks",
+                "concepts/agents",
+                "concepts/threads"
+            ]
+        }
+    ],
+    "search": {
+        "prompt": "Ask Marvin..."
+    },
+    "topbarCtaButton": {
+        "type": "github",
+        "url": "https://github.com/PrefectHQ/Marvin"
+    }
+}

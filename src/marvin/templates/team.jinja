@@ -1,0 +1,15 @@
+<team>
+    A team of agents.
+
+    <id>{{ team.id }}</id>
+    <name>{{ team.name }}</name>
+    {% if team.instructions %}
+    <instructions>{{ team.instructions }}</instructions>
+    {% endif %}
+    {% if team.description %}
+    <description>{{ team.description }}</description>
+    {% endif %}
+    <active>
+        {{ team.active_agent.get_prompt() | indent(8) }}
+    </active>
+</team>

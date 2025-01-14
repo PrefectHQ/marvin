@@ -1,0 +1,113 @@
+---
+title: Core concepts
+sidebarTitle: Overview
+description: The building blocks of agentic workflows
+icon: sparkles
+---
+
+Marvin is a framework for building AI workflows that bridges the gap between 
+structured programming and the natural language capabilities of LLMs. It 
+accomplishes this through three core concepts: Tasks, Agents, and Threads.
+
+To create an agentic workflow, you define clear objectives (Tasks), assign 
+intelligent entities to accomplish them (Agents), and maintain conversation history 
+over time (Threads). This approach allows you to harness the power of AI while 
+maintaining fine-grained control over your applications.
+
+## 📋 Tasks
+
+Tasks represent the structured side of Marvin. They are specific, well-defined 
+objectives that form the backbone of your workflow. Tasks encapsulate the "what" 
+and "how" of your AI-driven operations, providing a clear, programmatic structure.
+
+Key features of Tasks:
+- Define specific objectives for AI to accomplish
+- Specify expected result types and validation criteria
+- Can include instructions, context, and tools for execution
+- Support both tool-based and conversational responses
+- Can be run individually or orchestrated as a sequence
+
+Learn more in the [Tasks](/concepts/tasks) section.
+
+## 🦾 Agents
+
+Agents embody the unstructured, natural language side of Marvin. They are 
+AI-powered entities capable of understanding and generating human-like text,
+bringing flexibility and adaptability to your workflows.
+
+Key features of Agents:
+- Represent configurable AI entities with their own identity and capabilities
+- Can be specialized for specific tasks through instructions and tools
+- Can work individually or as part of a team
+- Can be interactive, allowing communication with users
+- Allow configuration of different LLM models to power their responses
+
+Learn more in the [Agents](/concepts/agents) section.
+
+## 🧵 Threads
+
+Threads provide conversation history and context for tasks and agents. They maintain 
+state across multiple interactions, allowing agents to reference and build upon 
+previous work.
+
+Key features of Threads:
+- Maintain conversation history across multiple tasks
+- Provide shared context for sequential operations
+- Automatically persist state between runs
+- Support both explicit and implicit creation
+
+Learn more in the [Threads](/concepts/threads) section.
+
+## Putting it all together
+
+In a typical Marvin application:
+
+1. You create one or more Tasks to represent specific objectives
+2. Agents work on Tasks using their instructions and tools
+3. A Thread maintains context and history across multiple interactions
+
+This structure allows you to create powerful, flexible AI workflows while 
+maintaining control over the process and ensuring that outputs align with your 
+application's requirements.
+
+For a quick example:
+
+```python
+import marvin
+
+# Create a thread to maintain conversation history
+with marvin.Thread() as thread:
+    # Create specialized agents
+    researcher = marvin.Agent(
+        name="Researcher",
+        instructions="Research and analyze topics thoroughly"
+    )
+    writer = marvin.Agent(
+        name="Writer", 
+        instructions="Write engaging content"
+    )
+    
+    # Run multiple tasks with different agents
+    topic = marvin.run(
+        "What topic should we research?",
+        agents=[researcher],
+        interactive=True,
+    )
+    
+    research = marvin.run(
+        f"Research key points about {topic}",
+        agents=[researcher],
+        result_type=list[str]
+    )
+    
+    article = marvin.run(
+        "Write an article using the research",
+        agents=[writer],
+        context={"research": research}
+    )
+```
+
+This example shows how Tasks, Agents and Threads work together to create a 
+complete workflow. The Thread maintains context across multiple tasks, while 
+different Agents contribute their specialized capabilities to achieve the overall 
+objective.

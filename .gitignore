@@ -1,0 +1,21 @@
+# uv generated files
+.python-version
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.DS_Store
+
+# Secrets
+.env
+**/.env
+
+# IDE-related files
+.vscode/

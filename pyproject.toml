@@ -1,0 +1,72 @@
+[project]
+name = "marvin"
+version = "3.0.0"
+description = ""
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pydantic-settings>=2.6.1",
+    "pydantic>=2.10.2",
+    "pydantic-ai==0.0.15",
+    "aiosqlite>=0.20.0",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "jinja2>=3.1.4",
+    "rich>=13.9.4",
+    "typer>=0.15.1",
+]
+
+[project.optional-dependencies]
+test = [
+    "pre-commit",
+    "pytest-xdist>=3.6.1",
+    "pytest>=8.3.3",
+    "pytest-asyncio>=0.23.5",
+    "ruff",
+    "pytest-timeout>=2.3.1",
+    "pytest-env>=1.1.5",
+    "pytest-rerunfailures>=15.0",
+    "chromadb>=0.6.0",
+]
+dev = ["marvin[test]", "copychat>=0.5.2", "ipython>=8.12.3", "pdbpp>=0.10.3"]
+
+# Add this section for CLI entry point
+[project.scripts]
+marvin = "marvin.cli.main:app"
+
+# pytest configuration
+[tool.pytest.ini_options]
+addopts = "--verbose --color=yes"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+timeout = 10
+testpaths = ["tests"]
+norecursedirs = [
+    "*.egg-info",
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".vscode",
+    "node_modules",
+]
+
+env = [
+    "MARVIN_TEST_MODE=1",
+    'D:MARVIN_AGENT_MODEL=openai:gpt-4o-mini',
+    'D:MARVIN_AGENT_TEMPERATURE=0.0',
+    'D:MARVIN_AGENT_RETRIES=3',
+    'D:MARVIN_LOG_LEVEL=DEBUG',
+    'D:MARVIN_ENABLE_DEFAULT_PRINT_HANDLER=0',
+]
+[tool.hatch.version]
+source = "vcs"
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "I001"]
+
+[build-system]
+requires = ["hatchling>=1.21.0", "hatch-vcs>=0.4.0"]
+build-backend = "hatchling.build"
