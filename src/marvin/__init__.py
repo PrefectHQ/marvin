@@ -2,7 +2,7 @@ from importlib.metadata import version as _version
 
 # necessary imports
 from marvin.settings import settings
-from marvin.engine.database import ensure_tables_exist
+from marvin.database import ensure_tables_exist
 
 # core classes
 from marvin.engine.thread import Thread

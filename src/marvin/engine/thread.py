@@ -13,9 +13,9 @@ from pydantic import TypeAdapter
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from marvin.database import DBMessage, DBThread, get_async_session
 from marvin.utilities.asyncio import run_sync
 
-from .database import DBMessage, DBThread, get_async_session
 from .llm import Message, UserMessage
 
 # Message serialization adapter
