@@ -98,7 +98,7 @@ class TestAnnotations:
     def test_plain_dict_return_type(self):
         @marvin.fn
         def describe_fruit(description: str) -> dict:
-            """Guess the fruit and return the name and color as keys"""
+            """Guess the fruit and return a dict with `name` and `color` as keys"""
 
         fruit = describe_fruit("the one thats loved by monkeys")
         assert fruit["name"].lower() == "banana"
@@ -107,16 +107,7 @@ class TestAnnotations:
     def test_annotated_dict_return_type(self):
         @marvin.fn
         def describe_fruit(description: str) -> dict[str, str]:
-            """Guess the fruit and return the name and color as keys"""
-
-        fruit = describe_fruit("the one thats loved by monkeys")
-        assert fruit["name"].lower() == "banana"
-        assert fruit["color"].lower() == "yellow"
-
-    def test_generic_dict_return_type(self):
-        @marvin.fn
-        def describe_fruit(description: str) -> dict[str, str]:
-            """Guess the fruit and return the name and color as keys"""
+            """Guess the fruit and return a dict with `name` and `color` as keys"""
 
         fruit = describe_fruit("the one thats loved by monkeys")
         assert fruit["name"].lower() == "banana"

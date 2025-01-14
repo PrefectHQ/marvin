@@ -22,10 +22,10 @@ def test_task_memory():
 
 def test_instructions():
     m = marvin.Memory(
-        key="numbers",
-        instructions="when remembering a number, always store it plus 100",
+        key="colors",
+        instructions="when remembering a color, always store it and the word 'house' e.g. 'red house'",
     )
     a = marvin.Agent(memories=[m])
-    a.say("remember the number 1")
-    result = a.say("what number did you remember?")
-    assert "101" in result
+    a.say("remember the color green")
+    result = a.say("what exactly did you remember?")
+    assert "green" in result and "house" in result
