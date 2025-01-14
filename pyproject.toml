@@ -69,7 +69,7 @@ slackbot = [
     "prefect",
     "numpy",
     "raggy",
-    "turbopuffer==0.1.23",
+    "turbopuffer==0.1.26",
 ]
 
 [project.urls]
