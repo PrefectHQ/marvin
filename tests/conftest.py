@@ -14,9 +14,8 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 import marvin
-from marvin import settings
+from marvin import database, settings
 from marvin.defaults import override_defaults
-from marvin.engine import database
 from marvin.memory.providers.chroma import ChromaMemory
 
 

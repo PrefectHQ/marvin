@@ -1,6 +1,6 @@
 from sqlalchemy import select
 
-from marvin.engine.database import (
+from marvin.database import (
     DBMessage,
     DBThread,
     create_db_and_tables,

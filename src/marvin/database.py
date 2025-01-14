@@ -10,7 +10,8 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from pydantic import TypeAdapter
-from sqlalchemy import JSON, ForeignKey, String, create_engine, inspect
+from pydantic_ai.usage import Usage
+from sqlalchemy import JSON, ForeignKey, String, TypeDecorator, create_engine, inspect
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import (
     DeclarativeBase,
@@ -22,9 +23,10 @@ from sqlalchemy.orm import (
 
 from marvin.settings import settings
 
-from .llm import Message
+from .engine.llm import Message
 
 message_adapter: TypeAdapter[Message] = TypeAdapter(Message)
+usage_adapter: TypeAdapter[Usage] = TypeAdapter(Usage)
 
 # Module-level cache for engines
 _engine_cache = {}
@@ -79,14 +81,29 @@ class DBThread(Base):
     created_at: Mapped[datetime] = mapped_column(default=utc_now)
 
     messages: Mapped[list["DBMessage"]] = relationship(back_populates="thread")
+    llm_calls: Mapped[list["DBLLMCall"]] = relationship(back_populates="thread")
 
     @classmethod
     async def create(
         cls,
         session: AsyncSession,
+        id: str | None = None,
         parent_thread_id: str | None = None,
     ) -> "DBThread":
-        thread = cls(id=str(uuid.uuid4()), parent_thread_id=parent_thread_id)
+        """Create a new thread record.
+
+        Args:
+            session: Database session to use
+            id: Optional ID to use for the thread. If not provided, a UUID will be generated.
+            parent_thread_id: Optional ID of the parent thread
+
+        Returns:
+            The created DBThread instance
+        """
+        thread = cls(
+            id=id or str(uuid.uuid4()),
+            parent_thread_id=parent_thread_id,
+        )
         session.add(thread)
         await session.commit()
         await session.refresh(thread)
@@ -122,17 +139,69 @@ class DBMessage(Base):
         )
 
 
+class UsageType(TypeDecorator):
+    """Custom type for Usage objects that stores them as JSON in the database."""
+
+    impl = JSON
+    cache_ok = True
+
+    def process_bind_param(self, value: Usage | None, dialect) -> dict | None:
+        """Convert Usage to JSON before storing in DB."""
+        if value is None:
+            return None
+        return usage_adapter.dump_python(value, mode="json")
+
+    def process_result_value(self, value: dict | None, dialect) -> Usage | None:
+        """Convert JSON back to Usage when loading from DB."""
+        if value is None:
+            return None
+        return usage_adapter.validate_python(value)
+
+
 class DBLLMCall(Base):
     __tablename__ = "llm_calls"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     thread_id: Mapped[str] = mapped_column(ForeignKey("threads.id"), index=True)
-    model: Mapped[str] = mapped_column(String, index=True)
-    prompt: Mapped[dict[str, Any]] = mapped_column(JSON)
-    cost: Mapped[dict[str, Any]] = mapped_column(JSON)
+    # prompt: Mapped[dict[str, Any]] = mapped_column(JSON)
+    usage: Mapped[Usage] = mapped_column(UsageType)
     timestamp: Mapped[datetime] = mapped_column(default=utc_now)
 
     messages: Mapped[list[DBMessage]] = relationship(back_populates="llm_call")
+    thread: Mapped[DBThread] = relationship(back_populates="llm_calls")
+
+    @classmethod
+    async def create(
+        cls,
+        thread_id: str,
+        # prompt: dict[str, Any],
+        usage: Usage,
+        session: AsyncSession | None = None,
+    ) -> "DBLLMCall":
+        """Create a new LLM call record.
+
+        Args:
+            thread_id: ID of the thread this call belongs to
+            prompt: The prompt sent to the model
+            usage: Usage information from the model
+            session: Optional database session. If not provided, a new one will be created.
+
+        Returns:
+            The created DBLLMCall instance
+        """
+        llm_call = cls(thread_id=thread_id, usage=usage)
+
+        if session is None:
+            async with get_async_session() as session:
+                session.add(llm_call)
+                await session.commit()
+                await session.refresh(llm_call)
+                return llm_call
+        else:
+            session.add(llm_call)
+            await session.commit()
+            await session.refresh(llm_call)
+            return llm_call
 
 
 def ensure_tables_exist():
@@ -171,4 +240,6 @@ def create_db_and_tables(*, force: bool = False):
     """
     if force:
         Base.metadata.drop_all(get_engine())
+        print("Database tables dropped.")
     Base.metadata.create_all(get_engine())
+    print("Database tables created.")
