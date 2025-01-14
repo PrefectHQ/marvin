@@ -11,8 +11,12 @@ def run_sync(coro: Coroutine[Any, Any, T]) -> T:
     """Run a coroutine synchronously.
 
     This function uses asyncio to run a coroutine in a synchronous context.
-    It will create or get an event loop and run the coroutine to completion.
-    Context variables are properly propagated between threads.
+    It attempts the following strategies in order:
+    1. If no event loop is running, creates a new one and runs the coroutine
+    2. If a loop is running, attempts to run the coroutine on that loop
+    3. As a last resort, creates a new thread with its own event loop to run the coroutine
+
+    Context variables are properly propagated between threads in all cases.
 
     Example:
     ```python
@@ -36,11 +40,8 @@ def run_sync(coro: Coroutine[Any, Any, T]) -> T:
     else:
         try:
             return ctx.run(loop.run_until_complete, coro)
-        except RuntimeError as e:
+        except RuntimeError:
             return run_sync_in_thread(coro)
-            raise RuntimeError(
-                "Marvin's sync API can not be called from an async frame. Please use the async API instead."
-            ) from e
 
 
 def run_sync_in_thread(coro: Coroutine[Any, Any, T]) -> T:

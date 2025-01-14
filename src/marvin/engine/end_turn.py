@@ -1,6 +1,6 @@
 import abc
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, Literal, TypeVar
 
 from pydantic_ai import ModelRetry
 
@@ -56,9 +56,9 @@ class MarkTaskSuccessful(TaskStateEndTurn, Generic[TaskResult]):
         Therefore, we create custom classes for each task, which are named after the task ID.
         """
 
-        @dataclass(kw_only=True)
+        @dataclass(kw_only=True, init=False)
         class MarkTaskSuccessful(cls, Generic[TaskResult]):
-            task_id: str = field(default=task.id, init=False)
+            task_id: Literal[task.id] = field(default=task.id, init=False)  # noqa
 
         MarkTaskSuccessful.__name__ = f"MarkTaskSuccessful_{task.id}"
         return MarkTaskSuccessful[task.get_result_type()]
@@ -96,7 +96,7 @@ class MarkTaskFailed(TaskStateEndTurn):
 
         @dataclass(kw_only=True)
         class MarkTaskFailed(cls):
-            task_id: str = field(default=task.id, init=False)
+            task_id: Literal[task.id] = field(default=task.id, init=False)  # noqa
 
         MarkTaskFailed.__name__ = f"MarkTaskFailed_{task.id}"
         return MarkTaskFailed
@@ -127,7 +127,7 @@ class MarkTaskSkipped(TaskStateEndTurn):
 
         @dataclass(kw_only=True)
         class MarkTaskSkipped(cls):
-            task_id: str = field(default=task.id, init=False)
+            task_id: Literal[task.id] = field(default=task.id, init=False)  # noqa
 
         MarkTaskSkipped.__name__ = f"MarkTaskSkipped_{task.id}"
         return MarkTaskSkipped
