@@ -65,7 +65,7 @@ async def generate_async(
         instructions=PROMPT,
         context=context,
         result_type=list[target],
-        agent=agent,
+        agents=[agent] if agent else None,
     )
 
     return cast(list[T], await task.run_async(thread=thread, handlers=[]))

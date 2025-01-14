@@ -86,7 +86,7 @@ def _build_task(
         instructions=PROMPT,
         context=context,
         result_type=model.return_annotation,
-        agent=agent,
+        agents=[agent] if agent else None,
     )
 
 

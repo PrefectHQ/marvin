@@ -125,7 +125,7 @@ class TestAsync:
 
 class TestExamples:
     @pytest.mark.flaky(max_runs=3)
-    async def test_hogwarts_sorting_hat(self):
+    def test_hogwarts_sorting_hat(self):
         description = "Brave, daring, chivalrous -- it's Harry Potter!"
 
         house = marvin.classify(
@@ -144,7 +144,7 @@ class TestExamples:
             ("*angry noises*", "support"),
         ],
     )
-    async def test_call_routing(self, user_input: str, expected_selection: str):
+    def test_call_routing(self, user_input: str, expected_selection: str):
         class Department(Enum):
             SALES = "sales"
             SUPPORT = "support"
@@ -186,7 +186,7 @@ class TestMultiLabel:
     def test_multi_label_enum(self):
         """Test multi-label classification with an enum."""
         result = marvin.classify(
-            "This is a bug report about documentation",
+            "This report contains a bug and a documentation update",
             GitHubIssueTag,
             multi_label=True,
         )

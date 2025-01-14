@@ -51,7 +51,9 @@ class TestAnnotations:
         # gracefully fall back to the string
         @marvin.fn
         def f(x):
-            """Returns (x + 1) with a trailing comma e.g. f(8) -> '9,'"""
+            """Returns the value (x + 1) with a trailing comma
+
+            For example, f(8) -> '9,'  f(100) -> '101,'"""
 
         result = f("3")
         assert result == "4,"
@@ -178,14 +180,21 @@ class TestAnnotations:
     def test_set_return_type(self):
         @marvin.fn
         def get_fruit_letters(name: str) -> set:
-            """Returns the letters in the provided fruit name"""
+            """Returns only the unique letters in the provided fruit name"""
 
         assert get_fruit_letters("banana") == {"a", "b", "n"}
 
     def test_frozenset_return_type(self):
+        """Use GPT-4o"""
+
         @marvin.fn
         def get_fruit_letters(name: str) -> frozenset:
-            """Returns a list of the letters in the provided fruit name"""
+            """
+            Returns a list of the letters in the provided fruit name.
+
+            Your response should just be a list of letters, not dicts: ['h', 'e', 'l', 'l', 'o']
+
+            """
 
         assert get_fruit_letters("orange") == frozenset(
             {"a", "e", "g", "n", "o", "r"},
@@ -261,13 +270,13 @@ class TestAsTask:
 
 
 class TestContextAndInstructions:
-    def test_fn_with_instructions(self):
+    async def test_fn_with_instructions(self):
         @marvin.fn(instructions="Only return citrus fruits")
         def list_fruit(n: int) -> list[str]:
             """Returns a list of `n` fruit"""
 
         result = list_fruit(3)
-        assert_llm_equal(result, "a list of three citrus fruits")
+        await assert_llm_equal(result, "a list of three citrus fruits")
         assert len(result) == 3
 
     def test_fn_with_return_value_context(self):
@@ -285,7 +294,7 @@ class TestContextAndInstructions:
             """Returns a list of `n` fruit"""
 
         result = await list_fruit(3)
-        assert_llm_equal(result, "a list of three berries")
+        await assert_llm_equal(result, "a list of three berries")
         assert len(result) == 3
 
     async def test_async_fn_with_return_value_context(self):
@@ -295,16 +304,16 @@ class TestContextAndInstructions:
             return {"hint": "This fruit is red and grows on trees"}
 
         result = await get_fruit_details("unknown")
-        assert_llm_equal(result, "a dictionary describing an apple")
+        await assert_llm_equal(result, "a dictionary describing an apple")
 
-    def test_fn_with_instructions_and_context(self):
+    async def test_fn_with_instructions_and_context(self):
         @marvin.fn(instructions="Only return tropical fruits")
         def get_fruit_details(name: str) -> dict[str, str]:
             """Returns details about the fruit"""
             return {"hint": "This fruit has a hard brown shell and liquid inside"}
 
         result = get_fruit_details("unknown")
-        assert_llm_equal(result, "a dictionary describing a coconut")
+        await assert_llm_equal(result, "a dictionary describing a coconut")
 
     async def test_async_fn_with_instructions_and_context(self):
         @marvin.fn(instructions="Only consider fruits from Asia")
@@ -313,15 +322,15 @@ class TestContextAndInstructions:
             return {"hint": "This fruit has spikes on the outside"}
 
         result = await get_fruit_details("unknown")
-        assert_llm_equal(result, "a dictionary describing a durian")
+        await assert_llm_equal(result, "a dictionary describing a durian")
 
-    def test_fn_with_runtime_instructions(self):
+    async def test_fn_with_runtime_instructions(self):
         @marvin.fn
         def list_fruit(n: int) -> list[str]:
             """Returns a list of `n` fruit"""
 
         result = list_fruit(3, _instructions="Only return red fruits")
-        assert_llm_equal(result, "a list of three red fruits")
+        await assert_llm_equal(result, "a list of three red fruits")
         assert len(result) == 3
 
     async def test_async_fn_with_runtime_instructions(self):
@@ -330,5 +339,5 @@ class TestContextAndInstructions:
             """Returns a list of `n` fruit"""
 
         result = await list_fruit(3, _instructions="Only return yellow fruits")
-        assert_llm_equal(result, "a list of three yellow fruits")
+        await assert_llm_equal(result, "a list of three yellow fruits")
         assert len(result) == 3

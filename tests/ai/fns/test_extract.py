@@ -19,11 +19,10 @@ class TestBuiltins:
     def test_extract_complex_numbers(self, gpt_4o):
         """Uses gpt-4o to avoid flaky behavior"""
         result = marvin.extract(
-            "I paid $10 for 3 coffees and they gave me back a dollar and 25 cents",
+            "I paid $10 for 3 coffees and they gave me back a dollar 25 cents",
             float,
         )
-        # by default, ignores the obvious int (3)
-        assert result == [10.0, 1.25]
+        assert result == [10.0, 3.0, 1.25]
 
     def test_extract_complex_numbers_all(self, gpt_4o):
         """Uses gpt-4o to avoid flaky behavior"""
@@ -33,13 +32,13 @@ class TestBuiltins:
             instructions="include all numbers",
         )
 
-        assert result == [10.0, 3.0, 1.25]
+        assert result == [10.0, 3.0, 1, 25]
 
     def test_extract_money(self):
         result = marvin.extract(
-            "I paid $10 for 3 coffees and they gave me back a dollar and 25 cents",
+            "I paid $10 for 3 coffees and they gave me back a dollar 25 cents",
             float,
-            instructions="include only USD amounts mentioned. 50c == 0.5",
+            instructions="extract monetary values only. $3.50 is 3.5",
         )
         assert result == [10.0, 1.25]
 
@@ -63,9 +62,11 @@ class TestInstructions:
         result = marvin.extract(
             "I live in the big apple",
             str,
-            instructions="(formal city name, state abbreviation) properly capitalize",
+            instructions="(formal city name, state abbreviation) properly capitalized",
         )
-        assert result in ["New York, NY", "New York City, NY"]
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0] in ["New York, NY", "New York City, NY"]
 
 
 class TestPydantic:

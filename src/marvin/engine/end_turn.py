@@ -2,6 +2,8 @@ import abc
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Generic, TypeVar
 
+from pydantic_ai import ModelRetry
+
 from marvin.engine.llm import AgentMessage
 from marvin.utilities.logging import get_logger
 
@@ -21,7 +23,12 @@ class EndTurn(abc.ABC):
 
 
 @dataclass(kw_only=True)
-class MarkTaskSuccessful(EndTurn, Generic[TaskResult]):
+class TaskStateEndTurn(EndTurn):
+    task_id: str
+
+
+@dataclass(kw_only=True)
+class MarkTaskSuccessful(TaskStateEndTurn, Generic[TaskResult]):
     """Mark a task successful and provide a result."""
 
     task_id: str
@@ -30,7 +37,7 @@ class MarkTaskSuccessful(EndTurn, Generic[TaskResult]):
     async def run(self, orchestrator: "Orchestrator") -> None:
         tasks = {t.id: t for t in orchestrator.get_all_tasks()}
         if self.task_id not in tasks:
-            raise ValueError(f"Task ID {self.task_id} not found in tasks")
+            raise ModelRetry(f"Task ID {self.task_id} not found in tasks")
 
         task = tasks[self.task_id]
         agent_name = orchestrator.active_agent().friendly_name()
@@ -50,15 +57,15 @@ class MarkTaskSuccessful(EndTurn, Generic[TaskResult]):
         """
 
         @dataclass(kw_only=True)
-        class MarkTaskSuccessful(cls[task.get_result_type()]):
+        class MarkTaskSuccessful(cls, Generic[TaskResult]):
             task_id: str = field(default=task.id, init=False)
 
         MarkTaskSuccessful.__name__ = f"MarkTaskSuccessful_{task.id}"
-        return MarkTaskSuccessful
+        return MarkTaskSuccessful[task.get_result_type()]
 
 
 @dataclass(kw_only=True)
-class MarkTaskFailed(EndTurn):
+class MarkTaskFailed(TaskStateEndTurn):
     """Mark a task failed and provide a message."""
 
     task_id: str
@@ -67,7 +74,7 @@ class MarkTaskFailed(EndTurn):
     async def run(self, orchestrator: "Orchestrator") -> None:
         tasks = {t.id: t for t in orchestrator.get_all_tasks()}
         if self.task_id not in tasks:
-            raise ValueError(f"Task ID {self.task_id} not found in tasks")
+            raise ModelRetry(f"Task ID {self.task_id} not found in tasks")
 
         task = tasks[self.task_id]
         agent_name = orchestrator.active_agent().friendly_name()
@@ -96,7 +103,7 @@ class MarkTaskFailed(EndTurn):
 
 
 @dataclass(kw_only=True)
-class MarkTaskSkipped(EndTurn):
+class MarkTaskSkipped(TaskStateEndTurn):
     """Mark a task skipped."""
 
     task_id: str
@@ -104,7 +111,7 @@ class MarkTaskSkipped(EndTurn):
     async def run(self, orchestrator: "Orchestrator") -> None:
         tasks = {t.id: t for t in orchestrator.get_all_tasks()}
         if self.task_id not in tasks:
-            raise ValueError(f"Task ID {self.task_id} not found in tasks")
+            raise ModelRetry(f"Task ID {self.task_id} not found in tasks")
 
         task = tasks[self.task_id]
         logger.debug(

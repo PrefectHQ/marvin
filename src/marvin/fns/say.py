@@ -39,7 +39,7 @@ async def say_async(
             instructions="Respond to the user",
             context=context,
             result_type=str,
-            agent=agent,
+            agents=[agent] if agent else None,
         )
 
         return await task.run_async(thread=thread, handlers=[])

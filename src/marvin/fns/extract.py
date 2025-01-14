@@ -65,7 +65,7 @@ async def extract_async(
         instructions=PROMPT,
         context=context,
         result_type=list[target],
-        agent=agent,
+        agents=[agent] if agent else None,
     )
 
     return await task.run_async(thread=thread, handlers=[])

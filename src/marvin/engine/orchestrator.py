@@ -17,7 +17,7 @@ import marvin.agents.team
 import marvin.engine.llm
 from marvin.agents.actor import Actor
 from marvin.agents.agent import Agent
-from marvin.engine.end_turn import DelegateToAgent, EndTurn
+from marvin.engine.end_turn import DelegateToAgent, EndTurn, TaskStateEndTurn
 from marvin.engine.events import (
     AgentEndTurnEvent,
     AgentStartTurnEvent,
@@ -47,7 +47,6 @@ _current_orchestrator: ContextVar["Orchestrator|None"] = ContextVar(
     "current_orchestrator",
     default=None,
 )
-RESULT_TOOL_PREFIX = "_EndTurn_"
 
 
 @dataclass(kw_only=True)
@@ -125,6 +124,9 @@ class Orchestrator:
         tools = list(tools)
 
         # --- get end turn tools
+        # the signature of the end turn tools is Union[list[TaskStateEndTurn], EndTurn]
+        # meaning that multiple task states can be provided as a list OR a
+        # different end turn tool can be used.
         end_turn_tools = set()
 
         # wrap task tools in a list of tuples to permit parallel calls
@@ -238,16 +240,29 @@ class Orchestrator:
 
         agentlet = self.team.get_agentlet(
             tools=tools,
+            # this is implicitly list[TaskStateEndTurn] | EndTurn
             result_types=end_turn_tools,
-            result_tool_name=(
-                RESULT_TOOL_PREFIX
-                if len(end_turn_tools) > 1
-                else end_turn_tools[0].__name__
-            ),
+            result_tool_name="EndTurn_",
             result_tool_description="This tool will end your turn.",
             retries=marvin.settings.agent_retries,
         )
-        agentlet.result_validator(self.validate_end_turn)
+
+        @agentlet.result_validator
+        async def validate_end_turn(result: EndTurn | list[TaskStateEndTurn]):
+            try:
+                if isinstance(result, list):
+                    for r in result:
+                        await r.run(orchestrator=self)
+                else:
+                    await result.run(orchestrator=self)
+            except pydantic_ai.ModelRetry as e:
+                raise e
+            except Exception as e:
+                logger.debug(f"End turn tool failed: {e}")
+                raise pydantic_ai.ModelRetry(message=f"End turn tool failed: {e}")
+
+            # return the original result
+            return result
 
         for tool in agentlet._function_tools.values():
             # Wrap the tool run function to emit events for each call / result
@@ -420,22 +435,6 @@ class Orchestrator:
             _current_orchestrator.reset(token)
 
         return results
-
-    async def validate_end_turn(self, result: EndTurn | list[EndTurn]):
-        if not isinstance(result, list):
-            tmp_result = [result]
-        else:
-            tmp_result = result
-
-        for r in tmp_result:
-            if isinstance(r, EndTurn):
-                try:
-                    await r.run(orchestrator=self)
-                except Exception as e:
-                    logger.debug(f"End turn tool failed: {e}")
-                    raise pydantic_ai.ModelRetry(message=f"End turn tool failed: {e}")
-
-        return result
 
     def active_team(self) -> marvin.agents.team.Team:
         """Returns the currently active team that contains the currently active agent."""

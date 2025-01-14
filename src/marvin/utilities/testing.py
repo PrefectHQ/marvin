@@ -3,7 +3,7 @@ from typing import Any
 import marvin
 
 
-def assert_llm_equal(result: Any, expected: Any) -> bool:
+async def assert_llm_equal(result: Any, expected: Any) -> bool:
     task = marvin.Task[bool](
         name="Assert equal",
         instructions="An LLM produced the `result` value in a unit test that expected the `expected` value. Because LLM outputs can be stochastic and unpredictable, you must assess whether the `result` value is equal to the `expected` value.",
@@ -13,4 +13,4 @@ def assert_llm_equal(result: Any, expected: Any) -> bool:
         },
         result_type=bool,
     )
-    return task.run()
+    return await task.run_async(handlers=[])
