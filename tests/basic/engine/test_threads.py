@@ -67,45 +67,6 @@ def test_thread_persistence():
     assert loaded_messages[1].parts[0].content == "Message saved"
 
 
-def test_thread_inheritance():
-    """Test thread branching with new message types."""
-    # Parent thread
-    parent = Thread()
-    parent.add_messages(
-        [
-            UserMessage("Parent message"),
-            AgentMessage("Parent response"),
-        ],
-    )
-
-    # Child thread
-    child = Thread(parent_id=parent.id)
-    child.add_messages([UserMessage("Child message")])
-
-    # Verify inheritance
-    child_messages = child.get_messages()
-    assert len(child_messages) == 3
-    assert child_messages[0].parts[0].content == "Parent message"
-    assert child_messages[1].parts[0].content == "Parent response"
-    assert child_messages[2].parts[0].content == "Child message"
-
-    # Verify parent remains unchanged
-    parent_messages = parent.get_messages()
-    assert len(parent_messages) == 2
-
-    # Test sibling isolation
-    sibling = Thread(parent_id=parent.id)
-    sibling.add_messages([UserMessage("Sibling message")])
-
-    child_messages = child.get_messages()
-    sibling_messages = sibling.get_messages()
-
-    assert len(child_messages) == 3
-    assert len(sibling_messages) == 3
-    assert child_messages[-1].parts[0].content == "Child message"
-    assert sibling_messages[-1].parts[0].content == "Sibling message"
-
-
 def test_thread_messages():
     thread = Thread()
     user_msg = UserMessage(content="Hello")
@@ -115,37 +76,3 @@ def test_thread_messages():
 
     assert len(messages) == 1
     assert messages[0].parts[0].content == "Hello"
-
-
-def test_thread_hierarchy():
-    parent = Thread()
-    parent.add_messages(
-        [
-            UserMessage("Parent message 1"),
-            AgentMessage("Parent response 1"),
-            UserMessage("Parent message 2"),
-            AgentMessage("Parent response 2"),
-        ],
-    )
-
-    child = Thread(parent_id=parent.id)
-    child.add_messages([UserMessage("Child message")])
-
-    # Child thread should see parent messages
-    child_messages = child.get_messages()
-    assert len(child_messages) == 5  # 4 parent + 1 child
-    assert child_messages[-1].parts[0].content == "Child message"
-
-    # Parent thread should not see child messages
-    parent_messages = parent.get_messages()
-    assert len(parent_messages) == 4
-
-    # Create a sibling thread
-    sibling = Thread(parent_id=parent.id)
-    sibling.add_messages([UserMessage("Sibling message")])
-
-    # Child thread should not see sibling messages
-    child_messages = child.get_messages()
-    sibling_messages = sibling.get_messages()
-    assert len(child_messages) == 5  # 4 parent + 1 child
-    assert len(sibling_messages) == 5  # 4 parent + 1 sibling

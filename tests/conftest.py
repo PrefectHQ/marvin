@@ -104,6 +104,21 @@ def setup_test_db(monkeypatch: pytest.MonkeyPatch, worker_id: str):
         database._async_engine_cache.clear()
 
 
+@pytest.fixture
+def session_sync():
+    """Provide a sync database session for tests."""
+    with database.get_session() as session:
+        yield session
+
+
+@pytest.fixture
+async def session():
+    """Provide an async database session for tests."""
+
+    async with database.get_async_session() as session:
+        yield session
+
+
 @pytest.fixture(autouse=True)
 def setup_memory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, worker_id: str):
     monkeypatch.setattr(
