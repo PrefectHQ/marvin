@@ -25,9 +25,9 @@ from pydantic import TypeAdapter
 import marvin
 from marvin.agents.actor import Actor
 from marvin.agents.team import Swarm
-from marvin.engine.thread import Thread
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
+from marvin.thread import Thread
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.types import Labels, as_classifier, is_classifier
 

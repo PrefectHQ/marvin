@@ -8,8 +8,8 @@ import pydantic_ai
 
 import marvin
 import marvin.utilities.asyncio
-from marvin.engine.thread import Thread
 from marvin.prompts import Template
+from marvin.thread import Thread
 
 if TYPE_CHECKING:
     from marvin.agents.team import Team

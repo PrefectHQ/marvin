@@ -3,7 +3,7 @@
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
 
 from marvin.engine.llm import AgentMessage, SystemMessage, UserMessage
-from marvin.engine.thread import Thread
+from marvin.thread import Thread
 
 
 def test_basic_message_handling():

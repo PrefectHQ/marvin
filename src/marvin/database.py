@@ -163,7 +163,6 @@ class DBLLMCall(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     thread_id: Mapped[str] = mapped_column(ForeignKey("threads.id"), index=True)
-    # prompt: Mapped[dict[str, Any]] = mapped_column(JSON)
     usage: Mapped[Usage] = mapped_column(UsageType)
     timestamp: Mapped[datetime] = mapped_column(default=utc_now)
 
@@ -174,7 +173,6 @@ class DBLLMCall(Base):
     async def create(
         cls,
         thread_id: str,
-        # prompt: dict[str, Any],
         usage: Usage,
         session: AsyncSession | None = None,
     ) -> "DBLLMCall":
@@ -182,7 +180,6 @@ class DBLLMCall(Base):
 
         Args:
             thread_id: ID of the thread this call belongs to
-            prompt: The prompt sent to the model
             usage: Usage information from the model
             session: Optional database session. If not provided, a new one will be created.
 

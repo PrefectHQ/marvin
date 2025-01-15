@@ -5,7 +5,7 @@ from marvin.settings import settings
 from marvin.database import ensure_tables_exist
 
 # core classes
-from marvin.engine.thread import Thread
+from marvin.thread import Thread
 from marvin.agents.agent import Agent
 from marvin.tasks.task import Task
 from marvin.memory.memory import Memory

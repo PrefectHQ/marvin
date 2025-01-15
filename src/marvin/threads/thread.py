@@ -5,7 +5,7 @@ This module provides the Thread class for managing conversation context.
 
 from dataclasses import dataclass
 
-from marvin.engine.thread import Thread as EngineThread
+from marvin.thread import Thread as EngineThread
 
 
 @dataclass(kw_only=True)
