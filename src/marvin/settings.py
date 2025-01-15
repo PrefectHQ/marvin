@@ -40,7 +40,7 @@ class Settings(BaseSettings):
         path.mkdir(parents=True, exist_ok=True)
         return path
 
-    database_path: Path | None = Field(
+    database_url: str | None = Field(
         default=None,
         description="Path to the database file. Defaults to `home_path / 'marvin.db'`.",
     )
@@ -49,21 +49,25 @@ class Settings(BaseSettings):
     def validate_database_path(self) -> Self:
         """Set and validate the database path."""
         # Set default if not provided
-        if self.database_path is None:
-            self.__dict__["database_path"] = self.home_path / "marvin.db"
-
-        # Handle in-memory database
-        if str(self.database_path) == ":memory:":
+        if self.database_url is None:
+            self.__dict__["database_url"] = str(self.home_path / "marvin.db")
             return self
 
-        # Convert to Path if string
-        self.__dict__["database_path"] = Path(self.database_path)
+        # Handle in-memory database
+        if self.database_url == ":memory:":
+            return self
+
+        # Convert to Path for validation
+        path = Path(self.database_url)
 
         # Expand user and resolve to absolute path
-        self.__dict__["database_path"] = self.database_path.expanduser().resolve()
+        path = path.expanduser().resolve()
 
         # Ensure parent directory exists
-        self.__dict__["database_path"].parent.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Store result as string
+        self.__dict__["database_url"] = str(path)
 
         return self
 

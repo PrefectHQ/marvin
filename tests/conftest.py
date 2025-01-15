@@ -57,15 +57,15 @@ def setup_test_db(monkeypatch: pytest.MonkeyPatch, worker_id: str):
     for parallel test runners, or 'master' for single-process runs.
     """
     with TemporaryDirectory() as temp_dir:
-        original_path = settings.database_path
+        original_path = settings.database_url
 
         # Create unique path per worker to avoid conflicts
         worker_suffix = worker_id if worker_id != "master" else ""
-        temp_path = Path(temp_dir) / f"test{worker_suffix}.db"
+        temp_path = str(Path(temp_dir) / f"test{worker_suffix}.db")
 
         with _db_lock:
             # Configure database settings
-            monkeypatch.setattr(settings, "database_path", temp_path)
+            monkeypatch.setattr(settings, "database_url", temp_path)
 
             # Create engines with NullPool
             sync_engine = create_engine(
@@ -98,7 +98,7 @@ def setup_test_db(monkeypatch: pytest.MonkeyPatch, worker_id: str):
 
         yield
 
-        settings.database_path = original_path
+        settings.database_url = original_path
         # Clear engine cache
         database._engine_cache.clear()
         database._async_engine_cache.clear()
