@@ -17,6 +17,7 @@ import marvin.agents.team
 import marvin.engine.llm
 from marvin.agents.actor import Actor
 from marvin.agents.agent import Agent
+from marvin.database import DBLLMCall
 from marvin.engine.end_turn import DelegateToAgent, EndTurn
 from marvin.engine.events import (
     AgentEndTurnEvent,
@@ -32,10 +33,10 @@ from marvin.engine.events import (
 )
 from marvin.engine.handlers import AsyncHandler, Handler
 from marvin.engine.print_handler import PrintHandler
-from marvin.engine.thread import Thread, get_thread
 from marvin.instructions import get_instructions
 from marvin.prompts import Template
 from marvin.tasks.task import Task
+from marvin.thread import Thread, get_thread
 from marvin.utilities.logging import get_logger
 
 T = TypeVar("T")
@@ -152,6 +153,12 @@ class Orchestrator:
 
         result = await agentlet.run("", message_history=all_messages)
 
+        # Record the LLM call in the database
+        llm_call = await DBLLMCall.create(
+            thread_id=self.thread.id,
+            usage=result.usage(),
+        )
+
         # --- record messages
         for message in result.new_messages():
             for event in message_to_events(
@@ -160,7 +167,9 @@ class Orchestrator:
                 agentlet=agentlet,
             ):
                 await self.handle_event(event)
-        await self.thread.add_messages_async(result.new_messages())
+        await self.thread.add_messages_async(
+            result.new_messages(), llm_call_id=llm_call.id
+        )
 
         # --- end turn
         self.end_turn()
@@ -178,7 +187,7 @@ class Orchestrator:
 
         return result
 
-    def _get_agentlet(self, tools: list, end_turn_tools: list) -> Any:
+    def _get_agentlet(self, tools: list, end_turn_tools: list) -> pydantic_ai.Agent:
         """Get an agentlet with wrapped tools and configured result validator.
 
         Args:
