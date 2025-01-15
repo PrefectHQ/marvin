@@ -20,6 +20,7 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
+from sqlalchemy.pool import StaticPool
 
 from marvin.settings import settings
 
@@ -34,24 +35,51 @@ _async_engine_cache = {}
 
 
 def get_engine():
-    """Get the SQLAlchemy engine for sync operations."""
+    """Get the SQLAlchemy engine for sync operations.
+
+    For in-memory databases (:memory:), this uses StaticPool to maintain
+    a single connection that can be shared with the async engine.
+    """
     if "default" not in _engine_cache:
-        _engine_cache["default"] = create_engine(
-            f"sqlite:///{settings.database_path}",
+        is_memory_db = settings.database_url == ":memory:"
+        engine = create_engine(
+            f"sqlite:///{settings.database_url}",
             echo=False,
+            poolclass=StaticPool if is_memory_db else None,
             connect_args={"check_same_thread": False},
         )
+        _engine_cache["default"] = engine
+
     return _engine_cache["default"]
 
 
 def get_async_engine():
-    """Get the SQLAlchemy engine for async operations."""
+    """Get the SQLAlchemy engine for async operations.
+
+    For in-memory databases (:memory:), this reuses the sync engine's connection
+    to ensure both engines share the same database state.
+    """
     if "default" not in _async_engine_cache:
-        _async_engine_cache["default"] = create_async_engine(
-            f"sqlite+aiosqlite:///{settings.database_path}",
-            echo=False,
-            connect_args={"check_same_thread": False},
-        )
+        is_memory_db = settings.database_url == ":memory:"
+
+        if is_memory_db:
+            # For in-memory databases, share connection with sync engine
+            sync_engine = get_engine()
+            engine = create_async_engine(
+                f"sqlite+aiosqlite:///{settings.database_url}",
+                echo=False,
+                poolclass=StaticPool,
+                connect_args={"check_same_thread": False},
+                creator=lambda: sync_engine.raw_connection(),
+            )
+        else:
+            engine = create_async_engine(
+                f"sqlite+aiosqlite:///{settings.database_url}",
+                echo=False,
+                connect_args={"check_same_thread": False},
+            )
+        _async_engine_cache["default"] = engine
+
     return _async_engine_cache["default"]
 
 
@@ -66,10 +94,13 @@ def set_async_engine(engine):
 
 
 def utc_now() -> datetime:
+    """Get the current UTC timestamp."""
     return datetime.now(timezone.utc)
 
 
 class Base(DeclarativeBase):
+    """Base class for all database models."""
+
     pass
 
 
@@ -202,10 +233,17 @@ class DBLLMCall(Base):
 
 
 def ensure_tables_exist():
-    """Initialize database tables if they don't exist yet."""
-    inspector = inspect(get_engine())
-    if not inspector.get_table_names():
-        Base.metadata.create_all(get_engine())
+    """Initialize database tables if they don't exist yet.
+
+    For in-memory databases, tables are always created since each connection
+    starts with a fresh database. For file-based databases, tables are only
+    created if they don't exist.
+    """
+    engine = get_engine()
+    is_memory_db = settings.database_url == ":memory:"
+
+    if is_memory_db or not inspect(engine).get_table_names():
+        Base.metadata.create_all(engine)
 
 
 @contextmanager
@@ -233,10 +271,12 @@ def create_db_and_tables(*, force: bool = False):
 
     Args:
         force: If True, drops all existing tables before creating new ones.
-
     """
+    engine = get_engine()
+
     if force:
-        Base.metadata.drop_all(get_engine())
+        Base.metadata.drop_all(engine)
         print("Database tables dropped.")
-    Base.metadata.create_all(get_engine())
+
+    Base.metadata.create_all(engine)
     print("Database tables created.")
