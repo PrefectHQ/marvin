@@ -1,5 +1,48 @@
 ![Marvin Banner](docs/assets/img/it_hates_me_hero.png)
 
+## MIGRATION NOTES
+
+> ⚠️ **Important:** Marvin 3.0 is currently in very active development. The API may undergo breaking changes, and documentation is still being updated. Use with caution.
+
+
+Marvin 3.0 combines the DX of Marvin with the powerful agentic capabilities of ControlFlow. Both Marvin and ControlFlow users will find a familiar interface, but there are some key changes to be aware of, in particular for ControlFlow users:
+
+### Key Changes
+- **Pydantic AI**: Marvin 3.0 uses Pydantic AI for LLM interactions, and supports the full range of LLM providers that Pydantic AI supports. ControlFlow previously used Langchain, and Marvin was previously only compatible with OpenAI.
+- **Flow → Thread**: The `Flow` concept has been renamed to `Thread`. Update your imports and usage:
+  ```python
+  import marvin
+  
+  with marvin.Thread(thread_id="optional-id-for-recovery"):
+      marvin.run("do something")
+      marvin.run("do another thing")
+  ```
+
+- **Database Changes**: Thread/message history is now stored in SQLite. During development:
+  - Set `MARVIN_DATABASE_URL=":memory:"` for an in-memory database
+  - No migrations are currently available; expect to reset data during updates
+
+### New Features
+- **Swarms**: Use `marvin.Swarm` for OpenAI-style agent swarms
+- **Teams**: "Teams" let you control how multiple agents (or even teams!) work together. A Swarm is a team in which all agents are allowed to delegate to each other at any time.
+- **Marvin Functions**: All your favorite Marvin functions are back:
+  - `@marvin.fn`
+  - `marvin.classify`
+  - `marvin.cast`
+  - `marvin.extract`
+  - `marvin.cast`
+  - 
+  and more!
+
+### Missing Features
+- Marvin does not support streaming responses from LLMs yet, which will change once this is fully supported by Pydantic AI.
+
+### Migration Tips
+1. Replace `import controlflow` with `import marvin`
+2. Update all `Flow` references to `Thread`
+3. Review database persistence needs and configure accordingly
+4. Test thoroughly as you migrate - APIs may change during the 3.0 development
+
 # Marvin
 
 **✨ A delightful framework for building AI agents ✨**
