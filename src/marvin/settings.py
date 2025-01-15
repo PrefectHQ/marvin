@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     )
 
     @model_validator(mode="after")
-    def validate_database_path(self) -> Self:
+    def validate_database_url(self) -> Self:
         """Set and validate the database path."""
         # Set default if not provided
         if self.database_url is None:
