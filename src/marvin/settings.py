@@ -52,6 +52,10 @@ class Settings(BaseSettings):
         if self.database_path is None:
             self.__dict__["database_path"] = self.home_path / "marvin.db"
 
+        # Handle in-memory database
+        if str(self.database_path) == ":memory:":
+            return self
+
         # Convert to Path if string
         self.__dict__["database_path"] = Path(self.database_path)
 
