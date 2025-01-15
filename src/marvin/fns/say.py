@@ -1,6 +1,6 @@
 import marvin
 from marvin.agents.agent import Agent
-from marvin.engine.thread import Thread, get_thread
+from marvin.thread import Thread, get_thread
 from marvin.utilities.asyncio import run_sync
 
 

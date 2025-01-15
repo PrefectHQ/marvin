@@ -4,7 +4,7 @@ from typing import Any, Literal, TypeVar, overload
 
 import marvin
 from marvin.agents.agent import Agent
-from marvin.engine.thread import Thread
+from marvin.thread import Thread
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.types import Labels, issubclass_safe
 

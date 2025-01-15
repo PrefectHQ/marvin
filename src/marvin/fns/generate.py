@@ -2,7 +2,7 @@ from typing import Any, TypeVar, cast
 
 import marvin
 from marvin.agents.agent import Agent
-from marvin.engine.thread import Thread
+from marvin.thread import Thread
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.types import TargetType
 
