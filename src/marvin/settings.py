@@ -48,18 +48,26 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_database_path(self) -> Self:
         """Set and validate the database path."""
-        # Set default if not provided
-        if self.database_path is None:
-            self.__dict__["database_path"] = self.home_path / "marvin.db"
+        # Skip validation for in-memory database
+        if self.database_url == "sqlite+aiosqlite:///:memory:":
+            return self
 
-        # Convert to Path if string
-        self.__dict__["database_path"] = Path(self.database_path)
+        # Extract path from database URL for file-based databases
+        if self.database_url.startswith("sqlite"):
+            # Get the path part after :///
+            db_path = self.database_url.split("://", 1)[1]
+            if not db_path.startswith("/"):
+                # Relative path - store in home directory
+                db_path = self.home_path / db_path
+            else:
+                db_path = Path(db_path)
 
-        # Expand user and resolve to absolute path
-        self.__dict__["database_path"] = self.database_path.expanduser().resolve()
+            # Ensure parent directory exists
+            db_path = db_path.expanduser().resolve()
+            db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Ensure parent directory exists
-        self.__dict__["database_path"].parent.mkdir(parents=True, exist_ok=True)
+            # Update the URL with the resolved path
+            self.database_url = f"sqlite+aiosqlite:///{db_path}"
 
         return self
 
