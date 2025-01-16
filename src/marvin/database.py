@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from pydantic import TypeAdapter
+from pydantic_ai.messages import RetryPromptPart
 from pydantic_ai.usage import Usage
 from sqlalchemy import JSON, ForeignKey, String, TypeDecorator, create_engine, inspect
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -32,6 +33,19 @@ usage_adapter: TypeAdapter[Usage] = TypeAdapter(Usage)
 # Module-level cache for engines
 _engine_cache = {}
 _async_engine_cache = {}
+
+
+def serialize_message(message: Message) -> str:
+    """
+    The `ctx` field in the `RetryPromptPart` is optionally dict[str, Any], which is not always serializable.
+    """
+    for part in message.parts:
+        if isinstance(part, RetryPromptPart):
+            if isinstance(part.content, list):
+                for content in part.content:
+                    if content.get("ctx", None) is not None:
+                        content["ctx"] = {k: str(v) for k, v in content["ctx"].items()}
+    return message_adapter.dump_python(message, mode="json")
 
 
 def get_engine():
@@ -165,7 +179,7 @@ class DBMessage(Base):
     ) -> "DBMessage":
         return cls(
             thread_id=thread_id,
-            message=message_adapter.dump_python(message, mode="json"),
+            message=serialize_message(message),
             llm_call_id=llm_call_id,
         )
 
