@@ -28,6 +28,7 @@ async def classify_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    context: dict | None = None,
 ) -> T: ...
 
 
@@ -40,6 +41,7 @@ async def classify_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    context: dict | None = None,
 ) -> list[T]: ...
 
 
@@ -50,6 +52,7 @@ async def classify_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    context: dict | None = None,
 ) -> T | list[T]:
     """Asynchronously classifies input data into one or more predefined labels using a language model.
 
@@ -70,6 +73,7 @@ async def classify_async(
             the default agent will be used.
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
+        context: Optional dictionary of additional context to include in the task.
 
     Returns:
         - If labels is a Sequence[T]:
@@ -101,9 +105,10 @@ async def classify_async(
         True
 
     """
-    context = {"Data to classify": data}
+    task_context = context or {}
+    task_context["Data to classify"] = data
     if instructions:
-        context["Additional instructions"] = instructions
+        task_context["Additional instructions"] = instructions
 
     # Convert Enum class to sequence of values if needed
     if labels is bool or issubclass_safe(labels, enum.Enum):
@@ -117,7 +122,7 @@ async def classify_async(
     task = marvin.Task[result_type](
         name="Classification Task",
         instructions=PROMPT,
-        context=context,
+        context=task_context,
         result_type=result_type,
         agents=[agent] if agent else None,
     )
@@ -133,6 +138,7 @@ def classify(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    context: dict | None = None,
 ) -> T: ...
 
 
@@ -145,6 +151,7 @@ def classify(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    context: dict | None = None,
 ) -> list[T]: ...
 
 
@@ -155,6 +162,7 @@ def classify(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    context: dict | None = None,
 ) -> T | list[T]:
     """Classifies input data into one or more predefined labels using a language model.
 
@@ -175,6 +183,7 @@ def classify(
             the default agent will be used.
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
+        context: Optional dictionary of additional context to include in the task.
 
     Returns:
         - If labels is a Sequence[T]:
@@ -214,5 +223,6 @@ def classify(
             instructions=instructions,
             agent=agent,
             thread=thread,
+            context=context,
         ),
     )

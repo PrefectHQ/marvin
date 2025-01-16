@@ -33,42 +33,51 @@ async def cast_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    context: dict | None = None,
 ) -> T:
-    """Converts input data into a single entity of the specified target type asynchronously.
+    """Asynchronously transforms input data into a specific type using a language model.
 
-    This function uses a language model to analyze the input data and convert
-    it into a single entity of the specified type, preserving semantic meaning
-    where possible.
+    This function uses a language model to analyze the input data and transform it
+    into the specified target type, maintaining as much semantic meaning as possible.
 
     Args:
-        data: The input data to convert. Can be any type.
-        target: The type to convert the data into. Defaults to str.
-        instructions: Optional additional instructions to guide the conversion.
-            Used to provide specific guidance about how to interpret or
-            transform the data. Required when target is str.
-        agent: Optional custom agent to use for conversion. If not provided,
+        data: The input data to transform. Can be any type.
+        target: The type to transform the data into. Defaults to str.
+        instructions: Optional additional instructions to guide the transformation.
+            Used to provide specific guidance about how to interpret or transform
+            the data.
+        agent: Optional custom agent to use for transformation. If not provided,
             the default agent will be used.
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
+        context: Optional dictionary of additional context to include in the task.
 
     Returns:
-        A single entity of type T.
+        The transformed data of type T.
 
-    Raises:
-        ValueError: If target is str and no instructions are provided.
+    Examples:
+        >>> # Cast to string
+        >>> await cast_async(123, str)
+        '123'
+
+        >>> # Cast to float with instructions
+        >>> await cast_async("three point five", float, instructions="Convert words to numbers")
+        3.5
+
+        >>> # Cast to bool
+        >>> await cast_async("yes", bool)
+        True
 
     """
-    if target is str and instructions is None:
-        raise ValueError("Instructions are required when target type is str.")
-
-    context = {"Data to transform": data}
+    task_context = context or {}
+    task_context["Data to transform"] = data
     if instructions:
-        context["Additional instructions"] = instructions
+        task_context["Additional instructions"] = instructions
 
     task = marvin.Task[target](
         name="Cast Task",
         instructions=PROMPT,
-        context=context,
+        context=task_context,
         result_type=target,
         agents=[agent] if agent else None,
     )
@@ -82,29 +91,40 @@ def cast(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    context: dict | None = None,
 ) -> T:
-    """Converts input data into a single entity of the specified target type.
+    """Transforms input data into a specific type using a language model.
 
-    This function uses a language model to analyze the input data and convert
-    it into a single entity of the specified type, preserving semantic meaning
-    where possible.
+    This function uses a language model to analyze the input data and transform it
+    into the specified target type, maintaining as much semantic meaning as possible.
 
     Args:
-        data: The input data to convert. Can be any type.
-        target: The type to convert the data into. Defaults to str.
-        instructions: Optional additional instructions to guide the conversion.
-            Used to provide specific guidance about how to interpret or
-            transform the data. Required when target is str.
-        agent: Optional custom agent to use for conversion. If not provided,
+        data: The input data to transform. Can be any type.
+        target: The type to transform the data into. Defaults to str.
+        instructions: Optional additional instructions to guide the transformation.
+            Used to provide specific guidance about how to interpret or transform
+            the data.
+        agent: Optional custom agent to use for transformation. If not provided,
             the default agent will be used.
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
+        context: Optional dictionary of additional context to include in the task.
 
     Returns:
-        A single entity of type T.
+        The transformed data of type T.
 
-    Raises:
-        ValueError: If target is str and no instructions are provided.
+    Examples:
+        >>> # Cast to string
+        >>> cast(123, str)
+        '123'
+
+        >>> # Cast to float with instructions
+        >>> cast("three point five", float, instructions="Convert words to numbers")
+        3.5
+
+        >>> # Cast to bool
+        >>> cast("yes", bool)
+        True
 
     """
     return run_sync(
@@ -114,5 +134,6 @@ def cast(
             instructions=instructions,
             agent=agent,
             thread=thread,
+            context=context,
         ),
     )
