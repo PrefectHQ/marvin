@@ -1,4 +1,4 @@
-from typing import Any, TypeVar, cast
+from typing import TypeVar, cast
 
 import marvin
 from marvin.agents.agent import Agent
@@ -32,6 +32,7 @@ async def generate_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    context: dict | None = None,
 ) -> list[T]:
     """Generates examples of a specific type or matching a description asynchronously.
 
@@ -48,6 +49,7 @@ async def generate_async(
             the default agent will be used.
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
+        context: Optional dictionary of additional context to include in the task.
 
     Returns:
         A list of n generated entities of type T.
@@ -56,14 +58,15 @@ async def generate_async(
     if target is str and instructions is None:
         raise ValueError("Instructions are required when target type is str.")
 
-    context: dict[str, Any] = {"Number to generate": n}
+    task_context = context or {}
+    task_context["Number to generate"] = n
     if instructions:
-        context["Additional instructions"] = instructions
+        task_context["Additional instructions"] = instructions
 
     task = marvin.Task[list[target]](
         name="Generation Task",
         instructions=PROMPT,
-        context=context,
+        context=task_context,
         result_type=list[target],
         agents=[agent] if agent else None,
     )
@@ -77,6 +80,7 @@ def generate(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    context: dict | None = None,
 ) -> list[T]:
     """Generates examples of a specific type or matching a description.
 
@@ -93,6 +97,7 @@ def generate(
             the default agent will be used.
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
+        context: Optional dictionary of additional context to include in the task.
 
     Returns:
         A list of n generated entities of type T.
@@ -105,5 +110,6 @@ def generate(
             instructions=instructions,
             agent=agent,
             thread=thread,
+            context=context,
         ),
     )

@@ -9,6 +9,7 @@ async def say_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    context: dict | None = None,
 ) -> str:
     """Responds to a user message in a conversational way.
 
@@ -25,19 +26,20 @@ async def say_async(
             the default agent will be used.
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
+        context: Optional dictionary of additional context to include in the task.
 
     Returns:
         str: The assistant's response to the user's message.
     """
-    context = {}
+    task_context = context or {}
     if instructions:
-        context["Additional instructions"] = instructions
+        task_context["Additional instructions"] = instructions
 
     with get_thread(thread) as thread:
         await thread.add_user_message_async(message)
         task = marvin.Task[str](
             instructions="Respond to the user",
-            context=context,
+            context=task_context,
             result_type=str,
             agents=[agent] if agent else None,
         )
@@ -50,6 +52,7 @@ def say(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    context: dict | None = None,
 ) -> str:
     """Responds to a user message in a conversational way.
 
@@ -66,6 +69,7 @@ def say(
             the default agent will be used.
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
+        context: Optional dictionary of additional context to include in the task.
 
     Returns:
         str: The assistant's response to the user's message.
@@ -76,5 +80,6 @@ def say(
             instructions=instructions,
             agent=agent,
             thread=thread,
+            context=context,
         ),
     )
