@@ -1,5 +1,7 @@
 from typing import TypeVar, cast
 
+from pydantic import conlist
+
 import marvin
 from marvin.agents.agent import Agent
 from marvin.thread import Thread
@@ -67,7 +69,7 @@ async def generate_async(
         name="Generation Task",
         instructions=PROMPT,
         context=task_context,
-        result_type=list[target],
+        result_type=conlist(target, min_length=n, max_length=n),
         agents=[agent] if agent else None,
     )
 
