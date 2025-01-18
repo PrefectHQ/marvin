@@ -15,8 +15,7 @@ You are an expert classifier that always maintains as much semantic meaning
 as possible when labeling text. You use inference or deduction whenever
 necessary to understand missing or omitted data. Classify the provided `data`,
 text, or information as one of the provided labels. For boolean labels,
-consider "truthy" or affirmative inputs to be "true".
-"""
+consider "truthy" or affirmative inputs to be "true"."""
 
 
 @overload
@@ -106,9 +105,11 @@ async def classify_async(
 
     """
     task_context = context or {}
-    task_context["Data to classify"] = data
+    task_context.update({"Data to classify": data})
+
+    prompt = PROMPT
     if instructions:
-        task_context["Additional instructions"] = instructions
+        prompt += f"\n\nYou must follow these instructions for your classification:\n{instructions}"
 
     # Convert Enum class to sequence of values if needed
     if labels is bool or issubclass_safe(labels, enum.Enum):
@@ -121,7 +122,7 @@ async def classify_async(
 
     task = marvin.Task[result_type](
         name="Classification Task",
-        instructions=PROMPT,
+        instructions=prompt,
         context=task_context,
         result_type=result_type,
         agents=[agent] if agent else None,

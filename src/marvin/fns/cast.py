@@ -22,9 +22,7 @@ or information and transform it into a single entity of the requested type.
 - When providing a string response, do not return JSON or a quoted string
     unless they provided instructions requiring it. If you do return JSON, it
     must be valid and parseable including double quotes.
-- When converting to bool, treat "truthy" values as true
-
-"""
+- When converting to bool, treat "truthy" values as true"""
 
 
 async def cast_async(
@@ -69,14 +67,18 @@ async def cast_async(
         True
 
     """
+    if target is str and instructions is None:
+        raise ValueError("Instructions are required when casting to str")
+
     task_context = context or {}
     task_context["Data to transform"] = data
+    prompt = PROMPT
     if instructions:
-        task_context["Additional instructions"] = instructions
+        prompt += f"\n\nYou must follow these instructions for your transformation:\n{instructions}"
 
     task = marvin.Task[target](
         name="Cast Task",
-        instructions=PROMPT,
+        instructions=prompt,
         context=task_context,
         result_type=target,
         agents=[agent] if agent else None,

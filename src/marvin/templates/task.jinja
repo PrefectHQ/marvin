@@ -8,7 +8,9 @@
     </instructions>
     {% if task.context %}
     <context>
-        {{ task.context }}
+        {% for key, value in task.context.items() %}
+        <{{ key }}>{{ value }}</{{ key }}>
+        {% endfor %}
     </context>
     {% endif %}
 

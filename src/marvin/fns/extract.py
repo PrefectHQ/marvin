@@ -18,8 +18,7 @@ requested format.
 - When providing integers, do not write out any decimals at all
 - Use deduction where appropriate e.g. "3 dollars fifty cents" is a single
     value [3.5] not two values [3, 50] unless the user specifically asks for
-    each part.
-"""
+    each part."""
 
 
 async def extract_async(
@@ -60,12 +59,13 @@ async def extract_async(
 
     task_context = context or {}
     task_context["Data to extract"] = data
+    prompt = PROMPT
     if instructions:
-        task_context["Additional instructions"] = instructions
+        prompt += f"\n\nYou must follow these instructions for your extraction:\n{instructions}"
 
     task = marvin.Task[list[target]](
         name="Extraction Task",
-        instructions=PROMPT,
+        instructions=prompt,
         context=task_context,
         result_type=list[target],
         agents=[agent] if agent else None,
