@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, ValidationInfo, field_validator, model_validator
 from pydantic_ai.models import KnownModelName
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing_extensions import Self
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
         env_file=".env",
         env_file_encoding="utf-8",
-        extra="forbid",
+        extra="ignore",
         validate_assignment=True,
     )
 
@@ -45,31 +45,27 @@ class Settings(BaseSettings):
         description="Path to the database file. Defaults to `home_path / 'marvin.db'`.",
     )
 
-    @model_validator(mode="after")
-    def validate_database_url(self) -> Self:
+    @field_validator("database_url")
+    @classmethod
+    def validate_database_url(cls, v: str | None, info: ValidationInfo) -> str:
         """Set and validate the database path."""
+        home_path = info.data.get("home_path")
+
         # Set default if not provided
-        if self.database_url is None:
-            self.__dict__["database_url"] = str(self.home_path / "marvin.db")
-            return self
+        if v is None:
+            if not home_path:
+                raise ValueError("home_path must be set before database_url")
+            return str(home_path / "marvin.db")
 
         # Handle in-memory database
-        if self.database_url == ":memory:":
-            return self
+        if v == ":memory:":
+            return v
 
-        # Convert to Path for validation
-        path = Path(self.database_url)
-
-        # Expand user and resolve to absolute path
-        path = path.expanduser().resolve()
-
-        # Ensure parent directory exists
+        # Convert to Path for validation and ensure parent directory exists
+        path = Path(v).expanduser().resolve()
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Store result as string
-        self.__dict__["database_url"] = str(path)
-
-        return self
+        return str(path)
 
     # ------------ Logging settings ------------
 
