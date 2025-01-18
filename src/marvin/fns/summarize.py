@@ -17,8 +17,7 @@ Guidelines for summarization:
 - Focus on the most important information
 - Use clear, concise language
 - Adapt tone and style to match the content type
-- Ensure the summary stands alone as a coherent piece of text
-"""
+- Ensure the summary stands alone as a coherent piece of text"""
 
 
 async def summarize_async(
@@ -59,12 +58,15 @@ async def summarize_async(
     """
     task_context = context or {}
     task_context["Data to summarize"] = data
+    prompt = PROMPT
     if instructions:
-        task_context["Additional instructions"] = instructions
+        prompt += (
+            f"\n\nYou must follow these instructions for your summary:\n{instructions}"
+        )
 
     task = marvin.Task[str](
         name="Summarize Task",
-        instructions=PROMPT,
+        instructions=prompt,
         context=task_context,
         result_type=str,
         agents=[agent] if agent else None,

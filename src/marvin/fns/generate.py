@@ -24,8 +24,7 @@ should prefer common responses to uncommon ones.
 If the user provides additional instructions or a description, assume they are
 looking for examples that satisfy the description. Do not provide more
 information than the user requests. For example, if they ask for various
-technologies, give their names but do not explain what each technology is.
-"""
+technologies, give their names but do not explain what each technology is."""
 
 
 async def generate_async(
@@ -62,12 +61,13 @@ async def generate_async(
 
     task_context = context or {}
     task_context["Number to generate"] = n
+    prompt = PROMPT
     if instructions:
-        task_context["Additional instructions"] = instructions
+        prompt += f"\n\nYou must follow these instructions for your generation:\n{instructions}"
 
     task = marvin.Task[list[target]](
         name="Generation Task",
-        instructions=PROMPT,
+        instructions=prompt,
         context=task_context,
         result_type=conlist(target, min_length=n, max_length=n),
         agents=[agent] if agent else None,
