@@ -384,12 +384,34 @@ wheels = [
 ]
 
 [[package]]
+name = "dnspython"
+version = "2.7.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b5/4a/263763cb2ba3816dd94b08ad3a33d5fdae34ecb856678773cc40a3605829/dnspython-2.7.0.tar.gz", hash = "sha256:ce9c432eda0dc91cf618a5cedf1a4e142651196bbcd2c80e89ed5a907e5cfaf1", size = 345197 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/68/1b/e0a87d256e40e8c888847551b20a017a6b98139178505dc7ffb96f04e954/dnspython-2.7.0-py3-none-any.whl", hash = "sha256:b4c34b7d10b51bcc3a5071e7b8dee77939f1e878477eeecc965e9835f63c6c86", size = 313632 },
+]
+
+[[package]]
 name = "durationpy"
 version = "0.9"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/31/e9/f49c4e7fccb77fa5c43c2480e09a857a78b41e7331a75e128ed5df45c56b/durationpy-0.9.tar.gz", hash = "sha256:fd3feb0a69a0057d582ef643c355c40d2fa1c942191f914d12203b1a01ac722a", size = 3186 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4c/a3/ac312faeceffd2d8f86bc6dcb5c401188ba5a01bc88e69bed97578a0dfcd/durationpy-0.9-py3-none-any.whl", hash = "sha256:e65359a7af5cedad07fb77a2dd3f390f8eb0b74cb845589fa6c057086834dd38", size = 3461 },
+]
+
+[[package]]
+name = "email-validator"
+version = "2.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dnspython" },
+    { name = "idna" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/ce/13508a1ec3f8bb981ae4ca79ea40384becc868bfae97fd1c942bb3a001b1/email_validator-2.2.0.tar.gz", hash = "sha256:cb690f344c617a714f22e66ae771445a1ceb46821152df8e165c5f9a364582b7", size = 48967 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d7/ee/bf0adb559ad3c786f12bcbc9296b3f5675f529199bef03e2df281fa1fadb/email_validator-2.2.0-py3-none-any.whl", hash = "sha256:561977c2d73ce3611850a06fa56b414621e0c8faa9d66f2611407d87465da631", size = 33521 },
 ]
 
 [[package]]
@@ -1029,7 +1051,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
     { name = "jinja2" },
-    { name = "pydantic" },
+    { name = "pydantic", extra = ["email"] },
     { name = "pydantic-ai" },
     { name = "pydantic-settings" },
     { name = "rich" },
@@ -1074,7 +1096,7 @@ requires-dist = [
     { name = "marvin", extras = ["test"], marker = "extra == 'dev'" },
     { name = "pdbpp", marker = "extra == 'dev'", specifier = ">=0.10.3" },
     { name = "pre-commit", marker = "extra == 'test'" },
-    { name = "pydantic", specifier = ">=2.10.2" },
+    { name = "pydantic", extras = ["email"], specifier = ">=2.10.2" },
     { name = "pydantic-ai", specifier = ">0.0.15" },
     { name = "pydantic-settings", specifier = ">=2.6.1" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8.3.3" },
@@ -1744,6 +1766,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/6a/c7/ca334c2ef6f2e046b1144fe4bb2a5da8a4c574e7f2ebf7e16b34a6a2fa92/pydantic-2.10.5.tar.gz", hash = "sha256:278b38dbbaec562011d659ee05f63346951b3a248a6f3642e1bc68894ea2b4ff", size = 761287 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/58/26/82663c79010b28eddf29dcdd0ea723439535fa917fce5905885c0e9ba562/pydantic-2.10.5-py3-none-any.whl", hash = "sha256:4dd4e322dbe55472cb7ca7e73f4b63574eecccf2835ffa2af9021ce113c83c53", size = 431426 },
+]
+
+[package.optional-dependencies]
+email = [
+    { name = "email-validator" },
 ]
 
 [[package]]
