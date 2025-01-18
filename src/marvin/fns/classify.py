@@ -28,7 +28,7 @@ async def classify_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> T: ...
 
 
@@ -41,7 +41,7 @@ async def classify_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> list[T]: ...
 
 
@@ -52,7 +52,7 @@ async def classify_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> T | list[T]:
     """Asynchronously classifies input data into one or more predefined labels using a language model.
 
@@ -138,7 +138,7 @@ def classify(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> T: ...
 
 
@@ -151,7 +151,7 @@ def classify(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> list[T]: ...
 
 
@@ -162,7 +162,7 @@ def classify(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> T | list[T]:
     """Classifies input data into one or more predefined labels using a language model.
 

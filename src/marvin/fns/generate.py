@@ -1,4 +1,4 @@
-from typing import TypeVar, cast
+from typing import Any, TypeVar, cast
 
 from pydantic import conlist
 
@@ -34,7 +34,7 @@ async def generate_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> list[T]:
     """Generates examples of a specific type or matching a description asynchronously.
 
@@ -82,7 +82,7 @@ def generate(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> list[T]:
     """Generates examples of a specific type or matching a description.
 

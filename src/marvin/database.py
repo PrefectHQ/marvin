@@ -190,13 +190,17 @@ class UsageType(TypeDecorator):
     impl = JSON
     cache_ok = True
 
-    def process_bind_param(self, value: Usage | None, dialect) -> dict | None:
+    def process_bind_param(
+        self, value: Usage | None, dialect: Any
+    ) -> dict[str, Any] | None:
         """Convert Usage to JSON before storing in DB."""
         if value is None:
             return None
         return usage_adapter.dump_python(value, mode="json")
 
-    def process_result_value(self, value: dict | None, dialect) -> Usage | None:
+    def process_result_value(
+        self, value: dict[str, Any] | None, dialect: Any
+    ) -> Usage | None:
         """Convert JSON back to Usage when loading from DB."""
         if value is None:
             return None

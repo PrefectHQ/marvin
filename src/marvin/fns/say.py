@@ -1,3 +1,5 @@
+from typing import Any
+
 import marvin
 from marvin.agents.agent import Agent
 from marvin.thread import Thread, get_thread
@@ -9,7 +11,7 @@ async def say_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> str:
     """Responds to a user message in a conversational way.
 
@@ -52,7 +54,7 @@ def say(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> str:
     """Responds to a user message in a conversational way.
 
