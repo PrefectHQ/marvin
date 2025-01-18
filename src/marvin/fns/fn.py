@@ -12,7 +12,7 @@ from marvin.utilities.asyncio import run_sync
 from marvin.utilities.logging import get_logger
 from marvin.utilities.types import PythonFunction
 
-T = TypeVar("T", infer_variance=True)
+T = TypeVar("T")
 P = ParamSpec("P")
 logger = get_logger(__name__)
 
