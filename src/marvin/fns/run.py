@@ -53,7 +53,7 @@ async def run_async(
     agents: list[Actor] | None = None,
     handlers: list[Handler | AsyncHandler] | None = None,
     raise_on_failure: bool = True,
-    **kwargs,
+    **kwargs: Any,
 ) -> T:
     task = Task[result_type](
         instructions=instructions,
@@ -79,7 +79,7 @@ def run(
     agents: list[Actor] | None = None,
     raise_on_failure: bool = True,
     handlers: list[Handler | AsyncHandler] | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> T:
     return marvin.utilities.asyncio.run_sync(
         run_async(

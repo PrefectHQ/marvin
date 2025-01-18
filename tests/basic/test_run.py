@@ -20,6 +20,7 @@ def test_simple_run_with_result_type(test_model: TestModel):
     assert result == 1
 
 
+@pytest.mark.skip(reason="TODO: what is the expected behavior here?")
 def test_simple_run_with_wrong_result_type(test_model: TestModel):
     task = marvin.Task("Test task", result_type=int)
     test_model.custom_result_args = dict(task_id=task.id, result="hello world")

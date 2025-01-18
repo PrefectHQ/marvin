@@ -91,7 +91,7 @@ def cast(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> T:
     """Transforms input data into a specific type using a language model.
 
