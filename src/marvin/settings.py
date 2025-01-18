@@ -21,7 +21,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
         env_file=".env",
         env_file_encoding="utf-8",
-        extra="forbid",
+        extra="ignore",
         validate_assignment=True,
     )
 
@@ -48,26 +48,13 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_database_url(self) -> Self:
         """Set and validate the database path."""
-        # Set default if not provided
-        if self.database_url is None:
-            self.__dict__["database_url"] = str(self.home_path / "marvin.db")
-            return self
+        if self.database_path is None:
+            self.database_path = self.home_path / "marvin.db"
+        else:
+            if not self.database_path.is_absolute():
+                self.database_path = Path.cwd() / self.database_path
 
-        # Handle in-memory database
-        if self.database_url == ":memory:":
-            return self
-
-        # Convert to Path for validation
-        path = Path(self.database_url)
-
-        # Expand user and resolve to absolute path
-        path = path.expanduser().resolve()
-
-        # Ensure parent directory exists
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Store result as string
-        self.__dict__["database_url"] = str(path)
+        self.database_path.parent.mkdir(parents=True, exist_ok=True)
 
         return self
 
