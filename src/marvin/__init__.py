@@ -23,6 +23,7 @@ from marvin.fns.cast import cast, cast_async
 from marvin.fns.generate import generate, generate_async
 from marvin.fns.fn import fn
 from marvin.fns.say import say, say_async
+from marvin.fns.summarize import summarize, summarize_async
 
 ensure_tables_exist()
 
@@ -52,4 +53,6 @@ __all__ = [
     "settings",
     "say",
     "say_async",
+    "summarize",
+    "summarize_async",
 ]
