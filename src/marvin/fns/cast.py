@@ -67,6 +67,9 @@ async def cast_async(
         True
 
     """
+    if target is str and instructions is None:
+        raise ValueError("Instructions are required when casting to str")
+
     task_context = context or {}
     task_context["Data to transform"] = data
     prompt = PROMPT
