@@ -1144,3 +1144,22 @@ class TestNameHandling:
         assert Type1 is not Type2
         assert Type1.__name__ == "Type1"
         assert Type2.__name__ == "Type2"
+
+    def test_recursive_schema_with_invalid_python_name(self):
+        """Test that recursive schemas work with titles that aren't valid Python identifiers"""
+        schema = {
+            "type": "object",
+            "title": "My Complex Type!",
+            "properties": {"name": {"type": "string"}, "child": {"$ref": "#"}},
+        }
+        Type = jsonschema_to_type(schema)
+        # The class should get a sanitized name
+        assert Type.__name__ == "my_complex_type"
+        # Create an instance to verify the recursive reference works
+        validator = TypeAdapter(Type)
+        result = validator.validate_python(
+            {"name": "parent", "child": {"name": "child", "child": None}}
+        )
+        assert result.name == "parent"
+        assert result.child.name == "child"
+        assert result.child.child is None

@@ -329,15 +329,17 @@ def create_dataclass(
 ) -> type:
     """Create dataclass from object schema."""
     name = name or schema.get("title", "Root")
+    # Sanitize name for class creation
+    sanitized_name = sanitize_name(name)
     schema_hash = hash_schema(schema)
-    cache_key = (schema_hash, name)
+    cache_key = (schema_hash, sanitized_name)
     original_schema = schema.copy()  # Store copy for validator
 
     # Return existing class if already built
     if cache_key in _classes:
         existing = _classes[cache_key]
         if existing is None:
-            return ForwardRef(name)
+            return ForwardRef(sanitized_name)
         return existing
 
     # Place placeholder for recursive references
@@ -346,7 +348,7 @@ def create_dataclass(
     if "$ref" in schema:
         ref = schema["$ref"]
         if ref == "#":
-            return ForwardRef(name)
+            return ForwardRef(sanitized_name)
         schema = resolve_ref(ref, schemas or {})
 
     properties = schema.get("properties", {})
@@ -358,7 +360,7 @@ def create_dataclass(
 
         # Check for self-reference in property
         if prop_schema.get("$ref") == "#":
-            field_type = ForwardRef(name)
+            field_type = ForwardRef(sanitized_name)
         else:
             field_type = schema_to_type(prop_schema, schemas)
 
@@ -388,7 +390,7 @@ def create_dataclass(
         else:
             fields.append((field_name, Optional[field_type], field_def))
 
-    cls = make_dataclass(name, fields, kw_only=True)
+    cls = make_dataclass(sanitized_name, fields, kw_only=True)
 
     # Add model validator for defaults
     @model_validator(mode="before")
