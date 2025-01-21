@@ -126,7 +126,7 @@ class Settings(BaseSettings):
     # ------------ Memory settings ------------
 
     memory_provider: str = Field(
-        default="chroma-db",
+        default="chroma-ephemeral",
         description="The default memory provider for agents.",
     )
 

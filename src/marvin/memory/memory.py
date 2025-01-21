@@ -52,6 +52,12 @@ class Memory:
         default_factory=lambda: marvin.defaults.memory_provider,
         repr=False,
     )
+    auto_use: bool = field(
+        default=False,
+        metadata={
+            "description": "If true, the memory will automatically be queried before the agent is run, using the most recent messages.",
+        },
+    )
 
     def __hash__(self) -> int:
         return id(self)
@@ -119,7 +125,7 @@ class Memory:
             update_fn(
                 self.search,
                 name=f"search_memories__{self.key}",
-                description=f"Search {self.friendly_name()}. {self.instructions or ''}".rstrip(),
+                description=f"Provide a query string to search {self.friendly_name()}. {self.instructions or ''}".rstrip(),
             ),
         ]
 

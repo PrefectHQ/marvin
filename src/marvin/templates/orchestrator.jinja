@@ -35,4 +35,13 @@
         All teams and agents.
         {{ pretty_print(orchestrator.get_agent_tree()) | indent(8) }}
     </agent-tree>
+
+    {% if memories %}
+    <memories>
+        The following memories were automatically recalled:
+        {% for memory in memories %}
+        <memory> {{ memory | indent(8) }} </memory>
+        {% endfor %}
+    </memories>
+    {% endif %}
 </orchestrator>

@@ -10,6 +10,7 @@ from typing_extensions import Self
 from marvin.agents.actor import Actor
 from marvin.agents.names import TEAM_NAMES
 from marvin.engine.end_turn import DelegateToAgent
+from marvin.memory.memory import Memory
 from marvin.prompts import Template
 
 if TYPE_CHECKING:
@@ -19,7 +20,6 @@ if TYPE_CHECKING:
 @dataclass(kw_only=True)
 class Team(Actor):
     agents: list[Actor]
-    tools: list[Callable[..., Any]] = field(default_factory=list)
     name: str = field(
         default_factory=lambda: random.choice(TEAM_NAMES),
         metadata={"description": "Name of the team"},
@@ -63,7 +63,7 @@ class Team(Actor):
         **kwargs,
     ) -> pydantic_ai.Agent[Any, Any]:
         return self.active_agent.get_agentlet(
-            tools=self.tools + self.get_end_turn_tools() + (tools or []),
+            tools=self.get_end_turn_tools() + (tools or []),
             result_types=result_types,
             **kwargs,
         )
@@ -72,8 +72,10 @@ class Team(Actor):
         return Template(source=self.prompt).render(team=self)
 
     def get_tools(self) -> list[Callable[..., Any]]:
-        tools = self.tools + self.active_agent.get_tools()
-        return tools
+        return self.active_agent.get_tools()
+
+    def get_memories(self) -> list[Memory]:
+        return self.active_agent.get_memories()
 
     def get_end_turn_tools(self) -> list[type["EndTurn"]]:
         return []

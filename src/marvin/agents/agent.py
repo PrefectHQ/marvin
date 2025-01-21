@@ -83,6 +83,9 @@ class Agent(Actor):
     def get_model(self) -> Model | KnownModelName:
         return self.model or marvin.defaults.model
 
+    def get_memories(self) -> list[Memory]:
+        return self.memories
+
     def get_tools(self) -> list[Callable[..., Any]]:
         return (
             self.tools

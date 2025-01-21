@@ -8,6 +8,7 @@ import pydantic_ai
 
 import marvin
 import marvin.utilities.asyncio
+from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.thread import Thread
 
@@ -65,6 +66,10 @@ class Actor:
 
     def get_tools(self) -> list[Callable[..., Any]]:
         """A list of tools that this actor can use during its turn."""
+        return []
+
+    def get_memories(self) -> list[Memory]:
+        """A list of memories that this actor can use during its turn."""
         return []
 
     def get_end_turn_tools(self) -> list[type["marvin.engine.end_turn.EndTurn"]]:
