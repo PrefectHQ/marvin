@@ -48,6 +48,7 @@ from typing import (
     Literal,
     Optional,
     Type,
+    TypedDict,
     TypeVar,
     Union,
 )
@@ -60,8 +61,9 @@ from pydantic import (
     StringConstraints,
     model_validator,
 )
+from typing_extensions import NotRequired
 
-__all__ = ["jsonschema_to_type", "merge_defaults"]
+__all__ = ["jsonschema_to_type", "JSONSchema"]
 
 T = TypeVar("T")
 
@@ -287,12 +289,10 @@ def sanitize_name(name: str) -> str:
     cleaned = re.sub(r"[^0-9a-zA-Z_]", "_", name)
     # Step 2: deduplicate underscores
     cleaned = re.sub(r"__+", "_", cleaned)
-    # Step 3: lowercase
-    cleaned = cleaned.lower()
-    # Step 4: if the first char of original name isn't a letter, prepend field_
+    # Step 3: if the first char of original name isn't a letter, prepend field_
     if not name or not re.match(r"[a-zA-Z]", name[0]):
         cleaned = f"field_{cleaned}"
-    # Step 5: deduplicate again and strip trailing underscores
+    # Step 4: deduplicate again and strip trailing underscores
     cleaned = re.sub(r"__+", "_", cleaned).strip("_")
     return cleaned
 
@@ -329,15 +329,17 @@ def create_dataclass(
 ) -> type:
     """Create dataclass from object schema."""
     name = name or schema.get("title", "Root")
+    # Sanitize name for class creation
+    sanitized_name = sanitize_name(name)
     schema_hash = hash_schema(schema)
-    cache_key = (schema_hash, name)
+    cache_key = (schema_hash, sanitized_name)
     original_schema = schema.copy()  # Store copy for validator
 
     # Return existing class if already built
     if cache_key in _classes:
         existing = _classes[cache_key]
         if existing is None:
-            return ForwardRef(name)
+            return ForwardRef(sanitized_name)
         return existing
 
     # Place placeholder for recursive references
@@ -346,7 +348,7 @@ def create_dataclass(
     if "$ref" in schema:
         ref = schema["$ref"]
         if ref == "#":
-            return ForwardRef(name)
+            return ForwardRef(sanitized_name)
         schema = resolve_ref(ref, schemas or {})
 
     properties = schema.get("properties", {})
@@ -358,7 +360,7 @@ def create_dataclass(
 
         # Check for self-reference in property
         if prop_schema.get("$ref") == "#":
-            field_type = ForwardRef(name)
+            field_type = ForwardRef(sanitized_name)
         else:
             field_type = schema_to_type(prop_schema, schemas)
 
@@ -388,7 +390,7 @@ def create_dataclass(
         else:
             fields.append((field_name, Optional[field_type], field_def))
 
-    cls = make_dataclass(name, fields, kw_only=True)
+    cls = make_dataclass(sanitized_name, fields, kw_only=True)
 
     # Add model validator for defaults
     @model_validator(mode="before")
@@ -464,3 +466,36 @@ def merge_defaults(
             )
 
     return result
+
+
+class JSONSchema(TypedDict):
+    type: NotRequired[Union[str, List[str]]]
+    properties: NotRequired[Dict[str, "JSONSchema"]]
+    required: NotRequired[List[str]]
+    additionalProperties: NotRequired[Union[bool, "JSONSchema"]]
+    items: NotRequired[Union["JSONSchema", List["JSONSchema"]]]
+    enum: NotRequired[List[Any]]
+    const: NotRequired[Any]
+    default: NotRequired[Any]
+    description: NotRequired[str]
+    title: NotRequired[str]
+    examples: NotRequired[List[Any]]
+    format: NotRequired[str]
+    allOf: NotRequired[List["JSONSchema"]]
+    anyOf: NotRequired[List["JSONSchema"]]
+    oneOf: NotRequired[List["JSONSchema"]]
+    not_: NotRequired["JSONSchema"]
+    definitions: NotRequired[Dict[str, "JSONSchema"]]
+    dependencies: NotRequired[Dict[str, Union["JSONSchema", List[str]]]]
+    pattern: NotRequired[str]
+    minLength: NotRequired[int]
+    maxLength: NotRequired[int]
+    minimum: NotRequired[Union[int, float]]
+    maximum: NotRequired[Union[int, float]]
+    exclusiveMinimum: NotRequired[Union[int, float]]
+    exclusiveMaximum: NotRequired[Union[int, float]]
+    multipleOf: NotRequired[Union[int, float]]
+    uniqueItems: NotRequired[bool]
+    minItems: NotRequired[int]
+    maxItems: NotRequired[int]
+    additionalItems: NotRequired[Union[bool, "JSONSchema"]]

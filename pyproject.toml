@@ -26,6 +26,7 @@ test = [
     "pytest-env>=1.1.5",
     "pytest-rerunfailures>=15.0",
     "chromadb>=0.6.0",
+    "dirty-equals>=0.9.0",
 ]
 dev = ["marvin[test]", "copychat>=0.5.2", "ipython>=8.12.3", "pdbpp>=0.10.3"]
 

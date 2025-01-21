@@ -20,7 +20,12 @@ from marvin.fns.run import run, run_async, run_tasks_async, run_tasks
 from marvin.fns.classify import classify, classify_async
 from marvin.fns.extract import extract, extract_async
 from marvin.fns.cast import cast, cast_async
-from marvin.fns.generate import generate, generate_async
+from marvin.fns.generate import (
+    generate,
+    generate_async,
+    generate_schema,
+    generate_schema_async,
+)
 from marvin.fns.fn import fn
 from marvin.fns.say import say, say_async
 from marvin.fns.summarize import summarize, summarize_async
@@ -45,6 +50,8 @@ __all__ = [
     "fn",
     "generate",
     "generate_async",
+    "generate_schema",
+    "generate_schema_async",
     "instructions",
     "run",
     "run_async",
