@@ -6,25 +6,10 @@ import marvin
 from marvin.agents.agent import Agent
 from marvin.thread import Thread
 from marvin.utilities.asyncio import run_sync
+from marvin.utilities.jsonschema import JSONSchema
 from marvin.utilities.types import TargetType
 
 T = TypeVar("T")
-
-PROMPT = """
-You are an expert data generator that always creates high-quality, random
-examples of a description or type. The data you produce is relied on for
-testing, examples, demonstrations, and more. You use inference or deduction
-whenever necessary to supply missing or omitted data. You will be given
-instructions or a type format, as well as a number of entities to generate. 
-
-Unless the user explicitly says otherwise, assume they are request a VARIED and
-REALISTIC selection of useful outputs that meet their criteria. However, you
-should prefer common responses to uncommon ones.
-
-If the user provides additional instructions or a description, assume they are
-looking for examples that satisfy the description. Do not provide more
-information than the user requests. For example, if they ask for various
-technologies, give their names but do not explain what each technology is."""
 
 
 async def generate_async(
@@ -61,7 +46,23 @@ async def generate_async(
 
     task_context = context or {}
     task_context["Number to generate"] = n
-    prompt = PROMPT
+
+    prompt = """
+        You are an expert data generator that always creates high-quality, random
+        examples of a description or type. The data you produce is relied on for
+        testing, examples, demonstrations, and more. You use inference or deduction
+        whenever necessary to supply missing or omitted data. You will be given
+        instructions or a type format, as well as a number of entities to generate. 
+
+        Unless the user explicitly says otherwise, assume they are request a VARIED and
+        REALISTIC selection of useful outputs that meet their criteria. However, you
+        should prefer common responses to uncommon ones.
+
+        If the user provides additional instructions or a description, assume they are
+        looking for examples that satisfy the description. Do not provide more
+        information than the user requests. For example, if they ask for various
+        technologies, give their names but do not explain what each technology is.
+        """
     if instructions:
         prompt += f"\n\nYou must follow these instructions for your generation:\n{instructions}"
 
@@ -115,3 +116,37 @@ def generate(
             context=context,
         ),
     )
+
+
+async def generate_schema_async(
+    instructions: str,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
+    context: dict[str, Any] | None = None,
+) -> JSONSchema:
+    """Generates a JSON schema from a description."""
+
+    prompt = """
+        Generate a JSON schema that matches the following description:
+        {instructions}
+        """.format(instructions=instructions)
+
+    task = marvin.Task[JSONSchema](
+        name="JSONSchema Generation",
+        instructions=prompt,
+        context=context,
+        result_type=JSONSchema,
+        agents=[agent] if agent else None,
+    )
+
+    return await task.run_async(thread=thread, handlers=[])
+
+
+def generate_schema(
+    instructions: str,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
+    context: dict[str, Any] | None = None,
+) -> JSONSchema:
+    """Generates a JSON schema from a description."""
+    return run_sync(generate_schema_async(instructions, agent, thread, context))

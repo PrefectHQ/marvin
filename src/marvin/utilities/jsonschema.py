@@ -48,6 +48,7 @@ from typing import (
     Literal,
     Optional,
     Type,
+    TypedDict,
     TypeVar,
     Union,
 )
@@ -60,8 +61,9 @@ from pydantic import (
     StringConstraints,
     model_validator,
 )
+from typing_extensions import NotRequired
 
-__all__ = ["jsonschema_to_type", "merge_defaults"]
+__all__ = ["jsonschema_to_type", "JSONSchema"]
 
 T = TypeVar("T")
 
@@ -466,3 +468,36 @@ def merge_defaults(
             )
 
     return result
+
+
+class JSONSchema(TypedDict):
+    type: NotRequired[Union[str, List[str]]]
+    properties: NotRequired[Dict[str, "JSONSchema"]]
+    required: NotRequired[List[str]]
+    additionalProperties: NotRequired[Union[bool, "JSONSchema"]]
+    items: NotRequired[Union["JSONSchema", List["JSONSchema"]]]
+    enum: NotRequired[List[Any]]
+    const: NotRequired[Any]
+    default: NotRequired[Any]
+    description: NotRequired[str]
+    title: NotRequired[str]
+    examples: NotRequired[List[Any]]
+    format: NotRequired[str]
+    allOf: NotRequired[List["JSONSchema"]]
+    anyOf: NotRequired[List["JSONSchema"]]
+    oneOf: NotRequired[List["JSONSchema"]]
+    not_: NotRequired["JSONSchema"]
+    definitions: NotRequired[Dict[str, "JSONSchema"]]
+    dependencies: NotRequired[Dict[str, Union["JSONSchema", List[str]]]]
+    pattern: NotRequired[str]
+    minLength: NotRequired[int]
+    maxLength: NotRequired[int]
+    minimum: NotRequired[Union[int, float]]
+    maximum: NotRequired[Union[int, float]]
+    exclusiveMinimum: NotRequired[Union[int, float]]
+    exclusiveMaximum: NotRequired[Union[int, float]]
+    multipleOf: NotRequired[Union[int, float]]
+    uniqueItems: NotRequired[bool]
+    minItems: NotRequired[int]
+    maxItems: NotRequired[int]
+    additionalItems: NotRequired[Union[bool, "JSONSchema"]]
