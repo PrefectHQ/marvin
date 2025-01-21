@@ -1,4 +1,5 @@
 import pytest
+from dirty_equals import IsPartialDict
 from pydantic import BaseModel, Field
 
 import marvin
@@ -42,4 +43,35 @@ class TestBuiltins:
         await assert_llm_equal(
             result,
             "a list of two major cities in California, both given as strings",
+        )
+
+
+class TestGenerateSchema:
+    async def test_generate_list_of_integers_schema(self):
+        result = await marvin.generate_schema_async(
+            instructions="a list that contains exactly three integers",
+        )
+        assert result == {
+            "type": "array",
+            "items": {"type": "integer"},
+            "minItems": 3,
+            "maxItems": 3,
+        }
+
+    async def test_generate_schema_for_movie(self):
+        result = await marvin.generate_schema_async(
+            instructions="a movie with a title, director, and release_year",
+        )
+        assert result == IsPartialDict(
+            {
+                "type": "object",
+                "properties": IsPartialDict(
+                    {
+                        "title": {"type": "string"},
+                        "director": {"type": "string"},
+                        "release_year": {"type": "integer"},
+                    }
+                ),
+                "required": ["title", "director", "release_year"],
+            }
         )
