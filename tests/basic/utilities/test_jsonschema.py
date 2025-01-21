@@ -1154,7 +1154,7 @@ class TestNameHandling:
         }
         Type = jsonschema_to_type(schema)
         # The class should get a sanitized name
-        assert Type.__name__ == "my_complex_type"
+        assert Type.__name__ == "My_Complex_Type"
         # Create an instance to verify the recursive reference works
         validator = TypeAdapter(Type)
         result = validator.validate_python(

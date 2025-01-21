@@ -289,12 +289,10 @@ def sanitize_name(name: str) -> str:
     cleaned = re.sub(r"[^0-9a-zA-Z_]", "_", name)
     # Step 2: deduplicate underscores
     cleaned = re.sub(r"__+", "_", cleaned)
-    # Step 3: lowercase
-    cleaned = cleaned.lower()
-    # Step 4: if the first char of original name isn't a letter, prepend field_
+    # Step 3: if the first char of original name isn't a letter, prepend field_
     if not name or not re.match(r"[a-zA-Z]", name[0]):
         cleaned = f"field_{cleaned}"
-    # Step 5: deduplicate again and strip trailing underscores
+    # Step 4: deduplicate again and strip trailing underscores
     cleaned = re.sub(r"__+", "_", cleaned).strip("_")
     return cleaned
 
