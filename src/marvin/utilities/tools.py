@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
@@ -57,12 +58,24 @@ def update_fn(
             return x + 1
         new_fn = update_fn(add_stuff, name='add_stuff_123', description='Adds stuff')
 
+        # Works with async functions too:
+        @update_fn('async_hello')
+        async def my_async_fn(x):
+            return x
+
     """
 
     def apply(func: Callable[..., T], new_name: str) -> Callable[..., T]:
-        @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> T:
-            return func(*args, **kwargs)
+        if inspect.iscoroutinefunction(func):
+
+            @wraps(func)
+            async def wrapper(*args: Any, **kwargs: Any) -> T:
+                return await func(*args, **kwargs)
+        else:
+
+            @wraps(func)
+            def wrapper(*args: Any, **kwargs: Any) -> T:
+                return func(*args, **kwargs)
 
         wrapper.__name__ = new_name
         if description is not None:

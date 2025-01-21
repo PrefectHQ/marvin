@@ -2,10 +2,15 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-import chromadb
-
 import marvin
 from marvin.memory.memory import MemoryProvider
+
+try:
+    import chromadb  # noqa: F401
+except ImportError:
+    raise ImportError(
+        "To use Chroma as a memory provider, please install the `chromadb` package."
+    )
 
 
 @dataclass(kw_only=True)
@@ -32,7 +37,7 @@ class ChromaMemory(MemoryProvider):
             self.collection_name.format(key=memory_key),
         )
 
-    def add(self, memory_key: str, content: str) -> str:
+    async def add(self, memory_key: str, content: str) -> str:
         collection = self.get_collection(memory_key)
         memory_id = str(uuid.uuid4())
         collection.add(
@@ -42,11 +47,11 @@ class ChromaMemory(MemoryProvider):
         )
         return memory_id
 
-    def delete(self, memory_key: str, memory_id: str) -> None:
+    async def delete(self, memory_key: str, memory_id: str) -> None:
         collection = self.get_collection(memory_key)
         collection.delete(ids=[memory_id])
 
-    def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
+    async def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
         results = self.get_collection(memory_key).query(
             query_texts=[query],
             n_results=n,
