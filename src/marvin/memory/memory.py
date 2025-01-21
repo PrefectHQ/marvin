@@ -23,15 +23,15 @@ class MemoryProvider(abc.ABC):
         """Configure the provider for a specific memory."""
 
     @abc.abstractmethod
-    def add(self, memory_key: str, content: str) -> str:
+    async def add(self, memory_key: str, content: str) -> str:
         """Create a new memory and return its ID."""
 
     @abc.abstractmethod
-    def delete(self, memory_key: str, memory_id: str) -> None:
+    async def delete(self, memory_key: str, memory_id: str) -> None:
         """Delete a memory by its ID."""
 
     @abc.abstractmethod
-    def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
+    async def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
         """Search for n memories using a string query."""
 
 
@@ -92,14 +92,14 @@ class Memory:
         # Configure provider
         self.provider.configure(self.key)
 
-    def add(self, content: str) -> str:
-        return self.provider.add(self.key, content)
+    async def add(self, content: str) -> str:
+        return await self.provider.add(self.key, content)
 
-    def delete(self, memory_id: str) -> None:
-        self.provider.delete(self.key, memory_id)
+    async def delete(self, memory_id: str) -> None:
+        await self.provider.delete(self.key, memory_id)
 
-    def search(self, query: str, n: int = 20) -> dict[str, str]:
-        return self.provider.search(self.key, query, n)
+    async def search(self, query: str, n: int = 20) -> dict[str, str]:
+        return await self.provider.search(self.key, query, n)
 
     def friendly_name(self) -> str:
         return f"Memory: {self.key}"
@@ -130,46 +130,25 @@ def get_memory_provider(provider: str) -> MemoryProvider:
     # --- CHROMA ---
 
     if provider.startswith("chroma"):
-        try:
-            import chromadb  # noqa: F401
-        except ImportError:
-            raise ImportError(
-                "To use Chroma as a memory provider, please install the `chromadb` package.",
-            )
-
-        import marvin.memory.providers.chroma as chroma_providers
+        import marvin.memory.providers.chroma as chroma_provider
 
         if provider == "chroma-ephemeral":
-            return chroma_providers.ChromaEphemeralMemory()
+            return chroma_provider.ChromaEphemeralMemory()
         if provider == "chroma-db":
-            return chroma_providers.ChromaPersistentMemory()
+            return chroma_provider.ChromaPersistentMemory()
         if provider == "chroma-cloud":
-            return chroma_providers.ChromaCloudMemory()
+            return chroma_provider.ChromaCloudMemory()
 
     # --- LanceDB ---
 
     elif provider.startswith("lancedb"):
-        try:
-            import lancedb  # noqa: F401
-        except ImportError:
-            raise ImportError(
-                "To use LanceDB as a memory provider, please install the `lancedb` package.",
-            )
+        import marvin.memory.providers.lance as lance_provider
 
-        import marvin.memory.providers.lance as lance_providers
-
-        return lance_providers.LanceMemory()
+        return lance_provider.LanceMemory()
 
     # --- Postgres ---
     elif provider.startswith("postgres"):
-        try:
-            import sqlalchemy  # noqa: F401
-        except ImportError:
-            raise ImportError(
-                "To use Postgres as a memory provider, please install the `sqlalchemy` package.",
-            )
+        import marvin.memory.providers.postgres as postgres_provider
 
-        import marvin.memory.providers.postgres as postgres_providers
-
-        return postgres_providers.PostgresMemory()
+        return postgres_provider.PostgresMemory()
     raise ValueError(f'Memory provider "{provider}" could not be loaded from a string.')

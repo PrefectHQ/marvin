@@ -10,7 +10,7 @@ try:
     from lancedb.pydantic import LanceModel, Vector
 except ImportError:
     raise ImportError(
-        "LanceDB is not installed. Please install it with `pip install lancedb`.",
+        "To use LanceDB as a memory provider, please install the `lancedb` package."
     )
 
 from pydantic import Field
@@ -70,17 +70,17 @@ class LanceMemory(MemoryProvider):
         except FileNotFoundError:
             return db.create_table(table_name, schema=model)
 
-    def add(self, memory_key: str, content: str) -> str:
+    async def add(self, memory_key: str, content: str) -> str:
         memory_id = str(uuid.uuid4())
         table = self.get_table(memory_key)
         table.add([{"id": memory_id, "text": content}])
         return memory_id
 
-    def delete(self, memory_key: str, memory_id: str) -> None:
+    async def delete(self, memory_key: str, memory_id: str) -> None:
         table = self.get_table(memory_key)
         table.delete(f'id = "{memory_id}"')
 
-    def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
+    async def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
         table = self.get_table(memory_key)
         results = table.search(query).limit(n).to_pydantic(self.get_model())
         return {r.id: r.text for r in results}
