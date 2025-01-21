@@ -6,25 +6,25 @@ from marvin.memory.providers.chroma import ChromaMemory
 
 
 class TestMemory:
-    def test_store_and_retrieve(self):
+    async def test_store_and_retrieve(self):
         m = marvin.Memory(key="test", instructions="test")
-        m.add("The number is 42")
-        result = m.search("numbers")
+        await m.add("The number is 42")
+        result = await m.search("numbers")
         assert len(result) == 1
         assert "The number is 42" in result.values()
 
-    def test_delete(self):
+    async def test_delete(self):
         m = marvin.Memory(key="test", instructions="test")
-        m_id = m.add("The number is 42")
-        m.delete(m_id)
-        result = m.search("numbers")
+        m_id = await m.add("The number is 42")
+        await m.delete(m_id)
+        result = await m.search("numbers")
         assert len(result) == 0
 
-    def test_search(self):
+    async def test_search(self):
         m = marvin.Memory(key="test", instructions="test")
-        m.add("The number is 42")
-        m.add("The number is 43")
-        result = m.search("numbers")
+        await m.add("The number is 42")
+        await m.add("The number is 43")
+        result = await m.search("numbers")
         assert len(result) == 2
         assert "The number is 42" in result.values()
         assert "The number is 43" in result.values()
