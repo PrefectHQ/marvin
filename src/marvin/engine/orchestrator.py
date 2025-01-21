@@ -1,4 +1,5 @@
 import inspect
+import json
 import math
 from asyncio import CancelledError
 from collections.abc import Callable
@@ -34,9 +35,10 @@ from marvin.engine.events import (
 from marvin.engine.handlers import AsyncHandler, Handler
 from marvin.engine.print_handler import PrintHandler
 from marvin.instructions import get_instructions
+from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.tasks.task import Task
-from marvin.thread import Thread, get_thread
+from marvin.thread import Thread, get_thread, message_adapter
 from marvin.utilities.logging import get_logger
 
 T = TypeVar("T")
@@ -58,6 +60,7 @@ class OrchestratorPrompt(Template):
     tasks: list[Task[Any]]
     instructions: list[str]
     end_turn_tools: list[EndTurn]
+    memories: list[str]
 
 
 @dataclass(kw_only=True)
@@ -126,24 +129,40 @@ class Orchestrator:
 
         # --- get end turn tools
         end_turn_tools = set()
-
         for t in tasks:
             end_turn_tools.update(t.get_end_turn_tools())
-
         if self.get_delegates():
             end_turn_tools.add(DelegateToAgent)
         end_turn_tools.update(self.team.get_end_turn_tools())
         end_turn_tools = list(end_turn_tools)
 
+        # --- get memories
+        memories: set[Memory] = set()
+        for t in tasks:
+            memories.update(t.memories)
+        memories.update(self.team.get_memories())
+        memories = [m for m in memories if m.auto_use]
+
         # --- prepare messages
+        messages = await self.thread.get_messages_async()
+
+        # load auto-use memories
+        if memories and messages:
+            query = "\n\n".join(
+                message_adapter.dump_json(m).decode() for m in messages[-3:]
+            )
+            memories = [
+                json.dumps({m.key: await m.search(query=query, n=3)}) for m in memories
+            ]
+
         orchestrator_prompt = OrchestratorPrompt(
             orchestrator=self,
             tasks=self.get_all_tasks(),
             instructions=get_instructions(),
             end_turn_tools=end_turn_tools,
+            memories=memories,
         ).render()
 
-        messages = await self.thread.get_messages_async()
         all_messages = [
             marvin.engine.llm.SystemMessage(content=orchestrator_prompt),
         ] + messages
