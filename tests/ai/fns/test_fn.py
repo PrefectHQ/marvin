@@ -15,7 +15,7 @@ def list_fruit(n: int = 2) -> list[str]:
 
 
 @marvin.fn
-def list_fruit_color(n: int, color: str = None) -> list[str]:
+def list_fruit_color(n: int, color: str | None = None) -> list[str]:
     """Returns a list of `n` fruit that all have the provided `color`"""
 
 

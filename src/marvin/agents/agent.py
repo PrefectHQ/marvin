@@ -103,7 +103,7 @@ class Agent(Actor):
         self,
         result_types: list[type],
         tools: list[Callable[..., Any]] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> pydantic_ai.Agent[Any, Any]:
         if len(result_types) == 1:
             result_type = result_types[0]

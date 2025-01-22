@@ -12,7 +12,7 @@ class CulturalReference(TypedDict):
 @fn
 def pop_culture_related_to_sum(x: int, y: int) -> CulturalReference:
     """Given two numbers, return a cultural reference related to the sum of the two numbers."""
-    return f"the sum of {x} and {y} is {x + y}"  # type: ignore
+    return f"the sum of {x} and {y} is {x + y}"
 
 
 if __name__ == "__main__":

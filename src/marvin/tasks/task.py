@@ -36,10 +36,10 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
-NOTSET = "__NOTSET__"
+NOTSET: Literal["__NOTSET__"] = "__NOTSET__"
 
 # Global context var for current task
-_current_task: ContextVar[Optional["Task"]] = ContextVar(
+_current_task: ContextVar[Optional["Task[Any]"]] = ContextVar(
     "current_task",
     default=None,
 )
@@ -77,7 +77,7 @@ class Task(Generic[T]):
         kw_only=False,
     )
 
-    result_type: type[T] | Labels = field(
+    result_type: type[T] | Labels | Literal["__NOTSET__"] = field(
         default=NOTSET,
         metadata={
             "description": "The expected type of the result. This can be a type or None if no result is expected. If not set, the result type will be str.",
@@ -138,13 +138,13 @@ class Task(Generic[T]):
         repr=False,
     )
 
-    _parent: "Task | None" = field(
+    _parent: "Task[Any] | None" = field(
         default=None,
         metadata={"description": "Optional parent task"},
         init=False,
     )
 
-    subtasks: set["Task"] = field(
+    subtasks: set["Task[Any]"] = field(
         default_factory=set,
         metadata={
             "description": "List of subtasks, or tasks for which this task is the parent"
@@ -153,7 +153,7 @@ class Task(Generic[T]):
         repr=False,
     )
 
-    depends_on: set["Task"] = field(
+    depends_on: set["Task[Any]"] = field(
         default_factory=set,
         metadata={
             "description": "List of tasks that must be completed before this task can be run"
@@ -328,12 +328,12 @@ class Task(Generic[T]):
         return f'Task {self.id} ("{instructions[:40]}...")'
 
     @property
-    def parent(self) -> "Task | None":
+    def parent(self) -> "Task[Any] | None":
         """Get the parent task of this task."""
         return self._parent
 
     @parent.setter
-    def parent(self, value: "Task | None") -> None:
+    def parent(self, value: "Task[Any] | None") -> None:
         """Set the parent task of this task."""
         if self._parent is not None:
             self._parent.subtasks.discard(self)
@@ -347,7 +347,7 @@ class Task(Generic[T]):
 
     def get_tools(self) -> list[Callable[..., Any]]:
         """Get the tools assigned to this task."""
-        tools = []
+        tools: list[Callable[..., Any]] = []
         tools.extend(self.tools)
         tools.extend([t for m in self.memories for t in m.get_tools()])
         if self.cli:
@@ -450,7 +450,7 @@ class Task(Generic[T]):
         """Get the result tool for this task."""
         import marvin.engine.end_turn
 
-        tools = []
+        tools: list[type[marvin.engine.end_turn.EndTurn]] = []
         tools.append(marvin.engine.end_turn.MarkTaskSuccessful.prepare_for_task(self))
         if self.allow_fail:
             tools.append(marvin.engine.end_turn.MarkTaskFailed.prepare_for_task(self))
