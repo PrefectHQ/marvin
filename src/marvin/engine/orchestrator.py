@@ -66,9 +66,9 @@ class OrchestratorPrompt(Template):
 @dataclass(kw_only=True)
 class Orchestrator:
     tasks: list[Task[Any]]
-    agents: list[Actor] = None
-    thread: Thread
-    handlers: list[Handler | AsyncHandler] = None
+    agents: list[Actor] | None = None
+    thread: Thread | str | None = None
+    handlers: list[Handler | AsyncHandler] | None = None
 
     team: marvin.agents.team.Team = field(init=False, repr=False)
     _staged_delegate: tuple[marvin.agents.team.Team, Actor] | None = field(
@@ -100,7 +100,7 @@ class Orchestrator:
         if marvin.settings.log_events:
             logger.debug(f"Handling event: {event.__class__.__name__}\n{event}")
 
-        for handler in self.handlers:
+        for handler in self.handlers or []:
             if isinstance(handler, AsyncHandler):
                 await handler.handle(event)
             else:
@@ -122,19 +122,20 @@ class Orchestrator:
         await self.handle_event(AgentStartTurnEvent(agent=self.team))
 
         # --- get tools
-        tools = set()
+        tools: set[Callable[..., Any]] = set()
         for t in tasks:
             tools.update(t.get_tools())
-        tools = list(tools)
+        _tools = list(tools)
 
         # --- get end turn tools
-        end_turn_tools = set()
+        end_turn_tools: set[EndTurn] = set()
+
         for t in tasks:
             end_turn_tools.update(t.get_end_turn_tools())
         if self.get_delegates():
             end_turn_tools.add(DelegateToAgent)
         end_turn_tools.update(self.team.get_end_turn_tools())
-        end_turn_tools = list(end_turn_tools)
+        _end_turn_tools = list(end_turn_tools)
 
         # --- get memories
         memories: set[Memory] = set()
@@ -168,7 +169,7 @@ class Orchestrator:
         ] + messages
 
         # --- run agent
-        agentlet = self._get_agentlet(tools=tools, end_turn_tools=end_turn_tools)
+        agentlet = self._get_agentlet(tools=_tools, end_turn_tools=_end_turn_tools)
 
         result = await agentlet.run("", message_history=all_messages)
 

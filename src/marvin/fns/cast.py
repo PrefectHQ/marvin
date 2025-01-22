@@ -1,4 +1,4 @@
-from typing import Any, TypeVar
+from typing import Any, TypeVar, get_args
 
 import marvin
 from marvin.agents.agent import Agent
@@ -80,7 +80,7 @@ async def cast_async(
         name="Cast Task",
         instructions=prompt,
         context=task_context,
-        result_type=target,
+        result_type=t[0] if (t := get_args(target)) else target,
         agents=[agent] if agent else None,
     )
 

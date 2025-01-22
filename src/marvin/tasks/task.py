@@ -32,10 +32,10 @@ from marvin.utilities.asyncio import run_sync
 from marvin.utilities.types import Labels, as_classifier, is_classifier
 
 if TYPE_CHECKING:
+    from marvin.engine.end_turn import EndTurn
     from marvin.engine.handlers import AsyncHandler, Handler
 
 T = TypeVar("T")
-
 NOTSET: Literal["__NOTSET__"] = "__NOTSET__"
 
 # Global context var for current task
@@ -44,7 +44,7 @@ _current_task: ContextVar[Optional["Task[Any]"]] = ContextVar(
     default=None,
 )
 
-_type_adapters: dict[type[T], TypeAdapter[T]] = {}
+_type_adapters: dict[type[Any], TypeAdapter[Any]] = {}
 
 
 def get_type_adapter(result_type: type[T]) -> TypeAdapter[T]:
@@ -77,7 +77,7 @@ class Task(Generic[T]):
         kw_only=False,
     )
 
-    result_type: type[T] | Labels | Literal["__NOTSET__"] = field(
+    result_type: type[T] | Labels | Literal["__NOTSET__"] = field(  # type: ignore[reportRedeclaration]
         default=NOTSET,
         metadata={
             "description": "The expected type of the result. This can be a type or None if no result is expected. If not set, the result type will be str.",
@@ -264,6 +264,8 @@ class Task(Generic[T]):
                 self.agent = Swarm(agents=agents)
             else:
                 self.agent = agents[0]
+        else:
+            self.agent = None
 
         # Handle result type validation
         if isinstance(self.result_type, (list, tuple, set)):
@@ -311,9 +313,7 @@ class Task(Generic[T]):
         elif isinstance(self.result_type, (list, tuple, set)):
             if not self.result_type:
                 raise ValueError("Empty list is not allowed for classification")
-            if isinstance(self.result_type, list) and any(
-                isinstance(x, (list, tuple, set)) for x in self.result_type
-            ):
+            if any(isinstance(x, (list, tuple, set)) for x in self.result_type):
                 raise ValueError(
                     "Invalid nested list format - use [['a', 'b']] for multi-label",
                 )
@@ -424,7 +424,7 @@ class Task(Generic[T]):
         *,
         thread: Thread | str | None = None,
         raise_on_failure: bool = True,
-        handlers: list["Handler | AsyncHandler"] = None,
+        handlers: list["Handler | AsyncHandler"] | None = None,
     ) -> T:
         import marvin.engine.orchestrator
 
@@ -446,7 +446,7 @@ class Task(Generic[T]):
             self.run_async(thread=thread, raise_on_failure=raise_on_failure),
         )
 
-    def get_end_turn_tools(self) -> list[type["marvin.engine.end_turn.EndTurn"]]:
+    def get_end_turn_tools(self) -> list[type["EndTurn"]]:
         """Get the result tool for this task."""
         import marvin.engine.end_turn
 

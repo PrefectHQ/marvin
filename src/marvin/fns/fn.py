@@ -97,7 +97,7 @@ def fn(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-) -> Callable[[Callable[P, T]], Callable[P, T]] | Callable[P, T]:
+) -> Callable[P, T]:
     """A decorator that predicts the output of a Python function without executing it.
 
     Can be used with or without parameters:
