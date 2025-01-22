@@ -44,10 +44,24 @@ async def classify_async(
 ) -> list[T]: ...
 
 
+@overload
 async def classify_async(
     data: Any,
     labels: Sequence[T] | type[T],
     multi_label: bool = False,
+    *,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
+    context: dict[str, Any] | None = None,
+) -> T | list[T]: ...
+
+
+async def classify_async(
+    data: Any,
+    labels: Sequence[T] | type[T],
+    multi_label: bool = False,
+    *,
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
@@ -111,22 +125,24 @@ async def classify_async(
     if instructions:
         prompt += f"\n\nYou must follow these instructions for your classification:\n{instructions}"
 
-    # Convert Enum class to sequence of values if needed
+    # Handle bool/enum types specially for correct typing
     if labels is bool or issubclass_safe(labels, enum.Enum):
-        if multi_label:
-            result_type = list[labels]
-        else:
-            result_type = labels
+        # For bool/enum, we need list[labels] for multi-label
+        result_type = list[labels] if multi_label else labels  # Runtime type
+        ReturnType = list[T] if multi_label else T  # Generic type
     else:
-        result_type = Labels(labels, many=multi_label)
+        # For sequences, we use Labels for runtime validation
+        result_type = Labels(labels, many=multi_label)  # Runtime type
+        ReturnType = list[T] if multi_label else T  # Generic type
 
-    task = marvin.Task[result_type](
+    task = marvin.Task[ReturnType](
         name="Classification Task",
         instructions=prompt,
         context=task_context,
         result_type=result_type,
         agents=[agent] if agent else None,
     )
+
     return await task.run_async(thread=thread, handlers=[])
 
 
@@ -156,10 +172,24 @@ def classify(
 ) -> list[T]: ...
 
 
+@overload
 def classify(
     data: Any,
     labels: Sequence[T] | type[T],
     multi_label: bool = False,
+    *,
+    instructions: str | None = None,
+    agent: Agent | None = None,
+    thread: Thread | str | None = None,
+    context: dict[str, Any] | None = None,
+) -> T | list[T]: ...
+
+
+def classify(
+    data: Any,
+    labels: Sequence[T] | type[T],
+    multi_label: bool = False,
+    *,
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
