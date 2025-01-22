@@ -3,7 +3,7 @@ import json
 from collections.abc import Callable
 from dataclasses import asdict
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any, ParamSpec, TypeVar
 
 import marvin
 from marvin.agents.agent import Agent
@@ -13,6 +13,7 @@ from marvin.utilities.logging import get_logger
 from marvin.utilities.types import PythonFunction
 
 T = TypeVar("T")
+P = ParamSpec("P")
 logger = get_logger(__name__)
 
 PROMPT = """
@@ -30,7 +31,7 @@ When returning a string, do not add unecessary quotes.
 
 
 def _build_task(
-    func: Callable[..., T],
+    func: Callable[P, T],
     fn_args: tuple[Any, ...],
     fn_kwargs: dict[str, Any],
     instructions: str | None = None,
@@ -48,9 +49,9 @@ def _build_task(
     Returns:
         A Task configured to predict the function's output
     """
-    context = {}
+    context: dict[str, Any] = {}
 
-    model = PythonFunction.from_function_call(func, *fn_args, **fn_kwargs)
+    model = PythonFunction[P, T].from_function_call(func, *fn_args, **fn_kwargs)
 
     # Get the return annotation, defaulting to str if not specified
     original_return_annotation = model.return_annotation
@@ -91,12 +92,12 @@ def _build_task(
 
 
 def fn(
-    func: Callable[..., T] | None = None,
+    func: Callable[P, T] | None = None,
     *,
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-) -> Callable[..., T]:
+) -> Callable[P, T]:
     """A decorator that predicts the output of a Python function without executing it.
 
     Can be used with or without parameters:
@@ -127,7 +128,7 @@ def fn(
 
     """
 
-    def decorator(f: Callable[..., T]) -> Callable[..., T]:
+    def decorator(f: Callable[P, T]) -> Callable[P, T]:
         is_coroutine_fn = inspect.iscoroutinefunction(f)
 
         @wraps(f)
@@ -147,7 +148,7 @@ def fn(
                 thread=_thread or thread,
             )
             if is_coroutine_fn:
-                return coro
+                return coro  # type: ignore[return-value]
             return run_sync(coro)
 
         def as_task(
@@ -174,7 +175,7 @@ def fn(
 
 
 async def _fn(
-    func: Callable[..., T],
+    func: Callable[P, T],
     fn_args: tuple[Any, ...],
     fn_kwargs: dict[str, Any],
     instructions: str | None = None,

@@ -67,7 +67,7 @@ source = "vcs"
 extend-select = ["I"]
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401", "I001"]
+"__init__.py" = ["F401", "I001", "RUF013"]
 
 [build-system]
 requires = ["hatchling>=1.21.0", "hatch-vcs>=0.4.0"]

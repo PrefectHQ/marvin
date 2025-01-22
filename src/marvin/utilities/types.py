@@ -4,6 +4,7 @@ import textwrap
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import (
+    TYPE_CHECKING,
     Annotated,
     Any,
     Generic,
@@ -23,7 +24,7 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 # A type that can be used as a target for type conversion
-TargetType: TypeAlias = type[T] | T | Annotated[T, Any]
+TargetType: TypeAlias = type[T] | Annotated[T, Any]
 
 
 @dataclass
@@ -71,7 +72,10 @@ class Labels:
 
     def __post_init__(self):
         # Convert values to a tuple of labels
-        if issubclass_safe(self.values, enum.Enum):
+        if self.values is bool:
+            # For bool, always use True first then False
+            self._labels = (True, False)
+        elif issubclass_safe(self.values, enum.Enum):
             self._labels = tuple(self.values)  # Returns enum members
         elif get_origin(self.values) is Literal:
             self._labels = get_args(self.values)
@@ -90,20 +94,7 @@ class Labels:
         return list[int] if self.many else int
 
     def validate(self, value: int | list[int] | None) -> Any | list[Any]:
-        """Validate a value against the labels.
-
-        Args:
-            value: An integer index or list of integer indices.
-
-        Returns:
-            The label value(s) at the given index(es).
-            For enum types, returns the enum member(s).
-            For other types, returns the raw value(s).
-
-        Raises:
-            ValueError: If the value is invalid.
-
-        """
+        """Validate a value against the labels."""
         if value is None:
             raise ValueError("None is not a valid value for classification")
 
@@ -124,7 +115,11 @@ class Labels:
                 )
             if len(set(value)) != len(value):
                 raise ValueError("Duplicate indices are not allowed")
+
+            # Map indices to actual values
             return [self._labels[i] for i in value]
+
+        # Single label case
         if not isinstance(value, int):
             raise ValueError(
                 f"Expected an integer index for classification, got {type(value)}",
@@ -174,6 +169,8 @@ def as_classifier(type_: type[T]) -> Labels:
         if (isinstance(arg, type) and issubclass(arg, enum.Enum)) or get_origin(
             arg,
         ) is Literal:
+            if TYPE_CHECKING:  # TODO: revisit this
+                assert isinstance(arg, type)
             return Labels(arg, many=True)
 
     # Handle double-nested list shorthand

@@ -1,6 +1,6 @@
 import abc
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Generic, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Literal, TypeVar
 
 from pydantic_ai import ModelRetry
 
@@ -35,7 +35,7 @@ class MarkTaskSuccessful(TaskStateEndTurn, Generic[TaskResult]):
     result: TaskResult
 
     async def run(self, orchestrator: "Orchestrator") -> None:
-        tasks = {t.id: t for t in orchestrator.get_all_tasks()}
+        tasks: dict[str, "Task[Any]"] = {t.id: t for t in orchestrator.get_all_tasks()}
         if self.task_id not in tasks:
             raise ModelRetry(f"Task ID {self.task_id} not found in tasks")
 
@@ -48,7 +48,7 @@ class MarkTaskSuccessful(TaskStateEndTurn, Generic[TaskResult]):
         task.mark_successful(self.result)
 
     @classmethod
-    def prepare_for_task(cls, task: "Task") -> None:
+    def prepare_for_task(cls, task: "Task[Any]") -> type[Any]:
         """
         We could let the LLM fill out the task_id itself, but Pydantic AI doesn't support multiple calls
         to final tools with the same name, which prevents parallel end turn calls.
@@ -89,7 +89,7 @@ class MarkTaskFailed(TaskStateEndTurn):
         task.mark_failed(self.message)
 
     @classmethod
-    def prepare_for_task(cls, task: "Task") -> None:
+    def prepare_for_task(cls, task: "Task[Any]") -> None:
         """
         Create a custom class for this task to support parallel end turn calls.
         """
@@ -120,7 +120,7 @@ class MarkTaskSkipped(TaskStateEndTurn):
         task.mark_skipped()
 
     @classmethod
-    def prepare_for_task(cls, task: "Task") -> None:
+    def prepare_for_task(cls, task: "Task[Any]") -> None:
         """
         Create a custom class for this task to support parallel end turn calls.
         """

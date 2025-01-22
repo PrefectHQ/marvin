@@ -42,14 +42,12 @@ from enum import Enum
 from typing import (
     Annotated,
     Any,
-    Dict,
+    Callable,
     ForwardRef,
-    List,
     Literal,
+    Mapping,
     Optional,
     Type,
-    TypedDict,
-    TypeVar,
     Union,
 )
 
@@ -61,23 +59,25 @@ from pydantic import (
     StringConstraints,
     model_validator,
 )
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, TypedDict
 
 __all__ = ["jsonschema_to_type", "JSONSchema"]
 
-T = TypeVar("T")
 
-FORMAT_TYPES = {
+FORMAT_TYPES: dict[str, Any] = {
     "date-time": datetime,
     "email": EmailStr,
     "uri": AnyUrl,
     "json": Json,
 }
 
-_classes = {}
+_classes: dict[tuple[str, Any], type | None] = {}
 
 
-def jsonschema_to_type(schema: Dict[str, Any], name: str = None) -> type:
+def jsonschema_to_type(
+    schema: Mapping[str, Any],
+    name: str | None = None,
+) -> type:
     """Convert JSON schema to appropriate Python type with validation.
 
     Args:
@@ -140,12 +140,12 @@ def jsonschema_to_type(schema: Dict[str, Any], name: str = None) -> type:
     return schema_to_type(schema, schemas=schema)
 
 
-def hash_schema(schema: Dict[str, Any]) -> str:
+def hash_schema(schema: Mapping[str, Any]) -> str:
     """Generate a deterministic hash for schema caching."""
     return hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest()
 
 
-def resolve_ref(ref: str, schemas: Dict[str, Any]) -> Dict[str, Any]:
+def resolve_ref(ref: str, schemas: Mapping[str, Any]) -> Mapping[str, Any]:
     """Resolve JSON Schema reference to target schema."""
     path = ref.replace("#/", "").split("/")
     current = schemas
@@ -154,7 +154,7 @@ def resolve_ref(ref: str, schemas: Dict[str, Any]) -> Dict[str, Any]:
     return current
 
 
-def create_string_type(schema: Dict[str, Any]) -> type:
+def create_string_type(schema: Mapping[str, Any]) -> type | Annotated[Any, ...]:
     """Create string type with optional constraints."""
     if "const" in schema:
         return Literal[schema["const"]]  # type: ignore
@@ -179,7 +179,9 @@ def create_string_type(schema: Dict[str, Any]) -> type:
     return Annotated[str, StringConstraints(**constraints)] if constraints else str
 
 
-def create_numeric_type(base: Type[Union[int, float]], schema: Dict[str, Any]) -> type:
+def create_numeric_type(
+    base: Type[Union[int, float]], schema: Mapping[str, Any]
+) -> type | Annotated[Any, ...]:
     """Create numeric type with optional constraints."""
     if "const" in schema:
         return Literal[schema["const"]]  # type: ignore
@@ -199,14 +201,16 @@ def create_numeric_type(base: Type[Union[int, float]], schema: Dict[str, Any]) -
     return Annotated[base, Field(**constraints)] if constraints else base
 
 
-def create_enum(name: str, values: List[Any]) -> type:
+def create_enum(name: str, values: list[Any]) -> type | Enum:
     """Create enum type from list of values."""
     if all(isinstance(v, str) for v in values):
         return Enum(name, {v.upper(): v for v in values})
     return Literal[tuple(values)]  # type: ignore
 
 
-def create_array_type(schema: Dict[str, Any], schemas: Dict[str, Any]) -> type:
+def create_array_type(
+    schema: Mapping[str, Any], schemas: Mapping[str, Any]
+) -> type | Annotated[Any, ...]:
     """Create list/set type with optional constraints."""
     items = schema.get("items", {})
     if isinstance(items, list):
@@ -232,12 +236,37 @@ def create_array_type(schema: Dict[str, Any], schemas: Dict[str, Any]) -> type:
     return Annotated[base, Field(**constraints)] if constraints else base
 
 
-def schema_to_type(schema: Dict[str, Any], schemas: Dict[str, Any]) -> type:
+def _return_Any() -> Any:
+    return Any
+
+
+def _get_from_type_handler(
+    schema: Mapping[str, Any], schemas: Mapping[str, Any]
+) -> Callable[..., Any]:
+    """Get the appropriate type handler for the schema."""
+
+    type_handlers: dict[str, Callable[..., Any]] = {  # TODO
+        "string": lambda s: create_string_type(s),  # type: ignore
+        "integer": lambda s: create_numeric_type(int, s),  # type: ignore
+        "number": lambda s: create_numeric_type(float, s),  # type: ignore
+        "boolean": lambda _: bool,  # type: ignore
+        "null": lambda _: type(None),  # type: ignore
+        "array": lambda s: create_array_type(s, schemas),  # type: ignore
+        "object": lambda s: create_dataclass(s, s.get("title"), schemas),  # type: ignore
+    }
+    return type_handlers.get(schema.get("type", None), _return_Any)
+
+
+def schema_to_type(
+    schema: Mapping[str, Any],
+    schemas: Mapping[str, Any],
+) -> type:
     """Convert schema to appropriate Python type."""
     if not schema:
         return object
+
     if "type" not in schema and "properties" in schema:
-        return create_dataclass(schema, schema.get("title"), schemas)
+        return create_dataclass(schema, schema.get("title", "<unknown>"), schemas)
 
     # Handle references first
     if "$ref" in schema:
@@ -259,7 +288,7 @@ def schema_to_type(schema: Dict[str, Any], schemas: Dict[str, Any]) -> type:
 
     if isinstance(schema_type, list):
         # Create a copy of the schema for each type, but keep all constraints
-        types = []
+        types: list[type | Any] = []
         for t in schema_type:
             type_schema = schema.copy()
             type_schema["type"] = t
@@ -270,17 +299,7 @@ def schema_to_type(schema: Dict[str, Any], schemas: Dict[str, Any]) -> type:
             return Optional[Union[tuple(types)] if len(types) > 1 else types[0]]
         return Union[tuple(types)]
 
-    type_handlers = {
-        "string": lambda s: create_string_type(s),
-        "integer": lambda s: create_numeric_type(int, s),
-        "number": lambda s: create_numeric_type(float, s),
-        "boolean": lambda _: bool,
-        "null": lambda _: type(None),
-        "array": lambda s: create_array_type(s, schemas),
-        "object": lambda s: create_dataclass(s, s.get("title"), schemas),
-    }
-
-    return type_handlers.get(schema_type, lambda _: Any)(schema)
+    return _get_from_type_handler(schema, schemas)(schema)
 
 
 def sanitize_name(name: str) -> str:
@@ -298,7 +317,9 @@ def sanitize_name(name: str) -> str:
 
 
 def get_default_value(
-    schema: Dict[str, Any], prop_name: str, parent_default: Dict[str, Any] = None
+    schema: dict[str, Any],
+    prop_name: str,
+    parent_default: dict[str, Any] | None = None,
 ) -> Any:
     """Get default value with proper priority ordering.
     1. Value from parent's default if it exists
@@ -313,7 +334,7 @@ def get_default_value(
 def create_field_with_default(
     field_type: type,
     default_value: Any,
-    schema: Dict[str, Any],
+    schema: dict[str, Any],
 ) -> Any:
     """Create a field with simplified default handling."""
     # Always use None as default for complex types
@@ -325,7 +346,9 @@ def create_field_with_default(
 
 
 def create_dataclass(
-    schema: Dict[str, Any], name: str = None, schemas: Dict[str, Any] = None
+    schema: Mapping[str, Any],
+    name: str | None = None,
+    schemas: Mapping[str, Any] | None = None,
 ) -> type:
     """Create dataclass from object schema."""
     name = name or schema.get("title", "Root")
@@ -333,7 +356,7 @@ def create_dataclass(
     sanitized_name = sanitize_name(name)
     schema_hash = hash_schema(schema)
     cache_key = (schema_hash, sanitized_name)
-    original_schema = schema.copy()  # Store copy for validator
+    original_schema = dict(schema)  # Store copy for validator
 
     # Return existing class if already built
     if cache_key in _classes:
@@ -354,7 +377,7 @@ def create_dataclass(
     properties = schema.get("properties", {})
     required = schema.get("required", [])
 
-    fields = []
+    fields: list[tuple[Any, ...]] = []
     for prop_name, prop_schema in properties.items():
         field_name = sanitize_name(prop_name)
 
@@ -395,7 +418,7 @@ def create_dataclass(
     # Add model validator for defaults
     @model_validator(mode="before")
     @classmethod
-    def _apply_defaults(cls, data):
+    def _apply_defaults(cls, data: Mapping[str, Any]):
         if isinstance(data, dict):
             return merge_defaults(data, original_schema)
         return data
@@ -408,8 +431,10 @@ def create_dataclass(
 
 
 def merge_defaults(
-    data: Dict[str, Any], schema: Dict[str, Any], parent_default: Dict[str, Any] = None
-) -> Dict[str, Any]:
+    data: Mapping[str, Any],
+    schema: Mapping[str, Any],
+    parent_default: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     """Merge defaults with provided data at all levels."""
     # If we have no data
     if not data:
@@ -469,24 +494,24 @@ def merge_defaults(
 
 
 class JSONSchema(TypedDict):
-    type: NotRequired[Union[str, List[str]]]
-    properties: NotRequired[Dict[str, "JSONSchema"]]
-    required: NotRequired[List[str]]
+    type: NotRequired[Union[str, list[str]]]
+    properties: NotRequired[dict[str, "JSONSchema"]]
+    required: NotRequired[list[str]]
     additionalProperties: NotRequired[Union[bool, "JSONSchema"]]
-    items: NotRequired[Union["JSONSchema", List["JSONSchema"]]]
-    enum: NotRequired[List[Any]]
+    items: NotRequired[Union["JSONSchema", list["JSONSchema"]]]
+    enum: NotRequired[list[Any]]
     const: NotRequired[Any]
     default: NotRequired[Any]
     description: NotRequired[str]
     title: NotRequired[str]
-    examples: NotRequired[List[Any]]
+    examples: NotRequired[list[Any]]
     format: NotRequired[str]
-    allOf: NotRequired[List["JSONSchema"]]
-    anyOf: NotRequired[List["JSONSchema"]]
-    oneOf: NotRequired[List["JSONSchema"]]
+    allOf: NotRequired[list["JSONSchema"]]
+    anyOf: NotRequired[list["JSONSchema"]]
+    oneOf: NotRequired[list["JSONSchema"]]
     not_: NotRequired["JSONSchema"]
-    definitions: NotRequired[Dict[str, "JSONSchema"]]
-    dependencies: NotRequired[Dict[str, Union["JSONSchema", List[str]]]]
+    definitions: NotRequired[dict[str, "JSONSchema"]]
+    dependencies: NotRequired[dict[str, Union["JSONSchema", list[str]]]]
     pattern: NotRequired[str]
     minLength: NotRequired[int]
     maxLength: NotRequired[int]

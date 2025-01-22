@@ -66,9 +66,9 @@ class OrchestratorPrompt(Template):
 @dataclass(kw_only=True)
 class Orchestrator:
     tasks: list[Task[Any]]
-    agents: list[Actor] = None
-    thread: Thread
-    handlers: list[Handler | AsyncHandler] = None
+    agents: list[Actor] | None = None
+    thread: Thread | str | None = None
+    handlers: list[Handler | AsyncHandler] | None = None
 
     team: marvin.agents.team.Team = field(init=False, repr=False)
     _staged_delegate: tuple[marvin.agents.team.Team, Actor] | None = field(
@@ -100,7 +100,7 @@ class Orchestrator:
         if marvin.settings.log_events:
             logger.debug(f"Handling event: {event.__class__.__name__}\n{event}")
 
-        for handler in self.handlers:
+        for handler in self.handlers or []:
             if isinstance(handler, AsyncHandler):
                 await handler.handle(event)
             else:
@@ -122,19 +122,20 @@ class Orchestrator:
         await self.handle_event(AgentStartTurnEvent(agent=self.team))
 
         # --- get tools
-        tools = set()
+        tools: set[Callable[..., Any]] = set()
         for t in tasks:
             tools.update(t.get_tools())
-        tools = list(tools)
+        _tools = list(tools)
 
         # --- get end turn tools
-        end_turn_tools = set()
+        end_turn_tools: set[EndTurn] = set()
+
         for t in tasks:
             end_turn_tools.update(t.get_end_turn_tools())
         if self.get_delegates():
             end_turn_tools.add(DelegateToAgent)
         end_turn_tools.update(self.team.get_end_turn_tools())
-        end_turn_tools = list(end_turn_tools)
+        _end_turn_tools = list(end_turn_tools)
 
         # --- get memories
         memories: set[Memory] = set()
@@ -168,7 +169,7 @@ class Orchestrator:
         ] + messages
 
         # --- run agent
-        agentlet = self._get_agentlet(tools=tools, end_turn_tools=end_turn_tools)
+        agentlet = self._get_agentlet(tools=_tools, end_turn_tools=_end_turn_tools)
 
         result = await agentlet.run("", message_history=all_messages)
 
@@ -269,7 +270,7 @@ class Orchestrator:
 
         @agentlet.result_validator
         async def validate_end_turn(result: EndTurn):
-            if isinstance(result, EndTurn):
+            if isinstance(result, EndTurn):  # type: ignore[unnecessaryIsinstance]
                 try:
                     await result.run(orchestrator=self)
                 except pydantic_ai.ModelRetry as e:
@@ -281,7 +282,7 @@ class Orchestrator:
             # return the original result
             return result
 
-        for tool in agentlet._function_tools.values():
+        for tool in agentlet._function_tools.values():  # type: ignore[reportPrivateUsage]
             # Wrap the tool run function to emit events for each call / result
             async def run(
                 message: ToolCallPart,
@@ -304,7 +305,7 @@ class Orchestrator:
         return agentlet
 
     def get_delegates(self) -> list[Actor]:
-        delegates = []
+        delegates: list[Actor] = []
         current = self.team
 
         # Follow active_agent chain, collecting delegates at each level
@@ -334,7 +335,8 @@ class Orchestrator:
 
         # walk active_agents to find the delegate
         current = self.team
-        while agent_id not in {a.id for a in current.agents}:
+        active_delegates = {a.id for a in current.agents}
+        while agent_id not in active_delegates:
             if not isinstance(current, marvin.agents.team.Team):
                 raise ValueError(f"Agent ID {agent_id} not found in delegates")
             current = current.active_agent
@@ -352,7 +354,7 @@ class Orchestrator:
 
     def get_all_tasks(
         self, filter: Literal["incomplete", "ready", "assigned"] | None = None
-    ) -> list[Task]:
+    ) -> list[Task[Any]]:
         """Get all tasks, optionally filtered by status.
 
         Filters:
@@ -360,10 +362,10 @@ class Orchestrator:
             - ready: tasks that are ready to be run
             - assigned: tasks that are ready and assigned to the active agents
         """
-        all_tasks: set[Task] = set()
-        ordered_tasks: list[Task] = []
+        all_tasks: set[Task[Any]] = set()
+        ordered_tasks: list[Task[Any]] = []
 
-        def collect_tasks(task: Task) -> list[Task]:
+        def collect_tasks(task: Task[Any]) -> None:
             if task in all_tasks:
                 return
 
@@ -402,15 +404,15 @@ class Orchestrator:
         return ordered_tasks
 
     async def run(
-        self, raise_on_failure: bool = True, max_turns: int | None = None
+        self, raise_on_failure: bool = True, max_turns: int | float | None = None
     ) -> list[RunResult]:
         if max_turns is None:
             max_turns = marvin.settings.max_agent_turns
         if max_turns is None:
             max_turns = math.inf
 
-        results = []
-        incomplete_tasks: set[Task] = {t for t in self.tasks if t.is_incomplete()}
+        results: list[RunResult] = []
+        incomplete_tasks: set[Task[Any]] = {t for t in self.tasks if t.is_incomplete()}
         token = _current_orchestrator.set(self)
         try:
             with self.thread:
@@ -426,7 +428,7 @@ class Orchestrator:
                     # incomplete dependencies, they will be evaluated as part of
                     # the orchestrator logic, but not considered part of the
                     # termination condition.
-                    while incomplete_tasks and turns < max_turns:
+                    while incomplete_tasks and (max_turns is None or turns < max_turns):
                         result = await self._run_turn()
                         results.append(result)
                         turns += 1
@@ -439,7 +441,7 @@ class Orchestrator:
                                     )
                         incomplete_tasks = {t for t in self.tasks if t.is_incomplete()}
 
-                    if turns >= max_turns:
+                    if max_turns and turns >= max_turns:
                         raise ValueError("Max agent turns reached")
 
                 except (Exception, KeyboardInterrupt, CancelledError) as e:
@@ -470,7 +472,7 @@ class Orchestrator:
         orchestrator's team and following the team hierarchy to the active
         agent.
         """
-        actors = []
+        actors: list[Actor] = []
         actor = self.team
         while not isinstance(actor, Agent):
             actors.append(actor)
@@ -478,7 +480,7 @@ class Orchestrator:
         actors.append(actor)
         return actors
 
-    def get_agent_tree(self) -> dict:
+    def get_agent_tree(self) -> dict[str, Any]:
         """Returns a tree structure representing the hierarchy of teams and agents.
 
         Returns:
@@ -492,7 +494,7 @@ class Orchestrator:
         """
         active_actors = self.active_actors()
 
-        def _build_tree(node: Agent | marvin.agents.team.Team) -> dict:
+        def _build_tree(node: Agent | marvin.agents.team.Team) -> dict[str, Any]:
             if isinstance(node, marvin.agents.team.Team):
                 return {
                     "type": "team",

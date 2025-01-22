@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 import pytest
 from pydantic import BaseModel, Field
@@ -14,29 +15,38 @@ class Location(BaseModel):
 
 
 class TestBuiltins:
-    def test_cast_text_to_int(self):
-        result = marvin.cast("one", int)
-        assert result == 1
+    @pytest.mark.parametrize(
+        "input_text, target_type, expected_result",
+        [
+            ("one", int, 1),
+            ("one, TWO, three", list[int], [1, 2, 3]),
+            ("4 and 5 then 6", list[int], [4, 5, 6]),
+            ("1.0, 2.0, 3.0", list[float], [1.0, 2.0, 3.0]),
+        ],
+        ids=[
+            "cast_text_to_int",
+            "cast_text_to_list_of_ints",
+            "cast_text_to_list_of_ints_2",
+            "cast_text_to_list_of_floats",
+        ],
+    )
+    def test_cast(self, input_text: str, target_type: type, expected_result: Any):
+        result = marvin.cast(input_text, target_type)
+        assert result == expected_result
 
-    def test_cast_text_to_list_of_ints(self):
-        result = marvin.cast("one, TWO, three", list[int])
-        assert result == [1, 2, 3]
-
-    def test_cast_text_to_list_of_ints_2(self):
-        result = marvin.cast("4 and 5 then 6", list[int])
-        assert result == [4, 5, 6]
-
-    def test_cast_text_to_list_of_floats(self):
-        result = marvin.cast("1.0, 2.0, 3.0", list[float])
-        assert result == [1.0, 2.0, 3.0]
-
-    def test_cast_text_to_bool(self):
-        result = marvin.cast("no", bool)
-        assert result is False
-
-    def test_cast_text_to_bool_with_true(self):
-        result = marvin.cast("yes", bool)
-        assert result is True
+    @pytest.mark.parametrize(
+        "input_text, expected_result",
+        [
+            ("no", False),
+            ("yes", True),
+        ],
+        ids=[
+            "cast_text_to_bool_false",
+            "cast_text_to_bool_true",
+        ],
+    )
+    def test_cast_text_to_bool(self, input_text: str, expected_result: bool):
+        assert marvin.cast(input_text, bool) is expected_result
 
     def test_str_not_json(self):
         result = marvin.cast(
@@ -69,7 +79,8 @@ class TestPydantic:
         result = marvin.cast(f"I live in {text}", Location)
         assert result == Location(city="New York", state="NY")
 
-    def test_field_descriptions_are_included_in_prompt(self, gpt_4o):
+    @pytest.mark.usefixtures("gpt_4o")
+    def test_field_descriptions_are_included_in_prompt(self):
         class Car(BaseModel):
             make: str
             make2: str = Field(

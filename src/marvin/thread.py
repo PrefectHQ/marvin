@@ -113,7 +113,7 @@ class Thread:
         """Add a user message to the thread."""
         return run_sync(self.add_user_message_async(message))
 
-    async def add_user_message_async(self, message: str):
+    async def add_user_message_async(self, message: str) -> None:
         """Add a user message to the thread."""
         await self.add_messages_async([UserMessage(content=message)])
 
