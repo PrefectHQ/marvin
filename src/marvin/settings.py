@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # ------------ General settings ------------
 
     home_path: Path = Field(
-        default=Path("~/.marvin"),
+        default=Path("~/.marvin").expanduser(),
         description="The home path for Marvin.",
     )
 

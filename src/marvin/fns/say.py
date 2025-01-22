@@ -1,7 +1,7 @@
 from typing import Any
 
 import marvin
-from marvin.agents.agent import Agent
+from marvin.agents.actor import Actor
 from marvin.thread import Thread, get_thread
 from marvin.utilities.asyncio import run_sync
 
@@ -9,7 +9,7 @@ from marvin.utilities.asyncio import run_sync
 async def say_async(
     message: str,
     instructions: str | None = None,
-    agent: Agent | None = None,
+    agent: Actor | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
 ) -> str:
@@ -52,7 +52,7 @@ async def say_async(
 def say(
     message: str,
     instructions: str | None = None,
-    agent: Agent | None = None,
+    agent: Actor | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
 ) -> str:

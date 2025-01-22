@@ -13,7 +13,7 @@ Marvin 3.0 combines the DX of Marvin with the powerful agentic capabilities of C
   ```python
   import marvin
   
-  with marvin.Thread(thread_id="optional-id-for-recovery"):
+  with marvin.Thread(id="optional-id-for-recovery"):
       marvin.run("do something")
       marvin.run("do another thing")
   ```

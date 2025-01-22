@@ -148,7 +148,7 @@ class ToolState(DisplayState):
             else:
                 args = self.args
 
-            table.add_row("Input:", Pretty(args, indent_size=2))
+            table.add_row("Input:", Markdown(str(args)))
 
         table.add_row("Status:", icon)
         if self.is_complete and self.result and not self.end_turn_tool:

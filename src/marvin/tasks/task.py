@@ -39,7 +39,7 @@ T = TypeVar("T")
 NOTSET = "__NOTSET__"
 
 # Global context var for current task
-_current_task: ContextVar[Optional["Task"]] = ContextVar(
+_current_task: ContextVar[Optional["Task[Any]"]] = ContextVar(
     "current_task",
     default=None,
 )
@@ -138,13 +138,13 @@ class Task(Generic[T]):
         repr=False,
     )
 
-    _parent: "Task | None" = field(
+    _parent: "Task[Any] | None" = field(
         default=None,
         metadata={"description": "Optional parent task"},
         init=False,
     )
 
-    subtasks: set["Task"] = field(
+    subtasks: set["Task[Any]"] = field(
         default_factory=set,
         metadata={
             "description": "List of subtasks, or tasks for which this task is the parent"
@@ -153,7 +153,7 @@ class Task(Generic[T]):
         repr=False,
     )
 
-    depends_on: set["Task"] = field(
+    depends_on: set["Task[Any]"] = field(
         default_factory=set,
         metadata={
             "description": "List of tasks that must be completed before this task can be run"
@@ -252,8 +252,8 @@ class Task(Generic[T]):
 
         # if no parent is provided, use the current task from context
         self.parent = parent if parent is not None else _current_task.get()
-        self.subtasks = set()
-        self.depends_on = set(depends_on or [])
+        self.subtasks: set[Task[Any]] = set()
+        self.depends_on: set[Task[Any]] = set(depends_on or [])
 
         # internal fields
         self._tokens = []
@@ -328,12 +328,12 @@ class Task(Generic[T]):
         return f'Task {self.id} ("{instructions[:40]}...")'
 
     @property
-    def parent(self) -> "Task | None":
+    def parent(self) -> "Task[Any] | None":
         """Get the parent task of this task."""
         return self._parent
 
     @parent.setter
-    def parent(self, value: "Task | None") -> None:
+    def parent(self, value: "Task[Any] | None") -> None:
         """Set the parent task of this task."""
         if self._parent is not None:
             self._parent.subtasks.discard(self)

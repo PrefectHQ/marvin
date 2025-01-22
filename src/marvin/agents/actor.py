@@ -14,6 +14,7 @@ from marvin.thread import Thread
 
 if TYPE_CHECKING:
     from marvin.agents.team import Team
+    from marvin.engine.end_turn import EndTurn
 
 
 @dataclass(kw_only=True)
@@ -54,7 +55,7 @@ class Actor:
         self,
         result_types: list[type],
         tools: list[Callable[..., Any]] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> pydantic_ai.Agent[Any, Any]:
         raise NotImplementedError("Subclass must implement get_agentlet")
 
@@ -72,7 +73,7 @@ class Actor:
         """A list of memories that this actor can use during its turn."""
         return []
 
-    def get_end_turn_tools(self) -> list[type["marvin.engine.end_turn.EndTurn"]]:
+    def get_end_turn_tools(self) -> list[type["EndTurn"]]:
         """A list of `EndTurn` tools that this actor can use to end its turn."""
         return []
 

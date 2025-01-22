@@ -241,7 +241,7 @@ class Orchestrator:
                 return _fn
 
             @wraps(tool)
-            def _fn(*args, **kwargs):
+            def _fn(*args: Any, **kwargs: Any):
                 try:
                     return tool(*args, **kwargs)
                 except (
@@ -304,7 +304,7 @@ class Orchestrator:
         return agentlet
 
     def get_delegates(self) -> list[Actor]:
-        delegates = []
+        delegates: list[Actor] = []
         current = self.team
 
         # Follow active_agent chain, collecting delegates at each level
@@ -352,7 +352,7 @@ class Orchestrator:
 
     def get_all_tasks(
         self, filter: Literal["incomplete", "ready", "assigned"] | None = None
-    ) -> list[Task]:
+    ) -> list[Task[Any]]:
         """Get all tasks, optionally filtered by status.
 
         Filters:
@@ -360,10 +360,10 @@ class Orchestrator:
             - ready: tasks that are ready to be run
             - assigned: tasks that are ready and assigned to the active agents
         """
-        all_tasks: set[Task] = set()
-        ordered_tasks: list[Task] = []
+        all_tasks: set[Task[Any]] = set()
+        ordered_tasks: list[Task[Any]] = []
 
-        def collect_tasks(task: Task) -> list[Task]:
+        def collect_tasks(task: Task[Any]) -> None:
             if task in all_tasks:
                 return
 
