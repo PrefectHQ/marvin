@@ -33,6 +33,7 @@ Example:
 """
 
 import hashlib
+import json
 import re
 from copy import deepcopy
 from dataclasses import MISSING, field, make_dataclass
@@ -58,7 +59,6 @@ from pydantic import (
     StringConstraints,
     model_validator,
 )
-from pydantic_core import to_json
 from typing_extensions import NotRequired, TypedDict
 
 __all__ = ["jsonschema_to_type", "JSONSchema"]
@@ -142,7 +142,7 @@ def jsonschema_to_type(
 
 def hash_schema(schema: Mapping[str, Any]) -> str:
     """Generate a deterministic hash for schema caching."""
-    return hashlib.sha256(to_json(schema)).hexdigest()
+    return hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest()
 
 
 def resolve_ref(ref: str, schemas: Mapping[str, Any]) -> Mapping[str, Any]:
