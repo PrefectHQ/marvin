@@ -33,7 +33,6 @@ Example:
 """
 
 import hashlib
-import json
 import re
 from copy import deepcopy
 from dataclasses import MISSING, field, make_dataclass
@@ -45,10 +44,10 @@ from typing import (
     Callable,
     ForwardRef,
     Literal,
+    Mapping,
     Optional,
     Type,
     TypedDict,
-    TypeVar,
     Union,
 )
 
@@ -60,11 +59,11 @@ from pydantic import (
     StringConstraints,
     model_validator,
 )
+from pydantic_core import to_json
 from typing_extensions import NotRequired
 
 __all__ = ["jsonschema_to_type", "JSONSchema"]
 
-T = TypeVar("T")
 
 FORMAT_TYPES: dict[str, Any] = {
     "date-time": datetime,
@@ -73,10 +72,13 @@ FORMAT_TYPES: dict[str, Any] = {
     "json": Json,
 }
 
-_classes: dict[tuple[str, str], type | None] = {}
+_classes: dict[tuple[str, Any], type | None] = {}
 
 
-def jsonschema_to_type(schema: dict[str, Any], name: str | None = None) -> type:
+def jsonschema_to_type(
+    schema: Mapping[str, Any],
+    name: str | None = None,
+) -> type:
     """Convert JSON schema to appropriate Python type with validation.
 
     Args:
@@ -139,12 +141,12 @@ def jsonschema_to_type(schema: dict[str, Any], name: str | None = None) -> type:
     return schema_to_type(schema, schemas=schema)
 
 
-def hash_schema(schema: dict[str, Any]) -> str:
+def hash_schema(schema: Mapping[str, Any]) -> str:
     """Generate a deterministic hash for schema caching."""
-    return hashlib.sha256(json.dumps(schema, sort_keys=True).encode()).hexdigest()
+    return hashlib.sha256(to_json(schema)).hexdigest()
 
 
-def resolve_ref(ref: str, schemas: dict[str, Any]) -> dict[str, Any]:
+def resolve_ref(ref: str, schemas: Mapping[str, Any]) -> Mapping[str, Any]:
     """Resolve JSON Schema reference to target schema."""
     path = ref.replace("#/", "").split("/")
     current = schemas
@@ -153,7 +155,7 @@ def resolve_ref(ref: str, schemas: dict[str, Any]) -> dict[str, Any]:
     return current
 
 
-def create_string_type(schema: dict[str, Any]) -> type | Annotated[Any, ...]:
+def create_string_type(schema: Mapping[str, Any]) -> type | Annotated[Any, ...]:
     """Create string type with optional constraints."""
     if "const" in schema:
         return Literal[schema["const"]]  # type: ignore
@@ -179,7 +181,7 @@ def create_string_type(schema: dict[str, Any]) -> type | Annotated[Any, ...]:
 
 
 def create_numeric_type(
-    base: Type[Union[int, float]], schema: dict[str, Any]
+    base: Type[Union[int, float]], schema: Mapping[str, Any]
 ) -> type | Annotated[Any, ...]:
     """Create numeric type with optional constraints."""
     if "const" in schema:
@@ -208,7 +210,7 @@ def create_enum(name: str, values: list[Any]) -> type | Enum:
 
 
 def create_array_type(
-    schema: dict[str, Any], schemas: dict[str, Any]
+    schema: Mapping[str, Any], schemas: Mapping[str, Any]
 ) -> type | Annotated[Any, ...]:
     """Create list/set type with optional constraints."""
     items = schema.get("items", {})
@@ -235,26 +237,31 @@ def create_array_type(
     return Annotated[base, Field(**constraints)] if constraints else base
 
 
+def _return_Any() -> Any:
+    return Any
+
+
 def _get_from_type_handler(
-    schema: dict[str, Any], schemas: dict[str, Any]
+    schema: Mapping[str, Any], schemas: Mapping[str, Any]
 ) -> Callable[..., Any]:
     """Get the appropriate type handler for the schema."""
 
-    type_handlers: dict[str, Callable[..., Any]] = {
-        "string": lambda s: create_string_type(s),
-        "integer": lambda s: create_numeric_type(int, s),
-        "number": lambda s: create_numeric_type(float, s),
-        "boolean": lambda _: bool,
-        "null": lambda _: type(None),
-        "array": lambda s: create_array_type(s, schemas),
-        "object": lambda s: create_dataclass(s, s.get("title"), schemas),
+    type_handlers: dict[str, Callable[..., Any]] = {  # TODO
+        "string": lambda s: create_string_type(s),  # type: ignore
+        "integer": lambda s: create_numeric_type(int, s),  # type: ignore
+        "number": lambda s: create_numeric_type(float, s),  # type: ignore
+        "boolean": lambda _: bool,  # type: ignore
+        "null": lambda _: type(None),  # type: ignore
+        "array": lambda s: create_array_type(s, schemas),  # type: ignore
+        "object": lambda s: create_dataclass(s, s.get("title"), schemas),  # type: ignore
     }
-    return type_handlers.get(schema.get("type"), lambda _: Any)
+    return type_handlers.get(schema.get("type", None), _return_Any)
 
 
 def schema_to_type(
-    schema: dict[str, Any], schemas: dict[str, Any]
-) -> type | Enum | ForwardRef | Any:
+    schema: Mapping[str, Any],
+    schemas: Mapping[str, Any],
+) -> type:
     """Convert schema to appropriate Python type."""
     if not schema:
         return object
@@ -340,9 +347,9 @@ def create_field_with_default(
 
 
 def create_dataclass(
-    schema: dict[str, Any],
+    schema: Mapping[str, Any],
     name: str | None = None,
-    schemas: dict[str, Any] | None = None,
+    schemas: Mapping[str, Any] | None = None,
 ) -> type:
     """Create dataclass from object schema."""
     name = name or schema.get("title", "Root")
@@ -350,7 +357,7 @@ def create_dataclass(
     sanitized_name = sanitize_name(name)
     schema_hash = hash_schema(schema)
     cache_key = (schema_hash, sanitized_name)
-    original_schema = schema.copy()  # Store copy for validator
+    original_schema = dict(schema)  # Store copy for validator
 
     # Return existing class if already built
     if cache_key in _classes:
@@ -371,7 +378,7 @@ def create_dataclass(
     properties = schema.get("properties", {})
     required = schema.get("required", [])
 
-    fields: list[tuple[str, type, Any]] = []
+    fields: list[tuple[Any, ...]] = []
     for prop_name, prop_schema in properties.items():
         field_name = sanitize_name(prop_name)
 
@@ -412,7 +419,7 @@ def create_dataclass(
     # Add model validator for defaults
     @model_validator(mode="before")
     @classmethod
-    def _apply_defaults(cls, data):
+    def _apply_defaults(cls, data: Mapping[str, Any]):
         if isinstance(data, dict):
             return merge_defaults(data, original_schema)
         return data
@@ -425,9 +432,9 @@ def create_dataclass(
 
 
 def merge_defaults(
-    data: dict[str, Any],
-    schema: dict[str, Any],
-    parent_default: dict[str, Any] | None = None,
+    data: Mapping[str, Any],
+    schema: Mapping[str, Any],
+    parent_default: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Merge defaults with provided data at all levels."""
     # If we have no data
