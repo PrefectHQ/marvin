@@ -46,6 +46,7 @@ class TestAnnotations:
         result = f(3)
         assert result == 4
 
+    @pytest.mark.usefixtures("gpt_4o")
     def test_no_annotation_attempts_to_load_as_json_gracefully(self):
         # the trailing comma will fail to load as json, so we should
         # gracefully fall back to the string
