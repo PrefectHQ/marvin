@@ -113,6 +113,7 @@ class Actor:
         thread: Thread | str | None = None,
     ):
         """Responds to a user message in a conversational way."""
+
         return await marvin.say_async(
             message=message,
             instructions=instructions,

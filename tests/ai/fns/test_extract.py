@@ -16,7 +16,8 @@ class TestBuiltins:
         result = marvin.extract("one, two, three", int)
         assert result == [1, 2, 3]
 
-    def test_extract_complex_numbers(self, gpt_4o):
+    @pytest.mark.usefixtures("gpt_4o")
+    def test_extract_complex_numbers(self):
         """Uses gpt-4o to avoid flaky behavior"""
         result = marvin.extract(
             "I paid $10 for 3 coffees and they gave me back a dollar 25 cents",
@@ -24,7 +25,8 @@ class TestBuiltins:
         )
         assert result == [10.0, 3.0, 1.25]
 
-    def test_extract_complex_numbers_all(self, gpt_4o):
+    @pytest.mark.usefixtures("gpt_4o")
+    def test_extract_complex_numbers_all(self):
         """Uses gpt-4o to avoid flaky behavior"""
         result = marvin.extract(
             "I paid $10 for 3 coffees and they gave me back a dollar and 25 cents",

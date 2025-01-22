@@ -60,7 +60,7 @@ class Team(Actor):
         self,
         result_types: list[type],
         tools: list[Callable[..., Any]] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> pydantic_ai.Agent[Any, Any]:
         return self.active_agent.get_agentlet(
             tools=self.get_end_turn_tools() + (tools or []),

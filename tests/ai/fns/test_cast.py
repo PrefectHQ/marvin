@@ -69,7 +69,8 @@ class TestPydantic:
         result = marvin.cast(f"I live in {text}", Location)
         assert result == Location(city="New York", state="NY")
 
-    def test_field_descriptions_are_included_in_prompt(self, gpt_4o):
+    @pytest.mark.usefixtures("gpt_4o")
+    def test_field_descriptions_are_included_in_prompt(self):
         class Car(BaseModel):
             make: str
             make2: str = Field(

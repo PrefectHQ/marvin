@@ -11,16 +11,24 @@ T = TypeVar("T")
 
 @overload
 def update_fn(
-    name_or_func: str | Callable[..., T] | None = None,
+    name_or_func: str,
     *,
-    name: str | None = None,
     description: str | None = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
 
 
 @overload
 def update_fn(
-    func: Callable[..., T],
+    name_or_func: None = None,
+    *,
+    name: str,
+    description: str | None = None,
+) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
+
+
+@overload
+def update_fn(
+    name_or_func: Callable[..., T],
     *,
     name: str,
     description: str | None = None,

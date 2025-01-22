@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
-NOTSET = "__NOTSET__"
+NOTSET: Literal["__NOTSET__"] = "__NOTSET__"
 
 # Global context var for current task
 _current_task: ContextVar[Optional["Task[Any]"]] = ContextVar(
@@ -77,7 +77,7 @@ class Task(Generic[T]):
         kw_only=False,
     )
 
-    result_type: type[T] | Labels = field(
+    result_type: type[T] | Labels | Literal["__NOTSET__"] = field(
         default=NOTSET,
         metadata={
             "description": "The expected type of the result. This can be a type or None if no result is expected. If not set, the result type will be str.",
@@ -347,7 +347,7 @@ class Task(Generic[T]):
 
     def get_tools(self) -> list[Callable[..., Any]]:
         """Get the tools assigned to this task."""
-        tools = []
+        tools: list[Callable[..., Any]] = []
         tools.extend(self.tools)
         tools.extend([t for m in self.memories for t in m.get_tools()])
         if self.cli:
@@ -450,7 +450,7 @@ class Task(Generic[T]):
         """Get the result tool for this task."""
         import marvin.engine.end_turn
 
-        tools = []
+        tools: list[type[marvin.engine.end_turn.EndTurn]] = []
         tools.append(marvin.engine.end_turn.MarkTaskSuccessful.prepare_for_task(self))
         if self.allow_fail:
             tools.append(marvin.engine.end_turn.MarkTaskFailed.prepare_for_task(self))
