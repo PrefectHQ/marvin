@@ -47,7 +47,6 @@ from typing import (
     Mapping,
     Optional,
     Type,
-    TypedDict,
     Union,
 )
 
@@ -60,7 +59,7 @@ from pydantic import (
     model_validator,
 )
 from pydantic_core import to_json
-from typing_extensions import NotRequired
+from typing_extensions import NotRequired, TypedDict
 
 __all__ = ["jsonschema_to_type", "JSONSchema"]
 
