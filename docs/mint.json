@@ -14,21 +14,24 @@
     ],
     "colors": {
         "anchors": {
-            "from": "#2D6DF6",
-            "to": "#E44BF4"
+            "from": "#A58EFB",
+            "to": "#41CEBD"
+        },
+        "background": {
+            "dark": "#1A1B27"
         },
         "dark": "#2D6DF6",
         "light": "#E44BF4",
         "primary": "#2D6DF6"
     },
-    "favicon": "/assets/brand/controlflow_logo.svg",
+    "favicon": "/assets/brand/marvin_mascot.jpeg",
     "footerSocials": {
         "github": "https://github.com/PrefectHQ/Marvin",
         "slack": "https://prefect.io/slack?utm_source=marvin&utm_medium=docs"
     },
     "logo": {
-        "dark": "/assets/brand/controlflow_logo_pink_black_bg.svg",
-        "light": "/assets/brand/controlflow_logo.svg"
+        "dark": "/assets/brand/marvin_mascot.jpeg",
+        "light": "/assets/brand/marvin_mascot.jpeg"
     },
     "name": "Marvin",
     "navigation": [
@@ -46,6 +49,16 @@
                 "concepts/tasks",
                 "concepts/agents",
                 "concepts/threads"
+            ]
+        },
+        {
+            "group": "Patterns",
+            "pages": [
+                "patterns/task-results",
+                "patterns/running-tasks",
+                "patterns/memory",
+                "patterns/tools",
+                "patterns/interactivity"
             ]
         }
     ],
