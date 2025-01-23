@@ -1,0 +1,54 @@
+---
+title: Instructions
+description: Provide ad-hoc guidance to agents without modifying tasks.
+icon: person-chalkboard
+---
+
+While tasks and agents can be provided with permanent instructions about how they should operate, there may be situations where you need to provide ad-hoc or temporary guidance to your agents. For example:
+
+- Telling an agent to adopt a specific tone or style
+- Setting length requirements for generated content
+- Providing additional context for a specific interaction
+- Adjusting behavior based on runtime conditions
+- Creating a specific persona for user interactions
+
+Marvin addresses this need with the `instructions` context manager. With `instructions`, you can provide temporary additional guidance to agents without altering the underlying task definition.
+
+<CodeGroup>
+```python Code
+import marvin
+
+# Make the agent talk like a pirate
+with marvin.instructions("Talk like a pirate"):
+    name = marvin.run(
+        "Ask for the user's name",
+        cli=True
+    )
+
+print(name)
+```
+
+```text Result
+Agent: Ahoy, me hearty! Can ye tell me yer name?
+User: John Doe
+
+John Doe
+```
+</CodeGroup>
+
+Instructions are temporary and only last as long as the context manager is active. You can also nest multiple instructions:
+
+```python
+import marvin
+
+with marvin.instructions("Be very formal"):
+    with marvin.instructions("Use British English"):
+        result = marvin.run("Write a greeting")
+
+# Instructions can guide content generation
+with marvin.instructions("Keep it under 100 words"):
+    with marvin.instructions("Focus on technical details"):
+        summary = marvin.summarize("Long technical document...")
+```
+
+Note that instructions are applied when tasks are run, not when they are created. This allows you to dynamically adjust agent behavior based on runtime conditions without modifying the underlying tasks.

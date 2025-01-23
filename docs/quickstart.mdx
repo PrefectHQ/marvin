@@ -1,0 +1,256 @@
+---
+title: Quickstart
+description: Build your first AI application in less than a minute
+icon: rocket
+---
+
+Welcome to Marvin! This quickstart guide will walk you through the basics of using Marvin to create AI-powered applications.
+
+You'll learn how to:
+1. [Run simple tasks](#running-simple-tasks) with `marvin.run()`
+2. [Add context](#adding-context) to improve results
+3. [Get structured data](#getting-structured-data) in the format you need
+4. [Maintain conversation context](#maintaining-context) with threads
+
+## Install Marvin
+
+Install Marvin with pip:
+
+```bash
+pip install marvin
+```
+
+Set up your LLM provider. By default, Marvin uses OpenAI:
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
+
+To use another provider, see the docs on [configuring LLMs](/guides/configure-llms).
+
+## Running Simple Tasks
+
+The fastest way to use Marvin is with `marvin.run()`:
+
+<CodeGroup>
+```python Code
+import marvin
+
+# Run a simple task
+result = marvin.run("Write a haiku about Python programming")
+print(result)
+```
+```text Result
+Indented lines flow
+Functions dance with elegance
+Code becomes poetry
+```
+</CodeGroup>
+
+## Adding Context
+
+Provide additional context to get better results:
+
+<CodeGroup>
+```python Code
+import marvin
+
+data = """
+The average temperature in June was 72°F with a high of 85°F and a low of 60°F.
+Rainfall totaled 3.5 inches, which is 0.8 inches above normal.
+There were 15 sunny days, 10 partly cloudy days, and 5 rainy days.
+"""
+
+summary = marvin.run(
+    "Summarize this weather data in one sentence",
+    context={"weather_data": data}
+)
+print(summary)
+```
+```text Result
+June saw above-average rainfall (3.5 inches) and moderate temperatures averaging 72°F, with mostly sunny to partly cloudy conditions.
+```
+</CodeGroup>
+
+## Getting Structured Data
+
+Use `result_type` to get data in exactly the format you need:
+
+<CodeGroup>
+```python Code
+import marvin
+from typing import List
+
+class WeatherDay(marvin.Model):
+    date: str
+    temperature: float
+    conditions: str
+
+forecast = marvin.run(
+    "Create a 3-day weather forecast",
+    result_type=List[WeatherDay]
+)
+
+for day in forecast:
+    print(f"{day.date}: {day.temperature}°F, {day.conditions}")
+```
+```text Result
+2024-03-20: 75.5°F, Sunny with light breeze
+2024-03-21: 72.0°F, Partly cloudy
+2024-03-22: 68.5°F, Light rain showers
+```
+</CodeGroup>
+
+## Maintaining Context
+
+Use threads to maintain context across multiple interactions:
+
+<CodeGroup>
+```python Code
+import marvin
+
+# Create a thread to maintain conversation context
+with marvin.Thread() as thread:
+
+    # Get user preferences
+    preferences = marvin.run(
+        "Ask about the user's movie preferences",
+        cli=True
+    )
+
+    # Recommend a movie based on preferences
+    recommendation = marvin.run(
+        "Recommend a movie based on their preferences",
+    )
+
+    # Ask follow-up question using context from the whole conversation
+    followup = marvin.run(
+        "Ask if they'd like another recommendation in a similar style",
+        result_type=bool,
+        cli=True
+    )
+
+    if followup:
+        marvin.run("Provide another movie recommendation")
+```
+```text Result
+Agent: What kinds of movies do you enjoy watching?
+User: I like sci-fi movies with deep themes about humanity, like Blade Runner and Ex Machina.
+
+Based on your preference for thought-provoking sci-fi films, I recommend "Arrival" (2016). Like Blade Runner and Ex Machina, it explores deep themes about humanity through a science fiction lens, focusing on language, time, and human connection.
+
+Agent: Would you like another recommendation similar to Arrival and your other favorite sci-fi films?
+User: Yes, please!
+
+I recommend "Her" (2013). This thoughtful sci-fi film explores the nature of consciousness, love, and human connection in a near-future world. Like your other favorites, it uses science fiction elements to delve deep into questions about what makes us human and how technology shapes our relationships.
+```
+</CodeGroup>
+
+## Common Operations
+
+Marvin provides a set of simple functions for common LLM operations. These functions are designed to be intuitive and easy to use, while providing powerful capabilities.
+
+### Classification
+
+Classify text or data into predefined categories:
+
+```python
+import marvin
+
+# Using simple labels
+sentiment = marvin.classify("I love this product!", ["positive", "negative", "neutral"])
+print(sentiment)  # "positive"
+
+# Multi-label classification
+topics = marvin.classify(
+    "The movie had great acting but poor special effects",
+    ["acting", "plot", "effects", "music"],
+    multi_label=True
+)
+print(topics)  # ["acting", "effects"]
+```
+
+### Extraction
+
+Extract structured data from text:
+
+```python
+import marvin
+
+# Extract numbers
+prices = marvin.extract(
+    "The shirt costs $19.99 and the pants are $45",
+    float,
+    instructions="Extract all prices in USD"
+)
+print(prices)  # [19.99, 45.0]
+
+# Extract custom information
+people = marvin.extract(
+    "Contact Sarah at sarah@example.com or John at john@example.com",
+    str,
+    instructions="Extract all email addresses"
+)
+print(people)  # ["sarah@example.com", "john@example.com"]
+```
+
+### Summarization
+
+Create concise summaries of text:
+
+```python
+import marvin
+
+text = """
+Climate change poses significant challenges to our planet. Rising temperatures 
+lead to melting ice caps, rising sea levels, and more extreme weather events. 
+Scientists warn that immediate action is necessary to prevent catastrophic effects.
+"""
+
+summary = marvin.summarize(text)
+print(summary)  # "Climate change threatens Earth with rising temperatures..."
+
+# Focus on specific aspects
+summary = marvin.summarize(
+    text,
+    instructions="Focus on the specific consequences mentioned"
+)
+print(summary)  # "Key impacts: melting ice caps, rising seas, extreme weather..."
+```
+
+### Conversation
+
+Have natural conversations with context:
+
+```python
+import marvin
+
+response = marvin.say("What's the capital of France?")
+print(response)  # "The capital of France is Paris."
+
+# With specific instructions
+response = marvin.say(
+    "What's the capital of France?",
+    instructions="Respond like a friendly tour guide"
+)
+print(response)  # "Ah, Bonjour! Let me tell you about Paris..."
+```
+
+Each of these functions is designed to be simple to use while providing powerful capabilities. They all support:
+
+- Custom instructions to guide the model's behavior
+- Thread management for maintaining context
+- Custom agents for specialized tasks
+- Additional context for better results
+
+For more details on each operation, check out the [API reference](/api-reference).
+
+## What's Next?
+
+You've seen the basics of working with Marvin. To learn more:
+
+- Read about [Tasks](/concepts/tasks) to understand how to structure AI workflows
+- Learn about [Agents](/concepts/agents) to create specialized AI workers
+- Explore [Threads](/concepts/threads) for managing conversation context
+- Check out [Models](/concepts/models) to work with structured data
+- Browse the [Examples](/examples) for more complex applications

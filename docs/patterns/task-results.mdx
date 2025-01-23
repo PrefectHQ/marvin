@@ -1,0 +1,339 @@
+---
+title: Task Results
+description: Get structured outputs from your tasks.
+icon: check-circle
+---
+
+Marvin provides powerful ways to control and validate the output of tasks. By specifying a `result_type`, you can ensure that tasks return exactly the data structure you need.
+
+## Scalar Types
+
+The simplest way to specify a result type is with Python's built-in scalar types:
+
+```python
+import marvin
+
+# Get a string
+text = marvin.run(
+    "Write a haiku",
+    result_type=str
+)
+
+# Get a number
+temperature = marvin.run(
+    "Convert 72°F to Celsius",
+    result_type=float
+)
+
+# Get a boolean
+is_spam = marvin.run(
+    "Is this email spam?",
+    result_type=bool,
+    context={"email": "You just won a million dollars!"}
+)
+```
+
+## Classification
+
+For classification tasks, Marvin provides several ways to specify options. Under the hood, Marvin optimizes classification by having agents choose indices rather than writing out full labels:
+
+```python
+import marvin
+from enum import Enum
+from typing import Literal
+
+# Using a list of values (most flexible)
+sentiment = marvin.run(
+    "Classify the sentiment of this review",
+    result_type=["positive", "negative", "neutral"],
+    context={"text": "This product exceeded my expectations!"}
+)
+print(sentiment)  # "positive"
+
+# Using Literal type
+status = marvin.run(
+    "Check the server status",
+    result_type=Literal["up", "down", "maintenance"]
+)
+
+# Using an Enum
+class Sentiment(Enum):
+    POSITIVE = "positive"
+    NEGATIVE = "negative"
+    NEUTRAL = "neutral"
+
+sentiment = marvin.run(
+    "Classify the sentiment",
+    result_type=Sentiment
+)
+print(sentiment)  # Sentiment.POSITIVE
+print(sentiment.value)  # "positive"
+```
+
+### Multi-label Classification
+
+For tasks where multiple labels can apply, use either `list[Literal]`, `list[Enum]`, or Marvin's shorthand double-list syntax:
+
+```python
+# Using list[Literal]
+topics = marvin.run(
+    "What topics does this article cover?",
+    result_type=list[Literal["technology", "science", "business", "politics"]],
+    context={"text": "AI startups are revolutionizing healthcare..."}
+)
+print(topics)  # ["technology", "science", "business"]
+
+# Using list[Enum]
+topics = marvin.run(
+    "What topics apply?",
+    result_type=list[Sentiment]
+)
+print([t.value for t in topics])  # ["positive", "neutral"]
+
+# Using shorthand double-list syntax
+topics = marvin.run(
+    "What topics does this article cover?",
+    result_type=[["technology", "science", "business", "politics"]],
+    context={"text": "AI startups are revolutionizing healthcare..."}
+)
+print(topics)  # ["technology", "science", "business"]
+```
+
+## Collections
+
+Use Python's type hints to specify collections. Marvin supports several collection types:
+
+### Lists
+
+Lists are the most common collection type and work well with all LLM providers:
+
+```python
+import marvin
+
+# Get a list of strings
+keywords = marvin.run(
+    "Extract keywords from this text",
+    result_type=list[str],
+    context={"text": "AI and machine learning are transforming..."}
+)
+
+# Get a list of numbers
+prices = marvin.run(
+    "Extract all prices from this text",
+    result_type=list[float],
+    context={"text": "The shirt costs $19.99 and the pants are $49.99"}
+)
+```
+
+### Sets
+
+Sets work similarly to lists but ensure unique values:
+
+```python
+import marvin
+
+# Get unique words
+unique_words = marvin.run(
+    "What unique words appear in this text?",
+    result_type=set[str],
+    context={"text": "the cat and the dog"}
+)
+
+# Get unique numbers
+numbers = marvin.run(
+    "Give me 5 unique numbers between 1 and 10",
+    result_type=set[int]
+)
+```
+
+### Dictionaries
+
+Dictionaries are useful for key-value data:
+
+```python
+import marvin
+
+# Get a simple word count
+word_counts = marvin.run(
+    "Count word frequencies",
+    result_type=dict[str, int],
+    context={"text": "the cat and the dog"}
+)
+
+# Get nested data
+character_details = marvin.run(
+    "Describe these characters' ages",
+    result_type=dict[str, dict[str, int]],
+    context={"characters": ["Luke", "Leia", "Han"]}
+)
+
+# Mix with other types
+movie_ratings = marvin.run(
+    "Rate these movies from 1-5",
+    result_type=dict[str, float],
+    context={"movies": ["The Matrix", "Inception"]}
+)
+```
+
+### Tuples
+
+While tuples are not directly supported by most LLM providers, Marvin will attempt to coerce the result into a tuple for you:
+
+```python
+import marvin
+
+# Get coordinates
+coordinates = marvin.run(
+    "Convert '40.7128° N, 74.0060° W' to decimal coordinates",
+    result_type=tuple[float, float]
+)
+
+# Get name and age
+person_info = marvin.run(
+    "Extract name and age from: John is 25 years old",
+    result_type=tuple[str, int]
+)
+```
+
+## Structured Types
+
+Marvin supports several options for complex data structures, each with their own benefits:
+
+### TypedDict
+
+TypedDicts provide a way to specify dictionary types with fixed keys:
+
+```python
+import marvin
+from typing import TypedDict
+
+class MovieDict(TypedDict):
+    title: str
+    year: int
+    rating: float
+
+movie = marvin.run(
+    "Describe the movie 'Inception'",
+    result_type=MovieDict
+)
+print(movie["title"])  # "Inception"
+```
+
+### Dataclasses
+
+Dataclasses offer a more object-oriented approach with attribute access:
+
+```python
+import marvin
+from dataclasses import dataclass
+
+@dataclass
+class Movie:
+    title: str
+    year: int
+    rating: float
+
+movie = marvin.run(
+    "Describe the movie 'Inception'",
+    result_type=Movie
+)
+print(movie.title)  # "Inception"
+```
+
+### Pydantic Models
+
+Pydantic models (recommended) provide rich validation and nested structures:
+
+```python
+import marvin
+from marvin import Model
+
+class Person(Model):
+    name: str
+    age: int
+    interests: list[str]
+
+class Movie(Model):
+    title: str
+    director: Person
+    year: int
+    genres: list[str]
+    rating: float
+
+# Get structured movie data
+movie = marvin.run(
+    "Describe the movie 'Inception'",
+    result_type=Movie
+)
+print(movie.director.name)  # "Christopher Nolan"
+
+# Get a list of people
+people = marvin.run(
+    "List the main characters in Star Wars",
+    result_type=list[Person]
+)
+```
+
+## Validation
+
+### Result Validators
+
+You can provide a validation function to enforce additional constraints. The function should either return the validated result or raise an exception:
+
+```python
+def validate_even(value: int) -> int:
+    if value % 2 != 0:
+        raise ValueError("Value must be even")
+    return value
+
+number = marvin.run(
+    "Give me an even number",
+    result_type=int,
+    result_validator=validate_even
+)
+```
+
+### Pydantic Validation
+
+When using Pydantic models, you can use field validators for more complex validation:
+
+```python
+from pydantic import field_validator
+from marvin import Model
+
+class SentimentAnalysis(Model):
+    text: str
+    sentiment: float
+
+    @field_validator('sentiment')
+    def check_sentiment_range(cls, v):
+        if not -1 <= v <= 1:
+            raise ValueError('Sentiment must be between -1 and 1')
+        return v
+
+result = marvin.run(
+    "Analyze sentiment of given text",
+    result_type=SentimentAnalysis,
+    context={"text": "I love Marvin!"}
+)
+```
+
+### Annotated Types
+
+Use `Annotated` to provide additional context about the expected result:
+
+```python
+from typing import Annotated
+
+# Get a specific format
+zip_code = marvin.run(
+    "What's the zip code for Manhattan?",
+    result_type=Annotated[str, "A 5-digit US zip code"]
+)
+
+# Get a constrained number
+rating = marvin.run(
+    "Rate this movie from 1-5",
+    result_type=Annotated[int, "A rating between 1 and 5"]
+)
+``` 

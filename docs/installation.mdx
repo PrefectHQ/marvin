@@ -1,0 +1,43 @@
+---
+title: Installation
+description: Get started with Marvin in under a minute
+icon: download
+---
+
+## Requirements
+
+- Python 3.10 or higher
+- An API key from an LLM provider (OpenAI by default)
+
+## Install with pip
+
+The easiest way to install Marvin is with pip:
+
+```bash
+pip install marvin
+```
+
+## Configure your LLM provider
+
+By default, Marvin uses OpenAI's models. Set your API key as an environment variable:
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
+
+## Development Installation
+
+For development, install Marvin with development dependencies:
+
+```bash
+git clone https://github.com/prefecthq/marvin.git
+cd marvin
+pip install -e ".[dev]"
+```
+
+## What's Next?
+
+- Follow the [Quickstart](/quickstart) guide to build your first AI application
+- Learn about [Tasks](/concepts/tasks), the building blocks of AI workflows
+- Explore [Agents](/concepts/agents) to create specialized AI workers
+- Read about [Threads](/concepts/threads) for managing conversation context 

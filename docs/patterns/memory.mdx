@@ -1,0 +1,191 @@
+---
+title: Memory
+description: Give your agents persistent memory across conversations.
+icon: brain
+---
+
+While threads maintain conversation history within a single interaction, Marvin's memory feature allows agents to store and recall information across multiple conversations. This is useful for:
+
+- Remembering user preferences across sessions
+- Building up knowledge bases over time
+- Sharing information between different agents
+- Maintaining context across multiple interactions
+- Creating more personalized user experiences
+
+## How Memory Works
+
+Marvin memories are implemented as vector stores that allow agents to store and retrieve information using natural language. Each memory has a unique `key` that identifies it and instructions that guide how it should be used.
+
+## Creating Memory Modules
+
+To create a memory module, you need to provide a `key` and `instructions`:
+
+```python
+import marvin
+
+# Create a memory for user preferences
+preferences = marvin.Memory(
+    key="user_preferences",
+    instructions="Store and retrieve user preferences and settings."
+)
+```
+
+### Memory Keys
+
+The `key` uniquely identifies a memory module and must be consistent across uses to access the same stored information. Choose descriptive, unique keys for different types of information:
+
+```python
+# Different memories for different purposes
+user_prefs = marvin.Memory(key="user_preferences")
+knowledge_base = marvin.Memory(key="documentation")
+project_info = marvin.Memory(key="project_details")
+```
+
+### Memory Instructions
+
+The `instructions` tell agents how to use the memory - what to store, when to access it, and how to format information:
+
+```python
+weather_memory = marvin.Memory(
+    key="weather",
+    instructions="""
+    Store daily weather information including:
+    - Temperature
+    - Conditions
+    - Location
+    Format: 'Location: temp, conditions'
+    """
+)
+```
+
+## Using Memories
+
+### With Tasks
+
+Attach memories to tasks to provide context:
+
+```python
+import marvin
+
+# Create a memory module
+weather = marvin.Memory(key="weather")
+
+# Use it in a task
+task = marvin.Task(
+    instructions="What was yesterday's weather?",
+    memories=[weather]
+)
+```
+
+### With Agents
+
+Give agents persistent memory across all their tasks:
+
+```python
+import marvin
+
+# Create an agent with memory
+agent = marvin.Agent(
+    name="WeatherBot",
+    memories=[weather]
+)
+
+# The agent can access weather memory in any task
+marvin.run("Record today's weather", agents=[agent])
+marvin.run("Compare to yesterday's weather", agents=[agent])
+```
+
+## Example: Weather Tracking
+
+Here's a complete example of using memory to track weather information:
+
+<CodeGroup>
+```python Code
+import marvin
+
+# Create a memory module
+weather = marvin.Memory(
+    key="weather",
+    instructions="Store and retrieve daily weather information."
+)
+
+# Record today's weather
+marvin.run(
+    "Record that it's 72°F and sunny today",
+    memories=[weather]
+)
+
+# Later, retrieve the information
+result = marvin.run(
+    "What was the weather like today?",
+    memories=[weather]
+)
+print(result)
+```
+
+```text Result
+Today's weather was 72°F and sunny.
+```
+</CodeGroup>
+
+## Memory Providers
+
+Marvin supports several vector store backends for memory storage:
+
+### ChromaDB (Default)
+
+ChromaDB is the default provider, offering a simple, file-based vector store:
+
+```bash
+pip install "marvin[chroma]"
+```
+
+### LanceDB
+
+LanceDB provides a fast, efficient vector store with columnar storage:
+
+```bash
+pip install "marvin[lance]"
+```
+
+Configure LanceDB:
+```python
+import marvin
+from marvin.memory.providers import LanceProvider
+
+provider = LanceProvider(uri="data/memories.lance")
+memory = marvin.Memory(
+    key="knowledge",
+    provider=provider
+)
+```
+
+### PostgreSQL
+
+Use PostgreSQL with pgvector for scalable, production-ready vector storage:
+
+```bash
+pip install "marvin[postgres]"
+```
+
+Configure PostgreSQL:
+```python
+import marvin
+from marvin.memory.providers import PostgresProvider
+
+provider = PostgresProvider(
+    connection_string="postgresql://user:pass@localhost/db"
+)
+memory = marvin.Memory(
+    key="knowledge",
+    provider=provider
+)
+```
+
+### All Providers
+
+Install all memory providers at once:
+
+```bash
+pip install "marvin[memory]"  # Includes chroma, lance, and postgres
+``` 

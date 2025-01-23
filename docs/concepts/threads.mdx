@@ -1,176 +1,143 @@
 ---
 title: Threads
-description: Managing conversation history and context across tasks.
-icon: comments
+description: Manage conversation history and context
+icon: chat-bubble-left-right
 ---
 
-Threads in Marvin maintain conversation history and context across multiple tasks and interactions. They provide a way to preserve context and allow agents to reference previous work.
+Threads in Marvin provide a powerful mechanism for managing conversation history and context across your AI workflows. Unlike ControlFlow's flows, threads in Marvin are focused on conversation management and persistence rather than workflow orchestration.
+
+## Understanding Threads
+
+A thread in Marvin represents a conversation context that can span multiple interactions. Each thread:
+- Maintains its own conversation history
+- Can be persisted to a database
+- Can be referenced across different parts of your application
+- Supports attaching memories for long-term information storage
+
+## Creating and Using Threads
+
+### Basic Thread Creation
+
+The simplest way to create a thread is to instantiate the `Thread` class:
 
 ```python
 import marvin
 
-# Without a thread, each call is independent
-first = marvin.run("Come up with an interesting topic.")
-second = marvin.run("Write 5 facts about the topic", result_type=list[str])  # Won't know the topic!
-
-# With a thread, calls share context
-with marvin.Thread() as thread:
-    topic = marvin.run("Come up with an interesting topic.")
-    facts = marvin.run(f"Write 5 facts about {topic}", result_type=list[str])  # Will know the topic!
+thread = marvin.Thread()
+# A new thread is created with a unique ID
 ```
 
-## What are threads?
+### Specifying a Thread ID
 
-Threads are the backbone of conversation management in Marvin. Each thread maintains a chronological history of messages between users and agents, allowing for coherent multi-turn interactions. When you run tasks within the same thread, agents can reference and build upon previous conversations.
+You can create a thread with a specific ID, which is useful for resuming conversations:
 
-Every Marvin invocation runs in its own thread by default. This means that if you want to maintain context between calls, you must explicitly create a thread to share between them.
+```python
+thread = marvin.Thread(id="user_123_lesson")
+# This thread will use the specified ID
+```
 
-## Creating and using threads
+### Using Threads with Tasks
 
-The most common way to use threads is with a context manager:
+Threads can be passed to tasks to maintain conversation context:
 
 ```python
 import marvin
 
-# Create a new thread with a random ID
-with marvin.Thread() as thread:
-    marvin.run("Write a story")
+thread = marvin.Thread()
 
-# Create a thread with a specific ID to resume it later
-with marvin.Thread(id="my-story") as thread:
-    marvin.run("Write a story")
-```
-
-You can also pass a thread explicitly if needed:
-
-```python
-thread = marvin.Thread(id="my-story")
-marvin.run("Write a story", thread=thread)
-```
-
-## Adding messages
-
-Threads store the back-and-forth messages between users and agents. You can add user messages directly to guide the conversation:
-
-```python
-with marvin.Thread() as thread:
-    # Add a message from the user
-    thread.add_user_message("I'm interested in quantum computing.")
-    
-    # The agent can now reference this interest
-    marvin.run("Suggest a topic to research")
-```
-
-## Thread properties
-
-### Thread ID
-
-Each thread has a unique ID that identifies it. You can provide any string as the ID, which lets you resume conversations later:
-
-```python
-# Start a conversation
-with marvin.Thread(id="quantum-research") as thread:
-    marvin.run("Research quantum computing basics")
-
-# Later, resume the same conversation
-with marvin.Thread(id="quantum-research") as thread:
-    marvin.run("What did we learn about quantum computing?")
-```
-
-### Parent Thread
-
-Threads can have a parent thread, allowing you to create hierarchical conversations. The simplest way is to nest context managers:
-
-```python
-with marvin.Thread(id="main") as main:
-    marvin.run("Let's plan a research project")
-    
-    with marvin.Thread(parent_id=main.id) as subtask:
-        marvin.run("Break down the first milestone")
-```
-
-When retrieving messages from a thread, you can choose whether to include messages from parent threads:
-
-```python
-# Get only messages from this thread
-messages = thread.get_messages(include_parent=False)
-
-# Get messages from this thread and its parent (default)
-messages = thread.get_messages(include_parent=True)
-```
-
-## Thread Context
-
-When you run multiple tasks in the same thread, each task has access to the full conversation history:
-
-```python
-with marvin.Thread() as thread:
-    # First task
-    marvin.run("Write a short story about a robot")
-    
-    # Second task can see the story
-    marvin.run("What happened to the robot in the end?")
-```
-
-This allows agents to maintain context and build upon previous work without explicitly passing information between tasks.
-
-## Thread Persistence
-
-Threads automatically persist their conversation history to a database. You can resume any thread by using its ID:
-
-```python
-# Start writing a novel
-with marvin.Thread(id="my-novel") as thread:
-    marvin.run("Write chapter 1 of a novel")
-
-# A week later, continue writing
-with marvin.Thread(id="my-novel") as thread:
-    marvin.run("Summarize chapter 1")
-    marvin.run("Write chapter 2")
-```
-
-## Current Thread
-
-Marvin maintains a "current thread" in context. When using the context manager, that thread becomes the current thread:
-
-```python
-with marvin.Thread() as thread:
-    # Uses the current thread automatically
-    marvin.run("Hello!")
-```
-
-You can also get the current thread programmatically:
-
-```python
-current = marvin.Thread.get_current()
-```
-
-## Thread vs Memory
-
-Threads and memories serve different purposes:
-
-- Threads store the actual messages sent between users and agents, maintaining conversation flow
-- Memories store specific facts or knowledge that agents should retain
-
-For example:
-
-```python
-# Memory stores specific facts that persist across threads
-agent = marvin.Agent(
-    memories=[marvin.Memory(key="research_findings")]
+task = marvin.Task(
+    instructions="Write a poem about AI",
+    result_type=str
 )
 
-# Thread 1: Discover something non-obvious
-with marvin.Thread() as t1:
-    marvin.run(
-        "Research and remember: What's the airspeed velocity of an unladen swallow?",
-        agent=agent
-    )
+# Run the task with the thread
+result = task.run(thread=thread)
+```
 
-# Thread 2: Agent recalls the specific fact
-with marvin.Thread() as t2:
-    marvin.run(
-        "What do you know about swallow airspeeds?",
-        agent=agent
-    )  # Will recall ~24 mph for European swallow
-``` 
+### Adding Messages
+
+You can manually add messages to a thread:
+
+```python
+# Add a user message
+thread.add_user_message("Hello!")
+
+# Add multiple messages
+from marvin.engine.llm import UserMessage, AssistantMessage
+thread.add_messages([
+    UserMessage(content="What's the weather?"),
+    AssistantMessage(content="It's sunny today!")
+])
+```
+
+## Retrieving History
+
+### Getting Messages
+
+You can retrieve messages from a thread with various filters:
+
+```python
+# Get all messages
+messages = thread.get_messages()
+
+# Get messages with filters
+messages = thread.get_messages(
+    include_system_messages=False,  # Exclude system messages
+    before=datetime.now(),          # Messages before a timestamp
+    after=some_timestamp,           # Messages after a timestamp
+    limit=10                        # Limit number of messages
+)
+```
+
+### Tracking LLM Usage
+
+Threads also track LLM API usage:
+
+```python
+# Get all LLM calls
+llm_calls = thread.get_llm_calls()
+
+# Get usage statistics
+usage = thread.get_usage()
+```
+
+## Thread Context Management
+
+Marvin provides context management for threads, making it easy to set the current thread:
+
+```python
+with thread:
+    # This thread is now the current thread
+    task1.run()  # Uses the thread automatically
+    task2.run()  # Same thread is used
+
+# Thread context is restored after the block
+```
+
+You can also get the current thread:
+
+```python
+current_thread = marvin.get_current_thread()
+```
+
+## Parent-Child Relationships
+
+Threads can have parent-child relationships:
+
+```python
+parent_thread = marvin.Thread()
+child_thread = marvin.Thread(parent_id=parent_thread.id)
+```
+
+## Database Integration
+
+Threads are automatically persisted to a database when configured:
+
+```python
+# Messages and LLM calls are automatically saved
+thread.add_user_message("Save this message")
+
+# Later, create a thread with the same ID to access history
+same_thread = marvin.Thread(id=thread.id)
+messages = same_thread.get_messages()  # Includes saved messages
+```

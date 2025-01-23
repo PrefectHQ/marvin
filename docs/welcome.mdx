@@ -1,192 +1,128 @@
 ---
-title: Welcome to Marvin
+title: Marvin
 sidebarTitle: Welcome
-icon: sparkles
+description: A powerful framework for building AI applications
+icon: robot
 ---
-
-![Marvin Banner](/assets/brand/marvin_banner.png)
 
 ## What is Marvin?
 
-Marvin is a Python library designed to make it delightful to build AI applications with large language models. It combines the best aspects of both traditional programming and the magic of LLMs, letting you create sophisticated workflows as easily as you write Python functions.
+**Marvin is a Python framework for building AI applications with LLMs.**
 
-<Note>
-    Marvin is designed for building **agentic workflows**, which delegate at least some of their work to an LLM agent. This allows developers to build more complex applications than a simple one-shot LLM response. To learn more, see the [AI glossary](/glossary/glossary).
-</Note>
+Marvin provides a clean, intuitive interface for working with large language models (LLMs) while handling all the complexity of state management, conversation history, and agent coordination.
 
-Marvin is designed to empower developers to:
+## Quick Examples
 
-*   **Define clear objectives:** Express your goals as `Tasks` that specify _what_ you want done.
-*   **Leverage specialized agents:** Create `Agents` that dictate _how_ the work is done, using specific instructions, tools, and LLMs.
-*   **Manage workflow history:** Maintain state and context by using `Threads`, ensuring agents build on previous work.
+### Simple Tasks
 
-This approach makes it easy to create repeatable, dependable AI applications that seamlessly integrate with traditional software. Whether you are building a chatbot, automating data processing, or just trying to understand how LLMs work, Marvin provides the right tools for the job.
+The fastest way to use Marvin is with `marvin.run()`:
 
-## Quickstart
-
-Here's a simple but complete Marvin script that generates a list of creative names:
-
-<CodeGroup>
-```python Code
-import marvin
-
-names = marvin.run(
-    "Generate a list of 3 creative names", 
-    result_type=list[str]
-)
-print(names)
-```
-
-```text Result
-['Aetheria Vance', 'Zephyr Quill', 'Lumiere Storm']
-```
-</CodeGroup>
-
-The `marvin.run()` function is the main entry point for creating Marvin workflows. This single line of code creates a task, assigns it to a default agent, and executes it, then returns the result. You can customize this behavior by learning more about [tasks](/concepts/tasks), [agents](/concepts/agents), and [threads](/concepts/threads).
-
-## Key Features
-
-### Structured outputs
-
-Marvin tasks are not limited to returning text. You can define the structure of a task's output by setting the `result_type` parameter:
-
-<CodeGroup>
-```python Code
-import marvin
-from pydantic import BaseModel
-
-class Movie(BaseModel):
-    title: str
-    genre: str
-    year: int
-
-movie = marvin.run(
-    "Recommend a movie with a fun adventure story", 
-    result_type=Movie
-)
-
-print(f"Title: {movie.title}")
-print(f"Genre: {movie.genre}")
-print(f"Year: {movie.year}")
-```
-
-```text Result
-Title: Raiders of the Lost Ark
-Genre: Action Adventure
-Year: 1981
-```
-</CodeGroup>
-
-You can also return a list of strings, a list of Pydantic objects, or pick an item from a list of options:
-
-<CodeGroup>
-```python Code
-import marvin
-
-result = marvin.run(
-    "Pick the best planet to visit, from the following list:",
-    result_type=["Earth", "Mars", "Jupiter", "Venus", "Kepler-186f"]
-)
-
-print(f"You should visit: {result}")
-```
-
-```text Result
-You should visit: Earth
-```
-
-</CodeGroup>
-
-### Custom tools
-
-Provide Python functions that agents can use as tools:
-
-<CodeGroup>
-```python Code
-import marvin
-import random
-
-def roll_dice(n: int) -> list[int]:
-    """Roll `n` 6-sided dice and return the results"""
-    return [random.randint(1, 6) for _ in range(n)]
-
-result = marvin.run(
-    "Roll 3 dice and return the results",
-    tools=[roll_dice]
-)
-
-print(result)
-```
-
-```text Result
-[3, 5, 2]
-```
-</CodeGroup>
-
-### Threaded context
-
-Use threads to manage state and conversation history across multiple tasks. Threads are automatically managed and persisted across runs, so you can easily continue a conversation or maintain state between tasks or processes.
-
-<CodeGroup>
-```python Code
-import marvin
-
-with marvin.Thread() as thread:
-    name = marvin.run(
-        "What's your name?", 
-        interactive=True,
-    )
-    response = marvin.run(f"What did {name} say?")
-
-print(response)
-```
-
-```text Result
-Agent: What's your name?
-User: Bob
-Bob said: What's your name?
-```
-</CodeGroup>
-
-### AI Functions
-
-Use `@marvin.fn` to describe LLMs that return function-like output.
-
-<CodeGroup>
 ```python
 import marvin
 
-@marvin.fn
-def get_cultural_reference(x: int, y: int) -> dict:
-    """
-    Given two numbers, return a cultural reference related to the sum of the two numbers.
-    """
-    return f"the sum of {x} and {y} is {x+y}"  # type: ignore
+# Run a simple task
+result = marvin.run("Write a haiku about artificial intelligence")
+print(result)
 
-print(get_cultural_reference(40, 2))
+# Provide additional context for more accurate results
+result = marvin.run(
+    "Summarize the data in 2-3 sentences",
+    context={"data": "...your data here..."}
+)
 ```
-```text Result
-{
-    'short_description': "The number 42 is widely recognized as 'The Answer to the Ultimate Question of Life, the Universe, and Everything' from Douglas Adams' science fiction series 'The Hitchhiker's Guide to the Galaxy'.",
-    'circa': datetime.date(1979, 1, 1)
-}
-```
-</CodeGroup>
 
+
+### Specialized Agents
+
+Create agents with specific skills and personalities:
+
+```python
+import marvin
+
+# Create specialized agents
+poet = marvin.Agent(
+    name="Poet",
+    instructions="You are an expert poet who writes in various styles."
+)
+
+scientist = marvin.Agent(
+    name="Scientist",
+    instructions="You are a scientist who explains complex topics clearly."
+)
+
+# Use them for specific tasks
+explanation = marvin.run(
+    "Explain entropy briefly",
+    agents=[scientist]
+)
+
+poem = marvin.run(
+    "Write a haiku about entropy",
+    agents=[poet],
+    context={"scientific_explanation": explanation}
+)
+```
+
+### Structured Data
+
+Get results in exactly the format you need:
+
+```python
+import marvin
+from typing import List
+
+class Character(marvin.Model):
+    name: str
+    role: str
+    motivation: str
+
+# Get structured results
+characters = marvin.run(
+    "Create three characters for a mystery story",
+    result_type=List[Character]
+)
+
+for char in characters:
+    print(f"{char.name} - {char.role}")
+    print(f"Motivation: {char.motivation}\n")
+```
+
+### Persistent Memory
+
+Give your agents memory that persists across conversations:
+
+```python
+import marvin
+
+# Create a memory module
+preferences = marvin.Memory(
+    key="user_preferences",
+    instructions="Remember user preferences and style"
+)
+
+# Create an agent with memory
+assistant = marvin.Agent(memories=[preferences])
+
+# The agent will remember information across conversations
+marvin.run(
+    "Learn about the user's writing style preferences",
+    agents=[assistant],
+    interactive=True
+)
+```
 
 ## Why Marvin?
 
--   ✨ **Delightful Experience:** Marvin makes working with LLMs feel like writing idiomatic Python.
--   🧩 **Flexibility:** Build everything from simple scripts to complex workflows, adapting to your exact needs.
--   🚀 **Rapid Prototyping:** Experiment with AI ideas and build functional applications in minutes.
--   🔍 **Transparency:** Observe how Marvin is managing your AI workflows, gaining valuable insights into what's happening.
--   🤝 **Productivity:** Focus on your application's core logic while Marvin manages the complexities of LLMs.
-
-Marvin provides a smooth, intuitive experience while giving you fine-grained control over all aspects of the LLM process. It's designed to make AI development accessible to all developers, regardless of their background in machine learning.
+- 🎯 **Simple Interface**: Start with one line of code, scale to complex applications
+- 🧠 **Smart Defaults**: Sensible defaults that just work, with full customization when you need it
+- 🔄 **State Management**: Built-in conversation history and memory management
+- 📝 **Structured Data**: Get results in exactly the format you need
+- 🤝 **Multi-Agent**: Create specialized agents that work together
+- 🔌 **Extensible**: Easy to integrate with your existing Python code
 
 ## Next Steps
 
--   [Installation](/installation)
--   Explore the [Core Concepts](/concepts)
--   Browse [Examples](/examples)
-
+- [Install Marvin](/installation) - Get started in under a minute
+- Try the [Quickstart](/quickstart) - Build your first AI application
+- Explore [Core Concepts](/concepts) - Learn about tasks, agents, and more
+- Browse [Examples](/examples) - See Marvin in action 
