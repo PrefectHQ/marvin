@@ -1,0 +1,124 @@
+---
+title: Summarize
+description: Create concise summaries of any content
+icon: rectangle-list
+---
+
+Summarizing text is such a common operation that we created a dedicated function for it. The 
+`summarize` function transforms any text into a concise summary, with optional instructions for 
+format and focus.
+
+For complex summarization needs, consider creating a custom task. The `summarize` function is a 
+convenient wrapper around Marvin's task system - see [Tasks](/concepts/tasks) for more details.
+
+## Usage
+
+Create a simple summary:
+
+<CodeGroup>
+```python Code
+import marvin
+
+text = """
+The annual baking competition featured thirty contestants this year, each bringing their 
+unique recipes and techniques. The highlight was a three-tiered chocolate cake with 
+raspberry filling, which won first place. Second place went to a creative take on 
+traditional apple pie, while third place was awarded to an innovative gluten-free 
+cheesecake.
+"""
+
+summary = marvin.summarize(text)
+print(summary)
+```
+
+```python Result
+"A baking competition with 30 contestants saw a chocolate raspberry cake win first place, followed by an apple pie and a gluten-free cheesecake."
+```
+</CodeGroup>
+
+## Parameters
+
+- `data`: The content to summarize
+- `instructions`: Optional guidance for the summary
+- `agent`: Optional custom agent to use
+- `thread`: Optional thread for conversation context
+- `context`: Optional dict of additional context
+
+## Async Support
+
+The function is also available in an async version:
+
+```python
+import marvin
+import asyncio
+
+async def main():
+    result = await marvin.summarize_async(
+        "Long text here...",
+        instructions="Focus on key findings"
+    )
+    print(result)
+
+asyncio.run(main())
+```
+
+## Examples
+
+### Bullet Points
+
+Get a structured summary:
+
+<CodeGroup>
+```python Code
+import marvin
+
+text = """
+The new smartphone features a 6.7-inch OLED display, 5G connectivity, 
+and a triple-camera system. Battery life is rated at 24 hours of normal use. 
+The device runs on a custom chip that enables advanced AI features. 
+Pricing starts at $999 for the base model with 128GB storage.
+"""
+
+summary = marvin.summarize(
+    text,
+    instructions="Summarize in three bullet points"
+)
+print(summary)
+```
+
+```python Result
+"• High-end display with 6.7-inch OLED screen and triple cameras
+• Advanced features including 5G and AI-enabled custom chip
+• All-day battery life with pricing from $999"
+```
+</CodeGroup>
+
+### With Context
+
+Provide background information:
+
+<CodeGroup>
+```python Code
+import marvin
+
+text = """
+Version 2.0 introduces several major changes. The API has been completely redesigned 
+for better usability. Several deprecated functions have been removed, and new features 
+have been added based on user feedback.
+"""
+
+summary = marvin.summarize(
+    text,
+    context={
+        "audience": "developers",
+        "document_type": "changelog"
+    },
+    instructions="Highlight breaking changes"
+)
+print(summary)
+```
+
+```python Result
+"Breaking changes include a complete API redesign and removal of deprecated functions, with new features added."
+```
+</CodeGroup> 

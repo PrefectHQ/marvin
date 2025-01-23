@@ -52,6 +52,18 @@
             ]
         },
         {
+            "group": "Functions",
+            "pages": [
+                "functions/run",
+                "functions/cast",
+                "functions/classify",
+                "functions/extract",
+                "functions/generate",
+                "functions/say",
+                "functions/summarize"
+            ]
+        },
+        {
             "group": "Patterns",
             "pages": [
                 "patterns/task-results",
@@ -59,6 +71,12 @@
                 "patterns/memory",
                 "patterns/tools",
                 "patterns/interactivity"
+            ]
+        },
+        {
+            "group": "Community",
+            "pages": [
+                "community"
             ]
         }
     ],
