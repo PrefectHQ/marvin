@@ -36,7 +36,7 @@ class SlackbotSettings(BaseSettings):
         default=0.5, description="Temperature for model inference"
     )
     user_message_max_tokens: int = Field(
-        default=300, description="Maximum tokens allowed in user messages"
+        default=500, description="Maximum tokens allowed in user messages"
     )
 
     github_token_secret_name: str = Field(
