@@ -17,8 +17,7 @@ Tools can be:
 
 Here's a basic example of a tool for rolling dice:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 import random
 
@@ -30,10 +29,10 @@ rolls = marvin.run("Roll a die four times", tools=[roll_die])
 
 print(rolls)
 ```
+
 ```text Result
 [3, 1, 4, 2]
 ```
-</CodeGroup>
 
 ## Creating Tools
 
@@ -41,10 +40,12 @@ Any Python function can be used as a tool. The function's name, docstring, and t
 
 ```python
 from typing import Annotated
+from pydantic import Field
 
-def get_weather(
-    location: Annotated[str, "The 5 or 9-digit zip code"],
-) -> Annotated[float, "The temperature in Fahrenheit"]:
+Location = Annotated[str, Field(description="The 5 or 9-digit zip code")]
+Temperature = Annotated[float, Field(description="The temperature in Fahrenheit")]
+
+def get_weather(location: Location) -> Temperature:
     """Fetch weather data for the specified location."""
     # Implementation details...
 ```

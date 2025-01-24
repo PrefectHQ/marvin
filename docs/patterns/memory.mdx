@@ -99,8 +99,7 @@ marvin.run("Compare to yesterday's weather", agents=[agent])
 
 Here's a complete example of using memory to track weather information:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 # Create a memory module
@@ -123,10 +122,9 @@ result = marvin.run(
 print(result)
 ```
 
-```text Result
+```text
 Today's weather was 72°F and sunny.
 ```
-</CodeGroup>
 
 ## Memory Providers
 
@@ -136,17 +134,31 @@ Marvin supports several vector store backends for memory storage:
 
 ChromaDB is the default provider, offering a simple, file-based vector store:
 
-```bash
+<CodeGroup>
+```bash pip
 pip install "marvin[chroma]"
 ```
+
+```bash uv
+uv pip install "marvin[chroma]"
+```
+</CodeGroup>
 
 ### LanceDB
 
 LanceDB provides a fast, efficient vector store with columnar storage:
 
-```bash
+<CodeGroup>
+
+```bash pip
 pip install "marvin[lance]"
 ```
+
+```bash uv
+uv pip install "marvin[lance]"
+```
+
+</CodeGroup>
 
 Configure LanceDB:
 ```python
@@ -164,10 +176,17 @@ memory = marvin.Memory(
 
 Use PostgreSQL with pgvector for scalable, production-ready vector storage:
 
-```bash
+<CodeGroup>
+
+```bash pip
 pip install "marvin[postgres]"
 ```
 
+```bash uv
+uv pip install "marvin[postgres]"
+```
+
+</CodeGroup>
 Configure PostgreSQL:
 ```python
 import marvin
@@ -186,6 +205,12 @@ memory = marvin.Memory(
 
 Install all memory providers at once:
 
-```bash
+<CodeGroup>
+```bash pip
 pip install "marvin[memory]"  # Includes chroma, lance, and postgres
-``` 
+```
+
+```bash uv
+uv pip install "marvin[memory]"  # Includes chroma, lance, and postgres
+```
+</CodeGroup>
