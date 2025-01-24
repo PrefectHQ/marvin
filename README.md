@@ -1,5 +1,23 @@
 ![Marvin Banner](docs/assets/img/it_hates_me_hero.png)
 
+## Installation
+
+Install `marvin`:
+
+```bash
+# with pip
+pip install marvin
+
+# with uv
+uv add marvin
+```
+
+Configure your LLM provider (Marvin uses OpenAI by default but see [all models supported by Pydantic AI](https://ai.pydantic.dev/models/)):
+
+```bash
+export OPENAI_API_KEY=your-api-key
+```
+
 ## MIGRATION NOTES
 
 > ⚠️ **Important:** Marvin 3.0 is currently in very active development. The API may undergo breaking changes, and documentation is still being updated. Use with caution.
@@ -87,20 +105,6 @@ We believe working with AI should spark joy (and maybe a few "wow" moments):
 - 🛠️ **Powerful Tools:** Give your agents superpowers (responsibly, of course)
 - 🔍 **Full Visibility:** No more "black box" anxiety - see what your agents are up to
 - ⚡️ **Developer Speed:** Start simple, scale up, sleep well
-
-## Installation
-
-Install Marvin with pip:
-
-```bash
-pip install marvin
-```
-
-Configure your LLM provider (Marvin uses OpenAI by default):
-
-```bash
-export OPENAI_API_KEY=your-api-key
-```
 
 ## Building Something Real
 
