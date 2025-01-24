@@ -1,0 +1,86 @@
+---
+title: Tools
+description: Give agents new abilities with custom tools.
+icon: toolbox
+---
+
+A tool is a Python function that your agents can use to accomplish tasks. Tools extend an agent's capabilities beyond their built-in knowledge and abilities, allowing them to interact with external systems, perform calculations, or access specific information.
+
+Tools can be:
+- Simple utility functions for common operations
+- Complex data processing operations
+- API calls to external services
+- File system operations
+- Database queries
+- System commands
+- Custom business logic
+
+Here's a basic example of a tool for rolling dice:
+
+```python
+import marvin
+import random
+
+def roll_die() -> int:
+    """Roll a 6-sided die."""
+    return random.randint(1, 6)
+
+rolls = marvin.run("Roll a die four times", tools=[roll_die])
+
+print(rolls)
+```
+
+```text Result
+[3, 1, 4, 2]
+```
+
+## Creating Tools
+
+Any Python function can be used as a tool. The function's name, docstring, and type hints help agents understand what the tool does and how to use it:
+
+```python
+from typing import Annotated
+from pydantic import Field
+
+Location = Annotated[str, Field(description="The 5 or 9-digit zip code")]
+Temperature = Annotated[float, Field(description="The temperature in Fahrenheit")]
+
+def get_weather(location: Location) -> Temperature:
+    """Fetch weather data for the specified location."""
+    # Implementation details...
+```
+
+## Using Tools
+
+Tools can be provided to tasks or agents. When a tool is provided to a task, any agent working on that task will have access to the tool. When a tool is provided to an agent, the agent can use the tool in any task it is assigned to:
+
+```python
+import marvin
+
+def search_database(query: str) -> list:
+    """Search the product database for items matching the query."""
+    # Implementation details...
+
+# Provide tools to a task
+task = marvin.Task(
+    instructions="Find products matching 'blue shirt'",
+    tools=[search_database]
+)
+
+# Or provide tools to an agent
+agent = marvin.Agent(
+    name="ProductBot",
+    tools=[search_database]
+)
+```
+
+## Common Use Cases
+
+Tools are particularly useful for:
+- Accessing external APIs or services
+- Performing calculations or data processing
+- File operations and data manipulation
+- Database queries and updates
+- System interactions
+- Custom business logic
+- Integration with existing code 

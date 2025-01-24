@@ -1,0 +1,144 @@
+---
+title: Classify
+description: Assign data to predefined categories
+icon: tags
+---
+
+The `classify` function turns any input into clear categories. It transforms `str → L` where `L` is your set of labels, making it easy to identify:
+- Sentiment ("Great product!" → Positive)
+- Topics ("AI in healthcare" → [Technology, Healthcare])
+- Priority ("URGENT: System down" → Critical)
+- Status ("All tests passing" → Success)
+
+For complex classification needs, consider creating a custom task. The `classify` function is a convenient wrapper around Marvin's task system - see [Tasks](/concepts/tasks) for more details.
+
+## Usage
+
+Classify text into predefined categories:
+
+```python
+import marvin
+
+sentiment = marvin.classify(
+    "This product is amazing!",
+    ["positive", "negative", "neutral"]
+)
+print(sentiment)
+```
+
+```python
+"positive"
+```
+
+## Parameters
+
+- `data`: The input data to classify (any type)
+- `labels`: Either a sequence of labels or an Enum class
+- `multi_label`: Whether to return multiple labels (defaults to `False`)
+- `instructions`: Optional instructions to guide classification
+- `agent`: Optional custom agent to use
+- `thread`: Optional thread for conversation context
+- `context`: Optional additional context
+
+## Async Support
+
+The function is also available in an async version:
+
+```python
+import marvin
+import asyncio
+
+async def main():
+    result = await marvin.classify_async(
+        "The weather is sunny and warm",
+        ["sunny", "rainy", "cloudy"]
+    )
+    print(result)  # "sunny"
+
+asyncio.run(main())
+```
+
+## Examples
+
+### Basic Classification
+
+Use simple string labels to categorize content:
+
+```python
+import marvin
+
+priority = marvin.classify(
+    "Critical system failure",
+    ["low", "medium", "high", "critical"]
+)
+print(priority)
+```
+
+```python
+"critical"
+```
+
+### Using Enums
+
+Add type safety with Python enums:
+
+```python
+import marvin
+from enum import Enum
+
+class Priority(Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+priority = marvin.classify(
+    "Minor UI bug in non-critical component",
+    Priority
+)
+print(priority)
+print(priority.value)
+```
+
+```python
+Priority.LOW
+"low"
+```
+
+### Multi-label Classification
+
+Identify multiple applicable categories:
+
+```python
+import marvin
+
+genres = marvin.classify(
+    "A romantic comedy about AI",
+    ["comedy", "romance", "sci-fi", "drama", "action"],
+    multi_label=True
+)
+print(genres)
+```
+
+```python
+["comedy", "romance", "sci-fi"]
+```
+
+### Custom Instructions
+
+Guide the classification with specific criteria:
+
+```python
+import marvin
+
+sentiment = marvin.classify(
+    "This product is okay",
+    ["positive", "negative"],
+    instructions="Classify as positive only if explicitly enthusiastic"
+)
+print(sentiment)
+```
+
+```python
+"negative"
+``` 

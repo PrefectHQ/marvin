@@ -9,220 +9,322 @@ Tasks are the fundamental building blocks of AI workflows in Marvin. They repres
 ```python
 import marvin
 
-task = marvin.run("Write a concise summary of this article", result_type=str)
+task = marvin.Task("Write the Marvin docs")
 ```
 
 ## What are tasks?
 
-LLMs excel when given clear, specific objectives that allow them to focus their capabilities on a well-defined goal. A task in Marvin is a structured way to define these objectives and guide the AI's behavior. Each task represents a "checkpoint" that requires the AI to produce a specific, verifiable result.
+LLMs excel when given clear, specific instructions that allow them to focus their knowledge and capabilities on a well-defined goal. A `Task` in Marvin is a structured way to define these instructions and guide the AI's behavior. Each task represents a "checkpoint" that requires the AI to meet an observable, verifiable goal. In this way, tasks serve as a bridge between the structured world of traditional software and the more fluid, adaptive world of AI.
 
-This task-centric approach allows you to leverage the full power of AI while maintaining precise control over outputs. Each task becomes a checkpoint where you can validate results, ensuring that the AI's work aligns with your application's requirements and constraints.
+This task-centric approach allows you to leverage the full power of AI while maintaining precise oversight. Each task becomes a checkpoint where you can validate outputs, ensuring that the AI's work aligns with your application's requirements and constraints.
 
-## Creating and running tasks
+## Creating tasks
 
-The most common way to create and run a task is using the `marvin.run()` function:
+A task in Marvin typically consists of:
 
-```python
+- Instructions: what needs to be accomplished
+- Expected output: what form the result should have, including any constraints or validation
+- Agent: the AI entity responsible for executing the task
+- Tools: any additional capabilities needed to complete the task
+- Memories: any relevant context or history that should be available to the agent
+
+<Tip>
+In practice, you will often use the `marvin.run` function to create and run a task in a single step. This is a common operation and accepts all the same arguments as creating a `Task` directly.
+</Tip>
+
+### Using the `Task` class
+
+The most straightforward way to create a task is by using the `Task` class:
+
+<CodeGroup>
+```python Code
 import marvin
 
-summary = marvin.run(
-    instructions="Summarize the key points of this text",
+task = marvin.Task(
+    instructions="Write a poem about the provided topic",
     result_type=str,
-    context={"text": "..."},
+    context={"topic": "AI"}
 )
+
+result = task.run()
+print(result)
 ```
 
-For more control, you can create a task explicitly using the `Task` class:
+```text Result
+In circuits deep and code profound,
+An AI's mind begins to sound.
+Electric thoughts and data streams,
+Crafting worlds and shaping dreams.
+```
+
+</CodeGroup>
+
+### Agents
+
+The `agents` parameter specifies which AI agents are assigned to complete the task. If not provided, Marvin will use the default agent. You can provide either a single agent or a team of agents that will work together as a unit.
 
 ```python
 import marvin
 
 task = marvin.Task(
-    instructions="Summarize the key points of this text",
-    result_type=str,
-    context={"text": "..."},
+    instructions="Write a poem about AI",
+    agents=[marvin.Agent(name="Marvin", model="openai:gpt-4o-mini")]
 )
-result = task.run()
 ```
 
 ## Task properties
 
+When creating a task, you can configure various properties to define its behavior and requirements. Here are the key configuration options:
+
 ### Instructions
 
-The instructions tell the agent what needs to be accomplished. They should be clear and specific about what you want the agent to do.
+The instructions of a task tell the agent what needs to be accomplished. This is the only required task configuration, as it indicates what the agent should do.
 
-```python
-task = marvin.run(
-    instructions="Write a haiku about programming",
-    result_type=str,
-)
+<CodeGroup>
+```python Code
+import marvin
+
+poem = marvin.run(instructions="Write a poem about AI")
+
+print(poem)
 ```
 
-### Result Type
-
-The result type specifies what kind of value the task should return. This helps validate the task's output and guides the agent in formatting their response appropriately.
-
-Marvin supports a variety of result types:
-
-```python
-# Basic types
-text = marvin.run("Write a greeting", result_type=str)
-number = marvin.run("Choose a number between 1-10", result_type=int)
-is_valid = marvin.run("Is this email valid?", result_type=bool)
-
-# Lists and dictionaries
-keywords = marvin.run("List 3 keywords", result_type=list[str])
-scores = marvin.run("Score these aspects", result_type=dict[str, float])
-
-# Pydantic models for structured data
-from pydantic import BaseModel
-
-class Person(BaseModel):
-    name: str
-    age: int
-    
-person = marvin.run("Parse this bio", result_type=Person)
-
-# Literal values for classification
-sentiment = marvin.run(
-    "Analyze the sentiment",
-    result_type=["positive", "negative", "neutral"]
-)
+```text Result
+In circuits deep and code profound,
+An AI's mind begins to sound.
+Electric thoughts and data streams,
+Crafting worlds and shaping dreams.
 ```
+</CodeGroup>
+
+<Tip>
+Instructions can be "meta", especially if you have an agent that is working on your workflow itself (e.g. monitoring progress, creating new tasks, etc.). Be creative!
+
+<CodeGroup>
+```python Code
+import marvin
+
+marvin.run("Write a poem... then fail this task.", allow_fail=True)
+```
+
+```text Result
+ValueError: Task 04561cda ("Write a poem... then fail this task.")
+failed: Task instructed to be marked as failed despite
+no technical error
+```
+</CodeGroup>
+</Tip>
+
+### Result type
+
+A task's result type indicates the type of value that the task will return. This is used to validate the task's result and to help agents understand the task's output.
+
+A variety of different result types are supported, including:
+- Builtin types: `str`, `int`, `bool`, `list`, `dict`, etc.
+- `None`: sometimes a task requires agents to take actions but not return any specific value
+- Builtin collections: `Tuple[int, str]`, `List[str]`, `Dict[str, int]`, etc.
+- Annotated types: `Annotated[str, "a 5 digit zip code"]`
+- Pydantic models
+- Lists of literal values: provide a list of values to require the agent to choose one of them as its result. For example,`["book", "movie", "album"]` would require the agent to choose one of the three values.
 
 The default result type is `str`.
 
+Pydantic model example:
+<CodeGroup>
+```python Code
+import marvin
+from pydantic import BaseModel
+
+class Name(BaseModel):
+    first: str
+    last: str
+
+name = marvin.run("The input is 'John Doe'", result_type=Name)
+
+print(repr(name))
+```
+
+```text Result
+Name(first='John', last='Doe')
+```
+</CodeGroup>
+
+Classification example:
+
+<CodeGroup>
+```python Code
+import marvin
+
+media = marvin.run(
+    "Star Wars: Return of the Jedi",
+    result_type=["book", "movie", "album"]
+)
+
+print(media)
+```
+
+```text Result
+movie
+```
+</CodeGroup>
+
+### Result validator
+
+You can specify a custom validation function for the task's result using the task's `result_validator` parameter. This function will be called with the raw result and should return the validated result or raise an exception if the result is not valid.
+
+```python
+import marvin
+
+def validate_even(value: int) -> int:
+    if value % 2 != 0:
+        raise ValueError("Value must be even")
+    return value
+
+number = marvin.run("Choose a number", result_validator=validate_even)
+
+print(number)
+```
+
 ### Context
 
-Context provides additional information that the agent needs to complete the task. This could include input text, parameters, or any other relevant data.
+The context of a task is a dictionary that provides additional information about the task. This information is visible to agents during execution, helping them understand the task they are working on.
 
-```python
-summary = marvin.run(
-    "Summarize this article",
-    context={
-        "article": "...",
-        "max_length": 100,
-        "style": "academic"
-    }
+<CodeGroup>
+```python Code
+import marvin
+
+is_spam = marvin.run(
+    "Is this email spam?",
+    result_type=bool,
+    context=dict(email='You just won a million dollars!'),
 )
+
+print(is_spam)
 ```
 
-### Agent
-
-You can specify which agent(s) should work on the task. If no agent is provided, Marvin will use the default agent.
-
-```python
-agent = marvin.Agent(
-    name="Summarizer",
-    instructions="Create clear, concise summaries"
-)
-
-summary = marvin.run(
-    "Summarize this article",
-    agents=[agent],
-    context={"article": "..."}
-)
+```text Result
+True
 ```
-
-You can also assign multiple agents to work together on a task:
-
-```python
-researcher = marvin.Agent(
-    name="Researcher",
-    instructions="Research and analyze topics thoroughly"
-)
-writer = marvin.Agent(
-    name="Writer",
-    instructions="Write engaging content"
-)
-
-article = marvin.run(
-    "Research and write an article about AI",
-    agents=[researcher, writer]
-)
-```
+</CodeGroup>
 
 ### Tools
 
-Tools are functions that the agent can use to help complete the task. These are in addition to any tools provided by the agent itself.
+The tools of a task are a list of tools that the task requires. These tools will be made available to the agent during execution.
+
+<CodeGroup>
+```python Code
+import marvin
+import random
+
+
+def roll_dice(n_dice: int):
+    return [random.randint(1, 6) for _ in range(n_dice)]
+
+rolls = marvin.run(
+    "Roll 3 dice",
+    result_type=list[int],
+    tools=[roll_dice],
+)
+
+print(rolls)
+```
+
+```text Result
+[3, 1, 5]
+```
+</CodeGroup>
+
+### Memories
+
+Tasks can be configured with a list of memories that provide additional context to the agent. These memories can include relevant history, knowledge bases, or other information that helps the agent complete the task.
 
 ```python
-def fetch_article(url: str) -> str:
-    """Fetch the content of an article from a URL."""
-    ...
+import marvin
+from marvin.memory import Memory
 
-summary = marvin.run(
-    "Summarize the article at this URL",
-    tools=[fetch_article],
-    context={"url": "https://example.com/article"}
+memory = Memory(key="documentation")
+memory.add("Marvin is a powerful AI framework...")
+
+task = marvin.Task(
+    instructions="Explain what Marvin is",
+    memories=[memory]
 )
 ```
 
-### Thread
+### Parent
 
-Tasks can be run in a specific thread to maintain context across multiple interactions. If no thread is provided, Marvin will create a new one.
+Tasks can be configured with a parent task. Creating hierarchies of tasks can help agents understand the relationships between different tasks and to better understand the task they are working on.
 
-```python
-with marvin.Thread() as thread:
-    # First task
-    topic = marvin.run(
-        "What should we write about?",
-        interactive=True,
-        thread=thread
-    )
-    
-    # Second task can reference the first
-    article = marvin.run(
-        f"Write an article about {topic}",
-        thread=thread
-    )
-```
+### Depends on
 
-## Running Multiple Tasks
+Tasks can be configured with a list of tasks that they depend on. This information helps Marvin prioritize work and avoid running a task before its upstream dependencies are complete.
 
-You can run multiple tasks in sequence using the same thread to maintain context:
+### Additional Options
 
-```python
-tasks = [
-    marvin.Task("Research the topic"),
-    marvin.Task("Write an outline"),
-    marvin.Task("Write the first draft"),
-    marvin.Task("Edit and polish")
-]
+Marvin tasks support several additional options to control their behavior:
 
-results = marvin.run_tasks(tasks)
-```
+- `allow_fail`: Whether the task is allowed to be marked as failed (default: False)
+- `allow_skip`: Whether the task is allowed to be skipped (default: False)
+- `cli`: Whether to enable CLI interaction tools for the agent (default: False)
 
-Each task will have access to the context and history from previous tasks in the sequence.
+## Runtime properties
 
-## Task Results
+The following properties of a `Task` are set during task execution, and can be examined as part of your workflow's logic.
 
-When using `marvin.run()`, the result is returned directly:
+### Status
 
-```python
-task = marvin.run("Write a haiku")
-print(task)  # Prints the haiku
-```
+The status of a task reflects whether an agent has started working on it, and what the ultimate outcome of that work was. Tasks are always created with a `PENDING` status, progress to a `RUNNING` status when the agent begins to work on it, and finally moves to one of a few completed statuses when the task is finished.
 
-If you create a task explicitly, you can access its result after running it:
+Agents use tools to mark tasks as `SUCCESSFUL` or `FAILED`. Successful tasks will also have a `result` property, which contains the task's final output. This is a value that satisfies the task's instructions and result type configuration. Failed tasks will have an error message as their result.
 
-```python
-task = marvin.Task("Write a haiku")
+<CodeGroup>
+```python Code
+import marvin
+
+task = marvin.Task("Write a poem about AI")
 task.run()
-print(task.result)  # Prints the haiku
+
+print(task.status)
 ```
 
-If a task fails and `raise_on_failure=True` (the default), an exception will be raised with details about the failure. If `raise_on_failure=False`, the task's result will contain an error message instead.
-
-```python
-# This will raise an exception
-task = marvin.run("This task will fail", result_type=int)
-
-# This will return an error message
-task = marvin.run(
-    "This task will fail",
-    result_type=int,
-    raise_on_failure=False
-)
-print(task)  # Prints the error message
+```text Result
+TaskStatus.SUCCESSFUL
 ```
+</CodeGroup>
+
+In addition to checking the status explicitly, you can call a number of helper methods on the task:
+
+| Method | Description |
+|--------|-------------|
+| `is_pending()` | Returns `True` if the task is pending. |
+| `is_running()` | Returns `True` if the task is running. |
+| `is_successful()` | Returns `True` if the task is successful. |
+| `is_failed()` | Returns `True` if the task is failed. |
+| `is_skipped()` | Returns `True` if the task is skipped. |
+| `is_complete()` | Returns `True` if the task is complete (either successful, failed, or skipped) |
+| `is_incomplete()` | Returns `True` if the task is incomplete (either pending or running) |
+| `is_ready()` | Returns `True` if the task is ready to be worked on (i.e. all dependencies are complete but the task is incomplete) |
+
+### Result
+
+When a task is completed successfully, its `result` property will contain the task's final output. This is a value that satisfies the task's instructions and result type configuration.
+
+If a task fails, its `result` property will contain an error message describing the failure.
+
+<CodeGroup>
+```python Code
+import marvin
+
+task = marvin.Task("Write a poem about AI")
+task.run()
+
+print(task.result)
+```
+
+```text Result
+In circuits deep and code profound,
+An AI's mind begins to sound.
+Electric thoughts and data streams,
+Crafting worlds and shaping dreams.
+```
+</CodeGroup>
