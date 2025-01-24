@@ -9,13 +9,23 @@ icon: download
 - Python 3.10 or higher
 - An API key from an LLM provider (OpenAI by default)
 
-## Install with pip
+## Install `marvin`
 
-The easiest way to install Marvin is with pip:
+The easiest way to install Marvin is a package manager like `pip` or [`uv`](https://docs.astral.sh/uv/):
 
-```bash
+<CodeGroup>
+
+```bash pip
 pip install marvin
 ```
+
+```bash uv
+uv add marvin
+# or
+uv pip install marvin
+```
+
+</CodeGroup>
 
 ## Configure your LLM provider
 
@@ -25,15 +35,29 @@ By default, Marvin uses OpenAI's models. Set your API key as an environment vari
 export OPENAI_API_KEY="your-api-key"
 ```
 
+To use another provider, see the docs on [configuring LLMs](/guides/configure-llms).
+
 ## Development Installation
 
 For development, install Marvin with development dependencies:
 
-```bash
+<CodeGroup>
+
+```bash pip
 git clone https://github.com/prefecthq/marvin.git
 cd marvin
+python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 ```
+
+```bash uv
+git clone https://github.com/prefecthq/marvin.git
+cd marvin
+uv venv && source .venv/bin/activate
+uv sync --dev
+```
+
+</CodeGroup>
 
 ## What's Next?
 

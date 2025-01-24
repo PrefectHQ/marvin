@@ -281,41 +281,87 @@ people = marvin.run(
 You can provide a validation function to enforce additional constraints. The function should either return the validated result or raise an exception:
 
 ```python
+import marvin
+
 def validate_even(value: int) -> int:
     if value % 2 != 0:
+        print(f"tried {value!r}")
         raise ValueError("Value must be even")
     return value
 
 number = marvin.run(
-    "Give me an even number",
+    "Give me a number close to 42",
     result_type=int,
     result_validator=validate_even
 )
+print(number)
+```
+```python
+tried 41
+44
 ```
 
 ### Pydantic Validation
 
-When using Pydantic models, you can use field validators for more complex validation:
+When using Pydantic models, you can use field or model validators for more complex validation:
+
+#### using `field_validator`
 
 ```python
-from pydantic import field_validator
-from marvin import Model
+from pydantic import BaseModel, field_validator
+import marvin
 
-class SentimentAnalysis(Model):
-    text: str
-    sentiment: float
+class User(BaseModel):
+    username: str
+    password: str
 
-    @field_validator('sentiment')
-    def check_sentiment_range(cls, v):
-        if not -1 <= v <= 1:
-            raise ValueError('Sentiment must be between -1 and 1')
+    @field_validator("password")
+    def validate_password(cls, v):
+        if len(v) < 8 or v.lower() == v:
+            print(f"tried {v!r}")
+            raise ValueError("must be >= 8 characters and not all lowercase")
         return v
 
-result = marvin.run(
-    "Analyze sentiment of given text",
-    result_type=SentimentAnalysis,
-    context={"text": "I love Marvin!"}
+user = marvin.run(
+    "Gilfoyle joined the company and asked for password: 'dineshsux'",
+    result_type=User
 )
+print(user)
+```
+
+```python
+tried 'dineshsux'
+username='Gilfoyle' password='DineshSux123'
+```
+
+#### using `model_validator`
+
+```python
+from pydantic import BaseModel, model_validator
+import marvin
+
+class User(BaseModel):
+    username: str
+    password: str
+    is_admin: bool = False
+
+    @model_validator(mode="after")
+    def validate_user(self):
+        if self.username == "BigHead":
+            print("let's randomly make him admin")
+            self.is_admin = True
+        return self
+
+user = marvin.run(
+    "idk how, but BigHead joined the company",
+    result_type=User
+)
+print(user)
+```
+
+```python
+let's randomly make him admin
+username='BigHead' password='abc123ABC' is_admin=True
 ```
 
 ### Annotated Types
@@ -323,17 +369,54 @@ result = marvin.run(
 Use `Annotated` to provide additional context about the expected result:
 
 ```python
+from pydantic import Field
 from typing import Annotated
+import marvin
 
 # Get a specific format
-zip_code = marvin.run(
-    "What's the zip code for Manhattan?",
-    result_type=Annotated[str, "A 5-digit US zip code"]
+print(
+    marvin.run(
+        "What's the zip code for Manhattan?",
+        result_type=Annotated[str, Field(max_length=5)]
+    )
 )
 
 # Get a constrained number
-rating = marvin.run(
-    "Rate this movie from 1-5",
-    result_type=Annotated[int, "A rating between 1 and 5"]
+print(
+    marvin.run(
+        "Rate this movie",
+        result_type=Annotated[int, Field(gt=0, lte=5)]
+    )
 )
 ``` 
+```python
+10001
+4
+```
+
+If you want to write a function (like `field_validator`) to validate a type so that the validation is baked into the type itself, you can use `pydantic`'s functional validators:
+
+```python
+from typing import Annotated
+from pydantic import BeforeValidator
+import marvin
+
+def ensure_random_number(v):
+    if v != 3141592653:
+        print(f"tried {v}")
+        raise ValueError("everyone knows the most random number is 3141592653!")
+    return v
+
+MostRandomNumber = Annotated[int, BeforeValidator(ensure_random_number)]
+
+result = marvin.run(
+    "What is the most random number?",
+    result_type=MostRandomNumber
+)
+print(result)
+```
+
+```python
+tried 42
+3141592653
+```

@@ -16,8 +16,7 @@ For complex extraction patterns, consider creating a custom task. The `extract` 
 
 Pull email addresses from text:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 emails = marvin.extract(
@@ -28,10 +27,9 @@ emails = marvin.extract(
 print(emails)
 ```
 
-```python Result
+```python
 ["support@example.com", "sales@example.com"]
 ```
-</CodeGroup>
 
 ## Parameters
 
@@ -66,8 +64,7 @@ asyncio.run(main())
 
 Find all numbers in text:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 temperatures = marvin.extract(
@@ -77,17 +74,15 @@ temperatures = marvin.extract(
 print(temperatures)
 ```
 
-```python Result
+```python
 [75.0, 62.0]
 ```
-</CodeGroup>
 
 ### Named Entities
 
 Extract specific types of information:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 cities = marvin.extract(
@@ -98,17 +93,15 @@ cities = marvin.extract(
 print(cities)
 ```
 
-```python Result
+```python
 ["New York", "London"]
 ```
-</CodeGroup>
 
 ### Dates and Times
 
 Find temporal information in text:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 from datetime import datetime
 
@@ -120,17 +113,15 @@ dates = marvin.extract(
 print(dates)
 ```
 
-```python Result
+```python
 [datetime(2024, 3, 15, 14, 30)]
 ```
-</CodeGroup>
 
 ### Structured Data
 
 Pull complex information into structured types:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 from dataclasses import dataclass
 
@@ -151,8 +142,7 @@ print(f"{contacts[0].name}: {contacts[0].phone}")
 print(f"{contacts[1].name}: {contacts[1].phone}")
 ```
 
-```python Result
-"John Smith: 555-0123"
-"Mary Johnson: None"
+```python
+John Smith: 555-0123
+Mary Johnson: None
 ```
-</CodeGroup> 
