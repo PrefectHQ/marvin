@@ -16,8 +16,7 @@ For complex classification needs, consider creating a custom task. The `classify
 
 Classify text into predefined categories:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 sentiment = marvin.classify(
@@ -27,10 +26,9 @@ sentiment = marvin.classify(
 print(sentiment)
 ```
 
-```python Result
+```python
 "positive"
 ```
-</CodeGroup>
 
 ## Parameters
 
@@ -66,8 +64,7 @@ asyncio.run(main())
 
 Use simple string labels to categorize content:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 priority = marvin.classify(
@@ -77,17 +74,15 @@ priority = marvin.classify(
 print(priority)
 ```
 
-```python Result
+```python
 "critical"
 ```
-</CodeGroup>
 
 ### Using Enums
 
 Add type safety with Python enums:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 from enum import Enum
 
@@ -105,18 +100,16 @@ print(priority)
 print(priority.value)
 ```
 
-```python Result
+```python
 Priority.LOW
 "low"
 ```
-</CodeGroup>
 
 ### Multi-label Classification
 
 Identify multiple applicable categories:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 genres = marvin.classify(
@@ -127,17 +120,15 @@ genres = marvin.classify(
 print(genres)
 ```
 
-```python Result
+```python
 ["comedy", "romance", "sci-fi"]
 ```
-</CodeGroup>
 
 ### Custom Instructions
 
 Guide the classification with specific criteria:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 sentiment = marvin.classify(
@@ -148,7 +139,6 @@ sentiment = marvin.classify(
 print(sentiment)
 ```
 
-```python Result
+```python
 "negative"
-```
-</CodeGroup> 
+``` 

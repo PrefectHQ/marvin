@@ -27,9 +27,9 @@ poem = marvin.run(
 print(poem)
 
 # Structured output
-from marvin import Model
+from pydantic import BaseModel
 
-class Recipe(Model):
+class Recipe(BaseModel):
     name: str
     ingredients: list[str]
     steps: list[str]
@@ -41,6 +41,17 @@ recipe = marvin.run(
 print(recipe.name)
 print(recipe.ingredients)
 ```
+
+<Accordion title="Output">
+```python
+Keys tap in silence,
+Ideas flow through the night air,
+Code becomes my art.
+
+Chocolate Chip Cookies
+['1 cup unsalted butter, softened', '1 cup white sugar', '1 cup packed brown sugar', '2 large eggs', '2 teaspoons vanilla extract', '3 cups all-purpose flour', '1 teaspoon baking soda', '1/2 teaspoon baking powder', '1/2 teaspoon salt', '2 cups semisweet chocolate chips']
+```
+</Accordion>
 
 ## Parameters
 
@@ -67,10 +78,11 @@ async def main():
         "Translate 'hello' to French",
         result_type=str
     )
-    print(result)  # "bonjour"
+    print(result)
 
-asyncio.run(main())
+asyncio.run(main()) # bonjour
 ```
+
 
 ## Examples
 
@@ -115,14 +127,13 @@ print(result)  # True or False depending on the roll
 
 ```python
 import marvin
-from marvin import Model
-from typing import List
+from pydantic import BaseModel, Field
 
-class MovieReview(Model):
+class MovieReview(BaseModel):
     title: str
-    rating: float
-    pros: List[str]
-    cons: List[str]
+    rating: float = Field(gt=0, lt=5)
+    pros: list[str]
+    cons: list[str]
 
 # Get structured review
 review = marvin.run(
@@ -132,6 +143,7 @@ review = marvin.run(
 print(review.rating)  # 4.8
 print(review.pros)    # ["Groundbreaking special effects", "Deep philosophical themes"]
 ```
+
 
 ### Using Context
 
@@ -180,10 +192,12 @@ import asyncio
 
 async def main():
     # Run multiple tasks asynchronously
-    tasks = await marvin.run_tasks_async([
-        marvin.Task("Write a haiku"),
-        marvin.Task("Write a limerick")
-    ])
+    tasks = await marvin.run_tasks_async(
+        [
+            marvin.Task("Write a haiku"),
+            marvin.Task("Write a limerick")
+        ]
+    )
     for task in tasks:
         print(task.result)
 

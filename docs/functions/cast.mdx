@@ -16,8 +16,7 @@ For complex transformations, consider creating a custom task. The `cast` functio
 
 Convert natural language descriptions of numbers into their numeric representation:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 # Convert text to a number
@@ -25,10 +24,9 @@ price = marvin.cast("three dollars and fifty cents", float)
 print(price)
 ```
 
-```python Result
+```python
 3.5
 ```
-</CodeGroup>
 
 ## Parameters
 
@@ -63,42 +61,37 @@ asyncio.run(main())
 
 Convert natural language descriptions of quantities into numeric values:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 price = marvin.cast("three dollars and fifty cents", float)
 print(price)
 ```
 
-```python Result
+```python
 3.5
 ```
-</CodeGroup>
 
 ### Boolean Conversion
 
 Interpret natural language expressions as boolean values:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 answer = marvin.cast("that sounds great!", bool)
 print(answer)
 ```
 
-```python Result
+```python
 True
 ```
-</CodeGroup>
 
 ### Structured Data
 
 Extract structured information from natural language descriptions:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 from dataclasses import dataclass
 
@@ -115,17 +108,15 @@ address = marvin.cast(
 print(f"{address.street}, {address.city}, {address.country}")
 ```
 
-```python Result
+```python
 "123 Main St", "New York", "USA"
 ```
-</CodeGroup>
 
 ### Custom Instructions
 
 Use instructions to control how text is interpreted and formatted:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 phone = marvin.cast(
@@ -136,7 +127,6 @@ phone = marvin.cast(
 print(phone)
 ```
 
-```python Result
+```python
 "555-0123"
-```
-</CodeGroup> 
+``` 

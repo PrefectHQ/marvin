@@ -12,47 +12,35 @@ You'll learn how to:
 3. [Get structured data](#getting-structured-data) in the format you need
 4. [Maintain conversation context](#maintaining-context) with threads
 
-## Install Marvin
+<Warning>
 
-Install Marvin with pip:
+This guide assumes you have already installed `marvin`. See the [installation docs](/installation) for instructions.
 
-```bash
-pip install marvin
-```
-
-Set up your LLM provider. By default, Marvin uses OpenAI:
-
-```bash
-export OPENAI_API_KEY="your-api-key"
-```
-
-To use another provider, see the docs on [configuring LLMs](/guides/configure-llms).
+</Warning>
 
 ## Running Simple Tasks
 
 The fastest way to use Marvin is with `marvin.run()`:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
-
 # Run a simple task
-result = marvin.run("Write a haiku about Python programming")
-print(result)
+print(marvin.run("Write a haiku about Python programming"))
 ```
-```text Result
+
+<Accordion title="Output">
+```text
 Indented lines flow
 Functions dance with elegance
 Code becomes poetry
 ```
-</CodeGroup>
+</Accordion>
 
 ## Adding Context
 
 Provide additional context to get better results:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 data = """
@@ -61,52 +49,57 @@ Rainfall totaled 3.5 inches, which is 0.8 inches above normal.
 There were 15 sunny days, 10 partly cloudy days, and 5 rainy days.
 """
 
-summary = marvin.run(
-    "Summarize this weather data in one sentence",
-    context={"weather_data": data}
+print(
+    marvin.run(
+        "Summarize this weather data in one sentence",
+        context={"weather_data": data}
+    )
 )
-print(summary)
 ```
-```text Result
-June saw above-average rainfall (3.5 inches) and moderate temperatures averaging 72°F, with mostly sunny to partly cloudy conditions.
+
+<Accordion title="Output">
+```text
+The weather in June featured an average temperature of 72°F with 15 sunny days, 10 partly cloudy days, and 5 rainy days, and recorded 3.5 inches of rainfall, which is 0.8 inches above normal.
 ```
-</CodeGroup>
+</Accordion>
 
 ## Getting Structured Data
 
 Use `result_type` to get data in exactly the format you need:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
-from typing import List
+from pydantic import BaseModel
 
-class WeatherDay(marvin.Model):
+class WeatherDay(BaseModel):
     date: str
     temperature: float
     conditions: str
 
+    def __str__(self):
+        return f"{self.date}: {self.temperature}°F, {self.conditions}"
+
 forecast = marvin.run(
     "Create a 3-day weather forecast",
-    result_type=List[WeatherDay]
+    result_type=list[WeatherDay]
 )
 
-for day in forecast:
-    print(f"{day.date}: {day.temperature}°F, {day.conditions}")
+print("\n".join(str(day) for day in forecast))
 ```
-```text Result
+
+<Accordion title="Output">
+```text
 2024-03-20: 75.5°F, Sunny with light breeze
 2024-03-21: 72.0°F, Partly cloudy
 2024-03-22: 68.5°F, Light rain showers
 ```
-</CodeGroup>
+</Accordion>
 
 ## Maintaining Context
 
 Use threads to maintain context across multiple interactions:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 # Create a thread to maintain conversation context
@@ -133,7 +126,9 @@ with marvin.Thread() as thread:
     if followup:
         marvin.run("Provide another movie recommendation")
 ```
-```text Result
+
+<Accordion title="Output">
+```text
 Agent: What kinds of movies do you enjoy watching?
 User: I like sci-fi movies with deep themes about humanity, like Blade Runner and Ex Machina.
 
@@ -144,7 +139,7 @@ User: Yes, please!
 
 I recommend "Her" (2013). This thoughtful sci-fi film explores the nature of consciousness, love, and human connection in a near-future world. Like your other favorites, it uses science fiction elements to delve deep into questions about what makes us human and how technology shapes our relationships.
 ```
-</CodeGroup>
+</Accordion>
 
 ## Common Operations
 

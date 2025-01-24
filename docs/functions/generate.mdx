@@ -15,8 +15,7 @@ For complex generation patterns, consider creating a custom task. The `generate`
 
 Generate a simple string:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 name = marvin.generate(
@@ -26,10 +25,9 @@ name = marvin.generate(
 print(name)
 ```
 
-```python Result
+```python
 "Thaelar Moonweaver"
 ```
-</CodeGroup>
 
 ## Parameters
 
@@ -64,8 +62,7 @@ asyncio.run(main())
 
 Generate a list of items:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 colors = marvin.generate(
@@ -76,17 +73,15 @@ colors = marvin.generate(
 print(colors)
 ```
 
-```python Result
+```python
 ["Cerulean Blue", "Crimson Red", "Forest Green"]
 ```
-</CodeGroup>
 
 ### Structured Data
 
 Generate complex objects:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 from dataclasses import dataclass
 from typing import List
@@ -102,18 +97,16 @@ print(f"Recipe: {recipe.title}")
 print(f"First step: {recipe.steps[0]}")
 ```
 
-```python Result
+```python
 "Recipe: Honey Glazed Salmon"
 "First step: Preheat the oven to 400°F (200°C)"
 ```
-</CodeGroup>
 
 ### With Context
 
 Generate content with specific requirements:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 description = marvin.generate(
@@ -124,17 +117,15 @@ description = marvin.generate(
 print(description)
 ```
 
-```python Result
+```python
 "The XPS Pro 5000 ultrabook combines cutting-edge performance with enterprise-grade security features, perfect for remote work and intensive multitasking."
 ```
-</CodeGroup>
 
 ### Collections
 
 Generate lists and dictionaries:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 from typing import List, Dict
 
@@ -147,8 +138,7 @@ menu = marvin.generate(Dict[str, float], instructions="Generate menu items with 
 print(menu)
 ```
 
-```python Result
+```python
 ["olive oil", "garlic", "pasta", "lemon", "parmesan cheese"]
 {"Margherita Pizza": 12.99, "Caesar Salad": 8.99, "Tiramisu": 6.99}
-```
-</CodeGroup> 
+``` 

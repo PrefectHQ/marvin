@@ -15,8 +15,7 @@ For complex conversations, consider creating a custom task. The `say` function i
 
 Add a message and get a response:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 # Create a thread to store the conversation
@@ -37,11 +36,10 @@ response = marvin.say(
 print(response)
 ```
 
-```python Result
+```python
 "Hello Alice! Nice to meet you."
 "Your name is Alice."
 ```
-</CodeGroup>
 
 ## Parameters
 
@@ -76,8 +74,7 @@ asyncio.run(main())
 
 Guide the agent's responses:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 thread = marvin.Thread()
@@ -89,17 +86,15 @@ response = marvin.say(
 print(response)
 ```
 
-```python Result
+```python
 "I'd recommend a pan-seared salmon with lemon butter sauce. Start by patting the salmon dry and seasoning with salt and pepper..."
 ```
-</CodeGroup>
 
 ### With Custom Agent
 
 Use a specialized agent:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 thread = marvin.Thread()
@@ -116,17 +111,15 @@ response = marvin.say(
 print(response)
 ```
 
-```python Result
+```python
 "Let's troubleshoot this step by step. First, check if your computer is properly plugged in and the power button lights up..."
 ```
-</CodeGroup>
 
 ### With Memory
 
 Remember previous interactions:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 thread = marvin.Thread()
@@ -156,8 +149,7 @@ response = marvin.say(
 print(response)
 ```
 
-```python Result
+```python
 "I'll remember your preference for vegetarian food."
 "Given your vegetarian preference, I'd suggest a delicious mushroom risotto..."
 ```
-</CodeGroup> 

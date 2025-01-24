@@ -15,8 +15,7 @@ convenient wrapper around Marvin's task system - see [Tasks](/concepts/tasks) fo
 
 Create a simple summary:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 text = """
@@ -31,10 +30,9 @@ summary = marvin.summarize(text)
 print(summary)
 ```
 
-```python Result
+```python
 "A baking competition with 30 contestants saw a chocolate raspberry cake win first place, followed by an apple pie and a gluten-free cheesecake."
 ```
-</CodeGroup>
 
 ## Parameters
 
@@ -68,8 +66,7 @@ asyncio.run(main())
 
 Get a structured summary:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 text = """
@@ -81,24 +78,22 @@ Pricing starts at $999 for the base model with 128GB storage.
 
 summary = marvin.summarize(
     text,
-    instructions="Summarize in three bullet points"
+    instructions="Summarize very concisely in three bullet points (•)"
 )
 print(summary)
 ```
 
-```python Result
-"• High-end display with 6.7-inch OLED screen and triple cameras
-• Advanced features including 5G and AI-enabled custom chip
-• All-day battery life with pricing from $999"
+```python
+• The smartphone has a 6.7-inch OLED screen, 5G support, and a triple-camera system.
+• It offers 24 hours of battery life and runs on a custom chip for advanced AI capabilities.
+• Starting price is $999 for the 128GB model.
 ```
-</CodeGroup>
 
 ### With Context
 
 Provide background information:
 
-<CodeGroup>
-```python Code
+```python
 import marvin
 
 text = """
@@ -118,7 +113,6 @@ summary = marvin.summarize(
 print(summary)
 ```
 
-```python Result
+```python
 "Breaking changes include a complete API redesign and removal of deprecated functions, with new features added."
 ```
-</CodeGroup> 
