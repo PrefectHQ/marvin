@@ -67,8 +67,10 @@ Here's a complete example of an interactive survey:
 ```python Code
 import marvin
 from typing import Literal
+from dataclasses import dataclass
 
-class Survey(marvin.Model):
+@dataclass
+class Survey:
     name: str
     age: int
     interests: list[str]

@@ -246,14 +246,16 @@ Pydantic models (recommended) provide rich validation and nested structures:
 
 ```python
 import marvin
-from marvin import Model
+from dataclasses import dataclass
 
-class Person(Model):
+@dataclass
+class Person:
     name: str
     age: int
     interests: list[str]
 
-class Movie(Model):
+@dataclass
+class Movie:
     title: str
     director: Person
     year: int
@@ -272,6 +274,7 @@ people = marvin.run(
     "List the main characters in Star Wars",
     result_type=list[Person]
 )
+print(people[0].name)  # "Luke Skywalker"
 ```
 
 ## Validation
