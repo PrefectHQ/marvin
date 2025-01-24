@@ -64,7 +64,7 @@ class TestInstructions:
         result = marvin.extract(
             "I live in the big apple",
             str,
-            instructions="(formal city name, state abbreviation) properly capitalized",
+            instructions="formal city name, state abbreviation - properly capitalized",
         )
         assert isinstance(result, list)
         assert len(result) == 1
