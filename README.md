@@ -1,4 +1,4 @@
-![Marvin Banner](docs/assets/img/it_hates_me_hero.png)
+![Marvin Banner](docs/assets/img/quotes/it_hates_me.png)
 
 ## Installation
 

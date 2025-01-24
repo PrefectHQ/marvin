@@ -1,0 +1,158 @@
+---
+title: Running Tasks
+description: Execute tasks and manage their results.
+icon: forward
+---
+
+Tasks represent discrete units of work that need to be completed by AI agents. Marvin provides several ways to execute tasks and retrieve their results.
+
+## Creating and Running Tasks
+
+The most convenient way to run a task is with the `marvin.run()` function. This function creates and runs a task in a single call, accepting all the same arguments as the `Task` constructor:
+
+<CodeGroup>
+```python Code
+import marvin
+
+poem = marvin.run("Write a poem about AI")
+print(poem)
+```
+
+```text Result
+In circuits deep and code profound,
+An AI's mind begins to sound.
+Electric thoughts and data streams,
+Crafting worlds and shaping dreams.
+```
+</CodeGroup>
+
+### Running a Single Task
+
+You can also create a task first and run it later using the `run()` method:
+
+<CodeGroup>
+```python Code
+import marvin
+
+task = marvin.Task("Write a poem about AI")
+poem = task.run()
+
+print(poem)
+```
+
+```text Result
+In circuits deep and code profound,
+An AI's mind begins to sound.
+Electric thoughts and data streams,
+Crafting worlds and shaping dreams.
+```
+</CodeGroup>
+
+### Running Multiple Tasks
+
+To run multiple tasks at once, use the `run_tasks()` function:
+
+```python
+import marvin
+
+task_1 = marvin.Task("Write a poem about AI")
+task_2 = marvin.Task("Critique the poem", depends_on=[task_1])
+
+results = marvin.run_tasks([task_1, task_2])
+# Can also access task_1.result and task_2.result
+```
+
+## Task Dependencies
+
+Tasks can depend on other tasks, ensuring they run in the correct order:
+
+```python
+import marvin
+
+name_task = marvin.Task("Get the user's name", cli=True)
+poem_task = marvin.Task(
+    "Write a poem about the user",
+    depends_on=[name_task]
+)
+
+# Running poem_task will automatically run name_task first
+poem = poem_task.run()
+```
+
+When you run a task, Marvin will:
+1. Check if there are any dependencies
+2. Run any incomplete dependencies first
+3. Execute the task itself
+4. Return the result
+
+## Task Results
+
+Tasks can specify their expected result type using the `result_type` parameter:
+
+```python
+import marvin
+
+# Get a boolean result
+is_spam = marvin.run(
+    "Is this email spam?",
+    result_type=bool,
+    context={"email": "You just won a million dollars!"}
+)
+
+# Get a list of integers
+rolls = marvin.run(
+    "Roll 3 dice",
+    result_type=list[int],
+    tools=[roll_dice]
+)
+```
+
+## Task Status
+
+You can check a task's status at any time:
+
+```python
+import marvin
+
+task = marvin.Task("Write a poem")
+
+# Before running
+print(task.status)  # TaskStatus.PENDING
+
+# After running
+task.run()
+print(task.status)  # TaskStatus.SUCCESSFUL
+```
+
+Tasks have several helper methods for checking their status:
+- `is_pending()`: Task hasn't started
+- `is_running()`: Task is currently executing
+- `is_successful()`: Task completed successfully
+- `is_failed()`: Task failed to complete
+- `is_skipped()`: Task was skipped
+- `is_complete()`: Task is done (successful, failed, or skipped)
+- `is_incomplete()`: Task isn't done (pending or running)
+- `is_ready()`: Task can be run (dependencies are complete)
+
+## Task Context
+
+Tasks maintain their own context, which can include:
+- Instructions: What needs to be done
+- Context: Additional information needed for the task
+- Tools: Functions the agent can use
+- Memories: Persistent information from previous runs
+- Result type: Expected format of the output
+
+This context helps agents understand and complete the task effectively:
+
+```python
+import marvin
+
+task = marvin.Task(
+    instructions="Analyze the sentiment of this text",
+    context={"text": "I love this product!"},
+    result_type=str,
+    memories=[knowledge_base],
+    tools=[analyze_text]
+)
+``` 

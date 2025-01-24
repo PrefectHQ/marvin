@@ -1,0 +1,144 @@
+---
+title: Generate
+description: Create examples of any data type
+icon: sparkles
+---
+
+The `generate` function creates realistic examples of any type. It transforms `() → T`, making it easy to produce:
+- Test data ("Generate a plausible email address" → "sarah.jones@company.com")
+- Sample content ("Generate a product description" → "Sleek wireless earbuds with...")
+- Structured examples ("Generate a recipe" → Recipe(title="Lemon Garlic Pasta", ingredients=[...]))
+
+For complex generation patterns, consider creating a custom task. The `generate` function is a convenient wrapper around Marvin's task system - see [Tasks](/concepts/tasks) for more details.
+
+## Usage
+
+Generate a simple string:
+
+```python
+import marvin
+
+name = marvin.generate(
+    str,
+    instructions="Generate a fantasy character name"
+)
+print(name)
+```
+
+```python
+"Thaelar Moonweaver"
+```
+
+## Parameters
+
+- `target`: The type of data to generate
+- `n`: Number of examples to generate (default: 1)
+- `instructions`: Optional guidance for generation
+- `agent`: Optional custom agent to use
+- `thread`: Optional thread for conversation context
+- `context`: Optional additional context
+
+## Async Support
+
+The function is also available in an async version:
+
+```python
+import marvin
+import asyncio
+
+async def main():
+    result = await marvin.generate_async(
+        str,
+        instructions="Generate a company slogan"
+    )
+    print(result)  # "Innovation meets simplicity"
+
+asyncio.run(main())
+```
+
+## Examples
+
+### Multiple Examples
+
+Generate a list of items:
+
+```python
+import marvin
+
+colors = marvin.generate(
+    str,
+    n=3,
+    instructions="Generate color names"
+)
+print(colors)
+```
+
+```python
+["Cerulean Blue", "Crimson Red", "Forest Green"]
+```
+
+### Structured Data
+
+Generate complex objects:
+
+```python
+import marvin
+from dataclasses import dataclass
+from typing import List
+
+@dataclass
+class Recipe:
+    title: str
+    ingredients: List[str]
+    steps: List[str]
+
+recipe = marvin.generate(Recipe)
+print(f"Recipe: {recipe.title}")
+print(f"First step: {recipe.steps[0]}")
+```
+
+```python
+"Recipe: Honey Glazed Salmon"
+"First step: Preheat the oven to 400°F (200°C)"
+```
+
+### With Context
+
+Generate content with specific requirements:
+
+```python
+import marvin
+
+description = marvin.generate(
+    str,
+    instructions="Generate a product description",
+    context="Target audience: tech-savvy professionals"
+)
+print(description)
+```
+
+```python
+"The XPS Pro 5000 ultrabook combines cutting-edge performance with enterprise-grade security features, perfect for remote work and intensive multitasking."
+```
+
+### Collections
+
+Generate lists and dictionaries:
+
+```python
+import marvin
+from typing import List, Dict
+
+# Generate a list of strings
+ingredients = marvin.generate(List[str], instructions="Generate recipe ingredients")
+print(ingredients)
+
+# Generate a dictionary
+menu = marvin.generate(Dict[str, float], instructions="Generate menu items with prices")
+print(menu)
+```
+
+```python
+["olive oil", "garlic", "pasta", "lemon", "parmesan cheese"]
+{"Margherita Pizza": 12.99, "Caesar Salad": 8.99, "Tiramisu": 6.99}
+``` 
