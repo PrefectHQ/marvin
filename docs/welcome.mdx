@@ -21,21 +21,27 @@ Marvin provides a clean, intuitive interface for working with large language mod
 
 The fastest way to use Marvin is with `marvin.run()`:
 
-```python
+<CodeGroup>
+
+```python  Run a simple task
 import marvin
 
-# Run a simple task
-result = marvin.run("Write a haiku about artificial intelligence")
-print(result)
+print(marvin.run("Write a haiku about artificial intelligence"))
+```
 
-# Provide additional context for more accurate results
-result = marvin.run(
-    "Summarize the data in 2-3 sentences",
-    context={"data": "...your data here..."}
+```python Provide context for more accurate results
+import httpx
+import marvin
+
+print(
+    marvin.run(
+        "Summarize the current astronauts in space like a 50s news anchor",
+        context={"data": httpx.get("http://api.open-notify.org/astros.json", headers={"Accept": "application/json"}).json()}
+    )
 )
 ```
 
-
+</CodeGroup>
 ### Specialized Agents
 
 Create agents with specific skills and personalities:
@@ -72,23 +78,23 @@ poem = marvin.run(
 Get results in exactly the format you need:
 
 ```python
+from typing import Annotated, Literal
 import marvin
-from typing import List
+from pydantic import BaseModel, Field
 
-class Character(marvin.Model):
+class Character(BaseModel):
     name: str
-    role: str
-    motivation: str
+    role: Literal["hero", "villain", "sidekick"]
+    aura: Annotated[float, Field(ge=0, le=1)]
 
 # Get structured results
 characters = marvin.run(
     "Create three characters for a mystery story",
-    result_type=List[Character]
+    result_type=list[Character]
 )
 
 for char in characters:
-    print(f"{char.name} - {char.role}")
-    print(f"Motivation: {char.motivation}\n")
+    print(f"{char.name} - {char.role} - {char.aura}")
 ```
 
 ### Persistent Memory
@@ -111,7 +117,7 @@ assistant = marvin.Agent(memories=[preferences])
 marvin.run(
     "Learn about the user's writing style preferences",
     agents=[assistant],
-    interactive=True
+    cli=True
 )
 ```
 
