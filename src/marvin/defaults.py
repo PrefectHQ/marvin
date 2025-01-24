@@ -1,11 +1,18 @@
 from contextlib import contextmanager
 from dataclasses import dataclass
+from typing import Any, TypedDict
 
 from pydantic_ai.models import KnownModelName, Model
-from typing_extensions import Unpack
+from typing_extensions import NotRequired, Unpack
 
 import marvin
 from marvin import Agent
+
+
+class _Defaults(TypedDict):
+    agent: NotRequired[Agent]
+    model: NotRequired[KnownModelName | Model]
+    memory_provider: NotRequired[str]
 
 
 @dataclass
@@ -23,7 +30,7 @@ defaults = Defaults(
 
 
 @contextmanager
-def override_defaults(**kwargs: Unpack[Defaults]):
+def override_defaults(**kwargs: Unpack[_Defaults]):
     """Temporarily override default settings.
 
     Any attribute of the defaults object can be temporarily overridden by passing
@@ -35,7 +42,7 @@ def override_defaults(**kwargs: Unpack[Defaults]):
         ...     pass
 
     """
-    original_values = {}
+    original_values: dict[str, Any] = {}
 
     for key, value in kwargs.items():
         if not hasattr(defaults, key):

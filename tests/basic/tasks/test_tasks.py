@@ -9,7 +9,7 @@ from marvin.tasks.task import Task, TaskState
 from marvin.utilities.types import Labels
 
 
-def normalize_whitespace(text):
+def normalize_whitespace(text: str) -> str:
     # Replace all whitespace sequences with a single space and strip
     return " ".join(text.split())
 

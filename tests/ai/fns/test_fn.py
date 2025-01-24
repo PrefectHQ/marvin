@@ -89,7 +89,7 @@ class TestAnnotations:
         assert fruit.color.lower() == "yellow"
 
     @pytest.mark.parametrize("name,expected", [("banana", True), ("car", False)])
-    def test_bool_return_annotation(self, name, expected):
+    def test_bool_return_annotation(self, name: str, expected: bool):
         @marvin.fn
         def is_fruit(name: str) -> bool:
             """Returns True if the provided name is a fruit"""
