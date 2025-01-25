@@ -252,8 +252,8 @@ class Task(Generic[T]):
 
         # if no parent is provided, use the current task from context
         self.parent = parent if parent is not None else _current_task.get()
-        self.subtasks = set()
-        self.depends_on = set(depends_on or [])
+        self.subtasks: set[Task[Any]] = set()
+        self.depends_on: set[Task[Any]] = set(depends_on or [])
 
         # internal fields
         self._tokens = []

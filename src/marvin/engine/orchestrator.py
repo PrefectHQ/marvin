@@ -242,7 +242,7 @@ class Orchestrator:
                 return _fn
 
             @wraps(tool)
-            def _fn(*args, **kwargs):
+            def _fn(*args: Any, **kwargs: Any):
                 try:
                     return tool(*args, **kwargs)
                 except (

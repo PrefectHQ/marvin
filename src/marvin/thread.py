@@ -119,7 +119,6 @@ class Thread:
 
     def get_messages(
         self,
-        include_system_messages: bool = False,
         before: datetime | None = None,
         after: datetime | None = None,
         limit: int | None = None,
@@ -127,7 +126,6 @@ class Thread:
         """Get all messages in this thread.
 
         Args:
-            include_system_messages: Whether to include system messages in the response
             before: Only return messages before this timestamp
             after: Only return messages after this timestamp
             limit: Maximum number of messages to return
@@ -137,7 +135,6 @@ class Thread:
         """
         return run_sync(
             self.get_messages_async(
-                include_system_messages=include_system_messages,
                 before=before,
                 after=after,
                 limit=limit,
@@ -146,7 +143,6 @@ class Thread:
 
     async def get_messages_async(
         self,
-        include_system_messages: bool = False,
         before: datetime | None = None,
         after: datetime | None = None,
         limit: int | None = None,
@@ -154,7 +150,6 @@ class Thread:
         """Get all messages in this thread.
 
         Args:
-            include_system_messages: Whether to include system messages in the response
             before: Only return messages before this timestamp
             after: Only return messages after this timestamp
             limit: Maximum number of messages to return

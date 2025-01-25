@@ -77,7 +77,7 @@ def update_fn(
         if inspect.iscoroutinefunction(func):
 
             @wraps(func)
-            async def wrapper(*args: Any, **kwargs: Any) -> T:
+            async def wrapper(*args: Any, **kwargs: Any) -> T:  # type: ignore[reportRedeclaration]
                 return await func(*args, **kwargs)
         else:
 

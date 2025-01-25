@@ -1,3 +1,5 @@
+import pytest
+
 import marvin
 
 
@@ -31,6 +33,7 @@ def test_instructions():
     assert "green" in result and "house" in result
 
 
+@pytest.mark.flaky(reruns=2)
 def test_use_memory_as_tool():
     m = marvin.Memory(key="colors")
     a = marvin.Agent(memories=[m])

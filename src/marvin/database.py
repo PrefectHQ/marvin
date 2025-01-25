@@ -12,8 +12,16 @@ from typing import Any, Optional
 from pydantic import TypeAdapter
 from pydantic_ai.messages import RetryPromptPart
 from pydantic_ai.usage import Usage
-from sqlalchemy import JSON, ForeignKey, String, TypeDecorator, create_engine, inspect
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy import (
+    JSON,
+    Engine,
+    ForeignKey,
+    String,
+    TypeDecorator,
+    create_engine,
+    inspect,
+)
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -31,8 +39,8 @@ message_adapter: TypeAdapter[Message] = TypeAdapter(Message)
 usage_adapter: TypeAdapter[Usage] = TypeAdapter(Usage)
 
 # Module-level cache for engines
-_engine_cache = {}
-_async_engine_cache = {}
+_engine_cache: dict[str, Engine] = {}
+_async_engine_cache: dict[str, AsyncEngine] = {}
 
 
 def serialize_message(message: Message) -> str:
@@ -43,12 +51,13 @@ def serialize_message(message: Message) -> str:
         if isinstance(part, RetryPromptPart):
             if isinstance(part.content, list):
                 for content in part.content:
-                    if content.get("ctx", None) is not None:
-                        content["ctx"] = {k: str(v) for k, v in content["ctx"].items()}
+                    content["ctx"] = {
+                        k: str(v) for k, v in (content.get("ctx", None) or {}).items()
+                    }
     return message_adapter.dump_python(message, mode="json")
 
 
-def get_engine():
+def get_engine() -> Engine:
     """Get the SQLAlchemy engine for sync operations.
 
     For in-memory databases (:memory:), this uses StaticPool to maintain
@@ -97,12 +106,12 @@ def get_async_engine():
     return _async_engine_cache["default"]
 
 
-def set_engine(engine):
+def set_engine(engine: Engine):
     """Set the SQLAlchemy engine for sync operations."""
     _engine_cache["default"] = engine
 
 
-def set_async_engine(engine):
+def set_async_engine(engine: AsyncEngine):
     """Set the SQLAlchemy engine for async operations."""
     _async_engine_cache["default"] = engine
 
@@ -184,7 +193,7 @@ class DBMessage(Base):
         )
 
 
-class UsageType(TypeDecorator):
+class UsageType(TypeDecorator[Usage]):
     """Custom type for Usage objects that stores them as JSON in the database."""
 
     impl = JSON

@@ -7,7 +7,7 @@ import random
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, TypeVar, Union
 
 import pydantic_ai
 from pydantic_ai.models import KnownModelName, Model, ModelSettings
@@ -21,6 +21,8 @@ from marvin.prompts import Template
 from marvin.tools.thread import post_message_to_agents
 
 from .actor import Actor
+
+T = TypeVar("T")
 
 
 @dataclass(kw_only=True)
@@ -108,9 +110,9 @@ class Agent(Actor):
         if len(result_types) == 1:
             result_type = result_types[0]
         else:
-            result_type = Union[tuple(result_types)]  # type: ignore
+            result_type = Union[tuple(result_types)]
 
-        return pydantic_ai.Agent[None, result_type](
+        return pydantic_ai.Agent[Any, result_type](  # type: ignore
             model=self.get_model(),
             result_type=result_type,
             tools=self.get_tools() + (tools or []),
