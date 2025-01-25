@@ -11,7 +11,7 @@ from typing import Any, Literal, Optional, TypeVar
 
 import pydantic_ai
 from pydantic_ai.messages import ModelRequestPart, RetryPromptPart, ToolCallPart
-from pydantic_ai.result import AgentDeps, RunContext, RunResult
+from pydantic_ai.result import AgentDepsT, RunContext, RunResult
 
 import marvin
 import marvin.agents.team
@@ -286,7 +286,7 @@ class Orchestrator:
             # Wrap the tool run function to emit events for each call / result
             async def run(
                 message: ToolCallPart,
-                run_context: RunContext[AgentDeps],
+                run_context: RunContext[AgentDepsT],
                 # pass as arg to avoid late binding issues
                 original_run: Callable[..., Any] = tool.run,
             ) -> ModelRequestPart:
