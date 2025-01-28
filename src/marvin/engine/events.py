@@ -17,7 +17,6 @@ from pydantic_ai.messages import (
 from marvin.agents.agent import Agent
 from marvin.engine.end_turn import EndTurn
 from marvin.engine.llm import Message
-from marvin.utilities.types import issubclass_safe
 
 EventType = Literal[
     "user-message",
@@ -54,14 +53,12 @@ class UserMessageEvent(Event):
 class ToolReturnEvent(Event):
     type: EventType = field(default="tool-return", init=False)
     message: ToolReturnPart
-    end_turn_tool: EndTurn | None = None
 
 
 @dataclass(kw_only=True)
 class ToolRetryEvent(Event):
     type: EventType = field(default="tool-retry", init=False)
     message: RetryPromptPart
-    end_turn_tool: EndTurn | None = None
 
 
 @dataclass(kw_only=True)
@@ -69,7 +66,6 @@ class ToolCallEvent(Event):
     type: EventType = field(default="tool-call", init=False)
     agent: Agent
     message: ToolCallPart
-    end_turn_tool: EndTurn | None = None
 
 
 @dataclass(kw_only=True)
@@ -105,36 +101,11 @@ def message_to_events(
         if isinstance(part, UserPromptPart) and part.content:
             yield UserMessageEvent(message=part)
         elif isinstance(part, ToolReturnPart):
-            end_turn_tool = agentlet._result_schema.tools.get(part.tool_name)
-            if end_turn_tool:
-                end_turn_tool = end_turn_tool.type_adapter._type
-
-            end_turn_tools
-            yield ToolReturnEvent(
-                message=part,
-                end_turn_tool=end_turn_tool,
-            )
+            yield ToolReturnEvent(message=part)
         elif isinstance(part, RetryPromptPart):
-            end_turn_tool = agentlet._result_schema.tools.get(part.tool_name)
-            if end_turn_tool:
-                end_turn_tool = end_turn_tool.type_adapter._type
-
-            yield ToolRetryEvent(
-                message=part,
-                end_turn_tool=end_turn_tool,
-            )
+            yield ToolRetryEvent(message=part)
         elif isinstance(part, ToolCallPart):
-            end_turn_tool = agentlet._result_schema.tools.get(part.tool_name)
-            if end_turn_tool:
-                end_turn_tool = end_turn_tool.type_adapter._type
-                if issubclass_safe(end_turn_tool, dict):
-                    end_turn_tool = end_turn_tool.__annotations__.get("response")
-
-            yield ToolCallEvent(
-                agent=agent,
-                message=part,
-                end_turn_tool=end_turn_tool,
-            )
+            yield ToolCallEvent(agent=agent, message=part)
         elif isinstance(part, TextPart):
             yield AgentMessageEvent(agent=agent, message=part)
 

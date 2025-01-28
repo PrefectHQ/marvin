@@ -1,9 +1,16 @@
 import logging
 from functools import lru_cache
+from typing import Any
 
 from rich.logging import RichHandler
 
 import marvin
+
+
+def maybe_quote(value: Any) -> str:
+    if isinstance(value, str):
+        return f'"{value}"'
+    return str(value)
 
 
 @lru_cache

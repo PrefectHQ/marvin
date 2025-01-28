@@ -272,7 +272,7 @@ class Orchestrator:
         async def validate_end_turn(result: EndTurn):
             if isinstance(result, EndTurn):  # type: ignore[unnecessaryIsinstance]
                 try:
-                    await result.run(orchestrator=self)
+                    await result.run(orchestrator=self, agent=self.active_agent())
                 except pydantic_ai.ModelRetry as e:
                     raise e
                 except Exception as e:
