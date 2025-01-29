@@ -88,131 +88,20 @@ class Swarm(Team):
         return end_turn_tools
 
 
-# @dataclass(kw_only=True)
-# class Team(Actor):
-#     members: list[Actor]
-#     name: str = field(
-#         default_factory=lambda: random.choice(TEAM_NAMES),
-#         metadata={"description": "Name of the team"},
-#     )
+@dataclass(kw_only=True)
+class RoundRobinTeam(Team):
+    description: str | None = "A team of agents that rotate turns."
 
-#     prompt: str | Path = field(
-#         default=Path("team.jinja"),
-#         metadata={"description": "Template for the team's prompt"},
-#     )
-
-#     allow_message_posting: bool = field(
-#         default=True,
-#         metadata={
-#             "description": "Whether to allow the team to post messages to the thread",
-#         },
-#     )
-
-#     active_member: Actor = field(init=False)
-
-#     def __hash__(self) -> int:
-#         return super().__hash__()
-
-#     def __repr__(self) -> str:
-#         return f"{self.__class__.__name__}(name={self.name!r}, agents={[a.name for a in self.members]})"
-
-#     def get_delegates(self) -> list[Actor]:
-#         """
-#         By default, agents can delegate only to pre-defined agents. If no delegates are defined,
-#         none are returned.
-#         """
-#         delegates = self.active_member.get_delegates()
-#         return delegates or []
-
-#     def __post_init__(self):
-#         self.agents_by_id = {a.id: a for a in self.members}
-#         self.active_member = self.members[0]
-
-#     def get_agentlet(
-#         self,
-#         result_types: list[type],
-#         tools: list[Callable[..., Any]] | None = None,
-#         **kwargs: Any,
-#     ) -> pydantic_ai.Agent[Any, Any]:
-#         return self.active_member.get_agentlet(
-#             tools=self.get_end_turn_tools() + (tools or []),
-#             result_types=result_types,
-#             **kwargs,
-#         )
-
-#     def get_prompt(self) -> str:
-#         return Template(source=self.prompt).render(team=self)
-
-#     def get_end_turn_tools(self) -> list[type["EndTurn"]]:
-#         return []
-
-#     def start_turn(self):
-#         if self.active_member:
-#             self.active_member.start_turn()
-
-#     def end_turn(self):
-#         if self.active_member:
-#             self.active_member.end_turn()
-
-#     def contains(self, agent: Agent) -> bool:
-#         for member in self.members:
-#             if member is agent:
-#                 return True
-#             elif isinstance(member, Team) and member.contains(agent):
-#                 return True
-#         return False
+    async def start_turn(self, orchestrator: "Orchestrator"):
+        index = self.members.index(self.active_member)
+        self.active_member = self.members[(index + 1) % len(self.members)]
+        await super().start_turn(orchestrator=orchestrator)
 
 
-# @dataclass(kw_only=True)
-# class Swarm(Team):
-#     """A swarm is a team that permits all agents to delegate to each other."""
+@dataclass(kw_only=True)
+class RandomTeam(Team):
+    description: str | None = "A team of agents that randomly selects an agent to act."
 
-#     instructions: str | None = None
-
-#     description: str | None = "A team of agents that can delegate to each other."
-
-#     def __repr__(self) -> str:
-#         return super().__repr__()
-
-#     def __hash__(self) -> int:
-#         return super().__hash__()
-
-#     def get_delegates(self) -> list[Actor]:
-#         delegates = self.active_member.get_delegates()
-#         if delegates is None:
-#             return [a for a in self.members if a is not self.active_member]
-#         return delegates
-
-#     def get_end_turn_tools(self) -> list[type["EndTurn"]]:
-#         return [DelegateToAgent]
-
-
-# @dataclass(kw_only=True)
-# class RoundRobinTeam(Team):
-#     description: str | None = "A team of agents that rotate turns."
-
-#     def __repr__(self) -> str:
-#         return super().__repr__()
-
-#     def __hash__(self) -> int:
-#         return super().__hash__()
-
-#     def start_turn(self):
-#         index = self.members.index(self.active_member)
-#         self.active_member = self.members[(index + 1) % len(self.members)]
-#         super().start_turn()
-
-
-# @dataclass(kw_only=True)
-# class RandomTeam(Team):
-#     description: str | None = "A team of agents that randomly selects an agent to act."
-
-#     def __repr__(self) -> str:
-#         return super().__repr__()
-
-#     def __hash__(self) -> int:
-#         return super().__hash__()
-
-#     def start_turn(self):
-#         self.active_member = random.choice(self.members)
-#         super().start_turn()
+    async def start_turn(self, orchestrator: "Orchestrator"):
+        self.active_member = random.choice(self.members)
+        await super().start_turn(orchestrator=orchestrator)
