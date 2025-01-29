@@ -3,9 +3,11 @@ import inspect
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 import marvin
+from marvin.prompts import Template
 from marvin.utilities.logging import get_logger
 from marvin.utilities.tools import update_fn
 
@@ -58,6 +60,11 @@ class Memory:
             "description": "If true, the memory will automatically be queried before the agent is run, using the most recent messages.",
         },
     )
+    prompt: str | Path = field(
+        default=Path("memory.jinja"),
+        metadata={"description": "Template for the memory's prompt"},
+        repr=False,
+    )
 
     def __hash__(self) -> int:
         return id(self)
@@ -98,6 +105,9 @@ class Memory:
         # Configure provider
         self.provider.configure(self.key)
 
+    def friendly_name(self) -> str:
+        return f"<Memory key={self.key}>"
+
     async def add(self, content: str) -> str:
         return await self.provider.add(self.key, content)
 
@@ -106,9 +116,6 @@ class Memory:
 
     async def search(self, query: str, n: int = 20) -> dict[str, str]:
         return await self.provider.search(self.key, query, n)
-
-    def friendly_name(self) -> str:
-        return f"Memory: {self.key}"
 
     def get_tools(self) -> list[Callable[..., Any]]:
         return [
@@ -128,6 +135,9 @@ class Memory:
                 description=f"Provide a query string to search {self.friendly_name()}. {self.instructions or ''}".rstrip(),
             ),
         ]
+
+    def get_prompt(self) -> str:
+        return Template(source=self.prompt).render(memory=self)
 
 
 def get_memory_provider(provider: str) -> MemoryProvider:

@@ -4,8 +4,6 @@ from collections.abc import Generator
 from dataclasses import dataclass, field
 from typing import Literal
 
-import pydantic_ai
-import pydantic_ai._result
 from pydantic_ai.messages import (
     RetryPromptPart,
     TextPart,
@@ -14,8 +12,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 
-from marvin.agents.agent import Agent
-from marvin.engine.end_turn import EndTurn
+from marvin.agents.actor import Actor
 from marvin.engine.llm import Message
 
 EventType = Literal[
@@ -23,12 +20,12 @@ EventType = Literal[
     "tool-return",
     "tool-retry",
     "tool-call",
-    "agent-message",
+    "actor-message",
     "orchestrator-start",
     "orchestrator-end",
     "orchestrator-exception",
-    "agent-start-turn",
-    "agent-end-turn",
+    "actor-start-turn",
+    "actor-end-turn",
 ]
 
 
@@ -64,14 +61,14 @@ class ToolRetryEvent(Event):
 @dataclass(kw_only=True)
 class ToolCallEvent(Event):
     type: EventType = field(default="tool-call", init=False)
-    agent: Agent
+    actor: Actor
     message: ToolCallPart
 
 
 @dataclass(kw_only=True)
 class AgentMessageEvent(Event):
-    type: EventType = field(default="agent-message", init=False)
-    agent: Agent
+    type: EventType = field(default="actor-message", init=False)
+    actor: Actor
     message: TextPart
 
 
@@ -91,12 +88,7 @@ class OrchestratorExceptionEvent(Event):
     error: str
 
 
-def message_to_events(
-    agent: Agent,
-    message: Message,
-    agentlet: pydantic_ai.Agent = None,
-    end_turn_tools: list[EndTurn] = [],
-) -> Generator[Event, None, None]:  # noqa: F821
+def message_to_events(actor: Actor, message: Message) -> Generator[Event, None, None]:  # noqa: F821
     for part in message.parts:
         if isinstance(part, UserPromptPart) and part.content:
             yield UserMessageEvent(message=part)
@@ -105,18 +97,18 @@ def message_to_events(
         elif isinstance(part, RetryPromptPart):
             yield ToolRetryEvent(message=part)
         elif isinstance(part, ToolCallPart):
-            yield ToolCallEvent(agent=agent, message=part)
+            yield ToolCallEvent(actor=actor, message=part)
         elif isinstance(part, TextPart):
-            yield AgentMessageEvent(agent=agent, message=part)
+            yield AgentMessageEvent(actor=actor, message=part)
 
 
 @dataclass(kw_only=True)
 class AgentStartTurnEvent(Event):
-    type: EventType = field(default="agent-start-turn", init=False)
-    agent: Agent
+    type: EventType = field(default="actor-start-turn", init=False)
+    actor: Actor
 
 
 @dataclass(kw_only=True)
 class AgentEndTurnEvent(Event):
-    type: EventType = field(default="agent-end-turn", init=False)
-    agent: Agent
+    type: EventType = field(default="actor-end-turn", init=False)
+    actor: Actor

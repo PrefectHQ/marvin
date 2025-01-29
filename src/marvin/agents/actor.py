@@ -1,13 +1,14 @@
 import uuid
-from collections.abc import Callable
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable, Sequence
 
-import pydantic_ai
+from pydantic_ai.result import RunResult
 
 import marvin
 import marvin.utilities.asyncio
+from marvin.engine.llm import Message
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.thread import Thread
@@ -15,10 +16,11 @@ from marvin.thread import Thread
 if TYPE_CHECKING:
     from marvin.agents.team import Team
     from marvin.engine.end_turn import EndTurn
+    from marvin.engine.orchestrator import Orchestrator
 
 
 @dataclass(kw_only=True)
-class Actor:
+class Actor(ABC):
     id: str = field(
         default_factory=lambda: uuid.uuid4().hex[:8],
         metadata={"description": "Unique identifier for this actor"},
@@ -47,41 +49,43 @@ class Actor:
     def __hash__(self) -> int:
         return hash(self.id)
 
-    def get_delegates(self) -> list["Actor"] | None:
-        """A list of actors that this actor can delegate to."""
-        return None
-
-    def get_agentlet(
+    @abstractmethod
+    async def _run(
         self,
-        result_types: list[type],
-        tools: list[Callable[..., Any]] | None = None,
-        **kwargs: Any,
-    ) -> pydantic_ai.Agent[Any, Any]:
-        raise NotImplementedError("Subclass must implement get_agentlet")
+        messages: list[Message],
+        tools: Sequence[Callable[..., Any]],
+        end_turn_tools: Sequence["EndTurn"],
+    ) -> RunResult:
+        raise NotImplementedError("Actor subclasses must implement _run")
 
-    def start_turn(self):
+    async def start_turn(self, orchestrator: "Orchestrator"):
         """Called when the actor starts its turn."""
+        pass
 
-    def end_turn(self):
+    async def end_turn(self, orchestrator: "Orchestrator", result: RunResult):
         """Called when the actor ends its turn."""
+        pass
 
     def get_tools(self) -> list[Callable[..., Any]]:
         """A list of tools that this actor can use during its turn."""
+        return []
+
+    def get_end_turn_tools(self) -> list["EndTurn"]:
+        """A list of `EndTurn` tools that this actor can use to end its turn."""
         return []
 
     def get_memories(self) -> list[Memory]:
         """A list of memories that this actor can use during its turn."""
         return []
 
-    def get_end_turn_tools(self) -> list[type["EndTurn"]]:
-        """A list of `EndTurn` tools that this actor can use to end its turn."""
-        return []
-
     def get_prompt(self) -> str:
-        return Template(source=self.prompt).render()
+        return Template(source=self.prompt).render(actor=self)
 
-    def friendly_name(self) -> str:
-        return f'{self.__class__.__name__} "{self.name}" ({self.id})'
+    def friendly_name(self, verbose: bool = True) -> str:
+        if verbose:
+            return f'{self.__class__.__name__} "{self.name}" ({self.id})'
+        else:
+            return self.name
 
     async def run_async(
         self,

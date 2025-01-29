@@ -8,4 +8,12 @@
     {% if agent.instructions %}
     <instructions (private)>{{ agent.instructions }}</instructions>
     {% endif %}
+
+    {% if agent.memories %}
+    <memory-modules>
+        {% for memory in agent.memories %}
+        {{ memory.get_prompt() | indent(8) }}
+        {% endfor %}
+    </memory-modules>
+    {% endif %}
 </agent>

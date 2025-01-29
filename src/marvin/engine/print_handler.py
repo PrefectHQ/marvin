@@ -196,7 +196,7 @@ class PrintHandler(Handler):
 
         if str(event.id) not in self.states:
             state = ContentState(
-                agent_name=event.agent.name,
+                agent_name=event.actor.name,
                 first_timestamp=event.timestamp,
             )
             state.update_content(event.message.content)
@@ -219,7 +219,7 @@ class PrintHandler(Handler):
 
         if tool_id not in self.states:
             self.states[tool_id] = ToolState(
-                agent_name=event.agent.name,
+                agent_name=event.actor.friendly_name(),
                 first_timestamp=event.timestamp,
                 name=event.message.tool_name,
                 args=event.message.args_as_dict(),

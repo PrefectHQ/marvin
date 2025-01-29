@@ -24,9 +24,14 @@
     {% if task.parent %}
     <parent-task-id>{{ task.parent.id }}</parent-task-id>
     {% endif %}
-    <assigned-agent-id>{{ task.get_agent().id }}</assigned-agent-id>
-    {% if task.is_incomplete()%}
-    <allow-fail>{{ task.allow_fail }}</allow-fail>
-    <allow-skip>{{ task.allow_skip }}</allow-skip>
+    <assigned-actor-id>{{ task.get_actor().id }}</assigned-actor-id>
+
+    {% if task.memories %}
+    <memories>
+        The following memory modules are available:
+        {% for memory in task.memories %}
+        {{ memory.get_prompt() }}
+        {% endfor %}
+    </memories>
     {% endif %}
 </task>

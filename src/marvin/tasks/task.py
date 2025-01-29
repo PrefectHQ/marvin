@@ -24,7 +24,7 @@ from pydantic import TypeAdapter
 
 import marvin
 from marvin.agents.actor import Actor
-from marvin.agents.team import Swarm
+from marvin.agents.team import Swarm, Team
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.thread import Thread
@@ -100,9 +100,11 @@ class Task(Generic[T]):
         repr=False,
     )
 
-    agent: Actor | None = field(
+    actor: Actor | None = field(
         default=None,
-        metadata={"description": "Optional agent or team assigned to this task"},
+        metadata={
+            "description": "The actor assigned to this task. If not provided, the default agent will be used.",
+        },
     )
 
     context: dict[str, Any] = field(
@@ -198,7 +200,7 @@ class Task(Generic[T]):
         *,
         name: str | None = None,
         prompt_template: str | Path = Path("task.jinja"),
-        agents: list[Actor] | None = None,
+        agents: list[Actor | Team] | None = None,
         context: dict[str, Any] | None = None,
         tools: list[Callable[..., Any]] | None = None,
         memories: list[Memory] | None = None,
@@ -258,14 +260,11 @@ class Task(Generic[T]):
         # internal fields
         self._tokens = []
 
-        # handle agents
         if agents:
-            if len(agents) > 1:
-                self.agent = Swarm(agents=agents)
+            if len(agents) == 1:
+                self.actor = agents[0]
             else:
-                self.agent = agents[0]
-        else:
-            self.agent = None
+                self.actor = Swarm(members=agents)
 
         # Handle result type validation
         if isinstance(self.result_type, (list, tuple, set)):
@@ -319,13 +318,16 @@ class Task(Generic[T]):
                 )
             self.result_type = Labels(self.result_type)
 
-    def friendly_name(self) -> str:
+    def friendly_name(self, verbose: bool = True) -> str:
         """Get a friendly name for this task."""
         if self.name:
             return f'Task "{self.name}"'
-        # Replace consecutive newlines with a single space
-        instructions = " ".join(self.instructions.split())
-        return f'Task {self.id} ("{instructions[:40]}...")'
+        if verbose:
+            # Replace consecutive newlines with a single space
+            instructions = " ".join(self.instructions.split())
+            return f'Task {self.id} ("{instructions[:40]}...")'
+        else:
+            return f"Task {self.id}"
 
     @property
     def parent(self) -> "Task[Any] | None":
@@ -341,9 +343,9 @@ class Task(Generic[T]):
         if self._parent is not None:
             self._parent.subtasks.add(self)
 
-    def get_agent(self) -> Actor:
-        """Retrieve the agent assigned to this task."""
-        return self.agent or marvin.defaults.agent
+    def get_actor(self) -> Actor:
+        """Retrieve the actor assigned to this task."""
+        return self.actor or marvin.defaults.agent
 
     def get_tools(self) -> list[Callable[..., Any]]:
         """Get the tools assigned to this task."""
@@ -451,19 +453,36 @@ class Task(Generic[T]):
         import marvin.engine.end_turn
 
         tools: list[type[marvin.engine.end_turn.EndTurn]] = []
-        tools.append(marvin.engine.end_turn.create_mark_task_successful(self))
+        tools.append(self.mark_successful_tool())
         if self.allow_fail:
-            tools.append(marvin.engine.end_turn.create_mark_task_failed(self))
+            tools.append(self.mark_failed_tool())
         if self.allow_skip:
-            tools.append(marvin.engine.end_turn.create_mark_task_skipped(self))
+            tools.append(self.mark_skipped_tool())
 
         return tools
 
+    def mark_successful_tool(self) -> type["marvin.engine.end_turn.MarkTaskSuccessful"]:
+        import marvin.engine.end_turn
+
+        return marvin.engine.end_turn.create_mark_task_successful(self)
+
+    def mark_failed_tool(self) -> type["marvin.engine.end_turn.MarkTaskFailed"]:
+        import marvin.engine.end_turn
+
+        return marvin.engine.end_turn.create_mark_task_failed(self)
+
+    def mark_skipped_tool(self) -> type["marvin.engine.end_turn.MarkTaskSkipped"]:
+        import marvin.engine.end_turn
+
+        return marvin.engine.end_turn.create_mark_task_skipped(self)
+
     # ------ State Management ------
 
-    def mark_successful(self, result: T = None) -> None:
+    def mark_successful(self, result: T = None, validate_result: bool = True) -> None:
         """Mark the task as successful with an optional result."""
-        self.result = self.validate_result(result)
+        if validate_result:
+            result = self.validate_result(result)
+        self.result = result
         self.state = TaskState.SUCCESSFUL
 
     def mark_failed(self, error: str) -> None:
