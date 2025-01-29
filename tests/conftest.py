@@ -16,6 +16,7 @@ from sqlalchemy.pool import NullPool
 import marvin
 from marvin import database, settings
 from marvin.defaults import override_defaults
+from marvin.instructions import instructions
 from marvin.memory.providers.chroma import ChromaMemory
 
 
@@ -135,4 +136,15 @@ def setup_memory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, worker_id: str
 @pytest.fixture
 def gpt_4o():
     with override_defaults(model="openai:gpt-4o"):
+        yield
+
+
+@pytest.fixture
+def unit_test_instructions():
+    with instructions(
+        """
+        You are being unit tested. Be as fast and concise as possible. Do not
+        post unecessary messages.
+        """
+    ):
         yield
