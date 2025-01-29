@@ -19,7 +19,9 @@ from marvin.utilities.asyncio import run_sync
 from .engine.llm import Message, UserMessage
 
 # Message serialization adapter
-message_adapter: TypeAdapter[Message] = TypeAdapter(Message)
+message_adapter: TypeAdapter[Message | list[Message]] = TypeAdapter(
+    Message | list[Message]
+)
 
 
 @dataclass
@@ -173,10 +175,10 @@ class Thread:
                 query = query.limit(limit)
 
             result = await session.execute(query)
-            return [
-                message_adapter.validate_python(m.message)
-                for m in result.scalars().all()
-            ]
+
+            return message_adapter.validate_python(
+                [m.message for m in result.scalars().all()]
+            )
 
     async def get_llm_calls_async(
         self,

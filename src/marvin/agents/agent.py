@@ -7,22 +7,29 @@ import random
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, TypeVar, Union
+from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 import pydantic_ai
+from pydantic_ai.messages import ModelRequestPart, RetryPromptPart, ToolCallPart
 from pydantic_ai.models import KnownModelName, Model, ModelSettings
+from pydantic_ai.result import AgentDepsT, RunContext, RunResult
 
 import marvin
-import marvin.engine.llm
+from marvin.agents.actor import Actor
 from marvin.agents.names import AGENT_NAMES
-from marvin.agents.team import SoloTeam, Swarm, Team
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
-from marvin.tools.thread import post_message_to_agents
+from marvin.utilities.logging import get_logger
+from marvin.utilities.tools import wrap_tool_errors
+from marvin.utilities.types import issubclass_safe
 
-from .actor import Actor
-
+logger = get_logger(__name__)
 T = TypeVar("T")
+
+if TYPE_CHECKING:
+    from marvin.engine.end_turn import EndTurn
+    from marvin.engine.handlers import AsyncHandler, Handler
+    from marvin.engine.llm import Message
 
 
 @dataclass(kw_only=True)
@@ -59,14 +66,6 @@ class Agent(Actor):
         repr=False,
     )
 
-    delegates: list[Actor] | None = field(
-        default=None,
-        repr=False,
-        metadata={
-            "description": "List of agents that this agent can delegate to. Provide an empty list if this agent can not delegate.",
-        },
-    )
-
     prompt: str | Path = field(
         default=Path("agent.jinja"),
         metadata={"description": "Template for the agent's prompt"},
@@ -76,24 +75,14 @@ class Agent(Actor):
     def __hash__(self) -> int:
         return super().__hash__()
 
-    def friendly_name(self) -> str:
-        return f'Agent "{self.name}" ({self.id})'
-
-    def get_delegates(self) -> list[Actor] | None:
-        return self.delegates
-
     def get_model(self) -> Model | KnownModelName:
         return self.model or marvin.defaults.model
 
-    def get_memories(self) -> list[Memory]:
-        return self.memories
-
     def get_tools(self) -> list[Callable[..., Any]]:
-        return (
-            self.tools
-            + [t for m in self.memories for t in m.get_tools()]
-            + [post_message_to_agents]
-        )
+        return self.tools + [t for m in self.memories for t in m.get_tools()]
+
+    def get_memories(self) -> list[Memory]:
+        return list(self.memories)
 
     def get_model_settings(self) -> ModelSettings:
         defaults: ModelSettings = {}
@@ -103,31 +92,95 @@ class Agent(Actor):
 
     def get_agentlet(
         self,
-        result_types: list[type],
+        result_type: type,
         tools: list[Callable[..., Any]] | None = None,
-        **kwargs: Any,
+        handlers: list["Handler | AsyncHandler"] | None = None,
+        result_tool_name: str | None = None,
     ) -> pydantic_ai.Agent[Any, Any]:
-        if len(result_types) == 1:
-            result_type = result_types[0]
-        else:
-            result_type = Union[tuple(result_types)]
+        from marvin.engine.events import Event
+        from marvin.engine.handlers import AsyncHandler
 
-        return pydantic_ai.Agent[Any, result_type](  # type: ignore
+        async def handle_event(event: Event):
+            for handler in handlers or []:
+                if isinstance(handler, AsyncHandler):
+                    await handler.handle(event)
+                else:
+                    handler.handle(event)
+
+        tools = [wrap_tool_errors(tool) for tool in tools or []]
+
+        agentlet = pydantic_ai.Agent[Any, result_type](  # type: ignore
             model=self.get_model(),
             result_type=result_type,
-            tools=self.get_tools() + (tools or []),
+            tools=tools,
             model_settings=self.get_model_settings(),
             end_strategy="exhaustive",
-            **kwargs,
+            result_tool_name=result_tool_name or "EndTurn",
+            result_tool_description="This tool will end your turn. You may only use one EndTurn tool per turn.",
         )
+
+        from marvin.engine.events import (
+            ToolCallEvent,
+            ToolRetryEvent,
+            ToolReturnEvent,
+        )
+
+        for tool in agentlet._function_tools.values():  # type: ignore[reportPrivateUsage]
+            # Wrap the tool run function to emit events for each call / result
+            # this can be removed when Pydantic AI supports streaming events
+            async def run(
+                message: ToolCallPart,
+                run_context: RunContext[AgentDepsT],
+                # pass as arg to avoid late binding issues
+                original_run: Callable[..., Any] = tool.run,
+            ) -> ModelRequestPart:
+                await handle_event(ToolCallEvent(actor=self, message=message))
+                result = await original_run(message, run_context)
+                if isinstance(result, RetryPromptPart):
+                    await handle_event(ToolRetryEvent(message=result))
+                else:
+                    await handle_event(ToolReturnEvent(message=result))
+                return result
+
+            tool.run = run
+
+        return agentlet
+
+    async def _run(
+        self,
+        messages: list["Message"],
+        tools: list[Callable[..., Any]],
+        end_turn_tools: list["EndTurn"],
+    ) -> RunResult:
+        from marvin.engine.end_turn import EndTurn
+
+        tools = tools + self.get_tools()
+        end_turn_tools = end_turn_tools + self.get_end_turn_tools()
+
+        # if any tools are actually EndTurn classes, remove them from tools and
+        # add them to end turn tools
+        for t in tools:
+            if issubclass_safe(t, EndTurn):
+                tools.remove(t)
+                end_turn_tools.append(t)
+
+        if not end_turn_tools:
+            result_type = [EndTurn]
+
+        if len(end_turn_tools) == 1:
+            result_type = end_turn_tools[0]
+            result_tool_name = result_type.__name__
+        else:
+            result_type = Union[tuple(end_turn_tools)]
+            result_tool_name = "EndTurn"
+
+        agentlet = self.get_agentlet(
+            result_type=result_type,
+            tools=tools,
+            result_tool_name=result_tool_name,
+        )
+        result = await agentlet.run("", message_history=messages)
+        return result
 
     def get_prompt(self) -> str:
         return Template(source=self.prompt).render(agent=self)
-
-    def as_team(self, team_class: Callable[[list[Actor]], Team] | None = None) -> Team:
-        all_agents = [self] + (self.delegates or [])
-        if len(all_agents) == 1:
-            team_class = team_class or SoloTeam
-        else:
-            team_class = team_class or Swarm
-        return team_class(agents=all_agents)

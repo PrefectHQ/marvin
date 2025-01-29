@@ -4,9 +4,13 @@ from dataclasses import dataclass
 from functools import wraps
 from typing import Any, Literal, TypeVar, overload
 
+import pydantic_ai
 from pydantic_ai import RunContext
 
+from marvin.utilities.logging import get_logger
+
 T = TypeVar("T")
+logger = get_logger(__name__)
 
 
 @overload
@@ -112,3 +116,39 @@ class ResultTool:
 
     def run(self, ctx: RunContext) -> None:
         pass
+
+
+def wrap_tool_errors(tool_fn: Callable[..., Any]):
+    """
+    Pydantic AI doesn't catch errors except for ModelRetry, so we need to make
+    sure we catch them ourselves and raise a ModelRetry instead.
+    """
+    if inspect.iscoroutinefunction(tool_fn):
+
+        @wraps(tool_fn)
+        async def _fn(*args, **kwargs):
+            try:
+                return await tool_fn(*args, **kwargs)
+            except pydantic_ai.ModelRetry as e:
+                logger.debug(f"Tool failed: {e}")
+                raise e
+            except Exception as e:
+                logger.debug(f"Tool failed: {e}")
+                raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
+
+        return _fn
+
+    else:
+
+        @wraps(tool_fn)
+        def _fn(*args: Any, **kwargs: Any):
+            try:
+                return tool_fn(*args, **kwargs)
+            except pydantic_ai.ModelRetry as e:
+                logger.debug(f"Tool failed: {e}")
+                raise e
+            except Exception as e:
+                logger.debug(f"Tool failed: {e}")
+                raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
+
+        return _fn

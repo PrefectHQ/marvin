@@ -1,17 +1,12 @@
-import inspect
-import json
 import math
 from asyncio import CancelledError
 from collections.abc import Callable
 from contextvars import ContextVar
-from dataclasses import dataclass, field
-from functools import wraps
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Optional, TypeVar
 
-import pydantic_ai
-from pydantic_ai.messages import ModelRequestPart, RetryPromptPart, ToolCallPart
-from pydantic_ai.result import AgentDepsT, RunContext, RunResult
+from pydantic_ai.result import RunResult
 
 import marvin
 import marvin.agents.team
@@ -19,7 +14,7 @@ import marvin.engine.llm
 from marvin.agents.actor import Actor
 from marvin.agents.agent import Agent
 from marvin.database import DBLLMCall
-from marvin.engine.end_turn import DelegateToAgent, EndTurn
+from marvin.engine.end_turn import EndTurn
 from marvin.engine.events import (
     AgentEndTurnEvent,
     AgentStartTurnEvent,
@@ -27,9 +22,6 @@ from marvin.engine.events import (
     OrchestratorEndEvent,
     OrchestratorExceptionEvent,
     OrchestratorStartEvent,
-    ToolCallEvent,
-    ToolRetryEvent,
-    ToolReturnEvent,
     message_to_events,
 )
 from marvin.engine.handlers import AsyncHandler, Handler
@@ -57,38 +49,19 @@ class OrchestratorPrompt(Template):
     source: str | Path = Path("orchestrator.jinja")
 
     orchestrator: "Orchestrator"
+    actor: Actor
     tasks: list[Task[Any]]
     instructions: list[str]
     end_turn_tools: list[EndTurn]
-    memories: list[str]
 
 
 @dataclass(kw_only=True)
 class Orchestrator:
     tasks: list[Task[Any]]
-    agents: list[Actor] | None = None
     thread: Thread | str | None = None
     handlers: list[Handler | AsyncHandler] | None = None
 
-    team: marvin.agents.team.Team = field(init=False, repr=False)
-    _staged_delegate: tuple[marvin.agents.team.Team, Actor] | None = field(
-        default=None, init=False, repr=False
-    )
-    _token: Any = field(default=None, init=False, repr=False)
-
     def __post_init__(self):
-        all_agents = {t.get_agent() for t in self.tasks}
-        if self.agents:
-            all_agents.update(self.agents)
-        if len(all_agents) > 1:
-            self.team = marvin.agents.team.Swarm(agents=list(all_agents))
-        else:
-            agent = next(iter(all_agents))
-            if isinstance(agent, marvin.agents.team.Team):
-                self.team = agent
-            else:
-                self.team = marvin.agents.team.SoloTeam(agents=[agent])
-
         self.thread = get_thread(self.thread)
         if self.handlers is None:
             if marvin.settings.enable_default_print_handler:
@@ -106,261 +79,14 @@ class Orchestrator:
             else:
                 handler.handle(event)
 
-    async def _run_turn(self):
-        # Get tasks for the current active agent
-        tasks = self.get_all_tasks(filter="assigned")
-
-        # Mark tasks as running if they're pending
-        for task in tasks:
-            if task.is_pending():
-                task.mark_running()
-                await self.thread.add_user_message_async(
-                    f"Task started: {task.friendly_name()}"
-                )
-
-        self.team.start_turn()
-        await self.handle_event(AgentStartTurnEvent(agent=self.team))
-
-        # --- get tools
-        tools: set[Callable[..., Any]] = set()
-        for t in tasks:
-            tools.update(t.get_tools())
-        _tools = list(tools)
-
-        # --- get end turn tools
-        end_turn_tools: set[EndTurn] = set()
-
-        for t in tasks:
-            end_turn_tools.update(t.get_end_turn_tools())
-        if self.get_delegates():
-            end_turn_tools.add(DelegateToAgent)
-        end_turn_tools.update(self.team.get_end_turn_tools())
-        _end_turn_tools = list(end_turn_tools)
-
-        # --- get memories
-        memories: set[Memory] = set()
-        for t in tasks:
-            memories.update(t.memories)
-        memories.update(self.team.get_memories())
-        memories = [m for m in memories if m.auto_use]
-
-        # --- prepare messages
-        messages = await self.thread.get_messages_async()
-
-        # load auto-use memories
-        if memories and messages:
-            query = "\n\n".join(
-                message_adapter.dump_json(m).decode() for m in messages[-3:]
-            )
-            memories = [
-                json.dumps({m.key: await m.search(query=query, n=3)}) for m in memories
-            ]
-
-        orchestrator_prompt = OrchestratorPrompt(
-            orchestrator=self,
-            tasks=self.get_all_tasks(),
-            instructions=get_instructions(),
-            end_turn_tools=end_turn_tools,
-            memories=memories,
-        ).render()
-
-        all_messages = [
-            marvin.engine.llm.SystemMessage(content=orchestrator_prompt),
-        ] + messages
-
-        # --- run agent
-        agentlet = self._get_agentlet(tools=_tools, end_turn_tools=_end_turn_tools)
-
-        result = await agentlet.run("", message_history=all_messages)
-
-        # Record the LLM call in the database
-        llm_call = await DBLLMCall.create(
-            thread_id=self.thread.id,
-            usage=result.usage(),
-        )
-
-        # --- record messages
-        for message in result.new_messages():
-            for event in message_to_events(
-                agent=self.team.active_agent,
-                message=message,
-                agentlet=agentlet,
-            ):
-                await self.handle_event(event)
-        await self.thread.add_messages_async(
-            result.new_messages(), llm_call_id=llm_call.id
-        )
-
-        # --- end turn
-        self.end_turn()
-        await self.handle_event(AgentEndTurnEvent(agent=self.team))
-
-        for task in tasks:
-            if task.is_successful():
-                await self.thread.add_user_message_async(
-                    f"Task completed: {task.friendly_name()}"
-                )
-            elif task.is_failed():
-                await self.thread.add_user_message_async(
-                    f"Task failed: {task.friendly_name()}"
-                )
-
-        return result
-
-    def _get_agentlet(self, tools: list, end_turn_tools: list) -> pydantic_ai.Agent:
-        """Get an agentlet with wrapped tools and configured result validator.
-
-        Args:
-            tools: List of tools to provide to the agentlet
-            end_turn_tools: List of end turn tools to provide to the agentlet
-
-        Returns:
-            The configured agentlet
-
-        """
-
-        # Pydantic AI doesn't catch errors except for ModelRetry, so we need to make sure we catch them
-        # ourselves and raise a ModelRetry.
-        def wrap_tool(tool: Callable[..., Any]):
-            if inspect.iscoroutinefunction(tool):
-
-                @wraps(tool)
-                async def _fn(*args, **kwargs):
-                    try:
-                        return await tool(*args, **kwargs)
-                    except (
-                        pydantic_ai.ModelRetry,
-                        KeyboardInterrupt,
-                        CancelledError,
-                    ) as e:
-                        logger.debug(f"Tool failed: {e}")
-                        raise e
-                    except Exception as e:
-                        logger.debug(f"Tool failed: {e}")
-                        raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
-
-                return _fn
-
-            @wraps(tool)
-            def _fn(*args: Any, **kwargs: Any):
-                try:
-                    return tool(*args, **kwargs)
-                except (
-                    pydantic_ai.ModelRetry,
-                    KeyboardInterrupt,
-                    CancelledError,
-                ) as e:
-                    logger.debug(f"Tool failed: {e}")
-                    raise e
-                except Exception as e:
-                    logger.debug(f"Tool failed: {e}")
-                    raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
-
-            return _fn
-
-        tools = [wrap_tool(tool) for tool in tools]
-
-        agentlet = self.team.get_agentlet(
-            tools=tools,
-            result_types=end_turn_tools,
-            result_tool_name="EndTurn",
-            result_tool_description="This tool will end your turn.",
-            retries=marvin.settings.agent_retries,
-        )
-
-        @agentlet.result_validator
-        async def validate_end_turn(result: EndTurn):
-            if isinstance(result, EndTurn):  # type: ignore[unnecessaryIsinstance]
-                try:
-                    await result.run(orchestrator=self)
-                except pydantic_ai.ModelRetry as e:
-                    raise e
-                except Exception as e:
-                    logger.debug(f"End turn tool failed: {e}")
-                    raise pydantic_ai.ModelRetry(message=f"End turn tool failed: {e}")
-
-            # return the original result
-            return result
-
-        for tool in agentlet._function_tools.values():  # type: ignore[reportPrivateUsage]
-            # Wrap the tool run function to emit events for each call / result
-            async def run(
-                message: ToolCallPart,
-                run_context: RunContext[AgentDepsT],
-                # pass as arg to avoid late binding issues
-                original_run: Callable[..., Any] = tool.run,
-            ) -> ModelRequestPart:
-                await self.handle_event(
-                    ToolCallEvent(agent=self.active_agent(), message=message),
-                )
-                result = await original_run(message, run_context)
-                if isinstance(result, RetryPromptPart):
-                    await self.handle_event(ToolRetryEvent(message=result))
-                else:
-                    await self.handle_event(ToolReturnEvent(message=result))
-                return result
-
-            tool.run = run
-
-        return agentlet
-
-    def get_delegates(self) -> list[Actor]:
-        delegates: list[Actor] = []
-        current = self.team
-
-        # Follow active_agent chain, collecting delegates at each level
-        while isinstance(current, marvin.agents.team.Team):
-            delegates.extend(current.get_delegates())
-            current = current.active_agent
-
-        return delegates
-
-    def stage_delegate(self, agent_id: str) -> None:
-        """
-        Stage a delegation to another agent. The delegation will be applied at
-        the end of the turn. This allows all messages created during the turn to
-        be properly attributed to the currently active agent, without confusion
-        about whether the new delegate was active.
-
-        Validates the agent_id and stores the team/agent pair that will be
-        updated at the end of the turn.
-        """
-        delegates = {d.id: d for d in self.get_delegates()}
-        if agent_id not in delegates:
-            raise ValueError(f"Agent ID {agent_id} not found in delegates")
-
-        logger.debug(
-            f"{self.active_agent().friendly_name()}: Delegating to {delegates[agent_id].friendly_name()}",
-        )
-
-        # walk active_agents to find the delegate
-        current = self.team
-        active_delegates = {a.id for a in current.agents}
-        while agent_id not in active_delegates:
-            if not isinstance(current, marvin.agents.team.Team):
-                raise ValueError(f"Agent ID {agent_id} not found in delegates")
-            current = current.active_agent
-
-        agent = next(a for a in current.agents if a.id == agent_id)
-        self._staged_delegate = (current, agent)
-
-    def end_turn(self) -> None:
-        """End the current turn, applying any staged delegation and notifying the team."""
-        if self._staged_delegate is not None:
-            team, agent = self._staged_delegate
-            team.active_agent = agent
-            self._staged_delegate = None
-        self.team.end_turn()
-
     def get_all_tasks(
-        self, filter: Literal["incomplete", "ready", "assigned"] | None = None
+        self, filter: Literal["incomplete", "ready"] | None = None
     ) -> list[Task[Any]]:
         """Get all tasks, optionally filtered by status.
 
         Filters:
             - incomplete: tasks that are not yet complete
             - ready: tasks that are ready to be run
-            - assigned: tasks that are ready and assigned to the active agents
         """
         all_tasks: set[Task[Any]] = set()
         ordered_tasks: list[Task[Any]] = []
@@ -393,18 +119,116 @@ class Orchestrator:
             return [t for t in ordered_tasks if t.is_incomplete()]
         elif filter == "ready":
             return [t for t in ordered_tasks if t.is_ready()]
-        elif filter == "assigned":
-            return [
-                t
-                for t in ordered_tasks
-                if t.is_ready() and t.get_agent() in self.active_actors()
-            ]
         elif filter:
             raise ValueError(f"Invalid filter: {filter}")
         return ordered_tasks
 
+    async def run_once(self, actor: Actor | None = None) -> RunResult:
+        tasks = self.get_all_tasks(filter="ready")
+
+        if not tasks:
+            raise ValueError("No tasks to run")
+
+        if actor is None:
+            actor = tasks[0].get_actor()
+
+        assigned_tasks = [t for t in tasks if actor is t.get_actor()]
+
+        # Mark tasks as running if they're pending
+        for task in assigned_tasks:
+            if task.is_pending():
+                task.mark_running()
+                await self.thread.add_user_message_async(
+                    f"Task started: {task.friendly_name()}"
+                )
+
+        await self.start_turn(actor=actor)
+
+        # --- get tools
+        tools: set[Callable[..., Any]] = set()
+        for t in assigned_tasks:
+            tools.update(t.get_tools())
+
+        # --- get end turn tools
+        end_turn_tools: set[EndTurn] = set()
+        for t in assigned_tasks:
+            end_turn_tools.update(t.get_end_turn_tools())
+
+        # --- get memories
+        memories: set[Memory] = set()
+        for t in assigned_tasks:
+            memories.update([m for m in t.memories if m.auto_use])
+        if isinstance(actor, Agent):
+            memories.update([m for m in actor.get_memories() if m.auto_use])
+        if memories:
+            memory_messages = await self.thread.get_messages_async(limit=3)
+            query = message_adapter.dump_json(memory_messages).decode()
+            for memory in memories:
+                memory_result = {
+                    memory.friendly_name(): await memory.search(query=query, n=3)
+                }
+                await self.thread.add_user_message_async(
+                    f"Automatically recalled memories: {memory_result}"
+                )
+
+        orchestrator_prompt = OrchestratorPrompt(
+            orchestrator=self,
+            actor=actor,
+            tasks=assigned_tasks,
+            instructions=get_instructions(),
+            end_turn_tools=end_turn_tools,
+        ).render()
+
+        messages = await self.thread.get_messages_async()
+
+        all_messages = [
+            marvin.engine.llm.SystemMessage(content=orchestrator_prompt),
+        ] + messages
+
+        # --- run agent
+        result = await actor._run(
+            messages=all_messages,
+            tools=list(tools),
+            end_turn_tools=list(end_turn_tools),
+        )
+
+        # Record the LLM call in the database
+        llm_call = await DBLLMCall.create(
+            thread_id=self.thread.id,
+            usage=result.usage(),
+        )
+
+        # --- record messages
+        for message in result.new_messages():
+            for event in message_to_events(
+                actor=actor,
+                message=message,
+            ):
+                await self.handle_event(event)
+        await self.thread.add_messages_async(
+            result.new_messages(), llm_call_id=llm_call.id
+        )
+
+        # --- end turn
+        await self.end_turn(result=result, actor=actor)
+
+        return result
+
+    async def start_turn(self, actor: Actor):
+        await actor.start_turn(orchestrator=self)
+        await self.handle_event(AgentStartTurnEvent(actor=actor))
+
+    async def end_turn(self, result: RunResult, actor: Actor):
+        if isinstance(result.data, EndTurn):
+            await result.data.run(orchestrator=self, actor=actor)
+
+        await actor.end_turn(result=result, orchestrator=self)
+        await self.handle_event(AgentEndTurnEvent(actor=actor))
+
     async def run(
-        self, raise_on_failure: bool = True, max_turns: int | float | None = None
+        self,
+        raise_on_failure: bool = True,
+        max_turns: int | float | None = None,
     ) -> list[RunResult]:
         if max_turns is None:
             max_turns = marvin.settings.max_agent_turns
@@ -420,6 +244,7 @@ class Orchestrator:
 
                 try:
                     turns = 0
+                    actor = None
 
                     # the while loop continues until all the tasks that were
                     # provided to the orchestrator are complete OR max turns is
@@ -429,7 +254,7 @@ class Orchestrator:
                     # the orchestrator logic, but not considered part of the
                     # termination condition.
                     while incomplete_tasks and (max_turns is None or turns < max_turns):
-                        result = await self._run_turn()
+                        result = await self.run_once(actor=actor)
                         results.append(result)
                         turns += 1
 
@@ -454,61 +279,6 @@ class Orchestrator:
             _current_orchestrator.reset(token)
 
         return results
-
-    def active_team(self) -> marvin.agents.team.Team:
-        """Returns the currently active team that contains the currently active agent."""
-        active_team = self.team
-        while not isinstance(active_team.active_agent, Agent):
-            active_team = active_team.active_agent
-        return active_team
-
-    def active_agent(self) -> Agent:
-        """Returns the currently active agent."""
-        active_team = self.active_team()
-        return active_team.active_agent
-
-    def active_actors(self) -> list[Actor]:
-        """Returns a list of all active actors in the hierarchy, starting with the
-        orchestrator's team and following the team hierarchy to the active
-        agent.
-        """
-        actors: list[Actor] = []
-        actor = self.team
-        while not isinstance(actor, Agent):
-            actors.append(actor)
-            actor = actor.active_agent
-        actors.append(actor)
-        return actors
-
-    def get_agent_tree(self) -> dict[str, Any]:
-        """Returns a tree structure representing the hierarchy of teams and agents.
-
-        Returns:
-            dict: A nested dictionary where each team contains its agents, and agents are leaf nodes.
-                 Format: {
-                     "type": "team"|"agent",
-                     "id": str,
-                     "agents": [...] # only present for teams
-                 }
-
-        """
-        active_actors = self.active_actors()
-
-        def _build_tree(node: Agent | marvin.agents.team.Team) -> dict[str, Any]:
-            if isinstance(node, marvin.agents.team.Team):
-                return {
-                    "type": "team",
-                    "id": node.id,
-                    "agents": [_build_tree(agent) for agent in node.agents],
-                    "active": node in active_actors,
-                }
-            return {
-                "type": "agent",
-                "id": node.id,
-                "active": node in active_actors,
-            }
-
-        return _build_tree(self.team)
 
     @classmethod
     def get_current(cls) -> Optional["Orchestrator"]:

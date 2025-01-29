@@ -19,7 +19,6 @@ async def run_tasks_async(
 ) -> list[Task[Any]]:
     orchestrator = Orchestrator(
         tasks=tasks,
-        agents=agents,
         thread=thread,
         handlers=handlers,
     )

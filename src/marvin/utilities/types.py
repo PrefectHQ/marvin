@@ -263,7 +263,11 @@ def issubclass_safe(x: Any, cls: type | tuple[type, ...]) -> bool:
         False
 
     """
-    return isinstance(x, type) and issubclass(x, cls)
+    if isinstance(x, type) and issubclass(x, cls):
+        return True
+    elif origin := get_origin(x):
+        return issubclass_safe(origin, cls)
+    return False
 
 
 @dataclass

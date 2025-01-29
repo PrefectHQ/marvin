@@ -1,6 +1,6 @@
 import datetime
 from dataclasses import dataclass
-from typing import Any, get_origin
+from typing import Any
 
 import rich
 from rich import box
@@ -12,14 +12,6 @@ from rich.pretty import Pretty
 from rich.spinner import Spinner
 from rich.table import Table
 
-from marvin.engine.end_turn import (
-    DelegateToAgent,
-    EndTurn,
-    MarkTaskFailed,
-    MarkTaskSkipped,
-    MarkTaskSuccessful,
-    PostMessage,
-)
 from marvin.engine.events import (
     AgentMessageEvent,
     OrchestratorEndEvent,
@@ -30,7 +22,6 @@ from marvin.engine.events import (
     ToolReturnEvent,
 )
 from marvin.engine.handlers import Handler
-from marvin.utilities.types import issubclass_safe
 
 # Global spinner for consistent animation
 RUNNING_SPINNER = Spinner("dots")
@@ -105,7 +96,6 @@ class ToolState(DisplayState):
     result: str | None = None
     is_error: bool = False
     is_complete: bool = False
-    end_turn_tool: EndTurn | None = None
 
     def get_status_style(self) -> tuple[str | Spinner, str, str]:
         """Returns (icon, text style, border style) for current status."""
@@ -124,34 +114,13 @@ class ToolState(DisplayState):
         table.add_column(style="dim")
         table.add_column()
 
-        name = self.name
-        if self.end_turn_tool:
-            if issubclass_safe(get_origin(self.end_turn_tool), MarkTaskSuccessful):
-                name = f"Mark Task Successful: {self.end_turn_tool.task_id}"
-            elif issubclass_safe(self.end_turn_tool, MarkTaskFailed):
-                name = f"Mark Task Failed: {self.end_turn_tool.task_id}"
-            elif issubclass_safe(self.end_turn_tool, MarkTaskSkipped):
-                name = f"Mark Task Skipped: {self.end_turn_tool.task_id}"
-            elif issubclass_safe(self.end_turn_tool, PostMessage):
-                name = "Post Message"
-            elif issubclass_safe(self.end_turn_tool, DelegateToAgent):
-                name = "Delegate to Agent"
-            else:
-                name = self.end_turn_tool.__name__
-        table.add_row("Tool:", f"[{text_style} bold]{name}[/]")
+        table.add_row("Tool:", f"[{text_style}]{self.name}[/]")
 
         if self.args:
-            if self.end_turn_tool:
-                args = self.args.get("response", self.args)
-                if issubclass_safe(get_origin(self.end_turn_tool), MarkTaskSuccessful):
-                    args = args.get("result", args)
-            else:
-                args = self.args
-
-            table.add_row("Input:", Markdown(str(args)))
+            table.add_row("Input:", Markdown(str(self.args)))
 
         table.add_row("Status:", icon)
-        if self.is_complete and self.result and not self.end_turn_tool:
+        if self.is_complete and self.result:
             label = "Error" if self.is_error else "Output"
             output = f"[red]{self.result}[/]" if self.is_error else Pretty(self.result)
             table.add_row(f"{label}:", output)
@@ -227,7 +196,7 @@ class PrintHandler(Handler):
 
         if str(event.id) not in self.states:
             state = ContentState(
-                agent_name=event.agent.name,
+                agent_name=event.actor.name,
                 first_timestamp=event.timestamp,
             )
             state.update_content(event.message.content)
@@ -250,11 +219,10 @@ class PrintHandler(Handler):
 
         if tool_id not in self.states:
             self.states[tool_id] = ToolState(
-                agent_name=event.agent.name,
+                agent_name=event.actor.friendly_name(),
                 first_timestamp=event.timestamp,
                 name=event.message.tool_name,
                 args=event.message.args_as_dict(),
-                end_turn_tool=event.end_turn_tool,
             )
         else:
             state = self.states[tool_id]

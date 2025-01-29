@@ -3,6 +3,7 @@ from typing import Literal
 
 import pytest
 
+import marvin
 from marvin.agents.agent import Agent
 from marvin.agents.team import Swarm
 from marvin.tasks.task import Task, TaskState
@@ -225,8 +226,7 @@ def test_task_with_agent():
     """Test task with custom agent."""
     agent = Agent()
     task = Task(instructions="Test with agent", agents=[agent])
-    assert task.agent is agent
-    assert task.get_agent() is agent
+    assert task.get_actor() is agent
 
 
 def test_task_with_multiple_agents():
@@ -234,14 +234,15 @@ def test_task_with_multiple_agents():
     agent1 = Agent()
     agent2 = Agent()
     task = Task(instructions="Test with multiple agents", agents=[agent1, agent2])
-    assert isinstance(task.agent, Swarm)
-    assert task.get_agent() is task.agent
+    actor = task.get_actor()
+    assert isinstance(actor, Swarm)
+    assert actor.members == [agent1, agent2]
 
 
 def test_task_get_default_agent():
     """Test getting default agent when none specified."""
     task = Task(instructions="Test default agent")
-    assert isinstance(task.get_agent(), Agent)
+    assert task.get_actor() is marvin.defaults.agent
 
 
 def test_task_mark_successful():
