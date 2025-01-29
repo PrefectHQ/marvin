@@ -20,8 +20,8 @@ if TYPE_CHECKING:
 class Team(Actor):
     """A team is a container that maintains state for a group of agents."""
 
-    members: list[Actor]
-    active_member: Actor = field(init=False)
+    members: list[Actor] = field(kw_only=False, repr=False)
+    active_member: Actor = field(init=False, repr=False)
 
     name: str = field(
         default_factory=lambda: random.choice(TEAM_NAMES),
@@ -31,7 +31,10 @@ class Team(Actor):
     prompt: str | Path = field(
         default=Path("team.jinja"),
         metadata={"description": "Template for the team's prompt"},
+        repr=False,
     )
+
+    delegates: dict[Actor, list[Actor]] = field(default_factory=dict, repr=False)
 
     def __post_init__(self):
         if not self.members:
@@ -69,23 +72,30 @@ class Team(Actor):
     def friendly_name(self, verbose: bool = True) -> str:
         return self.active_member.friendly_name(verbose=verbose)
 
-
-@dataclass(kw_only=True)
-class Swarm(Team):
-    """A swarm is a team that permits all agents to delegate to each other."""
-
     def get_end_turn_tools(self) -> list["EndTurn"]:
         from marvin.engine.end_turn import create_delegate_to_actor
 
         end_turn_tools = super().get_end_turn_tools()
 
-        for member in self.members:
-            if member is not self.active_member:
-                end_turn_tools.append(
-                    create_delegate_to_actor(delegate_actor=member, team=self)
-                )
+        for delegate in self.delegates.get(self.active_member, []):
+            end_turn_tools.append(
+                create_delegate_to_actor(delegate_actor=delegate, team=self)
+            )
 
         return end_turn_tools
+
+
+@dataclass(kw_only=True)
+class Swarm(Team):
+    """A swarm is a team that permits all agents to delegate to each other."""
+
+    def __post_init__(self):
+        super().__post_init__()
+        if not self.delegates:
+            self.delegates = {
+                member: [m for m in self.members if m is not member]
+                for member in self.members
+            }
 
 
 @dataclass(kw_only=True)

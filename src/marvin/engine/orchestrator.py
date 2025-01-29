@@ -132,13 +132,17 @@ class Orchestrator:
         if actor is None:
             actor = tasks[0].get_actor()
 
+        await self.thread.add_info_message_async(
+            f"Active actor: {actor.friendly_name()}"
+        )
+
         assigned_tasks = [t for t in tasks if actor is t.get_actor()]
 
         # Mark tasks as running if they're pending
         for task in assigned_tasks:
             if task.is_pending():
                 task.mark_running()
-                await self.thread.add_user_message_async(
+                await self.thread.add_info_message_async(
                     f"Task started: {task.friendly_name()}"
                 )
 
@@ -167,7 +171,7 @@ class Orchestrator:
                 memory_result = {
                     memory.friendly_name(): await memory.search(query=query, n=3)
                 }
-                await self.thread.add_user_message_async(
+                await self.thread.add_info_message_async(
                     f"Automatically recalled memories: {memory_result}"
                 )
 
