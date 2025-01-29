@@ -114,7 +114,7 @@ class ToolState(DisplayState):
         table.add_column(style="dim")
         table.add_column()
 
-        table.add_row("Tool:", f"[{text_style} bold]{self.name}[/]")
+        table.add_row("Tool:", f"[{text_style}]{self.name}[/]")
 
         if self.args:
             table.add_row("Input:", Markdown(str(self.args)))

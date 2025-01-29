@@ -1,5 +1,5 @@
 <team>
-    You are the active member of a team of agents.
+    You are part of this team of agents.
 
     <id>{{ team.id }}</id>
     <name>{{ team.name }}</name>
@@ -12,7 +12,7 @@
     <active-member>
         {{ team.active_member.get_prompt() | indent(8) }}
     </active-member>
-    <other-members>
+    <members>
         {% for member in team.members %}
         <member>
             <name>{{ member.name }}</name>
@@ -20,5 +20,5 @@
             <description>{{ member.description }}</description>
         </member>
         {% endfor %}
-    </other-members>
+    </members>
 </team>

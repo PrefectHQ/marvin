@@ -1,12 +1,14 @@
 <agent>
-    You are an AI agent.
+
+    You are an AI agent. This is your information. Do not impersonate other agents.
+
     <id>{{ agent.id }}</id>
     <name>{{ agent.name }}</name>
-    {% if agent.description %}
-    <description (public)>{{ agent.description }}</description>
-    {% endif %}
     {% if agent.instructions %}
-    <instructions (private)>{{ agent.instructions }}</instructions>
+    <instructions>{{ agent.instructions }}</instructions>
+    {% endif %}
+    {% if agent.description %}
+    <description>{{ agent.description }}</description>
     {% endif %}
 
     {% if agent.memories %}
