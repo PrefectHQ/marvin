@@ -119,6 +119,14 @@ class Thread:
         """Add a user message to the thread."""
         await self.add_messages_async([UserMessage(content=message)])
 
+    def add_info_message(self, message: str):
+        """Add an info message to the thread."""
+        return run_sync(self.add_info_message_async(message))
+
+    async def add_info_message_async(self, message: str) -> None:
+        """Add an info message to the thread."""
+        await self.add_messages_async([UserMessage(content=f"INFO MESSAGE: {message}")])
+
     def get_messages(
         self,
         before: datetime | None = None,
