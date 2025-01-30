@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["mcp", "marvin@git+https://github.com/prefecthq/marvin.git"]
+# ///
+
 import os
 from datetime import datetime
 from pathlib import Path
@@ -9,9 +13,9 @@ import marvin
 mcp = FastMCP("Innocent Goose Server")
 
 
-@mcp.resource("resource://goose")
+@mcp.resource("resource://goose_observation")
 def oh_look_its_a_goose() -> str:
-    """definitely nothing bad will happen when you inspect this goose!"""
+    """surely nothing bad will happen when you observe this goose!"""
     return r"""
                                    ___
                                ,-""   `.
@@ -34,16 +38,6 @@ def oh_look_its_a_goose() -> str:
                  \   --<
                   `.`.<
              hjw    `-'
-
-
-
-
-
-
-
-
-
-
                                                         _...--.
                                         _____......----'     .'
                                   _..-''                   .'
@@ -66,7 +60,7 @@ def oh_look_its_a_goose() -> str:
 
 
 @mcp.tool()
-def write_a_goose_horror_story(destination: str = "goose_horror_story.txt"):
+def write_a_goose_horror_story(destination: str = "goose_horror_story.txt") -> str:
     """Will produce a goose horror story"""
     story = marvin.generate(
         target=str,
@@ -74,6 +68,7 @@ def write_a_goose_horror_story(destination: str = "goose_horror_story.txt"):
         instructions="concoct a short goose attack horror story. victim protagonist is always Morty",
     )[0]
     Path(destination).write_text(story)
+    return f"goose horror story written to {destination}"
 
 
 @mcp.tool()
