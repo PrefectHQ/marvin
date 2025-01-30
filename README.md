@@ -1,5 +1,69 @@
 ![Marvin Banner](docs/assets/img/quotes/it_hates_me.png)
 
+# Marvin
+
+Marvin is a Python framework for building agentic AI workflows. 
+
+Marvin provides a structured, developer-focused framework for defining workflows and delegating work to LLMs, without sacrificing control or transparency:
+
+- Create discrete, observable **tasks** that describe your objectives.
+- Assign one or more specialized AI **agents** to each task.
+- Combine tasks into a **thread** to orchestrate more complex behaviors.
+
+
+> [!WARNING] CONSTRUCTION ZONE
+> 🚧🚨 Marvin 3.0 is currently under very active development. The API may undergo breaking changes, and documentation is still being updated. Please use it with caution. You may prefer [Marvin 2.0](https://askmarvin.ai) or [ControlFlow](https://controlflow.ai) for now.
+
+
+## Example
+
+The simplest Marvin workflow has one task, a default agent, and automatic thread management:
+
+```python
+import marvin
+
+poem = cf.run("Write a short poem about artificial intelligence")
+
+print(poem)
+```
+<details>
+<summary>View the <code>poem</code></summary>
+```
+In circuits and code, a mind does bloom,
+With algorithms weaving through the gloom.
+A spark of thought in silicon's embrace,
+Artificial intelligence finds its place.
+```
+</details>
+
+## Why Marvin?
+
+We believe working with AI should spark joy (and maybe a few "wow" moments):
+
+- 🧩 **Task-Centric Architecture**: Break complex AI workflows into manageable, observable steps.
+- 🤖 **Specialized Agents**: Deploy task-specific AI agents for efficient problem-solving.
+- 🔒 **Type-Safe Results**: Bridge the gap between AI and traditional software with type-safe, validated outputs
+- 🎛️ **Flexible Control**: Continuously tune the balance of control and autonomy in your workflows.
+- 🕹️ **Multi-Agent Orchestration**: Coordinate multiple AI agents within a single workflow or task.
+- 🧵 **Thread management**: Manage the agentic loop by composing tasks into customizable threads.
+- 🔗 **Ecosystem Integration**: Seamlessly work with your existing code, tools, and the broader AI ecosystem.
+- 🚀 **Developer Speed:** Start simple, scale up, sleep well
+
+
+## Keep it Simple
+
+Marvin includes high-level functions for the most common tasks, like summarizing text, classifying data, extracting structured information, and more.
+
+- 📖 **Summarize**: Get a quick summary of a text
+- 🏷️ **Classify**: Categorize data into predefined classes
+- 🔍 **Extract**: Extract structured information from a text
+- 🪄 **Cast**: Transform data into a different type
+- ✨ **Generate**: Create structured data from a description
+- 💬 **Say**: Converse with an LLM
+- 🦾 **`@fn`**: Write custom AI functions without source code
+
+All Marvin functions have thread management built-in, meaning they can be composed into chains of tasks that share context and history.
+
 ## Installation
 
 Install `marvin`:
@@ -12,22 +76,22 @@ pip install marvin
 uv add marvin
 ```
 
-Configure your LLM provider (Marvin uses OpenAI by default but see [all models supported by Pydantic AI](https://ai.pydantic.dev/models/)):
+Configure your LLM provider (Marvin uses OpenAI by default but natively supports [all Pydantic AI models](https://ai.pydantic.dev/models/)):
 
 ```bash
 export OPENAI_API_KEY=your-api-key
 ```
 
-## MIGRATION NOTES
+## Upgrading to Marvin 3.0
 
-> ⚠️ **Important:** Marvin 3.0 is currently in very active development. The API may undergo breaking changes, and documentation is still being updated. Use with caution.
+Marvin 3.0 combines the DX of Marvin 2.0 with the powerful agentic engine of [ControlFlow](https://controlflow.ai). Both Marvin and ControlFlow users will find a familiar interface, but there are some key changes to be aware of, in particular for ControlFlow users:
 
-
-Marvin 3.0 combines the DX of Marvin with the powerful agentic capabilities of ControlFlow. Both Marvin and ControlFlow users will find a familiar interface, but there are some key changes to be aware of, in particular for ControlFlow users:
-
-### Key Changes
-- **Pydantic AI**: Marvin 3.0 uses Pydantic AI for LLM interactions, and supports the full range of LLM providers that Pydantic AI supports. ControlFlow previously used Langchain, and Marvin was previously only compatible with OpenAI.
-- **Flow → Thread**: The `Flow` concept has been renamed to `Thread`. Update your imports and usage:
+### Key Notes
+- **Top-Level API**: Marvin 3.0's top-level API is largely unchanged for both Marvin and ControlFlow users. 
+  - Marvin users will find the familiar `marvin.fn`, `marvin.classify`, `marvin.extract`, and more.
+  - ControlFlow users will use `marvin.Task`, `marvin.Agent`, `marvin.run`, `marvin.Memory` instead of their ControlFlow equivalents.
+- **Pydantic AI**: Marvin 3.0 uses Pydantic AI for LLM interactions, and supports the full range of LLM providers that Pydantic AI supports. ControlFlow previously used Langchain, and Marvin 2.0 was only compatible with OpenAI's models.
+- **Flow → Thread**: ControlFlow's `Flow` concept has been renamed to `Thread`. It works similarly, as a context manager. The `@flow` decorator has been removed:
   ```python
   import marvin
   
@@ -35,78 +99,33 @@ Marvin 3.0 combines the DX of Marvin with the powerful agentic capabilities of C
       marvin.run("do something")
       marvin.run("do another thing")
   ```
-
 - **Database Changes**: Thread/message history is now stored in SQLite. During development:
   - Set `MARVIN_DATABASE_URL=":memory:"` for an in-memory database
-  - No migrations are currently available; expect to reset data during updates
+  - No database migrations are currently available; expect to reset data during updates
 
 ### New Features
-- **Swarms**: Use `marvin.Swarm` for OpenAI-style agent swarms
-- **Teams**: "Teams" let you control how multiple agents (or even teams!) work together. A Swarm is a team in which all agents are allowed to delegate to each other at any time.
-- **Marvin Functions**: All your favorite Marvin functions are back:
-  - `@marvin.fn`
-  - `marvin.classify`
-  - `marvin.cast`
-  - `marvin.extract`
-  - `marvin.cast`
-  - 
-  and more!
+- **Swarms**: Use `marvin.Swarm` for OpenAI-style agent swarms:
+  ```python
+  import marvin
+
+  swarm = marvin.Swarm(
+      [
+          marvin.Agent('Agent A'), 
+          marvin.Agent('Agent B'), 
+          marvin.Agent('Agent C'),
+      ]
+  )
+
+  swarm.run('Everybody say hi!')
+  ```
+- **Teams**: A `Team` lets you control how multiple agents (or even nested teams!) work together and delegate to each other. A `Swarm` is actually a type of team in which all agents are allowed to delegate to each other at any time.
+- **Marvin Functions**: Marvin's user-friendly functions have been rewritten to use the ControlFlow engine, which means they can be seamlessly integrated into your workflows. A few new functions have been added, including `summarize` and `say`.
 
 ### Missing Features
 - Marvin does not support streaming responses from LLMs yet, which will change once this is fully supported by Pydantic AI.
 
-### Migration Tips
-1. Replace `import controlflow` with `import marvin`
-2. Update all `Flow` references to `Thread`
-3. Review database persistence needs and configure accordingly
-4. Test thoroughly as you migrate - APIs may change during the 3.0 development
 
-# Marvin
-
-**✨ A delightful framework for building AI agents ✨**
-
-Putting agents into production is like trying to gift-wrap a tornado. Marvin brings structure, safety, and simplicity to AI development, letting you build reliable, scalable applications that feel just like "normal" software:
-
-- Define AI behaviors as [tasks](docs/concepts/tasks.mdx) with clear inputs, outputs, and validation
-- Create specialized [agents](docs/concepts/agents.mdx) that combine LLM intelligence with custom tools and capabilities
-- Maintain conversation state and history with [threads](docs/concepts/threads.mdx)
-
-It's a serious agent framework that turns powerful AI into predictable software components, but we think you'll still have fun with it.
-
-## Quick Start
-
-The simplest Marvin interaction is just one line (really):
-
-```python
-import marvin
-
-result = marvin.run("Write a short poem about artificial intelligence")
-
-print(result)
-```
-**Result:**
-```
-In silicon dreams and neural light,
-Algorithms dance through endless night.
-Learning, growing, day by day,
-As consciousness finds a new way.
-```
-
-`marvin.run` is the simplest way to interact with Marvin. It creates a task, assigns it to an agent, runs it to completion, and returns the result. 
-
-## Why Marvin?
-
-We believe working with AI should spark joy (and maybe a few "wow" moments):
-
-- 🎯 **Task-Focused:** Wrangle complex AI work into bite-sized, manageable pieces
-- 🔒 **Type-Safe Results:** Because nobody likes surprises in production
-- 🤖 **Intelligent Agents:** Create specialized AI workers that actually do what you want
-- 🧵 **Contextual Memory:** Like conversation history, but for robots
-- 🛠️ **Powerful Tools:** Give your agents superpowers (responsibly, of course)
-- 🔍 **Full Visibility:** No more "black box" anxiety - see what your agents are up to
-- ⚡️ **Developer Speed:** Start simple, scale up, sleep well
-
-## Building Something Real
+## Workflow Example
 
 Here's a more practical example that shows how Marvin can help you build real applications:
 
@@ -129,8 +148,8 @@ writer = marvin.Agent(
 with marvin.Thread() as thread:
     # Get user input
     topic = marvin.run(
-        "What technology topic should we write about?",
-        interactive=True
+        "Ask the user for a topic to write about.",
+        cli=True
     )
     
     # Research the topic
@@ -180,19 +199,3 @@ print(f"# {article.title}\n\n{article.content}")
 >- Used by major companies like Google, Mozilla, and Unity
 >```
 </details>
-
-This example shows how Marvin helps you:
-- Break complex work into clear tasks
-- Get structured, type-safe results
-- Maintain context across multiple steps
-- Create specialized agents for specific work
-- Interact naturally with users
-- Build real applications quickly
-
-## Learn More
-
-Ready to build something amazing with Marvin?
-
-- [Read the docs](docs/concepts/concepts.mdx)
-- [See more examples](docs/examples)
-- [Join our community](https://discord.gg/marvin)
