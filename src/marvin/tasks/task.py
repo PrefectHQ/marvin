@@ -144,6 +144,7 @@ class Task(Generic[T]):
         default=None,
         metadata={"description": "Optional parent task"},
         init=False,
+        repr=False,
     )
 
     subtasks: set["Task[Any]"] = field(
@@ -205,7 +206,7 @@ class Task(Generic[T]):
         tools: list[Callable[..., Any]] | None = None,
         memories: list[Memory] | None = None,
         result_validator: Callable[..., Any] | None = None,
-        parent: "Task[T] | None" = None,
+        parent: "Task[T] | None | Literal['__NOTSET__']" = NOTSET,
         depends_on: Sequence["Task[T]"] | None = None,
         allow_fail: bool = False,
         allow_skip: bool = False,
@@ -253,7 +254,9 @@ class Task(Generic[T]):
         self.result = None
 
         # if no parent is provided, use the current task from context
-        self.parent = parent if parent is not None else _current_task.get()
+        if parent is NOTSET:
+            parent = _current_task.get()
+        self.parent = parent
         self.subtasks: set[Task[Any]] = set()
         self.depends_on: set[Task[Any]] = set(depends_on or [])
 

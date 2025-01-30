@@ -29,6 +29,7 @@ from marvin.fns.generate import (
 from marvin.fns.fn import fn
 from marvin.fns.say import say, say_async
 from marvin.fns.summarize import summarize, summarize_async
+from marvin.fns.plan import plan, plan_async
 
 ensure_tables_exist()
 
@@ -53,6 +54,8 @@ __all__ = [
     "generate_schema",
     "generate_schema_async",
     "instructions",
+    "plan",
+    "plan_async",
     "run",
     "run_async",
     "run_tasks",
