@@ -1,0 +1,156 @@
+---
+title: Marvin
+sidebarTitle: Welcome
+description: A powerful framework for building AI applications
+icon: door-open
+---
+![](/assets/img/quotes/it_hates_me.png)
+
+## What is Marvin?
+
+**Marvin is a Python framework for building AI applications with LLMs.**
+
+
+
+
+Marvin provides a clean, intuitive interface for working with large language models (LLMs) while handling all the complexity of state management, conversation history, and agent coordination.
+
+## Quick Examples
+
+<Tip>  
+Using `uv`? Run the examples below by copying them to your clipboard and executing:  
+
+<CodeGroup>  
+```bash macOS  
+pbpaste | uv run --with marvin -  
+```  
+```bash Linux
+xclip -selection clipboard -o | uv run --with marvin -  
+```  
+```bash windows
+Get-Clipboard | uv run --with marvin -
+```
+
+</CodeGroup>  
+
+</Tip>  
+
+### Simple Tasks
+
+The fastest way to use Marvin is with `marvin.run()`:
+
+<CodeGroup>
+
+```python  Run a simple task
+import marvin
+
+print(marvin.run("Write a haiku about artificial intelligence"))
+```
+
+```python Provide context for more accurate results
+import httpx
+import marvin
+
+print(
+    marvin.run(
+        "Summarize the current astronauts in space like a 50s news anchor",
+        context={"data": httpx.get("http://api.open-notify.org/astros.json", headers={"Accept": "application/json"}).json()}
+    )
+)
+```
+
+</CodeGroup>
+### Specialized Agents
+
+Create agents with specific skills and personalities:
+
+```python
+import marvin
+
+# Create specialized agents
+poet = marvin.Agent(
+    name="Poet",
+    instructions="You are an expert poet who writes in various styles."
+)
+
+scientist = marvin.Agent(
+    name="Scientist",
+    instructions="You are a scientist who explains complex topics clearly."
+)
+
+# Use them for specific tasks
+explanation = marvin.run(
+    "Explain entropy briefly",
+    agents=[scientist]
+)
+
+poem = marvin.run(
+    "Write a haiku about entropy",
+    agents=[poet],
+    context={"scientific_explanation": explanation}
+)
+```
+
+### Structured Data
+
+Get results in exactly the format you need:
+
+```python
+from typing import Annotated, Literal
+import marvin
+from pydantic import BaseModel, Field
+
+class Character(BaseModel):
+    name: str
+    role: Literal["hero", "villain", "sidekick"]
+    aura: Annotated[float, Field(ge=0, le=1)]
+
+# Get structured results
+characters = marvin.run(
+    "Create three characters for a mystery story",
+    result_type=list[Character]
+)
+
+for char in characters:
+    print(f"{char.name} - {char.role} - {char.aura}")
+```
+
+### Persistent Memory
+
+Give your agents memory that persists across conversations:
+
+```python
+import marvin
+
+# Create a memory module
+preferences = marvin.Memory(
+    key="user_preferences",
+    instructions="Remember user preferences and style"
+)
+
+# Create an agent with memory
+assistant = marvin.Agent(memories=[preferences])
+
+# The agent will remember information across conversations
+marvin.run(
+    "Learn about the user's writing style preferences",
+    agents=[assistant],
+    cli=True
+)
+```
+
+## Why Marvin?
+
+- 🎯 **Simple Interface**: Start with one line of code, scale to complex applications
+- 🧠 **Smart Defaults**: Sensible defaults that just work, with full customization when you need it
+- 🔄 **State Management**: Built-in conversation history and memory management
+- 📝 **Structured Data**: Get results in exactly the format you need
+- 🤝 **Multi-Agent**: Create specialized agents that work together
+- 🔌 **Extensible**: Easy to integrate with your existing Python code
+
+## Next Steps
+
+- [Install Marvin](/installation) - Get started in under a minute
+- Try the [Quickstart](/quickstart) - Build your first AI application
+- Explore [Core Concepts](/concepts) - Learn about tasks, agents, and more
+- Browse [Examples](/examples) - See Marvin in action 

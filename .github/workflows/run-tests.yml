@@ -1,28 +1,14 @@
-name: Run Tests
-
-env:
-  # enable colored output
-  # https://github.com/pytest-dev/pytest/issues/7443
-  PY_COLORS: 1
+name: Run tests
 
 on:
   push:
     branches: ["main"]
     paths:
-      - .github/workflows/run-tests.yml
-      - src/**
-      - tests/**
-      - pyproject.toml
-      - setup.py
+      - "**/*.py"
 
   pull_request:
     paths:
-      - .github/workflows/run-tests.yml
-      - src**
-      - tests/**
-      - pyproject.toml
-      - setup.py
-
+      - "**/*.py"
   workflow_dispatch:
 
 permissions:
@@ -30,42 +16,31 @@ permissions:
 
 jobs:
   run_tests:
-    name: ${{ matrix.test-type == '' && 'all' || matrix.test-type }} (Python ${{ matrix.python-version }} on ${{ matrix.os }})
-    timeout-minutes: 15
+    # Skip the entire job for fork PRs
+    if: ${{ !(github.event.pull_request.head.repo.fork) }}
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    timeout-minutes: 10
     strategy:
       matrix:
-        # run no_llm tests across all python versions and oses
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12']
-        test-type: ['no_llm']
+        # os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
+        python-version: ["3.11"]
 
-        include:
-          # Run LLM tests on 3.9
-          - python-version: '3.9'
-            os: 'ubuntu-latest'
-            test-type: ''
-        
-        
     runs-on: ${{ matrix.os }}
 
     env:
-      MARVIN_OPENAI_API_KEY: ${{ secrets.MARVIN_OPENAI_API_KEY }}
-      MARVIN_ANTHROPIC_API_KEY: ${{ secrets.MARVIN_ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: "pip"
-      - name: Install Marvin
-        run: pip install ".[tests]"
 
-      - name: Run tests without LLMs
-        run: pytest -n auto -vv -m "${{ matrix.test-type }}"
-        if: ${{ !(github.event.pull_request.head.repo.fork) && matrix.test-type != '' }}
-      
+      - name: Install Marvin
+        run: uv sync --extra test
+
       - name: Run tests
-        run: pytest -n auto -vv
-        if: ${{ !(github.event.pull_request.head.repo.fork) && matrix.test-type == '' }}
+        run: uv run pytest -v -n auto

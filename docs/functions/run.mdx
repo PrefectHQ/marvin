@@ -1,0 +1,205 @@
+---
+title: Run
+description: Execute AI tasks with a single line of code
+icon: play
+---
+
+The `run` function is the simplest way to execute AI tasks in Marvin. It provides a clean, one-line interface for running tasks while handling all the complexity of task creation and execution under the hood.
+
+## Motivation
+
+While Marvin provides powerful tools for complex AI workflows, many use cases are simple and don't need all that complexity. The `run` function provides:
+- A simple, intuitive interface
+- Sensible defaults
+- Type safety through result types
+- Easy access to common parameters
+
+## Usage
+
+```python
+import marvin
+
+# Simple text generation
+poem = marvin.run(
+    "Write a haiku about coding",
+    result_type=str
+)
+print(poem)
+
+# Structured output
+from pydantic import BaseModel
+
+class Recipe(BaseModel):
+    name: str
+    ingredients: list[str]
+    steps: list[str]
+
+recipe = marvin.run(
+    "Create a recipe for chocolate chip cookies",
+    result_type=Recipe
+)
+print(recipe.name)
+print(recipe.ingredients)
+```
+
+<Accordion title="Output">
+```python
+Keys tap in silence,
+Ideas flow through the night air,
+Code becomes my art.
+
+Chocolate Chip Cookies
+['1 cup unsalted butter, softened', '1 cup white sugar', '1 cup packed brown sugar', '2 large eggs', '2 teaspoons vanilla extract', '3 cups all-purpose flour', '1 teaspoon baking soda', '1/2 teaspoon baking powder', '1/2 teaspoon salt', '2 cups semisweet chocolate chips']
+```
+</Accordion>
+
+## Parameters
+
+- `instructions`: What you want the AI to do
+- `result_type`: The expected type of the result (defaults to `str`)
+- `tools`: Optional list of functions the AI can use
+- `thread`: Optional thread for conversation context
+- `agents`: Optional list of agents to use
+- `raise_on_failure`: Whether to raise exceptions on failure (defaults to `True`)
+- `handlers`: Optional list of handlers for events
+- `**kwargs`: Additional context passed to the task
+
+## Async Support
+
+The function is also available in an async version:
+
+```python
+import marvin
+import asyncio
+
+async def main():
+    # Run a task asynchronously
+    result = await marvin.run_async(
+        "Translate 'hello' to French",
+        result_type=str
+    )
+    print(result)
+
+asyncio.run(main()) # bonjour
+```
+
+
+## Examples
+
+### Simple Text Tasks
+
+```python
+import marvin
+
+# Generate text
+story = marvin.run(
+    "Write a short story about a robot learning to paint"
+)
+print(story)
+
+# Answer questions
+answer = marvin.run(
+    "What is the capital of France?",
+    result_type=str
+)
+print(answer)  # "Paris"
+```
+
+### Using Tools
+
+```python
+import marvin
+import random
+
+def roll_die() -> int:
+    return random.randint(1, 6)
+
+# Let the AI use tools
+result = marvin.run(
+    "Roll a die and tell me if it's higher than 3",
+    result_type=bool,
+    tools=[roll_die]
+)
+print(result)  # True or False depending on the roll
+```
+
+### Structured Output
+
+```python
+import marvin
+from pydantic import BaseModel, Field
+
+class MovieReview(BaseModel):
+    title: str
+    rating: float = Field(gt=0, lt=5)
+    pros: list[str]
+    cons: list[str]
+
+# Get structured review
+review = marvin.run(
+    "Review the movie 'The Matrix'",
+    result_type=MovieReview
+)
+print(review.rating)  # 4.8
+print(review.pros)    # ["Groundbreaking special effects", "Deep philosophical themes"]
+```
+
+
+### Using Context
+
+```python
+import marvin
+
+# Provide additional context
+summary = marvin.run(
+    "Summarize this data in 2-3 sentences",
+    context={
+        "data": "Long text to summarize...",
+        "style": "technical"
+    }
+)
+print(summary)
+```
+
+### Multiple Tasks
+
+The `run_tasks` function allows you to run multiple tasks at once:
+
+```python
+import marvin
+
+# Create tasks
+task1 = marvin.Task(
+    instructions="Write a haiku",
+    result_type=str
+)
+task2 = marvin.Task(
+    instructions="Write a limerick",
+    result_type=str
+)
+
+# Run them together
+tasks = marvin.run_tasks([task1, task2])
+print(tasks[0].result)  # Haiku
+print(tasks[1].result)  # Limerick
+```
+
+### Async Multiple Tasks
+
+```python
+import marvin
+import asyncio
+
+async def main():
+    # Run multiple tasks asynchronously
+    tasks = await marvin.run_tasks_async(
+        [
+            marvin.Task("Write a haiku"),
+            marvin.Task("Write a limerick")
+        ]
+    )
+    for task in tasks:
+        print(task.result)
+
+asyncio.run(main())
+``` 

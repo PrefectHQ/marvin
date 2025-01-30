@@ -1,89 +1,150 @@
-import asyncio
-import logging
-import os
-import sys
+"""Test configuration and fixtures."""
 
+import sqlite3
+import threading
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Any
+
+import chromadb
 import pytest
+from sqlalchemy import create_engine, event
+from sqlalchemy.engine import Engine
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.pool import NullPool
 
-from .fixtures import *
+import marvin
+from marvin import database, settings
+from marvin.defaults import override_defaults
+from marvin.instructions import instructions
+from marvin.memory.providers.chroma import ChromaMemory
 
 
-@pytest.fixture(scope="session")
-def event_loop(request):
+# Configure SQLite to use WAL mode for better concurrency
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(
+    dbapi_connection: sqlite3.Connection,
+    connection_record: Any,
+) -> None:
+    """Configure SQLite connection for better concurrency.
+
+    Args:
+        dbapi_connection: The SQLite connection
+        connection_record: SQLAlchemy connection record (unused)
+
     """
-    Redefine the event loop to support session/module-scoped fixtures;
-    see https://github.com/pytest-dev/pytest-asyncio/issues/68
+    cursor = dbapi_connection.cursor()
+    # Use WAL mode for better concurrency
+    cursor.execute("PRAGMA journal_mode=WAL")
+    # Reduce durability guarantees for testing
+    cursor.execute("PRAGMA synchronous=OFF")
+    # Increase timeout for busy connections
+    cursor.execute("PRAGMA busy_timeout=10000")  # 10 second timeout
+    # Aggressive cache settings for testing
+    cursor.execute("PRAGMA cache_size=-64000")  # 64MB cache
+    cursor.execute("PRAGMA temp_store=MEMORY")
+    cursor.close()
 
-    When running on Windows we need to use a non-default loop for subprocess support.
+
+# Lock for database operations
+_db_lock = threading.Lock()
+
+
+@pytest.fixture(autouse=True)
+def setup_test_db(monkeypatch: pytest.MonkeyPatch, worker_id: str):
+    """Use a temporary database for tests.
+
+    The worker_id fixture is provided by pytest-xdist and will be 'gw0', 'gw1', etc
+    for parallel test runners, or 'master' for single-process runs.
     """
-    if sys.platform == "win32" and sys.version_info >= (3, 8):
-        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    with TemporaryDirectory() as temp_dir:
+        original_path = settings.database_url
 
-    policy = asyncio.get_event_loop_policy()
+        # Create unique path per worker to avoid conflicts
+        worker_suffix = worker_id if worker_id != "master" else ""
+        temp_path = str(Path(temp_dir) / f"test{worker_suffix}.db")
 
-    loop: asyncio.BaseEventLoop = policy.new_event_loop()
+        with _db_lock:
+            # Configure database settings
+            monkeypatch.setattr(settings, "database_url", temp_path)
 
-    # configure asyncio logging to capture long running tasks
-    asyncio_logger = logging.getLogger("asyncio")
-    asyncio_logger.setLevel("WARNING")
-    asyncio_logger.addHandler(logging.StreamHandler())
-    loop.set_debug(True)
-    loop.slow_callback_duration = 0.25
+            # Create engines with NullPool
+            sync_engine = create_engine(
+                f"sqlite:///{temp_path}",
+                echo=False,
+                connect_args={"check_same_thread": False},
+                poolclass=NullPool,
+            )
+            async_engine = create_async_engine(
+                f"sqlite+aiosqlite:///{temp_path}",
+                echo=False,
+                connect_args={"check_same_thread": False},
+                poolclass=NullPool,
+            )
 
-    try:
-        yield loop
-    finally:
-        # ensure all background tasks are cancelled and awaited to avoid
-        # spurious warnings / errors about "task destroyed but it is pending"
-        tasks = asyncio.all_tasks(loop=loop)
-        for task in tasks:
-            task.cancel()
-        if tasks and loop.is_running():
-            loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
-        loop.close()
+            # Set the engines
+            database.set_engine(sync_engine)
+            database.set_async_engine(async_engine)
 
+            # Create tables with retries
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    database.create_db_and_tables(force=True)
+                    break
+                except Exception:
+                    if attempt == max_retries - 1:
+                        raise
+                    continue
 
-class SetEnv:
-    def __init__(self):
-        self.envars = set()
+        yield
 
-    def set(self, name, value):
-        self.envars.add(name)
-        os.environ[name] = value
-
-    def pop(self, name):
-        self.envars.remove(name)
-        os.environ.pop(name)
-
-    def clear(self):
-        for n in self.envars:
-            os.environ.pop(n)
+        settings.database_url = original_path
+        # Clear engine cache
+        database._engine_cache.clear()
+        database._async_engine_cache.clear()
 
 
 @pytest.fixture
-def env():
-    setenv = SetEnv()
-
-    yield setenv
-
-    setenv.clear()
+def session_sync():
+    """Provide a sync database session for tests."""
+    with database.get_session() as session:
+        yield session
 
 
 @pytest.fixture
-def docs_test_env():
-    setenv = SetEnv()
+async def session():
+    """Provide an async database session for tests."""
 
-    # # envs for basic usage example
-    # setenv.set('my_auth_key', 'xxx')
-    # setenv.set('my_api_key', 'xxx')
+    async with database.get_async_session() as session:
+        yield session
 
-    # envs for parsing environment variable values example
-    setenv.set("V0", "0")
-    setenv.set("SUB_MODEL", '{"v1": "json-1", "v2": "json-2"}')
-    setenv.set("SUB_MODEL__V2", "nested-2")
-    setenv.set("SUB_MODEL__V3", "3")
-    setenv.set("SUB_MODEL__DEEP__V4", "v4")
 
-    yield setenv
+@pytest.fixture(autouse=True)
+def setup_memory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, worker_id: str):
+    monkeypatch.setattr(
+        marvin.defaults,
+        "memory_provider",
+        ChromaMemory(
+            client=chromadb.PersistentClient(
+                path=str(tmp_path / "controlflow-memory" / worker_id)
+            ),
+        ),
+    )
 
-    setenv.clear()
+
+@pytest.fixture
+def gpt_4o():
+    with override_defaults(model="openai:gpt-4o"):
+        yield
+
+
+@pytest.fixture
+def unit_test_instructions():
+    with instructions(
+        """
+        You are being unit tested. Be as fast and concise as possible. Do not
+        post unecessary messages.
+        """
+    ):
+        yield

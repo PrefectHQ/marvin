@@ -1,0 +1,155 @@
+---
+title: Say
+description: Add a message to a thread and get an agent's response
+icon: message
+---
+
+The `say` function adds a user message to a thread and gets an agent's response. It transforms `str → str`, making it easy to:
+- Store messages in a thread ("My name is Alice" → thread.messages += [user_msg, agent_msg])
+- Get contextual responses ("What's my name?" → "Your name is Alice")
+- Guide agent behavior ("You are a chef..." → "Let me suggest a recipe...")
+
+For complex conversations, consider creating a custom task. The `say` function is a convenient wrapper around Marvin's task system - see [Tasks](/concepts/tasks) for more details.
+
+## Usage
+
+Add a message and get a response:
+
+```python
+import marvin
+
+# Create a thread to store the conversation
+thread = marvin.Thread()
+
+# Add a message and get a response
+response = marvin.say(
+    "My name is Alice",
+    thread=thread  # Messages are stored in the thread
+)
+print(response)
+
+# The agent can now reference previous messages
+response = marvin.say(
+    "What's my name?",
+    thread=thread
+)
+print(response)
+```
+
+```python
+"Hello Alice! Nice to meet you."
+"Your name is Alice."
+```
+
+## Parameters
+
+- `message`: The message to add to the thread
+- `instructions`: Optional guidance for the agent's responses
+- `agent`: Optional custom agent to use
+- `thread`: Optional thread to store conversation history
+- `context`: Optional additional context
+
+## Async Support
+
+The function is also available in an async version:
+
+```python
+import marvin
+import asyncio
+
+async def main():
+    thread = marvin.Thread()
+    response = await marvin.say_async(
+        "What's the weather like?",
+        thread=thread
+    )
+    print(response)
+
+asyncio.run(main())
+```
+
+## Examples
+
+### With Instructions
+
+Guide the agent's responses:
+
+```python
+import marvin
+
+thread = marvin.Thread()
+response = marvin.say(
+    "What should I cook for dinner?",
+    instructions="Respond as a professional chef",
+    thread=thread
+)
+print(response)
+```
+
+```python
+"I'd recommend a pan-seared salmon with lemon butter sauce. Start by patting the salmon dry and seasoning with salt and pepper..."
+```
+
+### With Custom Agent
+
+Use a specialized agent:
+
+```python
+import marvin
+
+thread = marvin.Thread()
+tech_agent = marvin.Agent(
+    name="TechSupport",
+    instructions="You are a helpful tech support agent"
+)
+
+response = marvin.say(
+    "My computer won't start",
+    agent=tech_agent,
+    thread=thread
+)
+print(response)
+```
+
+```python
+"Let's troubleshoot this step by step. First, check if your computer is properly plugged in and the power button lights up..."
+```
+
+### With Memory
+
+Remember previous interactions:
+
+```python
+import marvin
+
+thread = marvin.Thread()
+agent = marvin.Agent(
+    memories=[
+        marvin.Memory(
+            key="user_preferences",
+            instructions="Remember user preferences"
+        )
+    ]
+)
+
+# Store preference in memory
+response = marvin.say(
+    "I prefer vegetarian food",
+    agent=agent,
+    thread=thread
+)
+print(response)
+
+# Agent can access both memory and thread history
+response = marvin.say(
+    "What should I cook?",
+    agent=agent,
+    thread=thread
+)
+print(response)
+```
+
+```python
+"I'll remember your preference for vegetarian food."
+"Given your vegetarian preference, I'd suggest a delicious mushroom risotto..."
+```

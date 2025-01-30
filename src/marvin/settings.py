@@ -1,344 +1,150 @@
-"""Settings for configuring `marvin`."""
+"""Settings for Marvin."""
 
-import os
-from contextlib import contextmanager
-from copy import deepcopy
-from typing import Any, Callable, Literal, Optional, Union
+from pathlib import Path
+from typing import Literal
 
-from pydantic import Field, ImportString, SecretStr, field_validator
+from pydantic import Field, ValidationInfo, field_validator, model_validator
+from pydantic_ai.models import KnownModelName
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing_extensions import Self
 
 
-class MarvinSettings(BaseSettings):
+class Settings(BaseSettings):
+    """Settings for Marvin.
+
+    Settings can be set via environment variables with the prefix MARVIN_. For
+    example, MARVIN_AGENT_MODEL="openai:gpt-4o-mini"
+    """
+
     model_config = SettingsConfigDict(
-        env_file="" if os.getenv("MARVIN_TEST_MODE") else ("~/.marvin/.env", ".env"),
-        extra="allow",
-        arbitrary_types_allowed=True,
+        env_prefix="MARVIN_",
+        case_sensitive=False,
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
         validate_assignment=True,
     )
 
-    def __setattr__(self, name: str, value: Any) -> None:
-        # wrap bare strings in SecretStr if the field is annotated with SecretStr
-        field = self.model_fields.get(name)
-        if field:
-            annotation = field.annotation
-            base_types = (
-                getattr(annotation, "__args__", None)
-                if getattr(annotation, "__origin__", None) is Union
-                else (annotation,)
-            )
-            if SecretStr in base_types and not isinstance(value, SecretStr):  # type: ignore # noqa: E501
-                value = SecretStr(value)
-        super().__setattr__(name, value)
+    # ------------ General settings ------------
 
-
-class ChatCompletionSettings(MarvinSettings):
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_chat_completions_", extra="ignore"
-    )
-    model: str = Field(description="The default chat model to use.", default="gpt-4o")
-
-    temperature: float = Field(description="The default temperature to use.", default=1)
-
-    @property
-    def encoder(self):
-        import tiktoken
-
-        try:
-            encoding = tiktoken.encoding_for_model(self.model)
-        except KeyError:
-            encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
-
-        return encoding.encode
-
-
-class ChatSettings(MarvinSettings):
-    model_config = SettingsConfigDict(env_prefix="marvin_chat_", extra="ignore")
-    completions: ChatCompletionSettings = Field(default_factory=ChatCompletionSettings)
-
-
-class ImageSettings(MarvinSettings):
-    """Settings for OpenAI's image API.
-
-    Attributes:
-        model: The default image model to use, defaults to `dall-e-3`.
-        size: The default image size to use, defaults to `1024x1024`.
-        response_format: The default response format to use, defaults to `url`.
-        style: The default style to use, defaults to `vivid`.
-    """
-
-    model_config = SettingsConfigDict(env_prefix="marvin_image_", extra="ignore")
-
-    model: str = Field(
-        default="dall-e-3",
-        description="The default image model to use.",
-    )
-    size: Literal["1024x1024", "1792x1024", "1024x1792"] = Field(
-        default="1024x1024",
-    )
-    response_format: Literal["url", "b64_json"] = Field(
-        default="url",
-        description=(
-            "URLs only last for one hour and must be downloaded within that time."
-            " b64_json returns a base64-encoded JSON object containing the image."
-        ),
-    )
-    style: Literal["vivid", "natural"] = Field(default="vivid")
-    quality: Literal["standard", "hd"] = Field(default="standard")
-
-
-class SpeechSettings(MarvinSettings):
-    """Settings for OpenAI's speech API.
-
-    Attributes:
-        model: The default speech model to use, defaults to `tts-1-hd`.
-        voice: The default voice to use, defaults to `echo`.
-        response_format: The default response format to use, defaults to `mp3`.
-        speed: The default speed to use, defaults to `1.0`.
-    """
-
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_speech_",
-        extra="ignore",
+    home_path: Path = Field(
+        default=Path("~/.marvin").expanduser(),
+        description="The home path for Marvin.",
     )
 
-    model: str = Field(
-        default="tts-1-hd",
-        description="The default model to use.",
-    )
-    voice: Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"] = Field(
-        default="echo",
-    )
-    response_format: Literal["mp3", "opus", "aac", "flac"] = Field(default="mp3")
-    speed: float = Field(default=1.0)
-
-
-class AssistantSettings(MarvinSettings):
-    """Settings for the assistant API.
-
-    Attributes:
-        model: The default assistant model to use
-    """
-
-    model_config = SettingsConfigDict(env_prefix="marvin_assistant_")
-
-    model: str = Field(
-        default="gpt-4o",
-        description="The default assistant model to use.",
-    )
-
-
-class AudioSettings(MarvinSettings):
-    """Settings for the audio API."""
-
-    model_config = SettingsConfigDict(env_prefix="marvin_audio_", extra="ignore")
-
-    speech: SpeechSettings = Field(default_factory=SpeechSettings)
-
-
-class OpenAISettings(MarvinSettings):
-    """Settings for the OpenAI API.
-
-
-    Attributes:
-        api_key: Your OpenAI API key.
-        organization: Your OpenAI organization ID.
-        llms: Settings for the chat API.
-        images: Settings for the images API.
-        audio: Settings for the audio API.
-        assistants: Settings for the assistants API.
-
-    Example:
-        Set the OpenAI API key:
-        ```python
-        import marvin
-
-        marvin.settings.openai.api_key = "sk-..."
-
-        assert marvin.settings.openai.api_key.get_secret_value() == "sk-..."
-        ```
-    """
-
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_openai_",
-        extra="ignore",
-    )
-
-    api_key: Optional[SecretStr] = Field(
-        default=None,
-        description="Your OpenAI API key.",
-    )
-
-    organization: Optional[str] = Field(
-        default=None,
-        description="Your OpenAI organization ID.",
-    )
-
-    base_url: Optional[str] = Field(
-        default=None,
-        description="Your OpenAI base URL.",
-    )
-
-    chat: ChatSettings = Field(default_factory=ChatSettings)
-    images: ImageSettings = Field(default_factory=ImageSettings)
-    audio: AudioSettings = Field(default_factory=AudioSettings)
-    assistants: AssistantSettings = Field(default_factory=AssistantSettings)
-
-    @field_validator("api_key", mode="before")
-    def discover_api_key(cls, v):
-        if v is None:
-            # check global OpenAI API key
-            v = os.environ.get("OPENAI_API_KEY")
-
-        return v
-
-
-class TextAISettings(MarvinSettings):
-    model_config = SettingsConfigDict(env_prefix="marvin_ai_text_", extra="ignore")
-    generate_cache_token_cap: int = Field(600)
-
-
-class AISettings(MarvinSettings):
-    model_config = SettingsConfigDict(env_prefix="marvin_ai_", extra="ignore")
-
-    text: TextAISettings = Field(default_factory=TextAISettings)
-
-
-def default_post_processor_fn(response):
-    return response
-
-
-class Settings(MarvinSettings):
-    """Settings for `marvin`.
-
-    This is the main settings object for `marvin`.
-
-    Attributes:
-        openai: Settings for the OpenAI API.
-        log_level: The log level to use, defaults to `INFO`.
-
-    Example:
-        Set the log level to `INFO`:
-        ```python
-        import marvin
-
-        marvin.settings.log_level = "INFO"
-
-        assert marvin.settings.log_level == "INFO"
-        ```
-    """
-
-    model_config = SettingsConfigDict(
-        env_prefix="marvin_",
-        protected_namespaces=(),
-    )
-
-    post_processor_fn: Optional[Callable] = default_post_processor_fn
-
-    # providers
-    provider: Literal["openai", "azure_openai"] = Field(
-        default="openai",
-        description=(
-            'The LLM provider to use. Supports "openai" and "azure_openai" at this'
-            " time."
-        ),
-    )
-    openai: OpenAISettings = Field(default_factory=OpenAISettings)
-
-    default_client_cls: ImportString = Field(
-        None, description="The qualified import path of the default client to use."
-    )
-    default_async_client_cls: ImportString = Field(
-        None,
-        description="The qualified import path of the default async client to use.",
-    )
-
-    # ai settings
-    ai: AISettings = Field(default_factory=AISettings)
-
-    # beta settings
-    auto_import_beta_modules: bool = Field(
-        True,
-        description="If True, the marvin.beta module will be automatically imported when marvin is imported.",
-    )
-
-    # log settings
-    log_level: str = Field(
-        default="INFO",
-        description="The log level to use.",
-    )
-
-    log_verbose: bool = Field(
-        default=False,
-        description=(
-            "Whether to log verbose messages, such as full API requests and responses."
-        ),
-    )
-    max_tool_description_length: int = Field(
-        1000,
-        description="The maximum length of a tool description before it is truncated.",
-    )
-    max_tool_output_length: int = Field(
-        150,
-        description="The maximum length of output from a tool before it is truncated.",
-    )
-
-    @field_validator("log_level", mode="after")
+    @field_validator("home_path")
     @classmethod
-    def set_log_level(cls, v):
-        from marvin.utilities.logging import setup_logging
+    def validate_home_path(cls, v: Path) -> Path:
+        """Ensure the home path exists."""
+        path = Path(v).expanduser().resolve()
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
-        setup_logging(level=v)
-        return v
+    database_url: str | None = Field(
+        default=None,
+        description="Path to the database file. Defaults to `home_path / 'marvin.db'`.",
+    )
+
+    @field_validator("database_url")
+    @classmethod
+    def validate_database_url(cls, v: str | None, info: ValidationInfo) -> str:
+        """Set and validate the database path."""
+        home_path = info.data.get("home_path")
+
+        # Set default if not provided
+        if v is None:
+            if not home_path:
+                raise ValueError("home_path must be set before database_url")
+            return str(home_path / "marvin.db")
+
+        # Handle in-memory database
+        if v == ":memory:":
+            return v
+
+        # Convert to Path for validation and ensure parent directory exists
+        path = Path(v).expanduser().resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        return str(path)
+
+    # ------------ Logging settings ------------
+
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
+        default="INFO",
+        description="Logging level",
+    )
+
+    log_events: bool = Field(
+        default=False,
+        description="Whether to log all events (as debug logs).",
+    )
+
+    @field_validator("log_level", mode="before")
+    @classmethod
+    def _validate_log_level(cls, v: str) -> str:
+        """Validate the log level."""
+        return v.upper()
+
+    @model_validator(mode="after")
+    def setup_logging(self) -> Self:
+        """Finalize the settings."""
+        import marvin.utilities.logging
+
+        marvin.utilities.logging.setup_logging(self.log_level)
+
+        return self
+
+    # ------------ Agent settings ------------
+
+    agent_model: KnownModelName = Field(
+        default="openai:gpt-4o",
+        description="The default model for agents.",
+    )
+
+    agent_temperature: float | None = Field(
+        default=None,
+        description="The temperature for the agent.",
+    )
+
+    agent_retries: int = Field(
+        default=10,
+        description="The number of times the agent is allowed to retry when it generates an invalid result.",
+    )
+
+    max_agent_turns: int | None = Field(
+        default=100,
+        description="The maximum number of turns any agents can take when running orchestrated tasks. Note this is per-invocation.",
+    )
+
+    # ------------ DX settings ------------
+
+    enable_default_print_handler: bool = Field(
+        default=True,
+        description="Whether to enable the default print handler.",
+    )
+
+    # ------------ Memory settings ------------
+
+    memory_provider: str = Field(
+        default="chroma-ephemeral",
+        description="The default memory provider for agents.",
+    )
+
+    chroma_cloud_api_key: str | None = Field(
+        default=None,
+        description="The API key for the Chroma Cloud.",
+    )
+
+    chroma_cloud_tenant: str | None = Field(
+        default=None,
+        description="The tenant for the Chroma Cloud.",
+    )
+
+    chroma_cloud_database: str | None = Field(
+        default=None,
+        description="The database for the Chroma Cloud.",
+    )
 
 
+# Global settings instance
 settings = Settings()
-
-
-@contextmanager
-def temporary_settings(**kwargs: Any):
-    """
-    Temporarily override Marvin setting values, including nested settings objects.
-
-    To override nested settings, use `__` to separate nested attribute names.
-
-    Args:
-        **kwargs: The settings to override, including nested settings.
-
-    Example:
-        Temporarily override log level and OpenAI API key:
-        ```python
-        import marvin
-        from marvin.settings import temporary_settings
-
-        # Override top-level settings
-        with temporary_settings(log_level="INFO"):
-            assert marvin.settings.log_level == "INFO"
-        assert marvin.settings.log_level == "DEBUG"
-
-        # Override nested settings
-        with temporary_settings(openai__api_key="new-api-key"):
-            assert marvin.settings.openai.api_key.get_secret_value() == "new-api-key"
-        assert marvin.settings.openai.api_key.get_secret_value().startswith("sk-")
-        ```
-    """
-    old_env = os.environ.copy()
-    old_settings = deepcopy(settings)
-
-    def set_nested_attr(obj: object, attr_path: str, value: Any):
-        parts = attr_path.split("__")
-        for part in parts[:-1]:
-            obj = getattr(obj, part)
-        setattr(obj, parts[-1], value)
-
-    try:
-        for attr_path, value in kwargs.items():
-            set_nested_attr(settings, attr_path, value)
-        yield
-
-    finally:
-        os.environ.clear()
-        os.environ.update(old_env)
-
-        for attr, value in old_settings:
-            set_nested_attr(settings, attr, value)

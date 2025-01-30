@@ -1,21 +1,21 @@
-"""Module for logging utilities."""
-
 import logging
-from functools import lru_cache, partial
-from typing import Optional
+from functools import lru_cache
+from typing import Any
 
-from rich.logging import RichHandler  # type: ignore
-from rich.markup import escape  # type: ignore
+from rich.logging import RichHandler
 
 import marvin
 
 
-@lru_cache()
-def get_logger(
-    name: Optional[str] = None,
-) -> logging.Logger:
-    """
-    Retrieves a logger with the given name, or the root logger if no name is given.
+def maybe_quote(value: Any) -> str:
+    if isinstance(value, str):
+        return f'"{value}"'
+    return str(value)
+
+
+@lru_cache
+def get_logger(name: str | None = None) -> logging.Logger:
+    """Retrieves a logger with the given name, or the root logger if no name is given.
 
     Args:
         name: The name of the logger to retrieve.
@@ -34,6 +34,7 @@ def get_logger(
         debug_logger = get_logger("marvin.debug")
         debug_logger.debug_kv("TITLE", "log message", "green")
         ```
+
     """
     parent_logger = logging.getLogger("marvin")
 
@@ -47,12 +48,11 @@ def get_logger(
     else:
         logger = parent_logger
 
-    add_logging_methods(logger)
     return logger
 
 
 def setup_logging(
-    level: Optional[str] = None,
+    level: str | None = None,
 ) -> None:
     logger = get_logger()
 
@@ -69,37 +69,3 @@ def setup_logging(
 
     logger.addHandler(handler)
     logger.propagate = False
-
-
-def add_logging_methods(logger: logging.Logger) -> None:
-    def log_style(level: int, message: str, style: Optional[str] = None):
-        if not style:
-            style = "default on default"
-        message = f"[{style}]{escape(str(message))}[/]"
-        logger.log(level, message, extra={"markup": True})
-
-    def log_kv(
-        level: int,
-        key: str,
-        value: str,
-        key_style: str = "default on default",
-        value_style: str = "default on default",
-        delimiter: str = ": ",
-    ):
-        logger.log(
-            level,
-            f"[{key_style}]{escape(str(key))}{delimiter}[/][{value_style}]{escape(str(value))}[/]",
-            extra={"markup": True},
-        )
-
-    setattr(logger, "debug_style", partial(log_style, logging.DEBUG))
-    setattr(logger, "info_style", partial(log_style, logging.INFO))
-    setattr(logger, "warning_style", partial(log_style, logging.WARNING))
-    setattr(logger, "error_style", partial(log_style, logging.ERROR))
-    setattr(logger, "critical_style", partial(log_style, logging.CRITICAL))
-
-    setattr(logger, "debug_kv", partial(log_kv, logging.DEBUG))
-    setattr(logger, "info_kv", partial(log_kv, logging.INFO))
-    setattr(logger, "warning_kv", partial(log_kv, logging.WARNING))
-    setattr(logger, "error_kv", partial(log_kv, logging.ERROR))
-    setattr(logger, "critical_kv", partial(log_kv, logging.CRITICAL))

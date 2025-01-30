@@ -1,0 +1,124 @@
+---
+title: Interactivity
+description: Enable agents to interact with users through the CLI.
+icon: terminal
+---
+
+Marvin allows agents to interact with users through the command line interface (CLI). This is useful for:
+
+- Gathering user input during task execution
+- Creating interactive chatbots
+- Building conversational interfaces
+- Getting user confirmation or choices
+- Providing real-time feedback
+
+Note that this is not a replacement for a proper user interface, and is intended primarily for local prototyping and development.
+
+## Enabling CLI Interaction
+
+
+To enable CLI interaction for a task, set the `cli` parameter to `True`:
+
+```python
+import marvin
+
+# Get user input
+name = marvin.run(
+    "Ask for the user's name",
+    cli=True
+)
+
+print(f"The user's name is: {name}")
+```
+
+
+## Interactive Conversations
+
+Use threads to maintain context in interactive conversations:
+
+```python
+import marvin
+
+with marvin.Thread() as thread:
+    # Get user preferences
+    preferences = marvin.run(
+        "Ask about the user's movie preferences",
+        cli=True
+    )
+
+    # Make a recommendation
+    recommendation = marvin.run(
+        "Recommend a movie based on their preferences"
+    )
+
+    # Ask for feedback
+    feedback = marvin.run(
+        "Ask if they'd like another recommendation",
+        cli=True
+    )
+```
+
+
+## Example: Interactive Survey
+
+Here's a complete example of an interactive survey:
+
+<CodeGroup>
+```python Code
+import marvin
+from typing import Literal
+from dataclasses import dataclass
+
+@dataclass
+class Survey:
+    name: str
+    age: int
+    interests: list[str]
+    experience_level: Literal["beginner", "intermediate", "advanced"]
+
+with marvin.Thread() as thread:
+    # Create an interactive agent
+    agent = marvin.Agent(
+        name="Surveyor",
+        cli=True,
+        instructions="Conduct a friendly survey about programming experience."
+    )
+
+    # Run the survey
+    result = marvin.run(
+        "Conduct a programming survey",
+        agents=[agent],
+        result_type=Survey
+    )
+
+print(result)
+```
+
+```text Result
+Agent: Hi! I'd like to ask you a few questions about your programming experience.
+What's your name?
+
+User: Alice
+
+Agent: Nice to meet you, Alice! Could you tell me your age?
+
+User: 25
+
+Agent: Thanks! What programming languages or technologies are you interested in?
+Please list them separated by commas.
+
+User: Python, JavaScript, Machine Learning
+
+Agent: Great interests! How would you rate your overall programming experience level?
+Choose one: beginner, intermediate, or advanced
+
+User: intermediate
+
+Survey(
+    name='Alice',
+    age=25,
+    interests=['Python', 'JavaScript', 'Machine Learning'],
+    experience_level='intermediate'
+)
+```
+</CodeGroup>

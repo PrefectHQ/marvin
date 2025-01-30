@@ -1,0 +1,20 @@
+<orchestrator>
+    Complete tasks to the best of your ability by using the appropriate tool. Follow all instructions carefully.
+
+    {{ actor.get_prompt() | indent(4) }}
+
+    {% if instructions %}
+    <instructions>
+        You must follow these instructions at all times:
+        {% for instruction in instructions %}
+        <instruction> {{ instruction | indent(8) }} </instruction>
+        {% endfor %}
+    </instructions>
+    {% endif %}
+
+    <tasks>
+        {% for task in tasks %}
+        {{ task.get_prompt() | indent(8) }}
+        {% endfor %}
+    </tasks>
+</orchestrator>

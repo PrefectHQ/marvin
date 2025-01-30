@@ -1,68 +1,65 @@
-from .settings import settings
+from importlib.metadata import version as _version
 
-from .ai.text import (
-    fn,
-    cast,
-    cast_async,
-    extract,
-    extract_async,
-    classify,
-    classify_async,
-    caption,
-    caption_async,
-    classifier,
+# necessary imports
+from marvin.settings import settings
+from marvin.database import ensure_tables_exist
+
+# core classes
+from marvin.thread import Thread
+from marvin.agents.agent import Agent
+from marvin.tasks.task import Task
+from marvin.memory.memory import Memory
+
+# public access
+from marvin.instructions import instructions
+from marvin.defaults import defaults
+from marvin.agents.team import Swarm
+
+# marvin fns
+from marvin.fns.run import run, run_async, run_tasks_async, run_tasks
+from marvin.fns.classify import classify, classify_async
+from marvin.fns.extract import extract, extract_async
+from marvin.fns.cast import cast, cast_async
+from marvin.fns.generate import (
     generate,
     generate_async,
-    model,
-    Model,
-    Image,
+    generate_schema,
+    generate_schema_async,
 )
-from .ai.images import paint, paint_async, image
-from .ai.audio import speak_async, speak, speech, transcribe, transcribe_async
+from marvin.fns.fn import fn
+from marvin.fns.say import say, say_async
+from marvin.fns.summarize import summarize, summarize_async
 
-if settings.auto_import_beta_modules:
-    from . import beta
+ensure_tables_exist()
 
-try:
-    from ._version import version as __version__
-except ImportError:
-    __version__ = "unknown"
-
+__version__ = _version("marvin")
 
 __all__ = [
-    # --- text ---
-    "Model",
-    "Image",
+    "Agent",
+    "Memory",
+    "Swarm",
+    "Task",
+    "Thread",
     "cast",
     "cast_async",
-    "caption",
-    "caption_async",
     "classify",
     "classify_async",
-    "classifier",
+    "defaults",
     "extract",
     "extract_async",
     "fn",
     "generate",
     "generate_async",
-    "model",
-    # --- images ---
-    "image",
-    "paint",
-    "paint_async",
-    # --- audio ---
-    "speak",
-    "speak_async",
-    "speech",
-    "transcribe",
-    "transcribe_async",
-    # --- beta ---
+    "generate_schema",
+    "generate_schema_async",
+    "instructions",
+    "run",
+    "run_async",
+    "run_tasks",
+    "run_tasks_async",
+    "settings",
+    "say",
+    "say_async",
+    "summarize",
+    "summarize_async",
 ]
-
-if settings.auto_import_beta_modules:
-    __all__.append("beta")
-
-# compatibility with Marvin v1
-ai_fn = fn
-ai_model = model
-ai_classifier = classifier

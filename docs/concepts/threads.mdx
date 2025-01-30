@@ -1,0 +1,143 @@
+---
+title: Threads
+description: Manage conversation history and context
+icon: comments
+---
+
+Threads in Marvin provide a powerful mechanism for managing conversation history and context across your AI workflows. Unlike ControlFlow's flows, threads in Marvin are focused on conversation management and persistence rather than workflow orchestration.
+
+## Understanding Threads
+
+A thread in Marvin represents a conversation context that can span multiple interactions. Each thread:
+- Maintains its own conversation history
+- Can be persisted to a database
+- Can be referenced across different parts of your application
+- Supports attaching memories for long-term information storage
+
+## Creating and Using Threads
+
+### Basic Thread Creation
+
+The simplest way to create a thread is to instantiate the `Thread` class:
+
+```python
+import marvin
+
+thread = marvin.Thread()
+# A new thread is created with a unique ID
+```
+
+### Specifying a Thread ID
+
+You can create a thread with a specific ID, which is useful for resuming conversations:
+
+```python
+thread = marvin.Thread(id="user_123_lesson")
+# This thread will use the specified ID
+```
+
+### Using Threads with Tasks
+
+Threads can be passed to tasks to maintain conversation context:
+
+```python
+import marvin
+
+thread = marvin.Thread()
+
+task = marvin.Task(
+    instructions="Write a poem about AI",
+    result_type=str
+)
+
+# Run the task with the thread
+result = task.run(thread=thread)
+```
+
+### Adding Messages
+
+You can manually add messages to a thread:
+
+```python
+# Add a user message
+thread.add_user_message("Hello!")
+
+# Add multiple messages
+from marvin.engine.llm import UserMessage, AssistantMessage
+thread.add_messages([
+    UserMessage(content="What's the weather?"),
+    AssistantMessage(content="It's sunny today!")
+])
+```
+
+## Retrieving History
+
+### Getting Messages
+
+You can retrieve messages from a thread with various filters:
+
+```python
+# Get all messages
+messages = thread.get_messages()
+
+# Get messages with filters
+messages = thread.get_messages(
+    include_system_messages=False,  # Exclude system messages
+    before=datetime.now(),          # Messages before a timestamp
+    after=some_timestamp,           # Messages after a timestamp
+    limit=10                        # Limit number of messages
+)
+```
+
+### Tracking LLM Usage
+
+Threads also track LLM API usage:
+
+```python
+# Get all LLM calls
+llm_calls = thread.get_llm_calls()
+
+# Get usage statistics
+usage = thread.get_usage()
+```
+
+## Thread Context Management
+
+Marvin provides context management for threads, making it easy to set the current thread:
+
+```python
+with thread:
+    # This thread is now the current thread
+    task1.run()  # Uses the thread automatically
+    task2.run()  # Same thread is used
+
+# Thread context is restored after the block
+```
+
+You can also get the current thread:
+
+```python
+current_thread = marvin.get_current_thread()
+```
+
+## Parent-Child Relationships
+
+Threads can have parent-child relationships:
+
+```python
+parent_thread = marvin.Thread()
+child_thread = marvin.Thread(parent_id=parent_thread.id)
+```
+
+## Database Integration
+
+Threads are automatically persisted to a database when configured:
+
+```python
+# Messages and LLM calls are automatically saved
+thread.add_user_message("Save this message")
+
+# Later, create a thread with the same ID to access history
+same_thread = marvin.Thread(id=thread.id)
+messages = same_thread.get_messages()  # Includes saved messages
+```

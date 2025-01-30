@@ -1,283 +1,201 @@
-<p align="center">
-  <img src="docs/assets/images/heroes/it_hates_me_hero.png" style="width: 95%; height: auto;"/>
-</p>
-
-[![PyPI version](https://badge.fury.io/py/marvin.svg)](https://badge.fury.io/py/marvin)
-[![Docs](https://img.shields.io/badge/docs-askmarvin.ai-blue)](https://www.askmarvin.ai)
-[![Twitter Follow](https://img.shields.io/twitter/follow/ControlFlowAI?style=social)](https://twitter.com/ControlFlowAI)
-[![Gurubase](https://img.shields.io/badge/Gurubase-Ask%20Marvin%20Guru-006BFF)](https://gurubase.io/g/marvin)
+![Marvin Banner](docs/assets/img/quotes/it_hates_me.png)
 
 # Marvin
 
-### The AI engineering toolkit
+Marvin is a Python framework for building agentic AI workflows. 
 
-Marvin is a lightweight AI toolkit for building natural language interfaces that are reliable, scalable, and easy to trust.
+Marvin provides a structured, developer-focused framework for defining workflows and delegating work to LLMs, without sacrificing control or transparency:
 
-Each of Marvin's tools is simple and self-documenting, using AI to solve common but complex challenges like entity extraction, classification, and generating synthetic data. Each tool is independent and incrementally adoptable, so you can use them on their own or in combination with any other library. Marvin is also multi-modal, supporting both image and audio generation as well as using images as inputs for extraction and classification.
+- Create discrete, observable **tasks** that describe your objectives.
+- Assign one or more specialized AI **agents** to each task.
+- Combine tasks into a **thread** to orchestrate more complex behaviors.
 
-Marvin is for developers who care more about _using_ AI than _building_ AI, and we are focused on creating an exceptional developer experience. Marvin users should feel empowered to bring tightly-scoped "AI magic" into any traditional software project with just a few extra lines of code.
 
-Marvin aims to merge the best practices for building dependable, observable software with the best practices for building with generative AI into a single, easy-to-use library. It's a serious tool, but we hope you have fun with it.
+> [!WARNING] CONSTRUCTION ZONE
+> 🚧🚨 Marvin 3.0 is currently under very active development. The API may undergo breaking changes, and documentation is still being updated. Please use it with caution. You may prefer [Marvin 2.0](https://askmarvin.ai) or [ControlFlow](https://controlflow.ai) for now.
 
-Marvin is open-source, free to use, and made with 💙 by the team at [Prefect](https://www.prefect.io/).
+
+## Example
+
+The simplest Marvin workflow has one task, a default agent, and automatic thread management:
+
+```python
+import marvin
+
+poem = marvin.run("Write a short poem about artificial intelligence")
+
+print(poem)
+```
+<details>
+<summary>View the <code>poem</code></summary>
+```
+In circuits and code, a mind does bloom,
+With algorithms weaving through the gloom.
+A spark of thought in silicon's embrace,
+Artificial intelligence finds its place.
+```
+</details>
+
+## Why Marvin?
+
+We believe working with AI should spark joy (and maybe a few "wow" moments):
+
+- 🧩 **Task-Centric Architecture**: Break complex AI workflows into manageable, observable steps.
+- 🤖 **Specialized Agents**: Deploy task-specific AI agents for efficient problem-solving.
+- 🔒 **Type-Safe Results**: Bridge the gap between AI and traditional software with type-safe, validated outputs
+- 🎛️ **Flexible Control**: Continuously tune the balance of control and autonomy in your workflows.
+- 🕹️ **Multi-Agent Orchestration**: Coordinate multiple AI agents within a single workflow or task.
+- 🧵 **Thread management**: Manage the agentic loop by composing tasks into customizable threads.
+- 🔗 **Ecosystem Integration**: Seamlessly work with your existing code, tools, and the broader AI ecosystem.
+- 🚀 **Developer Speed:** Start simple, scale up, sleep well
+
+
+## Keep it Simple
+
+Marvin includes high-level functions for the most common tasks, like summarizing text, classifying data, extracting structured information, and more.
+
+- 📖 **Summarize**: Get a quick summary of a text
+- 🏷️ **Classify**: Categorize data into predefined classes
+- 🔍 **Extract**: Extract structured information from a text
+- 🪄 **Cast**: Transform data into a different type
+- ✨ **Generate**: Create structured data from a description
+- 💬 **Say**: Converse with an LLM
+- 🦾 **`@fn`**: Write custom AI functions without source code
+
+All Marvin functions have thread management built-in, meaning they can be composed into chains of tasks that share context and history.
 
 ## Installation
 
-Install the latest version with `pip`:
+Install `marvin`:
 
 ```bash
-pip install marvin -U
+# with pip
+pip install marvin
+
+# with uv
+uv add marvin
 ```
 
-To verify your installation, run `marvin version` in your terminal.
+Configure your LLM provider (Marvin uses OpenAI by default but natively supports [all Pydantic AI models](https://ai.pydantic.dev/models/)):
 
-## Tools
+```bash
+export OPENAI_API_KEY=your-api-key
+```
 
-Marvin consists of a variety of useful tools, all designed to be used independently. Each one represents a common LLM use case, and packages that power into a simple, self-documenting interface.
+## Upgrading to Marvin 3.0
 
-### General
+Marvin 3.0 combines the DX of Marvin 2.0 with the powerful agentic engine of [ControlFlow](https://controlflow.ai). Both Marvin and ControlFlow users will find a familiar interface, but there are some key changes to be aware of, in particular for ControlFlow users:
 
-🦾 [Write custom AI-powered functions](https://askmarvin.ai/docs/text/functions) without source code
+### Key Notes
+- **Top-Level API**: Marvin 3.0's top-level API is largely unchanged for both Marvin and ControlFlow users. 
+  - Marvin users will find the familiar `marvin.fn`, `marvin.classify`, `marvin.extract`, and more.
+  - ControlFlow users will use `marvin.Task`, `marvin.Agent`, `marvin.run`, `marvin.Memory` instead of their ControlFlow equivalents.
+- **Pydantic AI**: Marvin 3.0 uses Pydantic AI for LLM interactions, and supports the full range of LLM providers that Pydantic AI supports. ControlFlow previously used Langchain, and Marvin 2.0 was only compatible with OpenAI's models.
+- **Flow → Thread**: ControlFlow's `Flow` concept has been renamed to `Thread`. It works similarly, as a context manager. The `@flow` decorator has been removed:
+  ```python
+  import marvin
+  
+  with marvin.Thread(id="optional-id-for-recovery"):
+      marvin.run("do something")
+      marvin.run("do another thing")
+  ```
+- **Database Changes**: Thread/message history is now stored in SQLite. During development:
+  - Set `MARVIN_DATABASE_URL=":memory:"` for an in-memory database
+  - No database migrations are currently available; expect to reset data during updates
 
-### Text
+### New Features
+- **Swarms**: Use `marvin.Swarm` for OpenAI-style agent swarms:
+  ```python
+  import marvin
 
-🏷️ [Classify text](https://askmarvin.ai/docs/text/classification) into categories
+  swarm = marvin.Swarm(
+      [
+          marvin.Agent('Agent A'), 
+          marvin.Agent('Agent B'), 
+          marvin.Agent('Agent C'),
+      ]
+  )
 
-🔍 [Extract structured entities](https://askmarvin.ai/docs/text/extraction) from text
+  swarm.run('Everybody say hi!')
+  ```
+- **Teams**: A `Team` lets you control how multiple agents (or even nested teams!) work together and delegate to each other. A `Swarm` is actually a type of team in which all agents are allowed to delegate to each other at any time.
+- **Marvin Functions**: Marvin's user-friendly functions have been rewritten to use the ControlFlow engine, which means they can be seamlessly integrated into your workflows. A few new functions have been added, including `summarize` and `say`.
 
-🪄 [Transform text](https://askmarvin.ai/docs/text/transformation) into structured data
+### Missing Features
+- Marvin does not support streaming responses from LLMs yet, which will change once this is fully supported by Pydantic AI.
 
-✨ [Generate synthetic data](https://askmarvin.ai/docs/text/generation) from a schema
 
-### Images
+## Workflow Example
 
-🖼️ [Create images](https://askmarvin.ai/docs/images/generation) from text or functions
-
-📝 [Describe images](https://askmarvin.ai/docs/vision/captioning) with natural language
-
-🏷️ [Classify images](https://askmarvin.ai/docs/vision/classification) into categories
-
-🔍 [Extract structured entities](https://askmarvin.ai/docs/vision/extraction) from images
-
-🪄 [Transform images](https://askmarvin.ai/docs/vision/transformation) into structured data
-
-### Audio
-
-💬 [Generate speech](https://askmarvin.ai/docs/audio/speech) from text or functions
-
-✍️ [Transcribe speech](https://askmarvin.ai/docs/audio/transcription) from recorded audio
-
-🎙️ [Record users](https://askmarvin.ai/docs/audio/recording) continuously or as individual phrases
-
-### Video
-
-🎙️ [Record video](https://askmarvin.ai/docs/video/recording) continuously
-
-### Interaction
-
-🤖 [Chat with assistants](https://askmarvin.ai/docs/interactive/assistants) and use custom tools
-
-🧭 [Build applications](https://askmarvin.ai/docs/interactive/applications) that manage persistent state
-
-# Quickstart
-
-Here's a whirlwind tour of a few of Marvin's main features. For more information, [check the docs](https://askmarvin.ai/welcome/what_is_marvin/)!
-
-## 🏷️ Classify text
-
-Marvin can `classify` text using a set of labels:
+Here's a more practical example that shows how Marvin can help you build real applications:
 
 ```python
 import marvin
+from pydantic import BaseModel
 
-marvin.classify(
-    "Marvin is so easy to use!",
-    labels=["positive", "negative"],
+class Article(BaseModel):
+    title: str
+    content: str
+    key_points: list[str]
+
+# Create a specialized writing agent
+writer = marvin.Agent(
+    name="Writer",
+    instructions="Write clear, engaging content for a technical audience"
 )
 
-#  "positive"
+# Use a thread to maintain context across multiple tasks
+with marvin.Thread() as thread:
+    # Get user input
+    topic = marvin.run(
+        "Ask the user for a topic to write about.",
+        cli=True
+    )
+    
+    # Research the topic
+    research = marvin.run(
+        f"Research key points about {topic}",
+        result_type=list[str]
+    )
+    
+    # Write a structured article
+    article = marvin.run(
+        "Write an article using the research",
+        agent=writer,
+        result_type=Article,
+        context={"research": research}
+    )
+
+print(f"# {article.title}\n\n{article.content}")
 ```
 
-Learn more about classification [here](https://askmarvin.ai/docs/text/classification).
+<details>
+<summary><i>Click to see results</i></summary>
 
-## 🔍 Extract structured entities
-
-Marvin can `extract` structured entities from text:
-
-```python
-import pydantic
-import marvin
-
-class Location(pydantic.BaseModel):
-    city: str
-    state: str
-
-
-marvin.extract("I moved from NY to CHI", target=Location)
-
-# [
-#     Location(city="New York", state="New York"),
-#     Location(city="Chicago", state="Illinois")
-# ]
-```
-
-Almost all Marvin functions can be given `instructions` for more control. Here we extract only monetary values:
-
-```python
-marvin.extract(
-    "I paid $10 for 3 tacos and got a dollar and 25 cents back.",
-    target=float,
-    instructions="Only extract money"
-)
-
-#  [10.0, 1.25]
-```
-
-Learn more about entity extraction [here](https://askmarvin.ai/docs/text/extraction).
-
-
-## ✨ Generate data
-
-Marvin can `generate` synthetic data for you, following instructions and an optional schema:
-
-```python
-class Location(pydantic.BaseModel):
-    city: str
-    state: str
-
-
-marvin.generate(
-    n=4,
-    target=Location,
-    instructions="cities in the United States named after presidents"
-)
-
-# [
-#     Location(city='Washington', state='District of Columbia'),
-#     Location(city='Jackson', state='Mississippi'),
-#     Location(city='Cleveland', state='Ohio'),
-#     Location(city='Lincoln', state='Nebraska'),
-# ]
-```
-
-Learn more about data generation [here](https://askmarvin.ai/docs/text/generation).
-
-## 🪄 Standardize text by casting to types
-
-Marvin can `cast` arbitrary text to any Python type:
-
-```python
-marvin.cast("one two three", list[int])
-
-#  [1, 2, 3]
-```
-
-This is useful for standardizing text inputs or matching natural language to a schema:
-
-```python
-class Location(pydantic.BaseModel):
-    city: str
-    state: str
-
-
-marvin.cast("The Big Apple", Location)
-
-# Location(city="New York", state="New York")
-```
-
-For a class-based approach, Marvin's `@model` decorator can be applied to any Pydantic model to let it be instantiated from text:
-
-```python
-@marvin.model
-class Location(pydantic.BaseModel):
-    city: str
-    state: str
-
-
-Location("The Big Apple")
-
-# Location(city="New York", state="New York")
-```
-
-Learn more about casting to types [here](https://askmarvin.ai/docs/text/transformation).
-
-## 🦾 Build AI-powered functions
-
-Marvin functions let you combine any inputs, instructions, and output types to create custom AI-powered behaviors... without source code. These functions can go well beyond the capabilities of `extract` or `classify` and are ideal for complex natural language processing or mapping combinations of inputs to outputs.
-
-```python
-@marvin.fn
-def sentiment(text: str) -> float:
-    """
-    Returns a sentiment score for `text`
-    between -1 (negative) and 1 (positive).
-    """
-
-sentiment("I love working with Marvin!") # 0.8
-sentiment("These examples could use some work...") # -0.2
-```
-
-Marvin functions look exactly like regular Python functions, except that you don't have to write any source code. When these functions are called, an AI interprets their description and inputs and generates the output.
-
-Note that Marvin does NOT work by generating or executing source code, which would be unsafe for most use cases. Instead, it uses the LLM itself as a "runtime" to predict function outputs. That's actually the source of its power: Marvin functions can handle complex use cases that would be difficult or impossible to express as code.
-
-You can learn more about functions [here](https://www.askmarvin.ai/docs/text/functions/).
-
-## 🖼️ Generate images from text
-
-Marvin can `paint` images from text:
-
-```python
-marvin.paint("a simple cup of coffee, still warm")
-```
-
-<p align="center">
-  <img src="docs/assets/images/docs/images/coffee.png" style="width: 50%; height: auto;"/>
-</p>
-
-Learn more about image generation [here](https://askmarvin.ai/docs/images/generation).
-
-## 🔍 Converting images to data
-
-In addition to text, Marvin has support for captioning, classifying, transforming, and extracting entities from images using the GPT-4 vision model:
-
-```python
-marvin.classify(
-    marvin.Image.from_path("docs/images/coffee.png"),
-    labels=["drink", "food"],
-)
-
-# "drink"
-```
-
-## Record the user, modify the content, and play it back
-
-Marvin can transcribe speech and generate audio out-of-the-box, but the optional `audio` extra provides utilities for recording and playing audio.
-
-```python
-import marvin
-import marvin.audio
-
-# record the user
-user_audio = marvin.audio.record_phrase()
-
-# transcribe the text
-user_text = marvin.transcribe(user_audio)
-
-# cast the language to a more formal style
-ai_text = marvin.cast(user_text, instructions='Make the language ridiculously formal')
-
-# generate AI speech
-ai_audio = marvin.speak(ai_text)
-
-# play the result
-ai_audio.play()
-```
-
-# Get in touch!
-
-💡 **Feature idea?** share it in the `#development` channel in [our Discord](https://discord.com/invite/Kgw4HpcuYG).
-
-🐛 **Found a bug?** feel free to [open an issue](https://github.com/PrefectHQ/marvin/issues/new/choose).
-
-👷 **Feedback?** Marvin is under active development, and we'd love to [hear it](https://github.com/PrefectHQ/marvin/discussions).
+>**Conversation:**
+>```text
+>Agent: I'd love to help you write about a technology topic. What interests you? 
+>It could be anything from AI and machine learning to web development or cybersecurity.
+>
+>User: Let's write about WebAssembly
+>```
+>
+>**Article:**
+>```
+># WebAssembly: The Future of Web Performance
+>
+>WebAssembly (Wasm) represents a transformative shift in web development, 
+>bringing near-native performance to web applications. This binary instruction 
+>format allows developers to write high-performance code in languages like 
+>C++, Rust, or Go and run it seamlessly in the browser.
+>
+>[... full article content ...]
+>
+>Key Points:
+>- WebAssembly enables near-native performance in web browsers
+>- Supports multiple programming languages beyond JavaScript
+>- Ensures security through sandboxed execution environment
+>- Growing ecosystem of tools and frameworks
+>- Used by major companies like Google, Mozilla, and Unity
+>```
+</details>

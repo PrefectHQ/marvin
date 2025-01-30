@@ -1,0 +1,81 @@
+---
+title: LLM Models
+description: Configure and customize LLM models in Marvin
+icon: sliders
+---
+
+Marvin uses [Pydantic AI](https://github.com/pydantic/pydantic-ai) as its underlying LLM engine, providing a clean, type-safe interface for working with various LLM providers.
+
+## The Default Model
+
+By default, Marvin uses OpenAI's GPT-4o model. To use this default configuration, you only need to set your OpenAI API key:
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
+
+## Configuring Models
+
+### Using String Identifiers
+
+The simplest way to specify a model is with a string identifier in the format `provider:model_name`:
+
+```python
+import marvin
+
+# Create an agent with a specific model
+agent = marvin.Agent(model="openai:gpt-4o-mini")
+```
+
+
+### Model Settings
+
+You can customize model behavior using the `model_settings` parameter when creating an agent:
+
+```python
+import marvin
+
+agent = marvin.Agent(
+    name="Creative Writer",
+    model="openai:gpt-4o",
+    model_settings={
+        "temperature": 0.8,
+
+    }
+)
+```
+
+## Changing the Default Model
+
+You can change the default model for all agents in your application:
+
+```python
+import marvin
+
+marvin.defaults.model = "openai:gpt-4o-mini"
+
+result = marvin.run("Write a haiku")
+```
+
+## Environment Variables
+
+You can also configure the default model and other settings using environment variables:
+
+```bash
+# Set the default model
+export MARVIN_AGENT_MODEL="openai:gpt-4"
+
+# Configure model settings
+export MARVIN_AGENT_TEMPERATURE=0.7
+```
+
+## Model Providers
+
+Marvin supports any model provider that is compatible with Pydantic AI. Common providers include:
+
+- OpenAI
+- Anthropic
+- Azure OpenAI
+- Google
+
+Each provider may require its own API key and configuration. Refer to the provider's [documentation](https://ai.pydantic.dev/models/) for specific setup instructions. 

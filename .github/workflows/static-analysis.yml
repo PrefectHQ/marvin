@@ -1,10 +1,5 @@
 name: Run static analysis
 
-env:
-  # enable colored output
-  # https://github.com/pytest-dev/pytest/issues/7443
-  PY_COLORS: 1
-
 on:
   push:
     branches: ["main"]
@@ -25,6 +20,6 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.9"
+          python-version: "3.10"
       - name: Run pre-commit
         uses: pre-commit/action@v3.0.1

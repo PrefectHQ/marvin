@@ -1,0 +1,23 @@
+labels:
+  - bug
+  - breaking change:
+    instructions: |
+      A change that breaks existing functionality on a major or public API.
+  - feature:
+    instructions: |
+      A proposal or implementation of a major new feature. Do not apply the
+      `enhancement` and `feature` labels at the same time.
+  - enhancement:
+    instructions: |
+      An improvement to an existing feature or a minor new feature. Do not apply
+      the `enhancement` and `feature` labels at the same time.
+  - example:
+    instructions: |
+      An full example of how to use the code.
+  - "ignore in release notes":
+    description: "Ignore this PR in release notes"
+    instructions: |
+      Administrative changes that don't need to be mentioned in release notes,
+      such as CI configuration changes. Small changes, including typos, SHOULD
+      be kept in the release notes; only changes that aren't relevant to
+      behavior should be ignored.

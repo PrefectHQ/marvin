@@ -1,0 +1,132 @@
+---
+title: Cast
+description: Convert data between types while preserving meaning
+icon: right-to-bracket
+---
+
+The `cast` function is your bridge between natural language and structured data types. It transforms `str → T` while preserving meaning, making it easy to convert:
+- Natural numbers ("three point five" → 3.5)
+- Casual responses ("sounds good" → True)
+- Time expressions ("next Tuesday" → datetime)
+- Rich descriptions ("John is 25" → Person(name="John", age=25))
+
+For complex transformations, consider creating a custom task. The `cast` function is a convenient wrapper around Marvin's task system - see [Tasks](/concepts/tasks) for more details.
+
+## Usage
+
+Convert natural language descriptions of numbers into their numeric representation:
+
+```python
+import marvin
+
+# Convert text to a number
+price = marvin.cast("three dollars and fifty cents", float)
+print(price)
+```
+
+```python
+3.5
+```
+
+## Parameters
+
+- `data`: The input data to convert (any type)
+- `target`: The target type to convert to (defaults to `str`)
+- `instructions`: Optional instructions to guide the conversion
+- `agent`: Optional custom agent to use
+- `thread`: Optional thread for conversation context
+- `context`: Optional additional context
+
+## Async Support
+
+The function is also available in an async version:
+
+```python
+import marvin
+import asyncio
+
+async def main():
+    result = await marvin.cast_async(
+        "three point five",
+        float
+    )
+    print(result)  # 3.5
+
+asyncio.run(main())
+```
+
+## Examples
+
+### Converting Numbers
+
+Convert natural language descriptions of quantities into numeric values:
+
+```python
+import marvin
+
+price = marvin.cast("three dollars and fifty cents", float)
+print(price)
+```
+
+```python
+3.5
+```
+
+### Boolean Conversion
+
+Interpret natural language expressions as boolean values:
+
+```python
+import marvin
+
+answer = marvin.cast("that sounds great!", bool)
+print(answer)
+```
+
+```python
+True
+```
+
+### Structured Data
+
+Extract structured information from natural language descriptions:
+
+```python
+import marvin
+from dataclasses import dataclass
+
+@dataclass
+class Address:
+    street: str
+    city: str
+    country: str
+
+address = marvin.cast(
+    "123 Main St in New York, USA",
+    Address
+)
+print(f"{address.street}, {address.city}, {address.country}")
+```
+
+```python
+"123 Main St", "New York", "USA"
+```
+
+### Custom Instructions
+
+Use instructions to control how text is interpreted and formatted:
+
+```python
+import marvin
+
+phone = marvin.cast(
+    "call me at 1-800-555-0123",
+    str,
+    instructions="Extract just the phone number in XXX-XXXX format"
+)
+print(phone)
+```
+
+```python
+"555-0123"
+``` 

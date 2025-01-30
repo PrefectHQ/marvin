@@ -1,197 +1,154 @@
-"""Module for LLM tool utilities."""
-
 import inspect
-import json
-from functools import update_wrapper
-from typing import (
-    Any,
-    Callable,
-    GenericAlias,
-    Optional,
-    TypeVar,
-    Union,
-)
+from collections.abc import Callable
+from dataclasses import dataclass
+from functools import wraps
+from typing import Any, Literal, TypeVar, overload
 
-import pydantic
-from pydantic import BaseModel, TypeAdapter, create_model
-from pydantic.fields import FieldInfo
-from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
+import pydantic_ai
+from pydantic_ai import RunContext
 
-import marvin
-from marvin.types import Function, FunctionTool
-from marvin.utilities.asyncio import run_sync
 from marvin.utilities.logging import get_logger
 
-logger = get_logger("Tools")
-
 T = TypeVar("T")
-U = TypeVar("U", bound=Union[type, GenericAlias])
-M = TypeVar("M", bound=pydantic.BaseModel)
+logger = get_logger(__name__)
 
 
-def custom_partial(func: Callable, **fixed_kwargs: Any) -> Callable:
+@overload
+def update_fn(
+    name_or_func: str,
+    *,
+    description: str | None = None,
+) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
+
+
+@overload
+def update_fn(
+    name_or_func: None = None,
+    *,
+    name: str,
+    description: str | None = None,
+) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
+
+
+@overload
+def update_fn(
+    name_or_func: Callable[..., T],
+    *,
+    name: str,
+    description: str | None = None,
+) -> Callable[..., T]: ...
+
+
+def update_fn(
+    name_or_func: str | Callable[..., T] | None = None,
+    *,
+    name: str | None = None,
+    description: str | None = None,
+) -> Callable[[Callable[..., T]], Callable[..., T]] | Callable[..., T]:
+    """Rename a function and optionally set its docstring.
+
+    Can be used as a decorator or called directly on a function.
+
+    Args:
+        name_or_func: Either the new name (when used as decorator) or the function to rename
+        name: The new name (when used as a function)
+        description: Optional docstring for the function
+
+    Example:
+        # As decorator with positional arg:
+        @update_fn('hello_there', description='Says hello')
+        def my_fn(x):
+            return x
+
+        # As decorator with keyword args:
+        @update_fn(name='hello_there', description='Says hello')
+        def my_fn(x):
+            return x
+
+        # As function:
+        def add_stuff(x):
+            return x + 1
+        new_fn = update_fn(add_stuff, name='add_stuff_123', description='Adds stuff')
+
+        # Works with async functions too:
+        @update_fn('async_hello')
+        async def my_async_fn(x):
+            return x
+
     """
-    Returns a new function with partial application of the given keyword arguments.
-    The new function has the same __name__ and docstring as the original, and its
-    signature excludes the provided kwargs.
+
+    def apply(func: Callable[..., T], new_name: str) -> Callable[..., T]:
+        if inspect.iscoroutinefunction(func):
+
+            @wraps(func)
+            async def wrapper(*args: Any, **kwargs: Any) -> T:  # type: ignore[reportRedeclaration]
+                return await func(*args, **kwargs)
+        else:
+
+            @wraps(func)
+            def wrapper(*args: Any, **kwargs: Any) -> T:
+                return func(*args, **kwargs)
+
+        wrapper.__name__ = new_name
+        if description is not None:
+            wrapper.__doc__ = description
+        return wrapper
+
+    if callable(name_or_func):
+        # Used as function
+        if name is None:
+            raise ValueError("name must be provided when used as a function")
+        return apply(name_or_func, name)
+    # Used as decorator
+    decorator_name = name_or_func if name_or_func is not None else name
+    if decorator_name is None:
+        raise ValueError("name must be provided either as argument or keyword")
+
+    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        return apply(func, decorator_name)
+
+    return decorator
+
+
+@dataclass
+class ResultTool:
+    type: Literal["result-tool"] = "result-tool"
+
+    def run(self, ctx: RunContext) -> None:
+        pass
+
+
+def wrap_tool_errors(tool_fn: Callable[..., Any]):
     """
-
-    # Define the new function with a dynamic signature
-    def wrapper(**kwargs):
-        # Merge the provided kwargs with the fixed ones, prioritizing the former
-        all_kwargs = {**fixed_kwargs, **kwargs}
-        return func(**all_kwargs)
-
-    # Update the wrapper function's metadata to match the original function
-    update_wrapper(wrapper, func)
-
-    # Modify the signature to exclude the fixed kwargs
-    original_sig = inspect.signature(func)
-    new_params = [
-        param
-        for param in original_sig.parameters.values()
-        if param.name not in fixed_kwargs
-    ]
-    wrapper.__signature__ = original_sig.replace(parameters=new_params)
-
-    return wrapper
-
-
-class ModelSchemaGenerator(GenerateJsonSchema):
-    def generate(self, schema: Any, mode: JsonSchemaMode = "validation"):
-        json_schema = super().generate(schema, mode=mode)
-        json_schema.pop("title", None)
-        return json_schema
-
-
-def tool_from_type(type_: U, tool_name: str = None) -> FunctionTool[U]:
+    Pydantic AI doesn't catch errors except for ModelRetry, so we need to make
+    sure we catch them ourselves and raise a ModelRetry instead.
     """
-    Creates an OpenAI-compatible tool from a Python type.
-    """
-    annotated_metadata = getattr(type_, "__metadata__", [])
-    if isinstance(next(iter(annotated_metadata), None), FieldInfo):
-        metadata = next(iter(annotated_metadata))
+    if inspect.iscoroutinefunction(tool_fn):
+
+        @wraps(tool_fn)
+        async def _fn(*args, **kwargs):
+            try:
+                return await tool_fn(*args, **kwargs)
+            except pydantic_ai.ModelRetry as e:
+                logger.debug(f"Tool failed: {e}")
+                raise e
+            except Exception as e:
+                logger.debug(f"Tool failed: {e}")
+                raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
+
+        return _fn
+
     else:
-        metadata = FieldInfo(description="The formatted response")
 
-    model = create_model(
-        tool_name or "FormatResponse",
-        __doc__="Format the response with valid JSON.",
-        __module__=__name__,
-        **{"value": (type_, metadata)},
-    )
+        @wraps(tool_fn)
+        def _fn(*args: Any, **kwargs: Any):
+            try:
+                return tool_fn(*args, **kwargs)
+            except pydantic_ai.ModelRetry as e:
+                logger.debug(f"Tool failed: {e}")
+                raise e
+            except Exception as e:
+                logger.debug(f"Tool failed: {e}")
+                raise pydantic_ai.ModelRetry(message=f"Tool failed: {e}") from e
 
-    def tool_fn(**data) -> U:
-        return TypeAdapter(model).validate_python(data).value
-
-    return tool_from_model(model, python_fn=tool_fn)
-
-
-def tool_from_model(model: type[M], python_fn: Callable[[str], M] = None):
-    """
-    Creates an OpenAI-compatible tool from a Pydantic model class.
-    """
-
-    if not (isinstance(model, type) and issubclass(model, BaseModel)):
-        raise TypeError(
-            f"Expected a Pydantic model class, but got {type(model).__name__}."
-        )
-
-    def tool_fn(**data) -> M:
-        return TypeAdapter(model).validate_python(data)
-
-    return FunctionTool[M](
-        type="function",
-        function=Function[M].create(
-            name=model.__name__,
-            description=model.__doc__,
-            parameters=model.model_json_schema(schema_generator=ModelSchemaGenerator),
-            model=model,
-            _python_fn=python_fn or tool_fn,
-        ),
-    )
-
-
-def tool_from_function(
-    fn: Callable[..., T],
-    name: Optional[str] = None,
-    description: Optional[str] = None,
-    kwargs: Optional[dict[str, Any]] = None,
-):
-    """
-    Creates an OpenAI-compatible tool from a Python function.
-
-    If any kwargs are provided, they will be stored and provided at runtime.
-    Provided kwargs will be removed from the tool's parameter schema.
-    """
-    if kwargs:
-        fn = custom_partial(fn, **kwargs)
-
-    schema = pydantic.TypeAdapter(
-        fn, config=pydantic.ConfigDict(arbitrary_types_allowed=True)
-    ).json_schema()
-
-    return FunctionTool[T](
-        type="function",
-        function=Function[T].create(
-            name=name or fn.__name__,
-            description=description or fn.__doc__,
-            parameters=schema,
-            _python_fn=fn,
-        ),
-    )
-
-
-def call_function_tool(
-    tools: list[FunctionTool],
-    function_name: str,
-    function_arguments_json: str,
-) -> str:
-    """
-    Helper function for calling a function tool from a list of tools, using the arguments
-    provided by an LLM as a JSON string. This function handles many common errors.
-    """
-    tool = next(
-        (
-            tool
-            for tool in tools
-            if getattr(tool, "function", None) and tool.function.name == function_name
-        ),
-        None,
-    )
-    if (
-        not tool
-        or not tool.function
-        or not tool.function._python_fn
-        or not tool.function.name
-    ):
-        raise ValueError(f"Tool not found: '{function_name}'")
-
-    arguments = json.loads(function_arguments_json)
-    logger.debug_kv(
-        f"{tool.function.name}",
-        f"called with arguments: {json.dumps(arguments, indent=2)}",
-        "green",
-    )
-    output = tool.function._python_fn(**arguments)
-    if inspect.isawaitable(output):
-        output = run_sync(output)
-    truncated_output = str(output)[: marvin.settings.max_tool_output_length]
-    if len(truncated_output) < len(str(output)):
-        truncated_output += "..."
-    logger.debug_kv(f"{tool.function.name}", f"returned: {truncated_output}", "green")
-    return output
-
-
-def output_to_string(output: Any) -> str:
-    """
-    Function outputs must be provided as strings
-    """
-    if output is None:
-        output = ""
-    elif not isinstance(output, str):
-        try:
-            output = TypeAdapter(type(output)).dump_json(output).decode()
-        except Exception:
-            output = str(output)
-    return output
+        return _fn

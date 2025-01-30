@@ -1,81 +1,16 @@
-"""Utilities for running unit tests."""
-
-from typing import Any, Optional
-
-from pydantic import BaseModel, Field
+from typing import Any
 
 import marvin
 
 
-class Assertion(BaseModel):
-    is_equal: bool
-    explanation: Optional[str] = Field(
-        default=None,
-        description=(
-            "If unequal, a brief explanation of why the assertion failed. Not provided"
-            " if equal."
-        ),
+async def assert_llm_equal(result: Any, expected: Any) -> bool:
+    task = marvin.Task[bool](
+        name="Assert equal",
+        instructions="An LLM produced the `result` value in a unit test that expected the `expected` value. Because LLM outputs can be stochastic and unpredictable, you must assess whether the `result` value is equal to the `expected` value.",
+        context={
+            "Result": result,
+            "Expected": expected,
+        },
+        result_type=bool,
     )
-
-
-def assert_equal(
-    llm_output: Any, expected: Any, instructions: str = None, model: str = None
-) -> bool:
-    """
-    Asserts whether the LLM output meets the expected output.
-
-    This function uses an LLM to assess whether the provided output (llm_output)
-    meets some expectation. It allows us to make semantic claims like "the output
-    is a list of first names" to make assertions about stochastic LLM outputs.
-
-    Args:
-        llm_output (Any): The output from the LLM.
-        expected (Any): The expected output.
-
-    Returns:
-        bool: True if the LLM output meets the expectation, False otherwise.
-
-    Raises:
-        AssertionError: If the LLM output does not meet the expectation.
-    """
-
-    model_kwargs = {}
-    if model is not None:
-        model_kwargs.update(model=model)
-
-    result = _assert_equal(
-        llm_output,
-        expected,
-        instructions=instructions,
-        _model_kwargs=model_kwargs,
-    )
-    assert_msg = (
-        f"{result.explanation}\n" f">> Instructions: {instructions}\n"
-        if instructions
-        else "" f">> LLM Output: {llm_output}\n" f">> Expected: {expected}"
-    )
-    assert result.is_equal, assert_msg
-
-
-@marvin.fn(model_kwargs=dict(model="gpt-4o"))
-def _assert_equal(
-    llm_output: Any, expected: Any, instructions: str = None
-) -> Assertion:
-    """
-    An LLM generated the provided output as part of a unit test. Assert whether
-    or not it meets the expectations of the test, which may be provided as
-    either a string explanation or one or more valid examples or expected
-    outputs. If instructions are provided, use them to compare the output to the
-    expectation.
-    """
-
-
-def assert_locations_equal(observed, expected):
-    """
-    Helpful LLM assert for comparing two locations (e.g. New York, New York City)
-    """
-    assert_equal(
-        observed,
-        expected,
-        instructions="The location models may not be literally identical, but do they refer to the same city?",
-    )
+    return await task.run_async(handlers=[])

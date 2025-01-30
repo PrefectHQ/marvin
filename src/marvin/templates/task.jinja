@@ -1,0 +1,37 @@
+<task>
+    <id>{{ task.id }}</id>
+    {% if task.name %}
+    <name>{{ task.name }}</name>
+    {% endif %}
+    <instructions>
+        {{ task.instructions | indent(8) }}
+    </instructions>
+    {% if task.context %}
+    <context>
+        {% for key, value in task.context.items() %}
+        <{{ key }}>{{ value }}</{{ key }}>
+        {% endfor %}
+    </context>
+    {% endif %}
+
+    {% if task.is_ready()%}
+    <result-type>
+        {{ task.get_result_type_str() }}
+
+        Note: result types must be provided as part of a complete MarkTaskSuccessful payload.
+    </result-type>
+    {% endif %}
+    {% if task.parent %}
+    <parent-task-id>{{ task.parent.id }}</parent-task-id>
+    {% endif %}
+    <assigned-actor-id>{{ task.get_actor().id }}</assigned-actor-id>
+
+    {% if task.memories %}
+    <memories>
+        The following memory modules are available:
+        {% for memory in task.memories %}
+        {{ memory.get_prompt() }}
+        {% endfor %}
+    </memories>
+    {% endif %}
+</task>
