@@ -22,7 +22,7 @@ The simplest Marvin workflow has one task, a default agent, and automatic thread
 ```python
 import marvin
 
-poem = cf.run("Write a short poem about artificial intelligence")
+poem = marvin.run("Write a short poem about artificial intelligence")
 
 print(poem)
 ```
