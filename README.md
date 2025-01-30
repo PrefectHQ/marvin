@@ -11,8 +11,9 @@ Marvin provides a structured, developer-focused framework for defining workflows
 - Combine tasks into a **thread** to orchestrate more complex behaviors.
 
 
-> [!WARNING] CONSTRUCTION ZONE
-> 🚧🚨 Marvin 3.0 is currently under very active development. The API may undergo breaking changes, and documentation is still being updated. Please use it with caution. You may prefer [Marvin 2.0](https://askmarvin.ai) or [ControlFlow](https://controlflow.ai) for now.
+> [!WARNING]
+> 
+> 🚧🚨 Marvin 3.0 is under very active development, reflected on the `main` branch of this repo. The API may undergo breaking changes, and documentation is still being updated. Please use it with caution. You may prefer the stable version of [Marvin 2.0](https://askmarvin.ai) or [ControlFlow](https://controlflow.ai) for now.
 
 
 ## Example
