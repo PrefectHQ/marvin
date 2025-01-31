@@ -1,5 +1,5 @@
 import uuid
-from typing import Callable, Dict, Optional
+from typing import Dict, Optional
 
 # async pg
 import anyio
