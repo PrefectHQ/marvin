@@ -3,6 +3,7 @@
 An Agent is an entity that can process tasks and maintain state across interactions.
 """
 
+import inspect
 import random
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -66,7 +67,11 @@ class Agent(Actor):
     model: KnownModelName | Model | None = field(
         default=None,
         metadata={
-            "description": "The model to use for the agent. If not provided, the default model will be used. A compatible string can be passed to automatically retrieve the model.",
+            "description": inspect.cleandoc("""
+                The model to use for the agent. If not provided,
+                the default model will be used. A compatible string
+                can be passed to automatically retrieve the model.
+                """),
         },
         repr=False,
     )
@@ -90,7 +95,8 @@ class Agent(Actor):
         return self.model or marvin.defaults.model
 
     def get_tools(self) -> list[Callable[..., Any]]:
-        return self.tools + [t for m in self.memories for t in m.get_tools()]
+        tools = self.tools + [t for m in self.memories for t in m.get_tools()]
+        return tools
 
     def get_memories(self) -> list[Memory]:
         return list(self.memories)
@@ -130,12 +136,10 @@ class Agent(Actor):
             result_tool_name = "EndTurn"
 
         agentlet = get_agentlet(
+            agent=self,
             result_type=result_type,
-            model=self.get_model(),
-            model_settings=self.get_model_settings(),
             tools=tools,
             result_tool_name=result_tool_name,
-            agent=self,
         )
         result = await agentlet.run("", message_history=messages)
         return result
@@ -145,13 +149,11 @@ class Agent(Actor):
 
 
 def get_agentlet(
+    agent: Agent,
     result_type: type,
-    model: Model | KnownModelName,
-    model_settings: ModelSettings,
     tools: list[Callable[..., Any]] | None = None,
     handlers: list["Handler | AsyncHandler"] | None = None,
     result_tool_name: str | None = None,
-    agent: "Agent" | None = None,
 ) -> pydantic_ai.Agent[Any, Any]:
     """Create a Pydantic AI agent with the specified configuration.
 
@@ -170,10 +172,10 @@ def get_agentlet(
     tools = [wrap_tool_errors(tool) for tool in tools or []]
 
     agentlet = pydantic_ai.Agent[Any, result_type](  # type: ignore
-        model=model,
+        model=agent.get_model(),
         result_type=result_type,
         tools=tools,
-        model_settings=model_settings,
+        model_settings=agent.get_model_settings(),
         end_strategy="exhaustive",
         result_tool_name=result_tool_name or "EndTurn",
         result_tool_description="This tool will end your turn. You may only use one EndTurn tool per turn.",
