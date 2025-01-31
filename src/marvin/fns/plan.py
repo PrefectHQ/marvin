@@ -13,8 +13,15 @@ T = TypeVar("T")
 @dataclass(kw_only=True)
 class PlanTask:
     id: int
-    instructions: str
-    name: str | None
+    instructions: str = field(
+        metadata={"description": "The instructions or objective for the task"},
+    )
+    name: str | None = field(
+        default=None,
+        metadata={
+            "description": "A brief name for the task, not more than a few words."
+        },
+    )
     allow_fail: bool = False
     allow_skip: bool = False
     parent_id: int | None = field(
@@ -61,6 +68,7 @@ def create_tasks(
     plan: list[PlanTask],
     agent_map: dict[int, Agent],
     tool_map: dict[int, Callable[..., Any]],
+    parent_task: Task | None = None,
 ) -> list[Task]:
     # topological sort so we process children before parents and dependencies before dependents
     sorted_tasks: list[PlanTask] = []
@@ -124,7 +132,7 @@ def create_tasks(
             ),
             allow_fail=plan_task.allow_fail,
             allow_skip=plan_task.allow_skip,
-            parent=(tasks[plan_task.parent_id] if plan_task.parent_id else None),
+            parent=(tasks[plan_task.parent_id] if plan_task.parent_id else parent_task),
             depends_on=(
                 [tasks[id] for id in plan_task.depends_on_ids]
                 if plan_task.depends_on_ids
@@ -143,6 +151,7 @@ async def plan_async(
     context: dict[str, Any] | None = None,
     available_agents: list[Agent] | None = None,
     tools: list[Callable[..., Any]] | None = None,
+    parent_task: Task | None = None,
 ) -> list[Task]:
     """
     Generate a series of new tasks in order to achieve a goal.
@@ -186,6 +195,7 @@ async def plan_async(
         tasks,
         agent_map=agent_map | {None: task.get_actor()},
         tool_map=tool_map,
+        parent_task=parent_task,
     )
 
 
@@ -196,6 +206,7 @@ def plan(
     context: dict[str, Any] | None = None,
     available_agents: list[Agent] | None = None,
     tools: list[Callable[..., Any]] | None = None,
+    parent_task: Task | None = None,
 ) -> list[Task]:
     """
     Generate a series of Marvin Tasks that will allow you or other AI agents to achieve a goal.
@@ -224,5 +235,6 @@ def plan(
             context=context,
             available_agents=available_agents,
             tools=tools,
+            parent_task=parent_task,
         )
     )
