@@ -29,12 +29,12 @@ print(poem)
 ```
 <details>
 <summary>View the <code>poem</code></summary>
-```
+<pre>
 In circuits and code, a mind does bloom,
 With algorithms weaving through the gloom.
 A spark of thought in silicon's embrace,
 Artificial intelligence finds its place.
-```
+</pre>
 </details>
 
 ## Why Marvin?
