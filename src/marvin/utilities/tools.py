@@ -14,30 +14,39 @@ logger = get_logger(__name__)
 
 
 def update_fn(
+    func: Callable[..., T] | None = None,
+    /,
     *,
     name: str | None = None,
     description: str | None = None,
-) -> Callable[[Callable[..., T]], Callable[..., T]]:
-    """Rename a function and optionally set its docstring.
+) -> Callable[[Callable[..., T]], Callable[..., T]] | Callable[..., T]:
+    """Update a function's name and optionally set its docstring.
 
-    Can be used as a decorator with keyword arguments only.
+    Can be used either as a decorator with keyword arguments or as a direct function.
 
     Args:
+        func: The function to update (optional). If provided, updates are applied directly.
+             If not provided, returns a decorator.
         name: The new name for the function (optional). If provided, must not be empty.
         description: Optional docstring for the function
 
     Example:
-        # With name:
+        # As a function:
+        def my_fn(x):
+            return x
+        updated_fn = update_fn(my_fn, name='hello_there')
+
+        # As a decorator with name:
         @update_fn(name='hello_there')
         def my_fn(x):
             return x
 
-        # With name and description:
+        # As a decorator with name and description:
         @update_fn(name='hello_there', description='Says hello')
         def my_fn(x):
             return x
 
-        # With no arguments:
+        # As a decorator with no arguments:
         @update_fn()
         def my_fn(x):
             return x
@@ -50,17 +59,17 @@ def update_fn(
     if name is not None and not name:
         raise ValueError("name cannot be empty if provided")
 
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:
-        if inspect.iscoroutinefunction(func):
+    def decorator(fn: Callable[..., T]) -> Callable[..., T]:
+        if inspect.iscoroutinefunction(fn):
 
-            @wraps(func)
+            @wraps(fn)
             async def wrapper(*args: Any, **kwargs: Any) -> T:
-                return await func(*args, **kwargs)
+                return await fn(*args, **kwargs)
         else:
 
-            @wraps(func)
+            @wraps(fn)
             def wrapper(*args: Any, **kwargs: Any) -> T:
-                return func(*args, **kwargs)
+                return fn(*args, **kwargs)
 
         if name is not None:
             wrapper.__name__ = name
@@ -68,6 +77,11 @@ def update_fn(
             wrapper.__doc__ = description
         return wrapper
 
+    # If func is provided, apply the decorator directly
+    if func is not None:
+        return decorator(func)
+
+    # Otherwise return the decorator for use with @ syntax
     return decorator
 
 
