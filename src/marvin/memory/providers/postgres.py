@@ -1,5 +1,5 @@
 import uuid
-from typing import Callable, Dict, Optional
+from typing import Dict, Optional
 
 # async pg
 import anyio
@@ -79,7 +79,7 @@ class PostgresMemory(MemoryProvider):
         description="Dimension of the embedding vectors. Must match your model output size.",
     )
 
-    embedding_fn: Callable = Field(
+    embedding_fn: OpenAIEmbeddings = Field(
         default_factory=lambda: OpenAIEmbeddings(model="text-embedding-ada-002"),
         description="Function that turns a string into a numeric vector.",
     )
