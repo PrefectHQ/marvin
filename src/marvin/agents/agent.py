@@ -179,6 +179,7 @@ def get_agentlet(
         end_strategy="exhaustive",
         result_tool_name=result_tool_name or "EndTurn",
         result_tool_description="This tool will end your turn. You may only use one EndTurn tool per turn.",
+        retries=marvin.settings.agent_retries,
     )
 
     from marvin.engine.events import (
