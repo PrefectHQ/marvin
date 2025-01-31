@@ -211,6 +211,7 @@ class Task(Generic[T]):
         allow_fail: bool = False,
         allow_skip: bool = False,
         cli: bool = False,
+        plan: bool = False,
     ) -> None:
         """Initialize a Task.
 
@@ -231,6 +232,7 @@ class Task(Generic[T]):
             allow_fail: Whether to allow the task to fail
             allow_skip: Whether to allow the task to skip
             cli: Whether to enable CLI interaction tools
+            plan: Whether to enable a tool for planning subtasks
 
         """
         # required fields
@@ -247,7 +249,7 @@ class Task(Generic[T]):
         self.allow_fail = allow_fail
         self.allow_skip = allow_skip
         self.cli = cli
-
+        self.plan = plan
         # key fields
         self.id = uuid.uuid4().hex[:8]
         self.state = TaskState.PENDING
@@ -324,7 +326,7 @@ class Task(Generic[T]):
     def friendly_name(self, verbose: bool = True) -> str:
         """Get a friendly name for this task."""
         if self.name:
-            return f'Task "{self.name}"'
+            return f'Task {self.id} ("{self.name}")'
         if verbose:
             # Replace consecutive newlines with a single space
             instructions = " ".join(self.instructions.split())
@@ -359,6 +361,7 @@ class Task(Generic[T]):
             import marvin.tools.interactive.cli
 
             tools.append(marvin.tools.interactive.cli.cli)
+
         return tools
 
     def is_classifier(self) -> bool:
@@ -461,6 +464,8 @@ class Task(Generic[T]):
             tools.append(self.mark_failed_tool())
         if self.allow_skip:
             tools.append(self.mark_skipped_tool())
+        if self.plan:
+            tools.append(marvin.engine.end_turn.create_plan_subtasks(parent_task=self))
 
         return tools
 
