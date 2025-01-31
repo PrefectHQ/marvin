@@ -41,6 +41,19 @@ class Team(Actor):
             raise ValueError("Team must have at least one member")
         self.active_member = self.members[0]
 
+    def __enter__(self):
+        """Set this team and its active member as current in context."""
+        super().__enter__()
+        # Recursively enter context for active member
+        self.active_member.__enter__()
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+        """Reset the team and active member context."""
+        # Exit active member context first
+        self.active_member.__exit__(exc_type, exc_val, exc_tb)
+        super().__exit__(exc_type, exc_val, exc_tb)
+
     async def start_turn(self, orchestrator: "Orchestrator"):
         await self.active_member.start_turn(orchestrator=orchestrator)
 

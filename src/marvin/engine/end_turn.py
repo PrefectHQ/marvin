@@ -1,6 +1,8 @@
+import inspect
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
+import marvin
 from marvin.engine.llm import AgentMessage
 from marvin.utilities.logging import get_logger, maybe_quote
 
@@ -146,3 +148,54 @@ def create_delegate_to_actor(
 
     _DelegateToActor.__name__ = f"delegate_to_actor_{delegate_actor.id}"
     return _DelegateToActor
+
+
+class PlanSubtasks(EndTurn):
+    task: ClassVar["Task[Any]"]
+
+
+def create_plan_subtasks(parent_task: "Task[Any]") -> type[PlanSubtasks]:
+    @dataclass(kw_only=True)
+    class _PlanSubtasks(PlanSubtasks):
+        task = parent_task
+
+        instructions: str = field(
+            metadata={
+                "description": inspect.cleandoc(f"""
+                    This tool will let you create subtasks that help you
+                    complete {parent_task.friendly_name()}.
+                    
+                    In a moment, you'll be asked to use these `instructions` to
+                    generate one or more subtasks. You'll have access to the
+                    thread history, but give guidance about what tasks would be
+                    helpful, how many, etc. You can create a series of tasks
+                    that achieve the entire parent task, or just a small number
+                    to advance progress slightly. You can always use this tool
+                    again to create more subtasks.
+                    
+                    Do not create subtasks that you can not complete with
+                    available knowledge or tools. Do not create subtasks that
+                    are needlessly complex or too small, as each subtask
+                    requires reinvoking an agent. Instead, use subtasks to
+                    create logical checkpoints for yourself given your
+                    confidence in your own abilities.
+                    """)
+            }
+        )
+
+        async def run(self, orchestrator: "Orchestrator", actor: "Actor"):
+            # create tasks in a new thread to avoid interrupting the function call
+            with marvin.Thread() as thread:
+                tasks = await marvin.plan_async(
+                    instructions=self.instructions,
+                    agent=actor,
+                    parent_task=parent_task,
+                    thread=thread,
+                )
+
+            msg = f"Subtasks created: {[t.friendly_name() for t in tasks]}"
+            logger.info(msg)
+            await orchestrator.thread.add_info_message_async(msg)
+
+    _PlanSubtasks.__name__ = f"plan_subtasks_{parent_task.id}"
+    return _PlanSubtasks

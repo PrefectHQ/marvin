@@ -2,7 +2,7 @@ import inspect
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Literal, TypeVar, overload
+from typing import Any, Literal, TypeVar
 
 import pydantic_ai
 from pydantic_ai import RunContext
@@ -13,100 +13,75 @@ T = TypeVar("T")
 logger = get_logger(__name__)
 
 
-@overload
 def update_fn(
-    name_or_func: str,
-    *,
-    description: str | None = None,
-) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
-
-
-@overload
-def update_fn(
-    name_or_func: None = None,
-    *,
-    name: str,
-    description: str | None = None,
-) -> Callable[[Callable[..., T]], Callable[..., T]]: ...
-
-
-@overload
-def update_fn(
-    name_or_func: Callable[..., T],
-    *,
-    name: str,
-    description: str | None = None,
-) -> Callable[..., T]: ...
-
-
-def update_fn(
-    name_or_func: str | Callable[..., T] | None = None,
+    func: Callable[..., T] | None = None,
+    /,
     *,
     name: str | None = None,
     description: str | None = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]] | Callable[..., T]:
-    """Rename a function and optionally set its docstring.
+    """Update a function's name and optionally set its docstring.
 
-    Can be used as a decorator or called directly on a function.
+    Can be used either as a decorator with keyword arguments or as a direct function.
 
     Args:
-        name_or_func: Either the new name (when used as decorator) or the function to rename
-        name: The new name (when used as a function)
+        func: The function to update (optional). If provided, updates are applied directly.
+             If not provided, returns a decorator.
+        name: The new name for the function (optional). If provided, must not be empty.
         description: Optional docstring for the function
 
     Example:
-        # As decorator with positional arg:
-        @update_fn('hello_there', description='Says hello')
+        # As a function:
+        def my_fn(x):
+            return x
+        updated_fn = update_fn(my_fn, name='hello_there')
+
+        # As a decorator with name:
+        @update_fn(name='hello_there')
         def my_fn(x):
             return x
 
-        # As decorator with keyword args:
+        # As a decorator with name and description:
         @update_fn(name='hello_there', description='Says hello')
         def my_fn(x):
             return x
 
-        # As function:
-        def add_stuff(x):
-            return x + 1
-        new_fn = update_fn(add_stuff, name='add_stuff_123', description='Adds stuff')
-
-        # Works with async functions too:
-        @update_fn('async_hello')
-        async def my_async_fn(x):
+        # As a decorator with no arguments:
+        @update_fn()
+        def my_fn(x):
             return x
 
+        # Works with async functions too:
+        @update_fn(name='async_hello')
+        async def my_async_fn(x):
+            return x
     """
+    if name is not None and not name:
+        raise ValueError("name cannot be empty if provided")
 
-    def apply(func: Callable[..., T], new_name: str) -> Callable[..., T]:
-        if inspect.iscoroutinefunction(func):
+    def decorator(fn: Callable[..., T]) -> Callable[..., T]:
+        if inspect.iscoroutinefunction(fn):
 
-            @wraps(func)
-            async def wrapper(*args: Any, **kwargs: Any) -> T:  # type: ignore[reportRedeclaration]
-                return await func(*args, **kwargs)
+            @wraps(fn)
+            async def wrapper(*args: Any, **kwargs: Any) -> T:
+                return await fn(*args, **kwargs)
         else:
 
-            @wraps(func)
+            @wraps(fn)
             def wrapper(*args: Any, **kwargs: Any) -> T:
-                return func(*args, **kwargs)
+                return fn(*args, **kwargs)
 
-        wrapper.__name__ = new_name
+        if name is not None:
+            wrapper.__name__ = name
         if description is not None:
             wrapper.__doc__ = description
         return wrapper
 
-    if callable(name_or_func):
-        # Used as function
-        if name is None:
-            raise ValueError("name must be provided when used as a function")
-        return apply(name_or_func, name)
-    # Used as decorator
-    decorator_name = name_or_func if name_or_func is not None else name
-    if decorator_name is None:
-        raise ValueError("name must be provided either as argument or keyword")
+    # If func is provided, apply the decorator directly
+    if func is not None:
+        return decorator(func)
 
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:
-        return apply(func, decorator_name)
-
+    # Otherwise return the decorator for use with @ syntax
     return decorator
 
 

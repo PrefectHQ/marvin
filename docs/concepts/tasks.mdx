@@ -255,6 +255,33 @@ task = marvin.Task(
 
 Tasks can be configured with a parent task. Creating hierarchies of tasks can help agents understand the relationships between different tasks and to better understand the task they are working on.
 
+### Task Planning
+
+When a task is created with `plan=True`, the agent is given the ability to break down complex tasks into smaller, more manageable subtasks. This is particularly useful for handling large or complex objectives that benefit from being tackled incrementally.
+
+The agent can create subtasks at any point during task execution, and these subtasks become part of the task hierarchy. Each subtask is treated as a dependency of the parent task, ensuring that all subtasks are completed before the parent task is considered finished.
+
+```python
+import marvin
+
+task = marvin.Task(
+    instructions="Write a comprehensive report about AI",
+    plan=True  # Enable task planning
+)
+```
+
+When planning is enabled, the agent can:
+- Create one or more subtasks at any time
+- Define clear, focused objectives for each subtask
+- Establish dependencies between subtasks
+- Monitor progress through the task hierarchy
+
+This feature is especially valuable for:
+- Breaking down complex tasks into manageable pieces
+- Creating checkpoints in long-running processes
+- Enabling parallel work on independent subtasks
+- Maintaining clear progress tracking
+
 ### Depends on
 
 Tasks can be configured with a list of tasks that they depend on. This information helps Marvin prioritize work and avoid running a task before its upstream dependencies are complete.
@@ -266,6 +293,7 @@ Marvin tasks support several additional options to control their behavior:
 - `allow_fail`: Whether the task is allowed to be marked as failed (default: False)
 - `allow_skip`: Whether the task is allowed to be skipped (default: False)
 - `cli`: Whether to enable CLI interaction tools for the agent (default: False)
+- `plan`: Whether to enable task planning capabilities, allowing the agent to create subtasks to help complete the parent task (default: False)
 
 ## Runtime properties
 

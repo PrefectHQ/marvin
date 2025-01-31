@@ -1,0 +1,120 @@
+---
+title: Plan
+description: Break down complex objectives into manageable tasks
+icon: list-check
+---
+
+The `plan` function helps you break down complex objectives into a series of smaller, manageable tasks. 
+It's particularly useful for handling large or complex goals that benefit from being tackled incrementally.
+
+For simple tasks, you can use `marvin.run()` directly. The `plan` function is designed for complex 
+workflows that benefit from being broken down into steps - see [Task Planning](/concepts/tasks#task-planning) 
+for more details.
+
+## Usage
+
+Create a simple task plan:
+
+```python
+import marvin
+
+# Create and execute a series of tasks
+tasks = marvin.plan("Create a new blog post about AI trends")
+marvin.run_tasks(tasks)
+```
+
+## Parameters
+
+- `instructions`: The objective to achieve
+- `agent`: Optional agent to use for planning
+- `thread`: Optional thread for conversation context
+- `context`: Optional dict of additional context
+- `available_agents`: Optional list of agents that can be used for planning
+- `tools`: Optional list of tools that can be used for planning
+- `parent_task`: Optional parent task for the planned tasks
+
+## Returns
+
+Returns a list of `Task` objects that, when completed, will achieve the specified objective.
+
+## Async Support
+
+The function is also available in an async version:
+
+```python
+import marvin
+import asyncio
+
+async def main():
+    tasks = await marvin.plan_async(
+        "Create a new blog post about AI trends"
+    )
+    await marvin.run_tasks_async(tasks)
+
+asyncio.run(main())
+```
+
+## Examples
+
+### Multiple Agents
+
+Assign different tasks to specialized agents:
+
+```python
+import marvin
+
+# Create specialized agents
+researcher = marvin.Agent(name="Researcher", model="openai:gpt-4")
+writer = marvin.Agent(name="Writer", model="openai:gpt-4")
+editor = marvin.Agent(name="Editor", model="openai:gpt-4")
+
+# Plan tasks with multiple agents
+tasks = marvin.plan(
+    "Create a comprehensive research report on quantum computing",
+    available_agents=[researcher, writer, editor]
+)
+marvin.run_tasks(tasks)
+```
+
+### With Context
+
+Provide additional requirements:
+
+```python
+import marvin
+
+# Provide detailed context for planning
+context = {
+    "target_audience": "technical professionals",
+    "word_count": 2000,
+    "key_topics": ["neural networks", "transformers", "reinforcement learning"]
+}
+
+tasks = marvin.plan(
+    "Write a technical blog post about AI advancements",
+    context=context
+)
+marvin.run_tasks(tasks)
+```
+
+### With Tools
+
+Make specific tools available to tasks:
+
+```python
+import marvin
+
+def fetch_papers(topic: str, limit: int = 5) -> list[str]:
+    """Fetch latest research papers on a topic."""
+    pass
+
+def analyze_sentiment(text: str) -> float:
+    """Analyze sentiment of text."""
+    pass
+
+tasks = marvin.plan(
+    "Create a sentiment analysis report for recent AI papers",
+    tools=[fetch_papers, analyze_sentiment]
+)
+marvin.run_tasks(tasks)
+``` 

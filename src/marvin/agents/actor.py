@@ -1,8 +1,10 @@
 import uuid
 from abc import ABC, abstractmethod
+from collections.abc import Callable
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Sequence
 
 from pydantic_ai.result import RunResult
 
@@ -17,6 +19,12 @@ if TYPE_CHECKING:
     from marvin.agents.team import Team
     from marvin.engine.end_turn import EndTurn
     from marvin.engine.orchestrator import Orchestrator
+
+# Global context var for current actor
+_current_actor: ContextVar[Optional["Actor"]] = ContextVar(
+    "current_actor",
+    default=None,
+)
 
 
 @dataclass(kw_only=True)
@@ -46,8 +54,26 @@ class Actor(ABC):
 
     prompt: str | Path = field(repr=False)
 
+    _tokens: list[Any] = field(default_factory=list, init=False, repr=False)
+
     def __hash__(self) -> int:
         return hash(self.id)
+
+    def __enter__(self):
+        """Set this actor as the current actor in context."""
+        token = _current_actor.set(self)
+        self._tokens.append(token)
+        return self
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+        """Reset the current actor in context."""
+        if self._tokens:  # Only reset if we have tokens
+            _current_actor.reset(self._tokens.pop())
+
+    @classmethod
+    def get_current(cls) -> Optional["Actor"]:
+        """Get the current actor from context."""
+        return _current_actor.get()
 
     @abstractmethod
     async def _run(
@@ -140,3 +166,12 @@ class Actor(ABC):
         raise NotImplementedError(
             "Subclass must implement as_team in order to be properly orchestrated.",
         )
+
+
+def get_current_actor() -> Actor | None:
+    """Get the currently active actor from context.
+
+    Returns:
+        The current Actor instance or None if no actor is active.
+    """
+    return Actor.get_current()

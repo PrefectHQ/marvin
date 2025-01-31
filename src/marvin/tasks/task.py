@@ -144,6 +144,7 @@ class Task(Generic[T]):
         default=None,
         metadata={"description": "Optional parent task"},
         init=False,
+        repr=False,
     )
 
     subtasks: set["Task[Any]"] = field(
@@ -205,11 +206,12 @@ class Task(Generic[T]):
         tools: list[Callable[..., Any]] | None = None,
         memories: list[Memory] | None = None,
         result_validator: Callable[..., Any] | None = None,
-        parent: "Task[T] | None" = None,
+        parent: "Task[T] | None | Literal['__NOTSET__']" = NOTSET,
         depends_on: Sequence["Task[T]"] | None = None,
         allow_fail: bool = False,
         allow_skip: bool = False,
         cli: bool = False,
+        plan: bool = False,
     ) -> None:
         """Initialize a Task.
 
@@ -230,6 +232,7 @@ class Task(Generic[T]):
             allow_fail: Whether to allow the task to fail
             allow_skip: Whether to allow the task to skip
             cli: Whether to enable CLI interaction tools
+            plan: Whether to enable a tool for planning subtasks
 
         """
         # required fields
@@ -246,14 +249,16 @@ class Task(Generic[T]):
         self.allow_fail = allow_fail
         self.allow_skip = allow_skip
         self.cli = cli
-
+        self.plan = plan
         # key fields
         self.id = uuid.uuid4().hex[:8]
         self.state = TaskState.PENDING
         self.result = None
 
         # if no parent is provided, use the current task from context
-        self.parent = parent if parent is not None else _current_task.get()
+        if parent is NOTSET:
+            parent = _current_task.get()
+        self.parent = parent
         self.subtasks: set[Task[Any]] = set()
         self.depends_on: set[Task[Any]] = set(depends_on or [])
 
@@ -321,7 +326,7 @@ class Task(Generic[T]):
     def friendly_name(self, verbose: bool = True) -> str:
         """Get a friendly name for this task."""
         if self.name:
-            return f'Task "{self.name}"'
+            return f'Task {self.id} ("{self.name}")'
         if verbose:
             # Replace consecutive newlines with a single space
             instructions = " ".join(self.instructions.split())
@@ -356,6 +361,7 @@ class Task(Generic[T]):
             import marvin.tools.interactive.cli
 
             tools.append(marvin.tools.interactive.cli.cli)
+
         return tools
 
     def is_classifier(self) -> bool:
@@ -458,6 +464,8 @@ class Task(Generic[T]):
             tools.append(self.mark_failed_tool())
         if self.allow_skip:
             tools.append(self.mark_skipped_tool())
+        if self.plan:
+            tools.append(marvin.engine.end_turn.create_plan_subtasks(parent_task=self))
 
         return tools
 
