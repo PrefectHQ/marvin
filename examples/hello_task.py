@@ -6,7 +6,7 @@ Use with caution.
 import platform
 import subprocess
 
-from pydantic import IPv4Address
+from pydantic import IPvAnyAddress
 
 import marvin
 
@@ -18,7 +18,7 @@ def run_shell_command(command: list[str]) -> str:
 
 task = marvin.Task(
     instructions="find the current ip address",
-    result_type=IPv4Address,
+    result_type=IPvAnyAddress,
     tools=[run_shell_command],
     context={"os": platform.system()},
 )
