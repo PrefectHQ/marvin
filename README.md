@@ -28,7 +28,7 @@ poem = marvin.run("Write a short poem about artificial intelligence")
 print(poem)
 ```
 <details>
-<summary>View the <code>poem</code></summary>
+<summary><i>output</i></summary>
 <pre>
 In circuits and code, a mind does bloom,
 With algorithms weaving through the gloom.
@@ -58,16 +58,55 @@ Marvin is built around a few powerful abstractions that make it easy to work wit
 
 Tasks are the fundamental unit of work in Marvin. Each task represents a clear objective that can be accomplished by an AI agent:
 
+The simplest way to run a task is with `marvin.run`:
 ```python
-# The simplest way to run a task
-result = marvin.run("Write a haiku about coding")
+import marvin
+print(marvin.run("Write a haiku about coding"))
+```
+```bash
+Lines of code unfold,
+Digital whispers create
+Virtual landscapes.
+```
 
-# Create a task with more control
+> [!WARNING]
+> 
+> While the below example produces _type_ safe results 🙂, it runs untrusted shell commands.
+
+Add context and/or tools to achieve more specific and complex results:
+```python
+import platform
+import subprocess
+from pydantic import IPvAnyAddress
+
+def run_shell_command(command: list[str]) -> str:
+    """e.g. ['ls', '-l'] or ['git', '--no-pager', 'diff', '--cached']"""
+    return subprocess.check_output(command).decode()
+
 task = marvin.Task(
-    instructions="Write a haiku about coding",
-    result_type=str,
-    tools=[my_custom_tool]
+    instructions="find the current ip address",
+    result_type=IPvAnyAddress,
+    tools=[run_shell_command],
+    context={"os": platform.system()},
 )
+
+task.run()
+```
+
+```bash
+╭─ Agent "Marvin" (db3cf035) ───────────────────────────────╮
+│ Tool:    run_shell_command                                │
+│ Input:   {'command': ['ipconfig', 'getifaddr', 'en0']}    │
+│ Status:  ✅                                               │
+│ Output:  '192.168.0.202\n'                                │
+╰───────────────────────────────────────────────────────────╯
+
+╭─ Agent "Marvin" (db3cf035) ───────────────────────────────╮
+│ Tool:    MarkTaskSuccessful_cb267859                      │
+│ Input:   {'response': {'result': '192.168.0.202'}}        │
+│ Status:  ✅                                               │
+│ Output:  'Final result processed.'                        │
+╰───────────────────────────────────────────────────────────╯
 ```
 
 Tasks are:
@@ -251,7 +290,7 @@ print(f"# {article.title}\n\n{article.content}")
 ```
 
 <details>
-<summary><i>Click to see results</i></summary>
+<summary><i>output</i></summary>
 
 >**Conversation:**
 >```text
@@ -280,5 +319,3 @@ print(f"# {article.title}\n\n{article.content}")
 >- Used by major companies like Google, Mozilla, and Unity
 >```
 </details>
-
-## Keep it Simple
