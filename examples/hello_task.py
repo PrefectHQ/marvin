@@ -12,7 +12,7 @@ import marvin
 
 
 def run_shell_command(command: list[str]) -> str:
-    """e.g. ['ls', '-l'] or ['git', '--no-pager', 'diff', '--cached']"""
+    """e.g. ['ls', '-l'] or ['git', 'diff', '|', 'grep', 'some_code']"""
     return subprocess.check_output(command).decode()
 
 
