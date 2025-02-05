@@ -12,11 +12,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
     Generic,
     Literal,
     Optional,
     Sequence,
+    TypeAlias,
     TypeVar,
 )
 
@@ -63,6 +65,9 @@ class TaskState(str, enum.Enum):
     SKIPPED = "skipped"
 
 
+ResultType: TypeAlias = type[T] | Annotated | Labels | Literal["__NOTSET__"]
+
+
 @dataclass(kw_only=True, init=False)
 class Task(Generic[T]):
     """A task is a container for a prompt and its associated state."""
@@ -77,7 +82,7 @@ class Task(Generic[T]):
         kw_only=False,
     )
 
-    result_type: type[T] | Labels | Literal["__NOTSET__"] = field(  # type: ignore[reportRedeclaration]
+    result_type: ResultType[T] = field(  # type: ignore[reportRedeclaration]
         default=NOTSET,
         metadata={
             "description": "The expected type of the result. This can be a type or None if no result is expected. If not set, the result type will be str.",
@@ -197,7 +202,7 @@ class Task(Generic[T]):
     def __init__(
         self,
         instructions: str,
-        result_type: type[T] | Labels | Literal["__NOTSET__"] = NOTSET,
+        result_type: ResultType[T] = NOTSET,
         *,
         name: str | None = None,
         prompt_template: str | Path = Path("task.jinja"),
@@ -206,8 +211,8 @@ class Task(Generic[T]):
         tools: list[Callable[..., Any]] | None = None,
         memories: list[Memory] | None = None,
         result_validator: Callable[..., Any] | None = None,
-        parent: "Task[T] | None | Literal['__NOTSET__']" = NOTSET,
-        depends_on: Sequence["Task[T]"] | None = None,
+        parent: "Task[Any] | None | Literal['__NOTSET__']" = NOTSET,
+        depends_on: Sequence["Task[Any]"] | None = None,
         allow_fail: bool = False,
         allow_skip: bool = False,
         cli: bool = False,
