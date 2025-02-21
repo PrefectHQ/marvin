@@ -18,12 +18,28 @@ Marvin provides a structured, developer-focused framework for defining workflows
 
 ## Example
 
-The simplest Marvin workflow has one task, a default agent, and automatic thread management:
+Marvin offers three intuitive ways to work with AI:
 
 ```python
 import marvin
+from marvin import Agent, Task
 
+# 1. Quick one-liners with marvin.run()
 poem = marvin.run("Write a short poem about artificial intelligence")
+
+# 2. Agent-specific tasks
+writer = Agent(
+    name="Poet",
+    instructions="Write creative, evocative poetry"
+)
+poem = writer.run("Write a haiku about coding")
+
+# 3. Full task control
+task = Task(
+    instructions="Write a limerick about Python",
+    result_type=str
+)
+poem = task.run()
 
 print(poem)
 ```
@@ -136,7 +152,7 @@ team = marvin.Swarm([
 # Use agents with tasks
 result = marvin.run(
     "Write a blog post about Python type hints",
-    agents=[team]  # or team
+    agents=[team]
 )
 ```
 

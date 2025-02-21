@@ -12,7 +12,6 @@ T = TypeVar("T")
 
 async def run_tasks_async(
     tasks: list[Task[Any]],
-    agents: list[Actor] | None = None,
     thread: Thread | str | None = None,
     raise_on_failure: bool = True,
     handlers: list[Handler | AsyncHandler] | None = None,
@@ -28,7 +27,6 @@ async def run_tasks_async(
 
 def run_tasks(
     tasks: list[Task[Any]],
-    agents: list[Actor] | None = None,
     thread: Thread | str | None = None,
     raise_on_failure: bool = True,
     handlers: list[Handler | AsyncHandler] | None = None,
@@ -36,7 +34,6 @@ def run_tasks(
     return marvin.utilities.asyncio.run_sync(
         run_tasks_async(
             tasks=tasks,
-            agents=agents,
             thread=thread,
             raise_on_failure=raise_on_failure,
             handlers=handlers,

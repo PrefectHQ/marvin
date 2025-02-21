@@ -4,7 +4,7 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Sequence, TypeVar
 
 from pydantic_ai.result import RunResult
 
@@ -16,10 +16,10 @@ from marvin.prompts import Template
 from marvin.thread import Thread
 
 if TYPE_CHECKING:
-    from marvin.agents.team import Team
     from marvin.engine.end_turn import EndTurn
+    from marvin.engine.handlers import AsyncHandler, Handler
     from marvin.engine.orchestrator import Orchestrator
-
+T = TypeVar("T")
 # Global context var for current actor
 _current_actor: ContextVar[Optional["Actor"]] = ContextVar(
     "current_actor",
@@ -116,24 +116,44 @@ class Actor(ABC):
     async def run_async(
         self,
         instructions: str,
+        result_type: type[T] = str,
+        tools: list[Callable[..., Any]] = [],
         thread: Thread | str | None = None,
+        handlers: list["Handler | AsyncHandler"] | None = None,
         raise_on_failure: bool = True,
+        **kwargs: Any,
     ) -> Any:
         return await marvin.run_async(
-            instructions,
+            instructions=instructions,
+            result_type=result_type,
+            tools=tools,
             agents=[self],
             thread=thread,
             raise_on_failure=raise_on_failure,
+            handlers=handlers,
+            **kwargs,
         )
 
     def run(
         self,
         instructions: str,
+        result_type: type[T] = str,
+        tools: list[Callable[..., Any]] = [],
         thread: Thread | str | None = None,
+        handlers: list["Handler | AsyncHandler"] | None = None,
         raise_on_failure: bool = True,
+        **kwargs: Any,
     ) -> Any:
         return marvin.utilities.asyncio.run_sync(
-            self.run_async(instructions, thread, raise_on_failure),
+            self.run_async(
+                instructions=instructions,
+                result_type=result_type,
+                tools=tools,
+                thread=thread,
+                handlers=handlers,
+                raise_on_failure=raise_on_failure,
+                **kwargs,
+            ),
         )
 
     async def say_async(
@@ -160,11 +180,6 @@ class Actor(ABC):
         """Responds to a user message in a conversational way."""
         return marvin.utilities.asyncio.run_sync(
             self.say_async(message=message, instructions=instructions, thread=thread),
-        )
-
-    def as_team(self) -> "Team":
-        raise NotImplementedError(
-            "Subclass must implement as_team in order to be properly orchestrated.",
         )
 
 
