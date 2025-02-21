@@ -10,12 +10,11 @@ class Currency:
 
 
 if __name__ == "__main__":
-    print(
-        marvin.extract(
-            "After flying ORD to Heathrow, I exchanged my greenbacks for local currency.",
-            target=Currency,
-        ),
+    currencies = marvin.extract(
+        "After flying ORD to Heathrow, I exchanged my greenbacks for local currency.",
+        target=Currency,
     )
+    print(currencies)
 """
 » python examples/hello_extract.py
 ╭─ Marvin ─────────────────────────────────────────────────────────────────────────────────────────╮

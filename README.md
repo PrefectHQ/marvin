@@ -44,7 +44,7 @@ poem = task.run()
 print(poem)
 ```
 <details>
-<summary>View the <code>poem</code></summary>
+<summary><i>output</i></summary>
 <pre>
 In circuits and code, a mind does bloom,
 With algorithms weaving through the gloom.
@@ -74,16 +74,55 @@ Marvin is built around a few powerful abstractions that make it easy to work wit
 
 Tasks are the fundamental unit of work in Marvin. Each task represents a clear objective that can be accomplished by an AI agent:
 
+The simplest way to run a task is with `marvin.run`:
 ```python
-# The simplest way to run a task
-result = marvin.run("Write a haiku about coding")
+import marvin
+print(marvin.run("Write a haiku about coding"))
+```
+```bash
+Lines of code unfold,
+Digital whispers create
+Virtual landscapes.
+```
 
-# Create a task with more control
+> [!WARNING]
+> 
+> While the below example produces _type_ safe results 🙂, it runs untrusted shell commands.
+
+Add context and/or tools to achieve more specific and complex results:
+```python
+import platform
+import subprocess
+from pydantic import IPvAnyAddress
+
+def run_shell_command(command: list[str]) -> str:
+    """e.g. ['ls', '-l'] or ['git', '--no-pager', 'diff', '--cached']"""
+    return subprocess.check_output(command).decode()
+
 task = marvin.Task(
-    instructions="Write a haiku about coding",
-    result_type=str,
-    tools=[my_custom_tool]
+    instructions="find the current ip address",
+    result_type=IPvAnyAddress,
+    tools=[run_shell_command],
+    context={"os": platform.system()},
 )
+
+task.run()
+```
+
+```bash
+╭─ Agent "Marvin" (db3cf035) ───────────────────────────────╮
+│ Tool:    run_shell_command                                │
+│ Input:   {'command': ['ipconfig', 'getifaddr', 'en0']}    │
+│ Status:  ✅                                               │
+│ Output:  '192.168.0.202\n'                                │
+╰───────────────────────────────────────────────────────────╯
+
+╭─ Agent "Marvin" (db3cf035) ───────────────────────────────╮
+│ Tool:    MarkTaskSuccessful_cb267859                      │
+│ Input:   {'response': {'result': '192.168.0.202'}}        │
+│ Status:  ✅                                               │
+│ Output:  'Final result processed.'                        │
+╰───────────────────────────────────────────────────────────╯
 ```
 
 Tasks are:
@@ -154,4 +193,145 @@ Marvin includes high-level functions for the most common tasks, like summarizing
 - 🏷️ **`marvin.classify`**: Categorize data into predefined classes
 - 🔍 **`marvin.extract`**: Extract structured information from a text
 - 🪄 **`marvin.cast`**: Transform data into a different type
-- ✨ **`
+- ✨ **`marvin.generate`**: Create structured data from a description
+- 💬 **`marvin.say`**: Converse with an LLM
+- 🧠 **`marvin.plan`**: Break down complex objectives into tasks
+- 🦾 **`@marvin.fn`**: Write custom AI functions without source code
+
+All Marvin functions have thread management built-in, meaning they can be composed into chains of tasks that share context and history.
+
+## Installation
+
+Install `marvin`:
+
+```bash
+# with pip
+pip install marvin
+
+# with uv
+uv add marvin
+```
+
+Configure your LLM provider (Marvin uses OpenAI by default but natively supports [all Pydantic AI models](https://ai.pydantic.dev/models/)):
+
+```bash
+export OPENAI_API_KEY=your-api-key
+```
+
+## Upgrading to Marvin 3.0
+
+Marvin 3.0 combines the DX of Marvin 2.0 with the powerful agentic engine of [ControlFlow](https://controlflow.ai). Both Marvin and ControlFlow users will find a familiar interface, but there are some key changes to be aware of, in particular for ControlFlow users:
+
+### Key Notes
+- **Top-Level API**: Marvin 3.0's top-level API is largely unchanged for both Marvin and ControlFlow users. 
+  - Marvin users will find the familiar `marvin.fn`, `marvin.classify`, `marvin.extract`, and more.
+  - ControlFlow users will use `marvin.Task`, `marvin.Agent`, `marvin.run`, `marvin.Memory` instead of their ControlFlow equivalents.
+- **Pydantic AI**: Marvin 3.0 uses Pydantic AI for LLM interactions, and supports the full range of LLM providers that Pydantic AI supports. ControlFlow previously used Langchain, and Marvin 2.0 was only compatible with OpenAI's models.
+- **Flow → Thread**: ControlFlow's `Flow` concept has been renamed to `Thread`. It works similarly, as a context manager. The `@flow` decorator has been removed:
+  ```python
+  import marvin
+  
+  with marvin.Thread(id="optional-id-for-recovery"):
+      marvin.run("do something")
+      marvin.run("do another thing")
+  ```
+- **Database Changes**: Thread/message history is now stored in SQLite. During development:
+  - Set `MARVIN_DATABASE_URL=":memory:"` for an in-memory database
+  - No database migrations are currently available; expect to reset data during updates
+
+### New Features
+- **Swarms**: Use `marvin.Swarm` for OpenAI-style agent swarms:
+  ```python
+  import marvin
+
+  swarm = marvin.Swarm(
+      [
+          marvin.Agent('Agent A'), 
+          marvin.Agent('Agent B'), 
+          marvin.Agent('Agent C'),
+      ]
+  )
+
+  swarm.run('Everybody say hi!')
+  ```
+- **Teams**: A `Team` lets you control how multiple agents (or even nested teams!) work together and delegate to each other. A `Swarm` is actually a type of team in which all agents are allowed to delegate to each other at any time.
+- **Marvin Functions**: Marvin's user-friendly functions have been rewritten to use the ControlFlow engine, which means they can be seamlessly integrated into your workflows. A few new functions have been added, including `summarize` and `say`.
+
+### Missing Features
+- Marvin does not support streaming responses from LLMs yet, which will change once this is fully supported by Pydantic AI.
+
+
+## Workflow Example
+
+Here's a more practical example that shows how Marvin can help you build real applications:
+
+```python
+import marvin
+from pydantic import BaseModel
+
+class Article(BaseModel):
+    title: str
+    content: str
+    key_points: list[str]
+
+# Create a specialized writing agent
+writer = marvin.Agent(
+    name="Writer",
+    instructions="Write clear, engaging content for a technical audience"
+)
+
+# Use a thread to maintain context across multiple tasks
+with marvin.Thread() as thread:
+    # Get user input
+    topic = marvin.run(
+        "Ask the user for a topic to write about.",
+        cli=True
+    )
+    
+    # Research the topic
+    research = marvin.run(
+        f"Research key points about {topic}",
+        result_type=list[str]
+    )
+    
+    # Write a structured article
+    article = marvin.run(
+        "Write an article using the research",
+        agent=writer,
+        result_type=Article,
+        context={"research": research}
+    )
+
+print(f"# {article.title}\n\n{article.content}")
+```
+
+<details>
+<summary><i>output</i></summary>
+
+>**Conversation:**
+>```text
+>Agent: I'd love to help you write about a technology topic. What interests you? 
+>It could be anything from AI and machine learning to web development or cybersecurity.
+>
+>User: Let's write about WebAssembly
+>```
+>
+>**Article:**
+>```
+># WebAssembly: The Future of Web Performance
+>
+>WebAssembly (Wasm) represents a transformative shift in web development, 
+>bringing near-native performance to web applications. This binary instruction 
+>format allows developers to write high-performance code in languages like 
+>C++, Rust, or Go and run it seamlessly in the browser.
+>
+>[... full article content ...]
+>
+>Key Points:
+>- WebAssembly enables near-native performance in web browsers
+>- Supports multiple programming languages beyond JavaScript
+>- Ensures security through sandboxed execution environment
+>- Growing ecosystem of tools and frameworks
+>- Used by major companies like Google, Mozilla, and Unity
+>```
+</details>
