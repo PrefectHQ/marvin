@@ -65,7 +65,7 @@ class TaskState(str, enum.Enum):
     SKIPPED = "skipped"
 
 
-ResultType: TypeAlias = type[T] | Annotated | Labels | Literal["__NOTSET__"]
+ResultType: TypeAlias = type[T] | Annotated[Any, Any] | Labels | Literal["__NOTSET__"]
 
 
 @dataclass(kw_only=True, init=False)
