@@ -40,7 +40,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Marvin
-        run: uv sync --extra test
+        run: uv sync
 
       - name: Run tests
-        run: uv run pytest -v -n auto
+        run: uv run --frozen pytest -v -n auto
