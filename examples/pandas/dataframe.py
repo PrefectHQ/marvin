@@ -13,24 +13,23 @@ from typing import Annotated
 import numpy
 import pandas as pd
 from prefect import flow, task
-from prefect.cache_policies import CacheKeyFnPolicy
+from prefect.cache_policies import INPUTS, CacheKeyFnPolicy
 from pydantic import Field
 
 import marvin
 
 ColumnValue = Annotated[str, Field(description="UPPERCASE", max_length=15)]
 
-INPUTS_AND_FILE_MODIFIED = CacheKeyFnPolicy(
+INPUTS_and_FILE_MODIFIED = INPUTS + CacheKeyFnPolicy(
     cache_key_fn=lambda _, parameters: str(
-        str(Path(p).stat().st_mtime) + str(p)
+        Path(p).stat().st_mtime
         if not (p := parameters["df_path"]).startswith("http")
-        else str(p)
+        else None
     )
-    + str(parameters["max_rows"])
 )
 
 
-@task(cache_policy=INPUTS_AND_FILE_MODIFIED)
+@task(cache_policy=INPUTS_and_FILE_MODIFIED)
 def read_csv(df_path: str, max_rows: int) -> pd.DataFrame:
     return pd.read_csv(df_path).head(max_rows)
 
