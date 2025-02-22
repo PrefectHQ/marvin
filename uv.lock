@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.10"
 
 [[package]]
@@ -1129,7 +1130,7 @@ dependencies = [
     { name = "typer" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "chromadb" },
     { name = "copychat" },
@@ -1145,43 +1146,34 @@ dev = [
     { name = "pytest-xdist" },
     { name = "ruff" },
 ]
-test = [
-    { name = "chromadb" },
-    { name = "dirty-equals" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-env" },
-    { name = "pytest-rerunfailures" },
-    { name = "pytest-timeout" },
-    { name = "pytest-xdist" },
-    { name = "ruff" },
-]
 
 [package.metadata]
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20.0" },
-    { name = "chromadb", marker = "extra == 'test'", specifier = ">=0.6.0" },
-    { name = "copychat", marker = "extra == 'dev'", specifier = ">=0.5.2" },
-    { name = "dirty-equals", marker = "extra == 'test'", specifier = ">=0.9.0" },
-    { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.12.3" },
     { name = "jinja2", specifier = ">=3.1.4" },
-    { name = "marvin", extras = ["test"], marker = "extra == 'dev'" },
-    { name = "pdbpp", marker = "extra == 'dev'", specifier = ">=0.10.3" },
-    { name = "pre-commit", marker = "extra == 'test'" },
     { name = "pydantic", extras = ["email"], specifier = ">=2.10.2" },
     { name = "pydantic-ai", specifier = ">=0.0.20" },
     { name = "pydantic-settings", specifier = ">=2.6.1" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=8.3.3" },
-    { name = "pytest-asyncio", marker = "extra == 'test'", specifier = ">=0.23.5" },
-    { name = "pytest-env", marker = "extra == 'test'", specifier = ">=1.1.5" },
-    { name = "pytest-rerunfailures", marker = "extra == 'test'", specifier = ">=15.0" },
-    { name = "pytest-timeout", marker = "extra == 'test'", specifier = ">=2.3.1" },
-    { name = "pytest-xdist", marker = "extra == 'test'", specifier = ">=3.6.1" },
     { name = "rich", specifier = ">=13.9.4" },
-    { name = "ruff", marker = "extra == 'test'" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
     { name = "typer", specifier = ">=0.15.1" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "chromadb", specifier = ">=0.6.0" },
+    { name = "copychat", specifier = ">=0.5.2" },
+    { name = "dirty-equals", specifier = ">=0.9.0" },
+    { name = "ipython", specifier = ">=8.12.3" },
+    { name = "pdbpp", specifier = ">=0.10.3" },
+    { name = "pre-commit" },
+    { name = "pytest", specifier = ">=8.3.3" },
+    { name = "pytest-asyncio", specifier = ">=0.23.5" },
+    { name = "pytest-env", specifier = ">=1.1.5" },
+    { name = "pytest-rerunfailures", specifier = ">=15.0" },
+    { name = "pytest-timeout", specifier = ">=2.3.1" },
+    { name = "pytest-xdist", specifier = ">=3.6.1" },
+    { name = "ruff" },
 ]
 
 [[package]]
