@@ -194,6 +194,7 @@ Marvin includes high-level functions for the most common tasks, like summarizing
 - 🔍 **`marvin.extract`**: Extract structured information from a text
 - 🪄 **`marvin.cast`**: Transform data into a different type
 - ✨ **`marvin.generate`**: Create structured data from a description
+- ⏲️ **`marvin.when`**: Run a function when a condition is met
 - 💬 **`marvin.say`**: Converse with an LLM
 - 🧠 **`marvin.plan`**: Break down complex objectives into tasks
 - 🦾 **`@marvin.fn`**: Write custom AI functions without source code

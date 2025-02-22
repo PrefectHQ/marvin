@@ -27,8 +27,10 @@ test = [
     "pytest-rerunfailures>=15.0",
     "chromadb>=0.6.0",
     "dirty-equals>=0.9.0",
+    "marvin[prefect]",
 ]
 dev = ["marvin[test]", "copychat>=0.5.2", "ipython>=8.12.3", "pdbpp>=0.10.3"]
+prefect = ["prefect>=3.2"]
 
 # Add this section for CLI entry point
 [project.scripts]
