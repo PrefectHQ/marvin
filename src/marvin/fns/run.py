@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Annotated, Any, TypeVar
 
 import marvin.utilities.asyncio
 from marvin import Task, Thread
@@ -43,7 +43,7 @@ def run_tasks(
 
 async def run_async(
     instructions: str,
-    result_type: type[T] = str,
+    result_type: type[T] | Annotated[T, Any] = str,
     tools: list[Callable[..., Any]] = [],
     thread: Thread | str | None = None,
     agents: list[Actor] | None = None,

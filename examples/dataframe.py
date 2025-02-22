@@ -6,26 +6,57 @@
 fills out a new column in a dataframe
 """
 
-from typing import Annotated
+import sys
+from dataclasses import dataclass
+from typing import Any
 
 import pandas as pd
-from pydantic import Field
 
 import marvin
 
-ColumnValue = Annotated[
-    str, Field(description="word for sum of the two numbers in the row")
-]
+
+@dataclass
+class NewColumn:
+    name: str
+    row_values: list[Any]
+
 
 if __name__ == "__main__":
-    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    """
+    uv run examples/dataframe.py <new_column_name> <df_path>
+    """
+    new_column_name = sys.argv[1] if len(sys.argv) > 1 else "home city"
+    df_path = sys.argv[2] if len(sys.argv) > 2 else None
 
-    new_column_values = marvin.run(
-        result_type=list[ColumnValue],
-        context={"a": df["a"], "b": df["b"]},
-        instructions="fill out a new column in the dataframe",
+    df = (
+        pd.read_csv(df_path)  # type: ignore
+        if df_path
+        else pd.DataFrame(
+            {
+                "Name": ["SRV", "Doechii", "Gandhi"],
+                "Known For": [
+                    "Prolific blues guitarist",
+                    "Newly arrived rap queen",
+                    "Indian Independence Movement",
+                ],
+            }
+        )
     )
-    new_column = pd.Series(new_column_values, dtype=str)
-    df["c"] = new_column
+
+    new_column = marvin.run(
+        result_type=NewColumn,
+        instructions="fill out a new column in the dataframe",
+        context={
+            "Desired Column Name": new_column_name,
+            "Name": df["Name"],
+            "Known For": df["Known For"],
+        },
+    )
+
+    df[new_column.name] = pd.Series(
+        new_column.row_values,
+        dtype=str,
+        name=new_column.name,
+    )
 
     print(df)
