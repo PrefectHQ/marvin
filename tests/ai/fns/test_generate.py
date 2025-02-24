@@ -75,3 +75,49 @@ class TestGenerateSchema:
                 "required": ["title", "director", "release_year"],
             }
         )
+
+    async def test_generate_schema_with_base_schema(self):
+        base_schema = {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "director": {"type": "string"},
+            },
+            "required": ["title"],
+        }
+        result = await marvin.generate_schema_async(
+            instructions="add a release_year",
+            base_schema=base_schema,
+        )
+        assert result == {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "director": {"type": "string"},
+                "release_year": {"type": "integer"},
+            },
+            "required": ["title"],
+        }
+
+    async def test_generate_schema_with_base_schema_and_required_instruction(self):
+        base_schema = {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "director": {"type": "string"},
+            },
+            "required": ["title"],
+        }
+        result = await marvin.generate_schema_async(
+            instructions="add a release_year, and make it required",
+            base_schema=base_schema,
+        )
+        assert result == {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "director": {"type": "string"},
+                "release_year": {"type": "integer"},
+            },
+            "required": ["title", "release_year"],
+        }
