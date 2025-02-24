@@ -1,3 +1,4 @@
+import inspect
 from typing import Any, TypeVar, cast
 
 from pydantic import conlist
@@ -6,6 +7,7 @@ import marvin
 from marvin.agents.agent import Agent
 from marvin.thread import Thread
 from marvin.utilities.asyncio import run_sync
+from marvin.utilities.jinja import jinja_env
 from marvin.utilities.jsonschema import JSONSchema
 from marvin.utilities.types import TargetType
 
@@ -120,20 +122,32 @@ def generate(
 
 async def generate_schema_async(
     instructions: str,
+    base_schema: JSONSchema | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
 ) -> JSONSchema:
     """Generates a JSON schema from a description."""
 
-    prompt = """
+    prompt = inspect.cleandoc("""
         Generate a JSON schema that matches the following description:
-        {instructions}
-        """.format(instructions=instructions)
+        
+        {{instructions}}
+        
+        
+        {% if base_schema %}
+        ---
+        Base your response on the following schema as much as possible:
+        {{ base_schema }}
+        {% endif %}        
+        """)
 
     task = marvin.Task[JSONSchema](
         name="JSONSchema Generation",
-        instructions=prompt,
+        instructions=jinja_env.from_string(prompt).render(
+            instructions=instructions,
+            base_schema=base_schema,
+        ),
         context=context,
         result_type=JSONSchema,
         agents=[agent] if agent else None,
@@ -144,9 +158,18 @@ async def generate_schema_async(
 
 def generate_schema(
     instructions: str,
+    base_schema: JSONSchema | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
 ) -> JSONSchema:
     """Generates a JSON schema from a description."""
-    return run_sync(generate_schema_async(instructions, agent, thread, context))
+    return run_sync(
+        generate_schema_async(
+            instructions=instructions,
+            base_schema=base_schema,
+            agent=agent,
+            thread=thread,
+            context=context,
+        )
+    )

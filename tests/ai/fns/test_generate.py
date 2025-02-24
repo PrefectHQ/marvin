@@ -1,8 +1,9 @@
 import pytest
 from dirty_equals import IsPartialDict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, TypeAdapter, ValidationError
 
 import marvin
+from marvin.utilities.jsonschema import jsonschema_to_type
 from marvin.utilities.testing import assert_llm_equal
 
 
@@ -49,7 +50,7 @@ class TestBuiltins:
 class TestGenerateSchema:
     async def test_generate_list_of_integers_schema(self):
         result = await marvin.generate_schema_async(
-            instructions="a list that contains exactly three integers",
+            instructions="a list that containsexactly three integers",
         )
         assert result == {
             "type": "array",
@@ -57,6 +58,13 @@ class TestGenerateSchema:
             "minItems": 3,
             "maxItems": 3,
         }
+
+        schema_type = jsonschema_to_type(result)
+        assert TypeAdapter(schema_type).validate_python([1, 2, 3])
+        with pytest.raises(ValidationError):
+            TypeAdapter(schema_type).validate_python([1, 2])
+        with pytest.raises(ValidationError):
+            TypeAdapter(schema_type).validate_python([1, 2, 3, 4])
 
     async def test_generate_schema_for_movie(self):
         result = await marvin.generate_schema_async(
@@ -73,5 +81,55 @@ class TestGenerateSchema:
                     }
                 ),
                 "required": ["title", "director", "release_year"],
+            }
+        )
+
+    async def test_generate_schema_with_base_schema(self):
+        base_schema = {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "director": {"type": "string"},
+            },
+            "required": ["title"],
+        }
+        result = await marvin.generate_schema_async(
+            instructions="add a release_year",
+            base_schema=base_schema,
+        )
+        assert result == IsPartialDict(
+            {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "director": {"type": "string"},
+                    "release_year": {"type": "integer"},
+                },
+                "required": ["title"],
+            }
+        )
+
+    async def test_generate_schema_with_base_schema_and_required_instruction(self):
+        base_schema = {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "director": {"type": "string"},
+            },
+            "required": ["title"],
+        }
+        result = await marvin.generate_schema_async(
+            instructions="add a release_year, and make it required",
+            base_schema=base_schema,
+        )
+        assert result == IsPartialDict(
+            {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "director": {"type": "string"},
+                    "release_year": {"type": "integer"},
+                },
+                "required": ["title", "release_year"],
             }
         )
