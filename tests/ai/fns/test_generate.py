@@ -48,9 +48,9 @@ class TestBuiltins:
 
 
 class TestGenerateSchema:
-    async def test_generate_list_of_integers_schema(self):
+    async def test_generate_list_of_integers_schema(self, gpt_4o):
         result = await marvin.generate_schema_async(
-            instructions="a list that containsexactly three integers",
+            instructions="a list that contains exactly three integers",
         )
         assert result == {
             "type": "array",
@@ -66,7 +66,7 @@ class TestGenerateSchema:
         with pytest.raises(ValidationError):
             TypeAdapter(schema_type).validate_python([1, 2, 3, 4])
 
-    async def test_generate_schema_for_movie(self):
+    async def test_generate_schema_for_movie(self, gpt_4o):
         result = await marvin.generate_schema_async(
             instructions="a movie with a title, director, and release_year",
         )
@@ -84,7 +84,7 @@ class TestGenerateSchema:
             }
         )
 
-    async def test_generate_schema_with_base_schema(self):
+    async def test_generate_schema_with_base_schema(self, gpt_4o):
         base_schema = {
             "type": "object",
             "properties": {
@@ -109,7 +109,9 @@ class TestGenerateSchema:
             }
         )
 
-    async def test_generate_schema_with_base_schema_and_required_instruction(self):
+    async def test_generate_schema_with_base_schema_and_required_instruction(
+        self, gpt_4o
+    ):
         base_schema = {
             "type": "object",
             "properties": {
@@ -133,3 +135,25 @@ class TestGenerateSchema:
                 "required": ["title", "release_year"],
             }
         )
+
+    async def test_generate_schema_with_thread(self, gpt_4o):
+        result = await marvin.generate_schema_async(
+            instructions="a list that contains exactly three integers",
+        )
+        assert result == {
+            "type": "array",
+            "items": {"type": "integer"},
+            "minItems": 3,
+            "maxItems": 3,
+        }
+
+        result2 = await marvin.generate_schema_async(
+            instructions="actually 4 to 6 floats",
+            thread=result,
+        )
+        assert result2 == {
+            "type": "array",
+            "items": {"type": "number"},
+            "minItems": 4,
+            "maxItems": 6,
+        }
