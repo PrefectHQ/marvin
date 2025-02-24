@@ -43,7 +43,7 @@ class Settings(BaseSettings):
 
     database_url: str | None = Field(
         default=None,
-        description="Database URL. Defaults to `sqlite+aiosqlite://{{home_path}}/marvin.db`.",
+        description="Database URL. Defaults to `sqlite+aiosqlite:///{{home_path}}/marvin.db`.",
     )
 
     @field_validator("database_url")

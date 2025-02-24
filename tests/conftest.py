@@ -34,7 +34,7 @@ async def setup_test_db(monkeypatch: pytest.MonkeyPatch, worker_id: str):
         with _db_lock:
             # Configure database settings
             monkeypatch.setattr(
-                settings, "database_url", f"sqlite+aiosqlite:///{temp_path}"
+                settings, "database_url", f"sqlite+aiosqlite://{temp_path}"
             )
 
             database._async_engine_cache.clear()

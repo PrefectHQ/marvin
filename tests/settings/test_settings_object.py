@@ -1,3 +1,5 @@
+import os
+
 import pytest
 
 from marvin.settings import Settings
@@ -12,8 +14,15 @@ def test_database_url_default():
 @pytest.mark.parametrize(
     "env_var_value, expected_ending",
     [
-        (":memory:", ":memory:"),
-        ("~/.marvin/test.db", "/.marvin/test.db"),
+        (":memory:", "sqlite+aiosqlite:///:memory:"),
+        (
+            "sqlite+aiosqlite:///" + os.path.expanduser("~/.marvin/test.db"),
+            "sqlite+aiosqlite:///" + os.path.expanduser("~/.marvin/test.db"),
+        ),
+        (
+            "postgresql+asyncpg://user:password@host:port/database",
+            "postgresql+asyncpg://user:password@host:port/database",
+        ),
     ],
 )
 def test_database_url_set_from_env_var(
