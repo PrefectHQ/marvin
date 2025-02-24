@@ -60,22 +60,25 @@ class Thread:
 
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     parent_id: str | None = None
-    _db_thread: DBThread | None = field(default=None, init=False, repr=False)
+    _db_thread: bool = field(default=False, init=False, repr=False)
     _tokens: list[Any] = field(default_factory=list, init=False, repr=False)
 
     async def _ensure_thread_exists(self) -> None:
         """Ensure thread exists in database."""
-        if self._db_thread is not None:
+        if self._db_thread:
             return
 
         async with get_async_session() as session:
-            self._db_thread = await session.get(DBThread, self.id)
-            if not self._db_thread:
-                self._db_thread = await DBThread.create(
+            db_thread = await session.get(DBThread, self.id)
+            if db_thread is not None:
+                self._db_thread = True
+            else:
+                await DBThread.create(
                     session=session,
                     id=self.id,
                     parent_thread_id=self.parent_id,
                 )
+                self._db_thread = True
 
     def add_messages(
         self, messages: list[Message], llm_call_id: uuid.UUID | None = None

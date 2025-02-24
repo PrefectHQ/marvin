@@ -3,32 +3,20 @@
 This module provides utilities for managing database sessions and migrations.
 """
 
+import asyncio
 import uuid
-from collections.abc import AsyncGenerator, Generator
-from contextlib import asynccontextmanager, contextmanager
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from pydantic import TypeAdapter
 from pydantic_ai.messages import RetryPromptPart
 from pydantic_ai.usage import Usage
-from sqlalchemy import (
-    JSON,
-    Engine,
-    ForeignKey,
-    String,
-    TypeDecorator,
-    create_engine,
-    inspect,
-)
+from sqlalchemy import JSON, TIMESTAMP, ForeignKey, String, TypeDecorator
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
-from sqlalchemy.orm import (
-    DeclarativeBase,
-    Mapped,
-    Session,
-    mapped_column,
-    relationship,
-)
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.pool import StaticPool
 
 from marvin.settings import settings
@@ -39,7 +27,6 @@ message_adapter: TypeAdapter[Message] = TypeAdapter(Message)
 usage_adapter: TypeAdapter[Usage] = TypeAdapter(Usage)
 
 # Module-level cache for engines
-_engine_cache: dict[str, Engine] = {}
 _async_engine_cache: dict[str, AsyncEngine] = {}
 
 
@@ -57,63 +44,46 @@ def serialize_message(message: Message) -> str:
     return message_adapter.dump_python(message, mode="json")
 
 
-def get_engine() -> Engine:
-    """Get the SQLAlchemy engine for sync operations.
-
-    For in-memory databases (:memory:), this uses StaticPool to maintain
-    a single connection that can be shared with the async engine.
-    """
-    if "default" not in _engine_cache:
-        is_memory_db = settings.database_url == ":memory:"
-        engine = create_engine(
-            f"sqlite:///{settings.database_url}",
-            echo=False,
-            poolclass=StaticPool if is_memory_db else None,
-            connect_args={"check_same_thread": False},
-        )
-        _engine_cache["default"] = engine
-
-    return _engine_cache["default"]
-
-
-def get_async_engine():
+def get_async_engine() -> AsyncEngine:
     """Get the SQLAlchemy engine for async operations.
 
-    For in-memory databases (:memory:), this reuses the sync engine's connection
-    to ensure both engines share the same database state.
+    For SQLite databases, this uses aiosqlite.
+    For other databases (e.g. PostgreSQL), this uses the provided URL directly.
     """
-    if "default" not in _async_engine_cache:
-        is_memory_db = settings.database_url == ":memory:"
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
 
-        if is_memory_db:
-            # For in-memory databases, share connection with sync engine
-            sync_engine = get_engine()
+    if loop not in _async_engine_cache:
+        url = settings.database_url
+        parsed_url = urlparse(url)
+
+        # Handle SQLite databases (default)
+        if parsed_url.scheme == "sqlite":
             engine = create_async_engine(
-                f"sqlite+aiosqlite:///{settings.database_url}",
+                url,
                 echo=False,
-                poolclass=StaticPool,
+                poolclass=StaticPool if url.endswith(":memory:") else None,
                 connect_args={"check_same_thread": False},
-                creator=lambda: sync_engine.raw_connection(),
             )
+        # Handle other databases (use URL as-is)
         else:
-            engine = create_async_engine(
-                f"sqlite+aiosqlite:///{settings.database_url}",
-                echo=False,
-                connect_args={"check_same_thread": False},
-            )
-        _async_engine_cache["default"] = engine
+            engine = create_async_engine(url, echo=False)
 
-    return _async_engine_cache["default"]
+        _async_engine_cache[loop] = engine
+
+    return _async_engine_cache[loop]
 
 
-def set_engine(engine: Engine):
-    """Set the SQLAlchemy engine for sync operations."""
-    _engine_cache["default"] = engine
-
-
-def set_async_engine(engine: AsyncEngine):
+def set_async_engine(engine: AsyncEngine) -> None:
     """Set the SQLAlchemy engine for async operations."""
-    _async_engine_cache["default"] = engine
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    _async_engine_cache[loop] = engine
 
 
 def utc_now() -> datetime:
@@ -132,7 +102,9 @@ class DBThread(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     parent_thread_id: Mapped[str | None] = mapped_column(ForeignKey("threads.id"))
-    created_at: Mapped[datetime] = mapped_column(default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), default=utc_now
+    )
 
     messages: Mapped[list["DBMessage"]] = relationship(back_populates="thread")
     llm_calls: Mapped[list["DBLLMCall"]] = relationship(back_populates="thread")
@@ -174,7 +146,9 @@ class DBMessage(Base):
         default=None,
     )
     message: Mapped[dict[str, Any]] = mapped_column(JSON)
-    timestamp: Mapped[datetime] = mapped_column(default=utc_now)
+    timestamp: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), default=utc_now
+    )
 
     thread: Mapped[DBThread] = relationship(back_populates="messages")
     llm_call: Mapped[Optional["DBLLMCall"]] = relationship(back_populates="messages")
@@ -222,7 +196,9 @@ class DBLLMCall(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     thread_id: Mapped[str] = mapped_column(ForeignKey("threads.id"), index=True)
     usage: Mapped[Usage] = mapped_column(UsageType)
-    timestamp: Mapped[datetime] = mapped_column(default=utc_now)
+    timestamp: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), default=utc_now
+    )
 
     messages: Mapped[list[DBMessage]] = relationship(back_populates="llm_call")
     thread: Mapped[DBThread] = relationship(back_populates="llm_calls")
@@ -259,28 +235,16 @@ class DBLLMCall(Base):
             return llm_call
 
 
-def ensure_tables_exist():
+def ensure_sqlite_memory_tables_exist():
     """Initialize database tables if they don't exist yet.
 
     For in-memory databases, tables are always created since each connection
     starts with a fresh database. For file-based databases, tables are only
     created if they don't exist.
     """
-    engine = get_engine()
-    is_memory_db = settings.database_url == ":memory:"
 
-    if is_memory_db or not inspect(engine).get_table_names():
-        Base.metadata.create_all(engine)
-
-
-@contextmanager
-def get_session() -> Generator[Session, None, None]:
-    """Get a database session."""
-    session = Session(get_engine())
-    try:
-        yield session
-    finally:
-        session.close()
+    if settings.database_url == ":memory:":
+        asyncio.run(create_db_and_tables(force=False))
 
 
 @asynccontextmanager
@@ -289,21 +253,24 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     session = AsyncSession(get_async_engine())
     try:
         yield session
+        await session.commit()
     finally:
+        if session.in_transaction():
+            await session.rollback()
         await session.close()
 
 
-def create_db_and_tables(*, force: bool = False):
+async def create_db_and_tables(*, force: bool = False) -> None:
     """Create all database tables.
 
     Args:
         force: If True, drops all existing tables before creating new ones.
     """
-    engine = get_engine()
+    engine = get_async_engine()
+    async with engine.begin() as conn:
+        if force:
+            await conn.run_sync(Base.metadata.drop_all)
+            print("Database tables dropped.")
 
-    if force:
-        Base.metadata.drop_all(engine)
-        print("Database tables dropped.")
-
-    Base.metadata.create_all(engine)
-    print("Database tables created.")
+        await conn.run_sync(Base.metadata.create_all)
+        print("Database tables created.")

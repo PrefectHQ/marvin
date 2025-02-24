@@ -8,14 +8,6 @@ from marvin.database import (
 )
 
 
-def test_sync_session(session_sync):
-    """Test that sync sessions are properly created and closed."""
-    # Do some operation to ensure session works
-    result = session_sync.execute(select(DBThread))
-    result.all()  # Explicitly consume the result
-    assert session_sync.is_active
-
-
 async def test_async_session(session):
     """Test that async sessions are properly created and closed."""
     # Do some operation to ensure session works
@@ -49,7 +41,7 @@ async def test_force_recreate_tables(session):
     assert result.scalars().first() is not None
 
     # Recreate tables
-    create_db_and_tables(force=True)
+    await create_db_and_tables(force=True)
 
     # Final phase: Verify data is gone
     result = await session.execute(select(DBThread).where(DBThread.id == "test-thread"))
