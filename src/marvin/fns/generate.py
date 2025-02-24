@@ -139,8 +139,7 @@ async def generate_schema_async(
         ---
         Base your response on the following schema as much as possible:
         {{ base_schema }}
-        {% endif %}
-        
+        {% endif %}        
         """)
 
     task = marvin.Task[JSONSchema](
