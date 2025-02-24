@@ -13,7 +13,7 @@ import marvin.agents.team
 import marvin.engine.llm
 from marvin.agents.actor import Actor
 from marvin.agents.agent import Agent
-from marvin.database import DBLLMCall
+from marvin.database import DBLLMCall, get_async_session
 from marvin.engine.end_turn import EndTurn
 from marvin.engine.events import (
     AgentEndTurnEvent,
@@ -197,10 +197,13 @@ class Orchestrator:
         )
 
         # Record the LLM call in the database
-        llm_call = await DBLLMCall.create(
-            thread_id=self.thread.id,
-            usage=result.usage(),
-        )
+        async with get_async_session() as session:
+            llm_call = await DBLLMCall.create(
+                thread_id=self.thread.id,
+                usage=result.usage(),
+                session=session,
+            )
+            llm_call_id = llm_call.id
 
         # --- record messages
         for message in result.new_messages():
@@ -209,8 +212,9 @@ class Orchestrator:
                 message=message,
             ):
                 await self.handle_event(event)
+
         await self.thread.add_messages_async(
-            result.new_messages(), llm_call_id=llm_call.id
+            result.new_messages(), llm_call_id=llm_call_id
         )
 
         # --- end turn
