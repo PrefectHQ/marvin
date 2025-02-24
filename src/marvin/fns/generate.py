@@ -130,12 +130,13 @@ async def generate_schema_async(
     """Generates a JSON schema from a description."""
 
     prompt = inspect.cleandoc("""
+        Generate a JSON schema that matches the following description:
+        
         {{instructions}}
         
-        ---
-        Your response must be a valid JSON schema.
         
         {% if base_schema %}
+        ---
         Base your response on the following schema as much as possible:
         {{ base_schema }}
         {% endif %}
