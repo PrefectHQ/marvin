@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
-from pydantic_ai.result import RunResult
+from pydantic_ai.agent import AgentRunResult
 
 from marvin.agents.actor import Actor
 from marvin.agents.names import TEAM_NAMES
@@ -60,7 +60,7 @@ class Team(Actor):
     async def end_turn(
         self,
         orchestrator: "Orchestrator",
-        result: RunResult,
+        result: AgentRunResult,
     ):
         await self.active_member.end_turn(result=result, orchestrator=orchestrator)
 
@@ -75,7 +75,7 @@ class Team(Actor):
         messages: list["Message"],
         tools: list[Callable[..., Any]],
         end_turn_tools: list["EndTurn"],
-    ) -> RunResult:
+    ) -> AgentRunResult:
         return await self.active_member._run(
             messages=messages,
             tools=self.get_tools() + tools,

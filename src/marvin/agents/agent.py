@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 import pydantic_ai
+from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.models import KnownModelName, Model, ModelSettings
-from pydantic_ai.result import RunResult
 
 import marvin
 from marvin.agents.actor import Actor
@@ -112,7 +112,7 @@ class Agent(Actor):
         messages: list["Message"],
         tools: list[Callable[..., Any]],
         end_turn_tools: list["EndTurn"],
-    ) -> RunResult:
+    ) -> AgentRunResult:
         from marvin.engine.end_turn import EndTurn
 
         tools = tools + self.get_tools()
@@ -166,8 +166,8 @@ def get_agentlet(
         result_tool_name: Optional name for the result tool
         actor: Optional actor instance for event handling
     """
+    from pydantic_ai.agent import AgentDepsT, RunContext
     from pydantic_ai.messages import ModelRequestPart, RetryPromptPart, ToolCallPart
-    from pydantic_ai.result import AgentDepsT, RunContext
 
     tools = [wrap_tool_errors(tool) for tool in tools or []]
 

@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Optional, TypeVar
 
-from pydantic_ai.result import RunResult
+from pydantic_ai.agent import AgentRunResult
 
 import marvin
 import marvin.agents.team
@@ -123,7 +123,7 @@ class Orchestrator:
             raise ValueError(f"Invalid filter: {filter}")
         return ordered_tasks
 
-    async def run_once(self, actor: Actor | None = None) -> RunResult:
+    async def run_once(self, actor: Actor | None = None) -> AgentRunResult:
         tasks = self.get_all_tasks(filter="ready")
 
         if not tasks:
@@ -223,7 +223,7 @@ class Orchestrator:
         await actor.start_turn(orchestrator=self)
         await self.handle_event(AgentStartTurnEvent(actor=actor))
 
-    async def end_turn(self, result: RunResult, actor: Actor):
+    async def end_turn(self, result: AgentRunResult, actor: Actor):
         if isinstance(result.data, EndTurn):
             await result.data.run(orchestrator=self, actor=actor)
 
@@ -234,13 +234,13 @@ class Orchestrator:
         self,
         raise_on_failure: bool = True,
         max_turns: int | float | None = None,
-    ) -> list[RunResult]:
+    ) -> list[AgentRunResult]:
         if max_turns is None:
             max_turns = marvin.settings.max_agent_turns
         if max_turns is None:
             max_turns = math.inf
 
-        results: list[RunResult] = []
+        results: list[AgentRunResult] = []
         incomplete_tasks: set[Task[Any]] = {t for t in self.tasks if t.is_incomplete()}
         token = _current_orchestrator.set(self)
         try:
