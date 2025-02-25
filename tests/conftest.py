@@ -29,13 +29,12 @@ async def setup_test_db(monkeypatch: pytest.MonkeyPatch, worker_id: str):
 
         # Create unique path per worker to avoid conflicts
         worker_suffix = worker_id if worker_id != "master" else ""
-        temp_path = str(Path(temp_dir) / f"test{worker_suffix}.db")
+        temp_path = Path(temp_dir) / f"test{worker_suffix}.db"
+        database_url = f"sqlite+aiosqlite:///{temp_path}"
 
         with _db_lock:
             # Configure database settings
-            monkeypatch.setattr(
-                settings, "database_url", f"sqlite+aiosqlite://{temp_path}"
-            )
+            monkeypatch.setattr(settings, "database_url", database_url)
 
             database._async_engine_cache.clear()
 

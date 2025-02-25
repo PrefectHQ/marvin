@@ -2,7 +2,6 @@
 
 from pathlib import Path
 from typing import Literal
-from urllib.parse import urlparse
 
 from pydantic import Field, ValidationInfo, field_validator, model_validator
 from pydantic_ai.models import KnownModelName
@@ -61,32 +60,6 @@ class Settings(BaseSettings):
         # Handle in-memory database
         if v == ":memory:":
             return "sqlite+aiosqlite:///:memory:"
-
-        # Parse the URL to handle different database types
-        parsed = urlparse(v)
-
-        # Ensure URL has a dialect
-        if not parsed.scheme:
-            raise ValueError(
-                "Database URL must include a dialect prefix (e.g., 'sqlite+aiosqlite://')"
-            )
-
-        # For SQLite, ensure the parent directory exists
-        if parsed.scheme.startswith("sqlite"):
-            # Handle the special case where path might be relative
-            if parsed.netloc:
-                # URL format: sqlite:///path/to/db
-                db_path = Path(parsed.netloc + parsed.path)
-            else:
-                # URL format: sqlite:/path/to/db
-                db_path = Path(parsed.path)
-
-            # Expand user and resolve path
-            db_path = db_path.expanduser().resolve()
-            db_path.parent.mkdir(parents=True, exist_ok=True)
-
-            # Reconstruct the URL with the resolved path
-            return f"sqlite+aiosqlite:///{db_path}"
 
         return v
 
