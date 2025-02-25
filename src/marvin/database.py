@@ -33,7 +33,6 @@ usage_adapter: TypeAdapter[Usage] = TypeAdapter(Usage)
 
 # Module-level cache for engines and sessionmakers
 _async_engine_cache: dict[str, AsyncEngine] = {}
-_async_sessionmaker_cache: dict[str, async_sessionmaker[AsyncSession]] = {}
 
 
 def serialize_message(message: Message) -> str:
@@ -84,43 +83,14 @@ def get_async_engine() -> AsyncEngine:
     return _async_engine_cache[loop]
 
 
-def get_async_sessionmaker() -> async_sessionmaker[AsyncSession]:
-    """Get an async sessionmaker for creating database sessions.
-
-    This maintains the same loop-based caching strategy as get_async_engine
-    to support run_sync compatibility.
-    """
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop not in _async_sessionmaker_cache:
-        engine = get_async_engine()
-        _async_sessionmaker_cache[loop] = async_sessionmaker(
-            engine,
-            expire_on_commit=False,
-        )
-
-    return _async_sessionmaker_cache[loop]
-
-
 def set_async_engine(engine: AsyncEngine) -> None:
-    """Set the SQLAlchemy engine for async operations.
-
-    This also creates and caches a new sessionmaker for the engine.
-    """
+    """Set the SQLAlchemy engine for async operations."""
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
         loop = None
 
     _async_engine_cache[loop] = engine
-    # Also create a new sessionmaker for this engine
-    _async_sessionmaker_cache[loop] = async_sessionmaker(
-        engine,
-        expire_on_commit=False,
-    )
 
 
 def utc_now() -> datetime:
@@ -261,8 +231,7 @@ class DBLLMCall(Base):
 
         if session is None:
             # Use the sessionmaker pattern for more consistent session management
-            session_factory = get_async_sessionmaker()
-            async with session_factory() as session:
+            async with get_async_session() as session:
                 async with session.begin():
                     session.add(llm_call)
                 await session.refresh(llm_call)
@@ -293,7 +262,8 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
 
     This uses the async_sessionmaker pattern for more consistent session management.
     """
-    session_factory = get_async_sessionmaker()
+    engine = get_async_engine()
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
     async with session_factory() as session:
         try:
             yield session
@@ -301,6 +271,8 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
         except Exception:
             await session.rollback()
             raise
+        finally:
+            await session.close()
 
 
 async def create_db_and_tables(*, force: bool = False) -> None:
