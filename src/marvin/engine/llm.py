@@ -5,6 +5,7 @@ from typing import Any, get_type_hints
 
 import pydantic_ai
 from pydantic_ai import RunContext
+from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
@@ -12,7 +13,6 @@ from pydantic_ai.messages import (
     TextPart,
     UserPromptPart,
 )
-from pydantic_ai.result import RunResult
 from typing_extensions import TypeVar
 
 # Define Message type union
@@ -63,6 +63,6 @@ async def generate_response(
     agentlet: pydantic_ai.Agent[Any, Any],
     messages: list[Message] | None = None,
     user_prompt: str | None = None,
-) -> RunResult:
+) -> AgentRunResult:
     user_prompt = user_prompt or ""
     return await agentlet.run(user_prompt=user_prompt, message_history=messages)

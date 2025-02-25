@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Sequence, TypeVar
 
-from pydantic_ai.result import RunResult
+from pydantic_ai.agent import AgentRunResult
 
 import marvin
 import marvin.utilities.asyncio
@@ -81,14 +81,14 @@ class Actor(ABC):
         messages: list[Message],
         tools: Sequence[Callable[..., Any]],
         end_turn_tools: Sequence["EndTurn"],
-    ) -> RunResult:
+    ) -> AgentRunResult:
         raise NotImplementedError("Actor subclasses must implement _run")
 
     async def start_turn(self, orchestrator: "Orchestrator"):
         """Called when the actor starts its turn."""
         pass
 
-    async def end_turn(self, orchestrator: "Orchestrator", result: RunResult):
+    async def end_turn(self, orchestrator: "Orchestrator", result: AgentRunResult):
         """Called when the actor ends its turn."""
         pass
 
