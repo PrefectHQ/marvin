@@ -130,16 +130,22 @@ async def generate_schema_async(
     """Generates a JSON schema from a description."""
 
     prompt = inspect.cleandoc("""
-        Generate a JSON schema that matches the following description:
+        Your job is to generate JSON Schemas that match the user's instructions. The latest instruction is:
         
+        <instructions>
         {{instructions}}
+        </instructions>
         
-        
-        {% if base_schema %}
         ---
+        {% if base_schema %}
         Base your response on the following schema as much as possible:
+        <base_schema>
         {{ base_schema }}
-        {% endif %}        
+        </base_schema>
+        {% else %}
+        Base your response on previous instructions if possible.
+        {% endif %}
+        
         """)
 
     task = marvin.Task[JSONSchema](
