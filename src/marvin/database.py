@@ -15,7 +15,12 @@ from pydantic import TypeAdapter
 from pydantic_ai.messages import RetryPromptPart
 from pydantic_ai.usage import Usage
 from sqlalchemy import JSON, TIMESTAMP, ForeignKey, String, TypeDecorator
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.pool import StaticPool
 
@@ -26,8 +31,9 @@ from .engine.llm import Message
 message_adapter: TypeAdapter[Message] = TypeAdapter(Message)
 usage_adapter: TypeAdapter[Usage] = TypeAdapter(Usage)
 
-# Module-level cache for engines
+# Module-level cache for engines and sessionmakers
 _async_engine_cache: dict[str, AsyncEngine] = {}
+_async_sessionmaker_cache: dict[str, async_sessionmaker[AsyncSession]] = {}
 
 
 def serialize_message(message: Message) -> str:
@@ -49,6 +55,8 @@ def get_async_engine() -> AsyncEngine:
 
     For SQLite databases, this uses aiosqlite.
     For other databases (e.g. PostgreSQL), this uses the provided URL directly.
+
+    The engine is cached by asyncio event loop to maintain compatibility with run_sync.
     """
     try:
         loop = asyncio.get_running_loop()
@@ -76,14 +84,43 @@ def get_async_engine() -> AsyncEngine:
     return _async_engine_cache[loop]
 
 
+def get_async_sessionmaker() -> async_sessionmaker[AsyncSession]:
+    """Get an async sessionmaker for creating database sessions.
+
+    This maintains the same loop-based caching strategy as get_async_engine
+    to support run_sync compatibility.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop not in _async_sessionmaker_cache:
+        engine = get_async_engine()
+        _async_sessionmaker_cache[loop] = async_sessionmaker(
+            engine,
+            expire_on_commit=False,
+        )
+
+    return _async_sessionmaker_cache[loop]
+
+
 def set_async_engine(engine: AsyncEngine) -> None:
-    """Set the SQLAlchemy engine for async operations."""
+    """Set the SQLAlchemy engine for async operations.
+
+    This also creates and caches a new sessionmaker for the engine.
+    """
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
         loop = None
 
     _async_engine_cache[loop] = engine
+    # Also create a new sessionmaker for this engine
+    _async_sessionmaker_cache[loop] = async_sessionmaker(
+        engine,
+        expire_on_commit=False,
+    )
 
 
 def utc_now() -> datetime:
@@ -223,9 +260,11 @@ class DBLLMCall(Base):
         llm_call = cls(thread_id=thread_id, usage=usage)
 
         if session is None:
-            async with get_async_session() as session:
-                session.add(llm_call)
-                await session.commit()
+            # Use the sessionmaker pattern for more consistent session management
+            session_factory = get_async_sessionmaker()
+            async with session_factory() as session:
+                async with session.begin():
+                    session.add(llm_call)
                 await session.refresh(llm_call)
                 return llm_call
         else:
@@ -244,20 +283,24 @@ def ensure_sqlite_memory_tables_exist():
     """
 
     if settings.database_url == ":memory:":
+        # We're using run_sync from another module, so keep it as is
         asyncio.run(create_db_and_tables(force=False))
 
 
 @asynccontextmanager
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
-    """Get an async database session."""
-    session = AsyncSession(get_async_engine())
-    try:
-        yield session
-        await session.commit()
-    finally:
-        if session.in_transaction():
+    """Get an async database session.
+
+    This uses the async_sessionmaker pattern for more consistent session management.
+    """
+    session_factory = get_async_sessionmaker()
+    async with session_factory() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
             await session.rollback()
-        await session.close()
+            raise
 
 
 async def create_db_and_tables(*, force: bool = False) -> None:
