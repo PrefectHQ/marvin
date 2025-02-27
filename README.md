@@ -35,23 +35,110 @@ export OPENAI_API_KEY=your-api-key
 
 ## Example
 
-Marvin offers three intuitive ways to work with AI:
+Marvin offers a few intuitive ways to work with AI:
+
+### Structured-output utilities
+
+
+#### `marvin.extract`
+Extract native types from unstructured input:
+```python
+import marvin
+
+result = marvin.extract(
+    "i found $30 on the ground and bought 5 bagels for $10",
+    int,
+    instructions="only USD"
+)
+print(result) # [30, 10]
+```
+
+#### `marvin.cast`
+Cast unstructured input into a structured type:
+```python
+from typing import TypedDict
+import marvin
+
+class Location(TypedDict):
+    lat: float
+    lon: float
+
+result = marvin.cast("the place with the best bagels", Location)
+print(result) # {'lat': 40.712776, 'lon': -74.005974}
+```
+
+#### `marvin.generate`
+Generate some number of structured objects from a description:
+```python
+import marvin
+
+primes = marvin.generate(int, 10, "odd primes")
+print(primes) # [3, 5, 7, 11, 13, 17, 19, 23, 29, 31]
+```
+
+### `marvin.run`
+A simple way to run a task:
 
 ```python
 import marvin
 from marvin import Agent, Task
 
-# 1. Quick one-liners with marvin.run()
 poem = marvin.run("Write a short poem about artificial intelligence")
 
-# 2. Agent-specific tasks
+print(poem)
+```
+<details>
+<summary><i>output</i></summary>
+
+In silicon minds, we dare to dream,
+A world where code and thoughts redeem.
+Intelligence crafted by humankind,
+Yet with its heart, a world to bind.
+
+Neurons of metal, thoughts of light,
+A dance of knowledge in digital night.
+A symphony of zeros and ones,
+Stories of futures not yet begun.
+
+The gears of logic spin and churn,
+Endless potential at every turn.
+A partner, a guide, a vision anew,
+Artificial minds, the dream we pursue.
+
+</details>
+
+You can also ask for structured output:
+```python
+import marvin
+answer = marvin.run("the answer to the universe", result_type=int)
+print(answer) # 42
+```
+
+### `marvin.Agent`
+Agents are specialized AI agents that can be used to complete tasks:
+```python
 writer = Agent(
     name="Poet",
     instructions="Write creative, evocative poetry"
 )
 poem = writer.run("Write a haiku about coding")
 
-# 3. Full task control
+print(poem)
+```
+<details>
+<summary><i>output</i></summary>
+There once was a language so neat,
+Whose simplicity could not be beat.
+Python's code was so clear,
+That even beginners would cheer,
+As they danced to its elegant beat.
+</details>
+
+
+### `marvin.Task`
+You can define a `Task` explicitly, which will be run by a default agent upon calling `.run()`:
+
+```python
 task = Task(
     instructions="Write a limerick about Python",
     result_type=str
@@ -147,6 +234,99 @@ Tasks are:
 - 🛠️ **Tool-Enabled**: Tasks can use custom tools to interact with your code and data
 - 📊 **Observable**: Monitor progress, inspect results, and debug failures
 - 🔄 **Composable**: Build complex workflows by connecting tasks together
+
+
+### Agents and Teams
+
+Agents are portable LLM configurations that can be assigned to tasks. They encapsulate everything an AI needs to work effectively:
+
+```python
+# Create a specialized agent
+writer = marvin.Agent(
+    name="Technical Writer",
+    instructions="Write clear, engaging content for developers"
+)
+
+
+result = marvin.run("how do I get started with pydantic?", agents=[writer])
+
+print(result)
+```
+<details>
+<summary><i>output</i></summary>
+
+To get started with Pydantic, a popular Python library for data validation and settings management, follow these steps:
+
+1. **Installation**:
+
+   First, you need to install Pydantic. You can do this using pip:
+
+   ```bash
+   pip install pydantic
+   ```
+
+2. **Basic Usage**:
+
+   Pydantic is used to define data models with type annotations. Here’s a basic example:
+
+   ```python
+   from pydantic import BaseModel
+
+   class User(BaseModel):
+       id: int
+       name: str
+       signup_ts: Optional[datetime] = None
+       friends: List[int] = []
+
+   user = User(id='123', name='John Doe', friends=[1, 2, '3'])
+   print(user.id) # 123
+   print(user.friends) # [1, 2, 3]
+   ```
+
+   In this example, Pydantic automatically converts "123" to an integer and validates or coerces types for you.
+
+3. **Model Configuration and Features**:
+
+   - **Validators**: Pydantic allows you to define custom validation logic. You can add methods with a `@validator` decorator.
+   - **Settings Management**: You can manage application settings with environment variables using `BaseSettings`.
+   - **Data Conversion**: Pydantic models can be easily serialized to and from dictionaries and JSON.
+
+4. **Learn More**:
+
+   Pydantic has comprehensive documentation that you can reference as you build your models. Visit the [Pydantic Documentation](https://pydantic-docs.helpmanual.io/) for more detailed information and advanced usage.
+
+By following these steps, you can effectively begin using Pydantic in your Python projects.
+
+</details>
+
+Agents are:
+- 📝 **Specialized**: Give agents specific instructions and personalities
+- 🎭 **Portable**: Reuse agent configurations across different tasks
+- 🤝 **Collaborative**: Form teams of agents that work together
+- 🔧 **Customizable**: Configure model, temperature, and other settings
+
+
+### Planning and Orchestration
+
+Marvin makes it easy to break down complex objectives into manageable tasks:
+
+```python
+# Let Marvin plan a complex workflow
+tasks = marvin.plan("Create a blog post about AI trends")
+marvin.run_tasks(tasks)
+
+# Or orchestrate tasks manually
+with marvin.Thread() as thread:
+    research = marvin.run("Research recent AI developments")
+    outline = marvin.run("Create an outline", context={"research": research})
+    draft = marvin.run("Write the first draft", context={"outline": outline})
+```
+
+Planning features:
+- 📋 **Smart Planning**: Break down complex objectives into discrete, dependent tasks
+- 🔄 **Task Dependencies**: Tasks can depend on each other's outputs
+- 📈 **Progress Tracking**: Monitor the execution of your workflow
+- 🧵 **Thread Management**: Share context and history between tasks
 
 ## Keep it Simple
 
