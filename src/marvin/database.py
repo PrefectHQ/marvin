@@ -32,7 +32,7 @@ message_adapter: TypeAdapter[Message] = TypeAdapter(Message)
 usage_adapter: TypeAdapter[Usage] = TypeAdapter(Usage)
 
 # Module-level cache for engines and sessionmakers
-_async_engine_cache: dict[str, AsyncEngine] = {}
+_async_engine_cache: dict[Any, AsyncEngine] = {}
 
 
 def serialize_message(message: Message) -> str:
@@ -64,6 +64,9 @@ def get_async_engine() -> AsyncEngine:
 
     if loop not in _async_engine_cache:
         url = settings.database_url
+        if url is None:
+            raise ValueError("Database URL is not configured")
+
         parsed_url = urlparse(url)
 
         # Handle SQLite databases (default)
@@ -251,8 +254,13 @@ def ensure_sqlite_memory_tables_exist():
     created if they don't exist.
     """
 
-    if settings.database_url == ":memory:":
+    if settings.database_url == ":memory:" or settings.database_url.endswith(
+        ":memory:"
+    ):
         # We're using run_sync from another module, so keep it as is
+        asyncio.run(create_db_and_tables(force=False))
+    else:
+        # For non-memory databases, ensure tables exist
         asyncio.run(create_db_and_tables(force=False))
 
 
@@ -281,11 +289,15 @@ async def create_db_and_tables(*, force: bool = False) -> None:
     Args:
         force: If True, drops all existing tables before creating new ones.
     """
+    from marvin.utilities.logging import get_logger
+
+    logger = get_logger(__name__)
+
     engine = get_async_engine()
     async with engine.begin() as conn:
         if force:
             await conn.run_sync(Base.metadata.drop_all)
-            print("Database tables dropped.")
+            logger.debug("Database tables dropped.")
 
         await conn.run_sync(Base.metadata.create_all)
-        print("Database tables created.")
+        logger.debug("Database tables created.")
