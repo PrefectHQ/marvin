@@ -254,9 +254,11 @@ def ensure_sqlite_memory_tables_exist():
     created if they don't exist.
     """
 
-    if settings.database_url == ":memory:" or settings.database_url.endswith(
-        ":memory:"
-    ):
+    db_url = settings.database_url
+    if db_url is None:
+        raise ValueError("Database URL is not configured")
+
+    if db_url == ":memory:" or db_url.endswith(":memory:"):
         # We're using run_sync from another module, so keep it as is
         asyncio.run(create_db_and_tables(force=False))
     else:
