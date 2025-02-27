@@ -254,16 +254,8 @@ def ensure_sqlite_memory_tables_exist():
     created if they don't exist.
     """
 
-    db_url = settings.database_url
-    if db_url is None:
-        raise ValueError("Database URL is not configured")
-
-    if db_url == ":memory:" or db_url.endswith(":memory:"):
-        # We're using run_sync from another module, so keep it as is
-        asyncio.run(create_db_and_tables(force=False))
-    else:
-        # For non-memory databases, ensure tables exist
-        asyncio.run(create_db_and_tables(force=False))
+    # Call init_database which handles all database types
+    init_database()
 
 
 @asynccontextmanager
@@ -303,3 +295,18 @@ async def create_db_and_tables(*, force: bool = False) -> None:
 
         await conn.run_sync(Base.metadata.create_all)
         logger.debug("Database tables created.")
+
+
+def init_database():
+    """Initialize the database.
+
+    This function should be called during application startup to ensure
+    database tables exist before they are accessed.
+    """
+    from marvin.utilities.logging import get_logger
+
+    logger = get_logger(__name__)
+
+    logger.debug("Initializing database...")
+    asyncio.run(create_db_and_tables(force=False))
+    logger.debug("Database initialization complete.")
