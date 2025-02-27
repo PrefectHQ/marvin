@@ -9,7 +9,6 @@ dependencies = [
     "jinja2>=3.1.4",
     "pydantic-ai>=0.0.26",
     "pydantic-settings>=2.6.1",
-    "pydantic[email]>=2.10.2",
     "rich>=13.9.4",
     "sqlalchemy[asyncio]>=2.0.36",
     "typer>=0.15.1",
