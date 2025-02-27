@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from pydantic import TypeAdapter
 from pydantic_ai.messages import RetryPromptPart
 from pydantic_ai.usage import Usage
-from sqlalchemy import JSON, TIMESTAMP, ForeignKey, String, TypeDecorator
+from sqlalchemy import JSON, TIMESTAMP, ForeignKey, String, TypeDecorator, inspect
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -288,13 +288,34 @@ async def create_db_and_tables(*, force: bool = False) -> None:
     logger = get_logger(__name__)
 
     engine = get_async_engine()
+
+    model_tables = set(Base.metadata.tables.keys())
+
     async with engine.begin() as conn:
         if force:
             await conn.run_sync(Base.metadata.drop_all)
             logger.debug("Database tables dropped.")
 
-        await conn.run_sync(Base.metadata.create_all)
-        logger.debug("Database tables created.")
+        def check_tables(sync_conn):
+            inspector = inspect(sync_conn)
+            existing_tables = inspector.get_table_names()
+            return existing_tables
+
+        existing_tables = await conn.run_sync(check_tables)
+
+        all_tables_exist = all(table in existing_tables for table in model_tables)
+
+        if all_tables_exist:
+            logger.debug("Database tables already exist.")
+        elif force:
+            await conn.run_sync(Base.metadata.drop_all)
+            logger.debug("Database tables dropped.")
+            await conn.run_sync(Base.metadata.create_all)
+            logger.debug("Database tables forcefully recreated.")
+        else:
+            logger.debug(
+                "Database tables already exist. Set force=True to drop and recreate them."
+            )
 
 
 def init_database():
@@ -303,10 +324,4 @@ def init_database():
     This function should be called during application startup to ensure
     database tables exist before they are accessed.
     """
-    from marvin.utilities.logging import get_logger
-
-    logger = get_logger(__name__)
-
-    logger.debug("Initializing database...")
     asyncio.run(create_db_and_tables(force=False))
-    logger.debug("Database initialization complete.")
