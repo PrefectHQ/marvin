@@ -1,9 +1,9 @@
 [project]
 name = "marvin"
-version = "3.0.0"
-description = ""
+description = "a simple and powerful tool to get things done with AI"
 readme = "README.md"
 requires-python = ">=3.10"
+dynamic = ["version"]
 dependencies = [
     "aiosqlite>=0.20.0",
     "jinja2>=3.1.4",
