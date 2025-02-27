@@ -38,10 +38,10 @@ export OPENAI_API_KEY=your-api-key
 Marvin offers a few intuitive ways to work with AI:
 
 ### Structured-output utilities
-The gang's all here:
+The gang's all here - you can find all the structured-output utilities from `marvin` 2.x at the top level of the package.
 
 <details>
-<summary><i>How to use `extract`, `cast`, and `generate`</i></summary>
+<summary>How to use extract, cast, and generate</summary>
 
 #### `marvin.extract`
 Extract native types from unstructured input:
@@ -81,7 +81,10 @@ print(primes) # [3, 5, 7, 11, 13, 17, 19, 23, 29, 31]
 
 </details>
 
-### `marvin.run`
+### Agentic control flow
+`marvin` 3.0 introduces a new way to work with AI, ported from [ControlFlow](https://github.com/prefecthq/controlflow).
+
+#### `marvin.run`
 A simple way to run a task:
 
 ```python
@@ -119,7 +122,7 @@ answer = marvin.run("the answer to the universe", result_type=int)
 print(answer) # 42
 ```
 
-### `marvin.Agent`
+#### `marvin.Agent`
 Agents are specialized AI agents that can be used to complete tasks:
 ```python
 writer = Agent(
@@ -140,7 +143,7 @@ As they danced to its elegant beat.
 </details>
 
 
-### `marvin.Task`
+#### `marvin.Task`
 You can define a `Task` explicitly, which will be run by a default agent upon calling `.run()`:
 
 ```python
