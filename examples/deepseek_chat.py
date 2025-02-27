@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     notes_file_path: str = Field(default="notes.txt")
 
 
-settings = Settings()
+settings = Settings()  # type: ignore # google_cx loaded from .env file
 
 
 def google_search(query: str, num: int = 3) -> str:
