@@ -2,7 +2,7 @@ from importlib.metadata import version as _version
 
 # necessary imports
 from marvin.settings import settings
-from marvin.database import ensure_sqlite_memory_tables_exist
+from marvin.database import init_database
 
 # core classes
 from marvin.thread import Thread
@@ -31,7 +31,8 @@ from marvin.fns.say import say, say_async
 from marvin.fns.summarize import summarize, summarize_async
 from marvin.fns.plan import plan, plan_async
 
-ensure_sqlite_memory_tables_exist()
+# Initialize the database on import
+init_database()
 
 __version__ = _version("marvin")
 
