@@ -38,7 +38,10 @@ export OPENAI_API_KEY=your-api-key
 Marvin offers a few intuitive ways to work with AI:
 
 ### Structured-output utilities
+The gang's all here:
 
+<details>
+<summary><i>How to use `extract`, `cast`, and `generate`</i></summary>
 
 #### `marvin.extract`
 Extract native types from unstructured input:
@@ -75,6 +78,8 @@ import marvin
 primes = marvin.generate(int, 10, "odd primes")
 print(primes) # [3, 5, 7, 11, 13, 17, 19, 23, 29, 31]
 ```
+
+</details>
 
 ### `marvin.run`
 A simple way to run a task:
