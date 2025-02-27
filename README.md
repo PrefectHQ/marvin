@@ -206,6 +206,7 @@ Add context and/or tools to achieve more specific and complex results:
 import platform
 import subprocess
 from pydantic import IPvAnyAddress
+import marvin
 
 def run_shell_command(command: list[str]) -> str:
     """e.g. ['ls', '-l'] or ['git', '--no-pager', 'diff', '--cached']"""
