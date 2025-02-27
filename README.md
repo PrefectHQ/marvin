@@ -96,7 +96,7 @@ poem = marvin.run("Write a short poem about artificial intelligence")
 print(poem)
 ```
 <details>
-<summary><i>output</i></summary>
+<summary>output</summary>
 
 In silicon minds, we dare to dream,
 A world where code and thoughts redeem.
@@ -134,7 +134,7 @@ poem = writer.run("Write a haiku about coding")
 print(poem)
 ```
 <details>
-<summary><i>output</i></summary>
+<summary>output</summary>
 There once was a language so neat,
 Whose simplicity could not be beat.
 Python's code was so clear,
@@ -156,7 +156,7 @@ poem = task.run()
 print(poem)
 ```
 <details>
-<summary><i>output</i></summary>
+<summary>output</summary>
 <pre>
 In circuits and code, a mind does bloom,
 With algorithms weaving through the gloom.
@@ -244,66 +244,43 @@ Tasks are:
 - 🔄 **Composable**: Build complex workflows by connecting tasks together
 
 
-### Agents and Teams
+### Agents
 
 Agents are portable LLM configurations that can be assigned to tasks. They encapsulate everything an AI needs to work effectively:
 
 ```python
+from pathlib import Path
+import marvin
+
+def write_file(path: str, content: str):
+    """Write content to a file"""
+    path = Path(path)
+    path.write_text(content)
+
 # Create a specialized agent
 writer = marvin.Agent(
     name="Technical Writer",
-    instructions="Write clear, engaging content for developers"
+    instructions="Write clear, engaging content for developers",
+    tools=[write_file]
 )
 
-
-result = marvin.run("how do I get started with pydantic?", agents=[writer])
+result = marvin.run("how to use pydantic? write to docs.md", agents=[writer])
 
 print(result)
 ```
 <details>
-<summary><i>output</i></summary>
+<summary>output</summary>
 
-To get started with Pydantic, a popular Python library for data validation and settings management, follow these steps:
-
-1. **Installation**:
-
-   First, you need to install Pydantic. You can do this using pip:
-
-   ```bash
-   pip install pydantic
-   ```
-
-2. **Basic Usage**:
-
-   Pydantic is used to define data models with type annotations. Here’s a basic example:
-
-   ```python
-   from pydantic import BaseModel
-
-   class User(BaseModel):
-       id: int
-       name: str
-       signup_ts: Optional[datetime] = None
-       friends: List[int] = []
-
-   user = User(id='123', name='John Doe', friends=[1, 2, '3'])
-   print(user.id) # 123
-   print(user.friends) # [1, 2, 3]
-   ```
-
-   In this example, Pydantic automatically converts "123" to an integer and validates or coerces types for you.
-
-3. **Model Configuration and Features**:
-
-   - **Validators**: Pydantic allows you to define custom validation logic. You can add methods with a `@validator` decorator.
-   - **Settings Management**: You can manage application settings with environment variables using `BaseSettings`.
-   - **Data Conversion**: Pydantic models can be easily serialized to and from dictionaries and JSON.
-
-4. **Learn More**:
-
-   Pydantic has comprehensive documentation that you can reference as you build your models. Visit the [Pydantic Documentation](https://pydantic-docs.helpmanual.io/) for more detailed information and advanced usage.
-
-By following these steps, you can effectively begin using Pydantic in your Python projects.
+╭─ Agent "Technical Writer" (7fa1dbc8) ────────────────────────────────────────────────────────────╮
+│ Tool:    MarkTaskSuccessful_dc92b2e7                                                             │
+│ Input:   {'response': {'result': 'The documentation on how to use Pydantic has been successfully │
+│          written to docs.md. It includes information on installation, basic usage, field         │
+│          validation, and settings management, with examples to guide developers on implementing  │
+│          Pydantic in their projects.'}}                                                          │
+│ Status:  ✅                                                                                      │
+│ Output:  'Final result processed.'                                                               │
+╰────────────────────────────────────────────────────────────────────────────────────  8:33:36 PM ─╯
+The documentation on how to use Pydantic has been successfully written to `docs.md`. It includes information on installation, basic usage, field validation, and settings management, with examples to guide developers on implementing Pydantic in their projects.
 
 </details>
 
@@ -441,7 +418,7 @@ print(f"# {article.title}\n\n{article.content}")
 ```
 
 <details>
-<summary><i>output</i></summary>
+<summary>output</summary>
 
 >**Conversation:**
 >```text
