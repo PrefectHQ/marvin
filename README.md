@@ -15,6 +15,23 @@ Marvin provides a structured, developer-focused framework for defining workflows
 > 
 > 🚧🚨 Marvin 3.0 is under very active development, reflected on the `main` branch of this repo. The API may undergo breaking changes, and documentation is still being updated. Please use it with caution. You may prefer the stable version of [Marvin 2.0](https://askmarvin.ai) or [ControlFlow](https://controlflow.ai) for now.
 
+## Installation
+
+Install `marvin`:
+
+```bash
+# with pip
+pip install marvin
+
+# with uv
+uv add marvin
+```
+
+Configure your LLM provider (Marvin uses OpenAI by default but natively supports [all Pydantic AI models](https://ai.pydantic.dev/models/)):
+
+```bash
+export OPENAI_API_KEY=your-api-key
+```
 
 ## Example
 
@@ -200,23 +217,6 @@ Marvin includes high-level functions for the most common tasks, like summarizing
 
 All Marvin functions have thread management built-in, meaning they can be composed into chains of tasks that share context and history.
 
-## Installation
-
-Install `marvin`:
-
-```bash
-# with pip
-pip install marvin
-
-# with uv
-uv add marvin
-```
-
-Configure your LLM provider (Marvin uses OpenAI by default but natively supports [all Pydantic AI models](https://ai.pydantic.dev/models/)):
-
-```bash
-export OPENAI_API_KEY=your-api-key
-```
 
 ## Upgrading to Marvin 3.0
 
