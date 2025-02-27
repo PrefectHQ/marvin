@@ -4,11 +4,12 @@ on:
   push:
     branches: ["main"]
     paths:
-      - "**/*.py"
+      - "src/**/*.py"
 
   pull_request:
     paths:
-      - "**/*.py"
+      - "src/**/*.py"
+
   workflow_dispatch:
 
 permissions:
