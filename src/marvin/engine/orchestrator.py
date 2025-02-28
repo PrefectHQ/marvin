@@ -2,11 +2,16 @@ import math
 from asyncio import CancelledError
 from collections.abc import Callable
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal, Optional, TypeVar
 
+from pydantic_ai._parts_manager import ModelResponsePartsManager
+from pydantic_ai.agent import Agent as PydanticAgentlet
 from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.messages import (
+    ModelResponseStreamEvent,
+)
 
 import marvin
 import marvin.agents.team
@@ -22,6 +27,7 @@ from marvin.engine.events import (
     OrchestratorEndEvent,
     OrchestratorExceptionEvent,
     OrchestratorStartEvent,
+    handle_pydantic_event,
     message_to_events,
 )
 from marvin.engine.handlers import AsyncHandler, Handler
@@ -60,6 +66,11 @@ class Orchestrator:
     tasks: list[Task[Any]]
     thread: Thread | str | None = None
     handlers: list[Handler | AsyncHandler] | None = None
+
+    # Add a part manager as an instance variable
+    _parts_manager: ModelResponsePartsManager = field(
+        default_factory=ModelResponsePartsManager, init=False
+    )
 
     def __post_init__(self):
         self.thread = get_thread(self.thread)
@@ -122,6 +133,53 @@ class Orchestrator:
         elif filter:
             raise ValueError(f"Invalid filter: {filter}")
         return ordered_tasks
+
+    async def handle_pydantic_event(
+        self, event: ModelResponseStreamEvent, actor: Actor
+    ) -> None:
+        """Process a pydantic_ai event, accumulate it using the parts manager, and trigger handlers.
+
+        This is a wrapper around the standalone handle_pydantic_event function defined in events.py.
+        It processes the event, updates the parts manager, and dispatches any resulting Marvin events.
+
+        Args:
+            event: A pydantic_ai event from the streaming API
+            actor: The actor that generated this event
+        """
+        try:
+            # Call the standalone function with our parts manager and process the returned events
+            async for marvin_event in handle_pydantic_event(
+                event=event,
+                actor=actor,
+                parts_manager=self._parts_manager,
+            ):
+                # Handle each yielded Marvin event
+                await self.handle_event(marvin_event)
+
+            # Log accumulated parts for debugging if needed
+            if marvin.settings.log_events:
+                current_parts = self._parts_manager.get_parts()
+                if current_parts:
+                    logger.debug(f"Current accumulated parts: {current_parts}")
+
+        except Exception as e:
+            # Log any errors that occur during event processing
+            logger.error(f"Error processing pydantic event {type(event).__name__}: {e}")
+            # Provide detailed traceback in debug mode
+            if marvin.settings.log_level == "DEBUG":
+                logger.exception("Detailed traceback:")
+
+    # You might add a more specific method for wrapping pydantic events to your
+    # custom event system. For example:
+
+    # async def create_event_from_pydantic(
+    #     self,
+    #     event: ModelResponseStreamEvent,
+    #     snapshot: list[ModelResponsePart],
+    #     actor: Actor
+    # ) -> Event:
+    #     """Create a Marvin event from a pydantic-ai event and accumulated state."""
+    #     # Implementation would depend on what events you want to create
 
     async def run_once(self, actor: Actor | None = None) -> AgentRunResult:
         tasks = self.get_all_tasks(filter="ready")
@@ -190,20 +248,61 @@ class Orchestrator:
         ] + messages
 
         # --- run agent
-        result = await actor._run(
+
+        agentlet = await actor.get_agentlet(
             messages=all_messages,
             tools=list(tools),
             end_turn_tools=list(end_turn_tools),
         )
 
+        final_result = None
+        # Reset the parts manager at the start of each run
+        self._parts_manager = ModelResponsePartsManager()
+
+        with agentlet.iter("", message_history=all_messages) as agent_run:
+            async for node in agent_run:
+                # Handle different node types
+                if PydanticAgentlet.is_user_prompt_node(node):
+                    # User provided input node (unlikely in this context)
+                    pass
+
+                elif PydanticAgentlet.is_model_request_node(node):
+                    # Model request node - stream tokens from the model's request
+                    async with node.stream(agent_run.ctx) as request_stream:
+                        async for event in request_stream:
+                            # Process events through our accumulation system
+                            await self.handle_pydantic_event(event, actor)
+
+                elif PydanticAgentlet.is_handle_response_node(node):
+                    # Handle-response node - the model returned data, potentially calls a tool
+                    async with node.stream(agent_run.ctx) as handle_stream:
+                        async for event in handle_stream:
+                            # Process events through our accumulation system
+                            await self.handle_pydantic_event(event, actor)
+
+                # Check if we've reached the final End node
+                elif PydanticAgentlet.is_end_node(node):
+                    # When we reach the end node, the agent run is complete and the result is available
+                    final_result = agent_run.result
+                    logger.debug(
+                        f"Agent run completed with result type: {type(final_result.data)}"
+                    )
+                    logger.debug(f"Final result: {final_result.data}")
+                    break
+            else:
+                raise ValueError("Agent run finished without producing a final result")
+
+        if final_result is None:
+            raise ValueError("No final result produced from agent run")
+
         # Record the LLM call in the database
         llm_call = await DBLLMCall.create(
             thread_id=self.thread.id,
-            usage=result.usage(),
+            usage=final_result.usage(),
         )
 
         # --- record messages
-        for message in result.new_messages():
+        for message in final_result.new_messages():
             for event in message_to_events(
                 actor=actor,
                 message=message,
@@ -211,13 +310,13 @@ class Orchestrator:
                 await self.handle_event(event)
 
         await self.thread.add_messages_async(
-            result.new_messages(), llm_call_id=llm_call.id
+            final_result.new_messages(), llm_call_id=llm_call.id
         )
 
         # --- end turn
-        await self.end_turn(result=result, actor=actor)
+        await self.end_turn(result=final_result, actor=actor)
 
-        return result
+        return final_result
 
     async def start_turn(self, actor: Actor):
         await actor.start_turn(orchestrator=self)

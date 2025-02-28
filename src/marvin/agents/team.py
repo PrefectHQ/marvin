@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
+import pydantic_ai
 from pydantic_ai.agent import AgentRunResult
 
 from marvin.agents.actor import Actor
@@ -70,13 +71,13 @@ class Team(Actor):
     def get_memories(self) -> list[Memory]:
         return self.active_member.get_memories()
 
-    async def _run(
+    async def get_agentlet(
         self,
         messages: list["Message"],
         tools: list[Callable[..., Any]],
         end_turn_tools: list["EndTurn"],
-    ) -> AgentRunResult:
-        return await self.active_member._run(
+    ) -> pydantic_ai.Agent[Any, Any]:
+        return self.active_member.get_agentlet(
             messages=messages,
             tools=self.get_tools() + tools,
             end_turn_tools=self.get_end_turn_tools() + end_turn_tools,

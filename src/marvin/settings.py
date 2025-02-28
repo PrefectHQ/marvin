@@ -66,7 +66,7 @@ class Settings(BaseSettings):
     # ------------ Logging settings ------------
 
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
-        default="INFO",
+        default="DEBUG",
         description="Logging level",
     )
 
