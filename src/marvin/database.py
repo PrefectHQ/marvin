@@ -33,6 +33,7 @@ usage_adapter: TypeAdapter[Usage] = TypeAdapter(Usage)
 
 # Module-level cache for engines and sessionmakers
 _async_engine_cache: dict[Any, AsyncEngine] = {}
+db_initialized = False
 
 
 def serialize_message(message: Message) -> str:
@@ -324,4 +325,7 @@ def init_database():
     This function should be called during application startup to ensure
     database tables exist before they are accessed.
     """
-    asyncio.run(create_db_and_tables(force=False))
+    global db_initialized
+    if not db_initialized:
+        asyncio.run(create_db_and_tables(force=False))
+        db_initialized = True
