@@ -1,6 +1,7 @@
 import logging
 import platform
 import sys
+from functools import partial
 from pathlib import Path
 
 import pydantic_ai
@@ -10,8 +11,7 @@ from rich.console import Console
 from rich.table import Table
 from typer import Context, Exit
 
-from marvin import __version__
-from marvin.fns.extract import extract as marvin_extract
+import marvin
 
 from .dev import dev_app
 
@@ -29,16 +29,16 @@ def version(ctx: Context):
         return
 
     info = {
-        "Marvin version": __version__,
+        "Marvin version": marvin.__version__,
         "Pydantic AI version": pydantic_ai.__version__,
         "Python version": platform.python_version(),
         "Platform": platform.platform(),
-        "Path": Path(__file__).resolve().parents[3],
+        "Path": f"~/{Path(__file__).resolve().parents[3].relative_to(Path.home())}",
     }
 
     g = Table.grid(padding=(0, 1))
-    g.add_column(justify="right")
-    g.add_column()
+    g.add_column(style="bold", justify="left")
+    g.add_column(style="cyan", justify="right")
     for k, v in info.items():
         g.add_row(k + ":", str(v).replace("\n", " "))
     console.print(g)
@@ -47,20 +47,31 @@ def version(ctx: Context):
 
 
 @app.command()
-def extract(
+def x(
+    operation: str = typer.Option(
+        "extract", "--operation", "-o", help="Operation to perform"
+    ),
     target_type: str = typer.Option(
-        "str", "--type", "-t", help="Type of entities to extract (str, int, float)"
+        "str",
+        "--type",
+        "-t",
+        help="Type of entities to extract (any type that can be eval'd)",
     ),
     instructions: str = typer.Option(
         None, "--instructions", "-i", help="Instructions for extraction"
     ),
+    n: int = typer.Option(1, "--n", "-n", help="Number of results to generate"),
 ):
     """
     Extract entities from stdin input.
 
-    Example: echo "one, two, three" | marvin extract -t int | jq
+    Example: echo "one, two, three" | marvin x -t int | jq
     """
     from marvin.settings import settings
+
+    operation_fn = getattr(marvin, operation)
+    if n != 1 and operation != "generate":
+        raise ValueError("can only specify n for 'generate' operation")
 
     # Read from stdin if available
     if not sys.stdin.isatty():
@@ -81,8 +92,23 @@ def extract(
         )
 
     try:
-        result = marvin_extract(data, target_type, instructions=instructions)
-        print(to_json(result).decode("utf-8"))
+        if operation == "extract":
+            operation_fn = partial(
+                operation_fn, data=data, target=target_type, instructions=instructions
+            )
+        elif operation == "cast":
+            operation_fn = partial(operation_fn, data=data, target=target_type)
+        elif operation == "generate":
+            operation_fn = partial(
+                operation_fn,
+                target=target_type,
+                n=n,
+                instructions=f"use this as context: {data}",
+            )
+        print(to_json(operation_fn()).decode("utf-8"))
+    except AttributeError:
+        print(f"Error: Unsupported operation '{operation}'", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
         print(f"Error during extraction: {e}", file=sys.stderr)
         sys.exit(1)
