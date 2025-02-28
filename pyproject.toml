@@ -7,7 +7,8 @@ dynamic = ["version"]
 dependencies = [
     "aiosqlite>=0.20.0",
     "jinja2>=3.1.4",
-    "pydantic-ai>=0.0.26",
+    "partial-json-parser>=0.2.1.1.post5",
+    "pydantic-ai>=0.0.30",
     "pydantic-settings>=2.6.1",
     "pydantic[email]>=2.10.2",
     "rich>=13.9.4",
@@ -70,9 +71,6 @@ extend-select = ["I"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "I001", "RUF013"]
-
-[tool.uv.sources]
-pydantic-ai = { git = "https://github.com/pydantic/pydantic-ai" }
 
 [build-system]
 requires = ["hatchling>=1.21.0", "hatch-vcs>=0.4.0"]

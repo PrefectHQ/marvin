@@ -12,8 +12,6 @@ from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 import pydantic_ai
 from pydantic_ai.agent import Agent as PydanticAgentlet
-from pydantic_ai.agent import AgentDepsT, RunContext
-from pydantic_ai.messages import ModelRequestPart, RetryPromptPart, ToolCallPart
 from pydantic_ai.models import KnownModelName, Model, ModelSettings
 
 import marvin
@@ -200,29 +198,31 @@ def get_agentlet(
         retries=marvin.settings.agent_retries,
     )
 
-    from marvin.engine.events import (
-        ToolCallEvent,
-        ToolRetryEvent,
-        ToolReturnEvent,
-    )
+    # from marvin.engine.events import (
+    #     StreamToolCallCompleteEvent,
+    #     ToolRetryEvent,
+    #     ToolReturnEvent,
+    # )
 
-    for tool in agentlet._function_tools.values():  # type: ignore[reportPrivateUsage]
-        # Wrap the tool run function to emit events for each call / result
-        # this can be removed when Pydantic AI supports streaming events
-        async def run(
-            message: ToolCallPart,
-            run_context: RunContext[AgentDepsT],
-            # pass as arg to avoid late binding issues
-            original_run: Callable[..., Any] = tool.run,
-        ) -> ModelRequestPart:
-            await handle_event(ToolCallEvent(actor=agent, message=message), handlers)
-            result = await original_run(message, run_context)
-            if isinstance(result, RetryPromptPart):
-                await handle_event(ToolRetryEvent(message=result), handlers)
-            else:
-                await handle_event(ToolReturnEvent(message=result), handlers)
-            return result
+    # for tool in agentlet._function_tools.values():  # type: ignore[reportPrivateUsage]
+    #     # Wrap the tool run function to emit events for each call / result
+    #     # this can be removed when Pydantic AI supports streaming events
+    #     async def run(
+    #         message: ToolCallPart,
+    #         run_context: RunContext[AgentDepsT],
+    #         # pass as arg to avoid late binding issues
+    #         original_run: Callable[..., Any] = tool.run,
+    #     ) -> ModelRequestPart:
+    #         await handle_event(
+    #             StreamToolCallCompleteEvent(actor=agent, message=message), handlers
+    #         )
+    #         result = await original_run(message, run_context)
+    #         if isinstance(result, RetryPromptPart):
+    #             await handle_event(ToolRetryEvent(message=result), handlers)
+    #         else:
+    #             await handle_event(ToolReturnEvent(message=result), handlers)
+    #         return result
 
-        tool.run = run
+    #     tool.run = run
 
     return agentlet

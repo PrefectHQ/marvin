@@ -2,15 +2,25 @@ import math
 from asyncio import CancelledError
 from collections.abc import Callable
 from contextvars import ContextVar
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Optional, TypeVar
 
 from pydantic_ai._parts_manager import ModelResponsePartsManager
 from pydantic_ai.agent import Agent as PydanticAgentlet
-from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.agent import AgentRun, AgentRunResult
 from pydantic_ai.messages import (
-    ModelResponseStreamEvent,
+    FinalResultEvent,
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
+    ModelResponsePart,
+    PartDeltaEvent,
+    PartStartEvent,
+    RetryPromptPart,
+    TextPartDelta,
+    ToolCallPart,
+    ToolCallPartDelta,
+    ToolReturnPart,
 )
 
 import marvin
@@ -21,14 +31,19 @@ from marvin.agents.agent import Agent
 from marvin.database import DBLLMCall
 from marvin.engine.end_turn import EndTurn
 from marvin.engine.events import (
-    AgentEndTurnEvent,
-    AgentStartTurnEvent,
+    ActorEndTurnEvent,
+    ActorMessageDeltaEvent,
+    ActorStartTurnEvent,
+    EndTurnToolCallEvent,
     Event,
     OrchestratorEndEvent,
     OrchestratorExceptionEvent,
     OrchestratorStartEvent,
-    handle_pydantic_event,
-    message_to_events,
+    ToolCallDeltaEvent,
+    ToolCallEvent,
+    ToolResultEvent,
+    ToolRetryEvent,
+    UserMessageEvent,
 )
 from marvin.engine.handlers import AsyncHandler, Handler
 from marvin.engine.print_handler import PrintHandler
@@ -36,7 +51,7 @@ from marvin.instructions import get_instructions
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.tasks.task import Task
-from marvin.thread import Thread, get_thread, message_adapter
+from marvin.thread import Thread, get_thread
 from marvin.utilities.logging import get_logger
 
 T = TypeVar("T")
@@ -48,6 +63,212 @@ _current_orchestrator: ContextVar["Orchestrator|None"] = ContextVar(
     "current_orchestrator",
     default=None,
 )
+
+
+async def handle_agentlet_events(
+    actor: Actor,
+    run: AgentRun,
+    end_turn_tools: list[EndTurn],
+):
+    """Run a PydanticAI agentlet and process its events through the Marvin event system.
+
+    This function:
+    1. Runs the agentlet's iterator
+    2. Processes all nodes and events from PydanticAI
+    3. Converts them to Marvin events and yields them
+
+    Args:
+        run: The agentlet run to process
+        actor: The actor associated with this agentlet run
+
+    Yields:
+        Marvin events derived from PydanticAI events
+    """
+    # Create a parts manager to accumulate delta events for this run
+    parts_manager = ModelResponsePartsManager()
+    end_turn_tool_names = {t.__name__ for t in end_turn_tools}
+
+    def _get_snapshot(index: int) -> ModelResponsePart:
+        return parts_manager.get_parts()[index]
+
+    # Private helper function to process PydanticAI events
+    def _process_pydantic_event(event) -> Event | None:
+        # Handle Part Start Events
+        if isinstance(event, PartStartEvent):
+            # Process a new part starting
+            if event.part.part_kind == "text":
+                # For text parts, update the parts manager
+                parts_manager.handle_text_delta(
+                    vendor_part_id=event.index, content=event.part.content
+                )
+
+                # Only emit delta events for streaming updates
+                return ActorMessageDeltaEvent(
+                    actor=actor,
+                    delta=TextPartDelta(content_delta=event.part.content),
+                    snapshot=_get_snapshot(event.index),
+                )
+
+            elif event.part.part_kind == "tool-call":
+                # For tool call parts
+                parts_manager.handle_tool_call_part(
+                    vendor_part_id=event.index,
+                    tool_name=event.part.tool_name,
+                    args=event.part.args,
+                    tool_call_id=event.part.tool_call_id,
+                )
+
+                # Always emit delta events for streaming updates
+                snapshot = _get_snapshot(event.index)
+                return ToolCallDeltaEvent(
+                    actor=actor,
+                    delta=ToolCallPartDelta(
+                        tool_name_delta=event.part.tool_name,
+                        args_delta=event.part.args,
+                        tool_call_id=event.part.tool_call_id,
+                    ),
+                    snapshot=snapshot,
+                    tool_call_id=snapshot.tool_call_id,
+                )
+
+        # Handle Part Delta Events
+        elif isinstance(event, PartDeltaEvent):
+            # Process a delta update to an existing part
+            if isinstance(event.delta, TextPartDelta):
+                # Handle text delta
+                parts_manager.handle_text_delta(
+                    vendor_part_id=event.index, content=event.delta.content_delta
+                )
+
+                # Emit delta event for streaming
+                return ActorMessageDeltaEvent(
+                    actor=actor,
+                    delta=event.delta,
+                    snapshot=_get_snapshot(event.index),
+                )
+
+            elif isinstance(event.delta, ToolCallPartDelta):
+                # Handle tool call delta
+                parts_manager.handle_tool_call_delta(
+                    vendor_part_id=event.index,
+                    tool_name=event.delta.tool_name_delta,
+                    args=event.delta.args_delta,
+                    tool_call_id=event.delta.tool_call_id,
+                )
+                # Emit delta event for streaming
+                return ToolCallDeltaEvent(
+                    actor=actor,
+                    delta=event.delta,
+                    snapshot=_get_snapshot(event.index),
+                    tool_call_id=event.delta.tool_call_id,
+                )
+
+        # Handle Function Tool Call Events
+        elif isinstance(event, FunctionToolCallEvent):
+            # This is the signal that a tool call is complete and ready to be executed
+            # Emit tool call complete event
+            return ToolCallEvent(
+                actor=actor,
+                message=event.part,
+                tool_call_id=event.part.tool_call_id,
+            )
+
+        # Handle Function Tool Result Events
+        elif isinstance(event, FunctionToolResultEvent):
+            # Emit tool result event
+            if isinstance(event.result, ToolReturnPart):
+                return ToolResultEvent(message=event.result)
+            elif isinstance(event.result, RetryPromptPart):
+                return ToolRetryEvent(message=event.result)
+            else:
+                pass
+
+        # Handle Final Result Event
+        # This fires as soon as Pydantic AI recognizes that the tool call is an end turn tool
+        # (i.e. as soon as the name is recognized, but before the args are returned)
+        elif isinstance(event, FinalResultEvent):
+            # find a matching tool call event
+            tool_call_part = next(
+                (
+                    p
+                    for p in parts_manager.get_parts()
+                    if isinstance(p, ToolCallPart) and p.tool_name == event.tool_name
+                ),
+                None,
+            )
+            if tool_call_part is None:
+                raise ValueError(
+                    f"No tool call part found for {event.tool_name}. This is unexpected."
+                )
+
+            return EndTurnToolCallEvent(
+                actor=actor,
+                event=event,
+                tool_call_id=tool_call_part.tool_call_id,
+            )
+
+        else:
+            raise ValueError(f"Unknown event type: {type(event)}")
+
+    async for node in run:
+        if PydanticAgentlet.is_user_prompt_node(node):
+            yield UserMessageEvent(
+                message=node.user_prompt,
+            )
+
+        elif PydanticAgentlet.is_model_request_node(node):
+            # EndTurnTool retries do not get processed as normal
+            # FunctionToolResultEvents, but can be detected by checking for
+            # RetryPromptPart that match the end turn tool names. Here, we
+            # yield a ToolRetryEvent for each RetryPromptPart that matches an
+            # end turn tool name.
+            for part in node.request.parts:
+                if (
+                    isinstance(part, RetryPromptPart)
+                    and part.tool_name in end_turn_tool_names
+                ):
+                    yield ToolRetryEvent(message=part)
+
+            # Model request node - stream tokens from the model's request
+            async with node.stream(run.ctx) as request_stream:
+                async for event in request_stream:
+                    try:
+                        event = _process_pydantic_event(event)
+                        if event:
+                            yield event
+
+                    except Exception as e:
+                        # Log any errors that occur during event processing
+                        logger.error(
+                            f"Error processing pydantic event {type(event).__name__}: {e}"
+                        )
+                        # Provide detailed traceback in debug mode
+                        if marvin.settings.log_level == "DEBUG":
+                            logger.exception("Detailed traceback:")
+
+        elif PydanticAgentlet.is_handle_response_node(node):
+            # Handle-response node - the model returned data, potentially calls a tool
+            async with node.stream(run.ctx) as handle_stream:
+                async for event in handle_stream:
+                    try:
+                        event = _process_pydantic_event(event)
+                        if event:
+                            yield event
+
+                    except Exception as e:
+                        # Log any errors that occur during event processing
+                        logger.error(
+                            f"Error processing pydantic event {type(event).__name__}: {e}"
+                        )
+                        # Provide detailed traceback in debug mode
+                        if marvin.settings.log_level == "DEBUG":
+                            logger.exception("Detailed traceback:")
+
+        # Check if we've reached the final End node
+        elif PydanticAgentlet.is_end_node(node):
+            pass
+        else:
+            pass
 
 
 @dataclass(kw_only=True)
@@ -66,11 +287,6 @@ class Orchestrator:
     tasks: list[Task[Any]]
     thread: Thread | str | None = None
     handlers: list[Handler | AsyncHandler] | None = None
-
-    # Add a part manager as an instance variable
-    _parts_manager: ModelResponsePartsManager = field(
-        default_factory=ModelResponsePartsManager, init=False
-    )
 
     def __post_init__(self):
         self.thread = get_thread(self.thread)
@@ -134,53 +350,6 @@ class Orchestrator:
             raise ValueError(f"Invalid filter: {filter}")
         return ordered_tasks
 
-    async def handle_pydantic_event(
-        self, event: ModelResponseStreamEvent, actor: Actor
-    ) -> None:
-        """Process a pydantic_ai event, accumulate it using the parts manager, and trigger handlers.
-
-        This is a wrapper around the standalone handle_pydantic_event function defined in events.py.
-        It processes the event, updates the parts manager, and dispatches any resulting Marvin events.
-
-        Args:
-            event: A pydantic_ai event from the streaming API
-            actor: The actor that generated this event
-        """
-        try:
-            # Call the standalone function with our parts manager and process the returned events
-            async for marvin_event in handle_pydantic_event(
-                event=event,
-                actor=actor,
-                parts_manager=self._parts_manager,
-            ):
-                # Handle each yielded Marvin event
-                await self.handle_event(marvin_event)
-
-            # Log accumulated parts for debugging if needed
-            if marvin.settings.log_events:
-                current_parts = self._parts_manager.get_parts()
-                if current_parts:
-                    logger.debug(f"Current accumulated parts: {current_parts}")
-
-        except Exception as e:
-            # Log any errors that occur during event processing
-            logger.error(f"Error processing pydantic event {type(event).__name__}: {e}")
-            # Provide detailed traceback in debug mode
-            if marvin.settings.log_level == "DEBUG":
-                logger.exception("Detailed traceback:")
-
-    # You might add a more specific method for wrapping pydantic events to your
-    # custom event system. For example:
-
-    # async def create_event_from_pydantic(
-    #     self,
-    #     event: ModelResponseStreamEvent,
-    #     snapshot: list[ModelResponsePart],
-    #     actor: Actor
-    # ) -> Event:
-    #     """Create a Marvin event from a pydantic-ai event and accumulated state."""
-    #     # Implementation would depend on what events you want to create
-
     async def run_once(self, actor: Actor | None = None) -> AgentRunResult:
         tasks = self.get_all_tasks(filter="ready")
 
@@ -224,6 +393,10 @@ class Orchestrator:
             memories.update([m for m in actor.get_memories() if m.auto_use])
         if memories:
             memory_messages = await self.thread.get_messages_async(limit=3)
+            from marvin.thread import (
+                message_adapter,  # Import here to avoid circular import
+            )
+
             query = message_adapter.dump_json(memory_messages).decode()
             for memory in memories:
                 memory_result = {
@@ -248,86 +421,46 @@ class Orchestrator:
         ] + messages
 
         # --- run agent
-
         agentlet = await actor.get_agentlet(
             messages=all_messages,
             tools=list(tools),
             end_turn_tools=list(end_turn_tools),
         )
 
-        final_result = None
-        # Reset the parts manager at the start of each run
-        self._parts_manager = ModelResponsePartsManager()
-
-        with agentlet.iter("", message_history=all_messages) as agent_run:
-            async for node in agent_run:
-                # Handle different node types
-                if PydanticAgentlet.is_user_prompt_node(node):
-                    # User provided input node (unlikely in this context)
-                    pass
-
-                elif PydanticAgentlet.is_model_request_node(node):
-                    # Model request node - stream tokens from the model's request
-                    async with node.stream(agent_run.ctx) as request_stream:
-                        async for event in request_stream:
-                            # Process events through our accumulation system
-                            await self.handle_pydantic_event(event, actor)
-
-                elif PydanticAgentlet.is_handle_response_node(node):
-                    # Handle-response node - the model returned data, potentially calls a tool
-                    async with node.stream(agent_run.ctx) as handle_stream:
-                        async for event in handle_stream:
-                            # Process events through our accumulation system
-                            await self.handle_pydantic_event(event, actor)
-
-                # Check if we've reached the final End node
-                elif PydanticAgentlet.is_end_node(node):
-                    # When we reach the end node, the agent run is complete and the result is available
-                    final_result = agent_run.result
-                    logger.debug(
-                        f"Agent run completed with result type: {type(final_result.data)}"
-                    )
-                    logger.debug(f"Final result: {final_result.data}")
-                    break
-            else:
-                raise ValueError("Agent run finished without producing a final result")
-
-        if final_result is None:
-            raise ValueError("No final result produced from agent run")
+        # Run the agentlet with our new function
+        with actor:
+            with agentlet.iter("", message_history=all_messages) as run:
+                async for event in handle_agentlet_events(
+                    actor=actor, run=run, end_turn_tools=list(end_turn_tools)
+                ):
+                    await self.handle_event(event)
 
         # Record the LLM call in the database
         llm_call = await DBLLMCall.create(
             thread_id=self.thread.id,
-            usage=final_result.usage(),
+            usage=run.usage(),
         )
 
-        # --- record messages
-        for message in final_result.new_messages():
-            for event in message_to_events(
-                actor=actor,
-                message=message,
-            ):
-                await self.handle_event(event)
-
+        # --- add final messages to the thread
         await self.thread.add_messages_async(
-            final_result.new_messages(), llm_call_id=llm_call.id
+            run.result.new_messages(), llm_call_id=llm_call.id
         )
 
         # --- end turn
-        await self.end_turn(result=final_result, actor=actor)
+        await self.end_turn(result=run.result, actor=actor)
 
-        return final_result
+        return run
 
     async def start_turn(self, actor: Actor):
         await actor.start_turn(orchestrator=self)
-        await self.handle_event(AgentStartTurnEvent(actor=actor))
+        await self.handle_event(ActorStartTurnEvent(actor=actor))
 
     async def end_turn(self, result: AgentRunResult, actor: Actor):
         if isinstance(result.data, EndTurn):
             await result.data.run(orchestrator=self, actor=actor)
 
         await actor.end_turn(result=result, orchestrator=self)
-        await self.handle_event(AgentEndTurnEvent(actor=actor))
+        await self.handle_event(ActorEndTurnEvent(actor=actor))
 
     async def run(
         self,

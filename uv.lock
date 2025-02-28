@@ -1116,11 +1116,12 @@ wheels = [
 
 [[package]]
 name = "marvin"
-version = "3.0.2.dev9+g75a12d16.d20250228"
+version = "3.0.2.dev10+g230b015a.d20250228"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
     { name = "jinja2" },
+    { name = "partial-json-parser" },
     { name = "pydantic", extra = ["email"] },
     { name = "pydantic-ai" },
     { name = "pydantic-settings" },
@@ -1150,8 +1151,9 @@ dev = [
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20.0" },
     { name = "jinja2", specifier = ">=3.1.4" },
+    { name = "partial-json-parser", specifier = ">=0.2.1.1.post5" },
     { name = "pydantic", extras = ["email"], specifier = ">=2.10.2" },
-    { name = "pydantic-ai", git = "https://github.com/pydantic/pydantic-ai" },
+    { name = "pydantic-ai", specifier = ">=0.0.30" },
     { name = "pydantic-settings", specifier = ">=2.6.1" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
@@ -1673,6 +1675,15 @@ wheels = [
 ]
 
 [[package]]
+name = "partial-json-parser"
+version = "0.2.1.1.post5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/27/9c/9c366aed65acb40a97842ce1375a87b27ea37d735fc9717f7729bae3cc00/partial_json_parser-0.2.1.1.post5.tar.gz", hash = "sha256:992710ac67e90b367921d52727698928040f7713ba7ecb33b96371ea7aec82ca", size = 10313 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8c/ee/a9476f01f27c74420601be208c6c2c0dd3486681d515e9d765931b89851c/partial_json_parser-0.2.1.1.post5-py3-none-any.whl", hash = "sha256:627715aaa3cb3fb60a65b0d62223243acaa6c70846520a90326fef3a2f0b61ca", size = 10885 },
+]
+
+[[package]]
 name = "pathspec"
 version = "0.12.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1844,16 +1855,20 @@ email = [
 
 [[package]]
 name = "pydantic-ai"
-version = "0.0.29"
-source = { git = "https://github.com/pydantic/pydantic-ai#196d9183fffa1c1246a023a9a9d7e9d96856763a" }
+version = "0.0.30"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic-ai-slim", extra = ["anthropic", "cohere", "groq", "mistral", "openai", "vertexai"] },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/33/d0/5dbe61083da61d1e627c6cff6ad280d088f161eb48ecebfe5db8b8a8b1a3/pydantic_ai-0.0.30.tar.gz", hash = "sha256:9e6bf61d4865a7afa7e53476f8ffb98ef659e685ed8939fc2fcb463571e5a8c6", size = 9515523 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7e/c3/44bf5ae3ab4f19d8ef5b9289ba6ae8be651908d8d8da002c13004495af8d/pydantic_ai-0.0.30-py3-none-any.whl", hash = "sha256:fcda4e2fa00130b9c1bcd6b119b7ea1ec25658260bcbb7b7468121fe9db9001d", size = 9814 },
 ]
 
 [[package]]
 name = "pydantic-ai-slim"
-version = "0.0.29"
-source = { git = "https://github.com/pydantic/pydantic-ai?subdirectory=pydantic_ai_slim#196d9183fffa1c1246a023a9a9d7e9d96856763a" }
+version = "0.0.30"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "eval-type-backport" },
     { name = "exceptiongroup", marker = "python_full_version < '3.11'" },
@@ -1862,6 +1877,10 @@ dependencies = [
     { name = "logfire-api" },
     { name = "pydantic" },
     { name = "pydantic-graph" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e0/f2/1ca83097e0a3e466d23f5d34bb69454587b6cf122507d42bb1fb8803b6bd/pydantic_ai_slim-0.0.30.tar.gz", hash = "sha256:6059664dac332020a163fa4930f99695a9843a13bc5a6d8f86b19faea392862e", size = 88269 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/98/f1/1682b59735d3a2241067e15c475f105645bf67b2829732ddc5b7d304faba/pydantic_ai_slim-0.0.30-py3-none-any.whl", hash = "sha256:5637f9c8e7744601684cca9a050f7c7f68885afa63e0e2efd943f52b775e4ddc", size = 112481 },
 ]
 
 [package.optional-dependencies]
@@ -1962,12 +1981,16 @@ wheels = [
 
 [[package]]
 name = "pydantic-graph"
-version = "0.0.29"
-source = { git = "https://github.com/pydantic/pydantic-ai?subdirectory=pydantic_graph#196d9183fffa1c1246a023a9a9d7e9d96856763a" }
+version = "0.0.30"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "logfire-api" },
     { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/96/46/ee654e77517164bafd85ae670b8897041612df4d05eeaec8955eaf55a6cf/pydantic_graph-0.0.30.tar.gz", hash = "sha256:e4494cc6a17da430eddb107e237c5684fa64275ed0c63097854d1a8334d1dab0", size = 16086 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/68/07/ee068c2370325db054fe0f55b7cd277703cca621c0ec5af660e785781121/pydantic_graph-0.0.30-py3-none-any.whl", hash = "sha256:af224c71ada4c658279cbc2f636d37616d3ecace7322772816155087cf23bf0f", size = 19303 },
 ]
 
 [[package]]

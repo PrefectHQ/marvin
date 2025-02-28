@@ -1,12 +1,14 @@
 from marvin.engine.events import (
-    AgentMessageEvent,
+    ActorMessageDeltaEvent,
+    ActorMessageEvent,
     Event,
     OrchestratorEndEvent,
     OrchestratorExceptionEvent,
     OrchestratorStartEvent,
+    ToolCallDeltaEvent,
     ToolCallEvent,
+    ToolResultEvent,
     ToolRetryEvent,
-    ToolReturnEvent,
     UserMessageEvent,
 )
 
@@ -32,16 +34,22 @@ class Handler:
     def on_user_message(self, event: UserMessageEvent):
         pass
 
-    def on_agent_message(self, event: AgentMessageEvent):
+    def on_actor_message(self, event: ActorMessageEvent):
         pass
 
-    def on_tool_return(self, event: ToolReturnEvent):
+    def on_actor_message_delta(self, event: ActorMessageDeltaEvent):
+        pass
+
+    def on_tool_result(self, event: ToolResultEvent):
         pass
 
     def on_tool_retry(self, event: ToolRetryEvent):
         pass
 
     def on_tool_call(self, event: ToolCallEvent):
+        pass
+
+    def on_tool_call_delta(self, event: ToolCallDeltaEvent):
         pass
 
     def on_orchestrator_start(self, event: OrchestratorStartEvent):
@@ -75,16 +83,22 @@ class AsyncHandler:
     async def on_user_message(self, event: UserMessageEvent):
         pass
 
-    async def on_agent_message(self, event: AgentMessageEvent):
+    async def on_actor_message(self, event: ActorMessageEvent):
         pass
 
-    async def on_tool_return(self, event: ToolReturnEvent):
+    async def on_actor_message_delta(self, event: ActorMessageDeltaEvent):
+        pass
+
+    async def on_tool_result(self, event: ToolResultEvent):
         pass
 
     async def on_tool_retry(self, event: ToolRetryEvent):
         pass
 
     async def on_tool_call(self, event: ToolCallEvent):
+        pass
+
+    async def on_tool_call_delta(self, event: ToolCallDeltaEvent):
         pass
 
     async def on_orchestrator_start(self, event: OrchestratorStartEvent):

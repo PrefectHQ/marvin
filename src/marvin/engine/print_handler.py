@@ -1,6 +1,7 @@
-import datetime
+"""A simplified print handler for rendering streaming events from the engine."""
+
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Dict, Tuple
 
 import rich
 from rich import box
@@ -12,14 +13,19 @@ from rich.pretty import Pretty
 from rich.spinner import Spinner
 from rich.table import Table
 
+import marvin
 from marvin.engine.events import (
-    AgentMessageEvent,
+    ActorEndTurnEvent,
+    ActorMessageDeltaEvent,
+    ActorMessageEvent,
+    EndTurnToolCallEvent,
     OrchestratorEndEvent,
     OrchestratorExceptionEvent,
     OrchestratorStartEvent,
+    ToolCallDeltaEvent,
     ToolCallEvent,
+    ToolResultEvent,
     ToolRetryEvent,
-    ToolReturnEvent,
 )
 from marvin.engine.handlers import Handler
 
@@ -27,57 +33,31 @@ from marvin.engine.handlers import Handler
 RUNNING_SPINNER = Spinner("dots")
 
 
-@dataclass(kw_only=True)
-class DisplayState:
-    """Base class for content to be displayed."""
+@dataclass
+class EventPanel:
+    """Base class for panels that represent events."""
 
+    id: str
     agent_name: str
-    first_timestamp: datetime.datetime
+    timestamp: str
 
-    def format_timestamp(self) -> str:
-        """Format the timestamp for display."""
-        local_timestamp = self.first_timestamp.astimezone()
-        return local_timestamp.strftime("%I:%M:%S %p").lstrip("0").rjust(11)
+    def render(self) -> Panel:
+        """Render this event as a panel."""
+        raise NotImplementedError()
 
 
-@dataclass(kw_only=True)
-class ContentState(DisplayState):
-    """State for content being streamed."""
+@dataclass
+class MessagePanel(EventPanel):
+    """Panel for displaying agent messages with streaming updates."""
 
     content: str = ""
 
-    @staticmethod
-    def _convert_content_to_str(content: Any) -> str:
-        """Convert various content formats to a string."""
-        if isinstance(content, str):
-            return content
-
-        if isinstance(content, dict):
-            return content.get("content", content.get("text", ""))
-
-        if isinstance(content, list):
-            parts: list[str] = []
-            for item in content:
-                if isinstance(item, str):
-                    parts.append(item)
-                elif isinstance(item, dict):
-                    part = item.get("content", item.get("text", ""))
-                    if part:
-                        parts.append(part)
-            return "\n".join(parts)
-
-        return str(content)
-
-    def update_content(self, new_content: Any) -> None:
-        """Update content, converting complex content types to string."""
-        self.content = self._convert_content_to_str(new_content)
-
-    def render_panel(self) -> Panel:
-        """Render content as a markdown panel."""
+    def render(self) -> Panel:
+        """Render the message as a markdown panel."""
         return Panel(
             Markdown(self.content),
             title=f"[bold]{self.agent_name}[/]",
-            subtitle=f"[italic]{self.format_timestamp()}[/]",
+            subtitle=f"[italic]{self.timestamp}[/]",
             title_align="left",
             subtitle_align="right",
             border_style="blue",
@@ -87,39 +67,57 @@ class ContentState(DisplayState):
         )
 
 
-@dataclass(kw_only=True)
-class ToolState(DisplayState):
-    """State for a tool call and its result."""
+@dataclass
+class ToolCallPanel(EventPanel):
+    """Panel for displaying tool calls with streaming updates."""
 
-    name: str
-    args: dict[str, Any]
-    result: str | None = None
-    is_error: bool = False
+    tool_name: str = ""
+    args: Dict[str, Any] = None
     is_complete: bool = False
+    result: str = ""
+    is_error: bool = False
+    is_end_turn_tool: bool = False
 
-    def get_status_style(self) -> tuple[str | Spinner, str, str]:
+    def __post_init__(self):
+        if self.args is None:
+            self.args = {}
+
+    def get_status_style(self) -> Tuple[Any, str, str]:
         """Returns (icon, text style, border style) for current status."""
         if self.is_complete:
             if self.is_error:
                 return "❌", "red", "red"
-            return "✅", "green", "green"  # Slightly softer green
+            return "✅", "green", "green"
+        return (
+            RUNNING_SPINNER,
+            "yellow",
+            "gray50",
+        )  # Use the shared spinner instance for in-progress status
 
-        return (RUNNING_SPINNER, "yellow", "gray50")  # Use shared spinner instance
-
-    def render_panel(self) -> Panel:
-        """Render tool state as a panel with status indicator."""
+    def render(self) -> Panel:
+        """Render the tool call as a panel."""
         icon, text_style, border_style = self.get_status_style()
 
         table = Table.grid(padding=(0, 2))
         table.add_column(style="dim")
         table.add_column()
 
-        table.add_row("Tool:", f"[{text_style}]{self.name}[/]")
-
-        if self.args:
-            table.add_row("Input:", Markdown(str(self.args)))
+        table.add_row("Tool:", self.tool_name)
 
         table.add_row("Status:", icon)
+
+        if self.args:
+            if self.is_end_turn_tool:
+                caption = "Result"
+                args = self.args.get("response", None)
+                # for mark success tools, the args are under the "result" key
+                if isinstance(args, dict) and "result" in args:
+                    args = args["result"]
+            else:
+                caption = "Input"
+                args = self.args
+            table.add_row(caption, Pretty(args))
+
         if self.is_complete and self.result:
             label = "Error" if self.is_error else "Output"
             output = f"[red]{self.result}[/]" if self.is_error else Pretty(self.result)
@@ -128,137 +126,273 @@ class ToolState(DisplayState):
         return Panel(
             table,
             title=f"[bold]{self.agent_name}[/]",
-            subtitle=f"[italic]{self.format_timestamp()}[/]",
+            subtitle=f"[italic]{self.timestamp}[/]",
             title_align="left",
             subtitle_align="right",
             border_style=border_style,
             box=box.ROUNDED,
             width=100,
-            padding=(0, 1),
+            padding=(1, 2),
         )
 
 
 class PrintHandler(Handler):
-    """A handler that prints events to the console in a rich, interactive format."""
+    """A handler that renders events with streaming updates."""
 
-    def __init__(self):
-        self.live: Live | None = None
-        self.states: dict[str, DisplayState] = {}
-        self.paused_id: str | None = None
+    def __init__(self, hide_end_turn_tools: bool | None = None):
+        self.live = None
+        self.panels: Dict[str, EventPanel] = {}
+        self.paused = False
+
+        if hide_end_turn_tools is None:
+            hide_end_turn_tools = (
+                marvin.settings.default_print_handler_hide_end_turn_tools
+            )
+        self.hide_end_turn_tools = hide_end_turn_tools
+
+    def format_timestamp(self, ts) -> str:
+        """Format timestamp for display."""
+        local_ts = ts.astimezone()
+        return local_ts.strftime("%I:%M:%S %p").lstrip("0").rjust(11)
 
     def update_display(self):
-        """Render all current state as panels and update display."""
-        if not self.live or not self.live.is_started:
+        """Update the terminal display with current panels."""
+        if not self.live or not self.live.is_started or self.paused:
             return
 
-        sorted_states = sorted(self.states.values(), key=lambda s: s.first_timestamp)
-        panels: list[Panel] = []
+        # Sort panels by their timestamp attribute and filter out hidden end turn tools
+        sorted_panels = sorted(
+            [
+                p
+                for p in self.panels.values()
+                if not (
+                    self.hide_end_turn_tools
+                    and isinstance(p, ToolCallPanel)
+                    and p.is_end_turn_tool
+                )
+            ],
+            key=lambda p: p.timestamp,
+        )
+        rendered = [p.render() for p in sorted_panels]
 
-        for state in sorted_states:
-            panels.append(state.render_panel())
-
-        if panels:
-            self.live.update(Group(*panels), refresh=True)
+        if not rendered:
+            self.live.update(Group(), refresh=True)
+        else:
+            self.live.update(Group(*rendered), refresh=True)
 
     def on_orchestrator_start(self, event: OrchestratorStartEvent):
-        """Initialize live display when orchestrator starts."""
+        """Start the live display when orchestrator starts."""
         if not self.live:
-            self.live = Live(vertical_overflow="visible", auto_refresh=True)
+            self.live = Live(
+                vertical_overflow="visible",
+                auto_refresh=True,
+                refresh_per_second=10,  # Higher refresh rate for smoother animations
+            )
             try:
                 self.live.start()
             except rich.errors.LiveError:
                 pass
 
     def on_orchestrator_end(self, event: OrchestratorEndEvent):
-        """Clean up live display when orchestrator ends."""
+        """Clean up when orchestrator ends."""
         if self.live and self.live.is_started:
             try:
                 self.live.stop()
             except rich.errors.LiveError:
                 pass
             self.live = None
-            self.states.clear()
+            self.panels.clear()
 
     def on_orchestrator_exception(self, event: OrchestratorExceptionEvent):
-        """Clean up live display when orchestrator encounters an error."""
+        """Handle orchestrator exceptions."""
         if self.live and self.live.is_started:
             try:
                 self.live.stop()
             except rich.errors.LiveError:
                 pass
             self.live = None
-            self.states.clear()
+            self.panels.clear()
 
-    def on_agent_message(self, event: AgentMessageEvent):
-        """Handle agent message events by updating content state."""
+    def on_actor_message_delta(self, event: ActorMessageDeltaEvent):
+        """Handle streaming updates to agent messages."""
+        # Skip if snapshot doesn't exist or has no content
+        if (
+            not hasattr(event, "snapshot")
+            or not event.snapshot
+            or not hasattr(event.snapshot, "content")
+            or not event.snapshot.content
+        ):
+            return
+
+        # Create a stable ID from actor ID and message index
+        actor_id = str(event.actor.id)
+        # Use the timestamp as part of the stable ID to handle multiple messages from same actor
+        msg_time = event.timestamp.isoformat()
+        event_id = f"{actor_id}_{msg_time}"
+
+        # Create or update the panel
+        if event_id not in self.panels:
+            self.panels[event_id] = MessagePanel(
+                id=event_id,
+                agent_name=event.actor.name,
+                timestamp=self.format_timestamp(event.timestamp),
+                content=event.snapshot.content,
+            )
+        else:
+            # Update existing panel with the snapshot content
+            panel = self.panels[event_id]
+            if isinstance(panel, MessagePanel):
+                panel.content = event.snapshot.content
+
+        # Update the display to show streaming changes
+        self.update_display()
+
+    def on_actor_message(self, event: ActorMessageEvent):
+        """Handle complete agent messages."""
         if not event.message.content:
             return
 
-        if str(event.id) not in self.states:
-            state = ContentState(
+        event_id = str(event.id)
+
+        # Create or update the panel
+        if event_id not in self.panels:
+            self.panels[event_id] = MessagePanel(
+                id=event_id,
                 agent_name=event.actor.name,
-                first_timestamp=event.timestamp,
+                timestamp=self.format_timestamp(event.timestamp),
+                content=event.message.content,
             )
-            state.update_content(event.message.content)
-            self.states[str(event.id)] = state
         else:
-            state = self.states[str(event.id)]
-            if isinstance(state, ContentState):
-                state.update_content(event.message.content)
+            # Update existing panel
+            panel = self.panels[event_id]
+            if isinstance(panel, MessagePanel):
+                panel.content = event.message.content
 
         self.update_display()
 
-    def on_tool_call(self, event: ToolCallEvent):
-        """Handle tool call events by updating tool state."""
-        tool_id = event.message.tool_call_id
-        if not self.paused_id and event.message.tool_name == "cli":
-            self.paused_id = tool_id
+    def on_tool_call_delta(self, event: ToolCallDeltaEvent):
+        """Handle streaming updates to tool calls."""
+        # Use snapshot.tool_call_id for consistency across deltas
+        if not hasattr(event, "snapshot") or not event.snapshot:
+            return
+
+        tool_id = event.snapshot.tool_call_id
+        if not tool_id:
+            return
+
+        # Handle CLI tools specially
+        if event.snapshot.tool_name == "cli":
+            self.paused = True
             if self.live and self.live.is_started:
                 self.live.stop()
             return
 
-        if tool_id not in self.states:
-            self.states[tool_id] = ToolState(
+        # Create or update the panel
+        if tool_id not in self.panels:
+            self.panels[tool_id] = ToolCallPanel(
+                id=tool_id,
                 agent_name=event.actor.friendly_name(),
-                first_timestamp=event.timestamp,
-                name=event.message.tool_name,
-                args=event.message.args_as_dict(),
+                timestamp=self.format_timestamp(event.timestamp),
+                tool_name=event.snapshot.tool_name,
+                args=event.args_dict(),
             )
         else:
-            state = self.states[tool_id]
-            if isinstance(state, ToolState):
-                state.args = event.message.args_as_dict()
+            # Update existing panel
+            panel = self.panels[tool_id]
+            if isinstance(panel, ToolCallPanel):
+                panel.tool_name = event.snapshot.tool_name
+                panel.args = event.args_dict()
+
+        # Always update to show streaming changes
+        self.update_display()
+
+    def on_tool_call(self, event: ToolCallEvent):
+        """Handle complete tool calls."""
+        tool_id = event.message.tool_call_id
+
+        # Handle CLI tools specially
+        if event.message.tool_name == "cli":
+            self.paused = True
+            if self.live and self.live.is_started:
+                self.live.stop()
+            return
+
+        # Create or update the panel
+        if tool_id not in self.panels:
+            self.panels[tool_id] = ToolCallPanel(
+                id=tool_id,
+                agent_name=event.actor.friendly_name(),
+                timestamp=self.format_timestamp(event.timestamp),
+                tool_name=event.message.tool_name,
+                args=event.args_dict(),
+                is_complete=False,  # Start as not complete
+            )
+        else:
+            # Update existing panel
+            panel = self.panels[tool_id]
+            if isinstance(panel, ToolCallPanel):
+                panel.tool_name = event.message.tool_name
+                panel.args = event.args_dict()
+                # Do not mark as complete here
 
         self.update_display()
 
-    def on_tool_return(self, event: ToolReturnEvent):
-        """Handle tool return events by updating tool state."""
+    def on_tool_result(self, event: ToolResultEvent):
+        """Handle tool result events."""
         tool_id = event.message.tool_call_id
 
+        # Handle CLI tools specially
         if event.message.tool_name == "cli":
-            if self.paused_id == tool_id:
-                self.paused_id = None
-
+            if self.paused:
+                self.paused = False
                 self.live = Live(vertical_overflow="visible", auto_refresh=True)
                 self.live.start()
             return
 
-        if tool_id in self.states:
-            state = self.states[tool_id]
-            if isinstance(state, ToolState):
-                state.is_complete = True
-                state.result = event.message.content
+        # Update the tool call panel with results
+        if tool_id in self.panels:
+            panel = self.panels[tool_id]
+            if isinstance(panel, ToolCallPanel):
+                panel.is_complete = True
+                panel.result = event.message.content
 
         self.update_display()
 
+    def on_end_turn_tool_call(self, event: EndTurnToolCallEvent):
+        """Handle end turn tool call events."""
+        # Find the corresponding tool call panel and mark it as an end turn tool
+        panel: ToolCallPanel = self.panels[event.tool_call_id]
+        panel.is_end_turn_tool = True
+        self.update_display()
+
     def on_tool_retry(self, event: ToolRetryEvent):
-        """Handle tool retry events by updating tool state."""
+        """Handle tool retry events."""
         tool_id = event.message.tool_call_id
-        if tool_id in self.states:
-            state = self.states[tool_id]
-            if isinstance(state, ToolState):
-                state.is_complete = True
-                state.is_error = True
-                state.result = event.message.content
+
+        # Update the tool call panel with error
+        if tool_id in self.panels:
+            panel = self.panels[tool_id]
+            if isinstance(panel, ToolCallPanel):
+                panel.is_complete = True
+                panel.is_error = True
+                panel.result = event.message.content
+
+        self.update_display()
+
+    def on_actor_end_turn(self, event: ActorEndTurnEvent):
+        """Handle actor end turn events."""
+        # look for any end turn tool calls that are not complete and mark them as complete
+        for panel in self.panels.values():
+            if (
+                isinstance(panel, ToolCallPanel)
+                and panel.is_end_turn_tool
+                and not panel.is_complete
+            ):
+                panel.is_complete = True
+
+        # look for any tool calls that are not complete and mark them as failed
+        for panel in self.panels.values():
+            if isinstance(panel, ToolCallPanel) and not panel.is_complete:
+                panel.is_error = True
 
         self.update_display()
