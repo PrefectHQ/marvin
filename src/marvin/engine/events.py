@@ -1,7 +1,7 @@
 import datetime
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 import partial_json_parser
 from pydantic_ai.messages import (
@@ -15,8 +15,10 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
+from pydantic_ai.result import FinalResult
 
 from marvin.agents.actor import Actor
+from marvin.engine.end_turn import EndTurn
 
 # Define event types as literals for type checking
 EventType = Literal[
@@ -33,6 +35,7 @@ EventType = Literal[
     "actor-start-turn",
     "actor-end-turn",
     "end-turn-tool-call",
+    "end-turn-tool-result",
 ]
 
 
@@ -81,6 +84,7 @@ class ToolCallEvent(Event):
     actor: Actor
     message: ToolCallPart
     tool_call_id: str
+    tool: Callable[..., Any] | None
 
     def args_dict(self) -> dict[str, Any]:
         """Return the args as a dictionary."""
@@ -97,6 +101,18 @@ class EndTurnToolCallEvent(Event):
     actor: Actor
     event: FinalResultEvent
     tool_call_id: str
+    tool: EndTurn
+
+
+@dataclass(kw_only=True)
+class EndTurnToolResultEvent(Event):
+    """Event for the final result from an end turn tool."""
+
+    type: EventType = field(default="end-turn-tool-result", init=False)
+    actor: Actor
+    result: FinalResult
+    tool_call_id: str
+    tool: EndTurn
 
 
 @dataclass(kw_only=True)

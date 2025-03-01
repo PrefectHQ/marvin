@@ -1,0 +1,295 @@
+from collections.abc import Callable
+from typing import Any
+
+from pydantic_ai._parts_manager import ModelResponsePartsManager
+from pydantic_ai.agent import Agent as PydanticAgentlet
+from pydantic_ai.agent import AgentRun
+from pydantic_ai.messages import (
+    FinalResultEvent,
+    FunctionToolCallEvent,
+    FunctionToolResultEvent,
+    ModelResponsePart,
+    PartDeltaEvent,
+    PartStartEvent,
+    RetryPromptPart,
+    TextPartDelta,
+    ToolCallPart,
+    ToolCallPartDelta,
+    ToolReturnPart,
+)
+
+import marvin
+import marvin.agents.team
+import marvin.engine.llm
+from marvin.agents.actor import Actor
+from marvin.engine.end_turn import EndTurn
+from marvin.engine.events import (
+    ActorMessageDeltaEvent,
+    EndTurnToolCallEvent,
+    EndTurnToolResultEvent,
+    Event,
+    ToolCallDeltaEvent,
+    ToolCallEvent,
+    ToolResultEvent,
+    ToolRetryEvent,
+    UserMessageEvent,
+)
+from marvin.utilities.logging import get_logger
+
+logger = get_logger(__name__)
+
+
+async def handle_agentlet_events(
+    actor: Actor,
+    run: AgentRun,
+    tools: list[Callable[..., Any]],
+    end_turn_tools: list[EndTurn],
+):
+    """Run a PydanticAI agentlet and process its events through the Marvin event system.
+
+    This function:
+    1. Runs the agentlet's iterator
+    2. Processes all nodes and events from PydanticAI
+    3. Converts them to Marvin events and yields them
+
+    Args:
+        run: The agentlet run to process
+        actor: The actor associated with this agentlet run
+
+    Usage:
+
+    agentlet = pydantic_ai.Agent(...)
+    with agentlet.iter(msg) as run:
+        async for event in handle_agentlet_events(
+            actor=actor,
+            run=run,
+            tools=tools,
+            end_turn_tools=end_turn_tools,
+        ):
+            yield event
+
+    Yields:
+        Marvin events derived from PydanticAI events
+    """
+    # Create a parts manager to accumulate delta events for this run
+    parts_manager = ModelResponsePartsManager()
+    tools = {t.__name__: t for t in tools}
+    end_turn_tools = {t.__name__: t for t in end_turn_tools}
+
+    async for node in run:
+        if PydanticAgentlet.is_user_prompt_node(node):
+            yield UserMessageEvent(
+                message=node.user_prompt,
+            )
+
+        elif PydanticAgentlet.is_model_request_node(node):
+            # EndTurnTool retries do not get processed as normal
+            # FunctionToolResultEvents, but can be detected by checking for
+            # RetryPromptPart that match the end turn tool names. Here, we
+            # yield a ToolRetryEvent for each RetryPromptPart that matches an
+            # end turn tool name.
+            for part in node.request.parts:
+                if (
+                    isinstance(part, RetryPromptPart)
+                    and part.tool_name in end_turn_tools
+                ):
+                    yield ToolRetryEvent(message=part)
+
+            # Model request node - stream tokens from the model's request
+            async with node.stream(run.ctx) as request_stream:
+                async for event in request_stream:
+                    try:
+                        event = _process_pydantic_event(
+                            event=event,
+                            actor=actor,
+                            parts_manager=parts_manager,
+                            tools=tools,
+                            end_turn_tools=end_turn_tools,
+                        )
+                        if event:
+                            yield event
+
+                    except Exception as e:
+                        # Log any errors that occur during event processing
+                        logger.error(
+                            f"Error processing pydantic event {type(event).__name__}: {e}"
+                        )
+                        # Provide detailed traceback in debug mode
+                        if marvin.settings.log_level == "DEBUG":
+                            logger.exception("Detailed traceback:")
+
+        elif PydanticAgentlet.is_handle_response_node(node):
+            # Handle-response node - the model returned data, potentially calls a tool
+            async with node.stream(run.ctx) as handle_stream:
+                async for event in handle_stream:
+                    try:
+                        event = _process_pydantic_event(
+                            event=event,
+                            actor=actor,
+                            parts_manager=parts_manager,
+                            tools=tools,
+                            end_turn_tools=end_turn_tools,
+                        )
+                        if event:
+                            yield event
+
+                    except Exception as e:
+                        # Log any errors that occur during event processing
+                        logger.error(
+                            f"Error processing pydantic event {type(event).__name__}: {e}"
+                        )
+                        # Provide detailed traceback in debug mode
+                        if marvin.settings.log_level == "DEBUG":
+                            logger.exception("Detailed traceback:")
+
+        # Check if we've reached the final End node
+        elif PydanticAgentlet.is_end_node(node):
+            tool_call_part = None
+            for part in parts_manager.get_parts():
+                if (
+                    isinstance(part, ToolCallPart)
+                    and part.tool_name == node.data.tool_name
+                ):
+                    tool_call_part = part
+                    break
+            if tool_call_part is None:
+                raise ValueError(
+                    f"No tool call part found for {node.data.tool_name}. This is unexpected."
+                )
+
+            yield EndTurnToolResultEvent(
+                actor=actor,
+                result=node.data,
+                tool_call_id=tool_call_part.tool_call_id,
+                tool=end_turn_tools.get(node.data.tool_name),
+            )
+        else:
+            logger.warning(f"Unknown node type: {type(node)}")
+
+
+# Private helper function to process PydanticAI events
+def _process_pydantic_event(
+    event,
+    actor: Actor,
+    parts_manager: ModelResponsePartsManager,
+    tools: dict[str, Callable[..., Any]],
+    end_turn_tools: dict[str, EndTurn],
+) -> Event | None:
+    def _get_snapshot(index: int) -> ModelResponsePart:
+        return parts_manager.get_parts()[index]
+
+    # Handle Part Start Events
+    if isinstance(event, PartStartEvent):
+        # Process a new part starting
+        if event.part.part_kind == "text":
+            # For text parts, update the parts manager
+            parts_manager.handle_text_delta(
+                vendor_part_id=event.index, content=event.part.content
+            )
+
+            # Only emit delta events for streaming updates
+            return ActorMessageDeltaEvent(
+                actor=actor,
+                delta=TextPartDelta(content_delta=event.part.content),
+                snapshot=_get_snapshot(event.index),
+            )
+
+        elif event.part.part_kind == "tool-call":
+            # For tool call parts
+            parts_manager.handle_tool_call_part(
+                vendor_part_id=event.index,
+                tool_name=event.part.tool_name,
+                args=event.part.args,
+                tool_call_id=event.part.tool_call_id,
+            )
+
+            # Always emit delta events for streaming updates
+            snapshot = _get_snapshot(event.index)
+            return ToolCallDeltaEvent(
+                actor=actor,
+                delta=ToolCallPartDelta(
+                    tool_name_delta=event.part.tool_name,
+                    args_delta=event.part.args,
+                    tool_call_id=event.part.tool_call_id,
+                ),
+                snapshot=snapshot,
+                tool_call_id=snapshot.tool_call_id,
+            )
+
+    # Handle Part Delta Events
+    elif isinstance(event, PartDeltaEvent):
+        # Process a delta update to an existing part
+        if isinstance(event.delta, TextPartDelta):
+            # Handle text delta
+            parts_manager.handle_text_delta(
+                vendor_part_id=event.index, content=event.delta.content_delta
+            )
+
+            # Emit delta event for streaming
+            return ActorMessageDeltaEvent(
+                actor=actor,
+                delta=event.delta,
+                snapshot=_get_snapshot(event.index),
+            )
+
+        elif isinstance(event.delta, ToolCallPartDelta):
+            # Handle tool call delta
+            parts_manager.handle_tool_call_delta(
+                vendor_part_id=event.index,
+                tool_name=event.delta.tool_name_delta,
+                args=event.delta.args_delta,
+                tool_call_id=event.delta.tool_call_id,
+            )
+            # Emit delta event for streaming
+            return ToolCallDeltaEvent(
+                actor=actor,
+                delta=event.delta,
+                snapshot=_get_snapshot(event.index),
+                tool_call_id=event.delta.tool_call_id,
+            )
+
+    # Handle Function Tool Call Events
+    elif isinstance(event, FunctionToolCallEvent):
+        # This is the signal that a tool call is complete and ready to be executed
+        # Emit tool call complete event
+        return ToolCallEvent(
+            actor=actor,
+            message=event.part,
+            tool_call_id=event.part.tool_call_id,
+            tool=tools.get(event.part.tool_name),
+        )
+
+    # Handle Function Tool Result Events
+    elif isinstance(event, FunctionToolResultEvent):
+        # Emit tool result event
+        if isinstance(event.result, ToolReturnPart):
+            return ToolResultEvent(message=event.result)
+        elif isinstance(event.result, RetryPromptPart):
+            return ToolRetryEvent(message=event.result)
+        else:
+            pass
+
+    # Handle Final Result Event
+    # This fires as soon as Pydantic AI recognizes that the tool call is an end turn tool
+    # (i.e. as soon as the name is recognized, but before the args are returned)
+    elif isinstance(event, FinalResultEvent):
+        tool_call_part = None
+        for part in parts_manager.get_parts():
+            if isinstance(part, ToolCallPart) and part.tool_name == event.tool_name:
+                tool_call_part = part
+                break
+        if tool_call_part is None:
+            raise ValueError(
+                f"No tool call part found for {event.tool_name}. This is unexpected."
+            )
+
+        return EndTurnToolCallEvent(
+            actor=actor,
+            event=event,
+            tool_call_id=tool_call_part.tool_call_id,
+            tool=end_turn_tools.get(event.tool_name),
+        )
+
+    else:
+        logger.warning(f"Unknown event type: {type(event)}")
+        return None

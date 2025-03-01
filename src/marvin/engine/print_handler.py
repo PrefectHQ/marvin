@@ -15,10 +15,10 @@ from rich.table import Table
 
 import marvin
 from marvin.engine.events import (
-    ActorEndTurnEvent,
     ActorMessageDeltaEvent,
     ActorMessageEvent,
     EndTurnToolCallEvent,
+    EndTurnToolResultEvent,
     OrchestratorEndEvent,
     OrchestratorExceptionEvent,
     OrchestratorStartEvent,
@@ -365,6 +365,16 @@ class PrintHandler(Handler):
         panel.is_end_turn_tool = True
         self.update_display()
 
+    def on_end_turn_tool_result(self, event: EndTurnToolResultEvent):
+        if event.tool_call_id in self.panels:
+            panel = self.panels[event.tool_call_id]
+            if isinstance(panel, ToolCallPanel):
+                panel.is_complete = True
+                # the data is the fully-hydrated EndTurn class, so
+                # don't blindly assign it to the result
+                # panel.result = event.result.data
+                self.update_display()
+
     def on_tool_retry(self, event: ToolRetryEvent):
         """Handle tool retry events."""
         tool_id = event.message.tool_call_id
@@ -379,20 +389,21 @@ class PrintHandler(Handler):
 
         self.update_display()
 
-    def on_actor_end_turn(self, event: ActorEndTurnEvent):
-        """Handle actor end turn events."""
-        # look for any end turn tool calls that are not complete and mark them as complete
-        for panel in self.panels.values():
-            if (
-                isinstance(panel, ToolCallPanel)
-                and panel.is_end_turn_tool
-                and not panel.is_complete
-            ):
-                panel.is_complete = True
+    # def on_actor_end_turn(self, event: ActorEndTurnEvent):
+    #     """Handle actor end turn events."""
+    #     # look for any end turn tool calls that are not complete and mark them as complete
+    #     # this is necessary because the end turn tool call event is not emitted for every
+    #     for panel in self.panels.values():
+    #         if (
+    #             isinstance(panel, ToolCallPanel)
+    #             and panel.is_end_turn_tool
+    #             and not panel.is_complete
+    #         ):
+    #             panel.is_complete = True
 
-        # look for any tool calls that are not complete and mark them as failed
-        for panel in self.panels.values():
-            if isinstance(panel, ToolCallPanel) and not panel.is_complete:
-                panel.is_error = True
+    #     # look for any tool calls that are not complete and mark them as failed
+    #     for panel in self.panels.values():
+    #         if isinstance(panel, ToolCallPanel) and not panel.is_complete:
+    #             panel.is_error = True
 
-        self.update_display()
+    #     self.update_display()
