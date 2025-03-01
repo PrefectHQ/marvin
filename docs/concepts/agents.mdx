@@ -126,29 +126,39 @@ editor = marvin.Agent(
 
 ## Teams
 
-In Marvin, agents can be organized into teams to work together on tasks. A team is a way to govern how agents work together. The most common team is a `Swarm`, in which every agent can hand off to every other agent, but other team types exist like round-robin, random, moderated, and more.
+In Marvin, agents can be organized into teams to work together on tasks. A team is a way to govern how agents collaborate. 
 
+For a comprehensive guide on teams, see the [Teams](/concepts/teams) documentation page.
 
 ### Swarms
 
-A swarm is a team of multiple agents that can delegate tasks to each other. This is useful for complex tasks that require different types of expertise:
+A swarm is a team of multiple agents that can freely collaborate and delegate tasks to each other. This is useful for complex tasks that require different types of expertise:
 
 ```python
 import marvin
-from marvin.agents.team import Swarm
+from marvin import Agent, Swarm
 
-researcher = marvin.Agent(name="Researcher")
-writer = marvin.Agent(name="Writer")
-editor = marvin.Agent(name="Editor")
+researcher = Agent(name="Researcher")
+writer = Agent(name="Writer")
+editor = Agent(name="Editor")
 
-team = Swarm(agents=[researcher, writer, editor])
+team = Swarm(members=[researcher, writer, editor])
 
-marvin.run("Write a report about AI", agents=[team])
+result = team.run("Write a report about AI")
 ```
 
 <Tip>
 When you provide a list of agents to a task, Marvin will automatically treat them as a swarm.
 </Tip>
+
+### Other Team Types
+
+Marvin supports several team configurations beyond Swarms:
+
+- **RoundRobinTeam**: Rotates through its members in sequence
+- **RandomTeam**: Randomly selects an agent for each turn
+
+See the [Teams](/concepts/teams) documentation for more details and examples.
 
 ## Assigning agents to tasks
 

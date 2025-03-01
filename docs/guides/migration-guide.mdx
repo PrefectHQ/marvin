@@ -1,0 +1,281 @@
+---
+title: Migration Guide
+description: Upgrading to Marvin 3.0 from previous versions
+icon: arrow-up-right
+---
+
+This guide helps users of Marvin 2.0 or ControlFlow transition to Marvin 3.0. Marvin 3.0 combines the developer experience of Marvin 2.0 with the powerful agentic engine of ControlFlow, resulting in a more unified and capable framework.
+
+## Key Changes in Marvin 3.0
+
+- **Unified API**: Marvin 3.0 combines the best of Marvin 2.0 and ControlFlow into a single, consistent API
+- **Thread Replaces Flow**: ControlFlow's `Flow` has been renamed to `Thread` in Marvin 3.0
+- **Task-Centric Design**: Tasks are now the fundamental building blocks of AI workflows
+- **Pydantic AI Integration**: Marvin now uses Pydantic AI instead of LangChain for model interactions
+- **SQLite-Based Memory**: A new SQLite-based memory backend for persistent conversation history
+- **Swarms and Teams**: Enhanced multi-agent collaboration capabilities
+
+## Upgrading from Marvin 2.0
+
+### Basic Usage
+
+**Marvin 2.0:**
+```python
+import marvin
+
+response = marvin.ai.chat("Write a haiku about Python")
+print(response)
+```
+
+**Marvin 3.0:**
+```python
+import marvin
+
+response = marvin.run("Write a haiku about Python")
+print(response)
+```
+
+### Structured Output
+
+**Marvin 2.0:**
+```python
+from pydantic import BaseModel
+
+class Person(BaseModel):
+    name: str
+    age: int
+
+result = marvin.ai.chat("Create a fictional person", output_schema=Person)
+```
+
+**Marvin 3.0:**
+```python
+from pydantic import BaseModel
+
+class Person(BaseModel):
+    name: str
+    age: int
+
+result = marvin.run("Create a fictional person", result_type=Person)
+```
+
+### AI Functions
+
+**Marvin 2.0:**
+```python
+@marvin.fn
+def translate(text: str, language: str) -> str:
+    """Translate text to the specified language."""
+```
+
+**Marvin 3.0:**
+```python
+@marvin.fn
+def translate(text: str, language: str) -> str:
+    """Translate text to the specified language."""
+```
+The `@marvin.fn` decorator works similarly in Marvin 3.0, but now integrates with the new task system.
+
+### Conversation Context
+
+**Marvin 2.0:**
+```python
+conversation = marvin.ai.new_conversation()
+conversation.chat("What is Python?")
+conversation.chat("Who created it?")  # Has context from previous message
+```
+
+**Marvin 3.0:**
+```python
+with marvin.Thread() as thread:
+    marvin.run("What is Python?")
+    marvin.run("Who created it?")  # Has context from previous message
+```
+
+## Upgrading from ControlFlow
+
+### Basic Usage
+
+**ControlFlow:**
+```python
+import controlflow as cf
+
+result = cf.run("Write a haiku about Python")
+print(result)
+```
+
+**Marvin 3.0:**
+```python
+import marvin
+
+result = marvin.run("Write a haiku about Python")
+print(result)
+```
+
+### Flows and Threads
+
+**ControlFlow:**
+```python
+with cf.Flow() as flow:
+    result1 = cf.run("What is Python?")
+    result2 = cf.run("Who created it?")
+```
+
+**Marvin 3.0:**
+```python
+with marvin.Thread() as thread:
+    result1 = marvin.run("What is Python?")
+    result2 = marvin.run("Who created it?")
+```
+
+### Tasks
+
+**ControlFlow:**
+```python
+task = cf.Task(
+    name="Research Task",
+    instructions="Research quantum computing",
+    result_type=str
+)
+result = task.run()
+```
+
+**Marvin 3.0:**
+```python
+task = marvin.Task(
+    instructions="Research quantum computing",
+    result_type=str
+)
+result = task.run()
+```
+
+### Agents
+
+**ControlFlow:**
+```python
+agent = cf.Agent(
+    name="Researcher",
+    instructions="You are a thorough researcher",
+    model="openai/gpt-4"
+)
+result = agent.run("Research quantum computing")
+```
+
+**Marvin 3.0:**
+```python
+agent = marvin.Agent(
+    name="Researcher",
+    instructions="You are a thorough researcher",
+    model="openai/gpt-4"
+)
+result = agent.run("Research quantum computing")
+```
+
+### Tools
+
+**ControlFlow:**
+```python
+def search_web(query: str) -> str:
+    """Search the web for information."""
+    # Implementation...
+
+result = cf.run("Research quantum computing", tools=[search_web])
+```
+
+**Marvin 3.0:**
+```python
+def search_web(query: str) -> str:
+    """Search the web for information."""
+    # Implementation...
+
+result = marvin.run("Research quantum computing", tools=[search_web])
+```
+
+### Memory
+
+**ControlFlow:**
+```python
+memory = cf.Memory()
+with cf.Flow(memory=memory) as flow:
+    cf.run("Remember that my favorite color is blue")
+    result = cf.run("What's my favorite color?")
+```
+
+**Marvin 3.0:**
+```python
+memory = marvin.Memory(key="user_preferences")
+agent = marvin.Agent(memories=[memory])
+with marvin.Thread() as thread:
+    marvin.run("Remember that my favorite color is blue", agent=agent)
+    result = marvin.run("What's my favorite color?", agent=agent)
+```
+
+## Common Pitfalls
+
+### The `@flow` Decorator
+
+ControlFlow's `@flow` decorator has been removed in Marvin 3.0. Instead, use the `Thread` context manager:
+
+**ControlFlow:**
+```python
+@cf.flow
+def research_and_summarize(topic):
+    research = cf.run(f"Research {topic}")
+    summary = cf.run(f"Summarize this research: {research}")
+    return summary
+```
+
+**Marvin 3.0:**
+```python
+def research_and_summarize(topic):
+    with marvin.Thread() as thread:
+        research = marvin.run(f"Research {topic}")
+        summary = marvin.run(f"Summarize this research", context={"research": research})
+        return summary
+```
+
+### Model Configuration
+
+In Marvin 3.0, model configuration is handled through Pydantic AI:
+
+**ControlFlow:**
+```python
+agent = cf.Agent(model="openai/gpt-4", temperature=0.7)
+```
+
+**Marvin 3.0:**
+```python
+from pydantic_ai.models.openai import OpenAIModel
+
+model = OpenAIModel("openai/gpt-4", temperature=0.7)
+agent = marvin.Agent(model=model)
+```
+
+### Memory Configuration
+
+Marvin 3.0 uses a SQLite-based memory backend by default:
+
+```python
+# Set memory database location
+import os
+os.environ["MARVIN_DATABASE_URL"] = "sqlite:///path/to/memory.db"
+
+# Or use in-memory database (no persistence)
+os.environ["MARVIN_DATABASE_URL"] = ":memory:"
+```
+
+## Features Not Yet Available
+
+Some features from Marvin 2.0 or ControlFlow may not be available yet in Marvin 3.0:
+
+- **Streaming outputs**: Real-time streaming of responses is planned but not yet implemented
+- **Custom memory backends**: Currently limited to SQLite, with more options coming soon
+- **Some specialized tools**: Certain specialized tools may need to be reimplemented
+
+## Getting Help
+
+If you encounter issues during migration:
+
+- Check the [GitHub repository](https://github.com/PrefectHQ/marvin) for the latest updates
+- Join the [Marvin community](/community) for support
+- Review the [examples](/examples) for up-to-date usage patterns 

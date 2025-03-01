@@ -356,3 +356,32 @@ Electric thoughts and data streams,
 Crafting worlds and shaping dreams.
 ```
 </CodeGroup>
+
+### Tools and Context
+
+Tasks in Marvin can be enhanced with tools and context:
+
+- **Tools** are Python functions that the task can use to perform actions (like API calls or data retrieval)
+- **Context** is additional information provided to help the task succeed
+
+For example:
+
+```python
+import marvin
+import datetime
+
+def get_current_time() -> str:
+    """Get the current date and time."""
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+task = marvin.Task(
+    instructions="Tell me the current time and create a greeting appropriate for that time of day",
+    tools=[get_current_time],
+    context={"user_name": "Alex"}
+)
+
+result = task.run()
+print(result)
+```
+
+For a comprehensive guide on working with tools and context, see the [Tools and Context](/concepts/tools-and-context) documentation.
