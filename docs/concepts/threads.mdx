@@ -141,3 +141,31 @@ thread.add_user_message("Save this message")
 same_thread = marvin.Thread(id=thread.id)
 messages = same_thread.get_messages()  # Includes saved messages
 ```
+
+## Threads and Memory
+
+While threads provide short-term conversation context within a session, [Memory](/concepts/memory) offers long-term persistence across multiple sessions. The two can work together:
+
+```python
+import marvin
+from marvin import Thread, Memory, Agent
+
+# Create a memory for storing user preferences
+user_preferences = Memory(key="user_preferences")
+
+# Create an agent with this memory
+assistant = Agent(
+    name="Personal Assistant",
+    instructions="You are a helpful assistant",
+    memories=[user_preferences]
+)
+
+# Use the agent in a thread
+with Thread() as thread:
+    # The agent can access both thread context (recent conversation)
+    # and memory (long-term stored information)
+    assistant.run("Remember that I prefer dark mode")
+    assistant.run("What are my UI preferences?")  # Will recall from memory
+```
+
+Threads maintain the flow of conversation, while Memory stores specific information that should persist across different threads and sessions. See the [Memory](/concepts/memory) documentation for more details on working with persistent memory.

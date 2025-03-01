@@ -1,0 +1,420 @@
+---
+title: Building a Conversational Assistant
+description: Create a personalized chatbot with memory and specialized knowledge
+icon: message-bot
+---
+
+In this guide, we'll build a conversational assistant (chatbot) using Marvin. Our assistant will:
+
+1. Maintain conversation context across multiple turns
+2. Remember user preferences and facts
+3. Respond in a consistent persona
+4. Access external data when needed
+
+This is a common use case for Marvin, and demonstrates how to combine threads, memory, agents, and tools into a cohesive application.
+
+## Setting Up
+
+First, ensure you have Marvin installed:
+
+```bash
+pip install marvin
+```
+
+Set up your API key (OpenAI is used by default):
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
+
+## Creating the Assistant
+
+Let's start by defining our assistant's persona and capabilities:
+
+```python
+import marvin
+from marvin import Agent, Memory, Thread
+
+# Create a memory for user preferences
+user_memory = Memory(
+    key="user_preferences",
+    instructions="Remember information about the user, including their name, preferences, and any personal details they share."
+)
+
+# Create a memory for factual knowledge
+knowledge_memory = Memory(
+    key="assistant_knowledge",
+    instructions="Store factual information about the world, products, services, or any domain-specific knowledge."
+)
+
+# Define our assistant
+assistant = Agent(
+    name="Helpful Assistant",
+    instructions="""
+    You are a friendly, helpful assistant. 
+    Your tone is conversational but professional.
+    Always be truthful and admit when you don't know something.
+    If the user asks about preferences they've previously shared, refer to them.
+    """,
+    memories=[user_memory, knowledge_memory]
+)
+```
+
+## Basic Conversation Loop
+
+Now, let's implement a simple conversation loop:
+
+```python
+def chat():
+    """Run a conversation with the assistant."""
+    print("✨ Assistant: Hello! How can I help you today? (type 'exit' to quit)")
+    
+    # Create a thread to maintain conversation context
+    with Thread() as thread:
+        while True:
+            # Get user input
+            user_input = input("🧑 You: ")
+            
+            # Check for exit command
+            if user_input.lower() in ('exit', 'quit', 'bye'):
+                print("✨ Assistant: Goodbye! Have a great day!")
+                break
+            
+            # Process the input and get a response
+            response = assistant.run(user_input)
+            
+            # Display the response
+            print(f"✨ Assistant: {response}")
+
+if __name__ == "__main__":
+    chat()
+```
+
+Try running this code and having a conversation. The assistant will remember information from earlier in the conversation because of the Thread context.
+
+## Adding External Tools
+
+Let's enhance our assistant by giving it some tools to access external information:
+
+```python
+import datetime
+import requests
+
+def get_current_time() -> str:
+    """Get the current date and time."""
+    now = datetime.datetime.now()
+    return now.strftime("%Y-%m-%d %H:%M:%S")
+
+def get_weather(location: str) -> str:
+    """Get the current weather for a location (simulated)."""
+    # In a real app, you'd use a weather API
+    return f"It's currently sunny and 72°F in {location}."
+
+def search_web(query: str) -> str:
+    """Search the web for information (simulated)."""
+    # In a real app, you'd use a search API
+    return f"Here are some results for '{query}': [simulated search results]"
+
+# Update our assistant with tools
+assistant = Agent(
+    name="Helpful Assistant",
+    instructions="""
+    You are a friendly, helpful assistant. 
+    Your tone is conversational but professional.
+    Always be truthful and admit when you don't know something.
+    If the user asks about preferences they've previously shared, refer to them.
+    Use your tools when needed to provide up-to-date information.
+    """,
+    memories=[user_memory, knowledge_memory],
+    tools=[get_current_time, get_weather, search_web]
+)
+```
+
+Now when the user asks for the time, weather, or information that might be found online, the assistant can provide that information.
+
+## Persistent Personalization
+
+Let's add some code to initialize the assistant with personalized knowledge about the user:
+
+```python
+import asyncio
+
+async def initialize_assistant(name: str, preferences: dict = None):
+    """Initialize the assistant with knowledge about the user."""
+    # Add basic information about the user
+    await user_memory.add(f"The user's name is {name}.")
+    
+    # Add preferences if provided
+    if preferences:
+        for category, pref in preferences.items():
+            await user_memory.add(f"The user prefers {pref} for {category}.")
+    
+    print(f"Assistant initialized for user: {name}")
+
+# Example usage
+async def setup():
+    await initialize_assistant(
+        name="Alex",
+        preferences={
+            "communication style": "concise",
+            "topics": "technology and science",
+            "greeting": "Hi there"
+        }
+    )
+
+# Run the setup
+asyncio.run(setup())
+```
+
+After running this initialization, the assistant will remember the user's name and preferences across conversations, even if you restart the program (as long as the memory database persists).
+
+## Complete Implementation
+
+Here's the complete code for our conversational assistant:
+
+```python
+import marvin
+from marvin import Agent, Memory, Thread
+import asyncio
+import datetime
+
+# Create memories
+user_memory = Memory(
+    key="user_preferences",
+    instructions="Remember information about the user, including their name, preferences, and any personal details they share."
+)
+
+knowledge_memory = Memory(
+    key="assistant_knowledge",
+    instructions="Store factual information about the world, products, services, or any domain-specific knowledge."
+)
+
+# Define tools
+def get_current_time() -> str:
+    """Get the current date and time."""
+    now = datetime.datetime.now()
+    return now.strftime("%Y-%m-%d %H:%M:%S")
+
+def get_weather(location: str) -> str:
+    """Get the current weather for a location (simulated)."""
+    # In a real app, you'd use a weather API
+    return f"It's currently sunny and 72°F in {location}."
+
+def search_web(query: str) -> str:
+    """Search the web for information (simulated)."""
+    # In a real app, you'd use a search API
+    return f"Here are some results for '{query}': [simulated search results]"
+
+# Create the assistant
+assistant = Agent(
+    name="Helpful Assistant",
+    instructions="""
+    You are a friendly, helpful assistant. 
+    Your tone is conversational but professional.
+    Always be truthful and admit when you don't know something.
+    If the user asks about preferences they've previously shared, refer to them.
+    Use your tools when needed to provide up-to-date information.
+    """,
+    memories=[user_memory, knowledge_memory],
+    tools=[get_current_time, get_weather, search_web]
+)
+
+async def initialize_assistant(name: str, preferences: dict = None):
+    """Initialize the assistant with knowledge about the user."""
+    # Add basic information about the user
+    await user_memory.add(f"The user's name is {name}.")
+    
+    # Add preferences if provided
+    if preferences:
+        for category, pref in preferences.items():
+            await user_memory.add(f"The user prefers {pref} for {category}.")
+    
+    print(f"Assistant initialized for user: {name}")
+
+def chat():
+    """Run a conversation with the assistant."""
+    print("✨ Assistant: Hello! How can I help you today? (type 'exit' to quit)")
+    
+    # Create a thread to maintain conversation context
+    with Thread(id="user_conversation") as thread:
+        while True:
+            # Get user input
+            user_input = input("🧑 You: ")
+            
+            # Check for exit command
+            if user_input.lower() in ('exit', 'quit', 'bye'):
+                print("✨ Assistant: Goodbye! Have a great day!")
+                break
+            
+            # Process the input and get a response
+            response = assistant.run(user_input)
+            
+            # Display the response
+            print(f"✨ Assistant: {response}")
+
+async def main():
+    # Initialize with user info (only needed once)
+    await initialize_assistant(
+        name="Alex",
+        preferences={
+            "communication style": "concise",
+            "topics": "technology and science",
+            "greeting": "Hi there"
+        }
+    )
+    
+    # Start the chat
+    chat()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Enhancing the Assistant
+
+Here are some ways to enhance your conversational assistant:
+
+### Multiple Specialized Agents
+
+For more complex assistants, you can create a team of specialized agents:
+
+```python
+researcher = Agent(name="Researcher", instructions="Research facts thoroughly")
+writer = Agent(name="Writer", instructions="Write engaging, clear responses")
+fact_checker = Agent(name="Fact Checker", instructions="Verify information for accuracy")
+
+from marvin import Swarm
+assistant_team = Swarm([researcher, writer, fact_checker])
+
+# Use the team instead of a single agent
+response = assistant_team.run(user_input)
+```
+
+### Adding a Web Interface
+
+You can integrate your assistant with a web framework like FastAPI:
+
+```python
+from fastapi import FastAPI, WebSocket
+from fastapi.responses import HTMLResponse
+import uvicorn
+import json
+
+app = FastAPI()
+
+# Serve a simple HTML page with a chat interface
+@app.get("/")
+async def get():
+    html = """
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <title>Marvin Chat</title>
+            <style>
+                #chat { margin: 0 auto; width: 600px; }
+                #messages { height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+                #input { width: 500px; padding: 5px; }
+                .user { color: blue; }
+                .assistant { color: green; }
+            </style>
+        </head>
+        <body>
+            <div id="chat">
+                <div id="messages"></div>
+                <input id="input" type="text" placeholder="Type a message...">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+            <script>
+                const ws = new WebSocket("ws://localhost:8000/ws");
+                
+                ws.onmessage = function(event) {
+                    const messages = document.getElementById('messages');
+                    const data = JSON.parse(event.data);
+                    messages.innerHTML += `<div class="${data.sender}"><strong>${data.sender}:</strong> ${data.message}</div>`;
+                    messages.scrollTop = messages.scrollHeight;
+                };
+                
+                function sendMessage() {
+                    const input = document.getElementById('input');
+                    if (input.value) {
+                        ws.send(input.value);
+                        input.value = '';
+                    }
+                }
+                
+                document.getElementById('input').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
+            </script>
+        </body>
+    </html>
+    """
+    return HTMLResponse(html)
+
+# WebSocket endpoint for the chat
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    
+    # Create a thread for this conversation
+    with Thread() as thread:
+        # Send a greeting
+        await websocket.send_text(json.dumps({
+            "sender": "assistant",
+            "message": "Hello! How can I help you today?"
+        }))
+        
+        while True:
+            try:
+                # Receive message from the client
+                user_message = await websocket.receive_text()
+                
+                # Send acknowledgment that we received the message
+                await websocket.send_text(json.dumps({
+                    "sender": "user",
+                    "message": user_message
+                }))
+                
+                # Get response from assistant
+                response = assistant.run(user_message)
+                
+                # Send response to the client
+                await websocket.send_text(json.dumps({
+                    "sender": "assistant",
+                    "message": response
+                }))
+            except Exception as e:
+                print(f"Error: {e}")
+                break
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+```
+
+To run this, you'd need to install FastAPI and Uvicorn:
+
+```bash
+pip install fastapi uvicorn
+```
+
+## Best Practices
+
+When building conversational assistants with Marvin, keep these best practices in mind:
+
+1. **Persona Consistency**: Give your assistant clear instructions about its tone and personality.
+
+2. **Memory Management**: Use separate memory modules for different types of information (user preferences, domain knowledge, etc.)
+
+3. **Conversation Context**: Always use a Thread to maintain context across multiple turns.
+
+4. **Error Handling**: Add try/except blocks around AI calls to handle potential errors gracefully.
+
+5. **User Privacy**: Be mindful of what information you store in memory, and consider adding options for users to delete their data.
+
+6. **Feedback Loops**: Add mechanisms for users to provide feedback on the assistant's responses.
+
+7. **Iterative Improvement**: Monitor conversations and regularly update your assistant's instructions and knowledge.
+
+By following these guidelines, you can create a conversational assistant that provides helpful, personalized responses while maintaining a consistent persona. 

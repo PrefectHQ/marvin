@@ -1,0 +1,181 @@
+---
+title: Configuration
+description: Configure Marvin with environment variables and settings
+icon: gear
+---
+
+Marvin provides a flexible configuration system that allows you to customize its behavior using environment variables or a `.env` file. This guide covers the available configuration options and how to use them.
+
+## Configuration Methods
+
+You can configure Marvin in several ways:
+
+1. **Environment variables** - Set variables with the `MARVIN_` prefix
+2. **`.env` file** - Create a file named `.env` in your project directory
+3. **Programmatic access** - Modify settings at runtime via the `marvin.settings` object
+
+## Core Settings
+
+### API Keys and Model Configuration
+
+```bash
+# Set the OpenAI API key (Marvin's default provider)
+export OPENAI_API_KEY="your-openai-api-key"
+
+# Change the default agent model
+export MARVIN_AGENT_MODEL="openai:gpt-4o-mini"
+
+# Adjust model temperature (higher = more creative, lower = more precise)
+export MARVIN_AGENT_TEMPERATURE=0.7
+
+# Set number of retries for agent tasks
+export MARVIN_AGENT_RETRIES=5
+```
+
+### Database and Storage
+
+Marvin stores conversation history and other data in a SQLite database by default. You can configure the location or use an in-memory database:
+
+```bash
+# Set a custom database location
+export MARVIN_DATABASE_URL="sqlite+aiosqlite:///path/to/your/database.db"
+
+# Use an in-memory database (no persistence)
+export MARVIN_DATABASE_URL=":memory:"
+```
+
+### Memory Providers
+
+Marvin supports different memory providers for storing persistent agent memory:
+
+```bash
+# Set the default memory provider
+export MARVIN_MEMORY_PROVIDER="chroma-ephemeral"
+```
+
+Available options include:
+- `chroma-ephemeral` (default, in-memory vector database)
+- `chroma-persistent` (persistent vector database)
+- `chroma-cloud` (Chroma cloud service)
+
+For Chroma cloud, you'll need to provide additional configuration:
+
+```bash
+export MARVIN_CHROMA_CLOUD_API_KEY="your-api-key"
+export MARVIN_CHROMA_CLOUD_TENANT="your-tenant"
+export MARVIN_CHROMA_CLOUD_DATABASE="your-database"
+```
+
+### Logging Configuration
+
+```bash
+# Set the log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+export MARVIN_LOG_LEVEL="DEBUG"
+
+# Enable detailed event logging
+export MARVIN_LOG_EVENTS=true
+```
+
+### Developer Experience
+
+```bash
+# Disable the default print handler
+export MARVIN_ENABLE_DEFAULT_PRINT_HANDLER=false
+
+# Hide end turn tool results in the default print handler
+export MARVIN_DEFAULT_PRINT_HANDLER_HIDE_END_TURN_TOOLS=true
+
+# Set a maximum number of turns for any agent
+export MARVIN_MAX_AGENT_TURNS=50
+```
+
+## Using a .env File
+
+Instead of setting environment variables directly, you can create a `.env` file in your project directory:
+
+```
+# .env file
+OPENAI_API_KEY=your-openai-api-key
+MARVIN_AGENT_MODEL=openai:gpt-4o
+MARVIN_LOG_LEVEL=INFO
+MARVIN_DATABASE_URL=sqlite+aiosqlite:///my_app.db
+```
+
+Marvin will automatically load these settings when your application starts.
+
+## Programmatic Configuration
+
+You can access and modify settings at runtime using the `marvin.settings` object:
+
+```python
+import marvin
+
+# Print the current settings
+print(marvin.settings)
+
+# Check the current model
+print(f"Current model: {marvin.settings.agent_model}")
+
+# Update a setting
+marvin.settings.agent_temperature = 0.8
+
+# Check if a setting exists
+if hasattr(marvin.settings, "database_url"):
+    print(f"Database URL: {marvin.settings.database_url}")
+```
+
+## Full Configuration Reference
+
+Below is a complete reference of all available configuration options:
+
+| Environment Variable | Type | Default | Description |
+|----------------------|------|---------|-------------|
+| `MARVIN_HOME_PATH` | `Path` | `~/.marvin` | Base directory for Marvin data |
+| `MARVIN_DATABASE_URL` | `str` | `sqlite+aiosqlite:///{home_path}/marvin.db` | Database connection string |
+| `MARVIN_LOG_LEVEL` | `str` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) |
+| `MARVIN_LOG_EVENTS` | `bool` | `false` | Whether to log all events as debug logs |
+| `MARVIN_AGENT_MODEL` | `str` | `openai:gpt-4o` | Default model for agents |
+| `MARVIN_AGENT_TEMPERATURE` | `float` | `None` | Temperature for agents (default varies by model) |
+| `MARVIN_AGENT_RETRIES` | `int` | `10` | Number of retries for invalid results |
+| `MARVIN_MAX_AGENT_TURNS` | `int` | `100` | Maximum number of turns per task |
+| `MARVIN_ENABLE_DEFAULT_PRINT_HANDLER` | `bool` | `true` | Enable default console output |
+| `MARVIN_DEFAULT_PRINT_HANDLER_HIDE_END_TURN_TOOLS` | `bool` | `false` | Hide end turn tool results in output |
+| `MARVIN_MEMORY_PROVIDER` | `str` | `chroma-ephemeral` | Default memory provider |
+| `MARVIN_CHROMA_CLOUD_API_KEY` | `str` | `None` | Chroma Cloud API key |
+| `MARVIN_CHROMA_CLOUD_TENANT` | `str` | `None` | Chroma Cloud tenant |
+| `MARVIN_CHROMA_CLOUD_DATABASE` | `str` | `None` | Chroma Cloud database |
+
+## Configuration Best Practices
+
+1. **Use environment variables for sensitive information** like API keys, especially in production environments.
+
+2. **Use a `.env` file during development** for convenience, but make sure it's in your `.gitignore` to avoid committing secrets.
+
+3. **Set appropriate log levels** - use `DEBUG` during development and `INFO` or higher in production.
+
+4. **Consider using an in-memory database** (`MARVIN_DATABASE_URL=":memory:"`) for testing or when persistence isn't needed.
+
+5. **Adjust model parameters for your use case**:
+   - For more creative tasks, increase temperature (e.g., `MARVIN_AGENT_TEMPERATURE=0.8`)
+   - For fact-based or precise tasks, use a lower temperature (e.g., `MARVIN_AGENT_TEMPERATURE=0.2`)
+   - For cost-sensitive applications, consider using a smaller model (e.g., `MARVIN_AGENT_MODEL="openai:gpt-4o-mini"`)
+
+6. **Set appropriate retry counts** based on your application's reliability needs. More retries can improve reliability but might increase costs and response times.
+
+7. **Create different configuration profiles** for development, testing, and production environments.
+
+## Troubleshooting
+
+If you're having configuration issues:
+
+1. **Check environment variable names** - all Marvin-specific variables must have the `MARVIN_` prefix.
+
+2. **Verify the `.env` file location** - it should be in your current working directory or project root.
+
+3. **Confirm API keys** - make sure your LLM provider API keys (e.g., `OPENAI_API_KEY`) are correctly set and valid.
+
+4. **Check permissions** - ensure Marvin has write access to the directory specified in `MARVIN_HOME_PATH`.
+
+5. **Inspect current settings** - use `print(marvin.settings)` to see the actual configuration that's being used.
+
+6. **Look for error messages** - setting `MARVIN_LOG_LEVEL=DEBUG` will provide more detailed logs to help diagnose issues. 

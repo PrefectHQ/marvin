@@ -1,0 +1,267 @@
+---
+title: Memory
+description: Enable agents to remember information across conversations
+icon: brain
+---
+
+Memory in Marvin allows agents to store and recall information across multiple conversations and sessions. Unlike threads, which maintain context within a single interaction, memory provides long-term persistence that survives across program restarts.
+
+## What is Memory?
+
+A Memory in Marvin is a specialized module that:
+
+1. Stores information in a vector database for efficient retrieval
+2. Allows agents to remember facts, preferences, and knowledge
+3. Can be shared between different agents or kept private
+4. Persists across multiple conversations and program executions
+
+```python
+import marvin
+
+# Create a memory module
+user_preferences = marvin.Memory(
+    key="user_preferences",
+    instructions="Remember the user's preferences and settings"
+)
+
+# Create an agent with this memory
+assistant = marvin.Agent(
+    name="Personal Assistant",
+    memories=[user_preferences]
+)
+
+# The agent can now store and recall information in this memory
+assistant.run("Remember that I prefer dark mode in all applications")
+
+# Later (even in a different session), the agent can recall this information
+assistant.run("What are my UI preferences?")  # Will recall dark mode preference
+```
+
+## Memory vs. Thread
+
+It's important to understand the difference between Memory and Thread:
+
+| Feature | Thread | Memory |
+| ------- | ------ | ------ |
+| **Persistence** | Temporary (session) | Long-term (across sessions) |
+| **Storage** | SQLite database | Vector database |
+| **Scope** | All messages in a conversation | Specific information to remember |
+| **Retrieval** | Sequential access | Semantic search |
+| **Purpose** | Maintain conversation flow | Store specific knowledge |
+
+## Creating and Using Memory
+
+### Basic Memory Creation
+
+To create a memory module:
+
+```python
+import marvin
+
+memory = marvin.Memory(
+    key="project_knowledge",
+    instructions="Store information about our software project"
+)
+```
+
+The parameters are:
+- `key`: A unique identifier for this memory (alphanumeric and underscores only)
+- `instructions`: Guidance for how the memory should be used
+
+### Attaching Memory to Agents
+
+Memory modules are attached to agents:
+
+```python
+# Create a memory
+product_knowledge = marvin.Memory(key="product_specs")
+
+# Attach to an agent
+support_agent = marvin.Agent(
+    name="Support Agent",
+    instructions="You provide technical support",
+    memories=[product_knowledge]
+)
+
+# Use the agent with memory
+support_agent.run("Remember that our product has 8GB RAM and 256GB storage")
+support_agent.run("What are our product specifications?")
+```
+
+### Sharing Memory Between Agents
+
+Multiple agents can share the same memory:
+
+```python
+# Create a shared memory
+team_knowledge = marvin.Memory(key="team_knowledge")
+
+# Create agents that share this memory
+researcher = marvin.Agent(
+    name="Researcher",
+    memories=[team_knowledge]
+)
+
+writer = marvin.Agent(
+    name="Writer",
+    memories=[team_knowledge]
+)
+
+# The researcher stores information
+researcher.run("Remember that quantum computing uses qubits instead of bits")
+
+# The writer can access this information
+writer.run("Write a paragraph about quantum computing fundamentals")
+```
+
+## Memory Operations
+
+### Adding Information
+
+Memory is typically populated through agent interactions, but you can also add information programmatically:
+
+```python
+import marvin
+import asyncio
+
+async def main():
+    memory = marvin.Memory(key="documentation")
+    
+    # Add information to memory
+    await memory.add("Python is a high-level programming language known for readability")
+    await memory.add("FastAPI is a modern web framework for building APIs with Python")
+
+asyncio.run(main())
+```
+
+### Searching Memory
+
+You can search memory directly:
+
+```python
+import marvin
+import asyncio
+
+async def main():
+    memory = marvin.Memory(key="documentation")
+    
+    # Search for relevant information
+    results = await memory.search("What is Python?")
+    print(results)  # Dictionary of memory_id: content pairs
+
+asyncio.run(main())
+```
+
+### Deleting Memory
+
+To remove specific memories:
+
+```python
+import marvin
+import asyncio
+
+async def main():
+    memory = marvin.Memory(key="user_data")
+    
+    # Add some information
+    memory_id = await memory.add("User prefers dark mode")
+    
+    # Later, delete this specific memory
+    await memory.delete(memory_id)
+
+asyncio.run(main())
+```
+
+## Memory Configuration
+
+### Memory Providers
+
+Marvin uses a memory provider to handle the storage and retrieval of memories. By default, it uses a SQLite-based provider, but you can configure others:
+
+```python
+import os
+
+# Configure the memory database location
+os.environ["MARVIN_DATABASE_URL"] = "sqlite:///path/to/memories.db"
+
+# Or use in-memory storage (no persistence)
+os.environ["MARVIN_DATABASE_URL"] = ":memory:"
+```
+
+### Auto-Use Memory
+
+You can configure a memory to be automatically used before each agent interaction:
+
+```python
+import marvin
+
+# Create a memory that's automatically queried
+auto_memory = marvin.Memory(
+    key="important_facts",
+    instructions="Always check these facts before responding",
+    auto_use=True
+)
+
+# Create an agent with this memory
+agent = marvin.Agent(memories=[auto_memory])
+
+# The agent will automatically check the memory before responding
+agent.run("Tell me about our company")
+```
+
+## Best Practices
+
+- **Specific Instructions**: Provide clear instructions about what should be stored in each memory
+- **Descriptive Keys**: Use meaningful keys that describe the memory's purpose
+- **Memory Separation**: Create separate memories for different types of information
+- **Selective Storage**: Don't store everything - focus on important information that needs to be remembered
+- **Regular Maintenance**: Periodically review and clean up memories that are no longer needed
+
+## Advanced Usage
+
+### Multiple Memory Modules
+
+Agents can have multiple memory modules for different purposes:
+
+```python
+import marvin
+
+# Create specialized memories
+user_preferences = marvin.Memory(key="user_preferences")
+product_knowledge = marvin.Memory(key="product_knowledge")
+conversation_history = marvin.Memory(key="past_conversations")
+
+# Create an agent with multiple memories
+agent = marvin.Agent(
+    name="Customer Support",
+    memories=[user_preferences, product_knowledge, conversation_history]
+)
+```
+
+### Memory in Teams
+
+Memory can be shared across a team of agents:
+
+```python
+import marvin
+
+# Create a shared memory
+project_memory = marvin.Memory(key="project_data")
+
+# Create agents with this memory
+agents = [
+    marvin.Agent(name="Researcher", memories=[project_memory]),
+    marvin.Agent(name="Writer", memories=[project_memory]),
+    marvin.Agent(name="Editor", memories=[project_memory])
+]
+
+# Create a team with these agents
+team = marvin.Swarm(members=agents)
+
+# The team shares knowledge through the memory
+team.run("Research quantum computing")
+team.run("Write an article about quantum computing")
+team.run("Edit the article for clarity")
+```
+
+Memory is a powerful feature that enables more personalized, context-aware AI applications. By effectively using memory, your agents can build up knowledge over time and provide more consistent, informed responses. 

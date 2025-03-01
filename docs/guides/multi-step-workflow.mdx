@@ -1,0 +1,252 @@
+---
+title: Building a Multi-step Workflow
+description: Create a complete AI application with multiple connected steps
+icon: diagram-project
+---
+
+In this tutorial, we'll build a complete AI application that demonstrates Marvin's ability to orchestrate multi-step workflows. We'll create an "AI Writer" that:
+
+1. Gets a topic from the user
+2. Researches the topic
+3. Creates an outline
+4. Writes a full article based on the research and outline
+
+This tutorial will showcase threads, tasks, agents, and context working together to create a powerful AI workflow.
+
+## Setting Up the Project
+
+First, make sure you have Marvin installed and configured:
+
+```bash
+pip install marvin
+```
+
+Set your OpenAI API key (or other provider):
+
+```bash
+export OPENAI_API_KEY="your-api-key"
+```
+
+## Creating Specialized Agents
+
+Let's start by creating specialized agents for each part of our workflow:
+
+```python
+import marvin
+from marvin import Agent, Thread
+
+# Create specialized agents for each task
+researcher = Agent(
+    name="Researcher",
+    instructions="""
+    You are an expert researcher who finds accurate, relevant information.
+    Focus on gathering key facts, statistics, and background information.
+    Always cite sources when possible.
+    """
+)
+
+outliner = Agent(
+    name="Outliner",
+    instructions="""
+    You create well-structured outlines for articles.
+    Organize information logically with clear sections and subsections.
+    Ensure the outline covers all important aspects of the topic.
+    """
+)
+
+writer = Agent(
+    name="Writer",
+    instructions="""
+    You write engaging, informative articles based on research and outlines.
+    Use a clear, professional tone with appropriate examples and explanations.
+    Follow the outline structure while expanding on each point.
+    """
+)
+```
+
+## Building the Workflow
+
+Now, let's create our multi-step workflow using a Marvin Thread to maintain context between steps:
+
+```python
+from pydantic import BaseModel
+from typing import List
+
+# Define structured output types
+class ResearchPoint(BaseModel):
+    fact: str
+    source: str = "General knowledge"
+
+class OutlineSection(BaseModel):
+    title: str
+    subsections: List[str]
+
+class Article(BaseModel):
+    title: str
+    introduction: str
+    sections: List[dict]
+    conclusion: str
+
+def generate_article(topic: str) -> Article:
+    """Generate a complete article on the given topic."""
+    
+    with Thread() as thread:
+        # Step 1: Get the topic (already provided as parameter)
+        print(f"📝 Generating article about: {topic}")
+        
+        # Step 2: Research the topic
+        print("🔍 Researching...")
+        research = researcher.run(
+            f"Research the topic '{topic}'. Find key facts, statistics, and background information.",
+            result_type=List[ResearchPoint]
+        )
+        
+        # Step 3: Create an outline
+        print("📋 Creating outline...")
+        outline = outliner.run(
+            "Create a comprehensive outline for an article on this topic.",
+            result_type=List[OutlineSection],
+            context={"topic": topic, "research": research}
+        )
+        
+        # Step 4: Write the article
+        print("✍️ Writing article...")
+        article = writer.run(
+            "Write a complete article following the outline and incorporating the research.",
+            result_type=Article,
+            context={
+                "topic": topic,
+                "research": research,
+                "outline": outline
+            }
+        )
+        
+        return article
+
+# Run the workflow
+if __name__ == "__main__":
+    import sys
+    
+    # Get topic from command line or use default
+    topic = sys.argv[1] if len(sys.argv) > 1 else "The impact of artificial intelligence on modern healthcare"
+    
+    # Generate the article
+    article = generate_article(topic)
+    
+    # Print the article
+    print("\n" + "="*50)
+    print(f"# {article.title}\n")
+    print(article.introduction)
+    print()
+    
+    for section in article.sections:
+        print(f"## {section['title']}")
+        print(section['content'])
+        print()
+    
+    print(f"## Conclusion")
+    print(article.conclusion)
+```
+
+## How It Works
+
+Let's break down what's happening in this workflow:
+
+1. **Thread Context**: We use a `Thread` to maintain context across all steps. Each agent can see the results of previous steps.
+
+2. **Specialized Agents**: Each agent has specific instructions tailored to its role:
+   - The Researcher focuses on gathering accurate information
+   - The Outliner organizes the information into a coherent structure
+   - The Writer creates the final content following the outline
+
+3. **Structured Outputs**: We use Pydantic models to ensure each step produces well-structured data:
+   - `ResearchPoint` captures individual facts with sources
+   - `OutlineSection` defines the article structure
+   - `Article` contains the complete formatted content
+
+4. **Context Passing**: Each step builds on previous steps by passing context:
+   - The outliner receives the research results
+   - The writer receives both the research and outline
+
+## Enhancing the Workflow
+
+Here are some ways to enhance this workflow:
+
+### Adding a Fact-Checking Step
+
+```python
+fact_checker = Agent(
+    name="Fact Checker",
+    instructions="Verify facts for accuracy and suggest corrections where needed."
+)
+
+# Add after the writing step
+fact_check = fact_checker.run(
+    "Review this article for factual accuracy. Identify any questionable claims.",
+    context={"article": article, "research": research}
+)
+
+# Then potentially update the article based on the fact check
+```
+
+### Adding User Feedback
+
+```python
+# After generating the outline but before writing
+print("Outline:")
+for i, section in enumerate(outline):
+    print(f"{i+1}. {section.title}")
+    for sub in section.subsections:
+        print(f"   - {sub}")
+
+feedback = input("\nAny changes to the outline? (Enter to continue, or type feedback): ")
+
+if feedback:
+    # Add the feedback to the context
+    outline = outliner.run(
+        "Revise the outline based on this feedback",
+        result_type=List[OutlineSection],
+        context={"outline": outline, "feedback": feedback}
+    )
+```
+
+### Adding Web Research
+
+```python
+import requests
+
+def search_web(query: str) -> str:
+    """Search the web for information (simplified example)."""
+    # In a real application, use a proper search API
+    response = requests.get(
+        "https://api.duckduckgo.com/",
+        params={"q": query, "format": "json"}
+    )
+    return response.json()
+
+# Add the tool to the researcher
+researcher = Agent(
+    name="Researcher",
+    instructions="Research topics using web searches when needed.",
+    tools=[search_web]
+)
+```
+
+## Conclusion
+
+This tutorial demonstrated how to build a complete multi-step AI workflow using Marvin. The key concepts we covered:
+
+- Using a Thread to maintain context across steps
+- Creating specialized agents for different tasks
+- Defining structured outputs with Pydantic models
+- Passing context between steps
+- Building a complete end-to-end application
+
+This pattern can be adapted for many different applications:
+- Content generation pipelines
+- Research and analysis workflows
+- Data processing and reporting
+- Customer support systems
+- Educational content creation
+
+By breaking complex tasks into discrete steps with specialized agents, you can create AI workflows that are more reliable, transparent, and capable than single-prompt solutions. 

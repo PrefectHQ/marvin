@@ -1,0 +1,196 @@
+---
+title: Tools and Context
+description: Extend AI capabilities with custom functions and additional information
+icon: wrench
+---
+
+Tools and context are two powerful ways to enhance Marvin's capabilities, allowing agents to perform actions beyond their built-in abilities and access additional information when completing tasks.
+
+## Tools: Extending Agent Capabilities
+
+Tools are Python functions that agents can call during task execution. They allow agents to:
+
+- Access external systems and APIs
+- Perform calculations or data processing
+- Interact with files, databases, or other resources
+- Execute custom business logic
+
+```python
+import marvin
+import requests
+
+def search_web(query: str) -> str:
+    """Search the web for information about the given query."""
+    response = requests.get(f"https://api.search.com?q={query}")
+    return response.json()["results"]
+
+# Use the tool in a task
+result = marvin.run(
+    "Research the latest developments in quantum computing",
+    tools=[search_web]
+)
+```
+
+When an agent has access to a tool, it can decide when and how to use it based on the task requirements. The agent sees the tool's name, docstring, and signature, and can call it with appropriate arguments.
+
+### Creating Effective Tools
+
+The best tools are:
+
+1. **Focused**: Each tool should do one thing well
+2. **Well-documented**: Clear docstrings help the agent understand when and how to use the tool
+3. **Type-hinted**: Type annotations help the agent understand what inputs and outputs to expect
+
+```python
+from typing import Annotated
+from pydantic import Field
+
+# Define custom types with descriptions
+ZipCode = Annotated[str, Field(description="A 5-digit US ZIP code")]
+Temperature = Annotated[float, Field(description="Temperature in Fahrenheit")]
+
+def get_weather(location: ZipCode) -> Temperature:
+    """Get the current temperature for the specified ZIP code."""
+    # Implementation details...
+    return 72.5
+```
+
+### Providing Tools
+
+Tools can be provided at different levels:
+
+```python
+# To a specific task
+task_result = marvin.run("Check the weather", tools=[get_weather])
+
+# To an agent (available for all tasks the agent performs)
+weather_agent = marvin.Agent(
+    name="WeatherBot",
+    instructions="You provide weather information",
+    tools=[get_weather, get_forecast]
+)
+
+# To a thread (available for all tasks in the thread)
+with marvin.Thread() as thread:
+    thread.tools = [get_weather, get_forecast]
+    marvin.run("What's the weather like?")
+    marvin.run("Will it rain tomorrow?")
+```
+
+## Context: Providing Additional Information
+
+Context is additional information you provide to a task or agent to help it generate better responses. Unlike tools (which are functions the agent can call), context is static data that informs the agent's understanding.
+
+```python
+import marvin
+
+# Provide context to a task
+response = marvin.run(
+    "Summarize the patient's condition",
+    context={
+        "medical_records": "Patient presents with fever (101.2°F), cough, and fatigue...",
+        "patient_history": "42-year-old male with history of asthma...",
+        "lab_results": "White blood cell count elevated at 12,000..."
+    }
+)
+```
+
+Context can include:
+- Background information
+- User preferences or history
+- Data to analyze or reference
+- Previous conversation history
+- System state or configuration
+
+### Using Context Effectively
+
+For best results with context:
+
+1. **Be selective**: Include only relevant information to avoid overwhelming the agent
+2. **Structure appropriately**: Organize complex context into clear sections
+3. **Use descriptive keys**: Name context variables clearly so the agent understands what each piece represents
+
+```python
+# Example of well-structured context
+context = {
+    "user_profile": {
+        "name": "Alex",
+        "preferences": ["science fiction", "technology", "hiking"],
+        "reading_level": "advanced"
+    },
+    "previous_recommendations": [
+        "The Three-Body Problem",
+        "Project Hail Mary"
+    ]
+}
+
+recommendation = marvin.run(
+    "Recommend a book Alex might enjoy",
+    context=context
+)
+```
+
+### Context in Prompts
+
+You can reference context directly in your prompts using string formatting:
+
+```python
+import marvin
+
+user_data = {"name": "Jamie", "goal": "lose weight"}
+
+plan = marvin.run(
+    "Create a fitness plan for {name} who wants to {goal}",
+    context=user_data
+)
+```
+
+## Combining Tools and Context
+
+Tools and context work together to create powerful AI workflows:
+
+```python
+import marvin
+import pandas as pd
+
+def analyze_data(data: list[dict]) -> dict:
+    """Analyze the provided data and return statistics."""
+    df = pd.DataFrame(data)
+    return {
+        "mean": df.mean().to_dict(),
+        "median": df.median().to_dict(),
+        "correlation": df.corr().to_dict()
+    }
+
+# Combine tools and context
+sales_data = [
+    {"product": "A", "price": 10, "units": 100},
+    {"product": "B", "price": 15, "units": 50},
+    # ...more data
+]
+
+analysis = marvin.run(
+    "Analyze our sales data and recommend pricing strategy",
+    tools=[analyze_data],
+    context={
+        "sales_data": sales_data,
+        "business_goal": "Increase revenue by 20% this quarter",
+        "competitor_prices": {"A": 12, "B": 14}
+    }
+)
+```
+
+In this example:
+- The context provides the data and business information
+- The tool gives the agent the ability to perform statistical analysis
+- Together, they enable the agent to make informed recommendations
+
+## Best Practices
+
+- **Security**: Only provide tools that you're comfortable with the agent using
+- **Error handling**: Ensure tools handle errors gracefully and provide helpful error messages
+- **Complexity**: Start with simple tools and context, then add complexity as needed
+- **Testing**: Test your tools independently before providing them to agents
+- **Observability**: Monitor tool usage to understand how agents are using them
+
+By effectively combining tools and context, you can create AI workflows that leverage both the reasoning capabilities of large language models and the precision of traditional code. 

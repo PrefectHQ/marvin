@@ -1,0 +1,184 @@
+---
+title: AI Functions
+description: Create AI-powered functions with a decorator
+icon: function
+---
+
+The `@fn` decorator transforms regular Python functions into AI-powered ones. With just a decorator and a function signature, you can create functions that are implemented by an AI under the hood.
+
+## Overview
+
+AI functions allow you to encapsulate complex AI logic inside regular-looking Python functions:
+
+```python
+import marvin
+from datetime import date
+
+@marvin.fn
+def generate_meal_plan(days: int, dietary_restrictions: list[str] = []) -> list[str]:
+    """Generate a meal plan for the specified number of days, respecting any dietary restrictions."""
+    ...  # No implementation needed - AI will handle this!
+
+# Use it like a regular function
+meals = generate_meal_plan(3, ["vegetarian", "gluten-free"])
+for meal in meals:
+    print(meal)
+```
+
+When you call an AI function, Marvin:
+1. Analyzes the function's signature, docstring, and parameter values
+2. Creates an AI task with this information
+3. Returns the result in the expected type
+
+## Parameters
+
+The `@fn` decorator accepts the following parameters:
+
+- `instructions`: Optional guidance for the AI
+- `agent`: Optional custom agent to use
+- `thread`: Optional thread for maintaining conversation context
+
+## Usage
+
+### Basic Function
+
+Define a function with a clear docstring and type hints:
+
+```python
+import marvin
+
+@marvin.fn
+def translate(text: str, target_language: str) -> str:
+    """Translate the given text to the target language."""
+    pass  # or ... (implementation is provided by AI)
+
+result = translate("Hello world", "Spanish")
+print(result)  # "Hola mundo"
+```
+
+### With Instructions
+
+Add specific instructions to guide the AI:
+
+```python
+import marvin
+
+@marvin.fn(instructions="Use formal language")
+def write_letter(recipient: str, topic: str) -> str:
+    """Write a professional letter to the recipient about the given topic."""
+    ...
+
+letter = write_letter("HR Department", "Request for vacation")
+print(letter)
+```
+
+### Structured Output
+
+Return complex data structures using Pydantic models:
+
+```python
+from pydantic import BaseModel
+import marvin
+
+class Person(BaseModel):
+    name: str
+    age: int
+    occupation: str
+    skills: list[str]
+
+@marvin.fn
+def create_character(personality: str) -> Person:
+    """Create a fictional character with the specified personality traits."""
+    ...
+
+character = create_character("introverted, tech-savvy, curious")
+print(f"{character.name} is a {character.age}-year-old {character.occupation}")
+print(f"Skills: {', '.join(character.skills)}")
+```
+
+### Overriding Settings at Call Time
+
+You can override settings when calling the function:
+
+```python
+import marvin
+from marvin import Agent
+
+@marvin.fn
+def analyze_sentiment(text: str) -> str:
+    """Determine if the sentiment of the text is positive, negative, or neutral."""
+    ...
+
+# Create a specialized agent
+precise_agent = Agent(
+    name="Sentiment Analyst",
+    instructions="Be extremely precise about sentiment analysis"
+)
+
+# Use the default implementation
+basic = analyze_sentiment("This product is okay.")
+
+# Override with a specialized agent
+detailed = analyze_sentiment(
+    "This product is okay.",
+    _agent=precise_agent,
+    _instructions="Provide nuanced analysis"
+)
+
+print(f"Basic: {basic}")
+print(f"Detailed: {detailed}")
+```
+
+## Advanced Usage
+
+### Function as Task
+
+Every AI function has an `as_task()` method that returns the underlying Marvin task without executing it:
+
+```python
+import marvin
+
+@marvin.fn
+def summarize_text(text: str) -> str:
+    """Summarize the given text in a brief paragraph."""
+    ...
+
+# Get the task without running it
+task = summarize_text.as_task("Long article text here...")
+
+# Customize the task further
+task.name = "Custom summarization"
+result = task.run()
+```
+
+### Async Support
+
+AI functions work with async code:
+
+```python
+import marvin
+import asyncio
+
+@marvin.fn
+async def generate_ideas(topic: str, count: int = 5) -> list[str]:
+    """Generate creative ideas related to the given topic."""
+    ...
+
+async def main():
+    ideas = await generate_ideas("sustainable transportation")
+    for i, idea in enumerate(ideas, 1):
+        print(f"{i}. {idea}")
+
+asyncio.run(main())
+```
+
+## When to Use AI Functions
+
+AI functions are ideal when:
+
+- You want to expose AI capabilities through a clean API
+- The logic is well-defined but complex to implement
+- You prefer working with standard function calls rather than explicit prompts
+- You want strongly typed returns from AI operations
+
+They provide a bridge between conventional programming and AI capabilities, making your code more readable and maintainable. 

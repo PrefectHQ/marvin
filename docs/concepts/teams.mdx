@@ -1,0 +1,173 @@
+---
+title: Teams
+description: Coordinate multiple AI agents to solve complex problems
+icon: users
+---
+
+Teams in Marvin allow multiple agents to collaborate on tasks, combining their specialized skills and perspectives to achieve better results than a single agent could alone.
+
+## What are Teams?
+
+A Team is a group of agents that can work together on tasks, with mechanisms for coordination and delegation. Teams are useful when:
+
+- A task requires multiple specialized skills or perspectives
+- You want agents to check each other's work
+- Complex problems benefit from collaborative problem-solving
+
+```python
+import marvin
+from marvin import Agent, Swarm
+
+# Create specialized agents
+researcher = Agent(name="Researcher", instructions="Find and analyze information thoroughly")
+writer = Agent(name="Writer", instructions="Create engaging, clear content")
+editor = Agent(name="Editor", instructions="Improve and refine content for clarity and accuracy")
+
+# Form a team
+content_team = Swarm([researcher, writer, editor])
+
+# Use the team to complete a task
+article = content_team.run("Create an article about quantum computing")
+print(article)
+```
+
+## Types of Teams
+
+Marvin offers several team configurations:
+
+### Swarm
+
+A Swarm is the simplest type of team, where all agents can freely collaborate and delegate to each other. Any agent in the swarm can ask another agent for help at any time.
+
+```python
+from marvin import Agent, Swarm
+
+agents = [
+    Agent(name="Creative", instructions="Think outside the box"),
+    Agent(name="Analytical", instructions="Analyze ideas critically"),
+    Agent(name="Practical", instructions="Focus on implementation details")
+]
+
+team = Swarm(members=agents)
+result = team.run("Design a new urban transportation system")
+```
+
+### RoundRobinTeam
+
+A RoundRobinTeam rotates through its members in sequence, with each agent taking a turn to contribute.
+
+```python
+from marvin import Agent, RoundRobinTeam
+
+agents = [
+    Agent(name="Brainstormer", instructions="Generate initial ideas"),
+    Agent(name="Developer", instructions="Expand on ideas with details"),
+    Agent(name="Critic", instructions="Identify potential issues")
+]
+
+team = RoundRobinTeam(members=agents)
+result = team.run("Develop a strategy for reducing plastic waste")
+```
+
+### RandomTeam
+
+A RandomTeam randomly selects an agent for each turn, introducing variety in the collaboration.
+
+```python
+from marvin import Agent, RandomTeam
+
+agents = [
+    Agent(name="Optimist", instructions="Focus on positive aspects"),
+    Agent(name="Pessimist", instructions="Identify potential problems"),
+    Agent(name="Realist", instructions="Balance optimism and pessimism")
+]
+
+team = RandomTeam(members=agents)
+result = team.run("Evaluate this business proposal")
+```
+
+## How Teams Work
+
+When you run a task with a team:
+
+1. The team selects an active agent (depending on the team type)
+2. The active agent works on the task
+3. If needed, the agent can delegate to other team members
+4. The process continues until the task is complete
+5. The final result is returned
+
+Behind the scenes, Marvin manages the conversation flow between agents, ensuring that each agent has the context it needs to contribute effectively.
+
+## Creating Effective Teams
+
+For best results with teams:
+
+- **Specialized Roles**: Give each agent a distinct role or perspective
+- **Clear Instructions**: Ensure each agent has clear, specific instructions
+- **Complementary Skills**: Combine agents with different but complementary abilities
+- **Appropriate Size**: Start with 2-4 agents; too many can lead to inefficiency
+
+## Advanced Team Usage
+
+### Custom Team Configurations
+
+You can create custom team configurations by extending the `Team` class:
+
+```python
+from marvin import Agent, Team
+from dataclasses import dataclass, field
+from typing import Any
+
+@dataclass(kw_only=True)
+class HierarchicalTeam(Team):
+    """A team with a leader who delegates to specialists."""
+    
+    leader: Agent = field(repr=False)
+    specialists: list[Agent] = field(repr=False)
+    
+    def __post_init__(self):
+        self.members = [self.leader] + self.specialists
+        self.active_member = self.leader
+        self.delegates = {self.leader: self.specialists}
+        
+# Usage
+leader = Agent(name="Project Manager", instructions="Coordinate the team and make final decisions")
+specialists = [
+    Agent(name="Designer", instructions="Create visual designs"),
+    Agent(name="Developer", instructions="Implement technical solutions")
+]
+
+team = HierarchicalTeam(leader=leader, specialists=specialists)
+result = team.run("Create a landing page for our product")
+```
+
+### Team with Shared Memory
+
+Teams can share memory across agents:
+
+```python
+from marvin import Agent, Swarm, Memory
+
+# Create a shared memory
+project_memory = Memory(key="project_knowledge")
+
+# Create agents with shared memory
+agents = [
+    Agent(name="Researcher", memories=[project_memory]),
+    Agent(name="Writer", memories=[project_memory])
+]
+
+# Form a team
+team = Swarm(members=agents)
+
+# The team will build up shared knowledge
+team.run("Research quantum computing basics")
+team.run("Write an introduction to quantum computing")  # Uses shared knowledge
+```
+
+## When to Use Teams vs. Single Agents
+
+- **Use a single agent** when the task is straightforward, focused, or requires a consistent voice
+- **Use a team** when the task is complex, requires multiple perspectives, or benefits from debate and refinement
+
+Teams add some overhead in terms of tokens and processing time, so they're best used when their collaborative capabilities provide clear benefits over a single agent approach. 
