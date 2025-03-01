@@ -1,7 +1,3 @@
-# /// script
-# dependencies = ["marvin"]
-# ///
-
 from typing import Annotated, Any, TypedDict
 
 from pydantic import Field, create_model
