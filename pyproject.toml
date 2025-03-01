@@ -6,6 +6,7 @@ requires-python = ">=3.10"
 dynamic = ["version"]
 dependencies = [
     "aiosqlite>=0.20.0",
+    "alembic>=1.12.0",
     "jinja2>=3.1.4",
     "partial-json-parser>=0.2.1.1.post5",
     "pydantic-ai>=0.0.30",
@@ -36,6 +37,11 @@ dev = [
 # Add this section for CLI entry point
 [project.scripts]
 marvin = "marvin.cli.main:app"
+
+# Include migration files in the package
+[tool.hatch.build.targets.wheel]
+packages = ["src/marvin"]
+include = ["migrations/**/*", "alembic.ini"]
 
 # pytest configuration
 [tool.pytest.ini_options]

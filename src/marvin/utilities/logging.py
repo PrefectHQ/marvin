@@ -51,9 +51,7 @@ def get_logger(name: str | None = None) -> logging.Logger:
     return logger
 
 
-def setup_logging(
-    level: str | None = None,
-) -> None:
+def setup_logging(level: str | None = None) -> None:
     logger = get_logger()
 
     if level is not None:

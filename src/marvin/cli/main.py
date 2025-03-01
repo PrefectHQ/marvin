@@ -14,12 +14,19 @@ from typer import Context, Exit
 import marvin
 
 from .dev import dev_app
+from .migrations import migrations as migrations_app
+from .migrations import migrations_dev
 
 console = Console()
 
 app = typer.Typer(no_args_is_help=True)
 
+# Add the migrations commands to the dev app
+dev_app.add_typer(migrations_dev, name="db")
+
+# Add the main app commands
 app.add_typer(dev_app, name="dev")
+app.add_typer(migrations_app, name="db")
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING, force=True)
 
 

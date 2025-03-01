@@ -45,6 +45,15 @@ class Settings(BaseSettings):
         description="Database URL. Defaults to `sqlite+aiosqlite:///{{home_path}}/marvin.db`.",
     )
 
+    auto_init_sqlite: bool = Field(
+        default=True,
+        description="""
+        For SQLite databases, whether to automatically initialize the database
+        on startup if the file doesn't already exist. This is a one-time
+        operation to migrate the database to the latest version and will not be
+        repeated.""",
+    )
+
     @field_validator("database_url")
     @classmethod
     def validate_database_url(cls, v: str | None, info: ValidationInfo) -> str:
