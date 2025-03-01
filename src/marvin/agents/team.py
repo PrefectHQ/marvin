@@ -13,7 +13,6 @@ from marvin.prompts import Template
 
 if TYPE_CHECKING:
     from marvin.engine.end_turn import EndTurn
-    from marvin.engine.llm import Message
     from marvin.engine.orchestrator import Orchestrator
 
 
@@ -73,12 +72,10 @@ class Team(Actor):
 
     async def get_agentlet(
         self,
-        messages: list["Message"],
         tools: list[Callable[..., Any]],
         end_turn_tools: list["EndTurn"],
     ) -> pydantic_ai.Agent[Any, Any]:
-        return self.active_member.get_agentlet(
-            messages=messages,
+        return await self.active_member.get_agentlet(
             tools=self.get_tools() + tools,
             end_turn_tools=self.get_end_turn_tools() + end_turn_tools,
         )

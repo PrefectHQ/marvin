@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 import pydantic_ai
-from pydantic_ai.agent import Agent as PydanticAgentlet
 from pydantic_ai.models import KnownModelName, Model, ModelSettings
 
 import marvin
@@ -30,7 +29,6 @@ if TYPE_CHECKING:
     from marvin.engine.end_turn import EndTurn
     from marvin.engine.events import Event
     from marvin.engine.handlers import AsyncHandler, Handler
-    from marvin.engine.llm import Message
 
 
 async def handle_event(
@@ -119,10 +117,9 @@ class Agent(Actor):
 
     async def get_agentlet(
         self,
-        messages: list["Message"],
         tools: list[Callable[..., Any]],
         end_turn_tools: list["EndTurn"],
-    ) -> PydanticAgentlet[Any, Any]:
+    ) -> pydantic_ai.Agent[Any, Any]:
         """
         A full streaming iterator over an agent's run.
 
@@ -154,12 +151,21 @@ class Agent(Actor):
             result_type = Union[tuple(end_turn_tools)]
             result_tool_name = "EndTurn"
 
-        agentlet = get_agentlet(
-            agent=self,
+        tools = [wrap_tool_errors(tool) for tool in tools or []]
+
+        agentlet = pydantic_ai.Agent[Any, result_type](  # type: ignore
+            model=self.get_model(),
             result_type=result_type,
             tools=tools,
-            result_tool_name=result_tool_name,
+            model_settings=self.get_model_settings(),
+            end_strategy="exhaustive",
+            result_tool_name=result_tool_name or "EndTurn",
+            result_tool_description="This tool will end your turn. You may only use one EndTurn tool per turn.",
+            retries=marvin.settings.agent_retries,
         )
+        # new fields
+        agentlet._marvin_tools = tools
+        agentlet._marvin_end_turn_tools = end_turn_tools
         return agentlet
 
     def get_prompt(self) -> str:
@@ -170,9 +176,9 @@ def get_agentlet(
     agent: Agent,
     result_type: type,
     tools: list[Callable[..., Any]] | None = None,
-    handlers: list["Handler | AsyncHandler"] | None = None,
+    end_turn_tools: list["EndTurn"] | None = None,
     result_tool_name: str | None = None,
-) -> PydanticAgentlet[Any, Any]:
+) -> pydantic_ai.Agent[Any, Any]:
     """Create a Pydantic AI agent with the specified configuration.
 
     Args:
@@ -196,6 +202,8 @@ def get_agentlet(
         result_tool_name=result_tool_name or "EndTurn",
         result_tool_description="This tool will end your turn. You may only use one EndTurn tool per turn.",
         retries=marvin.settings.agent_retries,
+        original_tools=tools,
+        original_end_turn_tools=end_turn_tools,
     )
 
     # from marvin.engine.events import (

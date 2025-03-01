@@ -124,6 +124,7 @@ class ToolCallDeltaEvent(Event):
     delta: ToolCallPartDelta
     snapshot: ToolCallPart
     tool_call_id: str
+    tool: Callable[..., Any] | None
 
     def args_dict(self) -> dict[str, Any]:
         """Return the args as a dictionary."""

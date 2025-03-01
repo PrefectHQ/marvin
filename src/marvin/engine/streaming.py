@@ -1,8 +1,8 @@
 from collections.abc import Callable
 from typing import Any
 
+import pydantic_ai
 from pydantic_ai._parts_manager import ModelResponsePartsManager
-from pydantic_ai.agent import Agent as PydanticAgentlet
 from pydantic_ai.agent import AgentRun
 from pydantic_ai.messages import (
     FinalResultEvent,
@@ -40,10 +40,9 @@ logger = get_logger(__name__)
 
 
 async def handle_agentlet_events(
+    agentlet: pydantic_ai.Agent,
     actor: Actor,
     run: AgentRun,
-    tools: list[Callable[..., Any]],
-    end_turn_tools: list[EndTurn],
 ):
     """Run a PydanticAI agentlet and process its events through the Marvin event system.
 
@@ -73,16 +72,20 @@ async def handle_agentlet_events(
     """
     # Create a parts manager to accumulate delta events for this run
     parts_manager = ModelResponsePartsManager()
-    tools = {t.__name__: t for t in tools}
-    end_turn_tools = {t.__name__: t for t in end_turn_tools}
+    tools_map = {t.__name__: t for t in agentlet._marvin_tools}
+
+    end_turn_tools_map = {}
+    for t in agentlet._marvin_end_turn_tools:
+        end_turn_tools_map[t.__name__] = t
+        end_turn_tools_map[f"{agentlet._result_tool_name}_{t.__name__}"] = t
 
     async for node in run:
-        if PydanticAgentlet.is_user_prompt_node(node):
+        if pydantic_ai.Agent.is_user_prompt_node(node):
             yield UserMessageEvent(
                 message=node.user_prompt,
             )
 
-        elif PydanticAgentlet.is_model_request_node(node):
+        elif pydantic_ai.Agent.is_model_request_node(node):
             # EndTurnTool retries do not get processed as normal
             # FunctionToolResultEvents, but can be detected by checking for
             # RetryPromptPart that match the end turn tool names. Here, we
@@ -91,7 +94,7 @@ async def handle_agentlet_events(
             for part in node.request.parts:
                 if (
                     isinstance(part, RetryPromptPart)
-                    and part.tool_name in end_turn_tools
+                    and part.tool_name in end_turn_tools_map
                 ):
                     yield ToolRetryEvent(message=part)
 
@@ -103,8 +106,8 @@ async def handle_agentlet_events(
                             event=event,
                             actor=actor,
                             parts_manager=parts_manager,
-                            tools=tools,
-                            end_turn_tools=end_turn_tools,
+                            tools_map=tools_map,
+                            end_turn_tools_map=end_turn_tools_map,
                         )
                         if event:
                             yield event
@@ -118,7 +121,7 @@ async def handle_agentlet_events(
                         if marvin.settings.log_level == "DEBUG":
                             logger.exception("Detailed traceback:")
 
-        elif PydanticAgentlet.is_handle_response_node(node):
+        elif pydantic_ai.Agent.is_handle_response_node(node):
             # Handle-response node - the model returned data, potentially calls a tool
             async with node.stream(run.ctx) as handle_stream:
                 async for event in handle_stream:
@@ -127,8 +130,8 @@ async def handle_agentlet_events(
                             event=event,
                             actor=actor,
                             parts_manager=parts_manager,
-                            tools=tools,
-                            end_turn_tools=end_turn_tools,
+                            tools_map=tools_map,
+                            end_turn_tools_map=end_turn_tools_map,
                         )
                         if event:
                             yield event
@@ -143,7 +146,7 @@ async def handle_agentlet_events(
                             logger.exception("Detailed traceback:")
 
         # Check if we've reached the final End node
-        elif PydanticAgentlet.is_end_node(node):
+        elif pydantic_ai.Agent.is_end_node(node):
             tool_call_part = None
             for part in parts_manager.get_parts():
                 if (
@@ -157,11 +160,13 @@ async def handle_agentlet_events(
                     f"No tool call part found for {node.data.tool_name}. This is unexpected."
                 )
 
+            tool = end_turn_tools_map.get(node.data.tool_name)
+
             yield EndTurnToolResultEvent(
                 actor=actor,
                 result=node.data,
                 tool_call_id=tool_call_part.tool_call_id,
-                tool=end_turn_tools.get(node.data.tool_name),
+                tool=tool,
             )
         else:
             logger.warning(f"Unknown node type: {type(node)}")
@@ -172,8 +177,8 @@ def _process_pydantic_event(
     event,
     actor: Actor,
     parts_manager: ModelResponsePartsManager,
-    tools: dict[str, Callable[..., Any]],
-    end_turn_tools: dict[str, EndTurn],
+    tools_map: dict[str, Callable[..., Any]],
+    end_turn_tools_map: dict[str, EndTurn],
 ) -> Event | None:
     def _get_snapshot(index: int) -> ModelResponsePart:
         return parts_manager.get_parts()[index]
@@ -214,8 +219,8 @@ def _process_pydantic_event(
                 ),
                 snapshot=snapshot,
                 tool_call_id=snapshot.tool_call_id,
+                tool=tools_map.get(event.part.tool_name),
             )
-
     # Handle Part Delta Events
     elif isinstance(event, PartDeltaEvent):
         # Process a delta update to an existing part
@@ -246,6 +251,7 @@ def _process_pydantic_event(
                 delta=event.delta,
                 snapshot=_get_snapshot(event.index),
                 tool_call_id=event.delta.tool_call_id,
+                tool=tools_map.get(event.delta.tool_name_delta),
             )
 
     # Handle Function Tool Call Events
@@ -256,7 +262,7 @@ def _process_pydantic_event(
             actor=actor,
             message=event.part,
             tool_call_id=event.part.tool_call_id,
-            tool=tools.get(event.part.tool_name),
+            tool=tools_map.get(event.part.tool_name),
         )
 
     # Handle Function Tool Result Events
@@ -287,7 +293,7 @@ def _process_pydantic_event(
             actor=actor,
             event=event,
             tool_call_id=tool_call_part.tool_call_id,
-            tool=end_turn_tools.get(event.tool_name),
+            tool=end_turn_tools_map.get(event.tool_name),
         )
 
     else:

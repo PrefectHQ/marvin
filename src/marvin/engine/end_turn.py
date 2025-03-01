@@ -19,6 +19,8 @@ logger = get_logger(__name__)
 
 
 class EndTurn:
+    name: ClassVar[str | None] = None
+
     async def run(self, orchestrator: "Orchestrator", actor: "Actor") -> None:
         pass
 
@@ -37,7 +39,10 @@ def create_mark_task_successful(mark_task: "Task[Any]") -> type[MarkTaskSuccessf
         """Mark a task successful and provide a result."""
 
         result: TaskResult
-        task = mark_task
+        task: ClassVar["Task[Any]"] = field(default=mark_task, init=False)
+        name: ClassVar[str] = field(
+            default=f"Mark {mark_task.friendly_name()} successful", init=False
+        )
 
         def __post_init__(self):
             mark_task.validate_result(self.result)
@@ -65,7 +70,10 @@ def create_mark_task_failed(mark_task: "Task[Any]") -> type[MarkTaskFailed]:
         """Mark a task failed and provide a message."""
 
         message: str | None = None
-        task = mark_task
+        task: ClassVar["Task[Any]"] = field(default=mark_task, init=False)
+        name: ClassVar[str] = field(
+            default=f"Mark {mark_task.friendly_name()} failed", init=False
+        )
 
         async def run(self, orchestrator: "Orchestrator", actor: "Actor") -> None:
             if self.message:
@@ -94,7 +102,10 @@ def create_mark_task_skipped(mark_task: "Task[Any]") -> type[MarkTaskSkipped]:
     class _MarkTaskSkipped(MarkTaskSkipped):
         """Mark a task skipped."""
 
-        task = mark_task
+        task: ClassVar["Task[Any]"] = field(default=mark_task, init=False)
+        name: ClassVar[str] = field(
+            default=f"Mark {mark_task.friendly_name()} skipped", init=False
+        )
 
         async def run(self, orchestrator: "Orchestrator", actor: "Actor") -> None:
             logger.debug(
@@ -135,7 +146,10 @@ def create_delegate_to_actor(
             default=None,
             metadata={"description": "An optional message to send to the delegate"},
         )
-        actor = delegate_actor
+        actor: ClassVar["Actor"] = field(default=delegate_actor, init=False)
+        name: ClassVar[str] = field(
+            default=f"Delegate to {delegate_actor.friendly_name()}", init=False
+        )
 
         async def run(self, orchestrator: "Orchestrator", actor: "Actor"):
             if team is not None:
@@ -157,8 +171,10 @@ class PlanSubtasks(EndTurn):
 def create_plan_subtasks(parent_task: "Task[Any]") -> type[PlanSubtasks]:
     @dataclass(kw_only=True)
     class _PlanSubtasks(PlanSubtasks):
-        task = parent_task
-
+        task: ClassVar["Task[Any]"] = field(default=parent_task, init=False)
+        name: ClassVar[str] = field(
+            default=f"Plan subtasks for {parent_task.friendly_name()}", init=False
+        )
         instructions: str = field(
             metadata={
                 "description": inspect.cleandoc(f"""

@@ -1,7 +1,7 @@
 """A simplified print handler for rendering streaming events from the engine."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, Tuple
+from typing import Any, Callable, Dict, Tuple
 
 import rich
 from rich import box
@@ -14,6 +14,10 @@ from rich.spinner import Spinner
 from rich.table import Table
 
 import marvin
+from marvin.engine.end_turn import (
+    EndTurn,
+    MarkTaskSuccessful,
+)
 from marvin.engine.events import (
     ActorMessageDeltaEvent,
     ActorMessageEvent,
@@ -28,6 +32,7 @@ from marvin.engine.events import (
     ToolRetryEvent,
 )
 from marvin.engine.handlers import Handler
+from marvin.utilities.types import issubclass_safe
 
 # Global spinner for consistent animation
 RUNNING_SPINNER = Spinner("dots")
@@ -77,6 +82,7 @@ class ToolCallPanel(EventPanel):
     result: str = ""
     is_error: bool = False
     is_end_turn_tool: bool = False
+    tool: EndTurn | Callable[..., Any] | None = None
 
     def __post_init__(self):
         if self.args is None:
@@ -107,12 +113,14 @@ class ToolCallPanel(EventPanel):
         table.add_row("Status:", icon)
 
         if self.args:
+            args = self.args
             if self.is_end_turn_tool:
                 caption = "Result"
-                args = self.args.get("response", None)
-                # for mark success tools, the args are under the "result" key
-                if isinstance(args, dict) and "result" in args:
-                    args = args["result"]
+                if issubclass_safe(self.tool, MarkTaskSuccessful):
+                    args = self.args.get("response", None)
+                    if isinstance(args, dict) and "result" in args:
+                        args = args["result"]
+
             else:
                 caption = "Input"
                 args = self.args
@@ -295,12 +303,12 @@ class PrintHandler(Handler):
                 timestamp=self.format_timestamp(event.timestamp),
                 tool_name=event.snapshot.tool_name,
                 args=event.args_dict(),
+                tool=event.tool,
             )
         else:
             # Update existing panel
             panel = self.panels[tool_id]
             if isinstance(panel, ToolCallPanel):
-                panel.tool_name = event.snapshot.tool_name
                 panel.args = event.args_dict()
 
         # Always update to show streaming changes
@@ -325,15 +333,13 @@ class PrintHandler(Handler):
                 timestamp=self.format_timestamp(event.timestamp),
                 tool_name=event.message.tool_name,
                 args=event.args_dict(),
-                is_complete=False,  # Start as not complete
+                tool=event.tool,
             )
         else:
             # Update existing panel
             panel = self.panels[tool_id]
             if isinstance(panel, ToolCallPanel):
-                panel.tool_name = event.message.tool_name
                 panel.args = event.args_dict()
-                # Do not mark as complete here
 
         self.update_display()
 
@@ -363,6 +369,10 @@ class PrintHandler(Handler):
         # Find the corresponding tool call panel and mark it as an end turn tool
         panel: ToolCallPanel = self.panels[event.tool_call_id]
         panel.is_end_turn_tool = True
+        if event.tool and event.tool.name is not None:
+            panel.tool_name = event.tool.name
+            panel.tool = event.tool
+
         self.update_display()
 
     def on_end_turn_tool_result(self, event: EndTurnToolResultEvent):

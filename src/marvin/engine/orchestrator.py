@@ -195,7 +195,6 @@ class Orchestrator:
 
         # --- run agent
         agentlet = await actor.get_agentlet(
-            messages=all_messages,
             tools=list(tools),
             end_turn_tools=list(end_turn_tools),
         )
@@ -204,10 +203,9 @@ class Orchestrator:
         with actor:
             with agentlet.iter("", message_history=all_messages) as run:
                 async for event in handle_agentlet_events(
+                    agentlet=agentlet,
                     actor=actor,
                     run=run,
-                    tools=tools,
-                    end_turn_tools=end_turn_tools,
                 ):
                     await self.handle_event(event)
 

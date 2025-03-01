@@ -11,7 +11,6 @@ from pydantic_ai.agent import AgentRunResult
 
 import marvin
 import marvin.utilities.asyncio
-from marvin.engine.llm import Message
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.thread import Thread
@@ -79,7 +78,6 @@ class Actor(ABC):
     @abstractmethod
     async def get_agentlet(
         self,
-        messages: list[Message],
         tools: Sequence[Callable[..., Any]],
         end_turn_tools: Sequence["EndTurn"],
     ) -> pydantic_ai.Agent[Any, Any]:
