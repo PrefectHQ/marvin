@@ -7,7 +7,7 @@ from marvin.engine.events import (
     EndTurnToolResultEvent,
     Event,
     OrchestratorEndEvent,
-    OrchestratorExceptionEvent,
+    OrchestratorErrorEvent,
     OrchestratorStartEvent,
     ToolCallDeltaEvent,
     ToolCallEvent,
@@ -94,10 +94,10 @@ class Handler:
         pass
 
     def on_orchestrator_end(self, event: OrchestratorEndEvent):
-        """Handles normal orchestrator completion. Called when the orchestration finishes successfully."""
+        """Handles normal orchestrator completion. Called when orchestration ends (including after an error)."""
         pass
 
-    def on_orchestrator_exception(self, event: OrchestratorExceptionEvent):
+    def on_orchestrator_error(self, event: OrchestratorErrorEvent):
         """Handles orchestrator exceptions. Called when an error occurs during orchestration."""
         pass
 
@@ -179,9 +179,9 @@ class AsyncHandler:
         pass
 
     async def on_orchestrator_end(self, event: OrchestratorEndEvent):
-        """Handles normal orchestrator completion. Called when the orchestration finishes successfully."""
+        """Handles normal orchestrator completion. Called when orchestration ends (including after an error)."""
         pass
 
-    async def on_orchestrator_exception(self, event: OrchestratorExceptionEvent):
+    async def on_orchestrator_error(self, event: OrchestratorErrorEvent):
         """Handles orchestrator exceptions. Called when an error occurs during orchestration."""
         pass

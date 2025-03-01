@@ -20,7 +20,7 @@ from marvin.engine.events import (
     ActorStartTurnEvent,
     Event,
     OrchestratorEndEvent,
-    OrchestratorExceptionEvent,
+    OrchestratorErrorEvent,
     OrchestratorStartEvent,
 )
 from marvin.engine.handlers import AsyncHandler, Handler
@@ -281,7 +281,7 @@ class Orchestrator:
                         raise ValueError("Max agent turns reached")
 
                 except (Exception, KeyboardInterrupt, CancelledError) as e:
-                    await self.handle_event(OrchestratorExceptionEvent(error=str(e)))
+                    await self.handle_event(OrchestratorErrorEvent(error=str(e)))
                     raise
                 finally:
                     await self.handle_event(OrchestratorEndEvent())
