@@ -190,7 +190,7 @@ async def plan_async(
         agents=[agent] if agent else None,
     )
 
-    tasks = await task.run_async(thread=thread, handlers=[])
+    tasks = await task.run_async(thread=thread)
     return create_tasks(
         tasks,
         agent_map=agent_map | {None: task.get_actor()},

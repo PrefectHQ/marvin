@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Sequence, TypeVar
 
+import pydantic_ai
 from pydantic_ai.agent import AgentRunResult
 
 import marvin
 import marvin.utilities.asyncio
-from marvin.engine.llm import Message
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.thread import Thread
@@ -76,12 +76,11 @@ class Actor(ABC):
         return _current_actor.get()
 
     @abstractmethod
-    async def _run(
+    async def get_agentlet(
         self,
-        messages: list[Message],
         tools: Sequence[Callable[..., Any]],
         end_turn_tools: Sequence["EndTurn"],
-    ) -> AgentRunResult:
+    ) -> pydantic_ai.Agent[Any, Any]:
         raise NotImplementedError("Actor subclasses must implement _run")
 
     async def start_turn(self, orchestrator: "Orchestrator"):

@@ -1,7 +1,7 @@
 """Utility functions for LLM completions using Pydantic AI."""
 
 from collections.abc import Callable
-from typing import Any, get_type_hints
+from typing import TYPE_CHECKING, Any, get_type_hints
 
 import pydantic_ai
 from pydantic_ai import RunContext
@@ -14,6 +14,9 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from typing_extensions import TypeVar
+
+if TYPE_CHECKING:
+    pass
 
 # Define Message type union
 Message = ModelRequest | ModelResponse

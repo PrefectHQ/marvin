@@ -16,21 +16,21 @@ from marvin.agents.agent import Agent
 from marvin.database import DBLLMCall
 from marvin.engine.end_turn import EndTurn
 from marvin.engine.events import (
-    AgentEndTurnEvent,
-    AgentStartTurnEvent,
+    ActorEndTurnEvent,
+    ActorStartTurnEvent,
     Event,
     OrchestratorEndEvent,
     OrchestratorExceptionEvent,
     OrchestratorStartEvent,
-    message_to_events,
 )
 from marvin.engine.handlers import AsyncHandler, Handler
 from marvin.engine.print_handler import PrintHandler
+from marvin.engine.streaming import handle_agentlet_events
 from marvin.instructions import get_instructions
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.tasks.task import Task
-from marvin.thread import Thread, get_thread, message_adapter
+from marvin.thread import Thread, get_thread
 from marvin.utilities.logging import get_logger
 
 T = TypeVar("T")
@@ -166,6 +166,10 @@ class Orchestrator:
             memories.update([m for m in actor.get_memories() if m.auto_use])
         if memories:
             memory_messages = await self.thread.get_messages_async(limit=3)
+            from marvin.thread import (
+                message_adapter,  # Import here to avoid circular import
+            )
+
             query = message_adapter.dump_json(memory_messages).decode()
             for memory in memories:
                 memory_result = {
@@ -190,45 +194,47 @@ class Orchestrator:
         ] + messages
 
         # --- run agent
-        result = await actor._run(
-            messages=all_messages,
+        agentlet = await actor.get_agentlet(
             tools=list(tools),
             end_turn_tools=list(end_turn_tools),
         )
 
+        # Run the agentlet with our new function
+        with actor:
+            with agentlet.iter("", message_history=all_messages) as run:
+                async for event in handle_agentlet_events(
+                    agentlet=agentlet,
+                    actor=actor,
+                    run=run,
+                ):
+                    await self.handle_event(event)
+
         # Record the LLM call in the database
         llm_call = await DBLLMCall.create(
             thread_id=self.thread.id,
-            usage=result.usage(),
+            usage=run.usage(),
         )
 
-        # --- record messages
-        for message in result.new_messages():
-            for event in message_to_events(
-                actor=actor,
-                message=message,
-            ):
-                await self.handle_event(event)
-
+        # --- add final messages to the thread
         await self.thread.add_messages_async(
-            result.new_messages(), llm_call_id=llm_call.id
+            run.result.new_messages(), llm_call_id=llm_call.id
         )
 
         # --- end turn
-        await self.end_turn(result=result, actor=actor)
+        await self.end_turn(result=run.result, actor=actor)
 
-        return result
+        return run
 
     async def start_turn(self, actor: Actor):
         await actor.start_turn(orchestrator=self)
-        await self.handle_event(AgentStartTurnEvent(actor=actor))
+        await self.handle_event(ActorStartTurnEvent(actor=actor))
 
     async def end_turn(self, result: AgentRunResult, actor: Actor):
         if isinstance(result.data, EndTurn):
             await result.data.run(orchestrator=self, actor=actor)
 
         await actor.end_turn(result=result, orchestrator=self)
-        await self.handle_event(AgentEndTurnEvent(actor=actor))
+        await self.handle_event(ActorEndTurnEvent(actor=actor))
 
     async def run(
         self,

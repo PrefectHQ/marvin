@@ -2,7 +2,7 @@ import inspect
 
 from rich.prompt import Prompt as RichPrompt
 
-from marvin.engine.orchestrator import get_current_orchestrator
+from marvin.agents.actor import get_current_actor
 
 INSTRUCTIONS = """
 If a task requires you to interact with a user, it will show
@@ -34,9 +34,9 @@ class Prompt(RichPrompt):
 
 async def cli(message: str) -> str:
     """Send a message to a human user and wait for a response"""
-    orchestrator = get_current_orchestrator()
-    if orchestrator:
-        agent = orchestrator.active_agent().name
+    actor = get_current_actor()
+    if actor:
+        agent = actor.name
     else:
         agent = "Agent"
 

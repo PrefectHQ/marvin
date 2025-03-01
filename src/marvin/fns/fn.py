@@ -197,7 +197,7 @@ async def _fn(
 
     """
     task = _build_task(func, fn_args, fn_kwargs, instructions=instructions, agent=agent)
-    result = await task.run_async(thread=thread, handlers=[])
+    result = await task.run_async(thread=thread)
 
     if "JSON result" in task.context:
         try:

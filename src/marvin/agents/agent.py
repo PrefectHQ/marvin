@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 import pydantic_ai
-from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.models import KnownModelName, Model, ModelSettings
 
 import marvin
@@ -30,7 +29,6 @@ if TYPE_CHECKING:
     from marvin.engine.end_turn import EndTurn
     from marvin.engine.events import Event
     from marvin.engine.handlers import AsyncHandler, Handler
-    from marvin.engine.llm import Message
 
 
 async def handle_event(
@@ -107,12 +105,30 @@ class Agent(Actor):
             defaults["temperature"] = marvin.settings.agent_temperature
         return defaults | self.model_settings
 
-    async def _run(
+    def _determine_result_type(self, end_turn_tools: list[Any]) -> type:
+        # Simplified logic: if exactly one end-turn tool, use its type,
+        # otherwise return a Union of all available end-turn types.
+        if len(end_turn_tools) == 1:
+            return end_turn_tools[0]
+        else:
+            from typing import Union
+
+            return Union[tuple(end_turn_tools)]
+
+    async def get_agentlet(
         self,
-        messages: list["Message"],
         tools: list[Callable[..., Any]],
         end_turn_tools: list["EndTurn"],
-    ) -> AgentRunResult:
+    ) -> pydantic_ai.Agent[Any, Any]:
+        """
+        A full streaming iterator over an agent's run.
+
+        This method creates an agentlet (a pydantic_ai.Agent instance) and uses its
+        .iter() method to obtain nodes. For nodes that support streaming (model requests or
+        handle responses), it opens the stream and yields each event. Other nodes (e.g. the
+        initial user prompt or the final End node) are yielded directly.
+        """
+
         from marvin.engine.end_turn import EndTurn
 
         tools = tools + self.get_tools()
@@ -135,14 +151,22 @@ class Agent(Actor):
             result_type = Union[tuple(end_turn_tools)]
             result_tool_name = "EndTurn"
 
-        agentlet = get_agentlet(
-            agent=self,
+        tools = [wrap_tool_errors(tool) for tool in tools or []]
+
+        agentlet = pydantic_ai.Agent[Any, result_type](  # type: ignore
+            model=self.get_model(),
             result_type=result_type,
             tools=tools,
-            result_tool_name=result_tool_name,
+            model_settings=self.get_model_settings(),
+            end_strategy="exhaustive",
+            result_tool_name=result_tool_name or "EndTurn",
+            result_tool_description="This tool will end your turn. You may only use one EndTurn tool per turn.",
+            retries=marvin.settings.agent_retries,
         )
-        result = await agentlet.run("", message_history=messages)
-        return result
+        # new fields
+        agentlet._marvin_tools = tools
+        agentlet._marvin_end_turn_tools = end_turn_tools
+        return agentlet
 
     def get_prompt(self) -> str:
         return Template(source=self.prompt).render(agent=self)
@@ -152,7 +176,7 @@ def get_agentlet(
     agent: Agent,
     result_type: type,
     tools: list[Callable[..., Any]] | None = None,
-    handlers: list["Handler | AsyncHandler"] | None = None,
+    end_turn_tools: list["EndTurn"] | None = None,
     result_tool_name: str | None = None,
 ) -> pydantic_ai.Agent[Any, Any]:
     """Create a Pydantic AI agent with the specified configuration.
@@ -166,8 +190,6 @@ def get_agentlet(
         result_tool_name: Optional name for the result tool
         actor: Optional actor instance for event handling
     """
-    from pydantic_ai.agent import AgentDepsT, RunContext
-    from pydantic_ai.messages import ModelRequestPart, RetryPromptPart, ToolCallPart
 
     tools = [wrap_tool_errors(tool) for tool in tools or []]
 
@@ -180,31 +202,35 @@ def get_agentlet(
         result_tool_name=result_tool_name or "EndTurn",
         result_tool_description="This tool will end your turn. You may only use one EndTurn tool per turn.",
         retries=marvin.settings.agent_retries,
+        original_tools=tools,
+        original_end_turn_tools=end_turn_tools,
     )
 
-    from marvin.engine.events import (
-        ToolCallEvent,
-        ToolRetryEvent,
-        ToolReturnEvent,
-    )
+    # from marvin.engine.events import (
+    #     StreamToolCallCompleteEvent,
+    #     ToolRetryEvent,
+    #     ToolReturnEvent,
+    # )
 
-    for tool in agentlet._function_tools.values():  # type: ignore[reportPrivateUsage]
-        # Wrap the tool run function to emit events for each call / result
-        # this can be removed when Pydantic AI supports streaming events
-        async def run(
-            message: ToolCallPart,
-            run_context: RunContext[AgentDepsT],
-            # pass as arg to avoid late binding issues
-            original_run: Callable[..., Any] = tool.run,
-        ) -> ModelRequestPart:
-            await handle_event(ToolCallEvent(actor=agent, message=message), handlers)
-            result = await original_run(message, run_context)
-            if isinstance(result, RetryPromptPart):
-                await handle_event(ToolRetryEvent(message=result), handlers)
-            else:
-                await handle_event(ToolReturnEvent(message=result), handlers)
-            return result
+    # for tool in agentlet._function_tools.values():  # type: ignore[reportPrivateUsage]
+    #     # Wrap the tool run function to emit events for each call / result
+    #     # this can be removed when Pydantic AI supports streaming events
+    #     async def run(
+    #         message: ToolCallPart,
+    #         run_context: RunContext[AgentDepsT],
+    #         # pass as arg to avoid late binding issues
+    #         original_run: Callable[..., Any] = tool.run,
+    #     ) -> ModelRequestPart:
+    #         await handle_event(
+    #             StreamToolCallCompleteEvent(actor=agent, message=message), handlers
+    #         )
+    #         result = await original_run(message, run_context)
+    #         if isinstance(result, RetryPromptPart):
+    #             await handle_event(ToolRetryEvent(message=result), handlers)
+    #         else:
+    #             await handle_event(ToolReturnEvent(message=result), handlers)
+    #         return result
 
-        tool.run = run
+    #     tool.run = run
 
     return agentlet
