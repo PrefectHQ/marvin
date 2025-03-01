@@ -24,7 +24,6 @@ from marvin.engine.events import (
     EndTurnToolCallEvent,
     EndTurnToolResultEvent,
     OrchestratorEndEvent,
-    OrchestratorExceptionEvent,
     OrchestratorStartEvent,
     ToolCallDeltaEvent,
     ToolCallEvent,
@@ -203,16 +202,6 @@ class PrintHandler(Handler):
 
     def on_orchestrator_end(self, event: OrchestratorEndEvent):
         """Clean up when orchestrator ends."""
-        if self.live and self.live.is_started:
-            try:
-                self.live.stop()
-            except rich.errors.LiveError:
-                pass
-            self.live = None
-            self.panels.clear()
-
-    def on_orchestrator_exception(self, event: OrchestratorExceptionEvent):
-        """Handle orchestrator exceptions."""
         if self.live and self.live.is_started:
             try:
                 self.live.stop()

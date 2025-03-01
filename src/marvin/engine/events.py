@@ -31,7 +31,7 @@ EventType = Literal[
     "actor-message-delta",
     "orchestrator-start",
     "orchestrator-end",
-    "orchestrator-exception",
+    "orchestrator-error",
     "actor-start-turn",
     "actor-end-turn",
     "end-turn-tool-call",
@@ -167,10 +167,10 @@ class OrchestratorEndEvent(Event):
 
 
 @dataclass(kw_only=True)
-class OrchestratorExceptionEvent(Event):
+class OrchestratorErrorEvent(Event):
     """Event for orchestrator exceptions."""
 
-    type: EventType = field(default="orchestrator-exception", init=False)
+    type: EventType = field(default="orchestrator-error", init=False)
     error: str
 
 
