@@ -6,7 +6,12 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from mcp.server.fastmcp import FastMCP
+try:
+    from mcp.server.fastmcp import FastMCP  # type: ignore
+except ImportError:
+    raise ImportError(
+        "mcp is not installed. try this example with `uv run --with mcp examples/you_have_been_goosed/goose_em.py`"
+    )
 
 import marvin
 

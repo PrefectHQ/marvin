@@ -87,8 +87,10 @@ explanation = marvin.run(
 poem = marvin.run(
     "Write a haiku about entropy",
     agents=[poet],
-    context={"scientific_explanation": explanation}
+    context={"scientific_background": explanation}
 )
+
+print(poem)
 ```
 
 ### Structured Data
