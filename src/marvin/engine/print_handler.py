@@ -316,6 +316,7 @@ class PrintHandler(Handler):
 
     def on_tool_call(self, event: ToolCallEvent):
         """Handle complete tool calls."""
+        breakpoint()
         tool_id = event.message.tool_call_id
 
         # Handle CLI tools specially
@@ -398,22 +399,3 @@ class PrintHandler(Handler):
                 panel.result = event.message.content
 
         self.update_display()
-
-    # def on_actor_end_turn(self, event: ActorEndTurnEvent):
-    #     """Handle actor end turn events."""
-    #     # look for any end turn tool calls that are not complete and mark them as complete
-    #     # this is necessary because the end turn tool call event is not emitted for every
-    #     for panel in self.panels.values():
-    #         if (
-    #             isinstance(panel, ToolCallPanel)
-    #             and panel.is_end_turn_tool
-    #             and not panel.is_complete
-    #         ):
-    #             panel.is_complete = True
-
-    #     # look for any tool calls that are not complete and mark them as failed
-    #     for panel in self.panels.values():
-    #         if isinstance(panel, ToolCallPanel) and not panel.is_complete:
-    #             panel.is_error = True
-
-    #     self.update_display()
