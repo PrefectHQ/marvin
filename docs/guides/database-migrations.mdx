@@ -1,0 +1,322 @@
+# Database Migrations
+
+Keeping your database schema in sync with your code is crucial as your Marvin application evolves. Migration tools help you update your database structure smoothly, without losing data.
+
+<Tip>
+Migrations save you from having to manually modify database tables or rebuild from scratch!
+</Tip>
+
+## How Migrations Work
+
+Marvin uses [Alembic](https://alembic.sqlalchemy.org/) (the go-to migration tool for SQLAlchemy) to manage your database changes. This gives you:
+
+- Version control for your database schema
+- Safe, reversible changes to your database structure
+- The ability to upgrade or downgrade between versions
+- Automatic detection of model changes
+
+## Setting Up Your Database
+
+Marvin works with different database backends to fit your needs:
+
+<CodeGroup>
+```python SQLite (Default)
+# Simple file-based database
+# Great for development and smaller applications
+sqlite:///path/to/your/database.db
+```
+
+```python PostgreSQL
+# Robust database for production use
+# Handles concurrent access well
+postgresql+asyncpg://username:password@localhost:5432/marvin
+```
+</CodeGroup>
+
+To configure your database, set the `database_url` in your settings:
+
+```python
+# In your settings or environment variables
+MARVIN_DATABASE_URL = "sqlite:///marvin.db"
+```
+
+<Info>
+For small projects and getting started, SQLite is perfect. As your usage grows, consider PostgreSQL for better performance with concurrent users.
+</Info>
+
+## Automatic vs. Manual Management
+
+Marvin handles database setup differently depending on your database type:
+
+### SQLite Auto-Configuration
+
+If you're using SQLite (Marvin's default), you get some helpful automation:
+
+<CodeGroup>
+```python In-Memory DB
+# For in-memory SQLite databases:
+sqlite:///:memory:
+
+# Tables are always created automatically on startup
+# Great for testing!
+```
+
+```python New SQLite File
+# When the database file doesn't exist yet:
+sqlite:///new_file.db
+
+# Marvin automatically creates the file and tables
+# Perfect for getting started quickly
+```
+
+```python Existing SQLite File
+# For existing database files:
+sqlite:///existing.db
+
+# Marvin can attempt to apply migrations automatically
+# Or you can manage them manually for more control
+```
+</CodeGroup>
+
+### Production Database Management
+
+For production databases (like PostgreSQL), you'll want to control when and how migrations run:
+
+<Warning>
+Always back up your production database before running migrations!
+</Warning>
+
+```bash
+# The safest approach: explicit migration control
+marvin db upgrade
+```
+
+## Migration Command Reference
+
+### Checking Your Status
+
+Want to know if your database is up to date?
+
+```bash
+marvin db status
+```
+
+<Accordion title="Example Output">
+```
+DATABASE CONFIGURATION
+Database URL:     sqlite:///home/user/.marvin/marvin.db
+Database Type:    SQLite
+
+MIGRATION STATUS
+Current Revision: 20240301_091524_add_thread_table
+Head Revision:    20240301_091524_add_thread_table
+Status:           Database is up to date
+```
+</Accordion>
+
+Need more specific information? Try these commands:
+
+<CodeGroup>
+```bash Current Version
+# Show your current migration version
+marvin db current
+```
+
+```bash Migration History
+# Show your migration history
+marvin db history
+```
+</CodeGroup>
+
+### Applying Migrations
+
+When you need to update your database to the latest schema:
+
+```bash
+marvin db upgrade
+```
+
+This command:
+1. Checks which migrations you have applied
+2. Runs any pending migrations in the correct order
+3. Updates your database to match your current code
+
+<Accordion title="Example Output">
+```
+INFO [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO [alembic.runtime.migration] Running upgrade -> 20240301_091524, add thread table
+Database upgraded to the latest version
+```
+</Accordion>
+
+### Rolling Back Changes
+
+Need to revert to a previous version?
+
+```bash
+marvin db downgrade <revision> -y
+```
+
+<Warning>
+Downgrading can potentially remove tables or columns. Make sure you have a backup before proceeding!
+</Warning>
+
+### Complete Reset
+
+For development and testing, sometimes you want to start fresh:
+
+```bash
+marvin db reset -y
+```
+
+This command:
+1. Reverts all migrations (back to empty database)
+2. Re-applies all migrations to the latest version
+3. Gives you a clean slate with the current schema
+
+<Info>
+A reset is perfect for testing your migrations work correctly from start to finish.
+</Info>
+
+## Creating New Migrations
+
+As a developer, you'll need to create migrations when you change your data models.
+
+<Tip>
+Create migrations as part of the same code change that updates your models. This keeps your database and code in sync!
+</Tip>
+
+### Auto-Generated Migrations
+
+Let Alembic detect your model changes automatically:
+
+```bash
+marvin dev db revision --autogenerate -m "Add user preferences"
+```
+
+This compares your SQLAlchemy models with your current database schema and creates migration scripts with the necessary changes.
+
+### Custom Migrations
+
+For more complex changes or data migrations:
+
+```bash
+marvin dev db revision -m "Custom data migration" 
+```
+
+This creates an empty migration template that you can edit manually:
+
+<Accordion title="Example Migration File">
+```python
+"""Custom data migration
+
+Revision ID: a1b2c3d4e5f6
+Revises: 98765abcdef
+Create Date: 2024-03-01 12:34:56.789012
+
+"""
+from alembic import op
+import sqlalchemy as sa
+
+# revision identifiers
+revision = 'a1b2c3d4e5f6'
+down_revision = '98765abcdef'
+branch_labels = None
+depends_on = None
+
+def upgrade():
+    # YOUR CUSTOM UPGRADE CODE HERE
+    pass
+
+def downgrade():
+    # YOUR CUSTOM DOWNGRADE CODE HERE
+    pass
+```
+</Accordion>
+
+## Migration Files Explained
+
+Migrations live in the `migrations/versions/` directory with timestamps in the filename:
+
+```
+migrations/versions/20240301_091524_add_thread_table.py
+```
+
+Each file contains two main functions:
+- `upgrade()`: Code to apply the migration
+- `downgrade()`: Code to revert the migration
+
+## Best Practices
+
+<CodeGroup>
+```md Development Workflow
+# 1. Make changes to your SQLAlchemy models
+
+# 2. Create a migration
+marvin dev db revision --autogenerate -m "Description"
+
+# 3. Review the generated migration file 
+# Alembic might miss some changes!
+
+# 4. Test the migration
+marvin db upgrade
+
+# 5. Test the downgrade (if needed)
+marvin db downgrade <previous_revision> -y
+marvin db upgrade
+```
+
+```md Production Workflow
+# 1. Always back up your database first
+
+# 2. Check the current status
+marvin db status
+
+# 3. Apply migrations during a maintenance window
+marvin db upgrade
+
+# 4. Verify application functionality
+
+# 5. Have a rollback plan ready
+# Know the previous revision ID in case you need to downgrade
+```
+</CodeGroup>
+
+### Tips for Smooth Migrations
+
+- **Descriptive messages**: Use clear `-m` descriptions that explain what changed
+- **Review auto-migrations**: Always check what Alembic generated before committing
+- **Test both ways**: Verify both `upgrade()` and `downgrade()` work correctly
+- **Additive changes**: When possible, make additive changes (new tables/columns) rather than destructive ones
+- **Data migrations**: Add explicit code for moving/transforming data when changing column types
+
+## Troubleshooting
+
+<Accordion title="Common Problems">
+### "No such revision" Error
+You might be trying to downgrade to a revision that doesn't exist or has been removed.
+
+**Solution**: Use `marvin db history` to see available revisions.
+
+### "Can't locate revision" Error
+Migration files might be missing or have been modified incorrectly.
+
+**Solution**: Make sure your `migrations/versions/` directory contains all necessary files.
+
+### Merge Conflicts
+When multiple developers create migrations, you might get conflicts.
+
+**Solution**: Coordinate migration creation and use clear branch strategies.
+
+### SQLite Limitations
+SQLite doesn't support all migration operations (like dropping columns).
+
+**Solution**: For complex changes with SQLite, sometimes you need multiple simple migrations.
+</Accordion>
+
+## Need More Help?
+
+- Check the [Alembic documentation](https://alembic.sqlalchemy.org/) for advanced usage
+- Refer to the detailed README in the `migrations/` directory
+- For SQLAlchemy model changes, see the [SQLAlchemy documentation](https://docs.sqlalchemy.org/) 

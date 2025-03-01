@@ -1,0 +1,273 @@
+# Marvin CLI
+
+Marvin comes with a powerful command-line interface that helps you interact with AI capabilities right from your terminal. This guide shows you how to use the CLI for everyday tasks and advanced operations.
+
+<Tip>
+If you're new to Marvin, the CLI is often the fastest way to experiment with its capabilities!
+</Tip>
+
+## Getting Started
+
+The CLI is bundled with Marvin, so you already have it if you've installed the package:
+
+```bash
+pip install marvin
+```
+
+To check if everything's working properly, try running:
+
+```bash
+marvin version
+```
+
+## Core Commands
+
+### Version Check
+
+When you need to know which version you're running or for troubleshooting:
+
+```bash
+marvin version
+```
+
+<Accordion title="Example Output">
+```
+Marvin version:     0.12.0
+Pydantic AI version: 0.7.1
+Python version:     3.10.12
+Platform:          macOS-14.1.1-arm64-arm-64bit
+Path:              ~/Developer/marvin
+```
+</Accordion>
+
+### The Versatile `x` Command
+
+The `x` command is your Swiss Army knife for working with AI. You can use it to extract information, cast data to different types, or generate content — all through the power of large language models.
+
+<CodeGroup>
+```bash Extract Data
+echo "Apples cost $2.50, oranges cost $3.00, and bananas cost $1.75" | marvin x -t "list[float]"
+```
+
+```bash Cast Types
+echo "42.5" | marvin x -o cast -t "int"
+```
+
+```bash Generate Content
+echo "Write a haiku about coding" | marvin x -o generate -t "str"
+```
+</CodeGroup>
+
+<Accordion title="Example Outputs">
+```json Extract Result
+[2.5, 3.0, 1.75]
+```
+
+```json Cast Result
+42
+```
+
+```json Generate Result
+"Fingers on keyboard\nLogic flows through silent thoughts\nCode brings dreams to life"
+```
+</Accordion>
+
+#### What can you do with it?
+
+The `x` command fits perfectly into data pipelines and shell scripts. You can:
+
+- Extract structured data from unstructured text
+- Convert between data types intelligently
+- Generate content based on instructions
+
+<Info>
+The `x` command is designed to be part of Unix pipelines. It reads from stdin and outputs JSON to stdout, so you can easily chain it with tools like `jq` for further processing.
+</Info>
+
+#### Command Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-o, --operation` | Operation to perform (`extract`, `cast`, or `generate`) | `extract` |
+| `-t, --type` | Target type (use Python syntax like `str`, `int`, `list[str]`) | `str` |
+| `-i, --instructions` | Custom instructions for the operation | None |
+| `-n, --n` | Number of results to generate (only for `generate`) | 1 |
+
+#### Real-world Examples
+
+<CodeGroup>
+```bash Extract Prices
+# Get a list of prices from text
+echo "Our products: Widget ($19.99), Gadget ($24.50), Thingamajig ($15)" | \
+marvin x -t "list[float]" | jq
+```
+
+```bash Parse Dates
+# Extract and standardize dates
+echo "Meeting on Jan 5th, followup on February 10" | \
+marvin x -t "list[datetime]" | jq
+```
+
+```bash Name Extraction
+# Extract people's names from text
+echo "Report prepared by John Smith and reviewed by Jane Doe" | \
+marvin x -t "list[str]" -i "Extract people's names" | jq
+```
+</CodeGroup>
+
+<Accordion title="Example Outputs">
+```json Price Extraction
+[19.99, 24.50, 15.0]
+```
+
+```json Date Parsing
+["2024-01-05T00:00:00", "2024-02-10T00:00:00"]
+```
+
+```json Name Extraction
+["John Smith", "Jane Doe"]
+```
+</Accordion>
+
+## Database Management
+
+Marvin's CLI includes powerful commands for managing the database that stores your AI interactions, threads, and more.
+
+<Warning>
+Always back up your database before running migrations in production environments!
+</Warning>
+
+### Quick Commands
+
+<CodeGroup>
+```bash Check Status
+# See your database status
+marvin db status
+```
+
+```bash Apply Migrations
+# Update your database schema
+marvin db upgrade
+```
+
+```bash View History
+# See migration history
+marvin db history
+```
+</CodeGroup>
+
+<Accordion title="Example Output">
+```
+DATABASE CONFIGURATION
+Database URL:     sqlite:///home/user/.marvin/marvin.db
+Database Type:    SQLite
+
+MIGRATION STATUS
+Current Revision: e772a112ae87
+Head Revision:    e772a112ae87
+Status:           Database is up to date
+```
+</Accordion>
+
+For complete details on database management, check out the [Database Migrations](./database-migrations.mdx) guide.
+
+## Developer Tools
+
+If you're developing with Marvin or contributing to the project, you'll find these commands particularly helpful.
+
+### Development Commands
+
+The `dev` subcommand contains tools specifically designed for development purposes:
+
+<CodeGroup>
+```bash Create Migration
+# Create an empty migration
+marvin dev db revision -m "Add user settings"
+```
+
+```bash Auto Migration
+# Auto-generate migration based on model changes
+marvin dev db revision --autogenerate -m "Add timestamps"
+```
+</CodeGroup>
+
+<Tip>
+When using `--autogenerate`, always review the generated migration scripts before applying them. Automatic detection might miss complex changes or relationships.
+</Tip>
+
+## CLI Power Techniques
+
+### Environment Variables
+
+You can customize Marvin's behavior for a single command by setting environment variables:
+
+```bash
+MARVIN_LOG_LEVEL=DEBUG marvin db status
+```
+
+Common variables:
+- `MARVIN_LOG_LEVEL`: Control logging verbosity (`DEBUG`, `INFO`, `WARNING`, etc.)
+- `MARVIN_DATABASE_URL`: Override the database connection string
+- `MARVIN_AI_PROVIDER`: Change the AI provider for the session
+
+### Piping with jq
+
+The `jq` tool pairs perfectly with Marvin's CLI for processing JSON output:
+
+```bash
+# Extract data and get just the first item
+echo "orange, apple, banana" | marvin x -t "list[str]" | jq '.[0]'
+
+# Generate multiple items and format as a comma-separated list
+echo "planets" | marvin x -o generate -t "list[str]" -n 1 | jq -r '.[]' | paste -sd,
+```
+
+<Accordion title="Example Output">
+```
+"orange"
+```
+
+```
+Mercury,Venus,Earth,Mars,Jupiter,Saturn,Uranus,Neptune
+```
+</Accordion>
+
+### Scripting with Marvin
+
+You can integrate Marvin into your shell scripts for powerful automation:
+
+```bash
+#!/bin/bash
+# Example: Summarize a file with Marvin
+cat long_document.txt | marvin x -o generate -t "str" -i "Summarize this text" > summary.txt
+```
+
+## Troubleshooting
+
+<Accordion title="Common Issues">
+### Command not found
+Make sure Marvin is installed and your PATH includes the Python bin directory.
+
+### Error with the x command
+When using the `x` command with debug logging enabled, you might see an error. Try:
+```bash
+MARVIN_LOG_LEVEL=CRITICAL marvin x -t "str"
+```
+
+### Database connection issues
+Check your database URL configuration with `marvin db status`.
+</Accordion>
+
+## Get Help
+
+The CLI has built-in help for all commands. Just add `--help` to any command:
+
+```bash
+marvin --help
+marvin x --help
+marvin db --help
+```
+
+<Info>
+Want to see a new CLI feature? Let us know in the [GitHub repository](https://github.com/prefecthq/marvin/issues)!
+</Info> 

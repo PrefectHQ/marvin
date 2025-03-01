@@ -41,7 +41,7 @@ async def test_force_recreate_tables(session):
     assert result.scalars().first() is not None
 
     # Recreate tables
-    await create_db_and_tables(force=True)
+    create_db_and_tables(force=True)
 
     # Final phase: Verify data is gone
     result = await session.execute(select(DBThread).where(DBThread.id == "test-thread"))

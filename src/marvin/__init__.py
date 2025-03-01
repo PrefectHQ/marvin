@@ -2,7 +2,7 @@ from importlib.metadata import version as _version
 
 # necessary imports
 from marvin.settings import settings
-from marvin.database import init_database
+from marvin.database import init_database_if_necessary
 
 # core classes
 from marvin.thread import Thread
@@ -32,7 +32,7 @@ from marvin.fns.summarize import summarize, summarize_async
 from marvin.fns.plan import plan, plan_async
 
 # Initialize the database on import
-init_database()
+init_database_if_necessary()
 
 __version__ = _version("marvin")
 
