@@ -184,7 +184,7 @@ class PrintHandler(Handler):
         rendered = [p.render() for p in sorted_panels]
 
         if not rendered:
-            self.live.update(Group(), refresh=True)
+            self.live.update(None, refresh=True)
         else:
             self.live.update(Group(*rendered), refresh=True)
 
