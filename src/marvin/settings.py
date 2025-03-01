@@ -119,6 +119,11 @@ class Settings(BaseSettings):
         description="Whether to enable the default print handler.",
     )
 
+    default_print_handler_hide_end_turn_tools: bool = Field(
+        default=False,
+        description="Whether to hide end turn tool results in the default print handler.",
+    )
+
     # ------------ Memory settings ------------
 
     memory_provider: str = Field(
