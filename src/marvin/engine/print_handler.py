@@ -305,7 +305,6 @@ class PrintHandler(Handler):
 
     def on_tool_call(self, event: ToolCallEvent):
         """Handle complete tool calls."""
-        breakpoint()
         tool_id = event.message.tool_call_id
 
         # Handle CLI tools specially
