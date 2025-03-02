@@ -85,30 +85,35 @@ Type hints help catch errors early, improve IDE support, and make your code self
 For full control over your AI workflows, create and run tasks directly:
 
 ```python
+import httpx
 from marvin import Task
 from pydantic import BaseModel
+
+def check_weather(location: str) -> str:
+    url = f"https://wttr.in/{location}?format=%C+%t"
+    return httpx.get(url).text
 
 # Define a structured output type
 class WeatherForecast(BaseModel):
     temperature: float
     conditions: str
-    precipitation_chance: float
+    precipitation_chance: float | str = "unknown"
 
 # Create a task with specific requirements
 task = Task(
-    instructions="Predict tomorrow's weather for San Francisco",
+    instructions="Get the weather for San Francisco",
     result_type=WeatherForecast,
-    tools=[check_weather_api]  # Custom tools
+    tools=[check_weather]  # Custom tools
 )
 
 # Run the task
 forecast = task.run()
-print(f"Tomorrow: {forecast.temperature}°F, {forecast.conditions}")
+print(forecast)
 ```
 
 <Accordion title="Output">
 ```text
-Tomorrow: 65.5°F, Partly cloudy with morning fog
+temperature=50.0 conditions='Partly cloudy' precipitation_chance='unknown'
 ```
 </Accordion>
 
