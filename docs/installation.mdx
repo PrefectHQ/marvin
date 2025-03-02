@@ -48,13 +48,6 @@ For development, install Marvin with development dependencies:
 
 <CodeGroup>
 
-```bash pip
-git clone https://github.com/prefecthq/marvin.git
-cd marvin
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-```
-
 ```bash uv
 git clone https://github.com/prefecthq/marvin.git
 cd marvin
@@ -62,6 +55,12 @@ uv venv && source .venv/bin/activate
 uv sync --dev
 ```
 
+```bash pip
+git clone https://github.com/prefecthq/marvin.git
+cd marvin
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+```
 </CodeGroup>
 
 ## What's Next?
