@@ -122,13 +122,14 @@ class Thread:
         """Add a user message to the thread."""
         await self.add_messages_async([UserMessage(content=message)])
 
-    def add_info_message(self, message: str):
+    def add_info_message(self, message: str, prefix: str = None):
         """Add an info message to the thread."""
-        return run_sync(self.add_info_message_async(message))
+        return run_sync(self.add_info_message_async(message, prefix=prefix))
 
-    async def add_info_message_async(self, message: str) -> None:
+    async def add_info_message_async(self, message: str, prefix: str = None) -> None:
         """Add an info message to the thread."""
-        await self.add_messages_async([UserMessage(content=f"INFO MESSAGE: {message}")])
+        prefix = prefix or "INFO MESSAGE"
+        await self.add_messages_async([UserMessage(content=f"{prefix}: {message}")])
 
     def get_messages(
         self,

@@ -132,20 +132,12 @@ class Orchestrator:
         if actor is None:
             actor = tasks[0].get_actor()
 
-        await self.thread.add_info_message_async(
-            f"Active actor: {actor.friendly_name()}"
-        )
-
         assigned_tasks = [t for t in tasks if actor is t.get_actor()]
 
         # Mark tasks as running if they're pending
         for task in assigned_tasks:
             if task.is_pending():
-                task.mark_running()
-                await self.thread.add_info_message_async(
-                    f"Task started: {task.friendly_name()}"
-                )
-
+                await task.mark_running(thread=self.thread)
         await self.start_turn(actor=actor)
 
         # --- get tools
@@ -176,7 +168,8 @@ class Orchestrator:
                     memory.friendly_name(): await memory.search(query=query, n=3)
                 }
                 await self.thread.add_info_message_async(
-                    f"Automatically recalled memories: {memory_result}"
+                    memory_result,
+                    prefix="Automatically recalled memories",
                 )
 
         orchestrator_prompt = OrchestratorPrompt(
@@ -226,14 +219,14 @@ class Orchestrator:
         return run
 
     async def start_turn(self, actor: Actor):
-        await actor.start_turn(orchestrator=self)
+        await actor.start_turn(thread=self.thread)
         await self.handle_event(ActorStartTurnEvent(actor=actor))
 
     async def end_turn(self, result: AgentRunResult, actor: Actor):
         if isinstance(result.data, EndTurn):
-            await result.data.run(orchestrator=self, actor=actor)
+            await result.data.run(thread=self.thread, actor=actor)
 
-        await actor.end_turn(result=result, orchestrator=self)
+        await actor.end_turn(result=result, thread=self.thread)
         await self.handle_event(ActorEndTurnEvent(actor=actor))
 
     async def run(

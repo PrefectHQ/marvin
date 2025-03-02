@@ -25,6 +25,7 @@ from typing import (
 from pydantic import TypeAdapter
 
 import marvin
+import marvin.thread
 from marvin.agents.actor import Actor
 from marvin.agents.team import Swarm, Team
 from marvin.memory.memory import Memory
@@ -145,6 +146,13 @@ class Task(Generic[T]):
         repr=False,
     )
 
+    verbose: bool = field(
+        default=False,
+        metadata={
+            "description": "Verbose tasks print additional information to the thread, such as the fact that they started or completed.",
+        },
+    )
+
     _parent: "Task[Any] | None" = field(
         default=None,
         metadata={"description": "Optional parent task"},
@@ -215,6 +223,7 @@ class Task(Generic[T]):
         depends_on: Sequence["Task[Any]"] | None = None,
         allow_fail: bool = False,
         allow_skip: bool = False,
+        verbose: bool = False,
         cli: bool = False,
         plan: bool = False,
     ) -> None:
@@ -236,6 +245,7 @@ class Task(Generic[T]):
                 in the context, that task will be used as the parent.
             allow_fail: Whether to allow the task to fail
             allow_skip: Whether to allow the task to skip
+            verbose: Whether to print additional status messages to the active thread
             cli: Whether to enable CLI interaction tools
             plan: Whether to enable a tool for planning subtasks
 
@@ -255,6 +265,7 @@ class Task(Generic[T]):
         self.allow_skip = allow_skip
         self.cli = cli
         self.plan = plan
+        self.verbose = verbose
         # key fields
         self.id = uuid.uuid4().hex[:8]
         self.state = TaskState.PENDING
@@ -491,25 +502,65 @@ class Task(Generic[T]):
 
     # ------ State Management ------
 
-    def mark_successful(self, result: T = None, validate_result: bool = True) -> None:
+    async def mark_successful(
+        self,
+        result: T = None,
+        validate_result: bool = True,
+        thread: Thread | None = None,
+    ) -> None:
         """Mark the task as successful with an optional result."""
         if validate_result:
             result = self.validate_result(result)
         self.result = result
         self.state = TaskState.SUCCESSFUL
+        if thread is None:
+            thread = marvin.thread.get_current_thread()
 
-    def mark_failed(self, error: str) -> None:
+        if thread and self.verbose:
+            await thread.add_info_message_async(
+                f"{self.friendly_name()} successful with result {result}",
+                prefix="TASK STATE UPDATE",
+            )
+
+    async def mark_failed(self, error: str, thread: Thread | None = None) -> None:
         """Mark the task as failed with an error message."""
         self.result = error
         self.state = TaskState.FAILED
+        if thread is None:
+            thread = marvin.thread.get_current_thread()
 
-    def mark_running(self) -> None:
+        if thread and self.verbose:
+            await thread.add_info_message_async(
+                f"{self.friendly_name()} failed with error {error}",
+                prefix="TASK STATE UPDATE",
+            )
+
+    async def mark_running(
+        self,
+        thread: Thread | None = None,
+    ) -> None:
         """Mark the task as running."""
         self.state = TaskState.RUNNING
+        if thread is None:
+            thread = marvin.thread.get_current_thread()
 
-    def mark_skipped(self) -> None:
+        if thread and self.verbose:
+            await thread.add_info_message_async(
+                f"{self.friendly_name()} started",
+                prefix="TASK STATE UPDATE",
+            )
+
+    async def mark_skipped(self, thread: Thread | None = None) -> None:
         """Mark the task as skipped."""
         self.state = TaskState.SKIPPED
+        if thread is None:
+            thread = marvin.thread.get_current_thread()
+
+        if thread and self.verbose:
+            await thread.add_info_message_async(
+                f"{self.friendly_name()} skipped",
+                prefix="TASK STATE UPDATE",
+            )
 
     def is_pending(self) -> bool:
         """Check if the task is pending."""
