@@ -23,7 +23,7 @@ requested format.
 
 async def extract_async(
     data: Any,
-    target: TargetType[T] = str,
+    target: TargetType[T] | None = None,
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
@@ -54,8 +54,11 @@ async def extract_async(
         ValueError: If target is str and no instructions are provided.
 
     """
+    if target is None:
+        target = str
+
     if target is str and instructions is None:
-        raise ValueError("Instructions are required when target type is str.")
+        raise ValueError("Instructions are required when extracting string values.")
 
     task_context = context or {}
     task_context["Data to extract"] = data
@@ -76,7 +79,7 @@ async def extract_async(
 
 def extract(
     data: Any,
-    target: TargetType[T] = str,
+    target: TargetType[T] | None = None,
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,

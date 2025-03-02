@@ -11,6 +11,20 @@ class Location(BaseModel):
     state: str = Field(description="2-letter abbreviation")
 
 
+class TestGuards:
+    def test_extract_default_target_no_instructions(self):
+        with pytest.raises(ValueError, match="Instructions are required"):
+            marvin.extract(data="hello")
+
+    def test_extract_string_no_instructions(self):
+        with pytest.raises(ValueError, match="Instructions are required"):
+            marvin.extract(data="hello", target=str)
+
+    def test_extract_none_no_instructions(self):
+        with pytest.raises(ValueError, match="Instructions are required"):
+            marvin.extract(data="hello", target=None)
+
+
 class TestBuiltins:
     def test_extract_numbers(self):
         result = marvin.extract("one, two, three", int)

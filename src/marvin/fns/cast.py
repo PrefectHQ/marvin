@@ -27,7 +27,7 @@ or information and transform it into a single entity of the requested type.
 
 async def cast_async(
     data: Any,
-    target: TargetType[T] = str,
+    target: TargetType[T] | None = None,
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
@@ -67,8 +67,11 @@ async def cast_async(
         True
 
     """
+    if target is None:
+        target = str
+
     if target is str and instructions is None:
-        raise ValueError("Instructions are required when casting to str")
+        raise ValueError("Instructions are required when casting to string values.")
 
     task_context = context or {}
     task_context["Data to transform"] = data
@@ -89,7 +92,7 @@ async def cast_async(
 
 def cast(
     data: Any,
-    target: TargetType[T] = str,
+    target: TargetType[T] | None = None,
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
