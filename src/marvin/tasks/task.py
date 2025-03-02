@@ -519,7 +519,7 @@ class Task(Generic[T]):
         if thread and self.verbose:
             await thread.add_info_message_async(
                 f"{self.friendly_name()} successful with result {result}",
-                prefix="TASK STATE UPDATE",
+                prefix="Task state updated:",
             )
 
     async def mark_failed(self, error: str, thread: Thread | None = None) -> None:
@@ -532,10 +532,10 @@ class Task(Generic[T]):
         if thread and self.verbose:
             await thread.add_info_message_async(
                 f"{self.friendly_name()} failed with error {error}",
-                prefix="TASK STATE UPDATE",
+                prefix="Task state updated:",
             )
 
-    async def mark_running(
+    async def mark_started(
         self,
         thread: Thread | None = None,
     ) -> None:
@@ -544,10 +544,10 @@ class Task(Generic[T]):
         if thread is None:
             thread = marvin.thread.get_current_thread()
 
-        if thread and self.verbose:
+        if thread:
             await thread.add_info_message_async(
-                f"{self.friendly_name()} started",
-                prefix="TASK STATE UPDATE",
+                self.get_prompt(),
+                prefix="You have been assigned a new task",
             )
 
     async def mark_skipped(self, thread: Thread | None = None) -> None:
@@ -559,7 +559,7 @@ class Task(Generic[T]):
         if thread and self.verbose:
             await thread.add_info_message_async(
                 f"{self.friendly_name()} skipped",
-                prefix="TASK STATE UPDATE",
+                prefix="Task state updated:",
             )
 
     def is_pending(self) -> bool:

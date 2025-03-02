@@ -30,6 +30,14 @@ migrations_dev = typer.Typer(
 )
 
 
+def get_alembic_cfg():
+    """Get the Alembic config."""
+    from alembic.config import Config
+
+    cfg = Config(str(ALEMBIC_INI))
+    return cfg
+
+
 async def _run_revision_with_connection(connection, alembic_cfg, message, autogenerate):
     """Run revision command with async connection."""
     from alembic import command
@@ -52,33 +60,17 @@ def revision(
 ):
     """Create a new migration revision. Developer command."""
     try:
-        from alembic.config import Config
-
         # Ensure versions directory exists
         versions_dir = ALEMBIC_DIR / "versions"
         os.makedirs(versions_dir, exist_ok=True)
 
-        alembic_cfg = Config(str(ALEMBIC_INI))
+        alembic_cfg = get_alembic_cfg()
 
-        # Handle non-autogenerate case first, which is simpler
-        if not autogenerate:
-            from alembic import command
+        from alembic import command
 
-            command.revision(alembic_cfg, message=message)
-            console.print("[green]Empty migration revision created[/green]")
-            return
-
-        # For autogenerate, we need database access
-        async def run_async_revision():
-            engine = get_async_engine()
-            async with engine.connect() as connection:
-                await _run_revision_with_connection(
-                    connection, alembic_cfg, message, autogenerate
-                )
-            await engine.dispose()
-
-        asyncio.run(run_async_revision())
-        console.print("[green]Migration revision created with auto-detection[/green]")
+        command.revision(alembic_cfg, message=message, autogenerate=autogenerate)
+        console.print("[green]Migration revision created[/green]")
+        return
 
     except Exception as e:
         console.print(f"[red]Failed to create migration revision: {e}[/red]")
@@ -86,19 +78,22 @@ def revision(
 
 
 @migrations.command("upgrade")
-def upgrade():
+def upgrade(
+    revision: str = typer.Argument(
+        "head", help="Revision to upgrade to. Use 'head' for latest."
+    ),
+):
     """Upgrade database to the latest migration."""
     try:
         from alembic import command
-        from alembic.config import Config
 
         # Ensure versions directory exists
         versions_dir = ALEMBIC_DIR / "versions"
         os.makedirs(versions_dir, exist_ok=True)
 
-        alembic_cfg = Config(str(ALEMBIC_INI))
-        command.upgrade(alembic_cfg, "head")
-        console.print("[green]Database upgraded to the latest version[/green]")
+        alembic_cfg = get_alembic_cfg()
+        command.upgrade(alembic_cfg, revision)
+        console.print(f"[green]Database upgraded to {revision}[/green]")
     except Exception as e:
         console.print(f"[red]Failed to upgrade database: {e}[/red]")
         sys.exit(1)
@@ -124,9 +119,8 @@ def downgrade(
 
     try:
         from alembic import command
-        from alembic.config import Config
 
-        alembic_cfg = Config(str(ALEMBIC_INI))
+        alembic_cfg = get_alembic_cfg()
         command.downgrade(alembic_cfg, revision)
         console.print(f"[green]Database downgraded to {revision}[/green]")
     except Exception as e:
@@ -153,9 +147,8 @@ def reset(
 
     try:
         from alembic import command
-        from alembic.config import Config
 
-        alembic_cfg = Config(str(ALEMBIC_INI))
+        alembic_cfg = get_alembic_cfg()
 
         # Downgrade to base (before first migration)
         console.print("[blue]Downgrading database to base state...[/blue]")
@@ -176,9 +169,8 @@ def history():
     """Show migration history."""
     try:
         from alembic import command
-        from alembic.config import Config
 
-        alembic_cfg = Config(str(ALEMBIC_INI))
+        alembic_cfg = get_alembic_cfg()
         command.history(alembic_cfg)
     except Exception as e:
         console.print(f"[red]Failed to show migration history: {e}[/red]")
@@ -190,9 +182,8 @@ def current():
     """Show current migration revision."""
     try:
         from alembic import command
-        from alembic.config import Config
 
-        alembic_cfg = Config(str(ALEMBIC_INI))
+        alembic_cfg = get_alembic_cfg()
         command.current(alembic_cfg)
     except Exception as e:
         console.print(f"[red]Failed to show current migration: {e}[/red]")
@@ -257,14 +248,13 @@ def status():
 
     # Check migration status
     try:
-        from alembic.config import Config
         from alembic.script import ScriptDirectory
 
         # Ensure versions directory exists
         versions_dir = ALEMBIC_DIR / "versions"
         os.makedirs(versions_dir, exist_ok=True)
 
-        alembic_cfg = Config(str(ALEMBIC_INI))
+        alembic_cfg = get_alembic_cfg()
         script = ScriptDirectory.from_config(alembic_cfg)
 
         # Get head revision

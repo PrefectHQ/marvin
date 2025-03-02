@@ -48,13 +48,12 @@ def run_migrations_offline():
 def do_run_migrations(connection):
     """Run migrations with the given connection."""
     # Check if we're using SQLite
-    is_sqlite = connection.dialect.name == "sqlite"
 
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
         # Enable batch operations for SQLite
-        render_as_batch=is_sqlite,
+        render_as_batch=(connection.dialect.name == "sqlite"),
     )
 
     with context.begin_transaction():

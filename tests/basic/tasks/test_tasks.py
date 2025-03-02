@@ -596,7 +596,7 @@ class TestVerbose:
     async def test_mark_verbose_task_running(self, thread: Thread):
         """Test that verbose tasks add a message to the thread when marked running."""
         task = Task(instructions="Test verbose", verbose=True)
-        await task.mark_running(thread=thread)
+        await task.mark_started(thread=thread)
         messages = await thread.get_messages_async()
         assert len(messages) == 1
         assert messages[0].parts[0].content == IsStr(
@@ -607,7 +607,7 @@ class TestVerbose:
         """Test that verbose tasks use the context thread when marking running."""
         task = Task(instructions="Test verbose", verbose=True)
         with thread:
-            await task.mark_running()
+            await task.mark_started()
         messages = await thread.get_messages_async()
         assert len(messages) == 1
         assert messages[0].parts[0].content == IsStr(
@@ -617,6 +617,6 @@ class TestVerbose:
     async def test_mark_non_verbose_task_running(self, thread: Thread):
         """Test that non-verbose tasks don't add messages when marked running."""
         task = Task(instructions="Test verbose", verbose=False)
-        await task.mark_running(thread=thread)
+        await task.mark_started(thread=thread)
         messages = await thread.get_messages_async()
         assert len(messages) == 0

@@ -1,5 +1,6 @@
-"""Tests for thread functionality and message handling."""
+import uuid
 
+import pytest
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
 
 from marvin.engine.llm import AgentMessage, SystemMessage, UserMessage
@@ -76,3 +77,8 @@ def test_thread_messages():
 
     assert len(messages) == 1
     assert messages[0].parts[0].content == "Hello"
+
+
+def test_uuid_thread_id():
+    with pytest.raises(ValueError):
+        Thread(id=uuid.uuid4())

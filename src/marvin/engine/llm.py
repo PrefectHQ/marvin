@@ -18,8 +18,8 @@ from typing_extensions import TypeVar
 if TYPE_CHECKING:
     pass
 
-# Define Message type union
-Message = ModelRequest | ModelResponse
+
+PydanticAIMessage = ModelRequest | ModelResponse
 
 
 def SystemMessage(content: str) -> ModelRequest:
@@ -64,7 +64,7 @@ def bind_tool(agent: pydantic_ai.Agent[Any, Any], func: Callable[..., Any]) -> N
 
 async def generate_response(
     agentlet: pydantic_ai.Agent[Any, Any],
-    messages: list[Message] | None = None,
+    messages: list[PydanticAIMessage] | None = None,
     user_prompt: str | None = None,
 ) -> AgentRunResult:
     user_prompt = user_prompt or ""

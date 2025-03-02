@@ -42,7 +42,7 @@ async def setup_test_db(monkeypatch: pytest.MonkeyPatch, worker_id: str):
             max_retries = 3
             for attempt in range(max_retries):
                 try:
-                    database.create_db_and_tables(force=True)
+                    await database.create_db_and_tables(force=True)
                     break
                 except Exception:
                     if attempt == max_retries - 1:

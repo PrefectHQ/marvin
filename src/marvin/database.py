@@ -4,12 +4,13 @@ This module provides utilities for managing database sessions and migrations.
 """
 
 import asyncio
+import inspect
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 from pydantic import TypeAdapter
@@ -19,10 +20,10 @@ from sqlalchemy import (
     JSON,
     TIMESTAMP,
     ForeignKey,
+    Index,
     String,
     TypeDecorator,
-    create_engine,
-    inspect,
+    func,
 )
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -33,10 +34,8 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
-    Session,
     mapped_column,
     relationship,
-    sessionmaker,
 )
 from sqlalchemy.pool import StaticPool
 
@@ -44,15 +43,17 @@ import marvin
 from marvin.settings import settings
 from marvin.utilities.logging import get_logger
 
-from .engine.llm import Message
+from .engine.llm import PydanticAIMessage
+
+if TYPE_CHECKING:
+    from marvin.thread import Message
 
 logger = get_logger(__name__)
-message_adapter: TypeAdapter[Message] = TypeAdapter(Message)
+message_adapter: TypeAdapter[PydanticAIMessage] = TypeAdapter(PydanticAIMessage)
 usage_adapter: TypeAdapter[Usage] = TypeAdapter(Usage)
 
 # Module-level cache for engines and sessionmakers
 _async_engine_cache: dict[Any, AsyncEngine] = {}
-_sync_engine_cache: dict[str, Any] = {}
 db_initialized = False
 
 # Migration constants
@@ -61,7 +62,7 @@ ALEMBIC_DIR = MARVIN_DIR / "migrations"
 ALEMBIC_INI = MARVIN_DIR / "alembic.ini"
 
 
-def serialize_message(message: Message) -> str:
+def serialize_message(message: PydanticAIMessage) -> str:
     """
     The `ctx` field in the `RetryPromptPart` is optionally dict[str, Any], which is not always serializable.
     """
@@ -100,8 +101,8 @@ def get_async_engine() -> AsyncEngine:
             engine = create_async_engine(
                 url,
                 echo=False,
-                poolclass=StaticPool if url.endswith(":memory:") else None,
-                connect_args={"check_same_thread": False},
+                poolclass=StaticPool if is_memory_db() else None,
+                connect_args={"check_same_thread": False} if is_memory_db() else None,
             )
         # Handle other databases (use URL as-is)
         else:
@@ -110,49 +111,6 @@ def get_async_engine() -> AsyncEngine:
         _async_engine_cache[loop] = engine
 
     return _async_engine_cache[loop]
-
-
-def get_sync_engine():
-    """Get the SQLAlchemy engine for synchronous operations.
-
-    Converts async database URLs to their synchronous equivalent.
-    """
-    url = settings.database_url
-    if url is None:
-        raise ValueError("Database URL is not configured")
-
-    if url not in _sync_engine_cache:
-        parsed_url = urlparse(url)
-
-        # Handle SQLite databases
-        if parsed_url.scheme == "sqlite":
-            # Convert sqlite+aiosqlite:// to sqlite:// if needed
-            sync_url = url.replace("sqlite+aiosqlite://", "sqlite://")
-            engine = create_engine(
-                sync_url,
-                echo=False,
-                poolclass=StaticPool if sync_url.endswith(":memory:") else None,
-                connect_args={"check_same_thread": False},
-            )
-        # Handle PostgreSQL
-        elif "postgresql" in parsed_url.scheme:
-            # Convert postgresql+asyncpg:// to postgresql://
-            sync_url = url.replace("postgresql+asyncpg://", "postgresql://")
-            engine = create_engine(sync_url, echo=False)
-        # Handle other databases (adjust as needed)
-        else:
-            # Remove the async driver part if present
-            scheme_parts = parsed_url.scheme.split("+")
-            if len(scheme_parts) > 1:
-                sync_scheme = scheme_parts[0]
-                sync_url = url.replace(f"{parsed_url.scheme}://", f"{sync_scheme}://")
-                engine = create_engine(sync_url, echo=False)
-            else:
-                engine = create_engine(url, echo=False)
-
-        _sync_engine_cache[url] = engine
-
-    return _sync_engine_cache[url]
 
 
 def is_sqlite() -> bool:
@@ -171,7 +129,9 @@ def is_memory_db() -> bool:
     if url is None:
         return False
 
-    return is_sqlite() and (":memory:" in url or url.endswith("mode=memory"))
+    return is_sqlite() and (
+        ":memory:" in url or "mode=memory" in url or url.endswith("sqlite://")
+    )
 
 
 def set_async_engine(engine: AsyncEngine) -> None:
@@ -210,7 +170,7 @@ class DBThread(Base):
     @classmethod
     async def create(
         cls,
-        session: AsyncSession,
+        session: AsyncSession | None = None,
         id: str | None = None,
         parent_thread_id: str | None = None,
     ) -> "DBThread":
@@ -224,44 +184,78 @@ class DBThread(Base):
         Returns:
             The created DBThread instance
         """
-        thread = cls(
-            id=id or str(uuid.uuid4()),
-            parent_thread_id=parent_thread_id,
-        )
-        session.add(thread)
-        await session.commit()
-        await session.refresh(thread)
+        async with get_async_session(session) as session:
+            thread = cls(
+                id=id or str(uuid.uuid4()),
+                parent_thread_id=parent_thread_id,
+            )
+            session.add(thread)
         return thread
+
+
+class DBLLMCallMessage(Base):
+    """Mapping table between LLM calls and messages."""
+
+    __tablename__ = "llm_call_messages"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    llm_call_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("llm_calls.id"), index=True
+    )
+    message_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("messages.id"), index=True)
+    in_initial_prompt: Mapped[bool] = mapped_column()
+    order: Mapped[int] = mapped_column()  # Track message order within the call
+
+    llm_call: Mapped["DBLLMCall"] = relationship(back_populates="message_mappings")
+    message: Mapped["DBMessage"] = relationship(back_populates="llm_call_mappings")
 
 
 class DBMessage(Base):
     __tablename__ = "messages"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    thread_id: Mapped[str] = mapped_column(ForeignKey("threads.id"), index=True)
-    llm_call_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("llm_calls.id"),
-        default=None,
-    )
+    thread_id: Mapped[str] = mapped_column(ForeignKey("threads.id"))
     message: Mapped[dict[str, Any]] = mapped_column(JSON)
-    timestamp: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), default=utc_now
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), default=utc_now, server_default=func.now()
+    )
+
+    # Create a composite index on thread_id and timestamp in descending order
+    # Using SQLAlchemy's proper syntax for descending index
+    __table_args__ = (
+        Index(
+            "ix_messages_thread_id_created_at_desc",
+            "thread_id",
+            created_at.desc(),
+        ),
     )
 
     thread: Mapped[DBThread] = relationship(back_populates="messages")
-    llm_call: Mapped[Optional["DBLLMCall"]] = relationship(back_populates="messages")
+    llm_call_mappings: Mapped[list[DBLLMCallMessage]] = relationship(
+        back_populates="message"
+    )
 
     @classmethod
     def from_message(
         cls,
         thread_id: str,
-        message: Message,
-        llm_call_id: uuid.UUID | None = None,
+        message: PydanticAIMessage,
+        created_at: datetime | None = None,
     ) -> "DBMessage":
         return cls(
             thread_id=thread_id,
             message=serialize_message(message),
-            llm_call_id=llm_call_id,
+            created_at=created_at or utc_now(),
+        )
+
+    def to_message(self) -> "Message":
+        import marvin.thread
+
+        return marvin.thread.Message(
+            id=self.id,
+            thread_id=self.thread_id,
+            message=message_adapter.validate_python(self.message),
+            created_at=self.created_at,
         )
 
 
@@ -298,7 +292,9 @@ class DBLLMCall(Base):
         TIMESTAMP(timezone=True), default=utc_now
     )
 
-    messages: Mapped[list[DBMessage]] = relationship(back_populates="llm_call")
+    message_mappings: Mapped[list[DBLLMCallMessage]] = relationship(
+        back_populates="llm_call"
+    )
     thread: Mapped[DBThread] = relationship(back_populates="llm_calls")
 
     @classmethod
@@ -306,6 +302,8 @@ class DBLLMCall(Base):
         cls,
         thread_id: str,
         usage: Usage,
+        prompt_messages: list["DBMessage | Message"] | None = None,
+        completion_messages: list["DBMessage | Message"] | None = None,
         session: AsyncSession | None = None,
     ) -> "DBLLMCall":
         """Create a new LLM call record.
@@ -318,28 +316,57 @@ class DBLLMCall(Base):
         Returns:
             The created DBLLMCall instance
         """
-        llm_call = cls(thread_id=thread_id, usage=usage)
+        llm_call_id = uuid.uuid4()
+        llm_call = cls(id=llm_call_id, thread_id=thread_id, usage=usage)
 
-        if session is None:
-            # Use the sessionmaker pattern for more consistent session management
-            async with get_async_session() as session:
-                async with session.begin():
-                    session.add(llm_call)
-                await session.refresh(llm_call)
-                return llm_call
-        else:
+        async with get_async_session(session) as session:
             session.add(llm_call)
-            await session.commit()
-            await session.refresh(llm_call)
-            return llm_call
+
+            # Add request messages, maintaining their original order
+            for i, message in enumerate(prompt_messages):
+                mapping = DBLLMCallMessage(
+                    llm_call_id=llm_call.id,
+                    message_id=message.id,
+                    in_initial_prompt=True,
+                    order=i,  # Set order based on position in the list
+                )
+                session.add(mapping)
+
+            # Add response messages, maintaining their original order
+            # Response messages come after request messages in order
+            start_order = len(prompt_messages)
+            for i, message in enumerate(completion_messages):
+                mapping = DBLLMCallMessage(
+                    llm_call_id=llm_call.id,
+                    message_id=message.id,
+                    in_initial_prompt=False,
+                    order=start_order + i,  # Continue numbering after request messages
+                )
+                session.add(mapping)
+
+        return llm_call
 
 
 @asynccontextmanager
-async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
+async def get_async_session(
+    session: AsyncSession | None = None,
+) -> AsyncGenerator[AsyncSession, None]:
     """Get an async database session.
 
     This uses the async_sessionmaker pattern for more consistent session management.
+    If a session is provided, it is returned as-is.
+
+    Args:
+        session: An optional existing session to use. If provided, this function
+            will yield it directly instead of creating a new one.
+
+    Yields:
+        An async SQLAlchemy session
     """
+    if session is not None:
+        yield session
+        return
+
     engine = get_async_engine()
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
     async with session_factory() as session:
@@ -353,42 +380,38 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
-def get_sync_session() -> Session:
-    """Get a synchronous database session.
-
-    This uses the sessionmaker pattern for more consistent session management.
-    """
-    engine = get_sync_engine()
-    session_factory = sessionmaker(engine, expire_on_commit=False)
-    return session_factory()
-
-
-def _run_migrations() -> bool:
+def _run_migrations(alembic_log_level: str = "WARNING") -> bool:
     """Run Alembic migrations.
 
     Returns:
         True if migrations were successful, False otherwise.
     """
-    if not ALEMBIC_INI.exists():
-        logger.warning(
-            f"Alembic configuration file not found at {ALEMBIC_INI}. "
-            "To generate migration files, run 'marvin dev db revision -m \"initial\"'"
-        )
-        return False
+    from alembic import command
 
+    from marvin.cli.migrations import get_alembic_cfg
+
+    alembic_cfg = get_alembic_cfg()
     try:
-        from alembic import command
-        from alembic.config import Config
-
-        alembic_cfg = Config(str(ALEMBIC_INI))
         command.upgrade(alembic_cfg, "head")
         return True
+    except RuntimeError as e:
+        if "event loop" in str(e):
+            logger.warning(
+                inspect.cleandoc(
+                    """Migrations can not be run from inside an async context.
+                    This is unusual and means you are importing Marvin within an
+                    async function with either an in-memory database or a
+                    nonexistant SQLite database. Make sure you create, manage,
+                    or migrate your Marvin database separately. You can set
+                    MARVIN_AUTO_INIT_SQLITE=false to disable this behavior."""
+                )
+            )
     except Exception as e:
         logger.error(f"Failed to run migrations: {e}")
         return False
 
 
-def create_db_and_tables(*, force: bool = False) -> None:
+async def create_db_and_tables(*, force: bool = False) -> None:
     """Create all database tables synchronously.
 
     This is a synchronous alternative to create_db_and_tables() that can be used
@@ -397,30 +420,19 @@ def create_db_and_tables(*, force: bool = False) -> None:
     Args:
         force: If True, drops all existing tables before creating new ones.
     """
-    engine = get_sync_engine()
+    engine = get_async_engine()
 
-    model_tables = set(Base.metadata.tables.keys())
-
-    with engine.begin() as conn:
+    async with engine.begin() as conn:
         if force:
-            Base.metadata.drop_all(conn)
+            await conn.run_sync(Base.metadata.drop_all)
             logger.debug("Database tables dropped.")
 
-        inspector = inspect(conn)
-        existing_tables = inspector.get_table_names()
-
-        all_tables_exist = all(table in existing_tables for table in model_tables)
-
-        if all_tables_exist:
-            logger.debug("Database tables already exist.")
-        elif force:
-            Base.metadata.drop_all(conn)
+        if force:
+            await conn.run_sync(Base.metadata.drop_all)
             logger.debug("Database tables dropped.")
-            Base.metadata.create_all(conn)
-            logger.debug("Database tables forcefully recreated.")
-        else:
-            Base.metadata.create_all(conn)
-            logger.debug("Database tables created.")
+
+        await conn.run_sync(Base.metadata.create_all)
+        logger.debug("Database tables created.")
 
 
 def init_database_if_necessary():
@@ -433,15 +445,23 @@ def init_database_if_necessary():
     """
     global db_initialized
     if not db_initialized:
+        if not settings.auto_init_sqlite:
+            return
+
         if is_memory_db():
             # For in-memory databases, always create tables directly
-            try:
-                create_db_and_tables(force=False)
-                logger.debug("In-memory SQLite database tables created successfully")
-            except Exception as e:
-                logger.error(f"Failed to create in-memory SQLite database tables: {e}")
-                raise
-        elif is_sqlite() and settings.auto_init_sqlite:
+            # Run migrations to create schema
+            if _run_migrations():
+                logger.info(
+                    "[green]Successfully created in-memory SQLite database.[/]",
+                    extra={"markup": True},
+                )
+            else:
+                logger.warning(
+                    "[red]Failed to create in-memory SQLite database.[/]",
+                    extra={"markup": True},
+                )
+        elif is_sqlite():
             # For file-based SQLite, check if file exists
             url = settings.database_url
             if url is None:
@@ -465,12 +485,12 @@ def init_database_if_necessary():
                     # Run migrations to create schema
                     if _run_migrations():
                         logger.info(
-                            f'[green]A new SQLite database was created at "{path}" and migrations were applied successfully.[/green]',
+                            f'[green]A new SQLite database was created at "{path}" and migrations were applied successfully.[/]',
                             extra={"markup": True},
                         )
                     else:
                         logger.warning(
-                            f'[yellow]A new SQLite database was created at "{path}" but migrations failed.[/yellow]',
+                            f'[yellow]A new SQLite database was created at "{path}" but migrations failed.[/]',
                             extra={"markup": True},
                         )
 

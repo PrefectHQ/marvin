@@ -42,7 +42,14 @@ class Settings(BaseSettings):
 
     database_url: str | None = Field(
         default=None,
-        description="Database URL. Defaults to `sqlite+aiosqlite:///{{home_path}}/marvin.db`.",
+        description="""
+            Database URL. Defaults to
+            `sqlite+aiosqlite:///{{home_path}}/marvin.db`. Set to `:memory:` to
+            use an in-memory database that will be shared across all other
+            Marvin instances on this machine (as long as at least one instance
+            is running). Set to `sqlite+aiosqlite://` to use a localized
+            in-memory database that will not be shared across instances.
+            """,
     )
 
     auto_init_sqlite: bool = Field(
@@ -68,7 +75,7 @@ class Settings(BaseSettings):
 
         # Handle in-memory database
         if v == ":memory:":
-            return "sqlite+aiosqlite:///:memory:"
+            return "sqlite+aiosqlite:///:memory:?mode=memory&cache=shared&uri=true"
 
         return v
 
