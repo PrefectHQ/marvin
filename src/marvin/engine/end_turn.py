@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
 import marvin
 from marvin.engine.llm import AgentMessage
+from marvin.thread import Thread
 from marvin.utilities.logging import get_logger, maybe_quote
 
 if TYPE_CHECKING:
     from marvin.agents.actor import Actor
     from marvin.agents.team import Team
-    from marvin.engine.orchestrator import Orchestrator
     from marvin.tasks.task import Task
 
 TaskResult = TypeVar("TaskResult")
@@ -21,7 +21,7 @@ logger = get_logger(__name__)
 class EndTurn:
     name: ClassVar[str | None] = None
 
-    async def run(self, orchestrator: "Orchestrator", actor: "Actor") -> None:
+    async def run(self, thread: Thread, actor: "Actor") -> None:
         pass
 
 
@@ -47,14 +47,11 @@ def create_mark_task_successful(mark_task: "Task[Any]") -> type[MarkTaskSuccessf
         def __post_init__(self):
             mark_task.validate_result(self.result)
 
-        async def run(self, orchestrator: "Orchestrator", actor: "Actor") -> None:
+        async def run(self, thread: Thread, actor: "Actor") -> None:
             logger.debug(
                 f"{actor.friendly_name()}: Marking {mark_task.friendly_name()} successful."
             )
-            mark_task.mark_successful(self.result)
-            await orchestrator.thread.add_user_message_async(
-                f"Task completed: {mark_task.friendly_name()}"
-            )
+            await mark_task.mark_successful(self.result, thread=thread)
 
     _MarkTaskSuccessful.__name__ = f"MarkTaskSuccessful_{mark_task.id}"
     return _MarkTaskSuccessful[mark_task.get_result_type()]
@@ -75,7 +72,7 @@ def create_mark_task_failed(mark_task: "Task[Any]") -> type[MarkTaskFailed]:
             default=f"Mark {mark_task.friendly_name()} failed", init=False
         )
 
-        async def run(self, orchestrator: "Orchestrator", actor: "Actor") -> None:
+        async def run(self, thread: Thread, actor: "Actor") -> None:
             if self.message:
                 logger.debug(
                     f"{actor.friendly_name()}: Marking {mark_task.friendly_name()} failed with message {maybe_quote(self.message)}",
@@ -84,10 +81,7 @@ def create_mark_task_failed(mark_task: "Task[Any]") -> type[MarkTaskFailed]:
                 logger.debug(
                     f"{actor.friendly_name()}: Marking {mark_task.friendly_name()} failed",
                 )
-            mark_task.mark_failed(self.message)
-            await orchestrator.thread.add_user_message_async(
-                f"Task failed: {mark_task.friendly_name()}"
-            )
+            await mark_task.mark_failed(self.message, thread=thread)
 
     _MarkTaskFailed.__name__ = f"MarkTaskFailed_{mark_task.id}"
     return _MarkTaskFailed
@@ -107,14 +101,11 @@ def create_mark_task_skipped(mark_task: "Task[Any]") -> type[MarkTaskSkipped]:
             default=f"Mark {mark_task.friendly_name()} skipped", init=False
         )
 
-        async def run(self, orchestrator: "Orchestrator", actor: "Actor") -> None:
+        async def run(self, thread: Thread, actor: "Actor") -> None:
             logger.debug(
                 f"{actor.friendly_name()}: Marking {mark_task.friendly_name()} skipped",
             )
-            mark_task.mark_skipped()
-            await orchestrator.thread.add_user_message_async(
-                f"Task skipped: {mark_task.friendly_name()}"
-            )
+            await mark_task.mark_skipped(thread=thread)
 
     _MarkTaskSkipped.__name__ = f"MarkTaskSkipped_{mark_task.id}"
     return _MarkTaskSkipped
@@ -126,11 +117,11 @@ class PostMessage(EndTurn):
 
     message: str
 
-    async def run(self, orchestrator: "Orchestrator", actor: "Actor") -> None:
+    async def run(self, thread: Thread, actor: "Actor") -> None:
         logger.debug(
             f"{actor.friendly_name()}: Posting message to thread: {self.message}",
         )
-        await orchestrator.thread.add_message_async(AgentMessage(content=self.message))
+        await thread.add_message_async(AgentMessage(content=self.message))
 
 
 class DelegateToActor(EndTurn):
@@ -151,12 +142,12 @@ def create_delegate_to_actor(
             default=f"Delegate to {delegate_actor.friendly_name()}", init=False
         )
 
-        async def run(self, orchestrator: "Orchestrator", actor: "Actor"):
+        async def run(self, thread: Thread, actor: "Actor"):
             if team is not None:
                 team.active_member = delegate_actor
 
             if self.message:
-                await orchestrator.thread.add_messages_async(
+                await thread.add_messages_async(
                     [AgentMessage(content=f"{actor.friendly_name()}: {self.message}")],
                 )
 
@@ -199,7 +190,7 @@ def create_plan_subtasks(parent_task: "Task[Any]") -> type[PlanSubtasks]:
             }
         )
 
-        async def run(self, orchestrator: "Orchestrator", actor: "Actor"):
+        async def run(self, thread: Thread, actor: "Actor"):
             # create tasks in a new thread to avoid interrupting the function call
             with marvin.Thread() as thread:
                 tasks = await marvin.plan_async(
@@ -211,7 +202,7 @@ def create_plan_subtasks(parent_task: "Task[Any]") -> type[PlanSubtasks]:
 
             msg = f"Subtasks created: {[t.friendly_name() for t in tasks]}"
             logger.info(msg)
-            await orchestrator.thread.add_info_message_async(msg)
+            await thread.add_info_message_async(msg)
 
     _PlanSubtasks.__name__ = f"plan_subtasks_{parent_task.id}"
     return _PlanSubtasks

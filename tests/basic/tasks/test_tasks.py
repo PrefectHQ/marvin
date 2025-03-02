@@ -2,8 +2,10 @@ import enum
 from typing import Literal
 
 import pytest
+from dirty_equals import IsStr
 
 import marvin
+from marvin import Thread
 from marvin.agents.agent import Agent
 from marvin.agents.team import Swarm
 from marvin.tasks.task import Task, TaskState
@@ -22,35 +24,35 @@ class Colors(enum.Enum):
 
 
 class TestClassification:
-    def test_auto_enum_conversion(self):
+    async def test_auto_enum_conversion(self):
         """Test automatic conversion of list to Labels."""
         task = Task("Choose color", result_type=["red", "green", "blue"])
         assert task.is_classifier()
         assert isinstance(task.result_type, Labels)
         assert task.result_type.labels == ("red", "green", "blue")
 
-    def test_literal_classifier(self):
+    async def test_literal_classifier(self):
         """Test using Literal as classifier."""
         task = Task("Choose sentiment", result_type=Literal["positive", "negative"])
         assert task.is_classifier()
 
         # Test validation returns raw values
-        task.mark_successful(0)
+        await task.mark_successful(0)
         assert task.result == "positive"
-        task.mark_successful(1)
+        await task.mark_successful(1)
         assert task.result == "negative"
 
-    def test_enum_classifier(self):
+    async def test_enum_classifier(self):
         """Test using Enum as classifier."""
         task = Task("Choose color", result_type=Colors)
         assert task.is_classifier()
 
         # Test validation returns enum members
-        task.mark_successful(0)
+        await task.mark_successful(0)
         assert task.result == Colors.RED
         assert task.result.value == "red"
 
-    def test_raw_list_classifier(self):
+    async def test_raw_list_classifier(self):
         """Test using raw list as classifier."""
         task = Task("Choose color", result_type=["red", "green", "blue"])
         assert task.is_classifier()
@@ -58,12 +60,12 @@ class TestClassification:
         assert task.result_type.labels == ("red", "green", "blue")
 
         # Test validation returns raw values
-        task.mark_successful(0)
+        await task.mark_successful(0)
         assert task.result == "red"
-        task.mark_successful(1)
+        await task.mark_successful(1)
         assert task.result == "green"
 
-    def test_multi_label_classifier(self):
+    async def test_multi_label_classifier(self):
         """Test multi-label classification."""
         # Using list[Literal]
         task1 = Task("Choose colors", result_type=list[Literal["red", "green", "blue"]])
@@ -71,7 +73,7 @@ class TestClassification:
         assert task1.get_result_type() == list[int]
 
         # Test validation returns raw values
-        task1.mark_successful([0, 2])
+        await task1.mark_successful([0, 2])
         assert task1.result == ["red", "blue"]
 
         # Using list[Enum]
@@ -80,11 +82,11 @@ class TestClassification:
         assert task2.get_result_type() == list[int]
 
         # Test validation returns enum members
-        task2.mark_successful([0, 2])
+        await task2.mark_successful([0, 2])
         assert task2.result == [Colors.RED, Colors.BLUE]
         assert [v.value for v in task2.result] == ["red", "blue"]
 
-    def test_labels_classifier(self):
+    async def test_labels_classifier(self):
         """Test using list[list] syntax for multi-label classification."""
         # Test single-label with raw list
         task = Task("Choose color", result_type=["red", "green", "blue"])
@@ -93,7 +95,7 @@ class TestClassification:
         assert task.result_type.labels == ("red", "green", "blue")
 
         # Test validation returns raw values
-        task.mark_successful(0)
+        await task.mark_successful(0)
         assert task.result == "red"
 
         # Test multi-label with list[list]
@@ -102,32 +104,32 @@ class TestClassification:
         assert task.get_result_type() == list[int]
 
         # Test validation returns raw values
-        task.mark_successful([0, 2])
+        await task.mark_successful([0, 2])
         assert task.result == ["red", "blue"]
 
-    def test_classifier_validation_errors(self):
+    async def test_classifier_validation_errors(self):
         """Test validation error cases for classifiers."""
         # Test single-label
         task = Task("Choose color", result_type=["red", "green", "blue"])
 
         with pytest.raises(ValueError, match="Expected an integer index"):
-            task.mark_successful("red")  # Wrong type
+            await task.mark_successful("red")  # Wrong type
         with pytest.raises(ValueError, match="between 0 and"):
-            task.mark_successful(3)  # Out of range
+            await task.mark_successful(3)  # Out of range
         with pytest.raises(ValueError, match="Expected an integer index"):
-            task.mark_successful([0])  # List when single expected
+            await task.mark_successful([0])  # List when single expected
 
         # Test multi-label
         task = Task("Choose colors", result_type=[["red", "green", "blue"]])
 
         with pytest.raises(ValueError, match="Expected a list of indices"):
-            task.mark_successful(0)  # Single when list expected
+            await task.mark_successful(0)  # Single when list expected
         with pytest.raises(ValueError, match="All elements must be integers"):
-            task.mark_successful(["red"])  # Wrong element type
+            await task.mark_successful(["red"])  # Wrong element type
         with pytest.raises(ValueError, match="between 0 and"):
-            task.mark_successful([3])  # Out of range index
+            await task.mark_successful([3])  # Out of range index
 
-    def test_classifier_prompt_instruction(self):
+    async def test_classifier_prompt_instruction(self):
         """Test that classifier tasks include the additional instruction in their default prompt."""
         task = Task("Choose color", result_type=["red", "green", "blue"])
         prompt = task.get_prompt()
@@ -147,7 +149,7 @@ class TestClassification:
         assert expected_instruction not in prompt
         assert prompt == "Custom prompt: Choose color"
 
-    def test_classifier_edge_cases(self):
+    async def test_classifier_edge_cases(self):
         """Test edge cases for classifier types."""
         # Empty lists
         with pytest.raises(ValueError):
@@ -165,19 +167,19 @@ class TestClassification:
         assert isinstance(task.result_type, Labels)
         assert task.result_type.labels == (1, "red", True)
 
-    def test_type_preservation(self):
+    async def test_type_preservation(self):
         """Test that type hints are preserved for IDE support."""
         # Enum types
         task1: Task[Colors] = Task("Colors", result_type=Colors)
         assert task1.is_classifier()
-        task1.mark_successful(0)
+        await task1.mark_successful(0)
         assert isinstance(task1.result, Colors)
         assert task1.result == Colors.RED
 
         # Multi-label enum
         task2: Task[list[Colors]] = Task("Colors", result_type=list[Colors])
         assert task2.is_classifier()
-        task2.mark_successful([0, 1])
+        await task2.mark_successful([0, 1])
         assert isinstance(task2.result, list)
         assert all(isinstance(x, Colors) for x in task2.result)
         assert task2.result == [Colors.RED, Colors.GREEN]
@@ -185,30 +187,30 @@ class TestClassification:
         # Literal types
         task3: Task[Literal["a", "b"]] = Task("Literal", result_type=Literal["a", "b"])
         assert task3.is_classifier()
-        task3.mark_successful(0)
+        await task3.mark_successful(0)
         assert isinstance(task3.result, str)
         assert task3.result == "a"
 
-    def test_validation_edge_cases(self):
+    async def test_validation_edge_cases(self):
         """Test edge cases for validation."""
         # Single-label
         task = Task("Choose color", result_type=["red", "green", "blue"])
 
         with pytest.raises(ValueError):
-            task.mark_successful(None)  # None value
+            await task.mark_successful(None)  # None value
 
         # Multi-label
         task = Task("Choose colors", result_type=[["red", "green", "blue"]])
 
         with pytest.raises(ValueError):
-            task.mark_successful([])  # Empty list
+            await task.mark_successful([])  # Empty list
         with pytest.raises(ValueError):
-            task.mark_successful(None)  # None value
+            await task.mark_successful(None)  # None value
         with pytest.raises(ValueError):
-            task.mark_successful([0, 0])  # Duplicate indices
+            await task.mark_successful([0, 0])  # Duplicate indices
 
 
-def test_task_initialization():
+async def test_task_initialization():
     """Test basic task initialization."""
     task = Task(instructions="Test task")
     assert isinstance(task.id, str)
@@ -220,16 +222,17 @@ def test_task_initialization():
     assert task.name is None
     assert task.subtasks == set()
     assert task.parent is None
+    assert task.verbose is False
 
 
-def test_task_with_agent():
+async def test_task_with_agent():
     """Test task with custom agent."""
     agent = Agent()
     task = Task(instructions="Test with agent", agents=[agent])
     assert task.get_actor() is agent
 
 
-def test_task_with_multiple_agents():
+async def test_task_with_multiple_agents():
     """Test task with multiple agents."""
     agent1 = Agent()
     agent2 = Agent()
@@ -239,30 +242,30 @@ def test_task_with_multiple_agents():
     assert actor.members == [agent1, agent2]
 
 
-def test_task_get_default_agent():
+async def test_task_get_default_agent():
     """Test getting default agent when none specified."""
     task = Task(instructions="Test default agent")
     assert task.get_actor() is marvin.defaults.agent
 
 
-def test_task_mark_successful():
+async def test_task_mark_successful():
     """Test marking task as successful."""
     task = Task(instructions="Test success")
-    task.mark_successful("test result")
+    await task.mark_successful("test result")
     assert task.state == TaskState.SUCCESSFUL
     assert task.result == "test result"
 
 
-def test_task_mark_failed():
+async def test_task_mark_failed():
     """Test marking task as failed."""
     task = Task(instructions="Test failure")
     error_msg = "Test error"
-    task.mark_failed(error_msg)
+    await task.mark_failed(error_msg)
     assert task.state == TaskState.FAILED
     assert task.result == error_msg
 
 
-def test_task_with_custom_validator():
+async def test_task_with_custom_validator():
     """Test task with custom result validator."""
 
     def validate_positive(x: int) -> int:
@@ -277,15 +280,15 @@ def test_task_with_custom_validator():
     )
 
     # Test successful validation
-    task.mark_successful(5)
+    await task.mark_successful(5)
     assert task.result == 5
 
     # Test failed validation
     with pytest.raises(ValueError):
-        task.mark_successful(-1)
+        await task.mark_successful(-1)
 
 
-def test_task_parent_child_relationship():
+async def test_task_parent_child_relationship():
     """Test parent-child task relationship."""
     parent_task = Task(instructions="Parent task")
     child_task = Task(instructions="Child task", parent=parent_task)
@@ -294,7 +297,7 @@ def test_task_parent_child_relationship():
     assert child_task in parent_task.subtasks
 
 
-def test_task_parent_child_bidirectional():
+async def test_task_parent_child_bidirectional():
     """Test that parent-child relationship is properly maintained when changed."""
     parent1 = Task(instructions="Parent 1")
     parent2 = Task(instructions="Parent 2")
@@ -317,7 +320,7 @@ def test_task_parent_child_bidirectional():
     assert child not in parent2.subtasks
 
 
-def test_task_dependencies():
+async def test_task_dependencies():
     """Test task dependencies."""
     task1 = Task(instructions="Task 1")
     task2 = Task(instructions="Task 2")
@@ -335,7 +338,7 @@ def test_task_dependencies():
     assert len(task5.depends_on) == 0
 
 
-def test_task_complex_relationships():
+async def test_task_complex_relationships():
     """Test complex task relationships with multiple parents, children, and dependencies."""
     # Create a network of tasks
     root = Task(instructions="Root")
@@ -365,7 +368,7 @@ def test_task_complex_relationships():
     assert child2 in grandchild.depends_on  # Dependencies remain unchanged
 
 
-def test_task_context_basic():
+async def test_task_context_basic():
     """Test that tasks created in a context inherit the parent."""
     parent = Task(instructions="Parent")
 
@@ -383,7 +386,7 @@ def test_task_context_basic():
         assert task3 in parent.subtasks
 
 
-def test_task_context_nested():
+async def test_task_context_nested():
     """Test that tasks use the most recent context as parent."""
     parent1 = Task(instructions="Parent 1")
     parent2 = Task(instructions="Parent 2")
@@ -401,7 +404,7 @@ def test_task_context_nested():
         assert task3.parent is parent1
 
 
-def test_task_context_override():
+async def test_task_context_override():
     """Test that explicitly passed parent overrides context parent."""
     context_parent = Task(instructions="Context parent")
     manual_parent = Task(instructions="Manual parent")
@@ -418,7 +421,7 @@ def test_task_context_override():
         assert task2 in manual_parent.subtasks
 
 
-def test_task_context_reenter():
+async def test_task_context_reenter():
     """Test that reentering a context works correctly."""
     parent = Task(instructions="Parent")
 
@@ -437,14 +440,14 @@ def test_task_context_reenter():
         assert task3 in parent.subtasks
 
 
-def test_task_with_context():
+async def test_task_with_context():
     """Test task with context data."""
     context = {"key": "value"}
     task = Task(instructions="Test context", context=context)
     assert task.context == context
 
 
-def test_task_prompt_customization():
+async def test_task_prompt_customization():
     """Test customizing task prompts."""
     # Test default prompt
     task = Task(
@@ -491,6 +494,129 @@ def test_task_prompt_customization():
     )
     prompt = task.get_prompt()
     assert prompt == "Task is complete: False"
-    task.mark_successful("test result")
+    await task.mark_successful("test result")
     prompt = task.get_prompt()
     assert prompt == "Task is complete: True"
+
+
+class TestVerbose:
+    @pytest.fixture
+    def thread(self) -> marvin.Thread:
+        return marvin.Thread()
+
+    async def test_create_verbose_task(self, thread: Thread):
+        """Test that tasks can be created with verbose=True."""
+        task = Task(instructions="Test verbose", verbose=True)
+        assert task.verbose
+
+    async def test_mark_verbose_task_successful(self, thread: Thread):
+        """Test that verbose tasks add a message to the thread when marked successful."""
+        task = Task(instructions="Test verbose", verbose=True)
+        await task.mark_successful("test result", thread=thread)
+        messages = await thread.get_messages_async()
+        assert len(messages) == 1
+        assert messages[0].parts[0].content == IsStr(
+            regex=r"^TASK STATE UPDATE: .* successful with result.*$"
+        )
+
+    async def test_mark_verbose_task_successful_context_thread(self, thread: Thread):
+        """Test that verbose tasks use the context thread when marking successful."""
+        task = Task(instructions="Test verbose", verbose=True)
+        with thread:
+            await task.mark_successful("test result")
+        messages = await thread.get_messages_async()
+        assert len(messages) == 1
+        assert messages[0].parts[0].content == IsStr(
+            regex=r"^TASK STATE UPDATE: .* successful with result.*$"
+        )
+
+    async def test_mark_non_verbose_task_successful(self, thread: Thread):
+        """Test that non-verbose tasks don't add messages when marked successful."""
+        task = Task(instructions="Test verbose", verbose=False)
+        await task.mark_successful("test result", thread=thread)
+        messages = await thread.get_messages_async()
+        assert len(messages) == 0
+
+    async def test_mark_verbose_task_failed(self, thread: Thread):
+        """Test that verbose tasks add a message to the thread when marked failed."""
+        task = Task(instructions="Test verbose", verbose=True)
+        await task.mark_failed("test error", thread=thread)
+        messages = await thread.get_messages_async()
+        assert len(messages) == 1
+        assert messages[0].parts[0].content == IsStr(
+            regex=r"^TASK STATE UPDATE: .* failed with error.*$"
+        )
+
+    async def test_mark_verbose_task_failed_context_thread(self, thread: Thread):
+        """Test that verbose tasks use the context thread when marking failed."""
+        task = Task(instructions="Test verbose", verbose=True)
+        with thread:
+            await task.mark_failed("test error")
+        messages = await thread.get_messages_async()
+        assert len(messages) == 1
+        assert messages[0].parts[0].content == IsStr(
+            regex=r"^TASK STATE UPDATE: .* failed with error.*$"
+        )
+
+    async def test_mark_non_verbose_task_failed(self, thread: Thread):
+        """Test that non-verbose tasks don't add messages when marked failed."""
+        task = Task(instructions="Test verbose", verbose=False)
+        await task.mark_failed("test error", thread=thread)
+        messages = await thread.get_messages_async()
+        assert len(messages) == 0
+
+    async def test_mark_verbose_task_skipped(self, thread: Thread):
+        """Test that verbose tasks add a message to the thread when marked skipped."""
+        task = Task(instructions="Test verbose", verbose=True)
+        await task.mark_skipped(thread=thread)
+        messages = await thread.get_messages_async()
+        assert len(messages) == 1
+        assert messages[0].parts[0].content == IsStr(
+            regex=r"^TASK STATE UPDATE: .* skipped$"
+        )
+
+    async def test_mark_verbose_task_skipped_context_thread(self, thread: Thread):
+        """Test that verbose tasks use the context thread when marking skipped."""
+        task = Task(instructions="Test verbose", verbose=True)
+        with thread:
+            await task.mark_skipped()
+        messages = await thread.get_messages_async()
+        assert len(messages) == 1
+        assert messages[0].parts[0].content == IsStr(
+            regex=r"^TASK STATE UPDATE: .* skipped$"
+        )
+
+    async def test_mark_non_verbose_task_skipped(self, thread: Thread):
+        """Test that non-verbose tasks don't add messages when marked skipped."""
+        task = Task(instructions="Test verbose", verbose=False)
+        await task.mark_skipped(thread=thread)
+        messages = await thread.get_messages_async()
+        assert len(messages) == 0
+
+    async def test_mark_verbose_task_running(self, thread: Thread):
+        """Test that verbose tasks add a message to the thread when marked running."""
+        task = Task(instructions="Test verbose", verbose=True)
+        await task.mark_running(thread=thread)
+        messages = await thread.get_messages_async()
+        assert len(messages) == 1
+        assert messages[0].parts[0].content == IsStr(
+            regex=r"^TASK STATE UPDATE: .* started$"
+        )
+
+    async def test_mark_verbose_task_running_context_thread(self, thread: Thread):
+        """Test that verbose tasks use the context thread when marking running."""
+        task = Task(instructions="Test verbose", verbose=True)
+        with thread:
+            await task.mark_running()
+        messages = await thread.get_messages_async()
+        assert len(messages) == 1
+        assert messages[0].parts[0].content == IsStr(
+            regex=r"^TASK STATE UPDATE: .* started$"
+        )
+
+    async def test_mark_non_verbose_task_running(self, thread: Thread):
+        """Test that non-verbose tasks don't add messages when marked running."""
+        task = Task(instructions="Test verbose", verbose=False)
+        await task.mark_running(thread=thread)
+        messages = await thread.get_messages_async()
+        assert len(messages) == 0

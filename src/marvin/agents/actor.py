@@ -18,7 +18,6 @@ from marvin.thread import Thread
 if TYPE_CHECKING:
     from marvin.engine.end_turn import EndTurn
     from marvin.engine.handlers import AsyncHandler, Handler
-    from marvin.engine.orchestrator import Orchestrator
 T = TypeVar("T")
 # Global context var for current actor
 _current_actor: ContextVar[Optional["Actor"]] = ContextVar(
@@ -52,6 +51,13 @@ class Actor(ABC):
         repr=False,
     )
 
+    verbose: bool = field(
+        default=False,
+        metadata={
+            "description": "Whether to print additional information to the thread, such as the active member."
+        },
+    )
+
     prompt: str | Path = field(repr=False)
 
     _tokens: list[Any] = field(default_factory=list, init=False, repr=False)
@@ -83,13 +89,21 @@ class Actor(ABC):
     ) -> pydantic_ai.Agent[Any, Any]:
         raise NotImplementedError("Actor subclasses must implement _run")
 
-    async def start_turn(self, orchestrator: "Orchestrator"):
+    async def start_turn(self, thread: Thread):
         """Called when the actor starts its turn."""
-        pass
+        if self.verbose:
+            await thread.add_info_message_async(
+                f"{self.friendly_name()} has started its turn.",
+                prefix="ACTOR UPDATE",
+            )
 
-    async def end_turn(self, orchestrator: "Orchestrator", result: AgentRunResult):
+    async def end_turn(self, thread: Thread, result: AgentRunResult):
         """Called when the actor ends its turn."""
-        pass
+        if self.verbose:
+            await thread.add_info_message_async(
+                f"{self.friendly_name()} has finished its turn.",
+                prefix="ACTOR UPDATE",
+            )
 
     def get_tools(self) -> list[Callable[..., Any]]:
         """A list of tools that this actor can use during its turn."""

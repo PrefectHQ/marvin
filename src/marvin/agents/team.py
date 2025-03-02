@@ -10,10 +10,10 @@ from marvin.agents.actor import Actor
 from marvin.agents.names import TEAM_NAMES
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
+from marvin.thread import Thread
 
 if TYPE_CHECKING:
     from marvin.engine.end_turn import EndTurn
-    from marvin.engine.orchestrator import Orchestrator
 
 
 @dataclass(kw_only=True)
@@ -54,15 +54,15 @@ class Team(Actor):
         self.active_member.__exit__(exc_type, exc_val, exc_tb)
         super().__exit__(exc_type, exc_val, exc_tb)
 
-    async def start_turn(self, orchestrator: "Orchestrator"):
-        await self.active_member.start_turn(orchestrator=orchestrator)
+    async def start_turn(self, thread: Thread):
+        await self.active_member.start_turn(thread=thread)
 
     async def end_turn(
         self,
-        orchestrator: "Orchestrator",
+        thread: Thread,
         result: AgentRunResult,
     ):
-        await self.active_member.end_turn(result=result, orchestrator=orchestrator)
+        await self.active_member.end_turn(result=result, thread=thread)
 
     def get_prompt(self) -> str:
         return Template(source=self.prompt).render(team=self)
@@ -113,16 +113,16 @@ class Swarm(Team):
 class RoundRobinTeam(Team):
     description: str | None = "A team of agents that rotate turns."
 
-    async def start_turn(self, orchestrator: "Orchestrator"):
+    async def start_turn(self, thread: Thread):
         index = self.members.index(self.active_member)
         self.active_member = self.members[(index + 1) % len(self.members)]
-        await super().start_turn(orchestrator=orchestrator)
+        await super().start_turn(thread=thread)
 
 
 @dataclass(kw_only=True)
 class RandomTeam(Team):
     description: str | None = "A team of agents that randomly selects an agent to act."
 
-    async def start_turn(self, orchestrator: "Orchestrator"):
+    async def start_turn(self, thread: Thread):
         self.active_member = random.choice(self.members)
-        await super().start_turn(orchestrator=orchestrator)
+        await super().start_turn(thread=thread)
