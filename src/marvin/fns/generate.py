@@ -15,7 +15,7 @@ T = TypeVar("T")
 
 
 async def generate_async(
-    target: TargetType[T] = str,
+    target: TargetType[T] | None = None,
     n: int = 1,
     instructions: str | None = None,
     agent: Agent | None = None,
@@ -43,8 +43,12 @@ async def generate_async(
         A list of n generated entities of type T.
 
     """
+
+    if target is None:
+        target = str
+
     if target is str and instructions is None:
-        raise ValueError("Instructions are required when target type is str.")
+        raise ValueError("Instructions are required when generating string values.")
 
     task_context = context or {}
     task_context["Number to generate"] = n
@@ -80,7 +84,7 @@ async def generate_async(
 
 
 def generate(
-    target: TargetType[T] = str,
+    target: TargetType[T] | None = None,
     n: int = 1,
     instructions: str | None = None,
     agent: Agent | None = None,
