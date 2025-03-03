@@ -195,7 +195,7 @@ class Orchestrator:
         )
 
         with actor:
-            with agentlet.iter(
+            async with agentlet.iter(
                 user_prompt="", message_history=[m.message for m in prompt_messages]
             ) as run:
                 async for event in handle_agentlet_events(

@@ -9,10 +9,9 @@ dependencies = [
     "alembic>=1.12.0",
     "jinja2>=3.1.4",
     "partial-json-parser>=0.2.1.1.post5",
-    "pydantic-ai>=0.0.30",
+    "pydantic-ai>=0.0.31",
     "pydantic-settings>=2.6.1",
     "pydantic[email]>=2.10.6",
-
     "rich>=13.9.4",
     "sqlalchemy[asyncio]>=2.0.36",
     "typer>=0.15.1",

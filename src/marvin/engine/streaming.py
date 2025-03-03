@@ -121,7 +121,7 @@ async def handle_agentlet_events(
                         if marvin.settings.log_level == "DEBUG":
                             logger.exception("Detailed traceback:")
 
-        elif pydantic_ai.Agent.is_handle_response_node(node):
+        elif pydantic_ai.Agent.is_call_tools_node(node):
             # Handle-response node - the model returned data, potentially calls a tool
             async with node.stream(run.ctx) as handle_stream:
                 async for event in handle_stream:
