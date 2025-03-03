@@ -34,14 +34,16 @@ def run_sync(coro: Coroutine[Any, Any, T]) -> T:
     """
     ctx = contextvars.copy_context()
     try:
-        loop = asyncio.get_running_loop()
+        loop = asyncio.get_event_loop()
     except RuntimeError:
-        return ctx.run(asyncio.run, coro)
-    else:
-        try:
-            return ctx.run(loop.run_until_complete, coro)
-        except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    try:
+        return ctx.run(loop.run_until_complete, coro)
+    except RuntimeError as e:
+        if "event loop" in str(e):
             return run_sync_in_thread(coro)
+        raise e
 
 
 def run_sync_in_thread(coro: Coroutine[Any, Any, T]) -> T:
