@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 class Snapshot(TypedDict):
     """A snapshot of a single moment in a conversation timeline"""
 
-    timeStep: int
+    time_step: int
     event: str
     important_quotes: list[str]
     known_facts: list[str]
@@ -96,7 +96,7 @@ def build_context(thread: ThreadViewPost) -> dict[str, Any]:
                         else {}
                     ),
                 }
-                for reply in thread.replies
+                for reply in thread.replies or []
                 if hasattr(reply, "post")
             ]
 
