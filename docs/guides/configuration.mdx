@@ -39,9 +39,6 @@ Marvin stores conversation history and other data in a SQLite database by defaul
 ```bash
 # Set a custom database location
 export MARVIN_DATABASE_URL="sqlite+aiosqlite:///path/to/your/database.db"
-
-# Use an in-memory database (no persistence)
-export MARVIN_DATABASE_URL=":memory:"
 ```
 
 ### Memory Providers
@@ -153,16 +150,14 @@ Below is a complete reference of all available configuration options:
 
 3. **Set appropriate log levels** - use `DEBUG` during development and `INFO` or higher in production.
 
-4. **Consider using an in-memory database** (`MARVIN_DATABASE_URL=":memory:"`) for testing or when persistence isn't needed.
-
-5. **Adjust model parameters for your use case**:
+4. **Adjust model parameters for your use case**:
    - For more creative tasks, increase temperature (e.g., `MARVIN_AGENT_TEMPERATURE=0.8`)
    - For fact-based or precise tasks, use a lower temperature (e.g., `MARVIN_AGENT_TEMPERATURE=0.2`)
    - For cost-sensitive applications, consider using a smaller model (e.g., `MARVIN_AGENT_MODEL="openai:gpt-4o-mini"`)
 
-6. **Set appropriate retry counts** based on your application's reliability needs. More retries can improve reliability but might increase costs and response times.
+5. **Set appropriate retry counts** based on your application's reliability needs. More retries can improve reliability but might increase costs and response times.
 
-7. **Create different configuration profiles** for development, testing, and production environments.
+6. **Create different configuration profiles** for development, testing, and production environments.
 
 ## Troubleshooting
 

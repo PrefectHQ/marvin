@@ -352,7 +352,6 @@ Marvin 3.0 combines the DX of Marvin 2.0 with the powerful agentic engine of [Co
       marvin.run("do another thing")
   ```
 - **Database Changes**: Thread/message history is now stored in SQLite. During development:
-  - Set `MARVIN_DATABASE_URL=":memory:"` for an in-memory database
   - No database migrations are currently available; expect to reset data during updates
 
 ### New Features

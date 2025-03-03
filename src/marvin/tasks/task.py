@@ -404,6 +404,7 @@ class Task(Generic[T]):
             type_adapter = get_type_adapter(self.get_result_type())
             try:
                 return json.dumps(type_adapter.json_schema())
+
             except Exception:
                 return str(self.get_result_type())
 
@@ -519,7 +520,7 @@ class Task(Generic[T]):
         if thread and self.verbose:
             await thread.add_info_message_async(
                 f"{self.friendly_name()} successful with result {result}",
-                prefix="TASK STATE UPDATE",
+                prefix="Task state updated",
             )
 
     async def mark_failed(self, error: str, thread: Thread | None = None) -> None:
@@ -532,7 +533,7 @@ class Task(Generic[T]):
         if thread and self.verbose:
             await thread.add_info_message_async(
                 f"{self.friendly_name()} failed with error {error}",
-                prefix="TASK STATE UPDATE",
+                prefix="Task state updated",
             )
 
     async def mark_running(
@@ -541,13 +542,14 @@ class Task(Generic[T]):
     ) -> None:
         """Mark the task as running."""
         self.state = TaskState.RUNNING
+
         if thread is None:
             thread = marvin.thread.get_current_thread()
 
-        if thread and self.verbose:
+        if thread:
             await thread.add_info_message_async(
-                f"{self.friendly_name()} started",
-                prefix="TASK STATE UPDATE",
+                self.get_prompt(),
+                prefix="A new task has started",
             )
 
     async def mark_skipped(self, thread: Thread | None = None) -> None:
@@ -559,7 +561,7 @@ class Task(Generic[T]):
         if thread and self.verbose:
             await thread.add_info_message_async(
                 f"{self.friendly_name()} skipped",
-                prefix="TASK STATE UPDATE",
+                prefix="Task state updated",
             )
 
     def is_pending(self) -> bool:

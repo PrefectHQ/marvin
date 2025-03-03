@@ -42,7 +42,7 @@ class Settings(BaseSettings):
 
     database_url: str | None = Field(
         default=None,
-        description="Database URL. Defaults to `sqlite+aiosqlite:///{{home_path}}/marvin.db`.",
+        description="Database URL. Must be provided with an async-compatible SQLAlchemy dialect. Defaults to `sqlite+aiosqlite:///{{home_path}}/marvin.db`",
     )
 
     auto_init_sqlite: bool = Field(
@@ -65,10 +65,6 @@ class Settings(BaseSettings):
             if not home_path:
                 raise ValueError("home_path must be set before database_url")
             return f"sqlite+aiosqlite:///{home_path}/marvin.db"
-
-        # Handle in-memory database
-        if v == ":memory:":
-            return "sqlite+aiosqlite:///:memory:"
 
         return v
 

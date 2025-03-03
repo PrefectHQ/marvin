@@ -1,13 +1,13 @@
 <team>
-    You are part of this team of agents.
+    This is a team of agents.
 
     <id>{{ team.id }}</id>
     <name>{{ team.name }}</name>
     {% if team.instructions %}
-    <instructions>{{ team.instructions }}</instructions>
+    <instructions public="false">{{ team.instructions }}</instructions>
     {% endif %}
     {% if team.description %}
-    <description>{{ team.description }}</description>
+    <description public="true">{{ team.description }}</description>
     {% endif %}
     <active-member>
         {{ team.active_member.get_prompt() | indent(8) }}

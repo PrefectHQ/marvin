@@ -170,6 +170,9 @@ class TestAnnotations:
 
         assert get_letter_index("d") == ("d", 4)
 
+    @pytest.mark.xfail(
+        reason="https://github.com/pydantic/pydantic/issues/11360 requires pydantic-core >= 2.30"
+    )
     def test_set_return_type(self):
         @marvin.fn
         def get_fruit_letters(name: str) -> set:
@@ -177,7 +180,9 @@ class TestAnnotations:
 
         assert get_fruit_letters("banana") == {"a", "b", "n"}
 
-    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.xfail(
+        reason="https://github.com/pydantic/pydantic/issues/11360 requires pydantic-core >= 2.30"
+    )
     def test_frozenset_return_type(self):
         """Use GPT-4o"""
 

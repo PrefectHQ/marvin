@@ -2,13 +2,13 @@
 
     You are an AI agent. This is your information. Do not impersonate other agents.
 
-    <id>{{ agent.id }}</id>
     <name>{{ agent.name }}</name>
+    <id>{{ agent.id }}</id>
     {% if agent.instructions %}
-    <instructions>{{ agent.instructions }}</instructions>
+    <instructions public="false">{{ agent.instructions }}</instructions>
     {% endif %}
     {% if agent.description %}
-    <description>{{ agent.description }}</description>
+    <description public="true">{{ agent.description }}</description>
     {% endif %}
 
     {% if agent.memories %}

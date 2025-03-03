@@ -202,7 +202,7 @@ class TestTeamVerbose:
 
         # Should have one message from the verbose member
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
+        assert messages[0].message.parts[0].content == IsStr(
             regex=r"^ACTOR UPDATE: .* has started its turn\.$"
         )
 
@@ -227,7 +227,7 @@ class TestTeamVerbose:
 
         # Should have one message from the verbose member
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
+        assert messages[0].message.parts[0].content == IsStr(
             regex=r"^ACTOR UPDATE: .* has finished its turn\.$"
         )
 

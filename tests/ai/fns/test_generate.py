@@ -139,6 +139,7 @@ class TestGenerateSchema:
     async def test_generate_schema_with_thread(self, gpt_4o):
         result = await marvin.generate_schema_async(
             instructions="a list that contains exactly three integers",
+            thread="abc",
         )
         assert result == {
             "type": "array",
@@ -149,7 +150,7 @@ class TestGenerateSchema:
 
         result2 = await marvin.generate_schema_async(
             instructions="actually 4 to 6 floats",
-            thread=result,
+            thread="abc",
         )
         assert result2 == {
             "type": "array",

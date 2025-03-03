@@ -30,7 +30,7 @@ from marvin.instructions import get_instructions
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.tasks.task import Task
-from marvin.thread import Thread, get_thread
+from marvin.thread import Message, Thread, get_thread
 from marvin.utilities.logging import get_logger
 
 T = TypeVar("T")
@@ -45,35 +45,41 @@ _current_orchestrator: ContextVar["Orchestrator|None"] = ContextVar(
 
 
 @dataclass(kw_only=True)
-class OrchestratorPrompt(Template):
-    source: str | Path = Path("orchestrator.jinja")
+class SystemPrompt(Template):
+    source: str | Path = Path("system.jinja")
 
-    orchestrator: "Orchestrator"
     actor: Actor
-    tasks: list[Task[Any]]
     instructions: list[str]
-    end_turn_tools: list[EndTurn]
+    tasks: list[Task]
 
 
 @dataclass(kw_only=True)
 class Orchestrator:
     tasks: list[Task[Any]]
-    thread: Thread | str | None = None
-    handlers: list[Handler | AsyncHandler] | None = None
+    thread: Thread
+    handlers: list[Handler | AsyncHandler]
 
-    def __post_init__(self):
-        self.thread = get_thread(self.thread)
-        if self.handlers is None:
+    def __init__(
+        self,
+        tasks: list[Task[Any]],
+        thread: Thread | str | None = None,
+        handlers: list[Handler | AsyncHandler] | None = None,
+    ):
+        self.tasks = tasks
+        self.thread = get_thread(thread)
+
+        if handlers is None:
             if marvin.settings.enable_default_print_handler:
-                self.handlers = [PrintHandler()]
+                handlers = [PrintHandler()]
             else:
-                self.handlers = []
+                handlers = []
+        self.handlers = handlers
 
     async def handle_event(self, event: Event):
         if marvin.settings.log_events:
             logger.debug(f"Handling event: {event.__class__.__name__}\n{event}")
 
-        for handler in self.handlers or []:
+        for handler in self.handlers:
             if isinstance(handler, AsyncHandler):
                 await handler.handle(event)
             else:
@@ -158,9 +164,8 @@ class Orchestrator:
             memories.update([m for m in actor.get_memories() if m.auto_use])
         if memories:
             memory_messages = await self.thread.get_messages_async(limit=3)
-            from marvin.thread import (
-                message_adapter,  # Import here to avoid circular import
-            )
+            # Import here to avoid circular import
+            from marvin.thread import message_adapter
 
             query = message_adapter.dump_json(memory_messages).decode()
             for memory in memories:
@@ -172,19 +177,16 @@ class Orchestrator:
                     prefix="Automatically recalled memories",
                 )
 
-        orchestrator_prompt = OrchestratorPrompt(
-            orchestrator=self,
-            actor=actor,
-            tasks=assigned_tasks,
-            instructions=get_instructions(),
-            end_turn_tools=end_turn_tools,
-        ).render()
+        system_prompt = await self.thread.add_system_message_async(
+            SystemPrompt(
+                actor=actor,
+                instructions=get_instructions(),
+                tasks=assigned_tasks,
+            ).render()
+        )
 
-        messages = await self.thread.get_messages_async()
-
-        all_messages = [
-            marvin.engine.llm.SystemMessage(content=orchestrator_prompt),
-        ] + messages
+        messages = await self.thread.get_messages_async(include_system_messages=False)
+        prompt_messages: list[Message] = [system_prompt] + messages
 
         # --- run agent
         agentlet = await actor.get_agentlet(
@@ -192,9 +194,10 @@ class Orchestrator:
             end_turn_tools=list(end_turn_tools),
         )
 
-        # Run the agentlet with our new function
         with actor:
-            with agentlet.iter("", message_history=all_messages) as run:
+            async with agentlet.iter(
+                user_prompt="", message_history=[m.message for m in prompt_messages]
+            ) as run:
                 async for event in handle_agentlet_events(
                     agentlet=agentlet,
                     actor=actor,
@@ -202,15 +205,18 @@ class Orchestrator:
                 ):
                     await self.handle_event(event)
 
-        # Record the LLM call in the database
-        llm_call = await DBLLMCall.create(
-            thread_id=self.thread.id,
-            usage=run.usage(),
+        # --- add final messages to the thread
+        new_messages = run.result.new_messages()
+        completion_messages = await self.thread.add_messages_async(
+            # skip the first message since we send an empty string
+            new_messages[1:]
         )
 
-        # --- add final messages to the thread
-        await self.thread.add_messages_async(
-            run.result.new_messages(), llm_call_id=llm_call.id
+        await DBLLMCall.create(
+            thread_id=self.thread.id,
+            usage=run.usage(),
+            prompt_messages=prompt_messages,
+            completion_messages=completion_messages,
         )
 
         # --- end turn

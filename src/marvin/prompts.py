@@ -14,7 +14,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, get_type_hints
 
-from marvin.engine.llm import AgentMessage, Message, SystemMessage, UserMessage
+from marvin.engine.llm import (
+    AgentMessage,
+    PydanticAIMessage,
+    SystemMessage,
+    UserMessage,
+)
 from marvin.utilities.jinja import jinja_env
 
 
@@ -87,7 +92,7 @@ class Prompt:
         template = Template(source=self.source)
         return template.render(**render_kwargs | kwargs)
 
-    def _parse_messages(self, text: str) -> list[Message]:
+    def _parse_messages(self, text: str) -> list[PydanticAIMessage]:
         """Parse text into messages with roles.
 
         The text can contain role markers in the format "ROLE:" or "role:".
@@ -136,7 +141,7 @@ class Prompt:
                 chunks.append(("user", content))
 
         # Convert role/content pairs to appropriate Message types
-        messages: list[Message] = []
+        messages: list[PydanticAIMessage] = []
         for role, content in chunks:
             if role == "system":
                 messages.append(SystemMessage(content))
@@ -146,7 +151,7 @@ class Prompt:
                 messages.append(AgentMessage(content))
         return messages
 
-    def to_messages(self, **kwargs: Any) -> list[Message]:
+    def to_messages(self, **kwargs: Any) -> list[PydanticAIMessage]:
         """Convert the prompt to a list of messages with roles.
 
         The template can contain role markers (SYSTEM:, USER:, ASSISTANT:) to

@@ -13,18 +13,40 @@ from pydantic import TypeAdapter
 from pydantic_ai.usage import Usage
 from sqlalchemy import select
 
-from marvin.database import DBLLMCall, DBMessage, DBThread, get_async_session
+from marvin.database import (
+    DBLLMCall,
+    DBLLMCallMessage,
+    DBMessage,
+    DBThread,
+    get_async_session,
+    utc_now,
+)
+from marvin.engine.llm import ModelRequest
 from marvin.utilities.asyncio import run_sync
 
-from .engine.llm import Message, UserMessage
+from .engine.llm import PydanticAIMessage, SystemMessage, UserMessage
 
 # Message serialization adapter
-message_adapter: TypeAdapter[Message | list[Message]] = TypeAdapter(
-    Message | list[Message]
+message_adapter: TypeAdapter[PydanticAIMessage | list[PydanticAIMessage]] = TypeAdapter(
+    PydanticAIMessage | list[PydanticAIMessage]
 )
 
 
-@dataclass
+@dataclass(kw_only=True)
+class Message:
+    id: uuid.UUID = field(default_factory=uuid.uuid4)
+    thread_id: str = field(default=None)
+    message: PydanticAIMessage
+    created_at: datetime = field(default_factory=utc_now)
+
+
+@dataclass(kw_only=True)
+class LLMCallMessages:
+    prompt: list[Message]
+    completion: list[Message]
+
+
+@dataclass(kw_only=True)
 class LLMCall:
     """Represents an LLM call."""
 
@@ -33,15 +55,42 @@ class LLMCall:
     usage: Usage
     timestamp: datetime
 
-    @classmethod
-    def from_db(cls, db_call: DBLLMCall) -> "LLMCall":
-        """Create an LLMCall from a database record."""
-        return cls(
-            id=db_call.id,
-            thread_id=db_call.thread_id,
-            usage=db_call.usage,
-            timestamp=db_call.timestamp,
-        )
+    def get_messages(self) -> LLMCallMessages:
+        """Get the messages for this LLM call."""
+        return run_sync(self.get_messages_async())
+
+    async def get_messages_async(self) -> LLMCallMessages:
+        """Get the messages for this LLM call."""
+        async with get_async_session() as session:
+            # Query the llm_call_messages table to get all messages associated with this LLM call
+
+            # Get all message associations for this LLM call ordered by their sequence
+            query = (
+                select(DBLLMCallMessage, DBMessage)
+                .join(
+                    DBMessage,
+                    DBLLMCallMessage.message_id == DBMessage.id,
+                )
+                .where(DBLLMCallMessage.llm_call_id == self.id)
+                .order_by(DBLLMCallMessage.order)
+            )
+
+            result = await session.execute(query)
+
+            # Map the database enum values to our new terminology
+            # REQUEST -> prompt, RESPONSE -> completion
+            messages_by_role = {"prompt": [], "completion": []}
+
+            for llm_call_message, db_message in result:
+                if llm_call_message.in_initial_prompt:
+                    messages_by_role["prompt"].append(db_message.to_message())
+                else:
+                    messages_by_role["completion"].append(db_message.to_message())
+
+            return LLMCallMessages(
+                prompt=messages_by_role["prompt"],
+                completion=messages_by_role["completion"],
+            )
 
 
 # Global context var for current thread
@@ -63,6 +112,10 @@ class Thread:
     _db_thread: bool = field(default=False, init=False, repr=False)
     _tokens: list[Any] = field(default_factory=list, init=False, repr=False)
 
+    def __post_init__(self):
+        if not isinstance(self.id, str):
+            raise ValueError("Thread ID must be a string")
+
     async def _ensure_thread_exists(self) -> None:
         """Ensure thread exists in database."""
         if self._db_thread:
@@ -80,9 +133,7 @@ class Thread:
                 )
                 self._db_thread = True
 
-    def add_messages(
-        self, messages: list[Message], llm_call_id: uuid.UUID | None = None
-    ):
+    def add_messages(self, messages: list[PydanticAIMessage]) -> list[Message]:
         """Add multiple messages to the thread.
 
         Args:
@@ -90,11 +141,11 @@ class Thread:
             llm_call_id: Optional ID of the LLM call that generated these messages
 
         """
-        return run_sync(self.add_messages_async(messages, llm_call_id=llm_call_id))
+        return run_sync(self.add_messages_async(messages))
 
     async def add_messages_async(
-        self, messages: list[Message], llm_call_id: uuid.UUID | None = None
-    ):
+        self, messages: list[PydanticAIMessage]
+    ) -> list[Message]:
         """Add multiple messages to the thread.
 
         Args:
@@ -105,37 +156,53 @@ class Thread:
         await self._ensure_thread_exists()
 
         async with get_async_session() as session:
-            for message in messages:
-                db_message = DBMessage.from_message(
-                    thread_id=self.id,
-                    message=message,
-                    llm_call_id=llm_call_id,
-                )
-                session.add(db_message)
+            # Create DB message records
+            db_messages = [
+                DBMessage.from_message(thread_id=self.id, message=message)
+                for message in messages
+            ]
+            session.add_all(db_messages)
+
             await session.commit()
 
-    def add_user_message(self, message: str):
+        return [db_m.to_message() for db_m in db_messages]
+
+    def add_system_message(self, message: str) -> Message:
+        """Add a system message to the thread."""
+        return run_sync(self.add_system_message_async(message))
+
+    async def add_system_message_async(self, message: str) -> Message:
+        """Add a system message to the thread."""
+        messages = await self.add_messages_async([SystemMessage(content=message)])
+        return messages[0]
+
+    def add_user_message(self, message: str) -> Message:
         """Add a user message to the thread."""
         return run_sync(self.add_user_message_async(message))
 
-    async def add_user_message_async(self, message: str) -> None:
+    async def add_user_message_async(self, message: str) -> Message:
         """Add a user message to the thread."""
-        await self.add_messages_async([UserMessage(content=message)])
+        messages = await self.add_messages_async([UserMessage(content=message)])
+        return messages[0]
 
-    def add_info_message(self, message: str, prefix: str = None):
+    def add_info_message(self, message: str, prefix: str = None) -> Message:
         """Add an info message to the thread."""
         return run_sync(self.add_info_message_async(message, prefix=prefix))
 
-    async def add_info_message_async(self, message: str, prefix: str = None) -> None:
+    async def add_info_message_async(self, message: str, prefix: str = None) -> Message:
         """Add an info message to the thread."""
         prefix = prefix or "INFO MESSAGE"
-        await self.add_messages_async([UserMessage(content=f"{prefix}: {message}")])
+        messages = await self.add_messages_async(
+            [UserMessage(content=f"{prefix}: {message}")]
+        )
+        return messages[0]
 
     def get_messages(
         self,
         before: datetime | None = None,
         after: datetime | None = None,
         limit: int | None = None,
+        include_system_messages: bool = False,
     ) -> list[Message]:
         """Get all messages in this thread.
 
@@ -143,7 +210,7 @@ class Thread:
             before: Only return messages before this timestamp
             after: Only return messages after this timestamp
             limit: Maximum number of messages to return
-
+            include_system_messages: Whether to include system messages
         Returns:
             List of messages in chronological order
         """
@@ -152,6 +219,7 @@ class Thread:
                 before=before,
                 after=after,
                 limit=limit,
+                include_system_messages=include_system_messages,
             ),
         )
 
@@ -160,6 +228,7 @@ class Thread:
         before: datetime | None = None,
         after: datetime | None = None,
         limit: int | None = None,
+        include_system_messages: bool = False,
     ) -> list[Message]:
         """Get all messages in this thread.
 
@@ -167,30 +236,42 @@ class Thread:
             before: Only return messages before this timestamp
             after: Only return messages after this timestamp
             limit: Maximum number of messages to return
-
+            include_system_messages: Whether to include system messages
         Returns:
             List of messages in chronological order
         """
         await self._ensure_thread_exists()
 
         async with get_async_session() as session:
-            query = select(DBMessage).where(DBMessage.thread_id == self.id)
+            query = (
+                select(DBMessage)
+                .where(DBMessage.thread_id == self.id)
+                .order_by(DBMessage.created_at.desc())
+            )
 
             if before is not None:
-                query = query.where(DBMessage.timestamp < before)
+                query = query.where(DBMessage.created_at < before)
             if after is not None:
-                query = query.where(DBMessage.timestamp > after)
-
-            query = query.order_by(DBMessage.timestamp)
+                query = query.where(DBMessage.created_at > after)
 
             if limit is not None:
                 query = query.limit(limit)
 
             result = await session.execute(query)
 
-            return message_adapter.validate_python(
-                [m.message for m in result.scalars().all()]
-            )
+            db_messages = list(result.scalars().all())
+            db_messages.reverse()
+
+            messages = [db_m.to_message() for db_m in db_messages]
+
+            if not include_system_messages:
+                for m in messages:
+                    if isinstance(m.message, ModelRequest) and any(
+                        p.part_kind == "system-prompt" for p in m.message.parts
+                    ):
+                        messages.remove(m)
+
+            return messages
 
     async def get_llm_calls_async(
         self,
@@ -224,7 +305,15 @@ class Thread:
                 query = query.limit(limit)
 
             result = await session.execute(query)
-            return [LLMCall.from_db(call) for call in result.scalars().all()]
+            return [
+                LLMCall(
+                    id=call.id,
+                    thread_id=call.thread_id,
+                    usage=call.usage,
+                    timestamp=call.timestamp,
+                )
+                for call in result.scalars().all()
+            ]
 
     def get_llm_calls(
         self,
@@ -319,8 +408,8 @@ def get_current_thread() -> Thread | None:
 def get_last_thread() -> Thread | None:
     """Get the last thread that was set as current.
 
-    This function is for debugging purposes only, and will only work in certain
-    contexts.
+    This function is intended for debugging purposes only, and will only work in
+    certain contexts where the last thread is available in memory.
     """
     return _last_thread
 
@@ -337,6 +426,7 @@ def get_thread(thread: Thread | str | None) -> Thread:
     """
     if isinstance(thread, Thread):
         return thread
-    if isinstance(thread, str):
+    elif thread is not None:
         return Thread(id=thread)
-    return get_current_thread() or Thread()
+    else:
+        return get_current_thread() or Thread()

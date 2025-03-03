@@ -17,16 +17,15 @@ P = ParamSpec("P")
 logger = get_logger(__name__)
 
 PROMPT = """
-You are an expert at predicting the output of Python functions. You will be given:
-1. A function definition with all relevant details, including its docstring, type hints, and parameters
+You are an expert at predicting the output of Python functions. 
+
+You will be given:
+
+1. A function definition with all relevant details, including its docstring, type hints, parameters, and return annotation
 2. The actual values that will be passed to the function
 3. Any additional context that was provided at runtime
-4. You will NOT be given the function's implementation or source code, only its definition
 
-Your job is to predict what this function would return if it were actually executed.
-Use the type hints, docstring, and parameter values to make an accurate prediction.
-
-When returning a string, do not add unecessary quotes.
+We do not have the function's source code. Therefore you must generate its output for the user. Respond with exactly the predicted output, matching the json schema signature of its annotation.
 """
 
 

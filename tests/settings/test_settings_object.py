@@ -12,9 +12,8 @@ def test_database_url_default():
 
 
 @pytest.mark.parametrize(
-    "env_var_value, expected_ending",
+    "env_var_value, expected",
     [
-        (":memory:", "sqlite+aiosqlite:///:memory:"),
         (
             "sqlite+aiosqlite:///" + os.path.expanduser("~/.marvin/test.db"),
             "sqlite+aiosqlite:///" + os.path.expanduser("~/.marvin/test.db"),
@@ -28,12 +27,8 @@ def test_database_url_default():
 def test_database_url_set_from_env_var(
     monkeypatch: pytest.MonkeyPatch,
     env_var_value: str,
-    expected_ending: str,
+    expected: str,
 ):
     monkeypatch.setenv("MARVIN_DATABASE_URL", env_var_value)
     settings = Settings()
-    if expected_ending == ":memory:":
-        assert settings.database_url == expected_ending
-    else:
-        assert settings.database_url is not None
-        assert settings.database_url.endswith(expected_ending)
+    assert settings.database_url == expected

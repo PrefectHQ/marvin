@@ -11,7 +11,6 @@ This directory contains database migrations for Marvin. Migrations allow you to:
 ### SQLite (Default)
 
 For SQLite databases (the default), Marvin will automatically create and update tables in these cases:
-- In-memory SQLite databases (tables always created on startup)
 - New SQLite file databases (tables created when the file doesn't exist)
 
 For existing SQLite file databases, migrations can be applied manually or will be attempted automatically.
@@ -82,16 +81,10 @@ marvin db history
 
 Marvin handles migrations based on the database type:
 
-1. **SQLite in-memory databases:**
-   - Tables are created automatically on every startup
-
-2. **New SQLite file databases:**
+1. **New (e.g. nonexistant) SQLite file databases:**
    - Tables are created automatically when the file is first accessed
 
-3. **Existing SQLite file databases:**
-   - Migrations are attempted if available
-
-4. **PostgreSQL/other databases:**
+2. **PostgreSQL/other databases:**
    - A warning is shown recommending manual migration
 
 ## Migration Best Practices

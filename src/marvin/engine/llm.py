@@ -1,11 +1,7 @@
 """Utility functions for LLM completions using Pydantic AI."""
 
-from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, get_type_hints
+from typing import TYPE_CHECKING
 
-import pydantic_ai
-from pydantic_ai import RunContext
-from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
@@ -18,8 +14,8 @@ from typing_extensions import TypeVar
 if TYPE_CHECKING:
     pass
 
-# Define Message type union
-Message = ModelRequest | ModelResponse
+
+PydanticAIMessage = ModelRequest | ModelResponse
 
 
 def SystemMessage(content: str) -> ModelRequest:
@@ -36,36 +32,3 @@ def AgentMessage(content: str) -> ModelResponse:
 
 # Type variable for generic response types
 T = TypeVar("T")
-
-
-def bind_tool(agent: pydantic_ai.Agent[Any, Any], func: Callable[..., Any]) -> None:
-    """Bind a function as a tool to an agent.
-
-    Inspects the function signature to see if it accepts a RunContext parameter.
-    If it does, uses agent.tool(), otherwise uses agent.tool_plain().
-
-    Args:
-        agent: The Pydantic AI agent to bind the tool to
-        func: The function to bind as a tool
-
-    """
-    # Get type hints including RunContext if present
-    type_hints = get_type_hints(func)
-
-    # Check if any parameter is annotated as RunContext
-    has_run_context = any(hint == RunContext for hint in type_hints.values())
-
-    # Use the appropriate method
-    if has_run_context:
-        agent.tool()(func)
-    else:
-        agent.tool_plain()(func)
-
-
-async def generate_response(
-    agentlet: pydantic_ai.Agent[Any, Any],
-    messages: list[Message] | None = None,
-    user_prompt: str | None = None,
-) -> AgentRunResult:
-    user_prompt = user_prompt or ""
-    return await agentlet.run(user_prompt=user_prompt, message_history=messages)

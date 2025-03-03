@@ -41,7 +41,7 @@ async def test_force_recreate_tables(session):
     assert result.scalars().first() is not None
 
     # Recreate tables
-    create_db_and_tables(force=True)
+    await create_db_and_tables(force=True)
 
     # Final phase: Verify data is gone
     result = await session.execute(select(DBThread).where(DBThread.id == "test-thread"))
@@ -81,8 +81,10 @@ async def test_relationship_operations(session):
     )
     loaded_thread = result.scalar_one()
     assert len(loaded_thread.messages) == 2
-    assert loaded_thread.messages[0].message["content"] == "test1"
-    assert loaded_thread.messages[1].message["content"] == "test2"
+    assert {
+        loaded_thread.messages[0].message["content"],
+        loaded_thread.messages[1].message["content"],
+    } == {"test1", "test2"}
 
     # Delete messages first
     for message in loaded_thread.messages:
