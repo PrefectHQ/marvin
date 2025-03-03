@@ -188,6 +188,21 @@ class Orchestrator:
         messages = await self.thread.get_messages_async(include_system_messages=False)
         prompt_messages: list[Message] = [system_prompt] + messages
 
+        # attempt to extract the user message from the last message, if it represents a user prompt
+        if (
+            prompt_messages[-1].message.kind == "request"
+            and prompt_messages[-1].message.parts[0].part_kind == "user-prompt"
+        ):
+            prompt_messages, user_prompt = (
+                prompt_messages[:-1],
+                prompt_messages[-1].message.parts[0].content,
+            )
+
+        # otherwise, use a minimal viable user prompt. Pydantic AI requires a
+        # user prompt and some providers do not allow empty prompts.
+        else:
+            user_prompt = " "
+
         # --- run agent
         agentlet = await actor.get_agentlet(
             tools=list(tools),
@@ -196,7 +211,8 @@ class Orchestrator:
 
         with actor:
             async with agentlet.iter(
-                user_prompt="", message_history=[m.message for m in prompt_messages]
+                user_prompt=user_prompt,
+                message_history=[m.message for m in prompt_messages],
             ) as run:
                 async for event in handle_agentlet_events(
                     agentlet=agentlet,

@@ -1168,7 +1168,7 @@ wheels = [
 
 [[package]]
 name = "marvin"
-version = "3.0.2.dev51+g9e0e00d8.d20250303"
+version = "3.0.2.dev56+gf4d79469.d20250303"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
