@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 from atproto import Client
 from atproto.exceptions import BadRequestError
 from pydantic_ai import Agent, ImageUrl
+from pydantic_ai.models import ModelSettings
 from pydantic_ai.models.gemini import GeminiModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -12,16 +13,6 @@ import marvin
 from marvin.utilities.logging import get_logger
 
 logger = get_logger(__name__)
-
-
-class Snapshot(TypedDict):
-    """A snapshot of a single moment in a conversation timeline"""
-
-    timeStep: int
-    event: str
-    knownFacts: list[str]
-    possibleInterpretations: list[str]
-    uncertainties: list[str]
 
 
 class Settings(BaseSettings):
@@ -35,6 +26,28 @@ class Settings(BaseSettings):
     gemini_api_key: str
 
 
+class Snapshot(TypedDict):
+    """A snapshot of a single moment in a conversation timeline"""
+
+    timeStep: int
+    event: str
+    important_quotes: list[str]
+    known_facts: list[str]
+    possible_interpretations: list[str]
+    uncertainties: list[str]
+
+
+settings = Settings()  # type: ignore
+
+gemini_agent = Agent(
+    model=GeminiModel(
+        model_name="gemini-2.0-flash-exp",
+        api_key=settings.gemini_api_key,
+    ),
+    model_settings=ModelSettings(temperature=0),
+)
+
+
 def extract_post_id(bluesky_url: str) -> tuple[str, str]:
     """Extract the profile and post ID from a Bluesky URL"""
     pattern = r"https?://bsky\.app/profile/([^/]+)/post/([a-zA-Z0-9]+)"
@@ -45,7 +58,6 @@ def extract_post_id(bluesky_url: str) -> tuple[str, str]:
 
 
 def main(bsky_post_url: str, details: dict[str, Any] | None = None) -> None:
-    settings = Settings()  # type: ignore
     client = Client()
     client.login(settings.bsky_handle, settings.bsky_password)
 
@@ -69,12 +81,7 @@ def main(bsky_post_url: str, details: dict[str, Any] | None = None) -> None:
         if hasattr(thread.post.record, "embed") and hasattr(
             thread.post.embed, "images"
         ):
-            image_description_result = Agent(
-                model=GeminiModel(
-                    model_name="gemini-2.0-flash-exp",
-                    api_key=settings.gemini_api_key,
-                ),
-            ).run_sync(
+            image_description_result = gemini_agent.run_sync(
                 [
                     "summarize this image concisely, include direct quotes from the image",
                     ImageUrl(url=thread.post.embed.images[0].fullsize),
@@ -100,10 +107,13 @@ def main(bsky_post_url: str, details: dict[str, Any] | None = None) -> None:
 
     analysis = marvin.run(
         """
-        Tell a story explaining the likely background of this bsky post.
-        At each point in time consider info available to each actor. 
-        Focus on exactly what actors say and do, and what this likely implies.
-        Deduce a reasonable timeline of events, recall images are of the past.
+        Hypothesize the background of the bsky post based on provided facts.
+        Why did the post happen?
+        Identify actors that are implied to exist, what exactly they say, and conclusions
+        they might draw from information available at each point in time.
+        Recall images describe the past, and therefore imply prior events.
+        Dramatize the story, focusing on the the juciest interpersonal details.
+        Be as concise as possible while being complete.
         """,
         context=context,
         result_type=list[Snapshot],
@@ -116,9 +126,9 @@ if __name__ == "__main__":
         "https://bsky.app/profile/jlowin.dev/post/3ljgaagblxk2k",
         details={
             "facts": [
-                "this interaction takes place on bluesky (bsky)"
+                "this interaction takes place on bluesky (bsky)",
                 "@<username> on bsky will tag someone in a post",
-                "a post emebed is an image that goes with a post",
+                "a post embed is an image that goes with a post",
                 "jlowin.dev | jeremiah is Prefect's CEO, who is the original poster",
                 "zzstoatzz | alternatebuild.dev | nate is an engineer at Prefect",
             ],
