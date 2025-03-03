@@ -262,12 +262,14 @@ class Task(Generic[T]):
         if isinstance(instructions, str):
             self.instructions = instructions
         else:
-            self.instructions = "\n\n".join(
-                [i for i in instructions if isinstance(i, str)]
-            )
-            attachments = (attachments or []) + [
-                i for i in instructions if not isinstance(i, str)
-            ]
+            str_instructions = []
+            attachments = attachments or []
+            for i in instructions:
+                if isinstance(i, str):
+                    str_instructions.append(i)
+                else:
+                    attachments.append(i)
+            self.instructions = "\n\n".join(str_instructions)
 
         # optional fields with defaults
         self.attachments = attachments or []
