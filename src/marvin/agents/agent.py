@@ -120,15 +120,6 @@ class Agent(Actor):
         tools: list[Callable[..., Any]],
         end_turn_tools: list["EndTurn"],
     ) -> pydantic_ai.Agent[Any, Any]:
-        """
-        A full streaming iterator over an agent's run.
-
-        This method creates an agentlet (a pydantic_ai.Agent instance) and uses its
-        .iter() method to obtain nodes. For nodes that support streaming (model requests or
-        handle responses), it opens the stream and yields each event. Other nodes (e.g. the
-        initial user prompt or the final End node) are yielded directly.
-        """
-
         from marvin.engine.end_turn import EndTurn
 
         tools = tools + self.get_tools()
@@ -160,7 +151,7 @@ class Agent(Actor):
             model_settings=self.get_model_settings(),
             end_strategy="exhaustive",
             result_tool_name=result_tool_name or "EndTurn",
-            result_tool_description="This tool will end your turn. You may only use one EndTurn tool per turn.",
+            result_tool_description="This tool will end your turn. You may only use one turn-ending tool per turn.",
             retries=marvin.settings.agent_retries,
         )
         # new fields
@@ -170,40 +161,3 @@ class Agent(Actor):
 
     def get_prompt(self) -> str:
         return Template(source=self.prompt).render(agent=self)
-
-
-def get_agentlet(
-    agent: Agent,
-    result_type: type,
-    tools: list[Callable[..., Any]] | None = None,
-    end_turn_tools: list["EndTurn"] | None = None,
-    result_tool_name: str | None = None,
-) -> pydantic_ai.Agent[Any, Any]:
-    """Create a Pydantic AI agent with the specified configuration.
-
-    Args:
-        result_type: The expected return type of the agent
-        model: The model to use for the agent
-        model_settings: Settings to pass to the model
-        tools: Optional list of tools available to the agent
-        handlers: Optional list of event handlers
-        result_tool_name: Optional name for the result tool
-        actor: Optional actor instance for event handling
-    """
-
-    tools = [wrap_tool_errors(tool) for tool in tools or []]
-
-    agentlet = pydantic_ai.Agent[Any, result_type](  # type: ignore
-        model=agent.get_model(),
-        result_type=result_type,
-        tools=tools,
-        model_settings=agent.get_model_settings(),
-        end_strategy="exhaustive",
-        result_tool_name=result_tool_name or "EndTurn",
-        result_tool_description="This tool will end your turn. You may only use one EndTurn tool per turn.",
-        retries=marvin.settings.agent_retries,
-        original_tools=tools,
-        original_end_turn_tools=end_turn_tools,
-    )
-
-    return agentlet

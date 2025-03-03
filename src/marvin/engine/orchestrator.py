@@ -193,9 +193,6 @@ class Orchestrator:
             tools=list(tools),
             end_turn_tools=list(end_turn_tools),
         )
-        import rich
-
-        rich.print([m.message for m in prompt_messages])
 
         with actor:
             with agentlet.iter(
@@ -237,12 +234,6 @@ class Orchestrator:
 
         await actor.end_turn(result=result, thread=self.thread)
         await self.handle_event(ActorEndTurnEvent(actor=actor))
-
-    def get_tools(self) -> list[Callable[..., Any]]:
-        tools: set[Callable[..., Any]] = set()
-        for t in self.get_all_tasks():
-            tools.update(t.get_tools())
-        return list(tools)
 
     async def run(
         self,

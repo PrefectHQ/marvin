@@ -543,6 +543,15 @@ class Task(Generic[T]):
         """Mark the task as running."""
         self.state = TaskState.RUNNING
 
+        if thread is None:
+            thread = marvin.thread.get_current_thread()
+
+        if thread:
+            await thread.add_info_message_async(
+                self.get_prompt(),
+                prefix="A new task has started:",
+            )
+
     async def mark_skipped(self, thread: Thread | None = None) -> None:
         """Mark the task as skipped."""
         self.state = TaskState.SKIPPED
