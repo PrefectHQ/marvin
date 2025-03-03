@@ -7,9 +7,10 @@ import uuid
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from pydantic import TypeAdapter
+from pydantic_ai.messages import UserContent
 from pydantic_ai.usage import Usage
 from sqlalchemy import select
 
@@ -176,11 +177,13 @@ class Thread:
         messages = await self.add_messages_async([SystemMessage(content=message)])
         return messages[0]
 
-    def add_user_message(self, message: str) -> Message:
+    def add_user_message(self, message: str | Sequence[UserContent]) -> Message:
         """Add a user message to the thread."""
         return run_sync(self.add_user_message_async(message))
 
-    async def add_user_message_async(self, message: str) -> Message:
+    async def add_user_message_async(
+        self, message: str | Sequence[UserContent]
+    ) -> Message:
         """Add a user message to the thread."""
         messages = await self.add_messages_async([UserMessage(content=message)])
         return messages[0]
