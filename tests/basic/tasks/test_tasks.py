@@ -139,7 +139,7 @@ class TestClassification:
             "Provide the integer indices of your chosen "
             """labels: {0: "'red'", 1: "'green'", 2: "'blue'"}"""
         )
-        assert expected_instruction in prompt
+        assert expected_instruction in prompt[0]
 
         # Test that custom prompts don't include the instruction
         task = Task(
@@ -148,8 +148,8 @@ class TestClassification:
             prompt_template="Custom prompt: {{task.instructions}}",
         )
         prompt = task.get_prompt()
-        assert expected_instruction not in prompt
-        assert prompt == "Custom prompt: Choose color"
+        assert expected_instruction not in prompt[0]
+        assert prompt[0] == "Custom prompt: Choose color"
 
     async def test_classifier_edge_cases(self):
         """Test edge cases for classifier types."""
