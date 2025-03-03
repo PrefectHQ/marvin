@@ -192,7 +192,7 @@ class TestMultiLabel:
         )
         assert result == [GitHubIssueTag.BUG, GitHubIssueTag.DOCS]
 
-    def test_multi_label_bool(self):
+    def test_multi_label_bool(self, gpt_4o):
         """Test multi-label classification with a boolean."""
         result = marvin.classify(
             ["2+2=4", "2+2=5"],
