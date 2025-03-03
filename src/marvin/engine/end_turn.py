@@ -1,6 +1,6 @@
 import inspect
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 import marvin
 from marvin.engine.llm import AgentMessage
@@ -35,10 +35,10 @@ class MarkTaskSuccessful(MarkTask):
 
 def create_mark_task_successful(mark_task: "Task[Any]") -> type[MarkTaskSuccessful]:
     @dataclass(kw_only=True)
-    class _MarkTaskSuccessful(MarkTaskSuccessful, Generic[TaskResult]):
+    class _MarkTaskSuccessful(MarkTaskSuccessful):
         """Mark a task successful and provide a result."""
 
-        result: TaskResult
+        result: mark_task.get_result_type()  # type: ignore
         task: ClassVar["Task[Any]"] = field(default=mark_task, init=False)
         name: ClassVar[str] = field(
             default=f"Mark {mark_task.friendly_name()} successful", init=False
@@ -54,7 +54,7 @@ def create_mark_task_successful(mark_task: "Task[Any]") -> type[MarkTaskSuccessf
             await mark_task.mark_successful(self.result, thread=thread)
 
     _MarkTaskSuccessful.__name__ = f"MarkTaskSuccessful_{mark_task.id}"
-    return _MarkTaskSuccessful[mark_task.get_result_type()]
+    return _MarkTaskSuccessful
 
 
 class MarkTaskFailed(MarkTask):
