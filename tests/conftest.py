@@ -82,6 +82,16 @@ def gpt_4o():
         yield
 
 
+@pytest.fixture(autouse=True)
+def restore_defaults():
+    """
+    Ensure that the defaults are restored after each test, in case the test
+    modified them.
+    """
+    with override_defaults(**marvin.defaults.__dict__):
+        yield
+
+
 @pytest.fixture
 def unit_test_instructions():
     with instructions(
