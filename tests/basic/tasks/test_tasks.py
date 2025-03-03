@@ -449,56 +449,78 @@ async def test_task_with_context():
     assert task.context == context
 
 
-async def test_task_prompt_customization():
-    """Test customizing task prompts."""
-    # Test default prompt
-    task = Task(
-        name="test task",
-        instructions="Do something",
-        context={"key": "value"},
-    )
-    prompt = task.get_prompt()
-    assert "<id>" in prompt
-    assert "<name>test task</name>" in prompt
-    assert "<instructions> Do something </instructions>" in normalize_whitespace(prompt)
-    assert "<context>" in prompt
+class TestTaskPrompt:
+    async def test_task_prompt_generation(self):
+        """Test customizing task prompts."""
+        # Test default prompt
+        task = Task(
+            name="test task",
+            instructions="Do something",
+            context={"key": "value"},
+        )
+        prompt = task.get_prompt()
+        assert prompt[0] == IsStr(
+            regex=re.compile(
+                rf"^<task>.*<id>\s*{task.id}\s*</id>.*<\/task>", flags=re.DOTALL
+            )
+        )
+        assert prompt[0] == IsStr(
+            regex=re.compile(
+                rf"^<task>.*<name>\s*{task.name}\s*</name>.*<\/task>", flags=re.DOTALL
+            )
+        )
+        assert prompt[0] == IsStr(
+            regex=re.compile(
+                rf"^<task>.*<instructions>\s*{task.instructions}\s*<\/instructions>.*<\/task>",
+                flags=re.DOTALL,
+            )
+        )
+        assert prompt[0] == IsStr(
+            regex=re.compile(
+                r"^<task>.*<context>.*<\/context>.*<\/task>",
+                flags=re.DOTALL,
+            )
+        )
 
-    # Test custom prompt
-    task = Task(
-        name="test task",
-        instructions="Do something",
-        context={"key": "value"},
-        prompt_template="Task {{task.name}}: {{task.instructions}}",
-    )
-    prompt = task.get_prompt()
-    assert prompt == "Task test task: Do something"
+    async def test_task_prompt_template(self):
+        # Test custom prompt
+        task = Task(
+            name="test task",
+            instructions="Do something",
+            context={"key": "value"},
+            prompt_template="Task {{task.name}}: {{task.instructions}}",
+        )
+        prompt = task.get_prompt()
+        assert prompt[0] == "Task test task: Do something"
 
-    # Test custom prompt with conditional logic
-    task = Task(
-        name="test task",
-        instructions="Do something",
-        context={"key": "value"},
-        prompt_template="""
-            {% if task.name %}NAME: {{task.name}}{% endif %}
-            INSTRUCTIONS: {{task.instructions}}
-            {% if task.context %}CONTEXT: {{task.context}}{% endif %}
-        """.strip(),
-    )
-    prompt = task.get_prompt()
-    assert "NAME: test task" in prompt
-    assert "INSTRUCTIONS: Do something" in prompt
-    assert "CONTEXT: {'key': 'value'}" in prompt
+    async def test_task_prompt_jinja_template(self):
+        # Test custom prompt with conditional logic
+        task = Task(
+            name="test task",
+            instructions="Do something",
+            context={"key": "value"},
+            prompt_template="""
+                {% if task.name %}NAME: {{task.name}}{% endif %}
+                INSTRUCTIONS: {{task.instructions}}
+                {% if task.context %}CONTEXT: {{task.context}}{% endif %}
+            """.strip(),
+        )
+        prompt = task.get_prompt()
+        assert "NAME: test task" in prompt[0]
+        assert "INSTRUCTIONS: Do something" in prompt[0]
+        assert "CONTEXT: {'key': 'value'}" in prompt[0]
 
-    # Test accessing task methods in template
-    task = Task(
-        instructions="Do something",
-        prompt_template="Task is complete: {{task.is_complete()}}",
-    )
-    prompt = task.get_prompt()
-    assert prompt == "Task is complete: False"
-    await task.mark_successful("test result")
-    prompt = task.get_prompt()
-    assert prompt == "Task is complete: True"
+    async def test_task_prompt_jinja_template_with_methods(self):
+        # Test accessing task methods in template
+        task = Task(
+            instructions="Do something",
+            prompt_template="Task is complete: {{task.is_complete()}}",
+        )
+        prompt = task.get_prompt()
+        assert prompt[0] == "Task is complete: False"
+        await task.mark_successful("test result")
+        prompt = task.get_prompt()
+        assert prompt[0] == "Task is complete: True"
 
 
 class TestVerbose:
