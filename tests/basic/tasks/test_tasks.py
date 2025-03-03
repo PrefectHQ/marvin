@@ -1,4 +1,5 @@
 import enum
+import re
 from typing import Literal
 
 import pytest
@@ -515,8 +516,8 @@ class TestVerbose:
         await task.mark_successful("test result", thread=thread)
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
-            regex=r"^TASK STATE UPDATE: .* successful with result.*$"
+        assert messages[0].message.parts[0].content == IsStr(
+            regex=r"^Task state updated: .* successful with result.*$"
         )
 
     async def test_mark_verbose_task_successful_context_thread(self, thread: Thread):
@@ -526,8 +527,8 @@ class TestVerbose:
             await task.mark_successful("test result")
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
-            regex=r"^TASK STATE UPDATE: .* successful with result.*$"
+        assert messages[0].message.parts[0].content == IsStr(
+            regex=r"^Task state updated: .* successful with result.*$"
         )
 
     async def test_mark_non_verbose_task_successful(self, thread: Thread):
@@ -543,8 +544,8 @@ class TestVerbose:
         await task.mark_failed("test error", thread=thread)
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
-            regex=r"^TASK STATE UPDATE: .* failed with error.*$"
+        assert messages[0].message.parts[0].content == IsStr(
+            regex=r"^Task state updated: .* failed with error.*$"
         )
 
     async def test_mark_verbose_task_failed_context_thread(self, thread: Thread):
@@ -554,8 +555,8 @@ class TestVerbose:
             await task.mark_failed("test error")
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
-            regex=r"^TASK STATE UPDATE: .* failed with error.*$"
+        assert messages[0].message.parts[0].content == IsStr(
+            regex=r"^Task state updated: .* failed with error.*$"
         )
 
     async def test_mark_non_verbose_task_failed(self, thread: Thread):
@@ -571,8 +572,8 @@ class TestVerbose:
         await task.mark_skipped(thread=thread)
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
-            regex=r"^TASK STATE UPDATE: .* skipped$"
+        assert messages[0].message.parts[0].content == IsStr(
+            regex=r"^Task state updated: .* skipped$"
         )
 
     async def test_mark_verbose_task_skipped_context_thread(self, thread: Thread):
@@ -582,8 +583,8 @@ class TestVerbose:
             await task.mark_skipped()
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
-            regex=r"^TASK STATE UPDATE: .* skipped$"
+        assert messages[0].message.parts[0].content == IsStr(
+            regex=r"^Task state updated: .* skipped$"
         )
 
     async def test_mark_non_verbose_task_skipped(self, thread: Thread):
@@ -596,27 +597,37 @@ class TestVerbose:
     async def test_mark_verbose_task_running(self, thread: Thread):
         """Test that verbose tasks add a message to the thread when marked running."""
         task = Task(instructions="Test verbose", verbose=True)
-        await task.mark_started(thread=thread)
+        await task.mark_running(thread=thread)
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
-            regex=r"^TASK STATE UPDATE: .* started$"
+        assert messages[0].message.parts[0].content == IsStr(
+            regex=re.compile(
+                r"^A new task has started: <task>.*<\/task>$", flags=re.DOTALL
+            )
         )
 
     async def test_mark_verbose_task_running_context_thread(self, thread: Thread):
         """Test that verbose tasks use the context thread when marking running."""
         task = Task(instructions="Test verbose", verbose=True)
         with thread:
-            await task.mark_started()
+            await task.mark_running()
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
-            regex=r"^TASK STATE UPDATE: .* started$"
+        assert messages[0].message.parts[0].content == IsStr(
+            regex=re.compile(
+                r"^A new task has started: <task>.*<\/task>$", flags=re.DOTALL
+            )
         )
 
     async def test_mark_non_verbose_task_running(self, thread: Thread):
-        """Test that non-verbose tasks don't add messages when marked running."""
-        task = Task(instructions="Test verbose", verbose=False)
-        await task.mark_started(thread=thread)
+        """Test that non-verbose tasks still add messages when marked running."""
+        task = Task(instructions="Test verbose", verbose=True)
+        with thread:
+            await task.mark_running()
         messages = await thread.get_messages_async()
-        assert len(messages) == 0
+        assert len(messages) == 1
+        assert messages[0].message.parts[0].content == IsStr(
+            regex=re.compile(
+                r"^A new task has started: <task>.*<\/task>$", flags=re.DOTALL
+            )
+        )

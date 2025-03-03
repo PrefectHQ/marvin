@@ -47,7 +47,7 @@ def test_use_memory_as_tool():
     messages = t.get_messages()
     found_tool_call = False
     for message in messages:
-        for part in message.parts:
+        for part in message.message.parts:
             if (
                 part.part_kind == "tool-call"
                 and part.tool_name == "search_memories__colors"
@@ -72,7 +72,7 @@ def test_autouse_memory():
     messages = t.get_messages()
     found_tool_call = False
     for message in messages:
-        for part in message.parts:
+        for part in message.message.parts:
             if (
                 part.part_kind == "tool-call"
                 and part.tool_name == "search_memories__colors"

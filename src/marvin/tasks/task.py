@@ -520,7 +520,7 @@ class Task(Generic[T]):
         if thread and self.verbose:
             await thread.add_info_message_async(
                 f"{self.friendly_name()} successful with result {result}",
-                prefix="Task state updated:",
+                prefix="Task state updated",
             )
 
     async def mark_failed(self, error: str, thread: Thread | None = None) -> None:
@@ -533,10 +533,10 @@ class Task(Generic[T]):
         if thread and self.verbose:
             await thread.add_info_message_async(
                 f"{self.friendly_name()} failed with error {error}",
-                prefix="Task state updated:",
+                prefix="Task state updated",
             )
 
-    async def mark_started(
+    async def mark_running(
         self,
         thread: Thread | None = None,
     ) -> None:
@@ -549,7 +549,7 @@ class Task(Generic[T]):
         if thread:
             await thread.add_info_message_async(
                 self.get_prompt(),
-                prefix="A new task has started:",
+                prefix="A new task has started",
             )
 
     async def mark_skipped(self, thread: Thread | None = None) -> None:
@@ -561,7 +561,7 @@ class Task(Generic[T]):
         if thread and self.verbose:
             await thread.add_info_message_async(
                 f"{self.friendly_name()} skipped",
-                prefix="Task state updated:",
+                prefix="Task state updated",
             )
 
     def is_pending(self) -> bool:

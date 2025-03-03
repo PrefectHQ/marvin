@@ -143,7 +143,7 @@ class Orchestrator:
         # Mark tasks as running if they're pending
         for task in assigned_tasks:
             if task.is_pending():
-                await task.mark_started(thread=self.thread)
+                await task.mark_running(thread=self.thread)
         await self.start_turn(actor=actor)
 
         # --- get tools

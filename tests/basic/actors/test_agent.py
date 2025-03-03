@@ -164,7 +164,7 @@ class TestVerbose:
         await agent.start_turn(thread=thread)
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
+        assert messages[0].message.parts[0].content == IsStr(
             regex=r"^ACTOR UPDATE: .* has started its turn\.$"
         )
 
@@ -175,7 +175,7 @@ class TestVerbose:
             await agent.start_turn(thread=thread)
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
+        assert messages[0].message.parts[0].content == IsStr(
             regex=r"^ACTOR UPDATE: .* has started its turn\.$"
         )
 
@@ -194,7 +194,7 @@ class TestVerbose:
         await agent.end_turn(thread=thread, result=result)
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
+        assert messages[0].message.parts[0].content == IsStr(
             regex=r"^ACTOR UPDATE: .* has finished its turn\.$"
         )
 
@@ -207,7 +207,7 @@ class TestVerbose:
             await agent.end_turn(thread=thread, result=result)
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].parts[0].content == IsStr(
+        assert messages[0].message.parts[0].content == IsStr(
             regex=r"^ACTOR UPDATE: .* has finished its turn\.$"
         )
 

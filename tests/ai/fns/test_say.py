@@ -10,8 +10,8 @@ class TestSay:
         thread = marvin.Thread()
         marvin.say("abc123", thread=thread)
         messages = thread.get_messages()
-        assert messages[0].parts[0].part_kind == "user-prompt"
-        assert messages[0].parts[0].content == "abc123"
+        assert messages[0].message.parts[0].part_kind == "user-prompt"
+        assert messages[0].message.parts[0].content == "abc123"
 
     def test_say_with_thread(self):
         thread1 = marvin.Thread()
