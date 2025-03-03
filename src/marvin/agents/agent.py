@@ -206,31 +206,4 @@ def get_agentlet(
         original_end_turn_tools=end_turn_tools,
     )
 
-    # from marvin.engine.events import (
-    #     StreamToolCallCompleteEvent,
-    #     ToolRetryEvent,
-    #     ToolReturnEvent,
-    # )
-
-    # for tool in agentlet._function_tools.values():  # type: ignore[reportPrivateUsage]
-    #     # Wrap the tool run function to emit events for each call / result
-    #     # this can be removed when Pydantic AI supports streaming events
-    #     async def run(
-    #         message: ToolCallPart,
-    #         run_context: RunContext[AgentDepsT],
-    #         # pass as arg to avoid late binding issues
-    #         original_run: Callable[..., Any] = tool.run,
-    #     ) -> ModelRequestPart:
-    #         await handle_event(
-    #             StreamToolCallCompleteEvent(actor=agent, message=message), handlers
-    #         )
-    #         result = await original_run(message, run_context)
-    #         if isinstance(result, RetryPromptPart):
-    #             await handle_event(ToolRetryEvent(message=result), handlers)
-    #         else:
-    #             await handle_event(ToolReturnEvent(message=result), handlers)
-    #         return result
-
-    #     tool.run = run
-
     return agentlet

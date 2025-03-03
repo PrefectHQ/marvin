@@ -1168,7 +1168,7 @@ wheels = [
 
 [[package]]
 name = "marvin"
-version = "3.0.2.dev38+g35244ee5.d20250302"
+version = "3.0.2.dev44+g55a049bf.d20250303"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
@@ -1206,7 +1206,7 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.12.0" },
     { name = "jinja2", specifier = ">=3.1.4" },
     { name = "partial-json-parser", specifier = ">=0.2.1.1.post5" },
-    { name = "pydantic", extras = ["email"], specifier = ">=2.10.2" },
+    { name = "pydantic", extras = ["email"], specifier = ">=2.10.6" },
     { name = "pydantic-ai", specifier = ">=0.0.30" },
     { name = "pydantic-settings", specifier = ">=2.6.1" },
     { name = "rich", specifier = ">=13.9.4" },

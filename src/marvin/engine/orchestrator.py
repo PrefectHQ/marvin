@@ -31,7 +31,6 @@ from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.tasks.task import Task
 from marvin.thread import Message, Thread, get_thread
-from marvin.utilities.jinja import jinja_env
 from marvin.utilities.logging import get_logger
 
 T = TypeVar("T")
@@ -51,6 +50,7 @@ class SystemPrompt(Template):
 
     actor: Actor
     instructions: list[str]
+    tasks: list[Task]
 
 
 @dataclass(kw_only=True)
@@ -148,8 +148,6 @@ class Orchestrator:
 
         # --- get tools
         tools: set[Callable[..., Any]] = set()
-        if assigned_tasks:
-            tools.add(get_assigned_tasks_tool(assigned_tasks))
         for t in assigned_tasks:
             tools.update(t.get_tools())
 
@@ -180,7 +178,11 @@ class Orchestrator:
                 )
 
         system_prompt = await self.thread.add_system_message_async(
-            SystemPrompt(actor=actor, instructions=get_instructions()).render()
+            SystemPrompt(
+                actor=actor,
+                instructions=get_instructions(),
+                tasks=assigned_tasks,
+            ).render()
         )
 
         messages = await self.thread.get_messages_async(include_system_messages=False)
@@ -191,6 +193,9 @@ class Orchestrator:
             tools=list(tools),
             end_turn_tools=list(end_turn_tools),
         )
+        import rich
+
+        rich.print([m.message for m in prompt_messages])
 
         with actor:
             with agentlet.iter(
@@ -308,14 +313,3 @@ def get_current_orchestrator() -> Orchestrator | None:
 
     """
     return Orchestrator.get_current()
-
-
-def get_assigned_tasks_tool(tasks: list[Task[Any]]) -> Callable[..., Any]:
-    async def view_assigned_tasks():
-        """
-        Use this tool to review details for currently assigned tasks, in case
-        you don't see them in history.
-        """
-        return jinja_env.get_template("tasks.jinja").render(tasks=tasks)
-
-    return view_assigned_tasks

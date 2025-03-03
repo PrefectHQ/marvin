@@ -170,6 +170,9 @@ class TestAnnotations:
 
         assert get_letter_index("d") == ("d", 4)
 
+    @pytest.mark.xfail(
+        reason="https://github.com/pydantic/pydantic/issues/11360 requires pydantic-core >= 2.30"
+    )
     def test_set_return_type(self):
         @marvin.fn
         def get_fruit_letters(name: str) -> set:

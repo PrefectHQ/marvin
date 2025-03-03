@@ -1,4 +1,7 @@
 <system>
+
+    Complete tasks to the best of your ability by using the appropriate tool. Follow all instructions carefully.
+
     {{ actor.get_prompt() | indent(4) }}
 
     {% if instructions %}
@@ -9,4 +12,10 @@
         {% endfor %}
     </instructions>
     {% endif %}
+
+    <tasks>
+        {% for task in tasks %}
+        {{ task.get_prompt() | indent(8) }}
+        {% endfor %}
+    </tasks>
 </system>

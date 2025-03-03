@@ -404,6 +404,7 @@ class Task(Generic[T]):
             type_adapter = get_type_adapter(self.get_result_type())
             try:
                 return json.dumps(type_adapter.json_schema())
+
             except Exception:
                 return str(self.get_result_type())
 
@@ -541,14 +542,6 @@ class Task(Generic[T]):
     ) -> None:
         """Mark the task as running."""
         self.state = TaskState.RUNNING
-        if thread is None:
-            thread = marvin.thread.get_current_thread()
-
-        if thread:
-            await thread.add_info_message_async(
-                self.get_prompt(),
-                prefix="You have been assigned a new task",
-            )
 
     async def mark_skipped(self, thread: Thread | None = None) -> None:
         """Mark the task as skipped."""
