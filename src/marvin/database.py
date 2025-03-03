@@ -421,7 +421,6 @@ def init_database_if_necessary():
     """Initialize the database.
 
     This function handles database initialization differently based on the type:
-    - In-memory SQLite: Tables are created directly on every startup
     - File-based SQLite: If file doesn't exist, create it and run migrations
     - Other databases: No automatic initialization
     """
