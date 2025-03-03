@@ -103,7 +103,9 @@ def build_context(thread: ThreadViewPost) -> dict[str, Any]:
     return context
 
 
-def main(bsky_post_url: str, details: dict[str, Any] | None = None) -> None:
+def explain_bsky_post(
+    bsky_post_url: str, details: dict[str, Any] | None = None
+) -> None:
     client = Client()
     client.login(settings.bsky_handle, settings.bsky_password)
 
@@ -127,9 +129,8 @@ def main(bsky_post_url: str, details: dict[str, Any] | None = None) -> None:
     analysis = marvin.run(
         """
         Hypothesize the background of the bsky post based on provided facts.
-        Why did the post happen?
-        Identify actors that are implied to exist, what exactly they say, and conclusions
-        they might draw from information available at each point in time.
+        Identify actors that are implied to exist, what exactly they say, and what
+        they can possibly know at each point in time based on existing information.
         Recall images describe the past, and therefore imply prior events.
         Dramatize the story, focusing on the the juciest interpersonal details.
         Be as concise as possible while being complete.
@@ -138,19 +139,25 @@ def main(bsky_post_url: str, details: dict[str, Any] | None = None) -> None:
         result_type=list[Snapshot],
     )
     logger.info(analysis)
-    print(marvin.summarize(analysis))
+    print(marvin.summarize(analysis, instructions="very concise summary"))
 
 
 if __name__ == "__main__":
-    main(
-        "https://bsky.app/profile/jlowin.dev/post/3ljgaagblxk2k",
-        details={
-            "facts": [
-                "this interaction takes place on bluesky (bsky)",
-                "@<username> on bsky will tag someone in a post",
-                "a post embed is an image that goes with a post",
-                "jlowin.dev | jeremiah is Prefect's CEO, who is the original poster",
-                "zzstoatzz | alternatebuild.dev | nate is an engineer at Prefect",
-            ],
-        },
+    explain_theres_no_tension = True
+    revealing_detail = "later, jeremiah said to nate 'lol I thought it was hilarious'"
+
+    details = {
+        "facts": [
+            "@<username> on blue sky will tag someone in a post",
+            "a post embed is an image that goes with a post",
+            "jlowin.dev | jeremiah is Prefect's CEO, who is the original poster",
+            "zzstoatzz | alternatebuild.dev | nate is an engineer at Prefect",
+        ],
+    }
+
+    if explain_theres_no_tension:
+        details["facts"].append(revealing_detail)
+
+    explain_bsky_post(
+        "https://bsky.app/profile/jlowin.dev/post/3ljgaagblxk2k", details=details
     )
