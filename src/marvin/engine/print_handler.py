@@ -116,14 +116,16 @@ class ToolCallPanel(EventPanel):
             if self.is_end_turn_tool:
                 caption = "Result"
                 if issubclass_safe(self.tool, MarkTaskSuccessful):
-                    args = self.args.get("response", None)
-                    if isinstance(args, dict) and "result" in args:
-                        args = args["result"]
+                    args = self.args.get("result", None)
 
             else:
                 caption = "Input"
                 args = self.args
-            table.add_row(caption, Pretty(args))
+            if isinstance(args, str):
+                args = Markdown(args)
+            else:
+                args = Pretty(args)
+            table.add_row(caption, args)
 
         if self.is_complete and self.result:
             label = "Error" if self.is_error else "Output"
