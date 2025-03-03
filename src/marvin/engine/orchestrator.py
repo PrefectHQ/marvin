@@ -309,7 +309,8 @@ class Orchestrator:
 
         # attempt to extract the user message from the last message, if it represents a user prompt
         if (
-            message_history[-1].message.kind == "request"
+            message_history
+            and message_history[-1].message.kind == "request"
             and message_history[-1].message.parts[0].part_kind == "user-prompt"
         ):
             message_history, user_prompt = (
