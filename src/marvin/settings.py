@@ -42,14 +42,7 @@ class Settings(BaseSettings):
 
     database_url: str | None = Field(
         default=None,
-        description="""
-            Database URL. Defaults to
-            `sqlite+aiosqlite:///{{home_path}}/marvin.db`. Set to `:memory:` to
-            use an in-memory database that will be shared across all other
-            Marvin instances on this machine (as long as at least one instance
-            is running). Set to `sqlite+aiosqlite://` to use a localized
-            in-memory database that will not be shared across instances.
-            """,
+        description="Database URL. Must be provided with an async-compatible SQLAlchemy dialect. Defaults to `sqlite+aiosqlite:///{{home_path}}/marvin.db`",
     )
 
     auto_init_sqlite: bool = Field(
@@ -72,10 +65,6 @@ class Settings(BaseSettings):
             if not home_path:
                 raise ValueError("home_path must be set before database_url")
             return f"sqlite+aiosqlite:///{home_path}/marvin.db"
-
-        # Handle in-memory database
-        if v == ":memory:":
-            return "sqlite+aiosqlite:///:memory:?mode=memory&cache=shared&uri=true"
 
         return v
 

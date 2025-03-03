@@ -37,7 +37,6 @@ from sqlalchemy.orm import (
     mapped_column,
     relationship,
 )
-from sqlalchemy.pool import StaticPool
 
 import marvin
 from marvin.settings import settings
@@ -94,16 +93,9 @@ def get_async_engine() -> AsyncEngine:
         if url is None:
             raise ValueError("Database URL is not configured")
 
-        parsed_url = urlparse(url)
-
         # Handle SQLite databases (default)
-        if parsed_url.scheme == "sqlite":
-            engine = create_async_engine(
-                url,
-                echo=False,
-                poolclass=StaticPool if is_memory_db() else None,
-                connect_args={"check_same_thread": False} if is_memory_db() else None,
-            )
+        if is_sqlite():
+            engine = create_async_engine(url, echo=False)
         # Handle other databases (use URL as-is)
         else:
             engine = create_async_engine(url, echo=False)
@@ -121,17 +113,6 @@ def is_sqlite() -> bool:
 
     parsed_url = urlparse(url)
     return parsed_url.scheme.startswith("sqlite")
-
-
-def is_memory_db() -> bool:
-    """Check if the configured database is an in-memory SQLite database."""
-    url = settings.database_url
-    if url is None:
-        return False
-
-    return is_sqlite() and (
-        ":memory:" in url or "mode=memory" in url or url.endswith("sqlite://")
-    )
 
 
 def set_async_engine(engine: AsyncEngine) -> None:
@@ -400,10 +381,11 @@ def _run_migrations(alembic_log_level: str = "WARNING") -> bool:
                 inspect.cleandoc(
                     """Migrations can not be run from inside an async context.
                     This is unusual and means you are importing Marvin within an
-                    async function with either an in-memory database or a
-                    nonexistant SQLite database. Make sure you create, manage,
-                    or migrate your Marvin database separately. You can set
-                    MARVIN_AUTO_INIT_SQLITE=false to disable this behavior."""
+                    async function and it is trying to automatically create a
+                    SQLite database that doesn't already exist. Make sure you
+                    create, manage, or migrate your Marvin database separately.
+                    You can set MARVIN_AUTO_INIT_SQLITE=false to disable this
+                    behavior."""
                 )
             )
     except Exception as e:
@@ -448,20 +430,7 @@ def init_database_if_necessary():
         if not settings.auto_init_sqlite:
             return
 
-        if is_memory_db():
-            # For in-memory databases, always create tables directly
-            # Run migrations to create schema
-            if _run_migrations():
-                logger.info(
-                    "[green]Successfully created in-memory SQLite database.[/]",
-                    extra={"markup": True},
-                )
-            else:
-                logger.warning(
-                    "[red]Failed to create in-memory SQLite database.[/]",
-                    extra={"markup": True},
-                )
-        elif is_sqlite():
+        if is_sqlite():
             # For file-based SQLite, check if file exists
             url = settings.database_url
             if url is None:
