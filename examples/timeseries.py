@@ -4,6 +4,7 @@ from typing import Any, TypedDict
 
 from atproto import Client
 from atproto.exceptions import BadRequestError
+from atproto_client.models.app.bsky.feed.defs import ThreadViewPost
 from pydantic_ai import Agent, ImageUrl
 from pydantic_ai.models import ModelSettings
 from pydantic_ai.models.gemini import GeminiModel
@@ -57,21 +58,8 @@ def extract_post_id(bluesky_url: str) -> tuple[str, str]:
     return match.group(1), match.group(2)
 
 
-def main(bsky_post_url: str, details: dict[str, Any] | None = None) -> None:
-    client = Client()
-    client.login(settings.bsky_handle, settings.bsky_password)
-
-    try:
-        profile, post_id = extract_post_id(bsky_post_url)
-        thread = client.app.bsky.feed.get_post_thread(
-            {"uri": f"at://{profile}/app.bsky.feed.post/{post_id}"}
-        ).thread
-    except (ValueError, KeyError, BadRequestError) as e:
-        logger.error(f"Error fetching thread: {e}")
-        return
-
+def build_context(thread: ThreadViewPost) -> dict[str, Any]:
     context: dict[str, Any] = {}
-
     if thread and thread.post:
         context["bsky post"] = {
             "author": thread.post.author.handle,
@@ -90,15 +78,46 @@ def main(bsky_post_url: str, details: dict[str, Any] | None = None) -> None:
             context["bsky post"]["embed"] = image_description_result.data
 
         if hasattr(thread, "replies"):
-            context["replies"] = []
-            for reply in thread.replies:
-                if hasattr(reply, "post"):
-                    context["replies"].append(
+            context["replies"] = [
+                {
+                    "author": reply.post.author.handle,
+                    "text": reply.post.record.text,
+                    **(
                         {
-                            "author": reply.post.author.handle,
-                            "text": reply.post.record.text,
+                            "embed": gemini_agent.run_sync(
+                                [
+                                    "summarize this image concisely, include direct quotes from the image",
+                                    ImageUrl(url=reply.post.embed.images[0].fullsize),
+                                ]
+                            ).data
                         }
-                    )
+                        if hasattr(reply.post.record, "embed")
+                        and hasattr(reply.post.embed, "images")
+                        else {}
+                    ),
+                }
+                for reply in thread.replies
+                if hasattr(reply, "post")
+            ]
+
+    return context
+
+
+def main(bsky_post_url: str, details: dict[str, Any] | None = None) -> None:
+    client = Client()
+    client.login(settings.bsky_handle, settings.bsky_password)
+
+    try:
+        profile, post_id = extract_post_id(bsky_post_url)
+        thread = client.app.bsky.feed.get_post_thread(
+            {"uri": f"at://{profile}/app.bsky.feed.post/{post_id}"}
+        ).thread
+    except (ValueError, KeyError, BadRequestError) as e:
+        logger.error(f"Error fetching thread: {e}")
+        return
+
+    assert isinstance(thread, ThreadViewPost)
+    context = build_context(thread)
 
     if details:
         context |= details
@@ -119,6 +138,7 @@ def main(bsky_post_url: str, details: dict[str, Any] | None = None) -> None:
         result_type=list[Snapshot],
     )
     logger.info(analysis)
+    print(marvin.summarize(analysis))
 
 
 if __name__ == "__main__":
