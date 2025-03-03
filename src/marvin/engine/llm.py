@@ -1,12 +1,13 @@
 """Utility functions for LLM completions using Pydantic AI."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence
 
 from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
     SystemPromptPart,
     TextPart,
+    UserContent,
     UserPromptPart,
 )
 from typing_extensions import TypeVar
@@ -22,7 +23,7 @@ def SystemMessage(content: str) -> ModelRequest:
     return ModelRequest(parts=[SystemPromptPart(content=content)])
 
 
-def UserMessage(content: str) -> ModelRequest:
+def UserMessage(content: str | Sequence[UserContent]) -> ModelRequest:
     return ModelRequest(parts=[UserPromptPart(content=content)])
 
 

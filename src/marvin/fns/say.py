@@ -1,4 +1,6 @@
-from typing import Any
+from typing import Any, Sequence
+
+from pydantic_ai.messages import UserContent
 
 import marvin
 from marvin.agents.actor import Actor
@@ -7,7 +9,7 @@ from marvin.utilities.asyncio import run_sync
 
 
 async def say_async(
-    message: str,
+    message: str | Sequence[UserContent],
     instructions: str | None = None,
     agent: Actor | None = None,
     thread: Thread | str | None = None,
@@ -50,7 +52,7 @@ async def say_async(
 
 
 def say(
-    message: str,
+    message: str | Sequence[UserContent],
     instructions: str | None = None,
     agent: Actor | None = None,
     thread: Thread | str | None = None,

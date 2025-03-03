@@ -4,6 +4,7 @@ from typing import Literal
 
 import pytest
 from dirty_equals import IsStr
+from pydantic_ai import ImageUrl
 
 import marvin
 from marvin import Thread
@@ -138,7 +139,7 @@ class TestClassification:
             "Provide the integer indices of your chosen "
             """labels: {0: "'red'", 1: "'green'", 2: "'blue'"}"""
         )
-        assert expected_instruction in prompt
+        assert expected_instruction in prompt[0]
 
         # Test that custom prompts don't include the instruction
         task = Task(
@@ -147,8 +148,8 @@ class TestClassification:
             prompt_template="Custom prompt: {{task.instructions}}",
         )
         prompt = task.get_prompt()
-        assert expected_instruction not in prompt
-        assert prompt == "Custom prompt: Choose color"
+        assert expected_instruction not in prompt[0]
+        assert prompt[0] == "Custom prompt: Choose color"
 
     async def test_classifier_edge_cases(self):
         """Test edge cases for classifier types."""
@@ -448,56 +449,78 @@ async def test_task_with_context():
     assert task.context == context
 
 
-async def test_task_prompt_customization():
-    """Test customizing task prompts."""
-    # Test default prompt
-    task = Task(
-        name="test task",
-        instructions="Do something",
-        context={"key": "value"},
-    )
-    prompt = task.get_prompt()
-    assert "<id>" in prompt
-    assert "<name>test task</name>" in prompt
-    assert "<instructions> Do something </instructions>" in normalize_whitespace(prompt)
-    assert "<context>" in prompt
+class TestTaskPrompt:
+    async def test_task_prompt_generation(self):
+        """Test customizing task prompts."""
+        # Test default prompt
+        task = Task(
+            name="test task",
+            instructions="Do something",
+            context={"key": "value"},
+        )
+        prompt = task.get_prompt()
+        assert prompt[0] == IsStr(
+            regex=re.compile(
+                rf"^<task>.*<id>\s*{task.id}\s*</id>.*<\/task>", flags=re.DOTALL
+            )
+        )
+        assert prompt[0] == IsStr(
+            regex=re.compile(
+                rf"^<task>.*<name>\s*{task.name}\s*</name>.*<\/task>", flags=re.DOTALL
+            )
+        )
+        assert prompt[0] == IsStr(
+            regex=re.compile(
+                rf"^<task>.*<instructions>\s*{task.instructions}\s*<\/instructions>.*<\/task>",
+                flags=re.DOTALL,
+            )
+        )
+        assert prompt[0] == IsStr(
+            regex=re.compile(
+                r"^<task>.*<context>.*<\/context>.*<\/task>",
+                flags=re.DOTALL,
+            )
+        )
 
-    # Test custom prompt
-    task = Task(
-        name="test task",
-        instructions="Do something",
-        context={"key": "value"},
-        prompt_template="Task {{task.name}}: {{task.instructions}}",
-    )
-    prompt = task.get_prompt()
-    assert prompt == "Task test task: Do something"
+    async def test_task_prompt_template(self):
+        # Test custom prompt
+        task = Task(
+            name="test task",
+            instructions="Do something",
+            context={"key": "value"},
+            prompt_template="Task {{task.name}}: {{task.instructions}}",
+        )
+        prompt = task.get_prompt()
+        assert prompt[0] == "Task test task: Do something"
 
-    # Test custom prompt with conditional logic
-    task = Task(
-        name="test task",
-        instructions="Do something",
-        context={"key": "value"},
-        prompt_template="""
-            {% if task.name %}NAME: {{task.name}}{% endif %}
-            INSTRUCTIONS: {{task.instructions}}
-            {% if task.context %}CONTEXT: {{task.context}}{% endif %}
-        """.strip(),
-    )
-    prompt = task.get_prompt()
-    assert "NAME: test task" in prompt
-    assert "INSTRUCTIONS: Do something" in prompt
-    assert "CONTEXT: {'key': 'value'}" in prompt
+    async def test_task_prompt_jinja_template(self):
+        # Test custom prompt with conditional logic
+        task = Task(
+            name="test task",
+            instructions="Do something",
+            context={"key": "value"},
+            prompt_template="""
+                {% if task.name %}NAME: {{task.name}}{% endif %}
+                INSTRUCTIONS: {{task.instructions}}
+                {% if task.context %}CONTEXT: {{task.context}}{% endif %}
+            """.strip(),
+        )
+        prompt = task.get_prompt()
+        assert "NAME: test task" in prompt[0]
+        assert "INSTRUCTIONS: Do something" in prompt[0]
+        assert "CONTEXT: {'key': 'value'}" in prompt[0]
 
-    # Test accessing task methods in template
-    task = Task(
-        instructions="Do something",
-        prompt_template="Task is complete: {{task.is_complete()}}",
-    )
-    prompt = task.get_prompt()
-    assert prompt == "Task is complete: False"
-    await task.mark_successful("test result")
-    prompt = task.get_prompt()
-    assert prompt == "Task is complete: True"
+    async def test_task_prompt_jinja_template_with_methods(self):
+        # Test accessing task methods in template
+        task = Task(
+            instructions="Do something",
+            prompt_template="Task is complete: {{task.is_complete()}}",
+        )
+        prompt = task.get_prompt()
+        assert prompt[0] == "Task is complete: False"
+        await task.mark_successful("test result")
+        prompt = task.get_prompt()
+        assert prompt[0] == "Task is complete: True"
 
 
 class TestVerbose:
@@ -596,38 +619,57 @@ class TestVerbose:
 
     async def test_mark_verbose_task_running(self, thread: Thread):
         """Test that verbose tasks add a message to the thread when marked running."""
-        task = Task(instructions="Test verbose", verbose=True)
+        task = Task(instructions="Test running", verbose=True)
         await task.mark_running(thread=thread)
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].message.parts[0].content == IsStr(
+        assert messages[0].message.parts[0].content[0] == IsStr(
             regex=re.compile(
-                r"^A new task has started: <task>.*<\/task>$", flags=re.DOTALL
+                r"^<task>.*<instructions>\s*Test running\s*<\/instructions>.*<\/task>$",
+                flags=re.DOTALL,
             )
         )
 
     async def test_mark_verbose_task_running_context_thread(self, thread: Thread):
         """Test that verbose tasks use the context thread when marking running."""
-        task = Task(instructions="Test verbose", verbose=True)
+        task = Task(instructions="Test running", verbose=True)
         with thread:
             await task.mark_running()
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].message.parts[0].content == IsStr(
+        assert messages[0].message.parts[0].content[0] == IsStr(
             regex=re.compile(
-                r"^A new task has started: <task>.*<\/task>$", flags=re.DOTALL
+                r"^<task>.*<instructions>\s*Test running\s*<\/instructions>.*<\/task>$",
+                flags=re.DOTALL,
             )
         )
 
     async def test_mark_non_verbose_task_running(self, thread: Thread):
         """Test that non-verbose tasks still add messages when marked running."""
-        task = Task(instructions="Test verbose", verbose=True)
+        task = Task(instructions="Test running", verbose=False)
         with thread:
             await task.mark_running()
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].message.parts[0].content == IsStr(
+        assert messages[0].message.parts[0].content[0] == IsStr(
             regex=re.compile(
-                r"^A new task has started: <task>.*<\/task>$", flags=re.DOTALL
+                r"^<task>.*<instructions>\s*Test running\s*<\/instructions>.*<\/task>$",
+                flags=re.DOTALL,
             )
         )
+
+    async def test_mark_task_with_attachments_running(self, thread: Thread):
+        """Test that tasks with attachments add a message to the thread when marked running."""
+        task = Task(
+            instructions="Test running", verbose=True, attachments=[ImageUrl("abc")]
+        )
+        await task.mark_running(thread=thread)
+        messages = await thread.get_messages_async()
+        assert len(messages) == 1
+        assert messages[0].message.parts[0].content[0] == IsStr(
+            regex=re.compile(
+                r"^<task>.*<instructions>\s*Test running\s*<\/instructions>.*<\/task>$",
+                flags=re.DOTALL,
+            )
+        )
+        assert messages[0].message.parts[0].content[1] == ImageUrl("abc")

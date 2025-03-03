@@ -23,6 +23,7 @@ from typing import (
 )
 
 from pydantic import TypeAdapter
+from pydantic_ai.messages import UserContent
 
 import marvin
 import marvin.thread
@@ -81,6 +82,11 @@ class Task(Generic[T]):
     instructions: str = field(
         metadata={"description": "Instructions for the task"},
         kw_only=False,
+    )
+
+    attachments: Sequence[UserContent] = field(
+        default_factory=list,
+        metadata={"description": "Attachments to the task"},
     )
 
     result_type: ResultType[T] = field(  # type: ignore[reportRedeclaration]
@@ -209,7 +215,8 @@ class Task(Generic[T]):
 
     def __init__(
         self,
-        instructions: str,
+        instructions: str | Sequence[UserContent],
+        attachments: Sequence[UserContent] | None = None,
         result_type: ResultType[T] = NOTSET,
         *,
         name: str | None = None,
@@ -231,6 +238,7 @@ class Task(Generic[T]):
 
         Args:
             instructions: Instructions for the task
+            attachments: Optional attachments to the task
             name: Optional name for this task
             result_type: Expected type of the result
             prompt_template: Optional Jinja template for customizing task appearance
@@ -251,9 +259,20 @@ class Task(Generic[T]):
 
         """
         # required fields
-        self.instructions = instructions
+        if isinstance(instructions, str):
+            self.instructions = instructions
+        else:
+            str_instructions = []
+            attachments = attachments or []
+            for i in instructions:
+                if isinstance(i, str):
+                    str_instructions.append(i)
+                else:
+                    attachments.append(i)
+            self.instructions = "\n\n".join(str_instructions)
 
         # optional fields with defaults
+        self.attachments = attachments or []
         self.name = name
         self.result_type = result_type if result_type is not NOTSET else str
         self.prompt_template = prompt_template
@@ -434,15 +453,16 @@ class Task(Generic[T]):
         type_adapter = get_type_adapter(result_type)
         return type_adapter.validate_python(raw_result)
 
-    def get_prompt(self) -> str:
+    def get_prompt(self) -> str | Sequence[UserContent]:
         """Get the rendered prompt for this task.
 
         Uses the task's prompt_template (or default if None) and renders it with
         this task instance as the `task` variable.
         """
-        prompt = Template(source=self.prompt_template).render(task=self)
-
-        return prompt
+        return [
+            Template(source=self.prompt_template).render(task=self),
+            *self.attachments,
+        ]
 
     async def run_async(
         self,
@@ -547,9 +567,8 @@ class Task(Generic[T]):
             thread = marvin.thread.get_current_thread()
 
         if thread:
-            await thread.add_info_message_async(
+            await thread.add_user_message_async(
                 self.get_prompt(),
-                prefix="A new task has started",
             )
 
     async def mark_skipped(self, thread: Thread | None = None) -> None:
