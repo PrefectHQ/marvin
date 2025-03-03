@@ -55,6 +55,10 @@ class LLMCall:
     usage: Usage
     timestamp: datetime
 
+    def get_messages(self) -> LLMCallMessages:
+        """Get the messages for this LLM call."""
+        return run_sync(self.get_messages_async())
+
     async def get_messages_async(self) -> LLMCallMessages:
         """Get the messages for this LLM call."""
         async with get_async_session() as session:
