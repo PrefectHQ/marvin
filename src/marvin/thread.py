@@ -25,7 +25,7 @@ from marvin.database import (
 from marvin.engine.llm import ModelRequest
 from marvin.utilities.asyncio import run_sync
 
-from .engine.llm import PydanticAIMessage, SystemMessage, UserMessage
+from .engine.llm import AgentMessage, PydanticAIMessage, SystemMessage, UserMessage
 
 # Message serialization adapter
 message_adapter: TypeAdapter[PydanticAIMessage | list[PydanticAIMessage]] = TypeAdapter(
@@ -186,6 +186,15 @@ class Thread:
     ) -> Message:
         """Add a user message to the thread."""
         messages = await self.add_messages_async([UserMessage(content=message)])
+        return messages[0]
+
+    def add_agent_message(self, message: str) -> Message:
+        """Add an agent message to the thread."""
+        return run_sync(self.add_agent_message_async(message))
+
+    async def add_agent_message_async(self, message: str) -> Message:
+        """Add an agent message to the thread."""
+        messages = await self.add_messages_async([AgentMessage(content=message)])
         return messages[0]
 
     def add_info_message(self, message: str, prefix: str = None) -> Message:

@@ -4,9 +4,10 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, Optional, TypeVar
+from typing import Any, Literal, Optional, Sequence, TypeVar
 
 from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.messages import UserContent
 
 import marvin
 import marvin.agents.team
@@ -157,36 +158,12 @@ class Orchestrator:
             end_turn_tools.update(t.get_end_turn_tools())
 
         # --- get memories
-        memories: set[Memory] = set()
-        for t in assigned_tasks:
-            memories.update([m for m in t.memories if m.auto_use])
-        if isinstance(actor, Agent):
-            memories.update([m for m in actor.get_memories() if m.auto_use])
-        if memories:
-            memory_messages = await self.thread.get_messages_async(limit=3)
-            # Import here to avoid circular import
-            from marvin.thread import message_adapter
+        await self._check_memories(actor=actor, assigned_tasks=assigned_tasks)
 
-            query = message_adapter.dump_json(memory_messages).decode()
-            for memory in memories:
-                memory_result = {
-                    memory.friendly_name(): await memory.search(query=query, n=3)
-                }
-                await self.thread.add_info_message_async(
-                    memory_result,
-                    prefix="Automatically recalled memories",
-                )
-
-        system_prompt = await self.thread.add_system_message_async(
-            SystemPrompt(
-                actor=actor,
-                instructions=get_instructions(),
-                tasks=assigned_tasks,
-            ).render()
+        # --- get messages
+        user_prompt, prompt_messages = await self._get_messages(
+            actor=actor, assigned_tasks=assigned_tasks
         )
-
-        messages = await self.thread.get_messages_async(include_system_messages=False)
-        prompt_messages: list[Message] = [system_prompt] + messages
 
         # --- run agent
         agentlet = await actor.get_agentlet(
@@ -196,7 +173,8 @@ class Orchestrator:
 
         with actor:
             async with agentlet.iter(
-                user_prompt="", message_history=[m.message for m in prompt_messages]
+                user_prompt,
+                message_history=[m.message for m in prompt_messages],
             ) as run:
                 async for event in handle_agentlet_events(
                     agentlet=agentlet,
@@ -208,7 +186,8 @@ class Orchestrator:
         # --- add final messages to the thread
         new_messages = run.result.new_messages()
         completion_messages = await self.thread.add_messages_async(
-            # skip the first message since we send an empty string
+            # skip the first message since we either pull it from history or
+            # send an empty string
             new_messages[1:]
         )
 
@@ -289,6 +268,62 @@ class Orchestrator:
             _current_orchestrator.reset(token)
 
         return results
+
+    async def _check_memories(
+        self, actor: Actor, assigned_tasks: list[Task[Any]]
+    ) -> None:
+        memories: set[Memory] = set()
+        for t in assigned_tasks:
+            memories.update([m for m in t.memories if m.auto_use])
+        if isinstance(actor, Agent):
+            memories.update([m for m in actor.get_memories() if m.auto_use])
+        if memories:
+            memory_messages = await self.thread.get_messages_async(limit=3)
+            # Import here to avoid circular import
+            from marvin.thread import message_adapter
+
+            query = message_adapter.dump_json(memory_messages).decode()
+            for memory in memories:
+                memory_result = {
+                    memory.friendly_name(): await memory.search(query=query, n=3)
+                }
+                await self.thread.add_info_message_async(
+                    memory_result,
+                    prefix="Automatically recalled memories",
+                )
+
+    async def _get_messages(
+        self, actor: Actor, assigned_tasks: list[Task[Any]]
+    ) -> tuple[str | Sequence[UserContent], list[Message]]:
+        system_prompt = await self.thread.add_system_message_async(
+            SystemPrompt(
+                actor=actor,
+                instructions=get_instructions(),
+                tasks=assigned_tasks,
+            ).render()
+        )
+
+        message_history = await self.thread.get_messages_async(
+            include_system_messages=False
+        )
+
+        # attempt to extract the user message from the last message, if it represents a user prompt
+        if (
+            message_history
+            and message_history[-1].message.kind == "request"
+            and message_history[-1].message.parts[0].part_kind == "user-prompt"
+        ):
+            message_history, user_prompt = (
+                message_history[:-1],
+                message_history[-1].message.parts[0].content,
+            )
+
+        # otherwise, use a minimal viable user prompt. Pydantic AI requires a
+        # user prompt and some providers do not allow empty prompts.
+        else:
+            user_prompt = " "
+
+        return user_prompt, [system_prompt] + message_history
 
     @classmethod
     def get_current(cls) -> Optional["Orchestrator"]:
