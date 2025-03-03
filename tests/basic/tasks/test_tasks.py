@@ -4,6 +4,7 @@ from typing import Literal
 
 import pytest
 from dirty_equals import IsStr
+from pydantic_ai import ImageUrl
 
 import marvin
 from marvin import Thread
@@ -596,38 +597,57 @@ class TestVerbose:
 
     async def test_mark_verbose_task_running(self, thread: Thread):
         """Test that verbose tasks add a message to the thread when marked running."""
-        task = Task(instructions="Test verbose", verbose=True)
+        task = Task(instructions="Test running", verbose=True)
         await task.mark_running(thread=thread)
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].message.parts[0].content == IsStr(
+        assert messages[0].message.parts[0].content[0] == IsStr(
             regex=re.compile(
-                r"^A new task has started: <task>.*<\/task>$", flags=re.DOTALL
+                r"^<task>.*<instructions>\s*Test running\s*<\/instructions>.*<\/task>$",
+                flags=re.DOTALL,
             )
         )
 
     async def test_mark_verbose_task_running_context_thread(self, thread: Thread):
         """Test that verbose tasks use the context thread when marking running."""
-        task = Task(instructions="Test verbose", verbose=True)
+        task = Task(instructions="Test running", verbose=True)
         with thread:
             await task.mark_running()
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].message.parts[0].content == IsStr(
+        assert messages[0].message.parts[0].content[0] == IsStr(
             regex=re.compile(
-                r"^A new task has started: <task>.*<\/task>$", flags=re.DOTALL
+                r"^<task>.*<instructions>\s*Test running\s*<\/instructions>.*<\/task>$",
+                flags=re.DOTALL,
             )
         )
 
     async def test_mark_non_verbose_task_running(self, thread: Thread):
         """Test that non-verbose tasks still add messages when marked running."""
-        task = Task(instructions="Test verbose", verbose=True)
+        task = Task(instructions="Test running", verbose=False)
         with thread:
             await task.mark_running()
         messages = await thread.get_messages_async()
         assert len(messages) == 1
-        assert messages[0].message.parts[0].content == IsStr(
+        assert messages[0].message.parts[0].content[0] == IsStr(
             regex=re.compile(
-                r"^A new task has started: <task>.*<\/task>$", flags=re.DOTALL
+                r"^<task>.*<instructions>\s*Test running\s*<\/instructions>.*<\/task>$",
+                flags=re.DOTALL,
             )
         )
+
+    async def test_mark_task_with_attachments_running(self, thread: Thread):
+        """Test that tasks with attachments add a message to the thread when marked running."""
+        task = Task(
+            instructions="Test running", verbose=True, attachments=[ImageUrl("abc")]
+        )
+        await task.mark_running(thread=thread)
+        messages = await thread.get_messages_async()
+        assert len(messages) == 1
+        assert messages[0].message.parts[0].content[0] == IsStr(
+            regex=re.compile(
+                r"^<task>.*<instructions>\s*Test running\s*<\/instructions>.*<\/task>$",
+                flags=re.DOTALL,
+            )
+        )
+        assert messages[0].message.parts[0].content[1] == ImageUrl("abc")
