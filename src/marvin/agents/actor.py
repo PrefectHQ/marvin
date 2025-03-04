@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, TypeVar
 
 import pydantic_ai
 from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.messages import UserContent
 
 import marvin
 import marvin.utilities.asyncio
@@ -128,7 +129,7 @@ class Actor(ABC):
 
     async def run_async(
         self,
-        instructions: str,
+        instructions: str | Sequence[UserContent],
         result_type: type[T] = str,
         tools: list[Callable[..., Any]] = [],
         thread: Thread | str | None = None,
@@ -149,7 +150,7 @@ class Actor(ABC):
 
     def run(
         self,
-        instructions: str,
+        instructions: str | Sequence[UserContent],
         result_type: type[T] = str,
         tools: list[Callable[..., Any]] = [],
         thread: Thread | str | None = None,
