@@ -37,9 +37,9 @@ async def handle_event(
     """Handle an event by passing it to all registered handlers."""
     for handler in handlers or []:
         if isinstance(handler, AsyncHandler):
-            await handler.handle(event)
+            await handler._handle(event)
         else:
-            handler.handle(event)
+            handler._handle(event)
 
 
 @dataclass(kw_only=True)
