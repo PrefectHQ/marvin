@@ -203,13 +203,11 @@ class DBMessage(Base):
         TIMESTAMP(timezone=True), default=utc_now, server_default=func.now()
     )
 
-    # Same existing fields and relationships...
     thread: Mapped[DBThread] = relationship(back_populates="messages")
     llm_call_mappings: Mapped[list[DBLLMCallMessage]] = relationship(
         back_populates="message"
     )
 
-    # Add relationship to binary content with eager loading
     binary_contents: Mapped[list["DBBinaryContent"]] = relationship(
         back_populates="message",
         cascade="all, delete-orphan",

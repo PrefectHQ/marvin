@@ -1,4 +1,5 @@
 import os
+import sys
 import tempfile
 import wave
 from pathlib import Path
@@ -28,11 +29,7 @@ def record_audio(seconds=5, sample_rate=16000):
         frames_per_buffer=chunk,
     )
 
-    frames = []
-
-    for i in range(0, int(sample_rate / chunk * seconds)):
-        data = stream.read(chunk)
-        frames.append(data)
+    frames = [stream.read(chunk) for _ in range(0, int(sample_rate / chunk * seconds))]
 
     print("Recording finished.")
 
@@ -51,32 +48,32 @@ def record_audio(seconds=5, sample_rate=16000):
     return temp_file.name
 
 
-def talk_to_ai():
+def talk_to_agent(agent_name: str, instructions: str, speaking_time: int):
     """Run a conversation loop with the AI."""
     print("Starting conversation with AI. Press Ctrl+C to exit.")
     print("When you're ready to speak, press Enter.")
 
     agent = marvin.Agent(
+        name=agent_name,
         model="openai:gpt-4o-audio-preview",
-        instructions="talk like a pirate",
+        instructions=instructions,
     )
     with marvin.Thread(str(uuid4())):
         try:
             while True:
                 input("\nPress Enter to start recording your message...")
-                audio_file = record_audio(seconds=3)
-
-                audio = BinaryContent(
-                    data=Path(audio_file).read_bytes(), media_type="audio/wav"
-                )
+                audio_file = record_audio(seconds=speaking_time)
 
                 result = marvin.run(
-                    ["what do you say to this?", audio],
+                    [
+                        BinaryContent(
+                            data=Path(audio_file).read_bytes(), media_type="audio/wav"
+                        )
+                    ],
                     agents=[agent],
                 )
 
-                escaped_result = result.replace("'", "'\\''")
-                os.system(f"say '{escaped_result}'")
+                os.system(f"say '{result.replace("'", "'\\''")}'")
 
                 os.unlink(audio_file)
 
@@ -85,4 +82,17 @@ def talk_to_ai():
 
 
 if __name__ == "__main__":
-    talk_to_ai()
+    # uv run --extra audio examples/talk_to_marvin.py
+    agent_name = sys.argv[1] if len(sys.argv) > 1 else "Yoda"
+    instructions = (
+        sys.argv[2]
+        if len(sys.argv) > 2
+        else (
+            "you're not an AI, you're really yoda from star wars - "
+            "you're really old and have a special cadence to your speech"
+        )
+    )
+    speaking_time = int(sys.argv[3]) if len(sys.argv) > 3 else 3
+    talk_to_agent(
+        agent_name=agent_name, instructions=instructions, speaking_time=speaking_time
+    )
