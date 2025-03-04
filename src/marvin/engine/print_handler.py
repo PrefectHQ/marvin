@@ -31,10 +31,13 @@ from marvin.engine.events import (
     ToolRetryEvent,
 )
 from marvin.engine.handlers import Handler
+from marvin.utilities.logging import get_logger
 from marvin.utilities.types import issubclass_safe
 
 # Global spinner for consistent animation
 RUNNING_SPINNER = Spinner("dots")
+
+logger = get_logger(__name__)
 
 
 @dataclass
