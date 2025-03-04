@@ -158,6 +158,7 @@ class PrintHandler(Handler):
                 marvin.settings.default_print_handler_hide_end_turn_tools
             )
         self.hide_end_turn_tools = hide_end_turn_tools
+        super().__init__()
 
     def format_timestamp(self, ts) -> str:
         """Format timestamp for display."""

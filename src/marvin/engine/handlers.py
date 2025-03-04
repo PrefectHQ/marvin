@@ -15,22 +15,29 @@ from marvin.engine.events import (
     ToolRetryEvent,
     UserMessageEvent,
 )
+from marvin.utilities.logging import get_logger
 
 
 class Handler:
-    def handle(self, event: Event):
-        """Handle is called whenever an event is emitted.
+    def __init__(self):
+        self.logger = get_logger(type(self).__name__)
+
+    def _handle(self, event: Event):
+        """Called whenever an event is emitted.
 
         By default, it dispatches to a method named after the event type e.g.
         `self.on_{event_type}(event=event)`.
 
         The `on_event` method is always called for every event.
         """
-        self.on_event(event=event)
-        event_type = event.type.replace("-", "_")
-        method = getattr(self, f"on_{event_type}", None)
-        if method:
-            method(event=event)
+        try:
+            self.on_event(event=event)
+            event_type = event.type.replace("-", "_")
+            method = getattr(self, f"on_{event_type}", None)
+            if method:
+                method(event=event)
+        except Exception as e:
+            self.logger.error(f"Error handling event {event.type}: {e}")
 
     def on_event(self, event: Event):
         """Called for every event before specific handlers. Override for global event processing."""
@@ -103,19 +110,25 @@ class Handler:
 
 
 class AsyncHandler:
-    async def handle(self, event: Event):
-        """Handle is called whenever an event is emitted.
+    def __init__(self):
+        self.logger = get_logger(type(self).__name__)
+
+    async def _handle(self, event: Event):
+        """Called whenever an event is emitted.
 
         By default, it dispatches to a method named after the event type e.g.
         `self.on_{event_type}(event=event)`.
 
         The `on_event` method is always called for every event.
         """
-        await self.on_event(event=event)
-        event_type = event.type.replace("-", "_")
-        method = getattr(self, f"on_{event_type}", None)
-        if method:
-            await method(event=event)
+        try:
+            await self.on_event(event=event)
+            event_type = event.type.replace("-", "_")
+            method = getattr(self, f"on_{event_type}", None)
+            if method:
+                await method(event=event)
+        except Exception as e:
+            self.logger.error(f"Error handling event {event.type}: {e}")
 
     async def on_event(self, event: Event):
         """Called for every event before specific handlers. Override for global event processing."""

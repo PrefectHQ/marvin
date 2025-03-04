@@ -82,9 +82,9 @@ class Orchestrator:
 
         for handler in self.handlers:
             if isinstance(handler, AsyncHandler):
-                await handler.handle(event)
+                await handler._handle(event)
             else:
-                handler.handle(event)
+                handler._handle(event)
 
     def get_all_tasks(
         self, filter: Literal["incomplete", "ready"] | None = None
