@@ -1,6 +1,6 @@
 """A simplified print handler for rendering streaming events from the engine."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Tuple
 
 import rich
@@ -76,7 +76,7 @@ class ToolCallPanel(EventPanel):
     """Panel for displaying tool calls with streaming updates."""
 
     tool_name: str = ""
-    args: Dict[str, Any] = None
+    args: Dict[str, Any] = field(default_factory=dict)
     is_complete: bool = False
     result: str = ""
     is_error: bool = False
@@ -358,12 +358,20 @@ class PrintHandler(Handler):
     def on_end_turn_tool_call(self, event: EndTurnToolCallEvent):
         """Handle end turn tool call events."""
         # Find the corresponding tool call panel and mark it as an end turn tool
-        panel: ToolCallPanel = self.panels[event.tool_call_id]
-        panel.is_end_turn_tool = True
-        if event.tool and event.tool.name is not None:
-            panel.tool_name = event.tool.name
-            panel.tool = event.tool
-
+        if event.tool_call_id in self.panels:
+            panel: ToolCallPanel = self.panels[event.tool_call_id]
+            panel.is_end_turn_tool = True
+            if event.tool and event.tool.name is not None:
+                panel.tool_name = event.tool.name
+                panel.tool = event.tool
+        else:
+            self.panels[event.tool_call_id] = ToolCallPanel(
+                id=event.tool_call_id,
+                agent_name=event.actor.friendly_name(),
+                timestamp=self.format_timestamp(event.timestamp),
+                tool_name=event.tool.name,
+                tool=event.tool,
+            )
         self.update_display()
 
     def on_end_turn_tool_result(self, event: EndTurnToolResultEvent):
