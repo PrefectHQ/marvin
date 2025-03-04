@@ -309,7 +309,9 @@ class TestContextAndInstructions:
         @marvin.fn(instructions="Only return tropical fruits")
         def get_fruit_details(name: str) -> dict[str, str]:
             """Returns details about the fruit"""
-            return {"hint": "This fruit has a hard brown shell and liquid inside"}
+            return {
+                "hint if unknown": "This fruit has a hard brown shell and liquid inside"
+            }
 
         result = get_fruit_details("unknown")
         await assert_llm_equal(result, "a dictionary describing a coconut")
