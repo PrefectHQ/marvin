@@ -26,6 +26,7 @@ dev = [
     "ipython>=8.12.3",
     "pdbpp>=0.10.3",
     "pre-commit",
+    "pyaudio",
     "pytest-asyncio>=0.23.5",
     "pytest-env>=1.1.5",
     "pytest-rerunfailures>=15.0",

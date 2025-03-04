@@ -1380,6 +1380,7 @@ dev = [
     { name = "ipython" },
     { name = "pdbpp" },
     { name = "pre-commit" },
+    { name = "pyaudio" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-env" },
@@ -1412,6 +1413,7 @@ dev = [
     { name = "ipython", specifier = ">=8.12.3" },
     { name = "pdbpp", specifier = ">=0.10.3" },
     { name = "pre-commit" },
+    { name = "pyaudio" },
     { name = "pytest", specifier = ">=8.3.3" },
     { name = "pytest-asyncio", specifier = ">=0.23.5" },
     { name = "pytest-env", specifier = ">=1.1.5" },
@@ -2076,6 +2078,22 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/1d/67/6afbf0d507f73c32d21084a79946bfcfca5fbc62a72057e9c23797a737c9/pyasn1_modules-0.4.1.tar.gz", hash = "sha256:c28e2dbf9c06ad61c71a075c7e0f9fd0f1b0bb2d2ad4377f240d33ac2ab60a7c", size = 310028 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/77/89/bc88a6711935ba795a679ea6ebee07e128050d6382eaa35a0a47c8032bdc/pyasn1_modules-0.4.1-py3-none-any.whl", hash = "sha256:49bfa96b45a292b711e986f222502c1c9a5e1f4e568fc30e2574a6c7d07838fd", size = 181537 },
+]
+
+[[package]]
+name = "pyaudio"
+version = "0.2.14"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/26/1d/8878c7752febb0f6716a7e1a52cb92ac98871c5aa522cba181878091607c/PyAudio-0.2.14.tar.gz", hash = "sha256:78dfff3879b4994d1f4fc6485646a57755c6ee3c19647a491f790a0895bd2f87", size = 47066 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/90/90/1553487277e6aa25c0b7c2c38709cdd2b49e11c66c0b25c6e8b7b6638c72/PyAudio-0.2.14-cp310-cp310-win32.whl", hash = "sha256:126065b5e82a1c03ba16e7c0404d8f54e17368836e7d2d92427358ad44fefe61", size = 144624 },
+    { url = "https://files.pythonhosted.org/packages/27/bc/719d140ee63cf4b0725016531d36743a797ffdbab85e8536922902c9349a/PyAudio-0.2.14-cp310-cp310-win_amd64.whl", hash = "sha256:2a166fc88d435a2779810dd2678354adc33499e9d4d7f937f28b20cc55893e83", size = 164069 },
+    { url = "https://files.pythonhosted.org/packages/7b/f0/b0eab89eafa70a86b7b566a4df2f94c7880a2d483aa8de1c77d335335b5b/PyAudio-0.2.14-cp311-cp311-win32.whl", hash = "sha256:506b32a595f8693811682ab4b127602d404df7dfc453b499c91a80d0f7bad289", size = 144624 },
+    { url = "https://files.pythonhosted.org/packages/82/d8/f043c854aad450a76e476b0cf9cda1956419e1dacf1062eb9df3c0055abe/PyAudio-0.2.14-cp311-cp311-win_amd64.whl", hash = "sha256:bbeb01d36a2f472ae5ee5e1451cacc42112986abe622f735bb870a5db77cf903", size = 164070 },
+    { url = "https://files.pythonhosted.org/packages/8d/45/8d2b76e8f6db783f9326c1305f3f816d4a12c8eda5edc6a2e1d03c097c3b/PyAudio-0.2.14-cp312-cp312-win32.whl", hash = "sha256:5fce4bcdd2e0e8c063d835dbe2860dac46437506af509353c7f8114d4bacbd5b", size = 144750 },
+    { url = "https://files.pythonhosted.org/packages/b0/6a/d25812e5f79f06285767ec607b39149d02aa3b31d50c2269768f48768930/PyAudio-0.2.14-cp312-cp312-win_amd64.whl", hash = "sha256:12f2f1ba04e06ff95d80700a78967897a489c05e093e3bffa05a84ed9c0a7fa3", size = 164126 },
+    { url = "https://files.pythonhosted.org/packages/3a/77/66cd37111a87c1589b63524f3d3c848011d21ca97828422c7fde7665ff0d/PyAudio-0.2.14-cp313-cp313-win32.whl", hash = "sha256:95328285b4dab57ea8c52a4a996cb52be6d629353315be5bfda403d15932a497", size = 150982 },
+    { url = "https://files.pythonhosted.org/packages/a5/8b/7f9a061c1cc2b230f9ac02a6003fcd14c85ce1828013aecbaf45aa988d20/PyAudio-0.2.14-cp313-cp313-win_amd64.whl", hash = "sha256:692d8c1446f52ed2662120bcd9ddcb5aa2b71f38bda31e58b19fb4672fffba69", size = 173655 },
 ]
 
 [[package]]

@@ -4,6 +4,7 @@ This module provides utilities for managing database sessions and migrations.
 """
 
 import asyncio
+import copy
 import inspect
 import uuid
 from collections.abc import AsyncGenerator
@@ -14,13 +15,14 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
 from pydantic import TypeAdapter
-from pydantic_ai.messages import RetryPromptPart
+from pydantic_ai.messages import BinaryContent, RetryPromptPart
 from pydantic_ai.usage import Usage
 from sqlalchemy import (
     JSON,
     TIMESTAMP,
     ForeignKey,
-    Index,
+    ForeignKeyConstraint,
+    LargeBinary,
     String,
     TypeDecorator,
     func,
@@ -201,19 +203,17 @@ class DBMessage(Base):
         TIMESTAMP(timezone=True), default=utc_now, server_default=func.now()
     )
 
-    # Create a composite index on thread_id and timestamp in descending order
-    # Using SQLAlchemy's proper syntax for descending index
-    __table_args__ = (
-        Index(
-            "ix_messages_thread_id_created_at_desc",
-            "thread_id",
-            created_at.desc(),
-        ),
-    )
-
+    # Same existing fields and relationships...
     thread: Mapped[DBThread] = relationship(back_populates="messages")
     llm_call_mappings: Mapped[list[DBLLMCallMessage]] = relationship(
         back_populates="message"
+    )
+
+    # Add relationship to binary content with eager loading
+    binary_contents: Mapped[list["DBBinaryContent"]] = relationship(
+        back_populates="message",
+        cascade="all, delete-orphan",
+        lazy="joined",  # Use eager loading to avoid detached instance issues
     )
 
     @classmethod
@@ -223,21 +223,109 @@ class DBMessage(Base):
         message: PydanticAIMessage,
         created_at: datetime | None = None,
     ) -> "DBMessage":
-        return cls(
+        # Make a copy of the message to avoid modifying the original
+        message_copy = copy.deepcopy(message)
+        binary_contents = []
+
+        # Process parts to extract binary content
+        if message.kind == "request":
+            for part_idx, part in enumerate(message_copy.parts):
+                if part.part_kind == "user-prompt" and isinstance(part.content, list):
+                    # Store a new list to replace the original
+                    new_content = []
+
+                    # For each content item in the user prompt
+                    for content_idx, content in enumerate(part.content):
+                        if isinstance(content, BinaryContent):
+                            # Create binary content record
+                            binary_content = DBBinaryContent(
+                                part_index=part_idx,
+                                content_index=content_idx,
+                                data=content.data,
+                                media_type=content.media_type,
+                            )
+                            binary_contents.append(binary_content)
+
+                            # Replace binary content with a string placeholder that won't cause validation errors
+                            new_content.append(
+                                f"[Binary content: {content.media_type}]"
+                            )
+                        else:
+                            # Keep non-binary content as is
+                            new_content.append(content)
+
+                    # Replace the entire content list
+                    part.content = new_content
+
+        # Create the message DB record
+        db_message = cls(
             thread_id=thread_id,
-            message=serialize_message(message),
+            message=serialize_message(message_copy),
             created_at=created_at or utc_now(),
         )
 
+        # Attach binary contents
+        for binary_content in binary_contents:
+            binary_content.message = db_message
+
+        return db_message
+
     def to_message(self) -> "Message":
+        """Convert a database message to a thread message."""
         import marvin.thread
+
+        # Get the basic message
+        message_dict = message_adapter.validate_python(self.message)
+
+        # Restore binary content if any exists
+        if (
+            hasattr(self, "binary_contents")
+            and self.binary_contents
+            and message_dict.kind == "request"
+        ):
+            for binary_content in self.binary_contents:
+                if 0 <= binary_content.part_index < len(message_dict.parts):
+                    part = message_dict.parts[binary_content.part_index]
+                    if (
+                        part.part_kind == "user-prompt"
+                        and isinstance(part.content, list)
+                        and 0 <= binary_content.content_index < len(part.content)
+                    ):
+                        # Replace placeholder with actual binary content
+                        part.content[binary_content.content_index] = BinaryContent(
+                            data=binary_content.data,
+                            media_type=binary_content.media_type,
+                        )
 
         return marvin.thread.Message(
             id=self.id,
             thread_id=self.thread_id,
-            message=message_adapter.validate_python(self.message),
+            message=message_dict,
             created_at=self.created_at,
         )
+
+
+class DBBinaryContent(Base):
+    __tablename__ = "binary_contents"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    message_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("messages.id"), index=True)
+    part_index: Mapped[int] = (
+        mapped_column()
+    )  # Index of the part containing this binary content
+    content_index: Mapped[int] = mapped_column()  # Index within the content array
+    data: Mapped[bytes] = mapped_column(LargeBinary)
+    media_type: Mapped[str] = mapped_column(String)
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["message_id"],
+            ["messages.id"],
+            name="fk_binary_contents_message_id",
+        ),
+    )
+
+    message: Mapped[DBMessage] = relationship(back_populates="binary_contents")
 
 
 class UsageType(TypeDecorator[Usage]):

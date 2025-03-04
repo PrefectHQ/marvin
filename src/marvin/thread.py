@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Any, Optional, Sequence
 
 from pydantic import TypeAdapter
-from pydantic_ai.messages import UserContent
+from pydantic_ai.messages import BinaryContent, UserContent
 from pydantic_ai.usage import Usage
 from sqlalchemy import select
 
@@ -166,7 +166,47 @@ class Thread:
 
             await session.commit()
 
-        return [db_m.to_message() for db_m in db_messages]
+            # Load all messages with their relationships
+            for db_message in db_messages:
+                await session.refresh(db_message, ["binary_contents"])
+
+            # Convert to Message objects while session is still open
+            result_messages = []
+            for db_message in db_messages:
+                # Get the basic message
+                message_dict = message_adapter.validate_python(db_message.message)
+
+                # Process binary content while session is open
+                if message_dict.kind == "request":
+                    for binary_content in db_message.binary_contents:
+                        if 0 <= binary_content.part_index < len(message_dict.parts):
+                            part = message_dict.parts[binary_content.part_index]
+                            if (
+                                part.part_kind == "user-prompt"
+                                and isinstance(part.content, list)
+                                and 0
+                                <= binary_content.content_index
+                                < len(part.content)
+                            ):
+                                # Replace placeholder with actual binary content
+                                part.content[binary_content.content_index] = (
+                                    BinaryContent(
+                                        data=binary_content.data,
+                                        media_type=binary_content.media_type,
+                                    )
+                                )
+
+                # Create message with processed content
+                result_messages.append(
+                    Message(
+                        id=db_message.id,
+                        thread_id=db_message.thread_id,
+                        message=message_dict,
+                        created_at=db_message.created_at,
+                    )
+                )
+
+            return result_messages
 
     def add_system_message(self, message: str) -> Message:
         """Add a system message to the thread."""
@@ -271,7 +311,8 @@ class Thread:
 
             result = await session.execute(query)
 
-            db_messages = list(result.scalars().all())
+            # Use unique() to deduplicate results with eager loaded collections
+            db_messages = list(result.unique().scalars().all())
             db_messages.reverse()
 
             messages = [db_m.to_message() for db_m in db_messages]
