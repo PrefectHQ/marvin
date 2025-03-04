@@ -1,4 +1,7 @@
-from pydantic_ai import ImageUrl
+from pathlib import Path
+
+import pytest
+from pydantic_ai import BinaryContent, ImageUrl
 
 import marvin
 
@@ -31,3 +34,20 @@ class TestRunWithAttachments:
             ],
         )
         assert "Coca-Cola" in result
+
+
+class TestRunWithAudio:
+    @pytest.fixture
+    def youre_funny_audio_data(self) -> BinaryContent:
+        data = Path(__file__).parent.parent.parent / "data" / "youre-funny-2.wav"
+        return BinaryContent(data=data.read_bytes(), media_type="audio/wav")
+
+    @pytest.mark.usefixtures("gpt_4o_audio_preview")
+    def test_run_with_audio(self, youre_funny_audio_data: BinaryContent):
+        result = marvin.run(
+            [
+                "What is this audio saying?",
+                youre_funny_audio_data,
+            ]
+        )
+        assert result.lower().startswith("you're funny")
