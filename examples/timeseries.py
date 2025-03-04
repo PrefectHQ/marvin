@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["atproto", "marvin"]
+# ///
+
 import json
 import re
 from typing import Any, TypedDict
@@ -5,7 +9,7 @@ from typing import Any, TypedDict
 from atproto import Client
 from atproto.exceptions import BadRequestError
 from atproto_client.models.app.bsky.feed.defs import ThreadViewPost
-from pydantic_ai import Agent, ImageUrl
+from pydantic_ai import ImageUrl
 from pydantic_ai.models import ModelSettings
 from pydantic_ai.models.gemini import GeminiModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -40,7 +44,7 @@ class Snapshot(TypedDict):
 
 settings = Settings()  # type: ignore
 
-gemini_agent = Agent(
+gemini_agent = marvin.Agent(
     model=GeminiModel(
         model_name="gemini-2.0-flash-exp",
         api_key=settings.gemini_api_key,
@@ -69,7 +73,7 @@ def build_context(thread: ThreadViewPost) -> dict[str, Any]:
         if hasattr(thread.post.record, "embed") and hasattr(
             thread.post.embed, "images"
         ):
-            image_description_result = gemini_agent.run_sync(
+            image_description_result = gemini_agent.run(
                 [
                     "summarize this image concisely, include direct quotes from the image",
                     ImageUrl(url=thread.post.embed.images[0].fullsize),
@@ -84,12 +88,12 @@ def build_context(thread: ThreadViewPost) -> dict[str, Any]:
                     "text": reply.post.record.text,
                     **(
                         {
-                            "embed": gemini_agent.run_sync(
+                            "embed": gemini_agent.run(
                                 [
                                     "summarize this image concisely, include direct quotes from the image",
                                     ImageUrl(url=reply.post.embed.images[0].fullsize),
                                 ]
-                            ).data
+                            )
                         }
                         if hasattr(reply.post.record, "embed")
                         and hasattr(reply.post.embed, "images")
