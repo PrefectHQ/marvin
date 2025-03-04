@@ -35,6 +35,9 @@ dev = [
     "ruff",
 ]
 
+[project.optional-dependencies]
+audio = ["pyaudio>=0.2.14"]
+
 # Add this section for CLI entry point
 [project.scripts]
 marvin = "marvin.cli.main:app"

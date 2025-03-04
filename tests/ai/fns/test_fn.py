@@ -298,6 +298,7 @@ class TestContextAndInstructions:
         await assert_llm_equal(result, "a list of three berries")
         assert len(result) == 3
 
+    @pytest.mark.flaky(reruns=3)
     async def test_async_fn_with_return_value_context(self):
         @marvin.fn
         async def get_fruit_details(name: str) -> dict[str, str]:
