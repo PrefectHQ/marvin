@@ -38,7 +38,7 @@ agent = marvin.Agent(
     description="An AI agent specialized in data analysis",
     instructions="Perform data analysis tasks efficiently and accurately.",
     tools=[analyze_data, plot_results],
-    model="openai:gpt-4",
+    model="openai:gpt-4o",
     memories=[knowledge_base],
 )
 ```
@@ -88,7 +88,7 @@ import marvin
 
 agent = marvin.Agent(
     name="Creative Writer",
-    model="openai:gpt-4",
+    model="openai:gpt-4o",
     model_settings={"temperature": 0.8}
 )
 ```

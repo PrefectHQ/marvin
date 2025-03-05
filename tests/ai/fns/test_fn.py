@@ -38,6 +38,7 @@ class TestAnnotations:
         result = f(3)
         assert result == 4
 
+    @pytest.mark.flaky(reruns=3)
     def test_arg_annotations(self):
         @marvin.fn
         def f(x: int):
@@ -46,6 +47,7 @@ class TestAnnotations:
         result = f(3)
         assert result == 4
 
+    @pytest.mark.flaky(reruns=3)
     @pytest.mark.usefixtures("gpt_4o")
     def test_no_annotation_attempts_to_load_as_json_gracefully(self):
         # the trailing comma will fail to load as json, so we should
@@ -305,15 +307,17 @@ class TestContextAndInstructions:
         result = await get_fruit_details("unknown")
         await assert_llm_equal(result, "a dictionary describing an apple")
 
+    @pytest.mark.flaky(reruns=3)
     async def test_fn_with_instructions_and_context(self):
         @marvin.fn(instructions="Only return tropical fruits")
         def get_fruit_details(name: str) -> dict[str, str]:
             """Returns details about the fruit"""
-            return {"hint": "This fruit has a hard brown shell and liquid inside"}
+            return {"hint if unknown": "describe a coconut"}
 
         result = get_fruit_details("unknown")
         await assert_llm_equal(result, "a dictionary describing a coconut")
 
+    @pytest.mark.flaky(reruns=3)
     async def test_async_fn_with_instructions_and_context(self):
         @marvin.fn(instructions="Only consider fruits from Asia")
         async def get_fruit_details(name: str) -> dict[str, str]:

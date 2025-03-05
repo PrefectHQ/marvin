@@ -25,7 +25,7 @@ async def summarize_async(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> str:
     """Asynchronously creates a summary of the input data using a language model.
 
@@ -80,7 +80,7 @@ def summarize(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
-    context: dict | None = None,
+    context: dict[str, Any] | None = None,
 ) -> str:
     """Creates a summary of the input data using a language model.
 

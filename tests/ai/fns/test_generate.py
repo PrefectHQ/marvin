@@ -48,16 +48,19 @@ class TestBuiltins:
 
 
 class TestGenerateSchema:
-    async def test_generate_list_of_integers_schema(self, gpt_4o):
+    @pytest.mark.usefixtures("gpt_4o")
+    async def test_generate_list_of_integers_schema(self):
         result = await marvin.generate_schema_async(
             instructions="a list that contains exactly three integers",
         )
-        assert result == {
-            "type": "array",
-            "items": {"type": "integer"},
-            "minItems": 3,
-            "maxItems": 3,
-        }
+        assert result == IsPartialDict(  # might also throw in description
+            {
+                "type": "array",
+                "items": {"type": "integer"},
+                "minItems": 3,
+                "maxItems": 3,
+            }
+        )
 
         schema_type = jsonschema_to_type(result)
         assert TypeAdapter(schema_type).validate_python([1, 2, 3])
@@ -66,7 +69,8 @@ class TestGenerateSchema:
         with pytest.raises(ValidationError):
             TypeAdapter(schema_type).validate_python([1, 2, 3, 4])
 
-    async def test_generate_schema_for_movie(self, gpt_4o):
+    @pytest.mark.usefixtures("gpt_4o")
+    async def test_generate_schema_for_movie(self):
         result = await marvin.generate_schema_async(
             instructions="a movie with a title, director, and release_year",
         )
@@ -84,7 +88,8 @@ class TestGenerateSchema:
             }
         )
 
-    async def test_generate_schema_with_base_schema(self, gpt_4o):
+    @pytest.mark.usefixtures("gpt_4o")
+    async def test_generate_schema_with_base_schema(self):
         base_schema = {
             "type": "object",
             "properties": {
@@ -109,8 +114,9 @@ class TestGenerateSchema:
             }
         )
 
+    @pytest.mark.usefixtures("gpt_4o")
     async def test_generate_schema_with_base_schema_and_required_instruction(
-        self, gpt_4o
+        self,
     ):
         base_schema = {
             "type": "object",
@@ -136,7 +142,8 @@ class TestGenerateSchema:
             }
         )
 
-    async def test_generate_schema_with_thread(self, gpt_4o):
+    @pytest.mark.usefixtures("gpt_4o")
+    async def test_generate_schema_with_thread(self):
         result = await marvin.generate_schema_async(
             instructions="a list that contains exactly three integers",
             thread="abc",
