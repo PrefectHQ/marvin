@@ -13,10 +13,13 @@ The MCP Server Registry enables:
 
 ### Server Discovery
 MCP servers are discovered through AT Protocol records. Each server record contains:
-- Server ID: A unique identifier
-- Endpoint: WebSocket URL where the server can be reached
+- Name: Display name of the server
+- Package: URL or package identifier for installation
+- Type: Record type (app.mcp.server)
 - Description: What the server does
-- Optional metadata (version, capabilities, etc.)
+- Tools: List of available MCP tools
+- Version: Optional version number
+- Last Registered: Timestamp of last registration
 
 These records are stored in users' AT Protocol repositories under the `app.mcp.server` collection.
 
@@ -29,62 +32,52 @@ These records are stored in users' AT Protocol repositories under the `app.mcp.s
 
 ```bash
 cd registry
-bun install
-HANDLE=your.handle PASSWORD=your-password bun dev
+npm install
+HANDLE=your.handle PASSWORD=your-password npm run dev
 ```
 
 The registry will be available at:
 - Web UI: http://localhost:3000
 - API: http://localhost:3000/api/servers
-- API with DID: http://localhost:3000/api/servers/{did}
-
-## API Endpoints
-
-### GET /api/servers
-List all MCP servers for the authenticated user
-
-### GET /api/servers/{did}
-List all MCP servers published by a specific DID
-
-### DELETE /api/servers/{serverId}
-Delete a server record (must be authenticated as the publisher)
 
 ## Publishing Your MCP Server
 
-To make your MCP server discoverable, publish a record to your AT Protocol repository:
+To make your MCP server discoverable, use the provided Python script:
 
-```typescript
-agent.api.com.atproto.repo.putRecord({
-  repo: yourDID,
-  collection: 'app.mcp.server',
-  rkey: 'unique-server-id',
-  record: {
-    serverId: 'unique-server-id',
-    endpoint: 'wss://your-server.com',
-    description: 'Description of your server capabilities',
-    // Optional:
-    version: '1.0.0',
-    pubKey: 'your-public-key',
-    capabilities: ['git', 'slack', etc]
-  }
-})
+```python
+from mcp.server.fastmcp import FastMCP
+from server import register_mcp_server_with_atproto
+
+mcp = FastMCP("My Server")
+
+@mcp.tool()
+def my_tool():
+    """My cool tool"""
+    return "Hello!"
+
+with register_mcp_server_with_atproto(
+    mcp,
+    name="My Server",
+    package="https://github.com/me/repo/blob/main/server.py",
+    description="Does cool stuff"
+):
+    mcp.run()
 ```
+
+The script will:
+1. Register your server with ATProto if credentials are provided
+2. Create a stable record key based on the package URL
+3. Update existing records if the server is already registered
+4. Track registration timestamps
 
 ## Development
 
 The registry consists of:
-- `src/index.ts`: Main registry service
-- `src/api.ts`: API endpoints for server discovery
-- `src/ui.ts`: Web UI for browsing servers
-- `src/mcp_server.ts`: AT Protocol lexicon definition
-
-## Future Improvements
-
-1. Search and filtering of servers
-2. Server categories and tags
-3. Server ratings and reviews
-4. Advanced server metadata
-5. Integration with MCP client libraries
+- `server.py`: MCP server implementation with ATProto registration
+- `registry/`: Web UI for browsing servers
+  - `src/components/App.tsx`: Main UI components
+  - `src/server/api.ts`: API endpoints for server discovery
+  - `src/styles/styles.css`: UI styling
 
 ## Contributing
 
