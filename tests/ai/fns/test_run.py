@@ -39,7 +39,7 @@ class TestRunWithAttachments:
 class TestRunWithAudio:
     @pytest.fixture
     def youre_funny_audio_data(self) -> BinaryContent:
-        data = Path(__file__).parent.parent.parent / "data" / "youre-funny-2.wav"
+        data = Path(__file__).parent.parent.parent / "data" / "youre-funny.wav"
         return BinaryContent(data=data.read_bytes(), media_type="audio/wav")
 
     @pytest.mark.usefixtures("gpt_4o_audio_preview")
