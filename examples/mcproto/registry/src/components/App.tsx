@@ -63,17 +63,6 @@ export function App() {
         }
     }
 
-    async function checkHealth(endpoint: string): Promise<boolean> {
-        // MCP endpoints use mcp:// protocol, we need to convert to http/https
-        try {
-            const httpEndpoint = endpoint.replace('mcp://', 'http://')
-            const res = await fetch(`${endpoint}/api/health`)
-            return res.ok
-        } catch {
-            return false
-        }
-    }
-
     if (loading) {
         return (
             <div className="container">
