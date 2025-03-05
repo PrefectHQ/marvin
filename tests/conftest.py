@@ -83,6 +83,12 @@ def gpt_4o():
         yield
 
 
+@pytest.fixture
+def gpt_4o_audio_preview():
+    with override_defaults(model="openai:gpt-4o-audio-preview"):
+        yield
+
+
 @pytest.fixture(autouse=True)
 def restore_defaults():
     """
