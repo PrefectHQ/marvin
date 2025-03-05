@@ -19,3 +19,6 @@ wheels/
 
 # IDE-related files
 .vscode/
+
+# Typescript
+**/node_modules/**
