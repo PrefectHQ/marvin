@@ -5,11 +5,12 @@ on:
     branches: ["main"]
     paths:
       - "src/**/*.py"
+      - "tests/**/*.py"
 
   pull_request:
     paths:
       - "src/**/*.py"
-
+      - "tests/**/*.py"
   workflow_dispatch:
 
 permissions:
