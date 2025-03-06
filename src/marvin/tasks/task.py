@@ -473,12 +473,13 @@ class Task(Generic[T]):
         raise_on_failure: bool = True,
         handlers: list["Handler | AsyncHandler"] | None = None,
     ) -> T:
-        return marvin.fns.run.run_tasks_async(
+        await marvin.fns.run.run_tasks_async(
             [self],
             thread=thread,
             raise_on_failure=raise_on_failure,
             handlers=handlers,
         )
+        return self.result
 
     def run(
         self,
