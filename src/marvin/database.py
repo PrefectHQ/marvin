@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
-from pydantic import TypeAdapter
+from pydantic import ConfigDict, TypeAdapter
 from pydantic_ai.messages import RetryPromptPart
 from pydantic_ai.usage import Usage
 from sqlalchemy import (
@@ -48,7 +48,10 @@ if TYPE_CHECKING:
     from marvin.thread import Message
 
 logger = get_logger(__name__)
-message_adapter: TypeAdapter[PydanticAIMessage] = TypeAdapter(PydanticAIMessage)
+message_adapter: TypeAdapter[PydanticAIMessage] = TypeAdapter(
+    PydanticAIMessage,
+    config=ConfigDict(ser_json_bytes="base64", val_json_bytes="base64"),
+)
 usage_adapter: TypeAdapter[Usage] = TypeAdapter(Usage)
 
 # Module-level cache for engines and sessionmakers
