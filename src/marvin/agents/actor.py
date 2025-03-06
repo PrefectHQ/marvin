@@ -18,7 +18,7 @@ from marvin.thread import Thread
 
 if TYPE_CHECKING:
     from marvin.engine.end_turn import EndTurn
-    from marvin.engine.handlers import AsyncHandler, Handler
+    from marvin.handlers.handlers import AsyncHandler, Handler
 T = TypeVar("T")
 # Global context var for current actor
 _current_actor: ContextVar[Optional["Actor"]] = ContextVar(

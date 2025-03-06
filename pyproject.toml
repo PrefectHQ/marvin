@@ -46,7 +46,7 @@ include = ["migrations/**/*", "alembic.ini"]
 
 # pytest configuration
 [tool.pytest.ini_options]
-addopts = "--verbose --color=yes"
+addopts = "-vv --color=yes"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 timeout = 60

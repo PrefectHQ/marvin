@@ -30,7 +30,7 @@ from marvin.engine.events import (
     ToolResultEvent,
     ToolRetryEvent,
 )
-from marvin.engine.handlers import Handler
+from marvin.handlers.handlers import Handler
 from marvin.utilities.logging import get_logger
 from marvin.utilities.types import issubclass_safe
 

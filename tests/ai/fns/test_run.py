@@ -1,4 +1,5 @@
 from pydantic_ai import ImageUrl
+from pydantic_ai.models.test import TestModel
 
 import marvin
 
@@ -31,3 +32,36 @@ class TestRunWithAttachments:
             ],
         )
         assert "Coca-Cola" in result
+
+
+class TestRunStream:
+    async def test_run_tasks_stream(self, test_model: TestModel):
+        events = []
+        t = marvin.Task("Say 'Hello'")
+        async for event in marvin.run_tasks_stream([t]):
+            events.append(event)
+
+        assert [e.type for e in events] == [
+            "orchestrator-start",
+            "actor-start-turn",
+            "tool-call-delta",
+            "end-turn-tool-call",
+            "end-turn-tool-result",
+            "actor-end-turn",
+            "orchestrator-end",
+        ]
+
+    async def test_run_stream(self, test_model: TestModel):
+        events = []
+        async for event in marvin.run_stream('Say "Hello"'):
+            events.append(event)
+
+        assert [e.type for e in events] == [
+            "orchestrator-start",
+            "actor-start-turn",
+            "tool-call-delta",
+            "end-turn-tool-call",
+            "end-turn-tool-result",
+            "actor-end-turn",
+            "orchestrator-end",
+        ]

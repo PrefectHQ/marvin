@@ -4,7 +4,7 @@ from dirty_equals import IsPartialDataclass
 from pydantic_ai.models.test import TestModel
 
 import marvin
-from marvin.engine.handlers import Handler
+from marvin.handlers.handlers import Handler
 
 
 class EventCollector(Handler):
