@@ -14,6 +14,7 @@ from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
+    AsyncGenerator,
     Generic,
     Literal,
     Optional,
@@ -37,7 +38,8 @@ from marvin.utilities.types import Labels, as_classifier, is_classifier
 
 if TYPE_CHECKING:
     from marvin.engine.end_turn import EndTurn
-    from marvin.engine.handlers import AsyncHandler, Handler
+    from marvin.engine.events import Event
+    from marvin.handlers.handlers import AsyncHandler, Handler
 
 T = TypeVar("T")
 NOTSET: Literal["__NOTSET__"] = "__NOTSET__"
@@ -471,14 +473,12 @@ class Task(Generic[T]):
         raise_on_failure: bool = True,
         handlers: list["Handler | AsyncHandler"] | None = None,
     ) -> T:
-        import marvin.engine.orchestrator
-
-        orchestrator = marvin.engine.orchestrator.Orchestrator(
-            tasks=[self],
+        await marvin.fns.run.run_tasks_async(
+            [self],
             thread=thread,
+            raise_on_failure=raise_on_failure,
             handlers=handlers,
         )
-        await orchestrator.run(raise_on_failure=raise_on_failure)
         return self.result
 
     def run(
@@ -486,9 +486,26 @@ class Task(Generic[T]):
         *,
         thread: Thread | str | None = None,
         raise_on_failure: bool = True,
+        handlers: list["Handler | AsyncHandler"] | None = None,
     ) -> T:
         return run_sync(
-            self.run_async(thread=thread, raise_on_failure=raise_on_failure),
+            self.run_async(
+                thread=thread, raise_on_failure=raise_on_failure, handlers=handlers
+            ),
+        )
+
+    def run_stream(
+        self,
+        *,
+        thread: Thread | str | None = None,
+        raise_on_failure: bool = True,
+        handlers: list["Handler | AsyncHandler"] | None = None,
+    ) -> AsyncGenerator["Event", None]:
+        return marvin.fns.run.run_tasks_stream(
+            [self],
+            thread=thread,
+            raise_on_failure=raise_on_failure,
+            handlers=handlers,
         )
 
     def get_end_turn_tools(self) -> list[type["EndTurn"]]:

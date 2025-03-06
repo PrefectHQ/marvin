@@ -14,9 +14,17 @@ from marvin.memory.memory import Memory
 from marvin.instructions import instructions
 from marvin.defaults import defaults
 from marvin.agents.team import Swarm
+from . import handlers
 
 # marvin fns
-from marvin.fns.run import run, run_async, run_tasks_async, run_tasks
+from marvin.fns.run import (
+    run,
+    run_async,
+    run_tasks_async,
+    run_tasks,
+    run_stream,
+    run_tasks_stream,
+)
 from marvin.fns.classify import classify, classify_async
 from marvin.fns.extract import extract, extract_async
 from marvin.fns.cast import cast, cast_async
@@ -54,13 +62,16 @@ __all__ = [
     "generate_async",
     "generate_schema",
     "generate_schema_async",
+    "handlers",
     "instructions",
     "plan",
     "plan_async",
     "run",
     "run_async",
+    "run_stream",
     "run_tasks",
     "run_tasks_async",
+    "run_tasks_stream",
     "settings",
     "say",
     "say_async",

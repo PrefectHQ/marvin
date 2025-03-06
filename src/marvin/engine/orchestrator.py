@@ -24,9 +24,9 @@ from marvin.engine.events import (
     OrchestratorErrorEvent,
     OrchestratorStartEvent,
 )
-from marvin.engine.handlers import AsyncHandler, Handler
-from marvin.engine.print_handler import PrintHandler
 from marvin.engine.streaming import handle_agentlet_events
+from marvin.handlers import AsyncHandler, Handler
+from marvin.handlers.print_handler import PrintHandler
 from marvin.instructions import get_instructions
 from marvin.memory.memory import Memory
 from marvin.prompts import Template

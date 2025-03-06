@@ -28,7 +28,7 @@ T = TypeVar("T")
 if TYPE_CHECKING:
     from marvin.engine.end_turn import EndTurn
     from marvin.engine.events import Event
-    from marvin.engine.handlers import AsyncHandler, Handler
+    from marvin.handlers.handlers import AsyncHandler, Handler
 
 
 async def handle_event(
