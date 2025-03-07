@@ -8,7 +8,7 @@ from marvin.agents.agent import Agent
 from marvin.thread import Thread
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import jinja_env
-from marvin.utilities.jsonschema import JSONSchema
+from marvin.utilities.jsonschema import JSONSchema, jsonschema_to_type
 from marvin.utilities.types import TargetType
 
 T = TypeVar("T")
@@ -130,8 +130,8 @@ async def generate_schema_async(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
-) -> JSONSchema:
-    """Generates a JSON schema from a description."""
+) -> type:
+    """Generates a JSON schema from a description and converts it to a Python type."""
 
     prompt = inspect.cleandoc("""
         Your job is to generate JSON Schemas that match the user's instructions. The latest instruction is:
@@ -163,7 +163,8 @@ async def generate_schema_async(
         agents=[agent] if agent else None,
     )
 
-    return await task.run_async(thread=thread)
+    schema = await task.run_async(thread=thread)
+    return jsonschema_to_type(schema)
 
 
 def generate_schema(
@@ -172,8 +173,8 @@ def generate_schema(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
-) -> JSONSchema:
-    """Generates a JSON schema from a description."""
+) -> type:
+    """Generates a JSON schema from a description and converts it to a Python type."""
     return run_sync(
         generate_schema_async(
             instructions=instructions,
