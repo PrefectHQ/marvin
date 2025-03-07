@@ -412,15 +412,6 @@ class Task(Generic[T]):
         """
         if self.is_classifier():
             return as_classifier(self.result_type).get_type()
-
-        # Handle JSON schema result types
-        if isinstance(self.result_type, dict) and (
-            "type" in self.result_type or "properties" in self.result_type
-        ):
-            from marvin.utilities.jsonschema import jsonschema_to_type
-
-            return jsonschema_to_type(self.result_type)
-
         return self.result_type
 
     def get_result_type_str(self) -> str:
