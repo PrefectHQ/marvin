@@ -41,7 +41,7 @@ Marvin offers a few intuitive ways to work with AI:
 The gang's all here - you can find all the structured-output utilities from `marvin` 2.x at the top level of the package.
 
 <details>
-<summary>How to use extract, cast, and generate</summary>
+<summary>How to use extract, cast, classify, and generate</summary>
 
 #### `marvin.extract`
 Extract native types from unstructured input:
@@ -68,6 +68,22 @@ class Location(TypedDict):
 
 result = marvin.cast("the place with the best bagels", Location)
 print(result) # {'lat': 40.712776, 'lon': -74.005974}
+```
+
+#### `marvin.classify`
+Classify unstructured input as one of a set of predefined labels:
+```python
+from enum import Enum
+import marvin
+
+class SupportDepartment(Enum):
+    ACCOUNTING = "accounting"
+    HR = "hr"
+    IT = "it"
+    SALES = "sales"
+
+result = marvin.classify("shut up and take my money", SupportDepartment)
+print(result) # SupportDepartment.SALES
 ```
 
 #### `marvin.generate`
