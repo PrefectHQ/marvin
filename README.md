@@ -278,7 +278,8 @@ def write_file(path: str, content: str):
 
 writer = marvin.Agent(
     model=AnthropicModel(
-        "anthropic/claude-3-5-sonnet@latest", api_key=os.getenv("ANTHROPIC_API_KEY")
+        model_name="claude-3-5-sonnet-latest",
+        api_key=os.getenv("ANTHROPIC_API_KEY"),
     ),
     name="Technical Writer",
     instructions="Write concise, engaging content for developers",

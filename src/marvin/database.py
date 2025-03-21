@@ -24,6 +24,7 @@ from sqlalchemy import (
     String,
     TypeDecorator,
     func,
+    select,
 )
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -347,14 +348,33 @@ async def get_async_session(
     Yields:
         An async SQLAlchemy session
     """
+    # If session is provided, just use it
     if session is not None:
         yield session
         return
 
+    # Try to get the engine - if this fails because tables don't exist,
+    # make sure to create them before proceeding
     engine = get_async_engine()
     session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    # Create a session
     async with session_factory() as session:
         try:
+            # Check if tables exist by attempting a simple query
+            if is_sqlite():
+                try:
+                    # Try to query the threads table to see if it exists
+                    await session.execute(select(DBThread).limit(1))
+                except Exception as e:
+                    if "no such table" in str(e).lower():
+                        # Tables don't exist, create them
+                        logger.warning("Database tables don't exist, creating them now")
+                        async with engine.begin() as conn:
+                            await conn.run_sync(Base.metadata.create_all)
+                            logger.info("Created database tables on first access")
+
+            # Now yield the session
             yield session
             await session.commit()
         except Exception:
@@ -412,26 +432,18 @@ async def create_db_and_tables(*, force: bool = False) -> None:
             await conn.run_sync(Base.metadata.drop_all)
             logger.debug("Database tables dropped.")
 
-        if force:
-            await conn.run_sync(Base.metadata.drop_all)
-            logger.debug("Database tables dropped.")
-
         await conn.run_sync(Base.metadata.create_all)
         logger.debug("Database tables created.")
 
 
 def init_database_if_necessary():
-    """Initialize the database.
+    """Initialize the database file if necessary.
 
-    This function handles database initialization differently based on the type:
-    - File-based SQLite: If file doesn't exist, create it and run migrations
-    - Other databases: No automatic initialization
+    This function only handles creating the database file and parent directories,
+    it does not create tables. Tables are created by ensure_db_tables_exist().
     """
     global db_initialized
     if not db_initialized:
-        if not settings.auto_init_sqlite:
-            return
-
         if is_sqlite():
             # For file-based SQLite, check if file exists
             url = settings.database_url
@@ -449,20 +461,89 @@ def init_database_if_necessary():
                 if not db_file.exists():
                     # Create parent directories if needed
                     db_file.parent.mkdir(parents=True, exist_ok=True)
-
-                    # Create empty file to ensure directory exists
+                    # Create empty file
                     db_file.touch()
-
-                    # Run migrations to create schema
-                    if _run_migrations():
-                        logger.info(
-                            f'[green]A new SQLite database was created at "{path}" and migrations were applied successfully.[/]',
-                            extra={"markup": True},
-                        )
-                    else:
-                        logger.warning(
-                            f'[yellow]A new SQLite database was created at "{path}" but migrations failed.[/]',
-                            extra={"markup": True},
-                        )
+                    logger.debug(f"Created new SQLite database file at {path}")
 
         db_initialized = True
+
+
+def ensure_db_tables_exist():
+    """Ensure database tables exist, creating them if necessary.
+
+    This function creates all database tables directly without using migrations,
+    which is more reliable than using Alembic migrations.
+    """
+    # First initialize the database file if needed
+    init_database_if_necessary()
+
+    # Now create tables
+    import asyncio
+    import sqlite3
+    import threading
+
+    # Define a lock for thread safety
+    _create_tables_lock = threading.Lock()
+
+    # Check if we're already in an event loop
+    try:
+        asyncio.get_running_loop()
+        in_async_context = True
+    except RuntimeError:
+        in_async_context = False
+
+    # Thread-local check to avoid recursion in async context
+    if in_async_context:
+        # If we're in an async context, we need to use a synchronous approach
+        # Otherwise, we'll get "Event loop is already running" errors
+        try:
+            # For SQLite, we can directly check if tables exist
+            if is_sqlite():
+                url = settings.database_url
+                if url is None:
+                    return
+
+                # Parse the URL to get the database path
+                parsed_url = urlparse(url)
+                if parsed_url.path and parsed_url.path != ":memory:":
+                    # Strip the leading slash if present
+                    path = parsed_url.path
+                    if path.startswith("/"):
+                        path = path[1:]
+
+                    # Direct SQLite connection to check tables
+                    try:
+                        with _create_tables_lock:
+                            conn = sqlite3.connect(path)
+                            cursor = conn.cursor()
+                            # Check if the threads table exists
+                            cursor.execute(
+                                "SELECT name FROM sqlite_master WHERE type='table' AND name='threads'"
+                            )
+                            result = cursor.fetchone()
+
+                            if not result:
+                                # Tables don't exist, we'll need to create them later
+                                logger.warning(
+                                    "Database tables don't exist, but we're in an async context. "
+                                    "Tables will be created on first database access."
+                                )
+                            else:
+                                logger.debug("Database tables already exist.")
+
+                            conn.close()
+                    except sqlite3.Error as e:
+                        logger.error(f"Error checking database tables: {e}")
+
+            return  # Return early if in async context
+        except Exception as e:
+            logger.error(f"Error ensuring database tables exist: {e}")
+            return
+
+    # Create tables synchronously using asyncio.run() if we're not in an async context
+    try:
+        with _create_tables_lock:
+            asyncio.run(create_db_and_tables())
+            logger.debug("Database tables created successfully.")
+    except Exception as e:
+        logger.error(f"Failed to create database tables: {e}")
