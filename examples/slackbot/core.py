@@ -24,14 +24,13 @@ from search import (
     review_common_3x_gotchas,
     review_top_level_prefect_api,
     search_controlflow_docs,
+    search_github_issues,
     search_prefect_2x_docs,
     search_prefect_3x_docs,
     verify_import_statements,
 )
 from settings import settings
 from turbopuffer.error import NotFoundError
-
-from marvin.tools.github import search_github_issues
 
 GITHUB_API_TOKEN = Secret.load(settings.github_token_secret_name, _sync=True).get()  # type: ignore
 

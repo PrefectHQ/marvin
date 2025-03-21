@@ -16,8 +16,8 @@ from prefect.cache_policies import NONE
 from prefect.logging.loggers import get_logger
 from prefect.states import Completed
 from prefect.variables import Variable
+from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
-from pydantic_ai.result import RunResult
 from settings import settings
 from wrap import WatchToolCalls
 
@@ -36,7 +36,7 @@ async def run_agent(
     conversation: list[ModelMessage],
     user_context: UserContext,
     decorator_settings: dict[str, Any] | None = None,
-) -> RunResult[str]:
+) -> AgentRunResult[str]:
     if decorator_settings is None:
         decorator_settings = {
             "cache_policy": NONE,

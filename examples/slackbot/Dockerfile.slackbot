@@ -15,4 +15,4 @@ RUN uv sync --extra slackbot
 
 EXPOSE 4200
 
-CMD ["uv", "run", "-m", "examples.slackbot.start"]
+CMD ["uv", "run", "examples/slackbot/start.py"]
