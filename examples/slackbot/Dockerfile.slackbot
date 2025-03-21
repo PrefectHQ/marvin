@@ -1,4 +1,6 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /app
 
@@ -9,15 +11,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip install uv && uv venv
-
-ENV VIRTUAL_ENV=/app/.venv
-RUN uv venv
-
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
-
-RUN uv pip install -U ".[slackbot]" --force-reinstall
+RUN uv sync --extra slackbot
 
 EXPOSE 4200
 
-CMD ["python", "examples/slackbot/start.py"]
+CMD ["uv", "run", "-m", "examples.slackbot.start"]
