@@ -201,6 +201,20 @@ async def _get_migration_status(connection, alembic_cfg, script):
     return await connection.run_sync(get_current_rev)
 
 
+@migrations.command("init")
+def init_db():
+    """Create database tables directly without using migrations."""
+    try:
+        from marvin.database import create_db_and_tables
+
+        console.print("[blue]Creating database tables...[/blue]")
+        asyncio.run(create_db_and_tables())
+        console.print("[green]Database tables created successfully[/green]")
+    except Exception as e:
+        console.print(f"[red]Failed to create database tables: {e}[/red]")
+        sys.exit(1)
+
+
 @migrations.command("status")
 def status():
     """Show database migration status and information."""

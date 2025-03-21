@@ -122,17 +122,37 @@ class Thread:
         if self._db_thread:
             return
 
-        async with get_async_session() as session:
-            db_thread = await session.get(DBThread, self.id)
-            if db_thread is not None:
-                self._db_thread = True
-            else:
-                await DBThread.create(
-                    session=session,
-                    id=self.id,
-                    parent_thread_id=self.parent_id,
-                )
-                self._db_thread = True
+        # First, ensure tables are created in case of missing initialization
+        try:
+            from marvin.database import ensure_db_tables_exist
+
+            ensure_db_tables_exist()
+        except Exception as e:
+            from marvin.utilities.logging import get_logger
+
+            logger = get_logger(__name__)
+            logger.warning(f"Failed to ensure DB tables exist: {e}")
+
+        # Now we can safely create the thread
+        try:
+            async with get_async_session() as session:
+                db_thread = await session.get(DBThread, self.id)
+                if db_thread is not None:
+                    self._db_thread = True
+                else:
+                    await DBThread.create(
+                        session=session,
+                        id=self.id,
+                        parent_thread_id=self.parent_id,
+                    )
+                    self._db_thread = True
+        except Exception as e:
+            from marvin.utilities.logging import get_logger
+
+            logger = get_logger(__name__)
+            logger.error(f"Failed to create thread in database: {e}")
+            # Re-raise to fail fast rather than letting downstream code handle DB errors
+            raise
 
     def add_messages(self, messages: list[PydanticAIMessage]) -> list[Message]:
         """Add multiple messages to the thread.

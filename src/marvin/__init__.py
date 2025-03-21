@@ -40,7 +40,9 @@ from marvin.fns.summarize import summarize, summarize_async
 from marvin.fns.plan import plan, plan_async
 
 # Initialize the database on import
-init_database_if_necessary()
+from marvin.database import ensure_db_tables_exist
+
+ensure_db_tables_exist()
 
 __version__ = _version("marvin")
 
