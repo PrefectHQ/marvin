@@ -19,10 +19,9 @@ from prefect.variables import Variable
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
 from settings import settings
+from slack import SlackPayload, get_channel_name, post_slack_message
+from strings import count_tokens, slice_tokens
 from wrap import WatchToolCalls
-
-from marvin.utilities.slack import SlackPayload, get_channel_name, post_slack_message
-from marvin.utilities.strings import count_tokens
 
 BOT_MENTION = r"<@(\w+)>"
 
@@ -72,10 +71,12 @@ async def handle_message(payload: SlackPayload, db: Database):
         logger.warning(
             f"Message too long by {msg_len - USER_MESSAGE_MAX_TOKENS} tokens"
         )
-        exceeded = msg_len - USER_MESSAGE_MAX_TOKENS
         assert event.channel is not None, "No channel found"
         await post_slack_message(
-            message=f"Your message was too long by {exceeded} tokens...",
+            message=(
+                "Your message was too long, here's your message at the allowed limit:"
+                f"\n{slice_tokens(cleaned_message, USER_MESSAGE_MAX_TOKENS)}"
+            ),
             channel_id=event.channel,
             thread_ts=thread_ts,
         )

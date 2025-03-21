@@ -1,47 +1,31 @@
 """Module for string utilities."""
 
-import tiktoken
+import re
+from typing import Sequence
 
-import marvin
-
-
-def tokenize(text: str, model: str | None = None) -> list[int]:
-    """
-    Tokenizes the given text using the specified model.
-
-    Args:
-        text (str): The text to tokenize.
-        model (str, optional): The model to use for tokenization. If not provided,
-                               the default model is used.
-
-    Returns:
-        list[int]: The tokenized text as a list of integers.
-    """
-    if model is None:
-        model = marvin.settings.agent_model
-    tokenizer = tiktoken.encoding_for_model(model)
-    return tokenizer.encode(text)
+from pydantic_ai.messages import AudioUrl, BinaryContent, ImageUrl, UserContent
 
 
-def detokenize(tokens: list[int], model: str | None = None) -> str:
-    """
-    Detokenizes the given tokens using the specified model.
+def _estimate_string_tokens(content: str | Sequence[UserContent]) -> int:
+    if not content:
+        return 0
+    if isinstance(content, str):
+        return len(re.split(r'[\s",.:]+', content.strip()))
+    else:  # pragma: no cover
+        tokens = 0
+        for part in content:
+            if isinstance(part, str):
+                tokens += len(re.split(r'[\s",.:]+', part.strip()))
+            if isinstance(part, (AudioUrl, ImageUrl)):
+                tokens += 0
+            elif isinstance(part, BinaryContent):
+                tokens += len(part.data)
+            else:
+                tokens += 0
+        return tokens
 
-    Args:
-        tokens (list[int]): The tokens to detokenize.
-        model (str, optional): The model to use for detokenization. If not provided,
-                               the default model is used.
 
-    Returns:
-        str: The detokenized text.
-    """
-    if model is None:
-        model = marvin.settings.agent_model
-    tokenizer = tiktoken.encoding_for_model(model)
-    return tokenizer.decode(tokens)
-
-
-def count_tokens(text: str, model: str | None = None) -> int:
+def count_tokens(text: str) -> int:
     """
     Counts the number of tokens in the given text using the specified model.
 
@@ -53,21 +37,21 @@ def count_tokens(text: str, model: str | None = None) -> int:
     Returns:
         int: The number of tokens in the text.
     """
-    return len(tokenize(text, model=model))
+    return _estimate_string_tokens(text)
 
 
-def slice_tokens(text: str, n_tokens: int, model: str | None = None) -> str:
+def slice_tokens(text: str, n_tokens: int) -> str:
     """
     Slices the given text to the specified number of tokens.
 
     Args:
         text (str): The text to slice.
         n_tokens (int): The number of tokens to slice the text to.
-        model (str, optional): The model to use for token counting. If not provided,
-                               the default model is used.
 
     Returns:
         str: The sliced text.
     """
-    tokens = tokenize(text, model=model)
-    return detokenize(tokens[:n_tokens], model=model)
+    tokens = re.split(r'[\s",.:]+', text.strip())
+    if n_tokens >= len(tokens):
+        return text
+    return " ".join(tokens[:n_tokens])
