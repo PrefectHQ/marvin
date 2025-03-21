@@ -1,0 +1,76 @@
+---
+name: Build and publish marvin community bot image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/image-build-and-push-community.yaml
+      - examples/slackbot/community_bot/**
+      - src/marvin/api/slackbot/**
+
+  workflow_dispatch: {}
+
+# Limit concurrency by workflow/branch combination.
+#
+# For builds, pushing additional changes to the
+# branch will cancel prior in-progress and pending builds.
+#
+# https://docs.github.com/en/actions/using-jobs/using-concurrency
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Do not grant jobs any permissions by default
+permissions: {}
+
+jobs:
+  build_push_image:
+    name: Build marvin community bot image
+    runs-on: ubuntu-latest
+    permissions:
+      # required to initiate a downstream workflow (read needed for codeql scan)
+      actions: write
+      # required to read from the repo
+      contents: read
+      # required to obtain Google Cloud service account credentials
+      id-token: write
+      # required to upload CodeQL scan results to GitHub
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GHA_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: marvin-general-main@prefect-org-github-actions.iam.gserviceaccount.com
+
+      - name: Configure Google Cloud credential helper
+        run: gcloud auth configure-docker --quiet us-docker.pkg.dev
+
+      - name: Get image version
+        run: |
+          short_sha=$(git rev-parse --short=7 HEAD)
+          echo "short_sha: ${short_sha}"
+          echo "SHORT_SHA=${short_sha}" >> $GITHUB_ENV
+
+      - name: Build container image
+        run: |
+          docker build -f examples/slackbot/Dockerfile.slackbot . \
+            --no-cache \
+            --tag us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:latest \
+            --tag us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot:${SHORT_SHA} \
+
+      - name: Push image to prefect-prd-external-tools
+        run: docker push --all-tags us-docker.pkg.dev/prefect-prd-external-tools/marvin/marvin-community-bot
+
+      - name: Trigger cloudrun revision deploy workflow
+        run: |
+          gh workflow run deploy-cloudrun-revision-community.yaml \
+            --ref main
+        env:
+          GITHUB_TOKEN: ${{ github.token }}

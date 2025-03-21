@@ -1,0 +1,18 @@
+FROM python:3.12-slim
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+WORKDIR /app
+
+COPY . /app
+
+RUN apt-get update && \
+    apt-get install -y git build-essential curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN uv sync --extra slackbot
+
+EXPOSE 4200
+
+CMD ["uv", "run", "examples/slackbot/start.py"]

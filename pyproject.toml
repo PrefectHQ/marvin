@@ -38,16 +38,24 @@ dev = [
 [project.optional-dependencies]
 audio = ["pyaudio>=0.2.14"]
 
-# Add this section for CLI entry point
+slackbot = [
+    "pydantic-ai[anthropic]@git+https://github.com/pydantic/pydantic-ai.git@main",
+    "prefect",
+    "numpy",
+    "raggy",
+    "turbopuffer==0.1.23",
+]
+
 [project.scripts]
 marvin = "marvin.cli.main:app"
 
-# Include migration files in the package
 [tool.hatch.build.targets.wheel]
 packages = ["src/marvin"]
 include = ["migrations/**/*", "alembic.ini"]
 
-# pytest configuration
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.pytest.ini_options]
 addopts = "-vv --color=yes"
 asyncio_mode = "auto"
