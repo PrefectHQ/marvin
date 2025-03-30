@@ -1,13 +1,11 @@
 """Module for Slack-related utilities."""
 
-import os
 import re
 from typing import Any, List, Union
 
 import httpx
 from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
-
-import marvin
+from settings import settings
 
 
 class EventBlockElement(BaseModel):
@@ -78,53 +76,25 @@ class SlackPayload(BaseModel):
         return v
 
 
-async def get_token() -> str:
-    """Get the Slack bot token from the environment."""
-    try:
-        token = (
-            marvin.settings.slack_api_token
-        )  # set `MARVIN_SLACK_API_TOKEN` in `~/.marvin/.env
-    except AttributeError:
-        if token := os.getenv("MARVIN_SLACK_API_TOKEN"):
-            return token
-        try:  # TODO: clean this up
-            from prefect.blocks.system import Secret
-
-            return (await Secret.load("slack-api-token")).get()
-        except ImportError:
-            pass
-        raise ValueError(
-            "`MARVIN_SLACK_API_TOKEN` not found in environment."
-            " Please set it in `~/.marvin/.env` or as an environment variable."
-        )
-    return token
-
-
-def convert_md_links_to_slack(text) -> str:
+def convert_md_links_to_slack(text: str) -> str:
     md_link_pattern = r"\[(?P<text>[^\]]+)]\((?P<url>[^\)]+)\)"
 
     # converting Markdown links to Slack-style links
-    def to_slack_link(match):
+    def to_slack_link(match: re.Match[str]) -> str:
         return f"<{match.group('url')}|{match.group('text')}>"
 
     # Replace Markdown links with Slack-style links
-    slack_text = re.sub(md_link_pattern, to_slack_link, text)
-
-    slack_text = re.sub(r"\*\*(.*?)\*\*", r"*\1*", slack_text)
-
-    return slack_text
+    return re.sub(
+        r"\*\*(.*?)\*\*", r"*\1*", re.sub(md_link_pattern, to_slack_link, text)
+    )
 
 
 async def post_slack_message(
     message: str,
     channel_id: str,
-    attachments: Union[list[dict[str, Any]], None] = None,
-    thread_ts: Union[str, None] = None,
-    auth_token: Union[str, None] = None,
+    attachments: list[dict[str, Any]] | None = None,
+    thread_ts: str | None = None,
 ) -> httpx.Response:
-    if not auth_token:
-        auth_token = await get_token()
-
     post_data = {
         "channel": channel_id,
         "text": convert_md_links_to_slack(message),
@@ -137,7 +107,7 @@ async def post_slack_message(
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://slack.com/api/chat.postMessage",
-            headers={"Authorization": f"Bearer {auth_token}"},
+            headers={"Authorization": f"Bearer {settings.slack_api_token}"},
             json=post_data,
         )
         response_data = response.json()
@@ -147,12 +117,14 @@ async def post_slack_message(
     return response
 
 
-async def get_thread_messages(channel: str, thread_ts: str) -> list:
+async def get_thread_messages(
+    channel: str, thread_ts: str, auth_token: str
+) -> list[dict[str, Any]]:
     """Get all messages from a slack thread."""
     async with httpx.AsyncClient() as client:
         response = await client.get(
             "https://slack.com/api/conversations.replies",
-            headers={"Authorization": f"Bearer {await get_token()}"},
+            headers={"Authorization": f"Bearer {auth_token}"},
             params={"channel": channel, "ts": thread_ts},
         )
     response.raise_for_status()
@@ -161,10 +133,11 @@ async def get_thread_messages(channel: str, thread_ts: str) -> list:
 
 async def get_user_name(user_id: str) -> str:
     async with httpx.AsyncClient() as client:
+        auth_token = settings.slack_api_token
         response = await client.get(
             "https://slack.com/api/users.info",
             params={"user": user_id},
-            headers={"Authorization": f"Bearer {await get_token()}"},  # noqa: E501
+            headers={"Authorization": f"Bearer {auth_token}"},
         )
     return (
         response.json().get("user", {}).get("name", user_id)
@@ -178,7 +151,7 @@ async def get_channel_name(channel_id: str) -> str:
         response = await client.get(
             "https://slack.com/api/conversations.info",
             params={"channel": channel_id},
-            headers={"Authorization": f"Bearer {await get_token()}"},  # noqa: E501
+            headers={"Authorization": f"Bearer {settings.slack_api_token}"},
         )
     return (
         response.json().get("channel", {}).get("name", channel_id)
@@ -193,7 +166,7 @@ async def fetch_current_message_text(channel: str, ts: str) -> str:
         response = await client.get(
             "https://slack.com/api/conversations.replies",
             params={"channel": channel, "ts": ts},
-            headers={"Authorization": f"Bearer {await get_token()}"},  # noqa: E501
+            headers={"Authorization": f"Bearer {settings.slack_api_token}"},
         )
     response.raise_for_status()
     messages = response.json().get("messages", [])
@@ -233,7 +206,7 @@ async def edit_slack_message(
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://slack.com/api/chat.update",
-            headers={"Authorization": f"Bearer {await get_token()}"},
+            headers={"Authorization": f"Bearer {settings.slack_api_token}"},
             json={"channel": channel_id, "ts": thread_ts, "text": updated_text},
         )
 
@@ -244,9 +217,8 @@ async def edit_slack_message(
 async def search_slack_messages(
     query: str,
     max_messages: int = 3,
-    channel: Union[str, None] = None,
-    user_auth_token: Union[str, None] = None,
-) -> list:
+    channel: str | None = None,
+) -> list[dict[str, Any]]:
     """
     Search for messages in Slack workspace based on a query.
 
@@ -259,11 +231,8 @@ async def search_slack_messages(
     Returns:
         list: A list of message contents and permalinks matching the query.
     """
-    all_messages = []
+    all_messages: list[dict[str, Any]] = []
     next_cursor = None
-
-    if not user_auth_token:
-        user_auth_token = await get_token()
 
     async with httpx.AsyncClient() as client:
         while len(all_messages) < max_messages:
@@ -278,7 +247,7 @@ async def search_slack_messages(
 
             response = await client.get(
                 "https://slack.com/api/search.messages",
-                headers={"Authorization": f"Bearer {user_auth_token}"},
+                headers={"Authorization": f"Bearer {settings.slack_api_token}"},
                 params=params,
             )
 
@@ -302,14 +271,11 @@ async def search_slack_messages(
     return all_messages[:max_messages]
 
 
-async def get_workspace_info(slack_bot_token: Union[str, None] = None) -> dict:
-    if not slack_bot_token:
-        slack_bot_token = await get_token()
-
+async def get_workspace_info() -> dict[str, Any]:
     async with httpx.AsyncClient() as client:
         response = await client.get(
             "https://slack.com/api/team.info",
-            headers={"Authorization": f"Bearer {slack_bot_token}"},
+            headers={"Authorization": f"Bearer {settings.slack_api_token}"},
         )
         response.raise_for_status()
         return response.json().get("team", {})

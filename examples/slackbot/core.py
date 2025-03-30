@@ -185,11 +185,12 @@ def create_agent(
     logger = get_run_logger()
     logger.info("Creating new agent")
     ai_model = model or AnthropicModel(
-        cast(
+        provider="anthropic",
+        api_key=Secret.load(settings.claude_key_secret_name, _sync=True).get(),  # type: ignore
+        model=cast(
             str,
             Variable.get("marvin_bot_model", default=settings.model_name, _sync=True),  # type: ignore
         ),
-        api_key=Secret.load(settings.claude_key_secret_name, _sync=True).get(),  # type: ignore
     )
     agent = Agent(
         model=ai_model,
@@ -216,27 +217,23 @@ def create_agent(
             if ctx.deps["user_notes"]
             else ""
         )
-        logger.debug(f"System prompt: {system_prompt}")
+        print(f"System prompt: {system_prompt}")
         return system_prompt
 
     @agent.tool
     def store_facts_about_user(ctx: RunContext[UserContext], facts: list[str]) -> str:  # type: ignore[reportUnusedFunction]
-        logger = get_run_logger()
-        logger.info(f"Storing {len(facts)} facts about user {ctx.deps['user_id']}")
+        print(f"Storing {len(facts)} facts about user {ctx.deps['user_id']}")
         with TurboPuffer(
             namespace=f"{settings.user_facts_namespace_prefix}{ctx.deps['user_id']}"
         ) as tpuf:
             tpuf.upsert(documents=[Document(text=fact) for fact in facts])
         message = f"Stored {len(facts)} facts about user {ctx.deps['user_id']}"
-        logger.info(message)
+        print(message)
         return message
 
     @agent.tool
     def delete_facts_about_user(ctx: RunContext[UserContext], related_to: str) -> str:  # type: ignore[reportUnusedFunction]
-        logger = get_run_logger()
-        logger.info(
-            f"forgetting stuff about {ctx.deps['user_id']} related to {related_to}"
-        )
+        print(f"forgetting stuff about {ctx.deps['user_id']} related to {related_to}")
         user_id = ctx.deps["user_id"]
         with TurboPuffer(
             namespace=f"{settings.user_facts_namespace_prefix}{user_id}"
@@ -245,7 +242,7 @@ def create_agent(
             ids = [str(v.id) for v in vector_result.data or []]
             tpuf.delete(ids)
             message = f"Deleted {len(ids)} facts about user {user_id}"
-            logger.info(message)
+            print(message)
             return message
 
     return agent

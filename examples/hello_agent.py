@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
 
-from pydantic_ai.models.anthropic import AnthropicModel
+import httpx
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 import marvin
 
@@ -13,9 +15,16 @@ def write_file(path: str, content: str):
 
 
 writer = marvin.Agent(
-    model=AnthropicModel(
-        model_name="claude-3-5-sonnet-latest",
-        api_key=os.getenv("ANTHROPIC_API_KEY"),
+    model=OpenAIModel(
+        "gpt-4o",
+        provider=OpenAIProvider(
+            api_key=os.getenv("OPENAI_API_KEY", "gonna fail"),
+            base_url="https://api.openai.com/v1",
+            http_client=httpx.AsyncClient(
+                # proxy="http://localhost:8080",
+                # headers={"x-SOME-HEADER": "some-value"},
+            ),
+        ),
     ),
     name="Technical Writer",
     instructions="Write concise, engaging content for developers",

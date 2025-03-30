@@ -1,7 +1,3 @@
-# /// script
-# dependencies = ["marvin@git+https://github.com/prefecthq/marvin.git", "pandas", "prefect"]
-# ///
-
 """
 fills out a new column in a dataframe, adding values to many columns concurrently
 """
