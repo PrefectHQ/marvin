@@ -35,7 +35,6 @@ dev = [
     "ruff",
     "pandas",
     "prefect",
-    "pyaudio",
 ]
 
 [project.optional-dependencies]
