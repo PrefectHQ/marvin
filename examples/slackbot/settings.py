@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import ClassVar, Literal
 
@@ -61,6 +60,8 @@ class SlackbotSettings(BaseSettings):
         default=False, description="Enable test mode with auto-reload"
     )
 
+    slack_api_token: str = Field(default=..., description="Slack API bot user token")
+
     @property
     def model_name(self) -> str:
         return Variable.get(
@@ -68,17 +69,6 @@ class SlackbotSettings(BaseSettings):
             default="claude-3-5-sonnet-latest",
             _sync=True,  # type: ignore
         )
-
-    @property
-    def slack_api_token(self) -> str:
-        from prefect.blocks.system import Secret
-
-        if self.test_mode:
-            return Secret.load("test-slack-api-token", _sync=True).get()  # type: ignore
-        else:
-            token = os.getenv("MARVIN_SLACK_API_TOKEN")
-            assert token is not None, "MARVIN_SLACK_API_TOKEN is not set"
-            return token
 
 
 settings = SlackbotSettings()

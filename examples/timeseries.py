@@ -53,16 +53,19 @@ def build_context(thread: ThreadViewPost) -> dict[str, Any]:
     if thread and thread.post:
         context["bsky post"] = {
             "author": thread.post.author.handle,
-            "text": thread.post.record.text,
+            "text": getattr(thread.post.record, "text", ""),
         }
 
         if hasattr(thread.post.record, "embed") and hasattr(
             thread.post.embed, "images"
         ):
+            assert thread.post.embed and (
+                img := getattr(thread.post.embed, "images", [])[0]
+            )
             image_description_result = visual_extraction_agent.run(
                 [
                     "summarize this image concisely, include direct quotes from the image",
-                    ImageUrl(url=thread.post.embed.images[0].fullsize),
+                    ImageUrl(url=img.fullsize),
                 ]
             )
             context["bsky post"]["embed"] = image_description_result
@@ -70,24 +73,24 @@ def build_context(thread: ThreadViewPost) -> dict[str, Any]:
         if hasattr(thread, "replies"):
             context["replies"] = [
                 {
-                    "author": reply.post.author.handle,
-                    "text": reply.post.record.text,
+                    "author": reply_post.author.handle,
+                    "text": reply_post.record.text,
                     **(
                         {
                             "embed": visual_extraction_agent.run(
                                 "summarize this image concisely, include direct quotes from the image",
                                 attachments=[
-                                    ImageUrl(url=reply.post.embed.images[0].fullsize),
+                                    ImageUrl(url=reply_post.embed.images[0].fullsize),
                                 ],
                             )
                         }
-                        if hasattr(reply.post.record, "embed")
-                        and hasattr(reply.post.embed, "images")
+                        if hasattr(reply_post.record, "embed")
+                        and hasattr(reply_post.embed, "images")
                         else {}
                     ),
                 }
                 for reply in thread.replies or []
-                if hasattr(reply, "post")
+                if (reply_post := getattr(reply, "post", None))
             ]
 
     return context
@@ -138,7 +141,7 @@ if __name__ == "__main__":
 
     details = {
         "facts": [
-            "@<username> on blue sky will tag someone in a post",
+            "@<username> on bluesky will tag someone in a post",
             "a post embed is an image that goes with a post",
             "jlowin.dev | jeremiah is Prefect's CEO, who is the original poster",
             "zzstoatzz | alternatebuild.dev | nate is an engineer at Prefect",
