@@ -18,7 +18,7 @@ writer = marvin.Agent(
     model=OpenAIModel(
         "gpt-4o",
         provider=OpenAIProvider(
-            api_key=api_key,
+            api_key=os.getenv("OPENAI_API_KEY"),
             base_url="https://api.openai.com/v1",
             http_client=httpx.AsyncClient(
                 # proxy="http://localhost:8080",
