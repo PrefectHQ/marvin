@@ -7,6 +7,7 @@ alwaysApply: false
 # Python Style
 
 ## Design
+- aggressively minimal and elegant
 - prefer functional over OOP
 - keep implementation details "private" (e.g. def _impl)
 
