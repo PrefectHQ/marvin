@@ -5,6 +5,7 @@ from pydantic_ai import BinaryContent, ImageUrl
 from pydantic_ai.models.test import TestModel
 
 import marvin
+from marvin.engine.events import Event
 
 
 class TestRun:
@@ -39,7 +40,7 @@ class TestRunWithAttachments:
 
 class TestRunStream:
     async def test_run_tasks_stream(self, test_model: TestModel):
-        events = []
+        events: list[Event] = []
         t = marvin.Task("Say 'Hello'")
         async for event in marvin.run_tasks_stream([t]):
             events.append(event)
@@ -47,6 +48,7 @@ class TestRunStream:
         assert [e.type for e in events] == [
             "orchestrator-start",
             "actor-start-turn",
+            "user-message",
             "tool-call-delta",
             "end-turn-tool-call",
             "end-turn-tool-result",
@@ -55,13 +57,14 @@ class TestRunStream:
         ]
 
     async def test_run_stream(self, test_model: TestModel):
-        events = []
+        events: list[Event] = []
         async for event in marvin.run_stream('Say "Hello"'):
             events.append(event)
 
         assert [e.type for e in events] == [
             "orchestrator-start",
             "actor-start-turn",
+            "user-message",
             "tool-call-delta",
             "end-turn-tool-call",
             "end-turn-tool-result",
