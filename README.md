@@ -105,10 +105,8 @@ A simple way to run a task:
 
 ```python
 import marvin
-from marvin import Agent, Task
 
 poem = marvin.run("Write a short poem about artificial intelligence")
-
 print(poem)
 ```
 <details>
@@ -141,12 +139,13 @@ print(answer) # 42
 #### `marvin.Agent`
 Agents are specialized AI agents that can be used to complete tasks:
 ```python
+from marvin import Agent
+
 writer = Agent(
     name="Poet",
     instructions="Write creative, evocative poetry"
 )
 poem = writer.run("Write a haiku about coding")
-
 print(poem)
 ```
 <details>
@@ -163,6 +162,8 @@ As they danced to its elegant beat.
 You can define a `Task` explicitly, which will be run by a default agent upon calling `.run()`:
 
 ```python
+from marvin import Task
+
 task = Task(
     instructions="Write a limerick about Python",
     result_type=str
