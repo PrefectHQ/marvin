@@ -4,6 +4,18 @@ title: plan
 
 # `marvin.fns.plan`
 
+## Constants
+
+### `PROMPT`
+```python
+PROMPT = "'\nYou are a task planner. You have been given some instructions about your\nobjectives and must produce at least one Marvin Task that, when completed, will\nallow you or other AI agents achieve the objective. Each task should represent a\ndiscrete, observable goal, neither too small to be a nuisance or lead to\nrepetivite work, nor too large to be difficult to manage.\n\nThese tasks will be executed by AI agents, like you. Create tasks appropriately.\nDo not create tasks like "Validate results" unless a separate validation step is\nactually required or helpful. Do not create tasks that require tools that are\nnot available.\n'"
+```
+
+### `T`
+```python
+T = TypeVar('T')
+```
+
 ## Classes
 
 ### `PlanTask`

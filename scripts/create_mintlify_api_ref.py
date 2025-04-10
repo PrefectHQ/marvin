@@ -104,15 +104,22 @@ def get_parent_module(module_path: str) -> str:
 
 
 def find_all_modules(package_name: str) -> list[str]:
+    """
+    Find all modules in the package including both submodules and direct files.
+    Uses pkgutil.walk_packages to discover all submodules recursively.
+    Also explicitly checks for standalone .py files in the top-level package directory.
+    """
     try:
         package = importlib.import_module(package_name)
         modules: list[str] = []
 
+        # Get the package path
         if hasattr(package, "__path__"):
             package_path = package.__path__
         else:
             return []
 
+        # Find all modules recursively using pkgutil
         for _, module_name, _ in pkgutil.walk_packages(
             package_path, package_name + "."
         ):
@@ -121,6 +128,7 @@ def find_all_modules(package_name: str) -> list[str]:
 
             modules.append(module_name)
 
+        # Always include the base package itself
         if package_name not in modules:
             modules.append(package_name)
 
@@ -208,6 +216,7 @@ def generate_module_docs(
 
     classes: list[Class] = []
     functions: list[Function] = []
+    constants: list[tuple[str, Any, Any]] = []  # (name, value, member) tuples
 
     for name, member in module.members.items():
         if name.startswith("_") and name != "__init__":
@@ -219,6 +228,46 @@ def generate_module_docs(
             classes.append(cast(Class, member))
         elif member.kind == ObjectKind.FUNCTION:
             functions.append(cast(Function, member))
+        # Check for constants (uppercase variables)
+        elif name.isupper():
+            # Try to get the value directly
+            try:
+                value = getattr(member, "value", None)
+                constants.append((name, value, member))
+            except Exception:
+                # If that fails, just add the name
+                constants.append((name, None, member))
+
+    # Add constants section
+    if constants:
+        content_sections.append("\n## Constants")
+        for name, value, member_obj in sorted(constants):
+            content_sections.append(f"\n### `{name}`")
+            # Format the value as code
+            try:
+                # Try to format the value neatly
+                if isinstance(value, str):
+                    value_str = f'"{value}"'
+                elif value is not None:
+                    value_str = str(value)
+                else:
+                    value_str = "None"
+                content_sections.append(f"```python\n{name} = {value_str}\n```")
+            except Exception:
+                # Fallback if we can't format the value
+                content_sections.append(f"```python\n{name}\n```")
+
+            # Try to add docstring if available
+            try:
+                if hasattr(member_obj, "docstring") and member_obj.docstring:
+                    docstring_value = getattr(member_obj.docstring, "value", None)
+                    if docstring_value:
+                        const_doc = trim_docstring(docstring_value)
+                        if const_doc:
+                            content_sections.append(const_doc)
+            except Exception:
+                # Skip docstring if we can't get it
+                pass
 
     if classes:
         content_sections.append("\n## Classes")
@@ -263,7 +312,7 @@ def generate_module_docs(
             if func_doc:
                 content_sections.append(func_doc)
 
-    if not (module_doc or classes or functions or submodules):
+    if not (module_doc or classes or functions or submodules or constants):
         content_sections.append(
             "\n*No public API documentation found for this module.*"
         )
@@ -293,7 +342,9 @@ title: {page_title}
     return md_path.relative_to(output_dir.parent).as_posix()
 
 
-def organize_navigation(generated_files: list[str]) -> list[dict[str, Any]]:
+def organize_navigation(
+    generated_files: list[str], package_name: str
+) -> list[dict[str, Any]]:
     """
     Organize files into navigation groups by their top-level module.
     Each top-level module gets its own group with all its submodules.
@@ -316,12 +367,32 @@ def organize_navigation(generated_files: list[str]) -> list[dict[str, Any]]:
             # Convert to file path without extension
             page_path = file_path.replace(".mdx", "")
             top_level_groups[group_name].append(page_path)
-        elif len(parts) == 1 and parts[0] == "marvin":
-            # The main module goes to "core"
-            top_level_groups["core"].append(file_path.replace(".mdx", ""))
+        elif len(parts) == 1 and parts[0] == package_name:
+            # The main module goes to "top level"
+            top_level_groups["top level"].append(file_path.replace(".mdx", ""))
 
     # Clean up the navigation structure to avoid duplicates
     result: list[dict[str, Any]] = []
+
+    # First add the "top level" group if it exists
+    if "top level" in top_level_groups:
+        filtered_pages: list[str] = []
+        for page in sorted(top_level_groups["top level"]):
+            page_module = Path(page).stem.replace("-", ".")
+            parts = page_module.split(".")
+
+            # Skip if this page is the parent module itself (shouldn't happen for top level)
+            if len(parts) == 2 and parts[1] == "top level":
+                continue
+
+            filtered_pages.append(page)
+
+        result.append({"group": "top level", "pages": filtered_pages})
+
+        # Remove the top level group so it's not added again
+        top_level_groups.pop("top level")
+
+    # Then add all other groups in alphabetical order
     for group_name, pages in sorted(top_level_groups.items()):
         filtered_pages: list[str] = []
         for page in sorted(pages):
@@ -339,7 +410,9 @@ def organize_navigation(generated_files: list[str]) -> list[dict[str, Any]]:
     return result
 
 
-def update_navigation(docs_json_path: Path, generated_files: list[str]) -> bool:
+def update_navigation(
+    docs_json_path: Path, generated_files: list[str], package_name: str
+) -> bool:
     """Update the navigation structure in docs.json."""
     if not generated_files:
         print("No markdown files generated.")
@@ -356,7 +429,7 @@ def update_navigation(docs_json_path: Path, generated_files: list[str]) -> bool:
                 docs_config = json.load(f)
                 print("Warning: Using standard JSON parser - comments may be lost.")
 
-        navigation_groups = organize_navigation(generated_files)
+        navigation_groups = organize_navigation(generated_files, package_name)
 
         found_anchor = False
         if "navigation" in docs_config and "anchors" in docs_config["navigation"]:
@@ -407,12 +480,12 @@ def main() -> None:
     parser.add_argument("--docs-dir", type=Path, default="docs", help="Docs directory")
     parser.add_argument("--src-dir", type=Path, default="src", help="Src directory")
     parser.add_argument(
-        "--docs-json-file", type=Path, default="docs.json", help="Docs JSON file"
+        "--docs-json-file", type=Path, default="docs/docs.json", help="Docs JSON file"
     )
     parser.add_argument(
         "--api-ref-dir",
         type=Path,
-        default="api-reference",
+        default="docs/api-reference",
         help="API Reference directory",
     )
 
@@ -493,7 +566,7 @@ def main() -> None:
                 generated_files.append(result)
 
     if generated_files:
-        update_navigation(docs_json_file, generated_files)
+        update_navigation(docs_json_file, generated_files, package_name)
         print(f"Generated {len(generated_files)} documentation files")
     else:
         print("No documentation files generated")

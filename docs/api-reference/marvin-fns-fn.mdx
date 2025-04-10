@@ -4,6 +4,23 @@ title: fn
 
 # `marvin.fns.fn`
 
+## Constants
+
+### `P`
+```python
+P = ParamSpec('P')
+```
+
+### `PROMPT`
+```python
+PROMPT = ""\nYou are an expert at predicting the output of Python functions. \n\nYou will be given:\n\n1. A function definition with all relevant details, including its docstring, type hints, parameters, and return annotation\n2. The actual values that will be passed to the function\n3. Any additional context that was provided at runtime\n\nWe do not have the function's source code. Therefore you must generate its output for the user. Respond with exactly the predicted output, matching the json schema signature of its annotation.\n""
+```
+
+### `T`
+```python
+T = TypeVar('T')
+```
+
 ## Functions
 
 ### `fn`

@@ -8,6 +8,23 @@ Database management for persistence.
 
 This module provides utilities for managing database sessions and migrations.
 
+## Constants
+
+### `ALEMBIC_DIR`
+```python
+ALEMBIC_DIR = MARVIN_DIR / 'migrations'
+```
+
+### `ALEMBIC_INI`
+```python
+ALEMBIC_INI = MARVIN_DIR / 'alembic.ini'
+```
+
+### `MARVIN_DIR`
+```python
+MARVIN_DIR = Path(marvin.__file__).parent.parent.parent
+```
+
 ## Classes
 
 ### `Base`
