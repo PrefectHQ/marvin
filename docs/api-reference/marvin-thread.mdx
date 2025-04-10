@@ -1,0 +1,219 @@
+---
+title: thread
+---
+
+# `marvin.thread`
+Thread management for conversations.
+
+This module provides the Thread class for managing conversation context.
+
+## Classes
+
+### `LLMCall`
+```python
+class LLMCall(id: uuid.UUID, thread_id: str, usage: Usage, timestamp: datetime)
+```
+Represents an LLM call.
+
+**Methods:**
+
+- **`get_messages`**
+  ```python
+  def get_messages(self) -> LLMCallMessages
+  ```
+  Get the messages for this LLM call.
+- **`get_messages_async`**
+  ```python
+  def get_messages_async(self) -> LLMCallMessages
+  ```
+  Get the messages for this LLM call.
+
+### `LLMCallMessages`
+```python
+class LLMCallMessages(prompt: list[Message], completion: list[Message])
+```
+
+### `Message`
+```python
+class Message(id: uuid.UUID = uuid.uuid4(), thread_id: str = None, message: PydanticAIMessage, created_at: datetime = utc_now())
+```
+
+### `Thread`
+```python
+class Thread(id: str = lambda: str(uuid.uuid4())(), parent_id: str | None = None)
+```
+Main runtime object for managing conversation context.
+
+**Methods:**
+
+- **`add_agent_message`**
+  ```python
+  def add_agent_message(self, message: str) -> Message
+  ```
+  Add an agent message to the thread.
+- **`add_agent_message_async`**
+  ```python
+  def add_agent_message_async(self, message: str) -> Message
+  ```
+  Add an agent message to the thread.
+- **`add_info_message`**
+  ```python
+  def add_info_message(self, message: str, prefix: str = None) -> Message
+  ```
+  Add an info message to the thread.
+- **`add_info_message_async`**
+  ```python
+  def add_info_message_async(self, message: str, prefix: str = None) -> Message
+  ```
+  Add an info message to the thread.
+- **`add_messages`**
+  ```python
+  def add_messages(self, messages: list[PydanticAIMessage]) -> list[Message]
+  ```
+  Add multiple messages to the thread.
+  
+  Args:
+      messages: List of messages to add (UserMessage, AssistantMessage, etc.)
+      llm_call_id: Optional ID of the LLM call that generated these messages
+- **`add_messages_async`**
+  ```python
+  def add_messages_async(self, messages: list[PydanticAIMessage]) -> list[Message]
+  ```
+  Add multiple messages to the thread.
+  
+  Args:
+      messages: List of messages to add (UserMessage, AssistantMessage, etc.)
+      llm_call_id: Optional ID of the LLM call that generated these messages
+- **`add_system_message`**
+  ```python
+  def add_system_message(self, message: str) -> Message
+  ```
+  Add a system message to the thread.
+- **`add_system_message_async`**
+  ```python
+  def add_system_message_async(self, message: str) -> Message
+  ```
+  Add a system message to the thread.
+- **`add_user_message`**
+  ```python
+  def add_user_message(self, message: str | Sequence[UserContent]) -> Message
+  ```
+  Add a user message to the thread.
+- **`add_user_message_async`**
+  ```python
+  def add_user_message_async(self, message: str | Sequence[UserContent]) -> Message
+  ```
+  Add a user message to the thread.
+- **`get_current`**
+  ```python
+  def get_current(cls) -> Optional[Thread]
+  ```
+  Get the current thread from context.
+- **`get_llm_calls`**
+  ```python
+  def get_llm_calls(self, before: datetime | None = None, after: datetime | None = None, limit: int | None = None) -> list[LLMCall]
+  ```
+  Get LLM calls for this thread.
+  
+  Args:
+      before: Only return calls before this timestamp
+      after: Only return calls after this timestamp
+      limit: Maximum number of calls to return
+  
+  Returns:
+      List of LLM calls in chronological order
+- **`get_llm_calls_async`**
+  ```python
+  def get_llm_calls_async(self, before: datetime | None = None, after: datetime | None = None, limit: int | None = None) -> list[LLMCall]
+  ```
+  Get LLM calls for this thread.
+  
+  Args:
+      before: Only return calls before this timestamp
+      after: Only return calls after this timestamp
+      limit: Maximum number of calls to return
+  
+  Returns:
+      List of LLM calls in chronological order
+- **`get_messages`**
+  ```python
+  def get_messages(self, before: datetime | None = None, after: datetime | None = None, limit: int | None = None, include_system_messages: bool = False) -> list[Message]
+  ```
+  Get all messages in this thread.
+  
+  Args:
+      before: Only return messages before this timestamp
+      after: Only return messages after this timestamp
+      limit: Maximum number of messages to return
+      include_system_messages: Whether to include system messages
+  Returns:
+      List of messages in chronological order
+- **`get_messages_async`**
+  ```python
+  def get_messages_async(self, before: datetime | None = None, after: datetime | None = None, limit: int | None = None, include_system_messages: bool = False) -> list[Message]
+  ```
+  Get all messages in this thread.
+  
+  Args:
+      before: Only return messages before this timestamp
+      after: Only return messages after this timestamp
+      limit: Maximum number of messages to return
+      include_system_messages: Whether to include system messages
+  Returns:
+      List of messages in chronological order
+- **`get_usage`**
+  ```python
+  def get_usage(self, before: datetime | None = None, after: datetime | None = None) -> Usage
+  ```
+  Get the usage for this thread.
+  
+  Args:
+      before: Only include usage before this timestamp
+      after: Only include usage after this timestamp
+  
+  Returns:
+      Total usage for the specified time range
+- **`get_usage_async`**
+  ```python
+  def get_usage_async(self, before: datetime | None = None, after: datetime | None = None) -> Usage
+  ```
+  Get the usage for this thread.
+  
+  Args:
+      before: Only include usage before this timestamp
+      after: Only include usage after this timestamp
+  
+  Returns:
+      Total usage for the specified time range
+
+## Functions
+
+### `get_current_thread`
+```python
+def get_current_thread() -> Thread | None
+```
+Get the currently active thread from context.
+
+Returns:
+    The current Thread instance or None if no thread is active.
+
+### `get_last_thread`
+```python
+def get_last_thread() -> Thread | None
+```
+Get the last thread that was set as current.
+
+This function is intended for debugging purposes only, and will only work in
+certain contexts where the last thread is available in memory.
+
+### `get_thread`
+```python
+def get_thread(thread: Thread | str | None) -> Thread
+```
+Get a thread from the given input.
+
+Args:
+    thread: Thread instance, thread ID, or None
+
+Returns:
+    A Thread instance

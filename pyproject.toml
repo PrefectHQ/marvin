@@ -19,8 +19,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "apispec",
     "atproto",
     "chromadb>=0.6.0",
+    "commentjson",
     "copychat>=0.5.2",
     "dirty-equals>=0.9.0",
     "ipython>=8.12.3",

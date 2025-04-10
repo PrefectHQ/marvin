@@ -1,0 +1,176 @@
+{
+    "$schema": "https://mintlify.com/docs.json",
+    "theme": "maple",
+    "colors": {
+        "primary": "#2D6DF6"
+    },
+    "favicon": "/assets/brand/marvin_mascot.jpeg",
+    "navbar": {
+        "primary": {
+            "type": "github",
+            "href": "https://github.com/PrefectHQ/marvin"
+        }
+    },
+    "footer": {
+        "socials": {
+            "github": "https://github.com/PrefectHQ/marvin",
+            "slack": "https://communityinviter.com/apps/prefect-community/prefect-community"
+        }
+    },
+    "logo": {
+        "dark": "/assets/brand/marvin_mascot.jpeg",
+        "light": "/assets/brand/marvin_mascot.jpeg"
+    },
+    "name": "Marvin",
+    "navigation": {
+        "anchors": [
+            {
+                "anchor": "Documentation",
+                "groups": [
+                    {
+                        "group": "Get Started",
+                        "pages": [
+                            "welcome",
+                            "installation",
+                            "quickstart"
+                        ]
+                    },
+                    {
+                        "group": "Concepts",
+                        "pages": [
+                            "concepts/tasks",
+                            "concepts/agents",
+                            "concepts/threads"
+                        ]
+                    },
+                    {
+                        "group": "Functions",
+                        "pages": [
+                            "functions/run",
+                            "functions/cast",
+                            "functions/classify",
+                            "functions/extract",
+                            "functions/generate",
+                            "functions/say",
+                            "functions/summarize"
+                        ]
+                    },
+                    {
+                        "group": "Patterns",
+                        "pages": [
+                            "patterns/task-results",
+                            "patterns/running-tasks",
+                            "patterns/memory",
+                            "patterns/tools",
+                            "patterns/interactivity"
+                        ]
+                    },
+                    {
+                        "group": "Community",
+                        "pages": [
+                            "community"
+                        ]
+                    }
+                ]
+            },
+            {
+                "anchor": "API Reference",
+                "groups": [
+                    {
+                        "group": "marvin.agents",
+                        "pages": [
+                            "api-reference/marvin-agents"
+                        ]
+                    },
+                    {
+                        "group": "marvin.cli",
+                        "pages": [
+                            "api-reference/marvin-cli"
+                        ]
+                    },
+                    {
+                        "group": "marvin.database",
+                        "pages": [
+                            "api-reference/marvin-database"
+                        ]
+                    },
+                    {
+                        "group": "marvin.defaults",
+                        "pages": [
+                            "api-reference/marvin-defaults"
+                        ]
+                    },
+                    {
+                        "group": "marvin.engine",
+                        "pages": [
+                            "api-reference/marvin-engine"
+                        ]
+                    },
+                    {
+                        "group": "marvin.fns",
+                        "pages": [
+                            "api-reference/marvin-fns"
+                        ]
+                    },
+                    {
+                        "group": "marvin.handlers",
+                        "pages": [
+                            "api-reference/marvin-handlers"
+                        ]
+                    },
+                    {
+                        "group": "marvin.instructions",
+                        "pages": [
+                            "api-reference/marvin-instructions"
+                        ]
+                    },
+                    {
+                        "group": "marvin.memory",
+                        "pages": [
+                            "api-reference/marvin-memory"
+                        ]
+                    },
+                    {
+                        "group": "marvin.prompts",
+                        "pages": [
+                            "api-reference/marvin-prompts"
+                        ]
+                    },
+                    {
+                        "group": "marvin.settings",
+                        "pages": [
+                            "api-reference/marvin-settings"
+                        ]
+                    },
+                    {
+                        "group": "marvin.tasks",
+                        "pages": [
+                            "api-reference/marvin-tasks"
+                        ]
+                    },
+                    {
+                        "group": "marvin.thread",
+                        "pages": [
+                            "api-reference/marvin-thread"
+                        ]
+                    },
+                    {
+                        "group": "marvin.tools",
+                        "pages": [
+                            "api-reference/marvin-tools"
+                        ]
+                    },
+                    {
+                        "group": "marvin.utilities",
+                        "pages": [
+                            "api-reference/marvin-utilities"
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "search": {
+        "prompt": "Ask Marvin..."
+    }
+}
