@@ -1,0 +1,189 @@
+---
+title: types
+---
+
+# `marvin.utilities.types`
+
+## Classes
+
+### `Labels`
+```python
+class Labels(values: type[enum.Enum] | Sequence[Any] | Any, many: bool = False)
+```
+A container for classification labels.
+
+This class provides a consistent interface for working with labels,
+whether they come from enums, literals, lists, or other sources.
+
+Args:
+    values: The label values. Can be an enum class, a sequence of values,
+        or a Literal type.
+    many: Whether this is a multi-label classifier (i.e., can select
+        multiple values).
+
+Examples:
+    >>> # Single-label classification with raw values
+    >>> labels = Labels(["red", "green", "blue"])
+    >>> labels.values
+    ("red", "green", "blue")
+
+    >>> # Multi-label classification with raw values
+    >>> labels = Labels(["red", "green", "blue"], many=True)
+    >>> labels.values
+    ("red", "green", "blue")
+
+    >>> # Single-label classification with enum
+    >>> class Colors(enum.Enum):
+    ...     RED = "red"
+    ...     GREEN = "green"
+    ...     BLUE = "blue"
+    >>> labels = Labels(Colors)
+    >>> labels.values  # Returns enum members
+    (<Colors.RED: 'red'>, <Colors.GREEN: 'green'>, <Colors.BLUE: 'blue'>)
+
+    >>> # Multi-label classification with enum
+    >>> labels = Labels(Colors, many=True)
+    >>> labels.values  # Returns enum members
+    (<Colors.RED: 'red'>, <Colors.GREEN: 'green'>, <Colors.BLUE: 'blue'>)
+
+**Methods:**
+
+- **`get_indexed_labels`**
+  ```python
+  def get_indexed_labels(self) -> dict[int, str]
+  ```
+  Get a mapping of indices to label string representations.
+- **`get_type`**
+  ```python
+  def get_type(self) -> type
+  ```
+  Get the type that should be used for validation.
+- **`validate`**
+  ```python
+  def validate(self, value: int | list[int] | None) -> Any | list[Any]
+  ```
+  Validate a value against the labels.
+
+### `ParameterModel`
+```python
+class ParameterModel(name: str, annotation: str | None, default: str | None)
+```
+
+### `PythonFunction`
+```python
+class PythonFunction(function: Callable[P, R], signature: inspect.Signature, name: str, parameters: list[ParameterModel], docstring: str | None = None, return_annotation: Any | None = None, source_code: str | None = None, bound_parameters: dict[str, Any] = dict(), return_value: Any | None = None)
+```
+A dataclass representing a Python function.
+
+Attributes:
+    function (Callable): The original function object.
+    signature (inspect.Signature): The signature object of the function.
+    name (str): The name of the function.
+    docstring (Optional[str]): The docstring of the function.
+    parameters (List[ParameterModel]): The parameters of the function.
+    return_annotation (Optional[Any]): The return annotation of the function.
+    source_code (str): The source code of the function.
+    bound_parameters (dict[str, Any]): The parameters of the function bound with values.
+    return_value (Optional[Any]): The return value of the function call.
+
+**Methods:**
+
+- **`from_function`**
+  ```python
+  def from_function(cls, func: Callable[P, R], **kwargs: Any = {}) -> PythonFunction[P, R]
+  ```
+  Create a PythonFunction instance from a function.
+  
+  Args:
+      func (Callable): The function to create a PythonFunction instance from.
+      **kwargs: Additional keyword arguments to set as attributes on the PythonFunction instance.
+  
+  Returns:
+      PythonFunction: The created PythonFunction instance.
+- **`from_function_call`**
+  ```python
+  def from_function_call(cls, func: Callable[P, R], *args: P.args = (), **kwargs: P.kwargs = {}) -> PythonFunction[P, R]
+  ```
+  Create a PythonFunction instance from a function call.
+  
+  Args:
+      func (Callable): The function to call.
+      *args: Positional arguments to pass to the function call.
+      **kwargs: Keyword arguments to pass to the function call.
+  
+  Returns:
+      PythonFunction: The created PythonFunction instance, with the return value of the function call set as an attribute.
+
+## Functions
+
+### `as_classifier`
+```python
+def as_classifier(type_: type[T]) -> Labels
+```
+Convert a type to a Labels instance.
+This should only be called on types that have been verified as classifiers via is_classifier().
+
+Args:
+    typ: A type that represents a classifier (Enum, Literal, sequence, or list thereof)
+
+Returns:
+    Labels: A Labels instance representing the classifier
+
+Raises:
+    ValueError: If the type is not a valid classifier
+
+### `is_classifier`
+```python
+def is_classifier(type_: type[T]) -> bool
+```
+Check if a type represents a classification task.
+This includes:
+- Single-label: Enum, Literal, or any sequence of values
+- Multi-label: list[Enum], list[Literal], or list[list]
+
+Examples:
+    >>> class Colors(enum.Enum):
+    ...     RED = "red"
+    ...     GREEN = "green"
+    >>> is_classifier(Colors)  # enum
+    True
+    >>> is_classifier(Literal["a", "b"])  # literal
+    True
+    >>> is_classifier(["a", "b"])  # list of values
+    True
+    >>> is_classifier([1, "red", MyClass()])  # mixed values
+    True
+    >>> is_classifier(list[Colors])  # multi-label enum
+    True
+    >>> is_classifier(list[Literal["a", "b"]])  # multi-label literal
+    True
+    >>> is_classifier(list[["a", 1, MyClass()]])  # multi-label shorthand
+    True
+
+### `issubclass_safe`
+```python
+def issubclass_safe(x: Any, cls: type | tuple[type, ...]) -> bool
+```
+Safely check if x is a subclass of cls without raising errors.
+
+This combines isinstance(x, type) and issubclass(x, cls) checks in a safe way
+that won't raise TypeError if x is not a type.
+
+Args:
+    x: The value to check
+    cls: A type or tuple of types to check against
+
+Returns:
+    bool: True if x is a type and is a subclass of cls, False otherwise
+
+Example:
+    >>> issubclass_safe(str, object)  # type is subclass
+    True
+    >>> issubclass_safe(42, object)  # not a type
+    False
+    >>> issubclass_safe(str, (int, float))  # not a subclass
+    False
+
+---
+
+**Parent Module:** [`utilities`](marvin-utilities)

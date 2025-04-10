@@ -1,0 +1,41 @@
+---
+title: run
+---
+
+# `marvin.fns.run`
+
+## Functions
+
+### `run`
+```python
+def run(instructions: str | Sequence[UserContent], result_type: type[T] = str, tools: list[Callable[..., Any]] = [], thread: Thread | str | None = None, agents: list[Actor] | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None, **kwargs: Any = {}) -> T
+```
+
+### `run_async`
+```python
+def run_async(instructions: str | Sequence[UserContent], result_type: type[T] | Annotated[T, Any] = str, tools: list[Callable[..., Any]] = [], thread: Thread | str | None = None, agents: list[Actor] | None = None, handlers: list[Handler | AsyncHandler] | None = None, raise_on_failure: bool = True, **kwargs: Any = {}) -> T | AsyncGenerator[Event, None]
+```
+
+### `run_stream`
+```python
+def run_stream(instructions: str | Sequence[UserContent], result_type: type[T] = str, tools: list[Callable[..., Any]] = [], thread: Thread | str | None = None, agents: list[Actor] | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None, **kwargs: Any = {}) -> AsyncGenerator[Event, None]
+```
+
+### `run_tasks`
+```python
+def run_tasks(tasks: list[Task[Any]], thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> list[Task[Any]]
+```
+
+### `run_tasks_async`
+```python
+def run_tasks_async(tasks: list[Task[Any]], thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> list[Task[Any]] | AsyncGenerator[Event, None]
+```
+
+### `run_tasks_stream`
+```python
+def run_tasks_stream(tasks: list[Task[Any]], thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> AsyncGenerator[Event, None]
+```
+
+---
+
+**Parent Module:** [`fns`](marvin-fns)

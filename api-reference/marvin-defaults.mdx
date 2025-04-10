@@ -1,0 +1,32 @@
+---
+title: defaults
+---
+
+# `marvin.defaults`
+
+## Classes
+
+### `Defaults`
+```python
+class Defaults(agent: Agent, model: KnownModelName | Model, memory_provider: str)
+```
+
+## Functions
+
+### `override_defaults`
+```python
+def override_defaults(**kwargs: Unpack[_Defaults] = {})
+```
+Temporarily override default settings.
+
+Any attribute of the defaults object can be temporarily overridden by passing
+it as a keyword argument.
+
+Example:
+    >>> with override_defaults(model="gpt-4", agent=Agent(name="Custom")):
+    ...     # code that uses the temporary defaults
+    ...     pass
+
+---
+
+**Parent Module:** [`marvin`](marvin)

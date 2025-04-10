@@ -1,0 +1,29 @@
+---
+title: main
+---
+
+# `marvin.cli.main`
+
+## Functions
+
+### `callback`
+```python
+def callback()
+```
+
+### `version`
+```python
+def version(ctx: Context)
+```
+
+### `x`
+```python
+def x(operation: str = typer.Option('extract', '--operation', '-o', help='Operation to perform'), target_type: str = typer.Option('str', '--type', '-t', help="Type of entities to extract (any type that can be eval'd)"), instructions: str = typer.Option(None, '--instructions', '-i', help='Instructions for extraction'), n: int = typer.Option(1, '--n', '-n', help='Number of results to generate'))
+```
+Extract entities from stdin input.
+
+Example: echo "one, two, three" | marvin x -t int | jq
+
+---
+
+**Parent Module:** [`cli`](marvin-cli)

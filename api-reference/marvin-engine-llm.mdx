@@ -1,0 +1,28 @@
+---
+title: llm
+description: "Utility functions for LLM completions using Pydantic AI."
+---
+
+# `marvin.engine.llm`
+Utility functions for LLM completions using Pydantic AI.
+
+## Functions
+
+### `AgentMessage`
+```python
+def AgentMessage(content: str) -> ModelResponse
+```
+
+### `SystemMessage`
+```python
+def SystemMessage(content: str) -> ModelRequest
+```
+
+### `UserMessage`
+```python
+def UserMessage(content: str | Sequence[UserContent]) -> ModelRequest
+```
+
+---
+
+**Parent Module:** [`engine`](marvin-engine)

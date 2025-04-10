@@ -1,0 +1,55 @@
+---
+title: postgres
+---
+
+# `marvin.memory.providers.postgres`
+
+## Classes
+
+### `PostgresMemory`
+```python
+class PostgresMemory()
+```
+An async MemoryProvider storing text + embeddings in PostgreSQL
+using SQLAlchemy + pg_vector, but with full async support.
+
+**Methods:**
+
+- **`add`**
+  ```python
+  def add(self, memory_key: str, content: str) -> str
+  ```
+  Insert a new record with an embedding vector.
+  Returns the inserted record's UUID.
+- **`configure`**
+  ```python
+  def configure(self, memory_key: str)
+  ```
+  1) Create an async engine.
+  2) Optionally create the DB if it doesn't exist (requires sync workaround).
+  3) Install pgvector extension.
+  4) Generate the memory table if missing.
+  5) Initialize the async sessionmaker.
+- **`delete`**
+  ```python
+  def delete(self, memory_key: str, memory_id: str)
+  ```
+  Delete a record by UUID.
+- **`search`**
+  ```python
+  def search(self, memory_key: str, query: str, n: int = 20) -> Dict[str, str]
+  ```
+  Async nearest-neighbor search via pgvector <-> operator or .l2_distance(),
+  returning up to N results as {id: text}.
+
+### `SQLMemoryTable`
+```python
+class SQLMemoryTable()
+```
+A simple declarative model that represents a memory record.
+
+We'll dynamically set the __tablename__ at runtime.
+
+---
+
+**Parent Module:** [`providers`](marvin-memory-providers)

@@ -1,0 +1,52 @@
+---
+title: chroma
+---
+
+# `marvin.memory.providers.chroma`
+
+## Classes
+
+### `ChromaMemory`
+```python
+class ChromaMemory(client: chromadb.ClientAPI = lambda: chromadb.PersistentClient(path=str(marvin.settings.home_path / 'memory/chroma'))(), collection_name: str = 'memory-{key}')
+```
+
+**Methods:**
+
+- **`add`**
+  ```python
+  def add(self, memory_key: str, content: str) -> str
+  ```
+- **`delete`**
+  ```python
+  def delete(self, memory_key: str, memory_id: str)
+  ```
+- **`get_collection`**
+  ```python
+  def get_collection(self, memory_key: str) -> chromadb.Collection
+  ```
+- **`search`**
+  ```python
+  def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]
+  ```
+
+## Functions
+
+### `ChromaCloudMemory`
+```python
+def ChromaCloudMemory(tenant: str | None = None, database: str | None = None, api_key: str | None = None, **kwargs: Any = {}) -> ChromaMemory
+```
+
+### `ChromaEphemeralMemory`
+```python
+def ChromaEphemeralMemory(**kwargs: Any = {}) -> ChromaMemory
+```
+
+### `ChromaPersistentMemory`
+```python
+def ChromaPersistentMemory(path: str | None = None, **kwargs: Any = {}) -> ChromaMemory
+```
+
+---
+
+**Parent Module:** [`providers`](marvin-memory-providers)

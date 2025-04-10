@@ -1,0 +1,56 @@
+---
+title: agent
+description: "Agents for Marvin."
+---
+
+# `marvin.agents.agent`
+Agents for Marvin.
+
+An Agent is an entity that can process tasks and maintain state across interactions.
+
+## Classes
+
+### `Agent`
+```python
+class Agent(name: str = lambda: random.choice(AGENT_NAMES)(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('agent.jinja'), tools: list[Callable[..., Any]] = list(), memories: list[Memory] = list(), model: KnownModelName | Model | None = None, model_settings: ModelSettings = ModelSettings())
+```
+An agent that can process tasks and maintain state.
+
+**Methods:**
+
+- **`get_agentlet`**
+  ```python
+  def get_agentlet(self, tools: list[Callable[..., Any]], end_turn_tools: list[EndTurn]) -> pydantic_ai.Agent[Any, Any]
+  ```
+- **`get_memories`**
+  ```python
+  def get_memories(self) -> list[Memory]
+  ```
+- **`get_model`**
+  ```python
+  def get_model(self) -> Model | KnownModelName
+  ```
+- **`get_model_settings`**
+  ```python
+  def get_model_settings(self) -> ModelSettings
+  ```
+- **`get_prompt`**
+  ```python
+  def get_prompt(self) -> str
+  ```
+- **`get_tools`**
+  ```python
+  def get_tools(self) -> list[Callable[..., Any]]
+  ```
+
+## Functions
+
+### `handle_event`
+```python
+def handle_event(event: Event, handlers: list[Handler | AsyncHandler] | None = None)
+```
+Handle an event by passing it to all registered handlers.
+
+---
+
+**Parent Module:** [`agents`](marvin-agents)

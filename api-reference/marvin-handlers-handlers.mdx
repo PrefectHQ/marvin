@@ -1,0 +1,195 @@
+---
+title: handlers
+---
+
+# `marvin.handlers.handlers`
+
+## Classes
+
+### `AsyncHandler`
+```python
+class AsyncHandler()
+```
+
+**Methods:**
+
+- **`on_actor_end_turn`**
+  ```python
+  def on_actor_end_turn(self, event: ActorEndTurnEvent)
+  ```
+  Handles actor turn completion. Called when an actor finishes its processing turn.
+- **`on_actor_message`**
+  ```python
+  def on_actor_message(self, event: ActorMessageEvent)
+  ```
+  Handles complete messages from actors. Called when an actor produces a full response.
+  This is the final event that follows any related actor_message_delta events.
+- **`on_actor_message_delta`**
+  ```python
+  def on_actor_message_delta(self, event: ActorMessageDeltaEvent)
+  ```
+  Handles streaming updates to actor messages. Called multiple times during message generation.
+  These delta events always precede the final actor_message event.
+- **`on_actor_start_turn`**
+  ```python
+  def on_actor_start_turn(self, event: ActorStartTurnEvent)
+  ```
+  Handles actor turn initiation. Called when an actor begins its processing turn.
+- **`on_end_turn_tool_call`**
+  ```python
+  def on_end_turn_tool_call(self, event: EndTurnToolCallEvent)
+  ```
+  Handles special end-of-turn tool calls. Called when actors use tools to signal turn completion.
+  This event is produced instantly when an end turn tool is recognized (based on tool name).
+  It follows any tool_call_delta events and precedes end_turn_tool_result or tool_retry events.
+- **`on_end_turn_tool_result`**
+  ```python
+  def on_end_turn_tool_result(self, event: EndTurnToolResultEvent)
+  ```
+  Handles the final result from an end turn tool.
+  This is the final event in the end turn tool sequence, following end_turn_tool_call and any tool_retry events.
+- **`on_event`**
+  ```python
+  def on_event(self, event: Event)
+  ```
+  Called for every event before specific handlers. Override for global event processing.
+- **`on_orchestrator_end`**
+  ```python
+  def on_orchestrator_end(self, event: OrchestratorEndEvent)
+  ```
+  Handles normal orchestrator completion. Called when orchestration ends (including after an error).
+- **`on_orchestrator_error`**
+  ```python
+  def on_orchestrator_error(self, event: OrchestratorErrorEvent)
+  ```
+  Handles orchestrator exceptions. Called when an error occurs during orchestration.
+- **`on_orchestrator_start`**
+  ```python
+  def on_orchestrator_start(self, event: OrchestratorStartEvent)
+  ```
+  Handles orchestrator initialization. Called once when orchestration begins.
+- **`on_tool_call`**
+  ```python
+  def on_tool_call(self, event: ToolCallEvent)
+  ```
+  Handles tool call events. Called when an actor invokes a function tool.
+  This follows any tool_call_delta events and precedes tool_retry or tool_result events.
+- **`on_tool_call_delta`**
+  ```python
+  def on_tool_call_delta(self, event: ToolCallDeltaEvent)
+  ```
+  Handles streaming updates during tool call formation. Called multiple times as tool calls are generated.
+  These delta events always precede either a tool_call event (for function tools) or an end_turn_tool_call event.
+- **`on_tool_result`**
+  ```python
+  def on_tool_result(self, event: ToolResultEvent)
+  ```
+  Handles successful tool execution results. Called when a function tool returns output.
+  This is the final event in the function tool sequence, following tool_call and any tool_retry events.
+- **`on_tool_retry`**
+  ```python
+  def on_tool_retry(self, event: ToolRetryEvent)
+  ```
+  Handles tool retry events. Called when a tool execution fails and needs to be retried.
+  Can occur for both function tools and end turn tools before their respective final result events.
+- **`on_user_message`**
+  ```python
+  def on_user_message(self, event: UserMessageEvent)
+  ```
+  Handles messages from the user. Called when a user sends input to the system.
+
+### `Handler`
+```python
+class Handler()
+```
+
+**Methods:**
+
+- **`on_actor_end_turn`**
+  ```python
+  def on_actor_end_turn(self, event: ActorEndTurnEvent)
+  ```
+  Handles actor turn completion. Called when an actor finishes its processing turn.
+- **`on_actor_message`**
+  ```python
+  def on_actor_message(self, event: ActorMessageEvent)
+  ```
+  Handles complete messages from actors. Called when an actor produces a full response.
+  This is the final event that follows any related actor_message_delta events.
+- **`on_actor_message_delta`**
+  ```python
+  def on_actor_message_delta(self, event: ActorMessageDeltaEvent)
+  ```
+  Handles streaming updates to actor messages. Called multiple times during message generation.
+  These delta events always precede the final actor_message event.
+- **`on_actor_start_turn`**
+  ```python
+  def on_actor_start_turn(self, event: ActorStartTurnEvent)
+  ```
+  Handles actor turn initiation. Called when an actor begins its processing turn.
+- **`on_end_turn_tool_call`**
+  ```python
+  def on_end_turn_tool_call(self, event: EndTurnToolCallEvent)
+  ```
+  Handles special end-of-turn tool calls. Called when actors use tools to signal turn completion.
+  This event is produced instantly when an end turn tool is recognized (based on tool name).
+  It follows any tool_call_delta events and precedes end_turn_tool_result or tool_retry events.
+- **`on_end_turn_tool_result`**
+  ```python
+  def on_end_turn_tool_result(self, event: EndTurnToolResultEvent)
+  ```
+  Handles the final result from an end turn tool.
+  This is the final event in the end turn tool sequence, following end_turn_tool_call and any tool_retry events.
+- **`on_event`**
+  ```python
+  def on_event(self, event: Event)
+  ```
+  Called for every event before specific handlers. Override for global event processing.
+- **`on_orchestrator_end`**
+  ```python
+  def on_orchestrator_end(self, event: OrchestratorEndEvent)
+  ```
+  Handles normal orchestrator completion. Called when orchestration ends (including after an error).
+- **`on_orchestrator_error`**
+  ```python
+  def on_orchestrator_error(self, event: OrchestratorErrorEvent)
+  ```
+  Handles orchestrator exceptions. Called when an error occurs during orchestration.
+- **`on_orchestrator_start`**
+  ```python
+  def on_orchestrator_start(self, event: OrchestratorStartEvent)
+  ```
+  Handles orchestrator initialization. Called once when orchestration begins.
+- **`on_tool_call`**
+  ```python
+  def on_tool_call(self, event: ToolCallEvent)
+  ```
+  Handles tool call events. Called when an actor invokes a function tool.
+  This follows any tool_call_delta events and precedes tool_retry or tool_result events.
+- **`on_tool_call_delta`**
+  ```python
+  def on_tool_call_delta(self, event: ToolCallDeltaEvent)
+  ```
+  Handles streaming updates during tool call formation. Called multiple times as tool calls are generated.
+  These delta events always precede either a tool_call event (for function tools) or an end_turn_tool_call event.
+- **`on_tool_result`**
+  ```python
+  def on_tool_result(self, event: ToolResultEvent)
+  ```
+  Handles successful tool execution results. Called when a function tool returns output.
+  This is the final event in the function tool sequence, following tool_call and any tool_retry events.
+- **`on_tool_retry`**
+  ```python
+  def on_tool_retry(self, event: ToolRetryEvent)
+  ```
+  Handles tool retry events. Called when a tool execution fails and needs to be retried.
+  Can occur for both function tools and end turn tools before their respective final result events.
+- **`on_user_message`**
+  ```python
+  def on_user_message(self, event: UserMessageEvent)
+  ```
+  Handles messages from the user. Called when a user sends input to the system.
+
+---
+
+**Parent Module:** [`handlers`](marvin-handlers)

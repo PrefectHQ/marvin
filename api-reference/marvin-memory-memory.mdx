@@ -1,0 +1,85 @@
+---
+title: memory
+---
+
+# `marvin.memory.memory`
+
+## Classes
+
+### `Memory`
+```python
+class Memory(key: str, instructions: str | None = None, provider: MemoryProvider = lambda: marvin.defaults.memory_provider(), auto_use: bool = False, prompt: str | Path = Path('memory.jinja'))
+```
+A memory module is a partitioned collection of memories that are stored in a
+vector database, configured by a MemoryProvider.
+
+**Methods:**
+
+- **`add`**
+  ```python
+  def add(self, content: str) -> str
+  ```
+- **`delete`**
+  ```python
+  def delete(self, memory_id: str)
+  ```
+- **`friendly_name`**
+  ```python
+  def friendly_name(self) -> str
+  ```
+- **`get_prompt`**
+  ```python
+  def get_prompt(self) -> str
+  ```
+- **`get_tools`**
+  ```python
+  def get_tools(self) -> list[Callable[..., Any]]
+  ```
+- **`search`**
+  ```python
+  def search(self, query: str, n: int = 20) -> dict[str, str]
+  ```
+
+### `MemoryProvider`
+```python
+class MemoryProvider()
+```
+
+**Methods:**
+
+- **`add`**
+  ```python
+  def add(self, memory_key: str, content: str) -> str
+  ```
+  Create a new memory and return its ID.
+- **`configure`**
+  ```python
+  def configure(self, memory_key: str)
+  ```
+  Configure the provider for a specific memory.
+- **`delete`**
+  ```python
+  def delete(self, memory_key: str, memory_id: str)
+  ```
+  Delete a memory by its ID.
+- **`search`**
+  ```python
+  def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]
+  ```
+  Search for n memories using a string query.
+
+## Functions
+
+### `get_memory_provider`
+```python
+def get_memory_provider(provider: str) -> MemoryProvider
+```
+
+### `sanitize_memory_key`
+```python
+def sanitize_memory_key(key: str) -> str
+```
+
+---
+
+**Parent Module:** [`memory`](marvin-memory)

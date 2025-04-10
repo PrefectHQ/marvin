@@ -1,0 +1,69 @@
+---
+title: orchestrator
+---
+
+# `marvin.engine.orchestrator`
+
+## Classes
+
+### `Orchestrator`
+```python
+class Orchestrator(tasks: list[Task[Any]], thread: Thread | str | None = None, handlers: list[Handler | AsyncHandler] | None = None)
+```
+
+**Methods:**
+
+- **`end_turn`**
+  ```python
+  def end_turn(self, result: AgentRunResult, actor: Actor)
+  ```
+- **`get_all_tasks`**
+  ```python
+  def get_all_tasks(self, filter: Literal['incomplete', 'ready'] | None = None) -> list[Task[Any]]
+  ```
+  Get all tasks, optionally filtered by status.
+  
+  Filters:
+      - incomplete: tasks that are not yet complete
+      - ready: tasks that are ready to be run
+- **`get_current`**
+  ```python
+  def get_current(cls) -> Optional[Orchestrator]
+  ```
+  Get the current orchestrator from context.
+- **`handle_event`**
+  ```python
+  def handle_event(self, event: Event)
+  ```
+- **`run`**
+  ```python
+  def run(self, raise_on_failure: bool = True, max_turns: int | float | None = None) -> list[AgentRunResult]
+  ```
+- **`run_once`**
+  ```python
+  def run_once(self, actor: Actor | None = None) -> AgentRunResult
+  ```
+- **`start_turn`**
+  ```python
+  def start_turn(self, actor: Actor)
+  ```
+
+### `SystemPrompt`
+```python
+class SystemPrompt(source: str | Path = Path('system.jinja'), actor: Actor, instructions: list[str], tasks: list[Task])
+```
+
+## Functions
+
+### `get_current_orchestrator`
+```python
+def get_current_orchestrator() -> Orchestrator | None
+```
+Get the currently active orchestrator from context.
+
+Returns:
+    The current Orchestrator instance or None if no orchestrator is active.
+
+---
+
+**Parent Module:** [`engine`](marvin-engine)

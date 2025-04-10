@@ -1,0 +1,90 @@
+---
+title: actor
+---
+
+# `marvin.agents.actor`
+
+## Classes
+
+### `Actor`
+```python
+class Actor(name: str, instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path)
+```
+
+**Methods:**
+
+- **`end_turn`**
+  ```python
+  def end_turn(self, thread: Thread, result: AgentRunResult)
+  ```
+  Called when the actor ends its turn.
+- **`friendly_name`**
+  ```python
+  def friendly_name(self, verbose: bool = True) -> str
+  ```
+- **`get_agentlet`**
+  ```python
+  def get_agentlet(self, tools: Sequence[Callable[..., Any]], end_turn_tools: Sequence[EndTurn]) -> pydantic_ai.Agent[Any, Any]
+  ```
+- **`get_current`**
+  ```python
+  def get_current(cls) -> Optional[Actor]
+  ```
+  Get the current actor from context.
+- **`get_end_turn_tools`**
+  ```python
+  def get_end_turn_tools(self) -> list[EndTurn]
+  ```
+  A list of `EndTurn` tools that this actor can use to end its turn.
+- **`get_memories`**
+  ```python
+  def get_memories(self) -> list[Memory]
+  ```
+  A list of memories that this actor can use during its turn.
+- **`get_prompt`**
+  ```python
+  def get_prompt(self) -> str
+  ```
+- **`get_tools`**
+  ```python
+  def get_tools(self) -> list[Callable[..., Any]]
+  ```
+  A list of tools that this actor can use during its turn.
+- **`run`**
+  ```python
+  def run(self, instructions: str | Sequence[UserContent], result_type: type[T] = str, tools: list[Callable[..., Any]] = [], thread: Thread | str | None = None, handlers: list[Handler | AsyncHandler] | None = None, raise_on_failure: bool = True, **kwargs: Any = {}) -> Any
+  ```
+- **`run_async`**
+  ```python
+  def run_async(self, instructions: str | Sequence[UserContent], result_type: type[T] = str, tools: list[Callable[..., Any]] = [], thread: Thread | str | None = None, handlers: list[Handler | AsyncHandler] | None = None, raise_on_failure: bool = True, **kwargs: Any = {}) -> Any
+  ```
+- **`say`**
+  ```python
+  def say(self, message: str, instructions: str | None = None, thread: Thread | str | None = None)
+  ```
+  Responds to a user message in a conversational way.
+- **`say_async`**
+  ```python
+  def say_async(self, message: str, instructions: str | None = None, thread: Thread | str | None = None)
+  ```
+  Responds to a user message in a conversational way.
+- **`start_turn`**
+  ```python
+  def start_turn(self, thread: Thread)
+  ```
+  Called when the actor starts its turn.
+
+## Functions
+
+### `get_current_actor`
+```python
+def get_current_actor() -> Actor | None
+```
+Get the currently active actor from context.
+
+Returns:
+    The current Actor instance or None if no actor is active.
+
+---
+
+**Parent Module:** [`agents`](marvin-agents)

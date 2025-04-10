@@ -1,0 +1,61 @@
+---
+title: migrations
+description: "Command line utilities for database migrations."
+---
+
+# `marvin.cli.migrations`
+Command line utilities for database migrations.
+
+## Functions
+
+### `current`
+```python
+def current()
+```
+Show current migration revision.
+
+### `downgrade`
+```python
+def downgrade(revision: str = typer.Argument(..., help='Revision to downgrade to'), yes: bool = typer.Option(False, '--yes', '-y', help='Confirm the destructive operation without prompting'))
+```
+Downgrade database to specified revision. Requires confirmation.
+
+### `get_alembic_cfg`
+```python
+def get_alembic_cfg()
+```
+Get the Alembic config.
+
+### `history`
+```python
+def history()
+```
+Show migration history.
+
+### `reset`
+```python
+def reset(yes: bool = typer.Option(False, '--yes', '-y', help='Confirm the destructive operation without prompting'))
+```
+Reset database by downgrading to base and upgrading to head. Requires confirmation.
+
+### `revision`
+```python
+def revision(autogenerate: bool = typer.Option(False, '--autogenerate/--no-autogenerate', help='Automatically generate migrations based on schema changes'), message: str = typer.Option(None, '--message', '-m', help='Migration message'))
+```
+Create a new migration revision. Developer command.
+
+### `status`
+```python
+def status()
+```
+Show database migration status and information.
+
+### `upgrade`
+```python
+def upgrade(revision: str = typer.Argument('head', help="Revision to upgrade to. Use 'head' for latest."))
+```
+Upgrade database to the latest migration.
+
+---
+
+**Parent Module:** [`cli`](marvin-cli)

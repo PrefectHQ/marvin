@@ -1,0 +1,51 @@
+---
+title: queue_handler
+---
+
+# `marvin.handlers.queue_handler`
+
+## Classes
+
+### `QueueHandler`
+```python
+class QueueHandler(queue: asyncio.Queue | None = None, include: Sequence[str | type[Event]] = None, exclude: Sequence[str | type[Event]] = None)
+```
+A handler that queues events for asynchronous processing.
+
+QueueHandler captures events and places them into an asyncio Queue for later
+consumption. It supports filtering events based on inclusion and exclusion criteria,
+allowing for selective event processing.
+
+This handler is useful for:
+- Decoupling event producers from consumers
+- Implementing event buffering
+- Creating event processing pipelines
+- Selectively capturing specific event types
+
+Attributes:
+    queue: An asyncio.Queue where events are stored
+    include: Optional sequence of event types or classes to include
+    exclude: Optional sequence of event types or classes to exclude
+
+**Methods:**
+
+- **`on_event`**
+  ```python
+  def on_event(self, event: Event)
+  ```
+  Process an event and add it to the queue if it passes filtering criteria.
+  
+  This method implements filtering logic based on the include and exclude
+  parameters provided during initialization. Events are only added to the
+  queue if they pass all filtering criteria.
+  
+  Args:
+      event: The Event object to process
+  
+  Returns:
+      None. If the event passes filtering, it is added to the queue.
+      Otherwise, the method returns without adding the event.
+
+---
+
+**Parent Module:** [`handlers`](marvin-handlers)

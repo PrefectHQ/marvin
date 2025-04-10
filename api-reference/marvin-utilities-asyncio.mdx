@@ -1,0 +1,64 @@
+---
+title: asyncio
+---
+
+# `marvin.utilities.asyncio`
+
+## Functions
+
+### `run_sync`
+```python
+def run_sync(coro: Coroutine[Any, Any, T]) -> T
+```
+Run a coroutine synchronously.
+
+This function uses asyncio to run a coroutine in a synchronous context.
+It attempts the following strategies in order:
+1. If no event loop is running, creates a new one and runs the coroutine
+2. If a loop is running, attempts to run the coroutine on that loop
+3. As a last resort, creates a new thread with its own event loop to run the coroutine
+
+Context variables are properly propagated between threads in all cases.
+
+Example:
+```python
+async def f(x: int) -> int:
+    return x + 1
+
+result = run_sync(f(1))
+```
+
+Args:
+    coro: The coroutine to run synchronously
+
+Returns:
+    The result of the coroutine
+
+### `run_sync_in_thread`
+```python
+def run_sync_in_thread(coro: Coroutine[Any, Any, T]) -> T
+```
+Run a coroutine synchronously in a new thread.
+
+This function creates a new thread with its own event loop to run the coroutine.
+Context variables are properly propagated between threads.
+This is useful when you need to run async code in a context where you can't use
+the current event loop (e.g., inside an async frame).
+
+Example:
+```python
+async def f(x: int) -> int:
+    return x + 1
+
+result = run_sync_in_thread(f(1))
+```
+
+Args:
+    coro: The coroutine to run synchronously
+
+Returns:
+    The result of the coroutine
+
+---
+
+**Parent Module:** [`utilities`](marvin-utilities)

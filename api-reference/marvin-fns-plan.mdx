@@ -1,0 +1,66 @@
+---
+title: plan
+---
+
+# `marvin.fns.plan`
+
+## Classes
+
+### `PlanTask`
+```python
+class PlanTask(id: int, instructions: str, name: str | None = None, allow_fail: bool = False, allow_skip: bool = False, parent_id: int | None = None, depends_on_ids: list[int] | None = None, agent_ids: list[int] | None = None, tool_ids: list[int] | None = None)
+```
+
+## Functions
+
+### `create_tasks`
+```python
+def create_tasks(plan: list[PlanTask], agent_map: dict[int, Agent], tool_map: dict[int, Callable[..., Any]], parent_task: Task | None = None) -> list[Task]
+```
+
+### `plan`
+```python
+def plan(instructions: str, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, available_agents: list[Agent] | None = None, tools: list[Callable[..., Any]] | None = None, parent_task: Task | None = None) -> list[Task]
+```
+Generate a series of Marvin Tasks that will allow you or other AI agents to achieve a goal.
+
+Args:
+    instructions: The objective to achieve.
+    agent: The agent to use for planning.
+    thread: The thread to use for planning.
+    context: Additional context to use for planning.
+    available_agents: A list of agents that can be used for planning.
+    tools: A list of tools that can be used for planning.
+
+Returns:
+    A list of Marvin Tasks that will allow you or other AI agents to achieve the objective.
+
+
+Examples:
+    >>> tasks = marvin.plan("Create a new blog post about the latest AI trends.")
+    >>> marvin.run_tasks(tasks)
+
+### `plan_async`
+```python
+def plan_async(instructions: str, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, available_agents: list[Agent] | None = None, tools: list[Callable[..., Any]] | None = None, parent_task: Task | None = None) -> list[Task]
+```
+Generate a series of new tasks in order to achieve a goal.
+
+Args:
+    instructions: The objective to achieve.
+    agent: The agent to use for planning.
+    thread: The thread to use for planning.
+    context: Additional context to use for planning.
+    available_agents: A list of agents that can be used for planning.
+    tools: A list of tools that can be used for planning.
+
+Returns:
+    A list of Marvin Tasks that will allow you or other AI agents to achieve the objective.
+
+Examples:
+    >>> tasks = await marvin.plan_async("Create a new blog post about the latest AI trends.")
+    >>> await marvin.run_tasks_async(tasks)
+
+---
+
+**Parent Module:** [`fns`](marvin-fns)

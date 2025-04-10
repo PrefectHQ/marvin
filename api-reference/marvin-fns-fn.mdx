@@ -1,0 +1,43 @@
+---
+title: fn
+---
+
+# `marvin.fns.fn`
+
+## Functions
+
+### `fn`
+```python
+def fn(func: Callable[P, T] | None = None, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None) -> Callable[P, T]
+```
+A decorator that predicts the output of a Python function without executing it.
+
+Can be used with or without parameters:
+    @fn
+    def my_function(): ...
+
+    @fn(instructions="Be precise")
+    def my_function(): ...
+
+The decorated function accepts additional kwargs:
+    - _agent: Override the agent at call time
+    - _thread: Override the thread at call time
+
+If the function does not have a return annotation, the result will be
+returned as a string and attempted to be parsed as JSON.
+
+The decorated function also gains an as_task() method that returns the underlying
+marvin Task without executing it.
+
+Args:
+    func: The function to decorate
+    instructions: Optional instructions to guide the prediction
+    agent: Optional custom agent to use
+    thread: Optional thread for maintaining conversation context
+
+Returns:
+    A wrapped function that predicts output instead of executing
+
+---
+
+**Parent Module:** [`fns`](marvin-fns)

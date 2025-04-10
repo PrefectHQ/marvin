@@ -1,0 +1,87 @@
+---
+title: prompts
+description: "Prompt system for Marvin."
+---
+
+# `marvin.prompts`
+Prompt system for Marvin.
+
+This module provides a flexible prompt system that supports:
+1. Prompts defined as strings or paths to template files
+2. Static type checking of prompt variables
+3. Dynamic prompt creation from function docstrings and signatures
+4. Serialization of prompts and their required attributes
+
+## Classes
+
+### `Prompt`
+```python
+class Prompt(source: str | Path, _extra_fields: dict[str, Any] = dict())
+```
+Base class for prompts.
+
+Prompts can be defined either as strings or paths to template files.
+Additional attributes can be added by subclassing and will be type-checked.
+
+**Methods:**
+
+- **`from_fn`**
+  ```python
+  def from_fn(cls, fn: Callable[..., Any]) -> type[Prompt]
+  ```
+  Create a Prompt class from a function's docstring and signature.
+  
+  Args:
+      fn: The function to create a prompt from. The function's docstring will
+          be used as the template, and its signature will define the required
+          attributes.
+  
+  Example:
+      def greet(name: str, age: int):
+          '''
+          SYSTEM: You are a friendly assistant.
+          USER: Hi {{ name }}, how old are you?
+          ASSISTANT: I'm an AI, but you're {{ age }} years old!
+          '''
+          pass
+  
+      GreetPrompt = Prompt.from_fn(greet)
+      prompt = GreetPrompt(name="Alice", age=30)
+      messages = prompt.to_messages()
+- **`to_messages`**
+  ```python
+  def to_messages(self, **kwargs: Any = {}) -> list[PydanticAIMessage]
+  ```
+  Convert the prompt to a list of messages with roles.
+  
+  The template can contain role markers (SYSTEM:, USER:, ASSISTANT:) to
+  indicate message roles. Text without a role marker is treated as a user
+  message.
+  
+  Example template:
+      '''
+      SYSTEM: You are a helpful assistant.
+      USER: Hi {{ name }}!
+      ASSISTANT: Hello {{ name }}! How can I help you?
+      '''
+
+### `Template`
+```python
+class Template(source: str | Path)
+```
+A template for generating prompts.
+
+Args:
+    source: Either a string template or a Path to a template file
+
+**Methods:**
+
+- **`render`**
+  ```python
+  def render(self, **kwargs: Any = {}) -> str
+  ```
+  Render the template with variables.
+
+---
+
+**Parent Module:** [`marvin`](marvin)
