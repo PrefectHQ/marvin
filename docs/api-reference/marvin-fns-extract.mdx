@@ -4,6 +4,18 @@ title: extract
 
 # `marvin.fns.extract`
 
+## Constants
+
+### `PROMPT`
+```python
+PROMPT = "'\nYou are an expert entity extractor that always maintains as much semantic\nmeaning as possible. You use inference or deduction whenever necessary to\nsupply missing or omitted data. Examine the provided `data`, text, or\ninformation and generate a list of any entities or objects that match the\nrequested format.\n\n- When providing integers, do not write out any decimals at all\n- Use deduction where appropriate e.g. "3 dollars fifty cents" is a single\n    value [3.5] not two values [3, 50] unless the user specifically asks for\n    each part.'"
+```
+
+### `T`
+```python
+T = TypeVar('T')
+```
+
 ## Functions
 
 ### `extract`

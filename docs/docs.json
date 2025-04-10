@@ -77,6 +77,12 @@
                 "anchor": "API Reference",
                 "groups": [
                     {
+                        "group": "top level",
+                        "pages": [
+                            "api-reference/marvin"
+                        ]
+                    },
+                    {
                         "group": "agents",
                         "pages": [
                             "api-reference/marvin-agents-actor",
@@ -91,12 +97,6 @@
                             "api-reference/marvin-cli-dev",
                             "api-reference/marvin-cli-main",
                             "api-reference/marvin-cli-migrations"
-                        ]
-                    },
-                    {
-                        "group": "core",
-                        "pages": [
-                            "api-reference/marvin"
                         ]
                     },
                     {

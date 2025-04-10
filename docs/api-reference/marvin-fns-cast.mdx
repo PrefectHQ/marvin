@@ -7,6 +7,18 @@ description: "Cast is a function that uses a language model to analyze the input
 Cast is a function that uses a language model to analyze the input data and transform it
 into the specified target type, maintaining as much semantic meaning as possible.
 
+## Constants
+
+### `PROMPT`
+```python
+PROMPT = "'\nYou are an expert data converter that always maintains as much semantic\nmeaning as possible. You use inference or deduction whenever necessary to\nunderstand and transform the input data. Examine the provided `data`, text,\nor information and transform it into a single entity of the requested type.\n\n- When providing integers, do not write out any decimals at all\n- Use deduction where appropriate e.g. "3 dollars fifty cents" should be\n    converted to 3.5 when casting to a float\n- Preserve as much of the original meaning and structure as possible while\n    conforming to the target type\n- When providing a string response, do not return JSON or a quoted string\n    unless they provided instructions requiring it. If you do return JSON, it\n    must be valid and parseable including double quotes.\n- When converting to bool, treat "truthy" values as true'"
+```
+
+### `T`
+```python
+T = TypeVar('T')
+```
+
 ## Functions
 
 ### `cast`

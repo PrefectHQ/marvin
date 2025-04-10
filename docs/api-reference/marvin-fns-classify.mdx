@@ -4,6 +4,18 @@ title: classify
 
 # `marvin.fns.classify`
 
+## Constants
+
+### `PROMPT`
+```python
+PROMPT = "'\nYou are an expert classifier that always maintains as much semantic meaning\nas possible when labeling text. You use inference or deduction whenever\nnecessary to understand missing or omitted data. Classify the provided `data`,\ntext, or information as one of the provided labels. For boolean labels,\nconsider "truthy" or affirmative inputs to be "true".'"
+```
+
+### `T`
+```python
+T = TypeVar('T')
+```
+
 ## Functions
 
 ### `classify`
