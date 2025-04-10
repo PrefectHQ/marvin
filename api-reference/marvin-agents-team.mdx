@@ -1,0 +1,78 @@
+---
+title: team
+---
+
+# `marvin.agents.team`
+
+## Classes
+
+### `RandomTeam`
+```python
+class RandomTeam(name: str = lambda: random.choice(TEAM_NAMES)(), instructions: str | None = None, description: str | None = 'A team of agents that randomly selects an agent to act.', verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
+```
+
+**Methods:**
+
+- **`start_turn`**
+  ```python
+  def start_turn(self, thread: Thread)
+  ```
+
+### `RoundRobinTeam`
+```python
+class RoundRobinTeam(name: str = lambda: random.choice(TEAM_NAMES)(), instructions: str | None = None, description: str | None = 'A team of agents that rotate turns.', verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
+```
+
+**Methods:**
+
+- **`start_turn`**
+  ```python
+  def start_turn(self, thread: Thread)
+  ```
+
+### `Swarm`
+```python
+class Swarm(name: str = lambda: random.choice(TEAM_NAMES)(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
+```
+A swarm is a team that permits all agents to delegate to each other.
+
+### `Team`
+```python
+class Team(name: str = lambda: random.choice(TEAM_NAMES)(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
+```
+A team is a container that maintains state for a group of agents.
+
+**Methods:**
+
+- **`end_turn`**
+  ```python
+  def end_turn(self, thread: Thread, result: AgentRunResult)
+  ```
+- **`friendly_name`**
+  ```python
+  def friendly_name(self, verbose: bool = True) -> str
+  ```
+- **`get_agentlet`**
+  ```python
+  def get_agentlet(self, tools: list[Callable[..., Any]], end_turn_tools: list[EndTurn]) -> pydantic_ai.Agent[Any, Any]
+  ```
+- **`get_end_turn_tools`**
+  ```python
+  def get_end_turn_tools(self) -> list[EndTurn]
+  ```
+- **`get_memories`**
+  ```python
+  def get_memories(self) -> list[Memory]
+  ```
+- **`get_prompt`**
+  ```python
+  def get_prompt(self) -> str
+  ```
+- **`start_turn`**
+  ```python
+  def start_turn(self, thread: Thread)
+  ```
+
+---
+
+**Parent Module:** [`agents`](marvin-agents)

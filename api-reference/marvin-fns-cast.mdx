@@ -1,0 +1,82 @@
+---
+title: cast
+description: "Cast is a function that uses a language model to analyze the input data and transform it"
+---
+
+# `marvin.fns.cast`
+Cast is a function that uses a language model to analyze the input data and transform it
+into the specified target type, maintaining as much semantic meaning as possible.
+
+## Functions
+
+### `cast`
+```python
+def cast(data: Any, target: TargetType[T] | None = None, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> T
+```
+Transforms input data into a specific type using a language model.
+
+This function uses a language model to analyze the input data and transform it
+into the specified target type, maintaining as much semantic meaning as possible.
+
+Args:
+    data: The input data to transform. Can be any type.
+    target: The type to transform the data into. Defaults to str.
+    instructions: Optional additional instructions to guide the transformation.
+        Used to provide specific guidance about how to interpret or transform
+        the data.
+    agent: Optional custom agent to use for transformation. If not provided,
+        the default agent will be used.
+    thread: Optional thread for maintaining conversation context. Can be
+        either a Thread object or a string thread ID.
+    context: Optional dictionary of additional context to include in the task.
+
+Returns:
+    The transformed data of type T.
+
+Examples:
+    ```python
+    from marvin import cast
+    cast(123, str) # '123'
+
+    cast("three point five", float, instructions="Convert words to numbers") # 3.5
+
+    cast("yes", bool) # True
+    ```
+
+### `cast_async`
+```python
+def cast_async(data: Any, target: TargetType[T] | None = None, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> T
+```
+Asynchronously transforms input data into a specific type using a language model.
+
+This function uses a language model to analyze the input data and transform it
+into the specified target type, maintaining as much semantic meaning as possible.
+
+Args:
+    data: The input data to transform. Can be any type.
+    target: The type to transform the data into. Defaults to str.
+    instructions: Optional additional instructions to guide the transformation.
+        Used to provide specific guidance about how to interpret or transform
+        the data.
+    agent: Optional custom agent to use for transformation. If not provided,
+        the default agent will be used.
+    thread: Optional thread for maintaining conversation context. Can be
+        either a Thread object or a string thread ID.
+    context: Optional dictionary of additional context to include in the task.
+
+Returns:
+    The transformed data of type T.
+
+Examples:
+    ```python
+    from marvin import cast_async
+    await cast_async("whats the answer to it all?, int) # 42
+
+    await cast_async("three point five", float, instructions="Convert words to numbers") # 3.5
+
+    await cast_async("yes", bool) # True
+    ```
+
+---
+
+**Parent Module:** [`fns`](marvin-fns)

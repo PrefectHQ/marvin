@@ -1,0 +1,72 @@
+---
+title: tools
+---
+
+# `marvin.utilities.tools`
+
+## Classes
+
+### `ResultTool`
+```python
+class ResultTool(type: Literal['result-tool'] = 'result-tool')
+```
+
+**Methods:**
+
+- **`run`**
+  ```python
+  def run(self, ctx: RunContext)
+  ```
+
+## Functions
+
+### `update_fn`
+```python
+def update_fn(func: Callable[..., T] | None = None, name: str | None = None, description: str | None = None) -> Callable[[Callable[..., T]], Callable[..., T]] | Callable[..., T]
+```
+Update a function's name and optionally set its docstring.
+
+Can be used either as a decorator with keyword arguments or as a direct function.
+
+Args:
+    func: The function to update (optional). If provided, updates are applied directly.
+         If not provided, returns a decorator.
+    name: The new name for the function (optional). If provided, must not be empty.
+    description: Optional docstring for the function
+
+Example:
+    # As a function:
+    def my_fn(x):
+        return x
+    updated_fn = update_fn(my_fn, name='hello_there')
+
+    # As a decorator with name:
+    @update_fn(name='hello_there')
+    def my_fn(x):
+        return x
+
+    # As a decorator with name and description:
+    @update_fn(name='hello_there', description='Says hello')
+    def my_fn(x):
+        return x
+
+    # As a decorator with no arguments:
+    @update_fn()
+    def my_fn(x):
+        return x
+
+    # Works with async functions too:
+    @update_fn(name='async_hello')
+    async def my_async_fn(x):
+        return x
+
+### `wrap_tool_errors`
+```python
+def wrap_tool_errors(tool_fn: Callable[..., Any])
+```
+Pydantic AI doesn't catch errors except for ModelRetry, so we need to make
+sure we catch them ourselves and raise a ModelRetry instead.
+
+---
+
+**Parent Module:** [`utilities`](marvin-utilities)

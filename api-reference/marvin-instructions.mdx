@@ -1,0 +1,27 @@
+---
+title: instructions
+---
+
+# `marvin.instructions`
+
+## Functions
+
+### `get_instructions`
+```python
+def get_instructions() -> list[str]
+```
+Get the current instruction stack.
+
+### `instructions`
+```python
+def instructions(instruction: str) -> Generator[None, None, None]
+```
+Temporarily add instructions to the current instruction stack. The
+instruction is removed when the context is exited.
+
+with instructions("talk like a pirate"):
+    ...
+
+---
+
+**Parent Module:** [`marvin`](marvin)

@@ -1,0 +1,71 @@
+---
+title: generate
+---
+
+# `marvin.fns.generate`
+
+## Functions
+
+### `generate`
+```python
+def generate(target: TargetType[T] | None = None, n: int = 1, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> list[T]
+```
+Generates examples of a specific type or matching a description.
+
+This function uses a language model to generate high-quality, random examples
+that match the specified type or description. The examples are returned as a
+list.
+
+Args:
+    target: The type of entities to generate.
+    n: The number of examples to generate. Defaults to 1.
+    instructions: Optional instructions describing what to generate. Used to
+        provide specific guidance about what kinds of examples to create.
+    agent: Optional custom agent to use for generation. If not provided,
+        the default agent will be used.
+    thread: Optional thread for maintaining conversation context. Can be
+        either a Thread object or a string thread ID.
+    context: Optional dictionary of additional context to include in the task.
+
+Returns:
+    A list of n generated entities of type T.
+
+### `generate_async`
+```python
+def generate_async(target: TargetType[T] | None = None, n: int = 1, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> list[T]
+```
+Generates examples of a specific type or matching a description asynchronously.
+
+This function uses a language model to generate high-quality, random examples
+that match the specified type or description. The examples are returned as a
+list.
+
+Args:
+    target: The type of entities to generate.
+    n: The number of examples to generate. Defaults to 1.
+    instructions: Optional instructions describing what to generate. Used to
+        provide specific guidance about what kinds of examples to create.
+    agent: Optional custom agent to use for generation. If not provided,
+        the default agent will be used.
+    thread: Optional thread for maintaining conversation context. Can be
+        either a Thread object or a string thread ID.
+    context: Optional dictionary of additional context to include in the task.
+
+Returns:
+    A list of n generated entities of type T.
+
+### `generate_schema`
+```python
+def generate_schema(instructions: str, base_schema: JSONSchema | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> JSONSchema
+```
+Generates a JSON schema from a description.
+
+### `generate_schema_async`
+```python
+def generate_schema_async(instructions: str, base_schema: JSONSchema | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> JSONSchema
+```
+Generates a JSON schema from a description.
+
+---
+
+**Parent Module:** [`fns`](marvin-fns)

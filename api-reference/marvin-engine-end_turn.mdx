@@ -1,0 +1,93 @@
+---
+title: end_turn
+---
+
+# `marvin.engine.end_turn`
+
+## Classes
+
+### `DelegateToActor`
+```python
+class DelegateToActor()
+```
+
+### `EndTurn`
+```python
+class EndTurn()
+```
+
+**Methods:**
+
+- **`run`**
+  ```python
+  def run(self, thread: Thread, actor: Actor)
+  ```
+
+### `MarkTask`
+```python
+class MarkTask()
+```
+
+### `MarkTaskFailed`
+```python
+class MarkTaskFailed()
+```
+
+### `MarkTaskSkipped`
+```python
+class MarkTaskSkipped()
+```
+
+### `MarkTaskSuccessful`
+```python
+class MarkTaskSuccessful()
+```
+
+### `PlanSubtasks`
+```python
+class PlanSubtasks()
+```
+
+### `PostMessage`
+```python
+class PostMessage(message: str)
+```
+Post a message to the thread.
+
+**Methods:**
+
+- **`run`**
+  ```python
+  def run(self, thread: Thread, actor: Actor)
+  ```
+
+## Functions
+
+### `create_delegate_to_actor`
+```python
+def create_delegate_to_actor(delegate_actor: Actor, team: Team | None = None) -> type[DelegateToActor]
+```
+
+### `create_mark_task_failed`
+```python
+def create_mark_task_failed(mark_task: Task[Any]) -> type[MarkTaskFailed]
+```
+
+### `create_mark_task_skipped`
+```python
+def create_mark_task_skipped(mark_task: Task[Any]) -> type[MarkTaskSkipped]
+```
+
+### `create_mark_task_successful`
+```python
+def create_mark_task_successful(mark_task: Task[Any]) -> type[MarkTaskSuccessful]
+```
+
+### `create_plan_subtasks`
+```python
+def create_plan_subtasks(parent_task: Task[Any]) -> type[PlanSubtasks]
+```
+
+---
+
+**Parent Module:** [`engine`](marvin-engine)

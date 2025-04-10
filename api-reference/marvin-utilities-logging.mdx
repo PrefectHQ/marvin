@@ -1,0 +1,45 @@
+---
+title: logging
+---
+
+# `marvin.utilities.logging`
+
+## Functions
+
+### `get_logger`
+```python
+def get_logger(name: str | None = None) -> logging.Logger
+```
+Retrieves a logger with the given name, or the root logger if no name is given.
+
+Args:
+    name: The name of the logger to retrieve.
+
+Returns:
+    The logger with the given name, or the root logger if no name is given.
+
+Example:
+    Basic Usage of `get_logger`
+    ```python
+    from marvin.utilities.logging import get_logger
+
+    logger = get_logger("marvin.test")
+    logger.info("This is a test") # Output: marvin.test: This is a test
+
+    debug_logger = get_logger("marvin.debug")
+    debug_logger.debug_kv("TITLE", "log message", "green")
+    ```
+
+### `maybe_quote`
+```python
+def maybe_quote(value: Any) -> str
+```
+
+### `setup_logging`
+```python
+def setup_logging(level: str | None = None)
+```
+
+---
+
+**Parent Module:** [`utilities`](marvin-utilities)

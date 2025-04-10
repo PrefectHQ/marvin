@@ -1,0 +1,43 @@
+---
+title: lance
+---
+
+# `marvin.memory.providers.lance`
+
+## Classes
+
+### `LanceMemory`
+```python
+class LanceMemory(uri: Path = marvin.settings.home_path / 'memory' / 'lancedb', table_name: str = 'memory-{key}', embedding_fn: Callable[..., Any] = lambda: get_registry().get('openai').create(name='text-embedding-ada-002')(), _cached_model: LanceModel | None = None)
+```
+
+**Methods:**
+
+- **`add`**
+  ```python
+  def add(self, memory_key: str, content: str) -> str
+  ```
+- **`delete`**
+  ```python
+  def delete(self, memory_key: str, memory_id: str)
+  ```
+- **`get_db`**
+  ```python
+  def get_db(self) -> lancedb.DBConnection
+  ```
+- **`get_model`**
+  ```python
+  def get_model(self) -> LanceModel
+  ```
+- **`get_table`**
+  ```python
+  def get_table(self, memory_key: str) -> lancedb.table.Table
+  ```
+- **`search`**
+  ```python
+  def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]
+  ```
+
+---
+
+**Parent Module:** [`providers`](marvin-memory-providers)

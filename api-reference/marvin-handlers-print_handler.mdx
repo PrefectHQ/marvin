@@ -1,0 +1,128 @@
+---
+title: print_handler
+description: "A simplified print handler for rendering streaming events from the engine."
+---
+
+# `marvin.handlers.print_handler`
+A simplified print handler for rendering streaming events from the engine.
+
+## Classes
+
+### `EventPanel`
+```python
+class EventPanel(id: str, agent_name: str, timestamp: str)
+```
+Base class for panels that represent events.
+
+**Methods:**
+
+- **`render`**
+  ```python
+  def render(self) -> Panel
+  ```
+  Render this event as a panel.
+
+### `MessagePanel`
+```python
+class MessagePanel(id: str, agent_name: str, timestamp: str, content: str = '')
+```
+Panel for displaying agent messages with streaming updates.
+
+**Methods:**
+
+- **`render`**
+  ```python
+  def render(self) -> Panel
+  ```
+  Render the message as a markdown panel.
+
+### `PrintHandler`
+```python
+class PrintHandler(hide_end_turn_tools: bool | None = None)
+```
+A handler that renders events with streaming updates.
+
+**Methods:**
+
+- **`format_timestamp`**
+  ```python
+  def format_timestamp(self, ts) -> str
+  ```
+  Format timestamp for display.
+- **`on_actor_message`**
+  ```python
+  def on_actor_message(self, event: ActorMessageEvent)
+  ```
+  Handle complete agent messages.
+- **`on_actor_message_delta`**
+  ```python
+  def on_actor_message_delta(self, event: ActorMessageDeltaEvent)
+  ```
+  Handle streaming updates to agent messages.
+- **`on_end_turn_tool_call`**
+  ```python
+  def on_end_turn_tool_call(self, event: EndTurnToolCallEvent)
+  ```
+  Handle end turn tool call events.
+- **`on_end_turn_tool_result`**
+  ```python
+  def on_end_turn_tool_result(self, event: EndTurnToolResultEvent)
+  ```
+- **`on_orchestrator_end`**
+  ```python
+  def on_orchestrator_end(self, event: OrchestratorEndEvent)
+  ```
+  Clean up when orchestrator ends.
+- **`on_orchestrator_start`**
+  ```python
+  def on_orchestrator_start(self, event: OrchestratorStartEvent)
+  ```
+  Start the live display when orchestrator starts.
+- **`on_tool_call`**
+  ```python
+  def on_tool_call(self, event: ToolCallEvent)
+  ```
+  Handle complete tool calls.
+- **`on_tool_call_delta`**
+  ```python
+  def on_tool_call_delta(self, event: ToolCallDeltaEvent)
+  ```
+  Handle streaming updates to tool calls.
+- **`on_tool_result`**
+  ```python
+  def on_tool_result(self, event: ToolResultEvent)
+  ```
+  Handle tool result events.
+- **`on_tool_retry`**
+  ```python
+  def on_tool_retry(self, event: ToolRetryEvent)
+  ```
+  Handle tool retry events.
+- **`update_display`**
+  ```python
+  def update_display(self)
+  ```
+  Update the terminal display with current panels.
+
+### `ToolCallPanel`
+```python
+class ToolCallPanel(id: str, agent_name: str, timestamp: str, tool_name: str = '', args: Dict[str, Any] = dict(), is_complete: bool = False, result: str = '', is_error: bool = False, is_end_turn_tool: bool = False, tool: EndTurn | Callable[..., Any] | None = None)
+```
+Panel for displaying tool calls with streaming updates.
+
+**Methods:**
+
+- **`get_status_style`**
+  ```python
+  def get_status_style(self) -> Tuple[Any, str, str]
+  ```
+  Returns (icon, text style, border style) for current status.
+- **`render`**
+  ```python
+  def render(self) -> Panel
+  ```
+  Render the tool call as a panel.
+
+---
+
+**Parent Module:** [`handlers`](marvin-handlers)

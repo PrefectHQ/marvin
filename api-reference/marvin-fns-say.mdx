@@ -1,0 +1,59 @@
+---
+title: say
+---
+
+# `marvin.fns.say`
+
+## Functions
+
+### `say`
+```python
+def say(message: str | Sequence[UserContent], instructions: str | None = None, agent: Actor | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> str
+```
+Responds to a user message in a conversational way.
+
+This function uses a language model to process the user's message and generate
+an appropriate response, taking into account any specific instructions and
+maintaining conversation history through the thread.
+
+Args:
+    message: The user's message to respond to.
+    instructions: Optional additional instructions to guide the response.
+        Used to provide specific guidance about how to interpret or
+        respond to the message.
+    agent: Optional custom agent to use for the response. If not provided,
+        the default agent will be used.
+    thread: Optional thread for maintaining conversation context. Can be
+        either a Thread object or a string thread ID.
+    context: Optional dictionary of additional context to include in the task.
+
+Returns:
+    str: The assistant's response to the user's message.
+
+### `say_async`
+```python
+def say_async(message: str | Sequence[UserContent], instructions: str | None = None, agent: Actor | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> str
+```
+Responds to a user message in a conversational way.
+
+This function uses a language model to process the user's message and generate
+an appropriate response, taking into account any specific instructions and
+maintaining conversation history through the thread.
+
+Args:
+    message: The user's message to respond to.
+    instructions: Optional additional instructions to guide the response.
+        Used to provide specific guidance about how to interpret or
+        respond to the message.
+    agent: Optional custom agent to use for the response. If not provided,
+        the default agent will be used.
+    thread: Optional thread for maintaining conversation context. Can be
+        either a Thread object or a string thread ID.
+    context: Optional dictionary of additional context to include in the task.
+
+Returns:
+    str: The assistant's response to the user's message.
+
+---
+
+**Parent Module:** [`fns`](marvin-fns)

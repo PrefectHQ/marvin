@@ -1,0 +1,173 @@
+---
+title: task
+description: "Tasks for Marvin."
+---
+
+# `marvin.tasks.task`
+Tasks for Marvin.
+
+A Task is a container for a prompt and its associated state.
+
+## Classes
+
+### `Task`
+```python
+class Task(instructions: str | Sequence[UserContent], attachments: Sequence[UserContent] | None = None, result_type: ResultType[T] = NOTSET, name: str | None = None, prompt_template: str | Path = Path('task.jinja'), agents: list[Actor | Team] | None = None, context: dict[str, Any] | None = None, tools: list[Callable[..., Any]] | None = None, memories: list[Memory] | None = None, result_validator: Callable[..., Any] | None = None, parent: Task[Any] | None | Literal['__NOTSET__'] = NOTSET, depends_on: Sequence[Task[Any]] | None = None, allow_fail: bool = False, allow_skip: bool = False, verbose: bool = False, cli: bool = False, plan: bool = False)
+```
+A task is a container for a prompt and its associated state.
+
+**Methods:**
+
+- **`friendly_name`**
+  ```python
+  def friendly_name(self, verbose: bool = True) -> str
+  ```
+  Get a friendly name for this task.
+- **`get_actor`**
+  ```python
+  def get_actor(self) -> Actor
+  ```
+  Retrieve the actor assigned to this task.
+- **`get_end_turn_tools`**
+  ```python
+  def get_end_turn_tools(self) -> list[type[EndTurn]]
+  ```
+  Get the result tool for this task.
+- **`get_prompt`**
+  ```python
+  def get_prompt(self) -> str | Sequence[UserContent]
+  ```
+  Get the rendered prompt for this task.
+  
+  Uses the task's prompt_template (or default if None) and renders it with
+  this task instance as the `task` variable.
+- **`get_result_type`**
+  ```python
+  def get_result_type(self) -> type[T]
+  ```
+  Get the effective result type for this task.
+  For classification tasks, returns the type that should be used
+  for validation (e.g., int or list[int]).
+- **`get_result_type_str`**
+  ```python
+  def get_result_type_str(self) -> str
+  ```
+  Get a string representation of the result type.
+- **`get_tools`**
+  ```python
+  def get_tools(self) -> list[Callable[..., Any]]
+  ```
+  Get the tools assigned to this task.
+- **`is_classifier`**
+  ```python
+  def is_classifier(self) -> bool
+  ```
+  Return True if this task is a classification task.
+- **`is_complete`**
+  ```python
+  def is_complete(self) -> bool
+  ```
+  Check if the task is complete.
+- **`is_failed`**
+  ```python
+  def is_failed(self) -> bool
+  ```
+  Check if the task is failed.
+- **`is_incomplete`**
+  ```python
+  def is_incomplete(self) -> bool
+  ```
+  Check if the task is incomplete.
+- **`is_pending`**
+  ```python
+  def is_pending(self) -> bool
+  ```
+  Check if the task is pending.
+- **`is_ready`**
+  ```python
+  def is_ready(self) -> bool
+  ```
+  Check if the task is ready to run.
+  
+  A task is ready if it is incomplete and all of its dependencies (including subtasks) are complete.
+- **`is_running`**
+  ```python
+  def is_running(self) -> bool
+  ```
+  Check if the task is running.
+- **`is_skipped`**
+  ```python
+  def is_skipped(self) -> bool
+  ```
+  Check if the task is skipped.
+- **`is_successful`**
+  ```python
+  def is_successful(self) -> bool
+  ```
+  Check if the task is successful.
+- **`mark_failed`**
+  ```python
+  def mark_failed(self, error: str, thread: Thread | None = None)
+  ```
+  Mark the task as failed with an error message.
+- **`mark_failed_tool`**
+  ```python
+  def mark_failed_tool(self) -> type[marvin.engine.end_turn.MarkTaskFailed]
+  ```
+- **`mark_running`**
+  ```python
+  def mark_running(self, thread: Thread | None = None)
+  ```
+  Mark the task as running.
+- **`mark_skipped`**
+  ```python
+  def mark_skipped(self, thread: Thread | None = None)
+  ```
+  Mark the task as skipped.
+- **`mark_skipped_tool`**
+  ```python
+  def mark_skipped_tool(self) -> type[marvin.engine.end_turn.MarkTaskSkipped]
+  ```
+- **`mark_successful`**
+  ```python
+  def mark_successful(self, result: T = None, validate_result: bool = True, thread: Thread | None = None)
+  ```
+  Mark the task as successful with an optional result.
+- **`mark_successful_tool`**
+  ```python
+  def mark_successful_tool(self) -> type[marvin.engine.end_turn.MarkTaskSuccessful]
+  ```
+- **`run`**
+  ```python
+  def run(self, thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> T
+  ```
+- **`run_async`**
+  ```python
+  def run_async(self, thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> T
+  ```
+- **`run_stream`**
+  ```python
+  def run_stream(self, thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> AsyncGenerator[Event, None]
+  ```
+- **`validate_result`**
+  ```python
+  def validate_result(self, raw_result: Any) -> T
+  ```
+  Validate a result against the expected type and custom validator.
+
+### `TaskState`
+```python
+class TaskState()
+```
+State of a task.
+
+## Functions
+
+### `get_type_adapter`
+```python
+def get_type_adapter(result_type: type[T]) -> TypeAdapter[T]
+```
+
+---
+
+**Parent Module:** [`tasks`](marvin-tasks)

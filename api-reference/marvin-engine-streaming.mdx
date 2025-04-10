@@ -1,0 +1,41 @@
+---
+title: streaming
+---
+
+# `marvin.engine.streaming`
+
+## Functions
+
+### `handle_agentlet_events`
+```python
+def handle_agentlet_events(agentlet: pydantic_ai.Agent, actor: Actor, run: AgentRun)
+```
+Run a PydanticAI agentlet and process its events through the Marvin event system.
+
+This function:
+1. Runs the agentlet's iterator
+2. Processes all nodes and events from PydanticAI
+3. Converts them to Marvin events and yields them
+
+Args:
+    run: The agentlet run to process
+    actor: The actor associated with this agentlet run
+
+Usage:
+
+agentlet = pydantic_ai.Agent(...)
+with agentlet.iter(msg) as run:
+    async for event in handle_agentlet_events(
+        actor=actor,
+        run=run,
+        tools=tools,
+        end_turn_tools=end_turn_tools,
+    ):
+        yield event
+
+Yields:
+    Marvin events derived from PydanticAI events
+
+---
+
+**Parent Module:** [`engine`](marvin-engine)
