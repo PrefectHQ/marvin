@@ -15,9 +15,9 @@ repos:
         entry: uv run scripts/check_for_breakpoints.py
         language: system
         files: ^src/.*\.py$
-      - id: update-api-reference
-        name: Update API Reference
-        entry: uv run scripts/make_markdown_ref.py
+      - id: update-mintlify-api-reference
+        name: Update Mintlify API Reference
+        entry: uv run scripts/create_mintlify_api_ref.py
         language: system
         files: ^src/.*\.py$
         pass_filenames: false

@@ -77,93 +77,117 @@
                 "anchor": "API Reference",
                 "groups": [
                     {
-                        "group": "marvin.agents",
+                        "group": "agents",
                         "pages": [
-                            "api-reference/marvin-agents"
+                            "api-reference/marvin-agents-actor",
+                            "api-reference/marvin-agents-agent",
+                            "api-reference/marvin-agents-names",
+                            "api-reference/marvin-agents-team"
                         ]
                     },
                     {
-                        "group": "marvin.cli",
+                        "group": "cli",
                         "pages": [
-                            "api-reference/marvin-cli"
+                            "api-reference/marvin-cli-dev",
+                            "api-reference/marvin-cli-main",
+                            "api-reference/marvin-cli-migrations"
                         ]
                     },
                     {
-                        "group": "marvin.database",
+                        "group": "core",
                         "pages": [
-                            "api-reference/marvin-database"
+                            "api-reference/marvin"
                         ]
                     },
                     {
-                        "group": "marvin.defaults",
+                        "group": "database",
+                        "pages": []
+                    },
+                    {
+                        "group": "defaults",
+                        "pages": []
+                    },
+                    {
+                        "group": "engine",
                         "pages": [
-                            "api-reference/marvin-defaults"
+                            "api-reference/marvin-engine-end_turn",
+                            "api-reference/marvin-engine-events",
+                            "api-reference/marvin-engine-llm",
+                            "api-reference/marvin-engine-orchestrator",
+                            "api-reference/marvin-engine-streaming"
                         ]
                     },
                     {
-                        "group": "marvin.engine",
+                        "group": "fns",
                         "pages": [
-                            "api-reference/marvin-engine"
+                            "api-reference/marvin-fns-cast",
+                            "api-reference/marvin-fns-classify",
+                            "api-reference/marvin-fns-extract",
+                            "api-reference/marvin-fns-fn",
+                            "api-reference/marvin-fns-generate",
+                            "api-reference/marvin-fns-plan",
+                            "api-reference/marvin-fns-run",
+                            "api-reference/marvin-fns-say",
+                            "api-reference/marvin-fns-summarize"
                         ]
                     },
                     {
-                        "group": "marvin.fns",
+                        "group": "handlers",
                         "pages": [
-                            "api-reference/marvin-fns"
+                            "api-reference/marvin-handlers-handlers",
+                            "api-reference/marvin-handlers-print_handler",
+                            "api-reference/marvin-handlers-queue_handler"
                         ]
                     },
                     {
-                        "group": "marvin.handlers",
+                        "group": "instructions",
+                        "pages": []
+                    },
+                    {
+                        "group": "memory",
                         "pages": [
-                            "api-reference/marvin-handlers"
+                            "api-reference/marvin-memory-memory",
+                            "api-reference/marvin-memory-providers",
+                            "api-reference/marvin-memory-providers-chroma",
+                            "api-reference/marvin-memory-providers-lance",
+                            "api-reference/marvin-memory-providers-postgres"
                         ]
                     },
                     {
-                        "group": "marvin.instructions",
+                        "group": "prompts",
+                        "pages": []
+                    },
+                    {
+                        "group": "settings",
+                        "pages": []
+                    },
+                    {
+                        "group": "tasks",
                         "pages": [
-                            "api-reference/marvin-instructions"
+                            "api-reference/marvin-tasks-task"
                         ]
                     },
                     {
-                        "group": "marvin.memory",
+                        "group": "thread",
+                        "pages": []
+                    },
+                    {
+                        "group": "tools",
                         "pages": [
-                            "api-reference/marvin-memory"
+                            "api-reference/marvin-tools-thread"
                         ]
                     },
                     {
-                        "group": "marvin.prompts",
+                        "group": "utilities",
                         "pages": [
-                            "api-reference/marvin-prompts"
-                        ]
-                    },
-                    {
-                        "group": "marvin.settings",
-                        "pages": [
-                            "api-reference/marvin-settings"
-                        ]
-                    },
-                    {
-                        "group": "marvin.tasks",
-                        "pages": [
-                            "api-reference/marvin-tasks"
-                        ]
-                    },
-                    {
-                        "group": "marvin.thread",
-                        "pages": [
-                            "api-reference/marvin-thread"
-                        ]
-                    },
-                    {
-                        "group": "marvin.tools",
-                        "pages": [
-                            "api-reference/marvin-tools"
-                        ]
-                    },
-                    {
-                        "group": "marvin.utilities",
-                        "pages": [
-                            "api-reference/marvin-utilities"
+                            "api-reference/marvin-utilities-asyncio",
+                            "api-reference/marvin-utilities-jinja",
+                            "api-reference/marvin-utilities-jsonschema",
+                            "api-reference/marvin-utilities-logging",
+                            "api-reference/marvin-utilities-models",
+                            "api-reference/marvin-utilities-testing",
+                            "api-reference/marvin-utilities-tools",
+                            "api-reference/marvin-utilities-types"
                         ]
                     }
                 ]

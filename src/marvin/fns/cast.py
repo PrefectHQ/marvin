@@ -1,3 +1,8 @@
+"""
+Cast is a function that uses a language model to analyze the input data and transform it
+into the specified target type, maintaining as much semantic meaning as possible.
+"""
+
 from typing import Any, TypeVar
 
 import marvin
@@ -54,17 +59,14 @@ async def cast_async(
         The transformed data of type T.
 
     Examples:
-        >>> # Cast to string
-        >>> await cast_async(123, str)
-        '123'
+        ```python
+        from marvin import cast_async
+        await cast_async("whats the answer to it all?, int) # 42
 
-        >>> # Cast to float with instructions
-        >>> await cast_async("three point five", float, instructions="Convert words to numbers")
-        3.5
+        await cast_async("three point five", float, instructions="Convert words to numbers") # 3.5
 
-        >>> # Cast to bool
-        >>> await cast_async("yes", bool)
-        True
+        await cast_async("yes", bool) # True
+        ```
 
     """
     if target is None:
@@ -119,17 +121,14 @@ def cast(
         The transformed data of type T.
 
     Examples:
-        >>> # Cast to string
-        >>> cast(123, str)
-        '123'
+        ```python
+        from marvin import cast
+        cast(123, str) # '123'
 
-        >>> # Cast to float with instructions
-        >>> cast("three point five", float, instructions="Convert words to numbers")
-        3.5
+        cast("three point five", float, instructions="Convert words to numbers") # 3.5
 
-        >>> # Cast to bool
-        >>> cast("yes", bool)
-        True
+        cast("yes", bool) # True
+        ```
 
     """
     return run_sync(
