@@ -31,7 +31,7 @@ def test_simple_events():
     collector = EventCollector()
     result = marvin.run(
         "",
-        agents=[marvin.Agent(model=TestModel(custom_result_args={"result": {"x": 1}}))],
+        agents=[marvin.Agent(model=TestModel(custom_output_args={"result": {"x": 1}}))],
         result_type=Foo,
         handlers=[collector],
     )
@@ -54,7 +54,7 @@ def test_tool_call_events():
     collector = EventCollector()
     result = marvin.run(
         "",
-        agents=[marvin.Agent(model=TestModel(custom_result_args={"result": {"x": 1}}))],
+        agents=[marvin.Agent(model=TestModel(custom_output_args={"result": {"x": 1}}))],
         result_type=Foo,
         tools=[my_tool],
         handlers=[collector],

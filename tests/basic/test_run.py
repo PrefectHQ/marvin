@@ -3,19 +3,18 @@ from pydantic_ai import UnexpectedModelBehavior
 from pydantic_ai.models.test import TestModel
 
 import marvin
-import marvin.engine.orchestrator
 
 
 def test_simple_run(test_model: TestModel):
     task = marvin.Task("Test task")
-    test_model.custom_result_args = dict(task_id=task.id, result="hello world")
+    test_model.custom_output_args = dict(task_id=task.id, result="hello world")
     result = task.run()
     assert result == "hello world"
 
 
 def test_simple_run_with_result_type(test_model: TestModel):
     task = marvin.Task("Test task", result_type=int)
-    test_model.custom_result_args = dict(task_id=task.id, result=1)
+    test_model.custom_output_args = dict(task_id=task.id, result=1)
     result = task.run()
     assert result == 1
 
@@ -23,7 +22,7 @@ def test_simple_run_with_result_type(test_model: TestModel):
 @pytest.mark.skip(reason="TODO: what is the expected behavior here?")
 def test_simple_run_with_wrong_result_type(test_model: TestModel):
     task = marvin.Task("Test task", result_type=int)
-    test_model.custom_result_args = dict(task_id=task.id, result="hello world")
+    test_model.custom_output_args = dict(task_id=task.id, result="hello world")
     with pytest.raises(UnexpectedModelBehavior):
         task.run()
 
