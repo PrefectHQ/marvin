@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, TypeVar, Union
 
 import pydantic_ai
 from pydantic_ai.models import KnownModelName, Model, ModelSettings
+from pydantic_ai.result import ToolOutput
 
 import marvin
 from marvin.agents.actor import Actor
@@ -146,12 +147,14 @@ class Agent(Actor):
 
         agentlet = pydantic_ai.Agent[Any, result_type](  # type: ignore
             model=self.get_model(),
-            result_type=result_type,
+            output_type=ToolOutput[result_type](
+                type_=result_type,
+                name=result_tool_name or "EndTurn",
+                description="This tool will end your turn. You may only use one turn-ending tool per turn.",
+            ),
             tools=tools,
             model_settings=self.get_model_settings(),
             end_strategy="exhaustive",
-            result_tool_name=result_tool_name or "EndTurn",
-            result_tool_description="This tool will end your turn. You may only use one turn-ending tool per turn.",
             retries=marvin.settings.agent_retries,
         )
         # new fields

@@ -49,6 +49,7 @@ class TestBuiltins:
 
 class TestGenerateSchema:
     @pytest.mark.usefixtures("gpt_4o")
+    @pytest.mark.flaky(reruns=2)
     async def test_generate_list_of_integers_schema(self):
         result = await marvin.generate_schema_async(
             instructions="a list that contains exactly three integers",

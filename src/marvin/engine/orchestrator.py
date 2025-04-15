@@ -208,8 +208,8 @@ class Orchestrator:
         await self.handle_event(ActorStartTurnEvent(actor=actor))
 
     async def end_turn(self, result: AgentRunResult, actor: Actor):
-        if isinstance(result.data, EndTurn):
-            await result.data.run(thread=self.thread, actor=actor)
+        if isinstance(result.output, EndTurn):
+            await result.output.run(thread=self.thread, actor=actor)
 
         await actor.end_turn(result=result, thread=self.thread)
         await self.handle_event(ActorEndTurnEvent(actor=actor))
