@@ -77,7 +77,7 @@ async def handle_agentlet_events(
     end_turn_tools_map = {}
     for t in agentlet._marvin_end_turn_tools:
         end_turn_tools_map[t.__name__] = t
-        end_turn_tools_map[f"{agentlet._result_tool_name}_{t.__name__}"] = t
+        end_turn_tools_map[f"{agentlet._deprecated_result_tool_name}_{t.__name__}"] = t
 
     async for node in run:
         if pydantic_ai.Agent.is_user_prompt_node(node):
