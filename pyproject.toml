@@ -43,7 +43,7 @@ dev = [
 audio = ["pyaudio>=0.2.14"]
 
 slackbot = [
-    "pydantic-ai[anthropic]@git+https://github.com/pydantic/pydantic-ai.git@main",
+    "pydantic-ai[anthropic]",
     "prefect",
     "numpy",
     "raggy",
