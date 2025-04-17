@@ -1,27 +1,36 @@
 import chromadb
 import pytest
+from qdrant_client import AsyncQdrantClient
 
 import marvin
-from marvin.memory.providers.chroma import ChromaMemory
+from marvin.memory.providers.chroma import ChromaEphemeralMemory, ChromaMemory
+from marvin.memory.providers.qdrant import QdrantMemory
 
 
+@pytest.mark.parametrize(
+    "provider",
+    [
+        ChromaEphemeralMemory(),
+        QdrantMemory(client=AsyncQdrantClient(location=":memory:")),
+    ],
+)
 class TestMemory:
-    async def test_store_and_retrieve(self):
-        m = marvin.Memory(key="test", instructions="test")
+    async def test_store_and_retrieve(self, provider):
+        m = marvin.Memory(key="test", instructions="test", provider=provider)
         await m.add("The number is 42")
         result = await m.search("numbers")
         assert len(result) == 1
         assert "The number is 42" in result.values()
 
-    async def test_delete(self):
-        m = marvin.Memory(key="test", instructions="test")
+    async def test_delete(self, provider):
+        m = marvin.Memory(key="test2", instructions="test", provider=provider)
         m_id = await m.add("The number is 42")
         await m.delete(m_id)
         result = await m.search("numbers")
         assert len(result) == 0
 
-    async def test_search(self):
-        m = marvin.Memory(key="test", instructions="test")
+    async def test_search(self, provider):
+        m = marvin.Memory(key="test3", instructions="test", provider=provider)
         await m.add("The number is 42")
         await m.add("The number is 43")
         result = await m.search("numbers")
