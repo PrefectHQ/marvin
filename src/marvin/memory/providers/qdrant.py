@@ -9,7 +9,7 @@ try:
 except ImportError:
     raise ImportError(
         """To use Qdrant as a memory provider, install the `qdrant_client` package.
-        Run `pip install 'qdrant_client[fastembed]'"""
+        Run `pip install 'qdrant_client[fastembed]`'"""
     )
 
 
