@@ -2,6 +2,7 @@
 name = "marvin"
 description = "a simple and powerful tool to get things done with AI"
 readme = "README.md"
+license = { file = "LICENSE" }
 requires-python = ">=3.10"
 dynamic = ["version"]
 dependencies = [
