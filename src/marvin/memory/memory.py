@@ -167,4 +167,11 @@ def get_memory_provider(provider: str) -> MemoryProvider:
         import marvin.memory.providers.postgres as postgres_provider
 
         return postgres_provider.PostgresMemory()
+
+    # --- Qdrant ---
+    elif provider.startswith("qdrant"):
+        import marvin.memory.providers.qdrant as qdrant_provider
+
+        return qdrant_provider.QdrantMemory()
+
     raise ValueError(f'Memory provider "{provider}" could not be loaded from a string.')

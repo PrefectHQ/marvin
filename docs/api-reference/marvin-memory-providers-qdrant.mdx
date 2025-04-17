@@ -1,0 +1,35 @@
+---
+title: qdrant
+---
+
+# `marvin.memory.providers.qdrant`
+
+## Classes
+
+### `QdrantMemory`
+```python
+class QdrantMemory(client: AsyncQdrantClient = lambda: AsyncQdrantClient(path=str(marvin.settings.home_path / 'memory/qdrant'))(), collection_name: str = 'memory-{key}')
+```
+
+**Methods:**
+
+- **`add`**
+  ```python
+  def add(self, memory_key: str, content: str) -> str
+  ```
+- **`delete`**
+  ```python
+  def delete(self, memory_key: str, memory_id: str)
+  ```
+- **`get_collection`**
+  ```python
+  def get_collection(self, memory_key: str) -> models.CollectionInfo
+  ```
+- **`search`**
+  ```python
+  def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]
+  ```
+
+---
+
+**Parent Module:** [`providers`](marvin-memory-providers)

@@ -150,7 +150,8 @@
                             "api-reference/marvin-memory-providers",
                             "api-reference/marvin-memory-providers-chroma",
                             "api-reference/marvin-memory-providers-lance",
-                            "api-reference/marvin-memory-providers-postgres"
+                            "api-reference/marvin-memory-providers-postgres",
+                            "api-reference/marvin-memory-providers-qdrant"
                         ]
                     },
                     {

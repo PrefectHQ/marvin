@@ -38,6 +38,7 @@ dev = [
     "ruff",
     "pandas",
     "prefect",
+    "qdrant-client[fastembed]"
 ]
 
 [project.optional-dependencies]

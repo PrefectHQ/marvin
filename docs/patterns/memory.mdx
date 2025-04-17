@@ -187,7 +187,9 @@ uv pip install "marvin[postgres]"
 ```
 
 </CodeGroup>
+
 Configure PostgreSQL:
+
 ```python
 import marvin
 from marvin.memory.providers import PostgresProvider
@@ -201,16 +203,47 @@ memory = marvin.Memory(
 )
 ```
 
+### Qdrant
+
+[Qdrant](https://qdrant.tech/) is a high-performance vector search engine built with Rust.
+
+<CodeGroup>
+
+```bash pip
+pip install "marvin" "qdrant-client[fastembed]"
+```
+
+```bash uv
+uv pip install "marvin" "qdrant-client[fastembed]"
+```
+
+</CodeGroup>
+
+Configure Qdrant:
+
+```python
+import marvin
+from marvin.memory.providers import QdrantProvider
+from qdrant_client import AsyncQdrantClient
+
+provider = QdrantProvider(client=AsyncQdrantClient())
+
+memory = marvin.Memory(
+    key="knowledge",
+    provider=provider
+)
+```
+
 ### All Providers
 
 Install all memory providers at once:
 
 <CodeGroup>
 ```bash pip
-pip install "marvin[memory]"  # Includes chroma, lance, and postgres
+pip install "marvin[memory]"  # Includes chroma, lance, postgres, qdrant
 ```
 
 ```bash uv
-uv pip install "marvin[memory]"  # Includes chroma, lance, and postgres
+uv pip install "marvin[memory]"  # Includes chroma, lance, postgres and qdrant
 ```
 </CodeGroup>
