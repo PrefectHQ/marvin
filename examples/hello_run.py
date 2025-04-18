@@ -7,9 +7,7 @@ import marvin
 
 class Location(TypedDict):
     name: str
-    lat: Annotated[float, Field(ge=0, le=90)]
-    lon: Annotated[float, Field(ge=0, le=180)]
-
+    lat: Annotated[float, Field(ge=-90, le=90)]
 
 print(
     marvin.run(
