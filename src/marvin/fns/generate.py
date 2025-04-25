@@ -150,13 +150,14 @@ async def generate_schema_async(
 ) -> JSONSchema:
     """Generates a JSON schema from a description."""
 
-    prompt = inspect.cleandoc("""
-        Your job is to generate JSON Schemas that match the user's instructions. The latest instruction is:
+    prompt = prompt or inspect.cleandoc("""
+        Your job is to generate JSON schemas that match the user's instructions. The latest instruction is:
         
         <instructions>
         {{instructions}}
         </instructions>
         
+        Don't include extra nesting (e.g. const) unless the user explicitly asks for it - ie simple as possible.
         ---
         {% if base_schema %}
         Base your response on the following schema as much as possible:
