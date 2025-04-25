@@ -33,7 +33,7 @@ def verify_import_statements(import_statements: list[str]) -> str:
         "❌ from prefect import schleeb: No module named 'schleeb'\n✅ from prefect import flow"
     """
     print(f"Verifying import statements: {import_statements}")
-    results = []
+    results: list[str] = []
     for import_statement in import_statements:
         try:
             result = subprocess.run(

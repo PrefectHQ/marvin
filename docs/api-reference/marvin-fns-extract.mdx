@@ -6,9 +6,14 @@ title: extract
 
 ## Constants
 
+### `DEFAULT_PROMPT`
+```python
+DEFAULT_PROMPT = "'\nYou are an expert entity extractor that always maintains as much semantic\nmeaning as possible. You use inference or deduction whenever necessary to\nsupply missing or omitted data. Examine the provided `data`, text, or\ninformation and generate a list of any entities or objects that match the\nrequested format.\n\n- When providing integers, do not write out any decimals at all\n- Use deduction where appropriate e.g. "3 dollars fifty cents" is a single\n    value [3.5] not two values [3, 50] unless the user specifically asks for\n    each part.'"
+```
+
 ### `PROMPT`
 ```python
-PROMPT = "'\nYou are an expert entity extractor that always maintains as much semantic\nmeaning as possible. You use inference or deduction whenever necessary to\nsupply missing or omitted data. Examine the provided `data`, text, or\ninformation and generate a list of any entities or objects that match the\nrequested format.\n\n- When providing integers, do not write out any decimals at all\n- Use deduction where appropriate e.g. "3 dollars fifty cents" is a single\n    value [3.5] not two values [3, 50] unless the user specifically asks for\n    each part.'"
+PROMPT = DEFAULT_PROMPT
 ```
 
 ### `T`
@@ -20,7 +25,7 @@ T = TypeVar('T')
 
 ### `extract`
 ```python
-def extract(data: Any, target: TargetType[T] | None = None, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> list[T]
+def extract(data: Any, target: TargetType[T] | None = None, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, handlers: list[Handler | AsyncHandler] | None = None, prompt: str | None = None) -> list[T]
 ```
 Extracts entities of a specific type from the provided data.
 
@@ -39,6 +44,9 @@ Args:
     thread: Optional thread for maintaining conversation context. Can be
         either a Thread object or a string thread ID.
     context: Optional dictionary of additional context to include in the task.
+    handlers: Optional list of handlers to use for the task.
+    prompt: Optional prompt to use for the task. If not provided, the default
+        prompt will be used.
 
 Returns:
     A list of extracted entities of type T.
@@ -48,7 +56,7 @@ Raises:
 
 ### `extract_async`
 ```python
-def extract_async(data: Any, target: TargetType[T] | None = None, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> list[T]
+def extract_async(data: Any, target: TargetType[T] | None = None, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, handlers: list[Handler | AsyncHandler] | None = None, prompt: str | None = None) -> list[T]
 ```
 Extracts entities of a specific type from the provided data.
 
@@ -67,7 +75,9 @@ Args:
     thread: Optional thread for maintaining conversation context. Can be
         either a Thread object or a string thread ID.
     context: Optional dictionary of additional context to include in the task.
-
+    handlers: Optional list of handlers to use for the task.
+    prompt: Optional prompt to use for the task. If not provided, the default
+        prompt will be used.
 Returns:
     A list of extracted entities of type T.
 

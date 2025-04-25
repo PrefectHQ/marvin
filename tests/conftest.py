@@ -5,8 +5,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import chromadb
-import pydantic_ai
 import pytest
+from pydantic_ai.models.test import TestModel
 
 import marvin
 from marvin import database, settings
@@ -112,6 +112,6 @@ def unit_test_instructions():
 
 @pytest.fixture()
 def test_model():
-    model = pydantic_ai.models.test.TestModel()
+    model = TestModel()
     with override_defaults(model=model):
         yield model

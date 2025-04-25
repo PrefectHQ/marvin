@@ -13,7 +13,7 @@ class CulturalReference(TypedDict):
     circa: date
 
 
-@fn
+@fn(prompt="provide likely outputs for this function, and use ALL CAPS!")
 def pop_culture_related_to_sum(x: int, y: int) -> CulturalReference:
     """Given two numbers, return a cultural reference related to the sum of the two numbers."""
     return f"the sum of {x} and {y} is {x + y}"  # type: ignore[reportReturnType]
@@ -22,23 +22,17 @@ def pop_culture_related_to_sum(x: int, y: int) -> CulturalReference:
 if __name__ == "__main__":
     print(pop_culture_related_to_sum(40, 2))
 """
-» python examples/hello_fn.py
-╭─ Marvin ─────────────────────────────────────────────────────────────────────────────────────────╮
-│ ⠋   Final Result                                                                                 │
-│     Input:   {                                                                                   │
-│                'response': {                                                                     │
-│                  'task_id': 'a9afe620-be14-4511-a2ab-37e026eedcc3',                              │
-│                  'result': {                                                                     │
-│                    'short_description': "The number 42 is widely recognized as 'The Answer to    │
-│              the Ultimate Question of Life, the Universe, and Everything' from Douglas Adams'    │
-│              science fiction series 'The Hitchhiker's Guide to the Galaxy'.",                    │
-│                    'circa': '1979-01-01'                                                         │
-│                  }                                                                               │
-│                }                                                                                 │
-│              }                                                                                   │
-╰──────────────────────────────────────────────────────────────────────────────────── 11:23:05 PM ─╯
-{
-    'short_description': "The number 42 is widely recognized as 'The Answer to the Ultimate Question of Life, the Universe, and Everything' from Douglas Adams' science fiction series 'The Hitchhiker's Guide to the Galaxy'.",
-    'circa': datetime.date(1979, 1, 1)
-}
+» uv run examples/hello_fn.py
+╭─ Agent "Marvin" (0e8e4dc7) ──────────────────────────────────────────────────────────────────────╮
+│                                                                                                  │
+│  Tool:    Mark Task 910991c9 ("Predict output of pop_culture_related_to_sum") successful         │
+│  Status:  ✅                                                                                     │
+│  Result   {                                                                                      │
+│               'short_description': 'THE ANSWER TO THE ULTIMATE QUESTION OF LIFE, THE UNIVERSE,   │
+│           AND EVERYTHING',                                                                       │
+│               'circa': '1979-10-12'                                                              │
+│           }                                                                                      │
+│                                                                                                  │
+╰────────────────────────────────────────────────────────────────────────────────────  1:50:52 AM ─╯
+{'short_description': 'THE ANSWER TO THE ULTIMATE QUESTION OF LIFE, THE UNIVERSE, AND EVERYTHING', 'circa': datetime.date(1979, 10, 12)}
 """

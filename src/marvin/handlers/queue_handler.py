@@ -29,9 +29,9 @@ class QueueHandler(AsyncHandler):
 
     def __init__(
         self,
-        queue: asyncio.Queue | None = None,
-        include: Sequence[str | type[Event]] = None,
-        exclude: Sequence[str | type[Event]] = None,
+        queue: asyncio.Queue[Event] | None = None,
+        include: Sequence[str | type[Event]] | None = None,
+        exclude: Sequence[str | type[Event]] | None = None,
     ):
         """
         Initialize a QueueHandler.
@@ -49,8 +49,8 @@ class QueueHandler(AsyncHandler):
         """
         super().__init__()
         self.queue = queue or asyncio.Queue()
-        self.include = include or set()
-        self.exclude = exclude or set()
+        self.include = include or set[Event]()
+        self.exclude = exclude or set[Event]()
 
     async def on_event(self, event: Event):
         """

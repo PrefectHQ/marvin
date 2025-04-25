@@ -4,18 +4,21 @@ from typing import Any, Literal, TypeVar, overload
 
 import marvin
 from marvin.agents.agent import Agent
+from marvin.handlers.handlers import AsyncHandler, Handler
 from marvin.thread import Thread
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.types import Labels, issubclass_safe
 
 T = TypeVar("T")
 
-PROMPT = """
+DEFAULT_PROMPT = """
 You are an expert classifier that always maintains as much semantic meaning
 as possible when labeling text. You use inference or deduction whenever
 necessary to understand missing or omitted data. Classify the provided `data`,
 text, or information as one of the provided labels. For boolean labels,
 consider "truthy" or affirmative inputs to be "true"."""
+
+PROMPT = DEFAULT_PROMPT  # for backwards compatibility
 
 
 @overload
@@ -28,6 +31,8 @@ async def classify_async(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> T: ...
 
 
@@ -41,6 +46,8 @@ async def classify_async(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> list[T]: ...
 
 
@@ -54,6 +61,8 @@ async def classify_async(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> T | list[T]: ...
 
 
@@ -66,6 +75,8 @@ async def classify_async(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> T | list[T]:
     """Asynchronously classifies input data into one or more predefined labels using a language model.
 
@@ -87,7 +98,8 @@ async def classify_async(
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
         context: Optional dictionary of additional context to include in the task.
-
+        prompt: Optional prompt to use for the task. If not provided, the default
+            prompt will be used.
     Returns:
         - If labels is a Sequence[T]:
             - If multi_label is False: returns T
@@ -121,7 +133,7 @@ async def classify_async(
     task_context = context or {}
     task_context.update({"Data to classify": data})
 
-    prompt = PROMPT
+    prompt = prompt or PROMPT
     if instructions:
         prompt += f"\n\nYou must follow these instructions for your classification:\n{instructions}"
 
@@ -143,7 +155,7 @@ async def classify_async(
         agents=[agent] if agent else None,
     )
 
-    return await task.run_async(thread=thread)
+    return await task.run_async(thread=thread, handlers=handlers)  # type: ignore
 
 
 @overload
@@ -156,6 +168,7 @@ def classify(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
 ) -> T: ...
 
 
@@ -169,6 +182,7 @@ def classify(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
 ) -> list[T]: ...
 
 
@@ -182,6 +196,7 @@ def classify(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
 ) -> T | list[T]: ...
 
 
@@ -194,6 +209,8 @@ def classify(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> T | list[T]:
     """Classifies input data into one or more predefined labels using a language model.
 
@@ -215,7 +232,7 @@ def classify(
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
         context: Optional dictionary of additional context to include in the task.
-
+        handlers: Optional list of handlers to use for the task.
     Returns:
         - If labels is a Sequence[T]:
             - If multi_label is False: returns T
@@ -255,5 +272,7 @@ def classify(
             agent=agent,
             thread=thread,
             context=context,
+            handlers=handlers,
+            prompt=prompt,
         ),
     )

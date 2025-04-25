@@ -4,6 +4,7 @@ from pydantic_ai.messages import UserContent
 
 import marvin
 from marvin.agents.actor import Actor
+from marvin.handlers.handlers import AsyncHandler, Handler
 from marvin.thread import Thread, get_thread
 from marvin.utilities.asyncio import run_sync
 
@@ -14,6 +15,7 @@ async def say_async(
     agent: Actor | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
 ) -> str:
     """Responds to a user message in a conversational way.
 
@@ -31,7 +33,7 @@ async def say_async(
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
         context: Optional dictionary of additional context to include in the task.
-
+        handlers: Optional list of handlers to use for the task.
     Returns:
         str: The assistant's response to the user's message.
     """
@@ -48,7 +50,7 @@ async def say_async(
             agents=[agent] if agent else None,
         )
 
-        return await task.run_async(thread=thread)
+        return await task.run_async(thread=thread, handlers=handlers)
 
 
 def say(
@@ -57,6 +59,7 @@ def say(
     agent: Actor | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
 ) -> str:
     """Responds to a user message in a conversational way.
 
@@ -74,7 +77,7 @@ def say(
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
         context: Optional dictionary of additional context to include in the task.
-
+        handlers: Optional list of handlers to use for the task.
     Returns:
         str: The assistant's response to the user's message.
     """
@@ -85,5 +88,6 @@ def say(
             agent=agent,
             thread=thread,
             context=context,
+            handlers=handlers,
         ),
     )

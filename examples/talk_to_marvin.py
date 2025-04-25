@@ -5,13 +5,13 @@ import wave
 from pathlib import Path
 from uuid import uuid4
 
-import pyaudio
+import pyaudio  # type: ignore
 from pydantic_ai import BinaryContent
 
 import marvin
 
 
-def record_audio(seconds=5, sample_rate=16000):
+def record_audio(seconds: int = 5, sample_rate: int = 16000) -> str:
     """Record audio from the microphone for the specified number of seconds."""
     chunk = 1024
     audio_format = pyaudio.paInt16

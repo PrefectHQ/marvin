@@ -6,6 +6,11 @@ title: fn
 
 ## Constants
 
+### `DEFAULT_PROMPT`
+```python
+DEFAULT_PROMPT = ""\nYou are an expert at predicting the output of Python functions. \n\nYou will be given:\n\n1. A function definition with all relevant details, including its docstring, type hints, parameters, and return annotation\n2. The actual values that will be passed to the function\n3. Any additional context that was provided at runtime\n\nWe do not have the function's source code. Therefore you must generate its output for the user. Respond with exactly the predicted output, matching the json schema signature of its annotation.\n""
+```
+
 ### `P`
 ```python
 P = ParamSpec('P')
@@ -13,7 +18,7 @@ P = ParamSpec('P')
 
 ### `PROMPT`
 ```python
-PROMPT = ""\nYou are an expert at predicting the output of Python functions. \n\nYou will be given:\n\n1. A function definition with all relevant details, including its docstring, type hints, parameters, and return annotation\n2. The actual values that will be passed to the function\n3. Any additional context that was provided at runtime\n\nWe do not have the function's source code. Therefore you must generate its output for the user. Respond with exactly the predicted output, matching the json schema signature of its annotation.\n""
+PROMPT = DEFAULT_PROMPT
 ```
 
 ### `T`
@@ -25,7 +30,7 @@ T = TypeVar('T')
 
 ### `fn`
 ```python
-def fn(func: Callable[P, T] | None = None, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None) -> Callable[P, T]
+def fn(func: Callable[P, T] | None = None, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, prompt: str | None = None) -> Callable[P, T]
 ```
 A decorator that predicts the output of a Python function without executing it.
 
@@ -51,7 +56,8 @@ Args:
     instructions: Optional instructions to guide the prediction
     agent: Optional custom agent to use
     thread: Optional thread for maintaining conversation context
-
+    prompt: Optional prompt to use for the task. If not provided, the default
+        prompt will be used.
 Returns:
     A wrapped function that predicts output instead of executing
 

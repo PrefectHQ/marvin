@@ -38,14 +38,15 @@ dev = [
     "ruff",
     "pandas",
     "prefect",
-    "qdrant-client[fastembed]"
+    "qdrant-client[fastembed]",
+    "fastmcp@git+https://github.com/jlowin/fastmcp.git",
 ]
 
 [project.optional-dependencies]
 audio = ["pyaudio>=0.2.14"]
 
 slackbot = [
-    "pydantic-ai[anthropic]",
+    "pydantic-ai",
     "prefect",
     "numpy",
     "raggy",
@@ -99,3 +100,6 @@ extend-select = ["I"]
 [build-system]
 requires = ["hatchling>=1.21.0", "hatch-vcs>=0.4.0"]
 build-backend = "hatchling.build"
+
+[tool.uv.workspace]
+members = ["examples/fastmcp"]

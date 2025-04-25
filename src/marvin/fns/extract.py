@@ -2,13 +2,14 @@ from typing import Any, TypeVar
 
 import marvin
 from marvin.agents.agent import Agent
+from marvin.handlers.handlers import AsyncHandler, Handler
 from marvin.thread import Thread
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.types import TargetType
 
 T = TypeVar("T")
 
-PROMPT = """
+DEFAULT_PROMPT = """
 You are an expert entity extractor that always maintains as much semantic
 meaning as possible. You use inference or deduction whenever necessary to
 supply missing or omitted data. Examine the provided `data`, text, or
@@ -20,6 +21,8 @@ requested format.
     value [3.5] not two values [3, 50] unless the user specifically asks for
     each part."""
 
+PROMPT = DEFAULT_PROMPT  # for backwards compatibility
+
 
 async def extract_async(
     data: Any,
@@ -28,6 +31,8 @@ async def extract_async(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> list[T]:
     """Extracts entities of a specific type from the provided data.
 
@@ -46,7 +51,9 @@ async def extract_async(
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
         context: Optional dictionary of additional context to include in the task.
-
+        handlers: Optional list of handlers to use for the task.
+        prompt: Optional prompt to use for the task. If not provided, the default
+            prompt will be used.
     Returns:
         A list of extracted entities of type T.
 
@@ -62,7 +69,7 @@ async def extract_async(
 
     task_context = context or {}
     task_context["Data to extract"] = data
-    prompt = PROMPT
+    prompt = prompt or PROMPT
     if instructions:
         prompt += f"\n\nYou must follow these instructions for your extraction:\n{instructions}"
 
@@ -74,7 +81,7 @@ async def extract_async(
         agents=[agent] if agent else None,
     )
 
-    return await task.run_async(thread=thread)
+    return await task.run_async(thread=thread, handlers=handlers)
 
 
 def extract(
@@ -84,6 +91,8 @@ def extract(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> list[T]:
     """Extracts entities of a specific type from the provided data.
 
@@ -102,6 +111,9 @@ def extract(
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
         context: Optional dictionary of additional context to include in the task.
+        handlers: Optional list of handlers to use for the task.
+        prompt: Optional prompt to use for the task. If not provided, the default
+            prompt will be used.
 
     Returns:
         A list of extracted entities of type T.
@@ -118,5 +130,7 @@ def extract(
             agent=agent,
             thread=thread,
             context=context,
+            handlers=handlers,
+            prompt=prompt,
         ),
     )

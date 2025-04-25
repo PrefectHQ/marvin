@@ -8,7 +8,7 @@ title: say
 
 ### `say`
 ```python
-def say(message: str | Sequence[UserContent], instructions: str | None = None, agent: Actor | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> str
+def say(message: str | Sequence[UserContent], instructions: str | None = None, agent: Actor | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, handlers: list[Handler | AsyncHandler] | None = None) -> str
 ```
 Responds to a user message in a conversational way.
 
@@ -26,13 +26,13 @@ Args:
     thread: Optional thread for maintaining conversation context. Can be
         either a Thread object or a string thread ID.
     context: Optional dictionary of additional context to include in the task.
-
+    handlers: Optional list of handlers to use for the task.
 Returns:
     str: The assistant's response to the user's message.
 
 ### `say_async`
 ```python
-def say_async(message: str | Sequence[UserContent], instructions: str | None = None, agent: Actor | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> str
+def say_async(message: str | Sequence[UserContent], instructions: str | None = None, agent: Actor | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, handlers: list[Handler | AsyncHandler] | None = None) -> str
 ```
 Responds to a user message in a conversational way.
 
@@ -50,7 +50,7 @@ Args:
     thread: Optional thread for maintaining conversation context. Can be
         either a Thread object or a string thread ID.
     context: Optional dictionary of additional context to include in the task.
-
+    handlers: Optional list of handlers to use for the task.
 Returns:
     str: The assistant's response to the user's message.
 

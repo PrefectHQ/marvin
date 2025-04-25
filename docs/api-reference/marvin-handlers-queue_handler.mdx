@@ -8,7 +8,7 @@ title: queue_handler
 
 ### `QueueHandler`
 ```python
-class QueueHandler(queue: asyncio.Queue | None = None, include: Sequence[str | type[Event]] = None, exclude: Sequence[str | type[Event]] = None)
+class QueueHandler(queue: asyncio.Queue[Event] | None = None, include: Sequence[str | type[Event]] | None = None, exclude: Sequence[str | type[Event]] | None = None)
 ```
 A handler that queues events for asynchronous processing.
 

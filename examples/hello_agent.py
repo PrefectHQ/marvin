@@ -1,57 +1,34 @@
-import os
 from pathlib import Path
-
-import httpx
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.providers.openai import OpenAIProvider
 
 import marvin
 
 
-def write_file(path: str, content: str):
-    """Write content to a file"""
-    _path = Path(path)
-    _path.write_text(content)
+def write_to_file(content: str, filename: str):
+    Path(filename).write_text(content)
 
 
-writer = marvin.Agent(
-    model=OpenAIModel(
-        "gpt-4o",
-        provider=OpenAIProvider(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            base_url="https://api.openai.com/v1",
-            http_client=httpx.AsyncClient(
-                # proxy="http://localhost:8080",
-                # headers={"x-SOME-HEADER": "some-value"},
-            ),
+def read_file(filename: str) -> str:
+    return Path(filename).read_text()
+
+
+def delete_file(filename: str):
+    Path(filename).unlink()
+
+
+def confirm_with_user(content: str) -> bool:
+    """require 'y' or 'yes' to confirm"""
+    return input(content).lower() in ("y", "yes")
+
+
+if __name__ == "__main__":
+    agent = marvin.Agent(
+        tools=[write_to_file, read_file, delete_file, confirm_with_user],
+        prompt="use your tools to help the user with their request",
+    )
+    agent.run(
+        (
+            "write a file called 'test.txt' with content 'hello world',"
+            "read the file"
+            "and then delete the file if the user confirms this"
         ),
-    ),
-    name="Technical Writer",
-    instructions="Write concise, engaging content for developers",
-    tools=[write_file],
-)
-
-result = marvin.run("how to use pydantic? write haiku to docs.md", agents=[writer])
-print(result)
-
-"""
-» uv run examples/hello_agent.py
-╭─ Agent "Technical Writer" (d9cf5814) ────────────────────────────────────────────────────────────╮
-│                                                                                                  │
-│  Tool:    write_file                                                                             │
-│  Status:  ✅                                                                                     │
-│  Input    {                                                                                      │
-│               'path': 'docs.md',                                                                 │
-│               'content': '### Pydantic Haiku\n\nModel your data.\nValidation made                │
-│           easy.\nPydantic shines bright.\n'                                                      │
-│           }                                                                                      │
-│                                                                                                  │
-╰────────────────────────────────────────────────────────────────────────────────────  4:35:45 PM ─╯
-╭─ Agent "Technical Writer" (d9cf5814) ────────────────────────────────────────────────────────────╮
-│                                                                                                  │
-│  Tool:    Mark Task 8b1894c6 ("how to use pydantic? write haiku to docs...") successful          │
-│  Status:  ✅                                                                                     │
-│  Result   Pydantic haiku added to docs.md                                                        │
-│                                                                                                  │
-╰────────────────────────────────────────────────────────────────────────────────────  4:35:48 PM ─╯
-"""
+    )
