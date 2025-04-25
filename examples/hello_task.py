@@ -16,7 +16,7 @@ def run_shell_command(command: list[str]) -> str:
     return subprocess.check_output(command).decode()
 
 
-task = marvin.Task(
+task = marvin.Task[IPvAnyAddress](
     instructions="find the current ip address",
     result_type=IPvAnyAddress,
     tools=[run_shell_command],

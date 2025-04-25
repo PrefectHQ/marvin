@@ -54,12 +54,12 @@ class Agent(Actor):
     )
 
     tools: list[Callable[..., Any]] = field(
-        default_factory=list,
+        default_factory=lambda: [],
         metadata={"description": "List of tools available to the agent"},
     )
 
     memories: list[Memory] = field(
-        default_factory=list,
+        default_factory=lambda: [],
         metadata={"description": "List of memory modules available to the agent"},
     )
 

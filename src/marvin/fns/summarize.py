@@ -2,10 +2,11 @@ from typing import Any
 
 import marvin
 from marvin.agents.agent import Agent
+from marvin.handlers.handlers import AsyncHandler, Handler
 from marvin.thread import Thread
 from marvin.utilities.asyncio import run_sync
 
-PROMPT = """
+DEFAULT_PROMPT = """
 You are an expert summarizer that distills information into clear, concise summaries
 while preserving the most important semantic meaning and key points. Examine the 
 provided `data`, text, or information and create a summary that captures the essence
@@ -19,6 +20,8 @@ Guidelines for summarization:
 - Adapt tone and style to match the content type
 - Ensure the summary stands alone as a coherent piece of text"""
 
+PROMPT = DEFAULT_PROMPT  # for backwards compatibility
+
 
 async def summarize_async(
     data: Any,
@@ -26,6 +29,8 @@ async def summarize_async(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> str:
     """Asynchronously creates a summary of the input data using a language model.
 
@@ -42,6 +47,9 @@ async def summarize_async(
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
         context: Optional dictionary of additional context to include in the task.
+        handlers: Optional list of handlers to use for the task.
+        prompt: Optional prompt to use for the task. If not provided, the default
+            prompt will be used.
 
     Returns:
         A string containing the generated summary.
@@ -58,7 +66,7 @@ async def summarize_async(
     """
     task_context = context or {}
     task_context["Data to summarize"] = data
-    prompt = PROMPT
+    prompt = prompt or DEFAULT_PROMPT
     if instructions:
         prompt += (
             f"\n\nYou must follow these instructions for your summary:\n{instructions}"
@@ -72,7 +80,7 @@ async def summarize_async(
         agents=[agent] if agent else None,
     )
 
-    return await task.run_async(thread=thread)
+    return await task.run_async(thread=thread, handlers=handlers)
 
 
 def summarize(
@@ -81,6 +89,8 @@ def summarize(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> str:
     """Creates a summary of the input data using a language model.
 
@@ -97,6 +107,9 @@ def summarize(
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
         context: Optional dictionary of additional context to include in the task.
+        handlers: Optional list of handlers to use for the task.
+        prompt: Optional prompt to use for the task. If not provided, the default
+            prompt will be used.
 
     Returns:
         A string containing the generated summary.
@@ -118,5 +131,7 @@ def summarize(
             agent=agent,
             thread=thread,
             context=context,
+            handlers=handlers,
+            prompt=prompt,
         ),
     )

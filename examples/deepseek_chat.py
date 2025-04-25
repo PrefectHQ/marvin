@@ -10,6 +10,7 @@ from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.history import FileHistory
 from pydantic import Field, SecretStr
 from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.deepseek import DeepSeekProvider
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from marvin import Agent, Thread
@@ -94,12 +95,15 @@ async def main(model: str | None = None) -> int:
             name="deepseek assistant",
             model=OpenAIModel(
                 model or "deepseek-chat",
-                base_url="https://api.deepseek.com",
-                api_key=settings.deepseek_api_key.get_secret_value(),
+                provider=DeepSeekProvider(
+                    api_key=settings.deepseek_api_key.get_secret_value(),
+                ),
             ),
             tools=[google_search, write_to_file],
             prompt=f"""You are a helpful assistant that can search the internet for information.
             You can write notes in {settings.notes_file_path}.
+
+            Find out what the user wants to do and help them with their request.
             """,
         )
 
@@ -109,7 +113,7 @@ async def main(model: str | None = None) -> int:
                     break
                 if user_input.lower() in ("exit", "quit", ":q!"):
                     break
-                agent.run(user_input)
+                await agent.run_async(user_input)
     except Exception as e:
         print(f"\nError: {e}")
         return 1

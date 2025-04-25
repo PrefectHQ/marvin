@@ -16,7 +16,7 @@ T = TypeVar("T")
 P = ParamSpec("P")
 logger = get_logger(__name__)
 
-PROMPT = """
+DEFAULT_PROMPT = """
 You are an expert at predicting the output of Python functions. 
 
 You will be given:
@@ -28,6 +28,8 @@ You will be given:
 We do not have the function's source code. Therefore you must generate its output for the user. Respond with exactly the predicted output, matching the json schema signature of its annotation.
 """
 
+PROMPT = DEFAULT_PROMPT  # for backwards compatibility
+
 
 def _build_task(
     func: Callable[P, T],
@@ -35,6 +37,7 @@ def _build_task(
     fn_kwargs: dict[str, Any],
     instructions: str | None = None,
     agent: Agent | None = None,
+    prompt: str | None = None,
 ) -> marvin.Task[T]:
     """Build a Task for predicting the output of a Python function.
 
@@ -44,7 +47,8 @@ def _build_task(
         fn_kwargs: Keyword arguments that would be passed to the function
         instructions: Optional instructions to guide the prediction
         agent: Optional custom agent to use
-
+        prompt: Optional prompt to use for the task. If not provided, the default
+            prompt will be used.
     Returns:
         A Task configured to predict the function's output
     """
@@ -83,7 +87,7 @@ def _build_task(
 
     return marvin.Task[T](
         name=f"Predict output of {func.__name__}",
-        instructions=PROMPT,
+        instructions=prompt or DEFAULT_PROMPT,
         context=context,
         result_type=model.return_annotation,
         agents=[agent] if agent else None,
@@ -96,6 +100,7 @@ def fn(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    prompt: str | None = None,
 ) -> Callable[P, T]:
     """A decorator that predicts the output of a Python function without executing it.
 
@@ -121,7 +126,8 @@ def fn(
         instructions: Optional instructions to guide the prediction
         agent: Optional custom agent to use
         thread: Optional thread for maintaining conversation context
-
+        prompt: Optional prompt to use for the task. If not provided, the default
+            prompt will be used.
     Returns:
         A wrapped function that predicts output instead of executing
 
@@ -145,6 +151,7 @@ def fn(
                 instructions=_instructions or instructions,
                 agent=_agent or agent,
                 thread=_thread or thread,
+                prompt=prompt,
             )
             if is_coroutine_fn:
                 return coro  # type: ignore[return-value]
@@ -163,6 +170,7 @@ def fn(
                 kwargs,
                 instructions=_instructions or instructions,
                 agent=_agent or agent,
+                prompt=prompt,
             )
 
         wrapper.as_task = as_task  # type: ignore
@@ -180,6 +188,7 @@ async def _fn(
     instructions: str | None = None,
     agent: Agent | None = None,
     thread: Thread | str | None = None,
+    prompt: str | None = None,
 ) -> T:
     """Predicts the output of a Python function without executing it.
 
@@ -190,12 +199,15 @@ async def _fn(
         instructions: Optional instructions to guide the prediction
         agent: Optional custom agent to use
         thread: Optional thread for maintaining conversation context
-
+        prompt: Optional prompt to use for the task. If not provided, the default
+            prompt will be used.
     Returns:
         The predicted output matching the function's return type
 
     """
-    task = _build_task(func, fn_args, fn_kwargs, instructions=instructions, agent=agent)
+    task = _build_task(
+        func, fn_args, fn_kwargs, instructions=instructions, agent=agent, prompt=prompt
+    )
     result = await task.run_async(thread=thread)
 
     if "JSON result" in task.context:

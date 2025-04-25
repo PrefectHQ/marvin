@@ -7,13 +7,14 @@ from typing import Any, TypeVar
 
 import marvin
 from marvin.agents.agent import Agent
+from marvin.handlers.handlers import AsyncHandler, Handler
 from marvin.thread import Thread
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.types import TargetType
 
 T = TypeVar("T")
 
-PROMPT = """
+DEFAULT_PROMPT = """
 You are an expert data converter that always maintains as much semantic
 meaning as possible. You use inference or deduction whenever necessary to
 understand and transform the input data. Examine the provided `data`, text,
@@ -29,6 +30,8 @@ or information and transform it into a single entity of the requested type.
     must be valid and parseable including double quotes.
 - When converting to bool, treat "truthy" values as true"""
 
+PROMPT = DEFAULT_PROMPT  # for backwards compatibility
+
 
 async def cast_async(
     data: Any,
@@ -37,6 +40,8 @@ async def cast_async(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> T:
     """Asynchronously transforms input data into a specific type using a language model.
 
@@ -54,7 +59,9 @@ async def cast_async(
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
         context: Optional dictionary of additional context to include in the task.
-
+        handlers: Optional list of handlers to use for the task.
+        prompt: Optional prompt to use for the task. If not provided, the default
+            prompt will be used.
     Returns:
         The transformed data of type T.
 
@@ -77,7 +84,7 @@ async def cast_async(
 
     task_context = context or {}
     task_context["Data to transform"] = data
-    prompt = PROMPT
+    prompt = prompt or DEFAULT_PROMPT
     if instructions:
         prompt += f"\n\nYou must follow these instructions for your transformation:\n{instructions}"
 
@@ -89,7 +96,7 @@ async def cast_async(
         agents=[agent] if agent else None,
     )
 
-    return await task.run_async(thread=thread)
+    return await task.run_async(thread=thread, handlers=handlers)
 
 
 def cast(
@@ -99,6 +106,8 @@ def cast(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> T:
     """Transforms input data into a specific type using a language model.
 
@@ -116,7 +125,9 @@ def cast(
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
         context: Optional dictionary of additional context to include in the task.
-
+        handlers: Optional list of handlers to use for the task.
+        prompt: Optional prompt to use for the task. If not provided, the default
+            prompt will be used.
     Returns:
         The transformed data of type T.
 
@@ -139,5 +150,7 @@ def cast(
             agent=agent,
             thread=thread,
             context=context,
+            handlers=handlers,
+            prompt=prompt,
         ),
     )

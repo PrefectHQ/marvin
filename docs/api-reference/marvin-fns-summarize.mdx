@@ -6,16 +6,21 @@ title: summarize
 
 ## Constants
 
+### `DEFAULT_PROMPT`
+```python
+DEFAULT_PROMPT = "'\nYou are an expert summarizer that distills information into clear, concise summaries\nwhile preserving the most important semantic meaning and key points. Examine the \nprovided `data`, text, or information and create a summary that captures the essence\nof the content.\n\nGuidelines for summarization:\n- Maintain objectivity and accuracy\n- Preserve key facts, figures, and relationships\n- Focus on the most important information\n- Use clear, concise language\n- Adapt tone and style to match the content type\n- Ensure the summary stands alone as a coherent piece of text'"
+```
+
 ### `PROMPT`
 ```python
-PROMPT = "'\nYou are an expert summarizer that distills information into clear, concise summaries\nwhile preserving the most important semantic meaning and key points. Examine the \nprovided `data`, text, or information and create a summary that captures the essence\nof the content.\n\nGuidelines for summarization:\n- Maintain objectivity and accuracy\n- Preserve key facts, figures, and relationships\n- Focus on the most important information\n- Use clear, concise language\n- Adapt tone and style to match the content type\n- Ensure the summary stands alone as a coherent piece of text'"
+PROMPT = DEFAULT_PROMPT
 ```
 
 ## Functions
 
 ### `summarize`
 ```python
-def summarize(data: Any, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> str
+def summarize(data: Any, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, handlers: list[Handler | AsyncHandler] | None = None, prompt: str | None = None) -> str
 ```
 Creates a summary of the input data using a language model.
 
@@ -32,6 +37,9 @@ Args:
     thread: Optional thread for maintaining conversation context. Can be
         either a Thread object or a string thread ID.
     context: Optional dictionary of additional context to include in the task.
+    handlers: Optional list of handlers to use for the task.
+    prompt: Optional prompt to use for the task. If not provided, the default
+        prompt will be used.
 
 Returns:
     A string containing the generated summary.
@@ -47,7 +55,7 @@ Examples:
 
 ### `summarize_async`
 ```python
-def summarize_async(data: Any, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> str
+def summarize_async(data: Any, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, handlers: list[Handler | AsyncHandler] | None = None, prompt: str | None = None) -> str
 ```
 Asynchronously creates a summary of the input data using a language model.
 
@@ -64,6 +72,9 @@ Args:
     thread: Optional thread for maintaining conversation context. Can be
         either a Thread object or a string thread ID.
     context: Optional dictionary of additional context to include in the task.
+    handlers: Optional list of handlers to use for the task.
+    prompt: Optional prompt to use for the task. If not provided, the default
+        prompt will be used.
 
 Returns:
     A string containing the generated summary.

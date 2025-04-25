@@ -6,9 +6,14 @@ title: classify
 
 ## Constants
 
+### `DEFAULT_PROMPT`
+```python
+DEFAULT_PROMPT = "'\nYou are an expert classifier that always maintains as much semantic meaning\nas possible when labeling text. You use inference or deduction whenever\nnecessary to understand missing or omitted data. Classify the provided `data`,\ntext, or information as one of the provided labels. For boolean labels,\nconsider "truthy" or affirmative inputs to be "true".'"
+```
+
 ### `PROMPT`
 ```python
-PROMPT = "'\nYou are an expert classifier that always maintains as much semantic meaning\nas possible when labeling text. You use inference or deduction whenever\nnecessary to understand missing or omitted data. Classify the provided `data`,\ntext, or information as one of the provided labels. For boolean labels,\nconsider "truthy" or affirmative inputs to be "true".'"
+PROMPT = DEFAULT_PROMPT
 ```
 
 ### `T`
@@ -20,7 +25,7 @@ T = TypeVar('T')
 
 ### `classify`
 ```python
-def classify(data: Any, labels: Sequence[T] | type[T], multi_label: bool = False, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> T | list[T]
+def classify(data: Any, labels: Sequence[T] | type[T], multi_label: bool = False, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, handlers: list[Handler | AsyncHandler] | None = None, prompt: str | None = None) -> T | list[T]
 ```
 Classifies input data into one or more predefined labels using a language model.
 
@@ -42,7 +47,7 @@ Args:
     thread: Optional thread for maintaining conversation context. Can be
         either a Thread object or a string thread ID.
     context: Optional dictionary of additional context to include in the task.
-
+    handlers: Optional list of handlers to use for the task.
 Returns:
     - If labels is a Sequence[T]:
         - If multi_label is False: returns T
@@ -74,7 +79,7 @@ Examples:
 
 ### `classify_async`
 ```python
-def classify_async(data: Any, labels: Sequence[T] | type[T], multi_label: bool = False, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None) -> T | list[T]
+def classify_async(data: Any, labels: Sequence[T] | type[T], multi_label: bool = False, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, handlers: list[Handler | AsyncHandler] | None = None, prompt: str | None = None) -> T | list[T]
 ```
 Asynchronously classifies input data into one or more predefined labels using a language model.
 
@@ -96,7 +101,8 @@ Args:
     thread: Optional thread for maintaining conversation context. Can be
         either a Thread object or a string thread ID.
     context: Optional dictionary of additional context to include in the task.
-
+    prompt: Optional prompt to use for the task. If not provided, the default
+        prompt will be used.
 Returns:
     - If labels is a Sequence[T]:
         - If multi_label is False: returns T

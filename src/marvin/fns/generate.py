@@ -5,6 +5,7 @@ from pydantic import conlist
 
 import marvin
 from marvin.agents.agent import Agent
+from marvin.handlers.handlers import AsyncHandler, Handler
 from marvin.thread import Thread
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.jinja import jinja_env
@@ -14,6 +15,24 @@ from marvin.utilities.types import TargetType
 T = TypeVar("T")
 
 
+DEFAULT_PROMPT = """
+You are an expert data generator that always creates high-quality, random
+examples of a description or type. The data you produce is relied on for
+testing, examples, demonstrations, and more. You use inference or deduction
+whenever necessary to supply missing or omitted data. You will be given
+instructions or a type format, as well as a number of entities to generate. 
+
+Unless the user explicitly says otherwise, assume they are request a VARIED and
+REALISTIC selection of useful outputs that meet their criteria. However, you
+should prefer common responses to uncommon ones.
+
+If the user provides additional instructions or a description, assume they are
+looking for examples that satisfy the description. Do not provide more
+information than the user requests. For example, if they ask for various
+technologies, give their names but do not explain what each technology is.
+"""
+
+
 async def generate_async(
     target: TargetType[T] | None = None,
     n: int = 1,
@@ -21,6 +40,8 @@ async def generate_async(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> list[T]:
     """Generates examples of a specific type or matching a description asynchronously.
 
@@ -38,37 +59,25 @@ async def generate_async(
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
         context: Optional dictionary of additional context to include in the task.
-
+        handlers: Optional list of handlers to use for the task.
+        prompt: Optional prompt to use for the task. If not provided, the default
+            prompt will be used.
     Returns:
         A list of n generated entities of type T.
 
     """
+    _target = target
 
     if target is None:
-        target = str
+        _target = str
 
-    if target is str and instructions is None:
+    if _target is str and instructions is None:
         raise ValueError("Instructions are required when generating string values.")
 
     task_context = context or {}
     task_context["Number to generate"] = n
 
-    prompt = """
-        You are an expert data generator that always creates high-quality, random
-        examples of a description or type. The data you produce is relied on for
-        testing, examples, demonstrations, and more. You use inference or deduction
-        whenever necessary to supply missing or omitted data. You will be given
-        instructions or a type format, as well as a number of entities to generate. 
-
-        Unless the user explicitly says otherwise, assume they are request a VARIED and
-        REALISTIC selection of useful outputs that meet their criteria. However, you
-        should prefer common responses to uncommon ones.
-
-        If the user provides additional instructions or a description, assume they are
-        looking for examples that satisfy the description. Do not provide more
-        information than the user requests. For example, if they ask for various
-        technologies, give their names but do not explain what each technology is.
-        """
+    prompt = prompt or DEFAULT_PROMPT
     if instructions:
         prompt += f"\n\nYou must follow these instructions for your generation:\n{instructions}"
 
@@ -76,11 +85,11 @@ async def generate_async(
         name="Generation Task",
         instructions=prompt,
         context=task_context,
-        result_type=conlist(target, min_length=n, max_length=n),
+        result_type=conlist(_target, min_length=n, max_length=n),
         agents=[agent] if agent else None,
     )
 
-    return cast(list[T], await task.run_async(thread=thread))
+    return cast(list[T], await task.run_async(thread=thread, handlers=handlers))
 
 
 def generate(
@@ -90,6 +99,8 @@ def generate(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> list[T]:
     """Generates examples of a specific type or matching a description.
 
@@ -107,7 +118,9 @@ def generate(
         thread: Optional thread for maintaining conversation context. Can be
             either a Thread object or a string thread ID.
         context: Optional dictionary of additional context to include in the task.
-
+        handlers: Optional list of handlers to use for the task.
+        prompt: Optional prompt to use for the task. If not provided, the default
+            prompt will be used.
     Returns:
         A list of n generated entities of type T.
 
@@ -120,6 +133,8 @@ def generate(
             agent=agent,
             thread=thread,
             context=context,
+            handlers=handlers,
+            prompt=prompt,
         ),
     )
 
@@ -130,6 +145,8 @@ async def generate_schema_async(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> JSONSchema:
     """Generates a JSON schema from a description."""
 
@@ -163,7 +180,7 @@ async def generate_schema_async(
         agents=[agent] if agent else None,
     )
 
-    return await task.run_async(thread=thread)
+    return await task.run_async(thread=thread, handlers=handlers)
 
 
 def generate_schema(
@@ -172,6 +189,8 @@ def generate_schema(
     agent: Agent | None = None,
     thread: Thread | str | None = None,
     context: dict[str, Any] | None = None,
+    handlers: list[Handler | AsyncHandler] | None = None,
+    prompt: str | None = None,
 ) -> JSONSchema:
     """Generates a JSON schema from a description."""
     return run_sync(
@@ -181,5 +200,7 @@ def generate_schema(
             agent=agent,
             thread=thread,
             context=context,
+            handlers=handlers,
+            prompt=prompt,
         )
     )
