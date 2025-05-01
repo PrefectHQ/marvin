@@ -57,7 +57,7 @@ class Orchestrator(tasks: list[Task[Any]], thread: Thread | str | None = None, h
 
 ### `SystemPrompt`
 ```python
-class SystemPrompt(source: str | Path = Path('system.jinja'), actor: Actor, instructions: list[str], tasks: list[Task])
+class SystemPrompt(source: str | Path = Path('system.jinja'), actor: Actor, instructions: list[str], tasks: list[Task[Any]])
 ```
 
 ## Functions

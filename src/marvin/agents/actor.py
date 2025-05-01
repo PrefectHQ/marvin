@@ -17,6 +17,8 @@ from marvin.prompts import Template
 from marvin.thread import Thread
 
 if TYPE_CHECKING:
+    from pydantic_ai.mcp import MCPServer
+
     from marvin.engine.end_turn import EndTurn
     from marvin.handlers.handlers import AsyncHandler, Handler
 T = TypeVar("T")
@@ -87,8 +89,9 @@ class Actor(ABC):
         self,
         tools: Sequence[Callable[..., Any]],
         end_turn_tools: Sequence["EndTurn"],
+        active_mcp_servers: list["MCPServer"] | None = None,
     ) -> pydantic_ai.Agent[Any, Any]:
-        raise NotImplementedError("Actor subclasses must implement _run")
+        raise NotImplementedError("Actor subclasses must implement get_agentlet")
 
     async def start_turn(self, thread: Thread):
         """Called when the actor starts its turn."""

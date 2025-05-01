@@ -4,7 +4,7 @@ globs: *.py
 alwaysApply: false
 ---
 
-# Python Style
+# Python
 
 ## Design
 - aggressively minimal and elegant

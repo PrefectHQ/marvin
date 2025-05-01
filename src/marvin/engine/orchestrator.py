@@ -1,12 +1,15 @@
 import math
+import os
 from asyncio import CancelledError
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
+from contextlib import AsyncExitStack, asynccontextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Optional, Sequence, TypeVar
 
 from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.mcp import MCPServerStdio
 from pydantic_ai.messages import UserContent
 
 import marvin
@@ -33,6 +36,7 @@ from marvin.prompts import Template
 from marvin.tasks.task import Task
 from marvin.thread import Message, Thread, get_thread
 from marvin.utilities.logging import get_logger
+from marvin.utilities.types import issubclass_safe
 
 T = TypeVar("T")
 
@@ -51,7 +55,7 @@ class SystemPrompt(Template):
 
     actor: Actor
     instructions: list[str]
-    tasks: list[Task]
+    tasks: list[Task[Any]]
 
 
 @dataclass(kw_only=True)
@@ -131,7 +135,7 @@ class Orchestrator:
         return ordered_tasks
 
     async def run_once(self, actor: Actor | None = None) -> AgentRunResult:
-        tasks = self.get_all_tasks(filter="ready")
+        tasks: list[Task[Any]] = self.get_all_tasks(filter="ready")
 
         if not tasks:
             raise ValueError("No tasks to run")
@@ -145,6 +149,17 @@ class Orchestrator:
         for task in assigned_tasks:
             if task.is_pending():
                 await task.mark_running(thread=self.thread)
+
+        # --- REMOVE MCP Server Context --- #
+        # MCP Servers are now managed by the context manager in `Orchestrator.run`
+        # logger.debug(f"Preparing to start MCP servers for actor {actor.name}...")
+        # mcp_server_startup_stack = AsyncExitStack()
+        # ... (removed server startup loop) ...
+        # async with mcp_server_startup_stack:
+        #     logger.debug("Entered main MCP server context stack. Proceeding with agent turn...")
+        # ------------------------------------ #
+
+        # --- Code below now runs WITHOUT the nested MCP context stack --- #
         await self.start_turn(actor=actor)
 
         # --- get tools
@@ -155,7 +170,20 @@ class Orchestrator:
         # --- get end turn tools
         end_turn_tools: set[EndTurn] = set()
         for t in assigned_tasks:
-            end_turn_tools.update(t.get_end_turn_tools())
+            for tool_instance_or_type in t.get_end_turn_tools():
+                if isinstance(tool_instance_or_type, EndTurn):
+                    end_turn_tools.add(tool_instance_or_type)
+                elif issubclass_safe(tool_instance_or_type, EndTurn):
+                    # Warn if a type is provided, as we can't instantiate it here.
+                    # Execution of result-dependent tools is handled after the run.
+                    logger.debug(
+                        f"Skipping EndTurn tool type {tool_instance_or_type.__name__}"
+                        " during agentlet setup. It will be handled after run completion if returned."
+                    )
+                else:
+                    logger.warning(
+                        f"Item {tool_instance_or_type} in end_turn_tools is not an EndTurn instance or subclass."
+                    )
 
         # --- get memories
         await self._check_memories(actor=actor, assigned_tasks=assigned_tasks)
@@ -166,9 +194,11 @@ class Orchestrator:
         )
 
         # --- run agent
+        # Get agentlet - servers should already be running via the context in `run`
         agentlet = await actor.get_agentlet(
             tools=list(tools),
             end_turn_tools=list(end_turn_tools),
+            # No need to pass active_mcp_servers explicitly anymore
         )
 
         with actor:
@@ -183,25 +213,50 @@ class Orchestrator:
                 ):
                     await self.handle_event(event)
 
-        # --- add final messages to the thread
-        new_messages = run.result.new_messages()
-        completion_messages = await self.thread.add_messages_async(
-            # skip the first message since we either pull it from history or
-            # send an empty string
-            new_messages[1:]
-        )
+            # --- Post-run processing --- #
+            if run and run.result:
+                # --- Add final messages to the thread --- #
+                new_messages = run.result.new_messages()
+                completion_messages = await self.thread.add_messages_async(
+                    new_messages[1:]
+                )
+                await DBLLMCall.create(
+                    thread_id=self.thread.id,
+                    usage=run.usage(),
+                    prompt_messages=prompt_messages,  # type: ignore
+                    completion_messages=completion_messages,  # type: ignore
+                )
 
-        await DBLLMCall.create(
-            thread_id=self.thread.id,
-            usage=run.usage(),
-            prompt_messages=prompt_messages,
-            completion_messages=completion_messages,
-        )
+                # --- Check if run ended with an EndTurn tool or natural text output --- #
+                if isinstance(run.result.output, EndTurn):
+                    logger.debug(
+                        f"[run_once] Run ended with EndTurn tool: {run.result.output!r}. Calling self.end_turn."
+                    )
+                    # Let end_turn handle calling the tool, which should mark tasks
+                    await self.end_turn(result=run.result, actor=actor)
+                else:
+                    logger.debug(
+                        "[run_once] Run ended with natural text output. Marking assigned tasks complete."
+                    )
+                    # Mark associated tasks as complete since no EndTurn tool was called
+                    for task in assigned_tasks:
+                        # Check state first? Avoid marking already completed/failed?
+                        if task.is_running():
+                            await task.mark_successful(
+                                result=run.result.output, thread=self.thread
+                            )
+                    # We still call actor.end_turn for potential actor-level cleanup
+                    await actor.end_turn(result=run.result, thread=self.thread)
+                    # Yield ActorEndTurnEvent manually since self.end_turn wasn't called with EndTurn tool
+                    await self.handle_event(ActorEndTurnEvent(actor=actor))
 
-        # --- end turn
-        await self.end_turn(result=run.result, actor=actor)
-
-        return run
+                # Return the final result regardless
+                return run.result
+            else:
+                logger.error(
+                    "Agent run finished unexpectedly without a result in run_once."
+                )
+                raise RuntimeError("Agent run did not produce a result.")
 
     async def start_turn(self, actor: Actor):
         await actor.start_turn(thread=self.thread)
@@ -213,6 +268,59 @@ class Orchestrator:
 
         await actor.end_turn(result=result, thread=self.thread)
         await self.handle_event(ActorEndTurnEvent(actor=actor))
+
+    @asynccontextmanager
+    async def _manage_mcp_servers(self, actor: Actor) -> AsyncIterator[None]:
+        """Context manager to start and stop MCP servers for a given actor."""
+        logger.debug(f"[_manage_mcp_servers] Preparing MCP servers for {actor.name}...")
+        mcp_exit_stack = AsyncExitStack()
+        servers_started = False
+        if hasattr(actor, "get_mcp_servers"):
+            servers = actor.get_mcp_servers()
+            if servers:
+                logger.debug(f"[_manage_mcp_servers] Found {len(servers)} servers.")
+                for i, server in enumerate(servers):
+                    logger.debug(
+                        f"[_manage_mcp_servers] Processing server #{i + 1}: {server!r}"
+                    )
+                    try:
+                        if isinstance(server, MCPServerStdio) and server.env is None:
+                            logger.debug(
+                                f"[_manage_mcp_servers] Server #{i + 1} is MCPServerStdio with no env set. Setting env=dict(os.environ)."
+                            )
+                            server.env = dict(os.environ)
+
+                        logger.debug(
+                            f"[_manage_mcp_servers] Entering context for server #{i + 1}..."
+                        )
+                        await mcp_exit_stack.enter_async_context(server)
+                        logger.debug(
+                            f"[_manage_mcp_servers] Context entered for server #{i + 1}."
+                        )
+                        servers_started = True
+                    except Exception as e:
+                        logger.error(
+                            f"[_manage_mcp_servers] Failed to start MCP server #{i + 1} ({server!r}): {e}",
+                            exc_info=True,
+                        )
+            else:
+                logger.debug("[_manage_mcp_servers] No server configurations found.")
+        else:
+            logger.debug(
+                f"[_manage_mcp_servers] Actor {actor.name} has no get_mcp_servers."
+            )
+
+        if servers_started:
+            logger.debug("[_manage_mcp_servers] Yielding control with servers running.")
+        else:
+            logger.debug("[_manage_mcp_servers] No servers started, yielding control.")
+
+        try:
+            yield
+        finally:
+            logger.debug("[_manage_mcp_servers] Cleaning up MCP servers...")
+            await mcp_exit_stack.aclose()
+            logger.debug("[_manage_mcp_servers] MCP server cleanup complete.")
 
     async def run(
         self,
@@ -231,38 +339,53 @@ class Orchestrator:
             with self.thread:
                 await self.handle_event(OrchestratorStartEvent())
 
-                try:
-                    turns = 0
-                    actor = None
+                # --- Determine primary actor (simplistic for now) ---
+                # TODO: Handle multi-actor scenarios properly
+                actor = self.tasks[0].get_actor() if self.tasks else None
+                if not actor:
+                    raise ValueError("Cannot run orchestrator without tasks/actors.")
+                # ------------------------------------------------------
 
-                    # the while loop continues until all the tasks that were
-                    # provided to the orchestrator are complete OR max turns is
-                    # reached. Note this is not the same as checking *every*
-                    # task that `get_all_tasks()` returns. If a task has
-                    # incomplete dependencies, they will be evaluated as part of
-                    # the orchestrator logic, but not considered part of the
-                    # termination condition.
-                    while incomplete_tasks and (max_turns is None or turns < max_turns):
-                        result = await self.run_once(actor=actor)
-                        results.append(result)
-                        turns += 1
+                # --- Wrap the main loop with the MCP server manager ---
+                async with self._manage_mcp_servers(actor):
+                    # ----------------------------------------------------
+                    try:
+                        turns = 0
+                        # Note: Actor determination might need refinement for multi-actor loops
+                        # actor = None # Reset actor each turn? Or keep the primary one?
 
-                        if raise_on_failure:
-                            for task in self.tasks:
-                                if task.is_failed() and task in incomplete_tasks:
-                                    raise ValueError(
-                                        f"{task.friendly_name()} failed: {task.result}"
-                                    )
-                        incomplete_tasks = {t for t in self.tasks if t.is_incomplete()}
+                        # ... (rest of the loop as before) ...
+                        while incomplete_tasks and (
+                            max_turns is None or turns < max_turns
+                        ):
+                            # TODO: implement multi-actor logic
+                            # If actor determination changes, pass the correct one to run_once
+                            result = await self.run_once(actor=actor)
+                            results.append(result)
+                            turns += 1
 
-                    if max_turns and turns >= max_turns:
-                        raise ValueError("Max agent turns reached")
+                            # Handle potential failures
+                            if raise_on_failure:
+                                for task in self.tasks:
+                                    if task.is_failed() and task in incomplete_tasks:
+                                        raise ValueError(
+                                            f"{task.friendly_name()} failed: {task.result}"
+                                        )
+                            # Mark tasks as complete now handled in run_once
+                            # incomplete_tasks = {t for t in self.tasks if t.is_incomplete()}
+                            # Check again after run_once completes
+                            incomplete_tasks = {
+                                t for t in self.tasks if t.is_incomplete()
+                            }
 
-                except (Exception, KeyboardInterrupt, CancelledError) as e:
-                    await self.handle_event(OrchestratorErrorEvent(error=str(e)))
-                    raise
-                finally:
-                    await self.handle_event(OrchestratorEndEvent())
+                        if max_turns and turns >= max_turns:
+                            raise ValueError("Max agent turns reached")
+
+                    except (Exception, KeyboardInterrupt, CancelledError) as e:
+                        await self.handle_event(OrchestratorErrorEvent(error=str(e)))
+                        raise
+                    finally:
+                        await self.handle_event(OrchestratorEndEvent())
 
         finally:
             _current_orchestrator.reset(token)

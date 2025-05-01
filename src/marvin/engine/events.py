@@ -19,6 +19,10 @@ from pydantic_ai.result import FinalResult
 
 from marvin.agents.actor import Actor
 from marvin.engine.end_turn import EndTurn
+from marvin.utilities.logging import get_logger
+
+# Added logger instantiation
+logger = get_logger(__name__)
 
 # Define event types as literals for type checking
 EventType = Literal[
@@ -65,7 +69,12 @@ class ToolResultEvent(Event):
     """Event for tool return values."""
 
     type: EventType = field(default="tool-result", init=False)
-    message: ToolReturnPart
+    actor: Actor
+    tool: Callable | None = None
+    tool_name: str | None = None
+    tool_result: Any = None
+    tool_source: Literal["marvin", "mcp"] | None = None
+    message: ToolReturnPart | None = None
 
 
 @dataclass(kw_only=True)
@@ -82,15 +91,36 @@ class ToolCallEvent(Event):
 
     type: EventType = field(default="tool-call", init=False)
     actor: Actor
-    message: ToolCallPart
-    tool_call_id: str
     tool: Callable[..., Any] | None
+    tool_name: str | None = None
+    tool_input: Any = None
+    tool_source: Literal["marvin", "mcp"] | None = None
+    message: ToolCallPart | None = None
+    tool_call_id: str | None = None
 
     def args_dict(self) -> dict[str, Any]:
         """Return the args as a dictionary."""
-        if self.message.args and isinstance(self.message.args, str):
-            return partial_json_parser.loads(self.message.args)
-        return self.message.args
+        args = self.tool_input if self.message is None else self.message.args
+        if args and isinstance(args, str):
+            try:
+                parsed_args = partial_json_parser.loads(args)
+                # Ensure it's a dict after parsing
+                return (
+                    parsed_args
+                    if isinstance(parsed_args, dict)
+                    else {"parsed_non_dict_args": parsed_args}
+                )
+            except Exception:
+                logger.warning(
+                    f"Failed to parse tool args string: {args}", exc_info=True
+                )
+                return {
+                    "raw_args": args
+                }  # Return raw string in a dict if parsing fails
+        elif isinstance(args, dict):
+            return args
+        # Return an empty dict if args are None or not dict/str
+        return {}  # Safer default
 
 
 @dataclass(kw_only=True)

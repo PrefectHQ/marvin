@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# finding things
+- use your shell tool to run `rg`, not your native grep tool
+
+# the linter
+- empirically understand the world by running code. the linter tells basic truths, but it's sometimes orthogonal to our goal. dont obsess over linter errors that might be upstream, simply use them as clues when relevant

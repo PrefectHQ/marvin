@@ -1,6 +1,8 @@
 import inspect
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, TypeVar
+
+from pydantic_core import core_schema
 
 import marvin
 from marvin.engine.llm import AgentMessage
@@ -20,6 +22,15 @@ logger = get_logger(__name__)
 
 class EndTurn:
     name: ClassVar[str | None] = None
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: Callable[[Any], core_schema.CoreSchema],
+    ) -> core_schema.CoreSchema:
+        """Instructs Pydantic to treat EndTurn as a basic string for schema purposes."""
+        return core_schema.str_schema()
 
     async def run(self, thread: Thread, actor: "Actor") -> None:
         pass
