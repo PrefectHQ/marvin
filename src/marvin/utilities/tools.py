@@ -2,7 +2,7 @@ import inspect
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import wraps
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal, ParamSpec, TypeVar
 
 import pydantic_ai
 from pydantic_ai import RunContext
@@ -10,6 +10,7 @@ from pydantic_ai import RunContext
 from marvin.utilities.logging import get_logger
 
 T = TypeVar("T")
+P = ParamSpec("P")
 logger = get_logger(__name__)
 
 
@@ -19,7 +20,7 @@ def update_fn(
     *,
     name: str | None = None,
     description: str | None = None,
-) -> Callable[[Callable[..., T]], Callable[..., T]] | Callable[..., T]:
+) -> Callable[[Callable[P, T]], Callable[P, T]] | Callable[P, T]:
     """Update a function's name and optionally set its docstring.
 
     Can be used either as a decorator with keyword arguments or as a direct function.
@@ -59,11 +60,11 @@ def update_fn(
     if name is not None and not name:
         raise ValueError("name cannot be empty if provided")
 
-    def decorator(fn: Callable[..., T]) -> Callable[..., T]:
+    def decorator(fn: Callable[P, T]) -> Callable[P, T]:
         if inspect.iscoroutinefunction(fn):
 
             @wraps(fn)
-            async def wrapper(*args: Any, **kwargs: Any) -> T:
+            async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
                 return await fn(*args, **kwargs)
         else:
 
@@ -93,7 +94,7 @@ class ResultTool:
         pass
 
 
-def wrap_tool_errors(tool_fn: Callable[..., Any]):
+def wrap_tool_errors(tool_fn: Callable[P, T]):
     """
     Pydantic AI doesn't catch errors except for ModelRetry, so we need to make
     sure we catch them ourselves and raise a ModelRetry instead.
@@ -101,7 +102,7 @@ def wrap_tool_errors(tool_fn: Callable[..., Any]):
     if inspect.iscoroutinefunction(tool_fn):
 
         @wraps(tool_fn)
-        async def _fn(*args, **kwargs):
+        async def _fn(*args: P.args, **kwargs: P.kwargs):
             try:
                 return await tool_fn(*args, **kwargs)
             except pydantic_ai.ModelRetry as e:
@@ -116,7 +117,7 @@ def wrap_tool_errors(tool_fn: Callable[..., Any]):
     else:
 
         @wraps(tool_fn)
-        def _fn(*args: Any, **kwargs: Any):
+        def _fn(*args: P.args, **kwargs: P.kwargs):
             try:
                 return tool_fn(*args, **kwargs)
             except pydantic_ai.ModelRetry as e:

@@ -142,7 +142,7 @@ class Agent(Actor):
 
         cleaned_marvin_tools: list[Callable[..., Any]] = []
         final_end_turn_tool_defs: list[type[EndTurn] | EndTurn] = []
-        processed_items = set()
+        processed_items: set[int] = set()
 
         for item in all_potential_tools:
             item_id = id(item)

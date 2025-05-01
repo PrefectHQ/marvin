@@ -6,6 +6,11 @@ title: tools
 
 ## Constants
 
+### `P`
+```python
+P = ParamSpec('P')
+```
+
 ### `T`
 ```python
 T = TypeVar('T')
@@ -29,7 +34,7 @@ class ResultTool(type: Literal['result-tool'] = 'result-tool')
 
 ### `update_fn`
 ```python
-def update_fn(func: Callable[..., T] | None = None, name: str | None = None, description: str | None = None) -> Callable[[Callable[..., T]], Callable[..., T]] | Callable[..., T]
+def update_fn(func: Callable[..., T] | None = None, name: str | None = None, description: str | None = None) -> Callable[[Callable[P, T]], Callable[P, T]] | Callable[P, T]
 ```
 Update a function's name and optionally set its docstring.
 
@@ -69,7 +74,7 @@ Example:
 
 ### `wrap_tool_errors`
 ```python
-def wrap_tool_errors(tool_fn: Callable[..., Any])
+def wrap_tool_errors(tool_fn: Callable[P, T])
 ```
 Pydantic AI doesn't catch errors except for ModelRetry, so we need to make
 sure we catch them ourselves and raise a ModelRetry instead.
