@@ -7,7 +7,7 @@ import random
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Sequence, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Sequence, TypeVar
 
 import pydantic_ai
 from pydantic_ai.mcp import MCPServer
@@ -133,63 +133,95 @@ class Agent(Actor):
         import marvin.engine.orchestrator
         from marvin.engine.end_turn import EndTurn
 
-        all_potential_tools = (
+        # --- Separate standard tools and EndTurn tools --- #
+        all_potential_items = (
             list(tools)
             + self.get_tools()
             + list(end_turn_tools)
             + self.get_end_turn_tools()
         )
-
-        cleaned_marvin_tools: list[Callable[..., Any]] = []
-        final_end_turn_tool_defs: list[type[EndTurn] | EndTurn] = []
-        processed_items: set[int] = set()
-
-        for item in all_potential_tools:
+        marvin_tool_callables: list[Callable[..., Any]] = []
+        final_end_turn_defs: list[type[EndTurn] | EndTurn] = []
+        processed_ids: set[int] = set()
+        for item in all_potential_items:
             item_id = id(item)
-            if item_id in processed_items:
+            if item_id in processed_ids:
                 continue
-            processed_items.add(item_id)
-
+            processed_ids.add(item_id)
             if issubclass_safe(item, EndTurn):
-                final_end_turn_tool_defs.append(item)
+                final_end_turn_defs.append(item)
             elif isinstance(item, EndTurn):
-                final_end_turn_tool_defs.append(item)
+                final_end_turn_defs.append(item)
             elif callable(item):
-                cleaned_marvin_tools.append(item)
+                marvin_tool_callables.append(item)
             else:
                 logger.warning(f"Ignoring non-callable, non-EndTurn item: {item}")
 
-        marvin_tools_for_pydantic: list[Tool] = [
-            Tool(function=wrap_tool_errors(tool)) for tool in cleaned_marvin_tools
-        ]
+        # --- Wrap standard Marvin tools --- #
+        unique_marvin_tools = [wrap_tool_errors(tool) for tool in marvin_tool_callables]
 
-        orchestrator = marvin.engine.orchestrator.get_current_orchestrator()
-        mcp_tools_for_pydantic: list[Tool] = await discover_mcp_tools(
-            mcp_servers=active_mcp_servers or [],
-            actor=self,
-            orchestrator=orchestrator,
+        # --- Discover MCP tools --- #
+        mcp_tools_instances: list[Tool] = []
+        if active_mcp_servers:
+            orchestrator = marvin.engine.orchestrator.get_current_orchestrator()
+            mcp_tools_instances = await discover_mcp_tools(
+                mcp_servers=active_mcp_servers,
+                actor=self,
+                orchestrator=orchestrator,
+            )
+
+        # --- Combine standard tools for 'tools' arg --- #
+        combined_standard_tools: list[Callable | Tool] = (
+            unique_marvin_tools + mcp_tools_instances
         )
 
-        all_tools_for_pydantic = marvin_tools_for_pydantic + mcp_tools_for_pydantic
-
-        if not final_end_turn_tool_defs:
-            output_union = EndTurn
-        elif len(final_end_turn_tool_defs) == 1:
-            output_union = final_end_turn_tool_defs[0]
+        # --- Determine EndTurn ToolOutput --- #
+        tool_output_name = "EndTurn"
+        tool_output_description = "Ends the current turn."
+        if len(final_end_turn_defs) == 1:
+            output_type_for_tool_output = final_end_turn_defs[0]
+            tool_output_name = getattr(
+                output_type_for_tool_output, "__name__", tool_output_name
+            )
         else:
-            output_union = Union[tuple(final_end_turn_tool_defs)]
+            # Use None if zero or multiple EndTurn tools are present
+            # This avoids schema issues but might prevent multi-turn scenarios?
+            # TODO: Revisit handling of multiple EndTurn tools / Union[EndTurn]
+            output_type_for_tool_output = type(None)
+            if len(final_end_turn_defs) > 1:
+                logger.warning(
+                    "Multiple EndTurn tools detected, output validation might be limited."
+                )
 
-        agentlet = pydantic_ai.Agent[Any, Any](
-            model=self.get_model(),
-            model_settings=self.get_model_settings(),
-            tools=all_tools_for_pydantic,
-            output_type=ToolOutput(type_=output_union),
-            mcp_servers=active_mcp_servers or [],
-            name=self.name,
+        final_tool_output = ToolOutput(
+            type_=output_type_for_tool_output,
+            name=tool_output_name,
+            description=tool_output_description,
         )
 
-        agentlet._marvin_tools = cleaned_marvin_tools
-        agentlet._marvin_end_turn_tools = final_end_turn_tool_defs
+        # --- Create the pydantic_ai.Agent --- #
+        agent_kwargs = {
+            "model": self.get_model(),
+            "model_settings": self.get_model_settings(),
+            "output_type": final_tool_output,  # Use the constructed ToolOutput
+            "name": self.name,
+            # "tools": combined_standard_tools, # Add conditionally below
+            # "mcp_servers": active_mcp_servers, # Add conditionally below
+        }
+
+        # Conditionally add standard tools
+        if combined_standard_tools:
+            agent_kwargs["tools"] = combined_standard_tools
+
+        # Conditionally add mcp_servers
+        if active_mcp_servers:
+            agent_kwargs["mcp_servers"] = active_mcp_servers
+
+        agentlet = pydantic_ai.Agent[Any, Any](**agent_kwargs)
+
+        # --- Assign Marvin-specific attributes for internal use --- #
+        agentlet._marvin_tools = unique_marvin_tools  # Store wrapped callables
+        agentlet._marvin_end_turn_tools = final_end_turn_defs  # Store original defs
 
         return agentlet
 
