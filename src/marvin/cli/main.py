@@ -13,6 +13,7 @@ from typer import Context, Exit
 
 import marvin
 
+from .config import config_app
 from .dev import dev_app
 from .migrations import migrations as migrations_app
 from .migrations import migrations_dev
@@ -27,6 +28,7 @@ dev_app.add_typer(migrations_dev, name="db")
 # Add the main app commands
 app.add_typer(dev_app, name="dev")
 app.add_typer(migrations_app, name="db")
+app.add_typer(config_app, name="config")
 logging.basicConfig(stream=sys.stderr, level=logging.WARNING, force=True)
 
 

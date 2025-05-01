@@ -4,11 +4,11 @@ globs: *.py
 alwaysApply: false
 ---
 
-# Python Style
+# Python
 
 ## Design
 - aggressively minimal and elegant
-- prefer functional over OOP
+- prefer functional, but use classes where justified
 - keep implementation details "private" (e.g. def _impl)
 
 ## Type Hints

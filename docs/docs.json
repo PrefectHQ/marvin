@@ -94,6 +94,7 @@
                     {
                         "group": "cli",
                         "pages": [
+                            "api-reference/marvin-cli-config",
                             "api-reference/marvin-cli-dev",
                             "api-reference/marvin-cli-main",
                             "api-reference/marvin-cli-migrations"
