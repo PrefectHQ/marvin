@@ -1,17 +1,18 @@
 import math
+import os
 from asyncio import CancelledError
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
+from contextlib import AsyncExitStack, asynccontextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Optional, Sequence, TypeVar
 
 from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.mcp import MCPServer, MCPServerStdio
 from pydantic_ai.messages import UserContent
 
 import marvin
-import marvin.agents.team
-import marvin.engine.llm
 from marvin.agents.actor import Actor
 from marvin.agents.agent import Agent
 from marvin.database import DBLLMCall
@@ -130,7 +131,11 @@ class Orchestrator:
             raise ValueError(f"Invalid filter: {filter}")
         return ordered_tasks
 
-    async def run_once(self, actor: Actor | None = None) -> AgentRunResult:
+    async def run_once(
+        self,
+        actor: Actor | None = None,
+        active_mcp_servers: list[MCPServer] | None = None,
+    ) -> AgentRunResult:
         tasks = self.get_all_tasks(filter="ready")
 
         if not tasks:
@@ -165,10 +170,11 @@ class Orchestrator:
             actor=actor, assigned_tasks=assigned_tasks
         )
 
-        # --- run agent
+        # --- run agent, passing active_mcp_servers --- #
         agentlet = await actor.get_agentlet(
             tools=list(tools),
             end_turn_tools=list(end_turn_tools),
+            active_mcp_servers=active_mcp_servers,
         )
 
         with actor:
@@ -214,6 +220,85 @@ class Orchestrator:
         await actor.end_turn(result=result, thread=self.thread)
         await self.handle_event(ActorEndTurnEvent(actor=actor))
 
+    @asynccontextmanager
+    async def _manage_mcp_servers(
+        self, actor: Actor
+    ) -> AsyncIterator[list["MCPServer"]]:
+        """Context manager to start and stop MCP servers for a given actor."""
+        logger.debug(f"[_manage_mcp_servers] Preparing MCP servers for {actor.name}...")
+        mcp_exit_stack = AsyncExitStack()
+        active_servers: list["MCPServer"] = []
+        servers_started = False
+
+        # Check if actor has the method before calling
+        if not hasattr(actor, "get_mcp_servers"):
+            logger.debug(
+                f"[_manage_mcp_servers] Actor {actor.name} does not have get_mcp_servers method."
+            )
+            yield active_servers  # Yield empty list if no servers
+            return
+
+        servers_to_manage = actor.get_mcp_servers()
+
+        if not servers_to_manage:
+            logger.debug(
+                f"[_manage_mcp_servers] Actor {actor.name} has no configured MCP servers."
+            )
+            yield active_servers  # Yield empty list if no servers
+            return
+
+        logger.debug(
+            f"[_manage_mcp_servers] Found {len(servers_to_manage)} server configurations."
+        )
+        for i, server in enumerate(servers_to_manage):
+            logger.debug(
+                f"[_manage_mcp_servers] Processing server #{i + 1}: {server!r}"
+            )
+            try:
+                # Set environment variables for stdio servers if not already set
+                if isinstance(server, MCPServerStdio) and server.env is None:
+                    logger.debug(
+                        f"[_manage_mcp_servers] Server #{i + 1} is MCPServerStdio with no env set. Setting env=dict(os.environ)."
+                    )
+                    # Use a copy of current environment
+                    server.env = dict(os.environ)
+
+                logger.debug(
+                    f"[_manage_mcp_servers] Entering context for server #{i + 1}..."
+                )
+                # Enter the server's async context manager
+                await mcp_exit_stack.enter_async_context(server)
+                active_servers.append(
+                    server
+                )  # Add to active list *after* successful context entry
+                logger.debug(
+                    f"[_manage_mcp_servers] Context entered successfully for server #{i + 1}."
+                )
+                servers_started = True
+            except Exception as e:
+                logger.error(
+                    f"[_manage_mcp_servers] Failed to start MCP server #{i + 1} ({server!r}): {e}",
+                    exc_info=True,
+                )
+                # Optionally re-raise or handle specific errors? For now, just log.
+
+        if servers_started:
+            logger.debug(
+                f"[_manage_mcp_servers] Yielding control with {len(active_servers)} active servers."
+            )
+        else:
+            logger.debug(
+                "[_manage_mcp_servers] No servers were successfully started, yielding control."
+            )
+
+        try:
+            yield active_servers  # Yield the list of successfully started servers
+        finally:
+            logger.debug("[_manage_mcp_servers] Cleaning up MCP servers...")
+            # The AsyncExitStack handles closing all entered contexts properly
+            await mcp_exit_stack.aclose()
+            logger.debug("[_manage_mcp_servers] MCP server cleanup complete.")
+
     async def run(
         self,
         raise_on_failure: bool = True,
@@ -231,39 +316,51 @@ class Orchestrator:
             with self.thread:
                 await self.handle_event(OrchestratorStartEvent())
 
-                try:
-                    turns = 0
-                    actor = None
+                # --- Determine primary actor (simplistic for now) --- #
+                # TODO: Handle multi-actor scenarios properly
+                actor = self.tasks[0].get_actor() if self.tasks else None
+                if not actor:
+                    raise ValueError("Cannot run orchestrator without tasks/actors.")
+                # ------------------------------------------------------
 
-                    # the while loop continues until all the tasks that were
-                    # provided to the orchestrator are complete OR max turns is
-                    # reached. Note this is not the same as checking *every*
-                    # task that `get_all_tasks()` returns. If a task has
-                    # incomplete dependencies, they will be evaluated as part of
-                    # the orchestrator logic, but not considered part of the
-                    # termination condition.
-                    while incomplete_tasks and (max_turns is None or turns < max_turns):
-                        result = await self.run_once(actor=actor)
-                        results.append(result)
-                        turns += 1
+                # --- Wrap the main loop with the MCP server manager --- #
+                async with self._manage_mcp_servers(actor) as active_mcp_servers:
+                    logger.debug(
+                        f"Orchestrator loop starting with {len(active_mcp_servers)} active MCP servers."
+                    )
+                    try:
+                        turns = 0
 
-                        if raise_on_failure:
-                            for task in self.tasks:
-                                if task.is_failed() and task in incomplete_tasks:
-                                    raise ValueError(
-                                        f"{task.friendly_name()} failed: {task.result}"
-                                    )
-                        incomplete_tasks = {t for t in self.tasks if t.is_incomplete()}
+                        while incomplete_tasks and (
+                            max_turns is None or turns < max_turns
+                        ):
+                            # Pass active_mcp_servers to run_once
+                            result = await self.run_once(
+                                actor=actor, active_mcp_servers=active_mcp_servers
+                            )
+                            results.append(result)
+                            turns += 1
 
-                    if max_turns and turns >= max_turns:
-                        raise ValueError("Max agent turns reached")
+                            # Handle potential failures
+                            if raise_on_failure:
+                                for task in self.tasks:
+                                    if task.is_failed() and task in incomplete_tasks:
+                                        raise ValueError(
+                                            f"{task.friendly_name()} failed: {task.result}"
+                                        )
+                            # Update incomplete tasks status
+                            incomplete_tasks = {
+                                t for t in self.tasks if t.is_incomplete()
+                            }
 
-                except (Exception, KeyboardInterrupt, CancelledError) as e:
-                    await self.handle_event(OrchestratorErrorEvent(error=str(e)))
-                    raise
-                finally:
-                    await self.handle_event(OrchestratorEndEvent())
+                        if max_turns and turns >= max_turns:
+                            raise ValueError("Max agent turns reached")
 
+                    except (Exception, KeyboardInterrupt, CancelledError) as e:
+                        await self.handle_event(OrchestratorErrorEvent(error=str(e)))
+                        raise
+                    finally:
+                        await self.handle_event(OrchestratorEndEvent())
         finally:
             _current_orchestrator.reset(token)
 

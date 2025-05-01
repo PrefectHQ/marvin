@@ -19,7 +19,7 @@ T = TypeVar('T')
 
 ### `Agent`
 ```python
-class Agent(name: str = lambda: random.choice(AGENT_NAMES)(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('agent.jinja'), tools: list[Callable[..., Any]] = lambda: [](), memories: list[Memory] = lambda: [](), model: KnownModelName | Model | None = None, model_settings: ModelSettings = ModelSettings())
+class Agent(name: str = lambda: random.choice(AGENT_NAMES)(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('agent.jinja'), tools: list[Callable[..., Any]] = lambda: [](), memories: list[Memory] = list(), mcp_servers: list[MCPServer] = list(), model: KnownModelName | Model | None = None, model_settings: ModelSettings = ModelSettings())
 ```
 An agent that can process tasks and maintain state.
 
@@ -27,7 +27,11 @@ An agent that can process tasks and maintain state.
 
 - **`get_agentlet`**
   ```python
-  def get_agentlet(self, tools: list[Callable[..., Any]], end_turn_tools: list[EndTurn]) -> pydantic_ai.Agent[Any, Any]
+  def get_agentlet(self, tools: Sequence[Callable[..., Any]], end_turn_tools: Sequence[EndTurn], active_mcp_servers: list[MCPServer] | None = None) -> pydantic_ai.Agent[Any, Any]
+  ```
+- **`get_mcp_servers`**
+  ```python
+  def get_mcp_servers(self) -> list[MCPServer]
   ```
 - **`get_memories`**
   ```python

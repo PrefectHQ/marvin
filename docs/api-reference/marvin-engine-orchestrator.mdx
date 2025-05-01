@@ -48,7 +48,7 @@ class Orchestrator(tasks: list[Task[Any]], thread: Thread | str | None = None, h
   ```
 - **`run_once`**
   ```python
-  def run_once(self, actor: Actor | None = None) -> AgentRunResult
+  def run_once(self, actor: Actor | None = None, active_mcp_servers: list[MCPServer] | None = None) -> AgentRunResult
   ```
 - **`start_turn`**
   ```python
