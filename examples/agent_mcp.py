@@ -9,7 +9,6 @@ from marvin.agents import Agent
 #    Using the MCP Run Python server via stdio as an example
 #    (Requires Deno and the server to be installed: `deno install -A -N -R=node_modules -W=node_modules --node-modules-dir=auto jsr:@pydantic/mcp-run-python`)
 run_python_server = MCPServerStdio(
-    # Use deno command directly
     command="deno",
     args=[
         "run",
@@ -35,11 +34,7 @@ async def main():
     result = await calculator_agent.run_async(
         "How many days are between 2000-01-01 and 2025-03-18?"
     )
-    print("\nAgent Result:")
-    # The result object structure might need adjustment based on Marvin's run_async return
-    # Assuming it returns an object with an 'output' attribute for now.
-    # print(result.output)
-    print(result)  # Print the whole result for inspection
+    print(result)
 
 
 if __name__ == "__main__":
