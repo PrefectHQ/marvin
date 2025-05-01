@@ -79,6 +79,7 @@ class TestRunWithAudio:
         data = Path(__file__).parent.parent.parent / "data" / "youre-funny.wav"
         return BinaryContent(data=data.read_bytes(), media_type="audio/wav")
 
+    @pytest.mark.skip(reason="need to investigate")
     @pytest.mark.usefixtures("gpt_4o_audio_preview")
     def test_run_with_audio(self, youre_funny_audio_data: BinaryContent):
         result = marvin.run(

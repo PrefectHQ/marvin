@@ -157,7 +157,6 @@ async def generate_schema_async(
         {{instructions}}
         </instructions>
         
-        Don't include extra nesting (e.g. const) unless the user explicitly asks for it - ie simple as possible.
         ---
         {% if base_schema %}
         Base your response on the following schema as much as possible:

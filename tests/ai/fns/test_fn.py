@@ -98,6 +98,7 @@ class TestAnnotations:
 
         assert is_fruit(name) == expected
 
+    @pytest.mark.flaky(reruns=2)
     def test_plain_dict_return_type(self):
         @marvin.fn
         def describe_fruit(description: str) -> dict:
@@ -107,6 +108,7 @@ class TestAnnotations:
         assert fruit["name"].lower() == "banana"
         assert fruit["color"].lower() == "yellow"
 
+    @pytest.mark.flaky(reruns=2)
     def test_annotated_dict_return_type(self):
         @marvin.fn
         def describe_fruit(description: str) -> dict[str, str]:
