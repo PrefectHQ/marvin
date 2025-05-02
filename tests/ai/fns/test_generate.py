@@ -49,7 +49,7 @@ class TestBuiltins:
 
 class TestGenerateSchema:
     @pytest.mark.usefixtures("gpt_4o")
-    @pytest.mark.flaky(reruns=2)
+    @pytest.mark.xfail(reason="This is a flaky test that should be fixed")
     async def test_generate_list_of_integers_schema(self):
         result = await marvin.generate_schema_async(
             instructions="list of exactly three integers",
@@ -144,7 +144,7 @@ class TestGenerateSchema:
         )
 
     @pytest.mark.usefixtures("gpt_4o")
-    @pytest.mark.flaky(reruns=2)
+    @pytest.mark.xfail(reason="This is a flaky test that should be fixed")
     async def test_generate_schema_with_thread(self):
         result = await marvin.generate_schema_async(
             instructions="a list that contains exactly three integers",

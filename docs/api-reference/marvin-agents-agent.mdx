@@ -19,7 +19,7 @@ T = TypeVar('T')
 
 ### `Agent`
 ```python
-class Agent(name: str = lambda: random.choice(AGENT_NAMES)(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('agent.jinja'), tools: list[Callable[..., Any]] = lambda: [](), memories: list[Memory] = list(), mcp_servers: list[MCPServer] = list(), model: KnownModelName | Model | None = None, model_settings: ModelSettings = ModelSettings())
+class Agent(name: str = lambda: random.choice(AGENT_NAMES)(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('agent.jinja'), tools: list[Callable[..., Any]] = lambda: [](), memories: list[Memory] = lambda: [](), mcp_servers: list[MCPServer] = lambda: [](), model: KnownModelName | Model | None = None, model_settings: ModelSettings = ModelSettings())
 ```
 An agent that can process tasks and maintain state.
 

@@ -26,7 +26,7 @@ class Orchestrator(tasks: list[Task[Any]], thread: Thread | str | None = None, h
   ```
 - **`get_all_tasks`**
   ```python
-  def get_all_tasks(self, filter: Literal['incomplete', 'ready'] | None = None) -> list[Task[Any]]
+  def get_all_tasks(self, _filter: Literal['incomplete', 'ready'] | None = None) -> list[Task[Any]]
   ```
   Get all tasks, optionally filtered by status.
   

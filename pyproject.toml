@@ -45,13 +45,7 @@ dev = [
 [project.optional-dependencies]
 audio = ["pyaudio>=0.2.14"]
 
-slackbot = [
-    "pydantic-ai",
-    "prefect",
-    "numpy",
-    "raggy",
-    "turbopuffer==0.1.23",
-]
+slackbot = ["pydantic-ai", "prefect", "numpy", "raggy", "turbopuffer==0.1.23"]
 
 [project.scripts]
 marvin = "marvin.cli.main:app"
@@ -69,6 +63,9 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 timeout = 60
 testpaths = ["tests"]
+filterwarnings = [
+    "ignore:.*search.*method is deprecated.*:DeprecationWarning:qdrant_client\\.async_qdrant_fastembed",
+]
 norecursedirs = [
     "*.egg-info",
     ".git",
