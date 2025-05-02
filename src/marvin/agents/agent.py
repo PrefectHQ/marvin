@@ -61,12 +61,12 @@ class Agent(Actor):
     )
 
     memories: list[Memory] = field(
-        default_factory=list,
+        default_factory=lambda: [],
         metadata={"description": "List of memory modules available to the agent"},
     )
 
     mcp_servers: list["MCPServer"] = field(
-        default_factory=list,
+        default_factory=lambda: [],
         metadata={"description": "List of MCP servers available to the agent"},
         repr=False,
     )
@@ -157,25 +157,19 @@ class Agent(Actor):
             else:
                 logger.warning(f"Ignoring non-callable, non-EndTurn item: {item}")
 
-        # --- Wrap standard Marvin tools --- #
         unique_marvin_tools = [wrap_tool_errors(tool) for tool in marvin_tool_callables]
 
-        # --- Discover MCP tools --- #
-        mcp_tools_instances: list[Tool] = []
+        mcp_tool_instances: list[Tool] = []
         if active_mcp_servers:
             orchestrator = marvin.engine.orchestrator.get_current_orchestrator()
-            mcp_tools_instances = await discover_mcp_tools(
+            mcp_tool_instances = await discover_mcp_tools(
                 mcp_servers=active_mcp_servers,
                 actor=self,
                 orchestrator=orchestrator,
             )
 
-        # --- Combine standard tools for 'tools' arg --- #
-        combined_standard_tools: list[Callable | Tool] = (
-            unique_marvin_tools + mcp_tools_instances
-        )
+        combined_tools: list[Any] = unique_marvin_tools + mcp_tool_instances
 
-        # --- Determine EndTurn ToolOutput --- #
         tool_output_name = "EndTurn"
         tool_output_description = "Ends the current turn."
         if len(final_end_turn_defs) == 1:
@@ -199,27 +193,22 @@ class Agent(Actor):
             description=tool_output_description,
         )
 
-        # --- Create the pydantic_ai.Agent --- #
         agent_kwargs = {
             "model": self.get_model(),
             "model_settings": self.get_model_settings(),
             "output_type": final_tool_output,  # Use the constructed ToolOutput
             "name": self.name,
-            # "tools": combined_standard_tools, # Add conditionally below
-            # "mcp_servers": active_mcp_servers, # Add conditionally below
         }
 
-        # Conditionally add standard tools
-        if combined_standard_tools:
-            agent_kwargs["tools"] = combined_standard_tools
+        if combined_tools:
+            agent_kwargs["tools"] = combined_tools
 
-        # Conditionally add mcp_servers
         if active_mcp_servers:
             agent_kwargs["mcp_servers"] = active_mcp_servers
 
         agentlet = pydantic_ai.Agent[Any, Any](**agent_kwargs)
 
-        # --- Assign Marvin-specific attributes for internal use --- #
+        # for internal use
         agentlet._marvin_tools = unique_marvin_tools  # Store wrapped callables
         agentlet._marvin_end_turn_tools = final_end_turn_defs  # Store original defs
 
