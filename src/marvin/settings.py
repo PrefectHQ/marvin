@@ -75,6 +75,11 @@ class Settings(BaseSettings):
         description="Logging level",
     )
 
+    log_file: Path | None = Field(
+        default=None,
+        description="Path to a file for logging. If None, logs to stdout.",
+    )
+
     log_events: bool = Field(
         default=False,
         description="Whether to log all events (as debug logs).",
@@ -89,9 +94,9 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def setup_logging(self) -> Self:
         """Finalize the settings."""
-        import marvin.utilities.logging
+        from marvin.utilities.logging import setup_logging
 
-        marvin.utilities.logging.setup_logging(self.log_level)
+        setup_logging(settings=self)
 
         return self
 

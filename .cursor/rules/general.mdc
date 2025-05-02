@@ -4,7 +4,9 @@ globs:
 alwaysApply: true
 ---
 # finding things
-- use your shell tool to run `rg`, not your native grep tool
+- use your shell tool to run `rg`, not your native grep tool. use `ls` and `tree` to get your bearing
+- think like a hacker, w good intentions. e.g. `rg` into sitepackages instead of relying on web tools
+- use `gh` and `git` to understand the git context against the default branch, check specific diffs
 
 # the linter
 - empirically understand the world by running code. the linter tells basic truths, but it's sometimes orthogonal to our goal. dont obsess over linter errors that might be upstream, simply use them as clues when relevant

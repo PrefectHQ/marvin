@@ -1,40 +1,52 @@
-# examples/agent_mcp.py
 import asyncio
+import os
+from pathlib import Path
 
 from pydantic_ai.mcp import MCPServerStdio
+from rich import print as pprint
 
 from marvin.agents import Agent
 
-# 1. Define the MCP Server configuration
-#    Using the MCP Run Python server via stdio as an example
-#    (Requires Deno and the server to be installed: `deno install -A -N -R=node_modules -W=node_modules --node-modules-dir=auto jsr:@pydantic/mcp-run-python`)
+# Requires Deno: `deno install -A ... jsr:@pydantic/mcp-run-python`
 run_python_server = MCPServerStdio(
     command="deno",
-    args=[
-        "run",
-        "-A",  # Use -A for simplicity, adjust permissions as needed
-        "jsr:@pydantic/mcp-run-python",
-        "stdio",
-    ],
+    args=["run", "-A", "jsr:@pydantic/mcp-run-python", "stdio"],
+    env=dict(os.environ),
 )
 
-# 2. Instantiate the Marvin Agent, passing the server via `mcp_servers`
-calculator_agent = Agent(
-    name="MCP Calculator",
-    instructions=(
-        "Use available tools to answer the user's question. You have access"
-        " to an MCP server that provides a `run_python_code` tool."
-    ),
-    mcp_servers=[run_python_server],
+# Requires uv: `uvx mcp-server-git`
+git_server = MCPServerStdio(
+    command="uvx",
+    args=["mcp-server-git"],
+    env=dict(os.environ),
 )
 
 
-# 3. Run the agent - no explicit context manager should be needed by the user
+def write_summary_of_work(description: str, file_path: str) -> str:
+    """log your efforts"""
+    Path(file_path).write_text(description)
+    return f"Summary written to {file_path}"
+
+
+git_agent = Agent(
+    name="Git Agent",
+    instructions="Use the available tools as needed to accomplish the user's goal.",
+    mcp_servers=[run_python_server, git_server],
+    tools=[write_summary_of_work],
+)
+
+
 async def main():
-    result = await calculator_agent.run_async(
-        "How many days are between 2000-01-01 and 2025-03-18?"
+    task = (
+        "Get the latest commit hash from this repository (path '.') and report how many characters long it is."
+        " Finally, report the square root of that number and write a summary of your work to a file called 'summary.txt'"
     )
-    print(result)
+    pprint(f"--- Running task: ---\n{task}\n" + "-" * 20)
+
+    pprint("\n--- Starting Agent Run ---")
+    result = await git_agent.run_async(task)
+    pprint("\n--- Final Result ---")
+    pprint(result)
 
 
 if __name__ == "__main__":

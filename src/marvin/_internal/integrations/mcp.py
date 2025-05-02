@@ -5,10 +5,9 @@ Module for integrating Model Context Protocol (MCP) servers with Marvin.
 """
 
 import asyncio
-import uuid  # Added for tool_call_id
+import uuid
 from functools import partial
 from typing import TYPE_CHECKING, Any, Coroutine
-from unittest.mock import MagicMock
 
 from mcp.types import CallToolResult
 from pydantic_ai.mcp import MCPServer
@@ -26,6 +25,28 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+class _MCPToolAdapter:
+    _tool_def: ToolDefinition
+    name: str
+    description: str
+
+    def __init__(self, tool_definition: ToolDefinition):
+        self._tool_def = tool_definition
+        self.name = tool_definition.name
+        self.description = tool_definition.description
+
+    def __call__(self, *args: Any, **kwargs: Any) -> str:
+        return f"MCPToolAdapter for '{self.name}'. Call via the appropriate MCPServer."
+
+    def __repr__(self) -> str:
+        desc_snippet = (
+            f"{self.description[:50]}..."
+            if len(self.description) > 50
+            else self.description
+        )
+        return f"MCPToolAdapter(name='{self.name}', description='{desc_snippet}')"
+
+
 async def _mcp_tool_wrapper(
     *,
     _mcp_server: MCPServer,
@@ -34,34 +55,26 @@ async def _mcp_tool_wrapper(
     _orchestrator: "marvin.engine.orchestrator.Orchestrator | None",
     **kwargs: Any,
 ) -> Any:
-    """Wraps an MCP tool call to integrate with Marvin's event system."""
+    if not _orchestrator:
+        raise RuntimeError("orchestrator not found, this is unexpected")
+
     tool_call_id = f"mcp-{uuid.uuid4()}"
     tool_name = _tool_def.name
 
-    # Create a mock tool object for event reporting
-    mock_tool_obj = MagicMock()
-    mock_tool_obj.name = tool_name
-    mock_tool_obj.description = _tool_def.description
+    mcp_tool_adapter = _MCPToolAdapter(tool_definition=_tool_def)
 
-    # --- Create ToolCallPart and ToolCallEvent --- #
-    tool_call_part = ToolCallPart(
-        tool_name=tool_name,
-        args=kwargs,  # Pass the actual arguments received
-        tool_call_id=tool_call_id,
-    )
-    tool_call_event = ToolCallEvent(
-        actor=_actor,
-        message=tool_call_part,
-        tool_call_id=tool_call_id,
-        tool=mock_tool_obj,  # Use the mock object
-    )
-
-    if _orchestrator:
-        await _orchestrator.handle_event(tool_call_event)
-    else:
-        logger.warning(
-            f"No orchestrator found to handle ToolCallEvent for MCP tool {tool_name}"
+    await _orchestrator.handle_event(
+        ToolCallEvent(
+            actor=_actor,
+            message=ToolCallPart(
+                tool_name=tool_name,
+                args=kwargs,
+                tool_call_id=tool_call_id,
+            ),
+            tool_call_id=tool_call_id,
+            tool=mcp_tool_adapter,
         )
+    )
 
     logger.debug(f"Calling MCP tool '{tool_name}' via {type(_mcp_server).__name__}")
     try:
@@ -70,45 +83,37 @@ async def _mcp_tool_wrapper(
         )
         result_content = result.content
 
-        # --- Create ToolReturnPart and ToolResultEvent --- #
-        tool_return_part = ToolReturnPart(
-            tool_name=tool_name,
-            content=result_content,
-            tool_call_id=tool_call_id,
-        )
-        tool_result_event = ToolResultEvent(
-            message=tool_return_part,
-        )
-
-        if _orchestrator:
-            await _orchestrator.handle_event(tool_result_event)
-        else:
-            logger.warning(
-                f"No orchestrator found to handle ToolResultEvent for MCP tool {tool_name}"
+        await _orchestrator.handle_event(
+            ToolResultEvent(
+                message=ToolReturnPart(
+                    tool_name=tool_name,
+                    content=result_content,
+                    tool_call_id=tool_call_id,
+                ),
             )
+        )
 
         logger.debug(f"MCP tool '{tool_name}' returned result: {result_content!r}")
         return result_content
     except Exception as e:
         logger.error(f"Error calling MCP tool '{tool_name}': {e}", exc_info=True)
-        # Attempt to create an error ToolReturnPart
         error_content = f"Error calling tool {tool_name}: {e}"
         try:
-            tool_return_part = ToolReturnPart(
-                tool_name=tool_name,
-                content=error_content,
-                tool_call_id=tool_call_id,
+            await _orchestrator.handle_event(
+                ToolResultEvent(
+                    message=ToolReturnPart(
+                        tool_name=tool_name,
+                        content=error_content,
+                        tool_call_id=tool_call_id,
+                    )
+                )
             )
-            tool_result_event = ToolResultEvent(message=tool_return_part)
-            if _orchestrator:
-                await _orchestrator.handle_event(tool_result_event)
         except Exception as e_inner:
             logger.error(
                 f"Failed to create/send error ToolResultEvent for {tool_name}: {e_inner}",
                 exc_info=True,
             )
 
-        # Return the error string for pydantic-ai
         return error_content
 
 
@@ -117,7 +122,6 @@ async def discover_mcp_tools(
     actor: Actor,
     orchestrator: "marvin.engine.orchestrator.Orchestrator | None",
 ) -> list[Tool]:
-    """Discovers tools from active MCP servers and wraps them for Marvin."""
     mcp_tools: list[Tool] = []
     if not mcp_servers:
         return mcp_tools
@@ -126,14 +130,13 @@ async def discover_mcp_tools(
     server_map: dict[int, MCPServer] = {}
 
     for i, server in enumerate(mcp_servers):
-        # Ensure server is running (best effort check)
         if not getattr(server, "is_running", False):
             logger.warning(
                 f"MCP Server {server!r} is not marked as running, skipping tool discovery."
             )
             continue
         discovery_tasks.append(server.list_tools())
-        server_map[i] = server  # Map task index back to server
+        server_map[i] = server
 
     if not discovery_tasks:
         return mcp_tools
@@ -151,9 +154,10 @@ async def discover_mcp_tools(
             continue
 
         tool_defs: list[ToolDefinition] = result
-        logger.debug(f"Discovered {len(tool_defs)} tools from {server!r}")
+        logger.debug(
+            f"Discovered {len(tool_defs)} tool{'' if len(tool_defs) == 1 else 's'} from {server!r}"
+        )
         for tool_def in tool_defs:
-            # Create a partial function for the wrapper with context
             wrapped_func = partial(
                 _mcp_tool_wrapper,
                 _mcp_server=server,
@@ -162,21 +166,22 @@ async def discover_mcp_tools(
                 _orchestrator=orchestrator,
             )
 
-            # Ensure the partial function has the correct async nature
-            # Not strictly necessary as partial preserves it, but explicit
-            async def async_wrapped_func(**kwargs: Any) -> Any:
-                return await wrapped_func(**kwargs)
+            # Use a default argument to capture the current value of wrapped_func
+            # This prevents the closure from capturing the loop variable by reference.
+            async def async_wrapped_func_fixed(
+                _bound_partial=wrapped_func,  # No type hint here for Pydantic inspection
+                **kwargs: Any,
+            ) -> Any:
+                # Call the captured partial, not the loop variable
+                return await _bound_partial(**kwargs)
 
-            # Create the pydantic_ai.Tool object
-            # NOTE: parameters_json_schema is not passed to the constructor
-            #       It's inferred internally by pydantic-ai based on the function signature
-            mcp_tool = Tool(
-                function=async_wrapped_func,
-                name=tool_def.name,
-                description=tool_def.description,
-                takes_ctx=False,
+            mcp_tools.append(
+                Tool(
+                    function=async_wrapped_func_fixed,  # Use the fixed function
+                    name=tool_def.name,
+                    description=tool_def.description,
+                    takes_ctx=False,
+                )
             )
-            mcp_tools.append(mcp_tool)
 
-    logger.info(f"Discovered a total of {len(mcp_tools)} MCP tools.")
     return mcp_tools

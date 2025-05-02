@@ -305,7 +305,7 @@ class TestContextAndInstructions:
         @marvin.fn
         async def get_fruit_details(name: str) -> dict[str, str]:
             """Returns details about the fruit"""
-            return {"hint": "This fruit is red and grows on trees"}
+            return {"hint": "we talkin apples yo"}
 
         result = await get_fruit_details("unknown")
         await assert_llm_equal(result, "a dictionary describing an apple")
