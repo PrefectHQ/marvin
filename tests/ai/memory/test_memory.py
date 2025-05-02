@@ -25,7 +25,7 @@ def test_task_memory():
 def test_instructions():
     m = marvin.Memory(
         key="colors",
-        instructions="when remembering a color, always store it and the word 'house' e.g. 'red house'",
+        instructions="when remembering a color, always store it along with the word 'house' e.g. 'red house'",
     )
     a = marvin.Agent(memories=[m])
     marvin.run("remember the color green", agents=[a])
