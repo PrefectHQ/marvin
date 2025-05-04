@@ -13,7 +13,7 @@ Marvin provides a structured, developer-focused framework for defining workflows
 
 > [!WARNING]
 > 
-> 🚧🚨 Marvin 3.0 is under very active development, reflected on the `main` branch of this repo. The API may undergo breaking changes, and documentation is still being updated. Please use it with caution. You may prefer the stable version of [Marvin 2.0](https://askmarvin.ai) or [ControlFlow](https://controlflow.ai) for now.
+> 🚧🚨 Marvin 3.x is under active development, reflected on the `main` branch of this repo. The API may undergo breaking changes, and documentation is still being updated.
 
 ## Installation
 
