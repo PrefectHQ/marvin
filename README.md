@@ -13,7 +13,7 @@ Marvin provides a structured, developer-focused framework for defining workflows
 
 > [!WARNING]
 > 
-> 🚧🚨 Marvin 3.x is under active development, reflected on the `main` branch of this repo. The API may undergo breaking changes, and documentation is still being updated.
+> 🚧🚨 Marvin 3.x is under active development, reflected on the `main` branch of this repo. The API may undergo breaking changes, and documentation is still being updated (can be found at [marvin.mintlify.app](https://marvin.mintlify.app)).
 
 ## Installation
 
