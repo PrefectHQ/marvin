@@ -303,10 +303,13 @@ class Task(Generic[T]):
         self._tokens = []
 
         if agents:
-            if len(agents) == 1:
-                self.actor = agents[0]
+            if isinstance(agents, Team):
+                self.actor = agents
             else:
-                self.actor = Swarm(members=agents)
+                if len(agents) == 1:
+                    self.actor = agents[0]
+                else:
+                    self.actor = Swarm(members=agents)
 
         # Handle result type validation
         if isinstance(self.result_type, (list, tuple, set)):
