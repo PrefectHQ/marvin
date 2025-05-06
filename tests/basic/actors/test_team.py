@@ -2,7 +2,7 @@ import pytest
 from dirty_equals import IsStr
 
 import marvin
-from marvin import Thread
+from marvin import Task, Thread
 from marvin.agents.actor import get_current_actor
 from marvin.agents.agent import Agent
 from marvin.agents.team import RandomTeam, Swarm, Team
@@ -19,6 +19,15 @@ async def test_team_initialization():
     assert agent2 in team.members
     assert team.active_member is agent1  # First agent is active by default
     assert team.delegates == {}
+
+
+def test_team_accepted_as_task_actor():
+    agent = Agent()
+    team = Team(members=[agent])
+
+    task_team = Task(instructions="Test 2", agents=team)
+
+    assert task_team.actor is team
 
 
 async def test_team_empty_members():
