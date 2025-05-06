@@ -223,7 +223,7 @@ class Task(Generic[T]):
         *,
         name: str | None = None,
         prompt_template: str | Path = Path("task.jinja"),
-        agents: list[Actor | Team] | None = None,
+        agents: Actor | Sequence[Actor] | None = None,
         context: dict[str, Any] | None = None,
         tools: list[Callable[..., Any]] | None = None,
         memories: list[Memory] | None = None,

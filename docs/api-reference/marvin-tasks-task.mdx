@@ -24,7 +24,7 @@ T = TypeVar('T')
 
 ### `Task`
 ```python
-class Task(instructions: str | Sequence[UserContent], attachments: Sequence[UserContent] | None = None, result_type: ResultType[T] = NOTSET, name: str | None = None, prompt_template: str | Path = Path('task.jinja'), agents: list[Actor | Team] | None = None, context: dict[str, Any] | None = None, tools: list[Callable[..., Any]] | None = None, memories: list[Memory] | None = None, result_validator: Callable[..., Any] | None = None, parent: Task[Any] | None | Literal['__NOTSET__'] = NOTSET, depends_on: Sequence[Task[Any]] | None = None, allow_fail: bool = False, allow_skip: bool = False, verbose: bool = False, cli: bool = False, plan: bool = False)
+class Task(instructions: str | Sequence[UserContent], attachments: Sequence[UserContent] | None = None, result_type: ResultType[T] = NOTSET, name: str | None = None, prompt_template: str | Path = Path('task.jinja'), agents: Actor | Sequence[Actor] | None = None, context: dict[str, Any] | None = None, tools: list[Callable[..., Any]] | None = None, memories: list[Memory] | None = None, result_validator: Callable[..., Any] | None = None, parent: Task[Any] | None | Literal['__NOTSET__'] = NOTSET, depends_on: Sequence[Task[Any]] | None = None, allow_fail: bool = False, allow_skip: bool = False, verbose: bool = False, cli: bool = False, plan: bool = False)
 ```
 A task is a container for a prompt and its associated state.
 
