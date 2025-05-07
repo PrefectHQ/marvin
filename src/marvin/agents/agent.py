@@ -209,7 +209,9 @@ class Agent(Actor):
         agentlet = pydantic_ai.Agent[Any, Any](**agent_kwargs)
 
         # for internal use
-        agentlet._marvin_tools = unique_marvin_tools  # Store wrapped callables
+        agentlet._marvin_tools = (
+            combined_tools  # Corrected: Should include all tools (Python + MCP)
+        )
         agentlet._marvin_end_turn_tools = final_end_turn_defs  # Store original defs
 
         return agentlet
