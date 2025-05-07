@@ -1,0 +1,128 @@
+---
+title: Using MCP Servers
+description: Connect Marvin agents to Model Context Protocol (MCP) servers for extended capabilities.
+---
+
+<Warning>
+    MCP support is experimental and subject to change. [Open an issue on GitHub](https://github.com/PrefectHQ/marvin/issues) if you'd like to see a feature added or have any feedback.
+</Warning>
+
+Marvin agents can connect to [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) servers, allowing them to access a wide array of external tools and data sources.
+
+## What is MCP?
+
+MCP provides a standardized way for AI agents to interface with tools, resources, prompts etc. If a thing in the world has an MCP server, you can trivially write an agent that interacts with it (on the terms of the MCP server implementation).
+
+## Connecting an Agent to an MCP Server
+
+To give your agent access to an MCP server, you simply pass `MCPServer` instances to the `mcp_servers` argument when creating your `Agent`.
+
+Marvin uses `pydantic-ai` under the hood for MCP server interactions. The most common server type you'll likely use is `MCPServerStdio`, which communicates with an MCP server running as a subprocess via its standard input/output.
+
+### Example: Using a Python Interpreter via MCP
+
+Let's say you want your agent to be able to run Python code. There are MCP servers that provide a Python interpreter as a tool. The `jsr:@pydantic/mcp-run-python` package is one such server that can be run with Deno.
+
+```python
+from marvin.agents import Agent
+from pydantic_ai.mcp import MCPServerStdio
+
+# Configure the MCP server for running Python code
+# This requires Deno and the jsr:@pydantic/mcp-run-python package
+# You can install the Deno package with: 
+# deno install -A -g jsr:@pydantic/mcp-run-python
+run_python_mcp_server = MCPServerStdio(
+    command="deno", # Or the full path to your deno executable
+    args=["run", "-A", "jsr:@pydantic/mcp-run-python", "stdio"],
+)
+
+# Create an agent and provide the MCP server
+coder_agent = Agent(
+    name="Coder",
+    instructions="Use the Python interpreter to solve tasks.",
+    mcp_servers=[run_python_mcp_server]
+)
+
+async def run_code():
+    result = await coder_agent.run_async(
+        "Use python to calculate the square root of 256 and tell me the result."
+    )
+    print(result)
+
+if __name__ == "__main__":
+    asyncio.run(run_code())
+```
+
+<Tip>
+  Make sure the command specified in `MCPServerStdio` (e.g., `"deno"` or `"uvx"`) is available in your system's PATH or provide the full path to the executable.
+</Tip>
+
+### Example: Using a Git Tool Server via MCP
+
+Another common use case is interacting with Git repositories. The `mcp-server-git` package (runnable with `uvx`, part of `uv`) provides Git tools over MCP.
+
+```python
+from marvin.agents import Agent
+from pydantic_ai.mcp import MCPServerStdio
+
+# Configure the MCP server for Git tools
+# This requires uv and mcp-server-git (installable via: uvx mcp-server-git, if needed)
+git_mcp_server = MCPServerStdio(
+    command="uvx", 
+    args=["mcp-server-git"] 
+)
+
+version_control_agent = Agent(
+    name="VersionControlPro",
+    instructions="Use Git tools to inspect the repository.",
+    mcp_servers=[git_mcp_server]
+)
+
+async def get_repo_info():
+    result = await version_control_agent.run_async(
+        "Get the latest commit message from this repository."
+    )
+    print(result)
+
+if __name__ == "__main__":
+    asyncio.run(get_repo_info())
+```
+
+## How it Works
+
+<Tip>
+    tldr: It's basically just function calling (for now)
+</Tip>
+
+When an agent configured with `mcp_servers` runs:
+1. Marvin discovers the tools provided by each active MCP server.
+2. These discovered tools (e.g., `run_python_code` from the Python server, or `git_log` from the Git server) are made available to the LLM just like standard Python tools.
+3. If the LLM decides to use an MCP tool, Marvin's engine handles the communication with the specified `MCPServer` instance.
+4. The result from the MCP server is processed and returned to the LLM, which then formulates the final response.
+
+## Exploring Further
+
+For a more comprehensive example demonstrating multiple MCP servers and tools, check out the example script in the Marvin repository:
+
+[`examples/agent_mcp.py`](https://github.com/PrefectHQ/marvin/blob/main/examples/agent_mcp.py)
+
+This example showcases an agent that uses both a Python interpreter and Git tools via MCP to perform a multi-step task. You can run it locally to see MCP integration in action.
+
+<Accordion title="Running the example/agent_mcp.py script">
+First, ensure you have the necessary MCP servers installed. For `examples/agent_mcp.py`, this typically means having Deno and `jsr:@pydantic/mcp-run-python` available, as well as `uv` and `mcp-server-git` (if you intend to use the git server part).
+
+Then, from the root of the Marvin repository, you can run:
+```bash
+uv run examples/agent_mcp.py
+```
+You should see the agent using tools like `git_log` and `run_python_code` to complete its task.
+</Accordion>
+
+This setup allows Marvin agents to flexibly leverage a growing ecosystem of MCP-compatible tools and services.
+
+```python
+
+
+
+
+```

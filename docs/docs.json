@@ -44,6 +44,12 @@
                         ]
                     },
                     {
+                        "group": "Integrations",
+                        "pages": [
+                            "guides/mcp"
+                        ]
+                    },
+                    {
                         "group": "Functions",
                         "pages": [
                             "functions/run",
