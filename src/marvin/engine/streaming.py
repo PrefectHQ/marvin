@@ -17,6 +17,7 @@ from pydantic_ai.messages import (
     ToolCallPartDelta,
     ToolReturnPart,
 )
+from pydantic_ai.tools import Tool
 
 import marvin
 import marvin.agents.team
@@ -72,7 +73,16 @@ async def handle_agentlet_events(
     """
     # Create a parts manager to accumulate delta events for this run
     parts_manager = ModelResponsePartsManager()
-    tools_map = {t.__name__: t for t in agentlet._marvin_tools}
+    tools_map = {}
+    for t_tool_obj in agentlet._marvin_tools:
+        if isinstance(t_tool_obj, Tool):
+            tools_map[t_tool_obj.name] = t_tool_obj
+        elif callable(t_tool_obj):
+            tools_map[t_tool_obj.__name__] = t_tool_obj
+        else:
+            logger.warning(
+                f"Encountered non-Tool, non-callable item in agentlet._marvin_tools: {type(t_tool_obj)}"
+            )
 
     end_turn_tools_map = {}
     for t in agentlet._marvin_end_turn_tools:
@@ -258,11 +268,12 @@ def _process_pydantic_event(
     elif isinstance(event, FunctionToolCallEvent):
         # This is the signal that a tool call is complete and ready to be executed
         # Emit tool call complete event
+        resolved_tool = tools_map.get(event.part.tool_name)
         return ToolCallEvent(
             actor=actor,
             message=event.part,
             tool_call_id=event.part.tool_call_id,
-            tool=tools_map.get(event.part.tool_name),
+            tool=resolved_tool,
         )
 
     # Handle Function Tool Result Events
