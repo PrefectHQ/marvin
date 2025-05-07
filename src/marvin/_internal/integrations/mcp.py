@@ -79,23 +79,65 @@ async def _mcp_tool_wrapper(
 
     logger.debug(f"Calling MCP tool '{tool_name}' via {type(_mcp_server).__name__}")
     try:
-        result: CallToolResult = await _mcp_server.call_tool(
+        # _mcp_server.call_tool (from pydantic-ai) now returns the processed content directly,
+        # not the raw mcp.types.CallToolResult object.
+        # Its return can be: str | BinaryContent | dict[str, Any] | list[Any] | Sequence[...]
+        raw_mcp_output: Any = await _mcp_server.call_tool(
             tool_name=tool_name, arguments=kwargs
         )
-        result_content = result.content
+
+        event_content: str | list[Any]
+
+        if isinstance(raw_mcp_output, CallToolResult):
+            # If pydantic-ai returns the raw CallToolResult, try to extract text from TextContent parts
+            texts = []
+            if raw_mcp_output.content and isinstance(raw_mcp_output.content, list):
+                for part in raw_mcp_output.content:
+                    # Check if the part is likely a TextContent part (duck-typing)
+                    if (
+                        hasattr(part, "type")
+                        and part.type == "text"
+                        and hasattr(part, "text")
+                        and isinstance(part.text, str)
+                    ):
+                        texts.append(part.text)
+                    # For now, we will not try to interpret other complex MCP parts here,
+                    # to keep it less brittle. If they are important, pydantic-ai should ideally process them.
+
+            if len(texts) == 1:
+                event_content = texts[0]
+            elif len(texts) > 1:
+                event_content = (
+                    texts  # Return as a list of strings from TextContent parts
+                )
+            else:
+                # If no clear text parts found, or if content wasn't as expected,
+                # fall back to stringifying the raw CallToolResult. This might be verbose.
+                event_content = str(raw_mcp_output)
+        elif isinstance(raw_mcp_output, (str, list)):
+            # This is the ideal case: pydantic-ai has processed the result into str or list
+            event_content = raw_mcp_output
+        elif isinstance(raw_mcp_output, dict):
+            # If pydantic-ai returns a dict, stringify it for now for ToolReturnPart
+            event_content = str(raw_mcp_output)
+        # We won't explicitly handle pydantic_ai.messages.BinaryContent here,
+        # as ToolReturnPart expects str or list. Stringifying it is a safe fallback.
+        else:
+            # Fallback for any other types (e.g., BinaryContent, or unexpected types)
+            event_content = str(raw_mcp_output)
 
         await _orchestrator.handle_event(
             ToolResultEvent(
                 message=ToolReturnPart(
                     tool_name=tool_name,
-                    content=result_content,
+                    content=event_content,  # Use the adapted content
                     tool_call_id=tool_call_id,
                 ),
             )
         )
 
-        logger.debug(f"MCP tool '{tool_name}' returned result: {result_content!r}")
-        return result_content
+        logger.debug(f"MCP tool '{tool_name}' returned result: {event_content!r}")
+        return event_content  # Return the adapted and processed content
     except Exception as e:
         logger.error(f"Error calling MCP tool '{tool_name}': {e}", exc_info=True)
         error_content = f"Error calling tool {tool_name}: {e}"
