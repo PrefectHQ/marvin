@@ -3,12 +3,18 @@ from contextlib import ContextDecorator
 from functools import wraps
 from typing import Any, Callable, ParamSpec, TypeVar
 
-from prefect import Task
-from prefect import tags as prefect_tags
-from prefect.artifacts import acreate_markdown_artifact
-from prefect.cache_policies import INPUTS
-from prefect.context import get_run_context
-from pydantic_ai.tools import Tool
+try:
+    from prefect import Task
+    from prefect import tags as prefect_tags
+    from prefect.artifacts import acreate_markdown_artifact
+    from prefect.cache_policies import INPUTS
+    from prefect.context import get_run_context
+    from pydantic_ai.tools import Tool
+except ImportError:
+    raise ImportError(
+        "To use the Prefect integration, install `marvin[prefect]`."
+    ) from None
+
 
 from marvin import Agent
 

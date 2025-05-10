@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 from pydantic_ai.mcp import MCPServer
 from pydantic_ai.tools import ToolDefinition
 
-from marvin._internal.integrations.mcp import discover_mcp_tools
+from marvin._internal.integrations._mcp import discover_mcp_tools
 from marvin.agents import Agent
 
 
