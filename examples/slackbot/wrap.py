@@ -1,13 +1,14 @@
 import inspect
 from contextlib import ContextDecorator
 from functools import wraps
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, ParamSpec, TypeVar
 
 from prefect import tags as prefect_tags
 from prefect import task
 from pydantic_ai.tools import Tool
 
 T = TypeVar("T")
+P = ParamSpec("P")
 
 
 class DecorateMethodContext(ContextDecorator):
@@ -53,19 +54,18 @@ class DecorateMethodContext(ContextDecorator):
 
 
 def prefect_wrapped_function(
-    func: Callable[..., T],
-    decorator: Callable[..., Callable[..., T]] = task,
+    func: Callable[P, T],
+    decorator: Callable[..., Callable[P, T]] = task,
     tags: set | None = None,
     settings: dict[str, Any] | None = None,
-) -> Callable[..., Callable[..., T]]:
+) -> Callable[..., Callable[P, T]]:
     """Decorator for wrapping a function with a prefect decorator."""
     tags = tags or set()
 
     @wraps(func)
-    async def wrapper(*args, **kwargs) -> T:
-        wrapped_callable = decorator(**settings or {})(func)  # type: ignore
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         with prefect_tags(*tags):
-            result = wrapped_callable(*args, **kwargs)  # type: ignore
+            result = decorator(**settings or {})(func)(*args, **kwargs)  # type: ignore
             if inspect.isawaitable(result):
                 result = await result
 

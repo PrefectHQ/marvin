@@ -140,14 +140,14 @@ def search_prefect_3x_docs(queries: list[str]) -> str:
     return multi_query_tpuf(queries, namespace="prefect-3", n_results=5)
 
 
-def search_controlflow_docs(queries: list[str]) -> str:
-    """Searches the ControlFlow documentation for the given queries.
+def search_marvin_docs(queries: list[str]) -> str:
+    """Searches the Marvin documentation for the given queries.
 
-    ControlFlow is an agentic framework built on top of Prefect 3.x.
+    Marvin is an agentic and structured outputs framework built by PrefectHQ on pydantic-ai
 
     It is best to use more than one, short query to get the best results.
     """
-    return multi_query_tpuf(queries, namespace="controlflow", n_results=5)
+    return multi_query_tpuf(queries, namespace="marvin", n_results=5)
 
 
 def get_latest_prefect_release_notes() -> str:

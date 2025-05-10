@@ -16,7 +16,7 @@ from pydantic_ai.result import ToolOutput
 from pydantic_ai.tools import Tool
 
 import marvin
-from marvin._internal.integrations.mcp import discover_mcp_tools
+from marvin._internal.integrations._mcp import discover_mcp_tools
 from marvin.agents.actor import Actor
 from marvin.agents.names import AGENT_NAMES
 from marvin.memory.memory import Memory

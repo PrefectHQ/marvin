@@ -2006,6 +2006,9 @@ dependencies = [
 audio = [
     { name = "pyaudio" },
 ]
+prefect = [
+    { name = "prefect" },
+]
 slackbot = [
     { name = "numpy" },
     { name = "prefect" },
@@ -2046,6 +2049,7 @@ requires-dist = [
     { name = "jinja2", specifier = ">=3.1.4" },
     { name = "numpy", marker = "extra == 'slackbot'" },
     { name = "partial-json-parser", specifier = ">=0.2.1.1.post5" },
+    { name = "prefect", marker = "extra == 'prefect'" },
     { name = "prefect", marker = "extra == 'slackbot'" },
     { name = "pyaudio", marker = "extra == 'audio'", specifier = ">=0.2.14" },
     { name = "pydantic", extras = ["email"], specifier = ">=2.10.6" },
@@ -2058,7 +2062,7 @@ requires-dist = [
     { name = "turbopuffer", marker = "extra == 'slackbot'", specifier = "==0.1.23" },
     { name = "typer", specifier = ">=0.15.1" },
 ]
-provides-extras = ["audio", "slackbot"]
+provides-extras = ["audio", "prefect", "slackbot"]
 
 [package.metadata.requires-dev]
 dev = [

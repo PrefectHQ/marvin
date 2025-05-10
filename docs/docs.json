@@ -98,6 +98,10 @@
                         ]
                     },
                     {
+                        "group": "beta",
+                        "pages": []
+                    },
+                    {
                         "group": "cli",
                         "pages": [
                             "api-reference/marvin-cli-config",

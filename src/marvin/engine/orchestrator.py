@@ -11,7 +11,7 @@ from pydantic_ai.mcp import MCPServer
 from pydantic_ai.messages import UserContent
 
 import marvin
-from marvin._internal.integrations.mcp import manage_mcp_servers
+from marvin._internal.integrations._mcp import manage_mcp_servers
 from marvin.agents.actor import Actor
 from marvin.agents.agent import Agent
 from marvin.database import DBLLMCall

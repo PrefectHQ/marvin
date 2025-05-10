@@ -47,6 +47,8 @@ audio = ["pyaudio>=0.2.14"]
 
 slackbot = ["pydantic-ai", "prefect", "numpy", "raggy", "turbopuffer==0.1.23"]
 
+prefect = ["prefect"]
+
 [project.scripts]
 marvin = "marvin.cli.main:app"
 

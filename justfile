@@ -33,6 +33,9 @@ clean: check-uv
     deactivate || true
     rm -rf .venv
 
+test-basic: check-uv
+    uv run --isolated --no-dev pytest -n3 tests/basic
+
 run-pre-commits: check-uv
     uv run pre-commit run --all-files
 
