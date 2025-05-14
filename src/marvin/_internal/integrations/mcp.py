@@ -26,33 +26,85 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class _MCPToolAdapter:
-    _tool_def: ToolDefinition
-    name: str
-    description: str
+class MCPManager:
+    """Manager for MCP server lifecycle, separating concerns from the orchestrator."""
 
-    def __init__(self, tool_definition: ToolDefinition):
-        self._tool_def = tool_definition
-        self.name = tool_definition.name
-        self.description = tool_definition.description
+    def __init__(self):
+        """Initialize the MCP manager."""
+        self.exit_stack = AsyncExitStack()
+        self.active_servers: list[MCPServer] = []
 
-    def __call__(self, *args: Any, **kwargs: Any) -> str:
-        return f"MCPToolAdapter for '{self.name}'. Call via the appropriate MCPServer."
+    async def start_servers(self, actor: "Actor") -> list[MCPServer]:
+        """Start MCP servers for the given actor.
 
-    def __repr__(self) -> str:
-        desc_snippet = (
-            f"{self.description[:50]}..."
-            if len(self.description) > 50
-            else self.description
+        Args:
+            actor: The actor that potentially has MCP servers
+
+        Returns:
+            List of successfully started MCP servers
+        """
+        from marvin.agents.agent import Agent
+
+        logger.debug(f"[MCPManager] Preparing MCP servers for {actor.name}...")
+        self.active_servers = []
+
+        if not isinstance(actor, Agent) or not hasattr(actor, "get_mcp_servers"):
+            logger.debug(
+                f"[MCPManager] Actor {actor.name} is not an Agent or does not have get_mcp_servers method."
+            )
+            return self.active_servers
+
+        servers_to_manage = actor.get_mcp_servers()
+
+        if not servers_to_manage:
+            logger.debug(
+                f"[MCPManager] Actor {actor.name} has no configured MCP servers."
+            )
+            return self.active_servers
+
+        logger.debug(
+            f"[MCPManager] Found {len(servers_to_manage)} server configurations."
         )
-        return f"MCPToolAdapter(name='{self.name}', description='{desc_snippet}')"
+
+        for i, server in enumerate(servers_to_manage):
+            logger.debug(
+                f"[MCPManager] Processing server #{i + 1}: {type(server).__name__}"
+            )
+            try:
+                # Set environment variables for stdio servers if not already set
+                if isinstance(server, MCPServerStdio) and server.env is None:
+                    logger.debug(
+                        f"[MCPManager] Server #{i + 1} is MCPServerStdio with no env set. Setting env=dict(os.environ)."
+                    )
+                    server.env = dict(os.environ)
+
+                logger.debug(f"[MCPManager] Entering context for server #{i + 1}...")
+                await self.exit_stack.enter_async_context(server)
+                self.active_servers.append(server)
+                logger.debug(
+                    f"[MCPManager] Context entered successfully for server #{i + 1}."
+                )
+            except Exception as e:
+                logger.error(
+                    f"[MCPManager] Failed to start MCP server #{i + 1} ({type(server).__name__}): {e}",
+                    exc_info=True,
+                )
+
+        logger.debug(f"[MCPManager] Started {len(self.active_servers)} active servers.")
+        return self.active_servers
+
+    async def cleanup(self):
+        """Clean up all started MCP servers."""
+        logger.debug("[MCPManager] Cleaning up MCP servers...")
+        await self.exit_stack.aclose()
+        self.active_servers = []
+        logger.debug("[MCPManager] MCP server cleanup complete.")
 
 
 async def _mcp_tool_wrapper(
     *,
     _mcp_server: MCPServer,
     _tool_def: ToolDefinition,
-    _actor: Actor,
     _orchestrator: "marvin.engine.orchestrator.Orchestrator | None",
     **kwargs: Any,
 ) -> Any:
@@ -90,6 +142,16 @@ async def _mcp_tool_wrapper(
                 event_content = str(raw_mcp_output)
         elif isinstance(raw_mcp_output, (str, list)):
             event_content = raw_mcp_output
+        elif (
+            isinstance(raw_mcp_output, dict)
+            and "type" in raw_mcp_output
+            and "result" in raw_mcp_output
+        ):
+            # Handle the case where an MCP tool returns a structured response with "type" and "result" fields
+            event_content = raw_mcp_output["result"]
+            logger.debug(
+                f"Extracted 'result' from structured response: {event_content!r}"
+            )
         elif isinstance(raw_mcp_output, dict):
             event_content = str(raw_mcp_output)
         else:
@@ -144,7 +206,7 @@ async def discover_mcp_tools(
     for i, server in enumerate(mcp_servers):
         if not getattr(server, "is_running", False):
             logger.warning(
-                f"MCP Server {server!r} is not marked as running, skipping tool discovery."
+                f"MCP Server {type(server).__name__} is not marked as running, skipping tool discovery."
             )
             continue
         discovery_tasks.append(server.list_tools())
@@ -161,20 +223,20 @@ async def discover_mcp_tools(
         server = server_map[i]
         if isinstance(result, BaseException):
             logger.error(
-                f"Failed to list tools from {server!r}: {result}", exc_info=result
+                f"Failed to list tools from {type(server).__name__}: {result}",
+                exc_info=result,
             )
             continue
 
         tool_defs: list[ToolDefinition] = result
         logger.debug(
-            f"Discovered {len(tool_defs)} tool{'' if len(tool_defs) == 1 else 's'} from {server!r}"
+            f"Discovered {len(tool_defs)} tool{'' if len(tool_defs) == 1 else 's'} from {type(server).__name__}"
         )
         for tool_def in tool_defs:
             wrapped_func = partial(
                 _mcp_tool_wrapper,
                 _mcp_server=server,
                 _tool_def=tool_def,
-                _actor=actor,
                 _orchestrator=orchestrator,
             )
 
@@ -199,74 +261,34 @@ async def discover_mcp_tools(
 
 
 @asynccontextmanager
-async def manage_mcp_servers(
-    actor: "marvin.agents.agent.Agent | Actor",
-) -> AsyncIterator[list["MCPServer"]]:
-    """Context manager to start and stop MCP servers for a given actor."""
+async def manage_mcp_servers(actor: "Actor") -> AsyncIterator[list[MCPServer]]:
+    """Context manager to start and stop MCP servers for a given actor.
+
+    Args:
+        actor: The actor that may have MCP servers
+
+    Yields:
+        List of successfully started MCP servers
+    """
+    # Early check for MCP servers to be more "lazy"
     from marvin.agents.agent import Agent
 
-    logger.debug(f"[manage_mcp_servers] Preparing MCP servers for {actor.name}...")
-    mcp_exit_stack = AsyncExitStack()
-    active_servers: list["MCPServer"] = []
-    servers_started = False
-
-    if not isinstance(actor, Agent) or not hasattr(actor, "get_mcp_servers"):
-        logger.debug(
-            f"[manage_mcp_servers] Actor {actor.name} is not an Agent or does not have get_mcp_servers method."
-        )
-        yield active_servers
-        return
-
-    servers_to_manage = actor.get_mcp_servers()
-
-    if not servers_to_manage:
-        logger.debug(
-            f"[manage_mcp_servers] Actor {actor.name} has no configured MCP servers."
-        )
-        yield active_servers
-        return
-
-    logger.debug(
-        f"[manage_mcp_servers] Found {len(servers_to_manage)} server configurations."
+    has_mcp_servers = (
+        isinstance(actor, Agent)
+        and hasattr(actor, "get_mcp_servers")
+        and actor.get_mcp_servers()
     )
-    for i, server in enumerate(servers_to_manage):
-        logger.debug(f"[manage_mcp_servers] Processing server #{i + 1}: {server!r}")
-        try:
-            # Set environment variables for stdio servers if not already set
-            if isinstance(server, MCPServerStdio) and server.env is None:
-                logger.debug(
-                    f"[manage_mcp_servers] Server #{i + 1} is MCPServerStdio with no env set. Setting env=dict(os.environ)."
-                )
-                server.env = dict(os.environ)
 
-            logger.debug(
-                f"[manage_mcp_servers] Entering context for server #{i + 1}..."
-            )
-            await mcp_exit_stack.enter_async_context(server)
-            active_servers.append(server)
-            logger.debug(
-                f"[manage_mcp_servers] Context entered successfully for server #{i + 1}."
-            )
-            servers_started = True
-        except Exception as e:
-            logger.error(
-                f"[manage_mcp_servers] Failed to start MCP server #{i + 1} ({server!r}): {e}",
-                exc_info=True,
-            )
-            # Optionally re-raise or handle specific errors? For now, just log.
+    if not has_mcp_servers:
+        # Empty list, no setup needed
+        yield []
+        return
 
-    if servers_started:
-        logger.debug(
-            f"[manage_mcp_servers] Yielding control with {len(active_servers)} active servers."
-        )
-    else:
-        logger.debug(
-            "[manage_mcp_servers] No servers were successfully started, yielding control."
-        )
+    # Only create and use the manager if we actually have MCP servers
+    manager = MCPManager()
+    active_servers = await manager.start_servers(actor)
 
     try:
         yield active_servers
     finally:
-        logger.debug("[manage_mcp_servers] Cleaning up MCP servers...")
-        await mcp_exit_stack.aclose()
-        logger.debug("[manage_mcp_servers] MCP server cleanup complete.")
+        await manager.cleanup()
