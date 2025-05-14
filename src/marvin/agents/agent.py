@@ -164,7 +164,6 @@ class Agent(Actor):
             orchestrator = marvin.engine.orchestrator.get_current_orchestrator()
             mcp_tool_instances = await discover_mcp_tools(
                 mcp_servers=active_mcp_servers,
-                actor=self,
                 orchestrator=orchestrator,
             )
 

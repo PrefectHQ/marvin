@@ -168,16 +168,16 @@ async def _mcp_tool_wrapper(
         )
 
         logger.debug(f"MCP tool '{tool_name}' returned result: {event_content!r}")
-        return event_content  # Return the adapted and processed content
+        return event_content
     except Exception as e:
-        logger.error(f"Error calling MCP tool '{tool_name}': {e}", exc_info=True)
-        error_content = f"Error calling tool {tool_name}: {e}"
+        error_message = f"Error calling MCP tool '{tool_name}': {e}"
+        logger.error(error_message, exc_info=True)
         try:
             await _orchestrator.handle_event(
                 ToolResultEvent(
                     message=ToolReturnPart(
                         tool_name=tool_name,
-                        content=error_content,
+                        content=error_message,
                         tool_call_id=tool_call_id,
                     )
                 )
@@ -188,12 +188,11 @@ async def _mcp_tool_wrapper(
                 exc_info=True,
             )
 
-        return error_content
+        return error_message
 
 
 async def discover_mcp_tools(
     mcp_servers: list[MCPServer],
-    actor: Actor,
     orchestrator: "marvin.engine.orchestrator.Orchestrator | None",
 ) -> list[Tool]:
     mcp_tools: list[Tool] = []

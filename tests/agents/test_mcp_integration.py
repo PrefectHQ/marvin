@@ -36,7 +36,6 @@ class TestAgentMCPInstantiation:
 
 async def test_discover_mcp_tools_success():
     """Test discovering tools from mock MCP servers."""
-    mock_actor = MagicMock(spec=Agent)
     mock_orchestrator = MagicMock()
 
     # Mock Tool Definitions
@@ -69,7 +68,6 @@ async def test_discover_mcp_tools_success():
     # Call the discovery function
     discovered_tools = await discover_mcp_tools(
         mcp_servers=[mock_server_1, mock_server_2],
-        actor=mock_actor,
         orchestrator=mock_orchestrator,
     )
 
@@ -84,7 +82,6 @@ async def test_discover_mcp_tools_success():
 
 async def test_discover_mcp_tools_server_not_running():
     """Test that tools are not discovered if server.is_running is False."""
-    mock_actor = MagicMock(spec=Agent)
     mock_orchestrator = MagicMock()
     mock_tool_def_1 = ToolDefinition(
         name="tool_one", description="Desc", parameters_json_schema={}
@@ -96,7 +93,6 @@ async def test_discover_mcp_tools_server_not_running():
 
     discovered_tools = await discover_mcp_tools(
         mcp_servers=[mock_server_1],
-        actor=mock_actor,
         orchestrator=mock_orchestrator,
     )
 
@@ -105,7 +101,6 @@ async def test_discover_mcp_tools_server_not_running():
 
 async def test_discover_mcp_tools_discovery_error():
     """Test that discovery proceeds if one server fails to list tools."""
-    mock_actor = MagicMock(spec=Agent)
     mock_orchestrator = MagicMock()
     mock_tool_def_2 = ToolDefinition(
         name="tool_two", description="Desc 2", parameters_json_schema={}
@@ -123,7 +118,6 @@ async def test_discover_mcp_tools_discovery_error():
 
     discovered_tools = await discover_mcp_tools(
         mcp_servers=[mock_server_1, mock_server_2],
-        actor=mock_actor,
         orchestrator=mock_orchestrator,
     )
 
