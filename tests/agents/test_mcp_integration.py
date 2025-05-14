@@ -130,3 +130,45 @@ async def test_discover_mcp_tools_discovery_error():
     # Only tool from server 2 should be discovered
     assert len(discovered_tools) == 1
     assert discovered_tools[0].name == "tool_two"
+
+
+async def test_manage_mcp_servers_lazy_behavior():
+    """Test that manage_mcp_servers is lazy and doesn't set up anything when no MCP servers exist."""
+
+    from marvin._internal.integrations.mcp import MCPManager, manage_mcp_servers
+
+    # Setup: Mock Agent with no MCP servers
+    mock_agent = MagicMock(spec=Agent)
+    mock_agent.get_mcp_servers.return_value = []
+
+    # Execute: Use the context manager
+    async with manage_mcp_servers(mock_agent) as active_servers:
+        # Assert: No servers should be returned
+        assert active_servers == []
+
+    # Setup: Mock Agent that is not an Agent type
+    non_agent = MagicMock()
+
+    # Execute: Use the context manager
+    async with manage_mcp_servers(non_agent) as active_servers:
+        # Assert: No servers should be returned
+        assert active_servers == []
+
+    # Setup: Mock Agent with MCP servers
+    mock_agent_with_servers = MagicMock(spec=Agent)
+    mock_server = MagicMock(spec=MCPServer)
+    mock_agent_with_servers.get_mcp_servers.return_value = [mock_server]
+
+    # We'll need to patch the MCPManager to avoid actual MCP server interaction
+    original_start_servers = MCPManager.start_servers
+    try:
+        # Replace the start_servers method with a mock
+        MCPManager.start_servers = AsyncMock(return_value=[mock_server])
+
+        # Execute: Use the context manager
+        async with manage_mcp_servers(mock_agent_with_servers) as active_servers:
+            # Assert: Our mock server should be returned
+            assert active_servers == [mock_server]
+    finally:
+        # Restore the original method
+        MCPManager.start_servers = original_start_servers

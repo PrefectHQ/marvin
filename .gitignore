@@ -19,3 +19,4 @@ wheels/
 
 # IDE-related files
 .vscode/
+**/.claude/settings.local.json

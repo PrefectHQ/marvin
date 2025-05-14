@@ -243,9 +243,10 @@ class Orchestrator:
 
                 # --- Manage MCP servers --- #
                 async with manage_mcp_servers(actor) as active_mcp_servers:
-                    logger.debug(
-                        f"Orchestrator loop starting with {len(active_mcp_servers)} active MCP servers."
-                    )
+                    if active_mcp_servers:
+                        logger.debug(
+                            f"Orchestrator loop starting with {len(active_mcp_servers)} active MCP servers."
+                        )
                     try:
                         turns = 0
                         # the while loop continues until all the tasks that were

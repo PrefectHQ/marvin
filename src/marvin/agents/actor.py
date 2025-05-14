@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, TypeVar
 
 import pydantic_ai
 from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.mcp import MCPServer
 from pydantic_ai.messages import UserContent
 
 import marvin
@@ -87,6 +88,7 @@ class Actor(ABC):
         self,
         tools: Sequence[Callable[..., Any]],
         end_turn_tools: Sequence["EndTurn"],
+        active_mcp_servers: list[MCPServer] | None = None,
     ) -> pydantic_ai.Agent[Any, Any]:
         raise NotImplementedError("Actor subclasses must implement _run")
 
