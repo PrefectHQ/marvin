@@ -3,10 +3,10 @@ from typing import Any, Self
 from fastmcp.client import Client
 from fastmcp.client.transports import StreamableHttpTransport
 from mcp.types import GetPromptResult, Prompt, Resource, Tool
-from pydantic_ai.mcp import MCPServer
+from pydantic_ai.mcp import MCPServerHTTP
 
 
-class MCPServerStreamHTTP(MCPServer):
+class MCPServerStreamHTTP(MCPServerHTTP):
     def __init__(
         self,
         url: str,
