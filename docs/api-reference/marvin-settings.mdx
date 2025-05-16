@@ -29,6 +29,11 @@ example, MARVIN_AGENT_MODEL="openai:gpt-4o-mini"
   def validate_database_url(cls, v: str | None, info: ValidationInfo) -> str
   ```
   Set and validate the database URL.
+  
+  Priority:
+  1. MARVIN_DATABASE_URL (from environment or .env file via os.getenv).
+  2. Default SQLite path if MARVIN_DATABASE_URL is not set.
+  This validator bypasses Pydantic's implicit fallback to an unprefixed DATABASE_URL from .env.
 - **`validate_home_path`**
   ```python
   def validate_home_path(cls, v: Path) -> Path

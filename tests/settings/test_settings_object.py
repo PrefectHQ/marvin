@@ -32,3 +32,20 @@ def test_database_url_set_from_env_var(
     monkeypatch.setenv("MARVIN_DATABASE_URL", env_var_value)
     settings = Settings()
     assert settings.database_url == expected
+
+
+def test_database_url_ignores_unprefixed_env_var_uses_default(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Test that an unprefixed DATABASE_URL is ignored if MARVIN_DATABASE_URL is not set."""
+    monkeypatch.delenv("MARVIN_DATABASE_URL", raising=False)
+    ignored_value = "ignored_db_url_for_test"
+    monkeypatch.setenv("DATABASE_URL", ignored_value)
+
+    settings = Settings()
+
+    assert settings.database_url is not None
+    # Check that it falls back to the default path
+    assert settings.database_url.endswith("/.marvin/marvin.db")
+    # Ensure it did not pick up the unprefixed DATABASE_URL
+    assert settings.database_url != ignored_value
