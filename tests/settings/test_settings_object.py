@@ -5,7 +5,11 @@ import pytest
 from marvin.settings import Settings
 
 
-def test_database_url_default():
+def test_database_url_default(monkeypatch: pytest.MonkeyPatch):
+    # Ensure MARVIN_DATABASE_URL is not set for this specific test
+    # to allow the true default logic in Settings to apply.
+    monkeypatch.delenv("MARVIN_DATABASE_URL", raising=False)
+
     settings = Settings()
     assert settings.database_url is not None
     assert settings.database_url.endswith("/.marvin/marvin.db")

@@ -1,5 +1,6 @@
 """Test configuration and fixtures."""
 
+import os
 import threading
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -25,36 +26,67 @@ async def setup_test_db(monkeypatch: pytest.MonkeyPatch, worker_id: str):
     The worker_id fixture is provided by pytest-xdist and will be 'gw0', 'gw1', etc
     for parallel test runners, or 'master' for single-process runs.
     """
-    with TemporaryDirectory() as temp_dir:
-        original_path = settings.database_url
+    original_env_marvin_db_url = os.getenv("MARVIN_DATABASE_URL")
+    original_settings_db_url = (
+        str(settings.database_url) if settings.database_url else None
+    )
 
-        # Create unique path per worker to avoid conflicts
-        worker_suffix = worker_id if worker_id != "master" else ""
-        temp_path = Path(temp_dir) / f"test{worker_suffix}.db"
-        database_url = f"sqlite+aiosqlite:///{temp_path}"
+    with TemporaryDirectory() as temp_dir_name:
+        temp_path = Path(temp_dir_name) / f"test_marvin_{worker_id}.db"
+        test_db_url = f"sqlite+aiosqlite:///{temp_path}"  # Ensure async URL for tests
 
         with _db_lock:
-            # Configure database settings
-            monkeypatch.setattr(settings, "database_url", database_url)
+            # Set MARVIN_DATABASE_URL env var for the test's scope.
+            # This ensures the validator in Settings picks up this test-specific URL.
+            monkeypatch.setenv("MARVIN_DATABASE_URL", test_db_url)
 
+            # Clear cached engines for the new URL.
             database._async_engine_cache.clear()
 
-            # Create tables with retries
-            max_retries = 3
-            for attempt in range(max_retries):
-                try:
-                    await database.create_db_and_tables(force=True)
-                    break
-                except Exception:
-                    if attempt == max_retries - 1:
-                        raise
-                    continue
+            # Force re-evaluation of settings.database_url to use the new env var.
+            # Direct assignment triggers the 'before' validator due to `validate_assignment=True`.
+            if hasattr(settings, "database_url"):
+                monkeypatch.setattr(settings, "database_url", test_db_url)
+            else:
+                # Fallback, though direct setattr is expected to work.
+                settings.database_url = test_db_url
+
+            # Verify the global settings object reflects the test_db_url.
+            assert str(settings.database_url) == test_db_url, (
+                f"Failed to set database_url for test. Expected {test_db_url}, got {settings.database_url}"
+            )
+
+            # create_db_and_tables with force=True ensures a clean slate.
+            await database.create_db_and_tables(force=True)
 
         yield
 
-        settings.database_url = original_path
-        # Clear engine cache
-        database._async_engine_cache.clear()
+        # Teardown
+        with _db_lock:
+            database._async_engine_cache.clear()
+
+            # Restore original MARVIN_DATABASE_URL environment variable.
+            if original_env_marvin_db_url is not None:
+                monkeypatch.setenv("MARVIN_DATABASE_URL", original_env_marvin_db_url)
+            else:
+                monkeypatch.delenv("MARVIN_DATABASE_URL", raising=False)
+
+            # Restore original database_url on the global settings object.
+            # The validator will run, using the (restored or absent) MARVIN_DATABASE_URL.
+            if hasattr(settings, "database_url"):
+                monkeypatch.setattr(
+                    settings,
+                    "database_url",
+                    original_settings_db_url
+                    if original_settings_db_url is not None
+                    else None,
+                )
+            else:
+                settings.database_url = (
+                    original_settings_db_url
+                    if original_settings_db_url is not None
+                    else None
+                )
 
 
 @pytest.fixture
