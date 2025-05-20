@@ -1,20 +1,32 @@
-from typing import Any
+from typing import Any, Type
 
-from fastmcp.server import FastMCP as FastMCPServer
 from mcp.types import CallToolResult
 from mcp.types import Tool as MCPToolType
 from pydantic_ai.mcp import MCPServer
 from pydantic_ai.tools import ToolDefinition
 
+from marvin.utilities.logging import get_logger
+
+logger = get_logger(__name__)
+
+_LazyFastMCPServerType: Type | None = None
+_lazy_fastmcp_converter_func: Any | None = None
+_fastmcp_import_attempted_flag: bool = False
+
 
 class _FastMCPAdapter(MCPServer):
-    def __init__(self, fastmcp_instance: FastMCPServer):
-        self._fmcp = fastmcp_instance
+    def __init__(self, fastmcp_instance: Any):
+        global _LazyFastMCPServerType
+        if not _LazyFastMCPServerType or not isinstance(
+            fastmcp_instance, _LazyFastMCPServerType
+        ):
+            raise TypeError(
+                f"_FastMCPAdapter initialized with unexpected type: {type(fastmcp_instance)}"
+            )
+        self._fmcp: Any = fastmcp_instance
         self._is_running_flag = False
 
     async def __aenter__(self) -> "_FastMCPAdapter":
-        # The lifecycle of the actual FastMCP server is managed externally.
-        # This adapter's lifecycle is primarily for Pydantic AI's MCPManager.
         self._is_running_flag = True
         return self
 
@@ -39,9 +51,6 @@ class _FastMCPAdapter(MCPServer):
         return pydantic_ai_tool_defs
 
     async def call_tool(self, tool_name: str, arguments: dict) -> CallToolResult:
-        # FastMCP's _mcp_call_tool is expected to return list[TextContent | ImageContent | EmbeddedResource]
-        # Pydantic AI's call_tool is expected to return CallToolResult
-        # CallToolResult has a 'content: Any' field.
         raw_result_content = await self._fmcp._mcp_call_tool(tool_name, arguments)
         return CallToolResult(content=raw_result_content)
 
@@ -49,18 +58,10 @@ class _FastMCPAdapter(MCPServer):
     def name(self) -> str:
         return self._fmcp.name
 
-    # --- Methods to satisfy MCPServer ABC ---
     def client_streams(self) -> list[Any]:
-        """
-        FastMCP does not expose client streams in the same way as MCPServerStdio.
-        Return empty list as a sensible default for the adapter.
-        """
         return []
 
     def _get_log_level(self) -> str:
-        """
-        Returns the log level from FastMCP settings.
-        """
         return str(
             self._fmcp.settings.log_level
             if self._fmcp.settings
@@ -70,5 +71,49 @@ class _FastMCPAdapter(MCPServer):
         ).lower()
 
 
-def _pydantic_ai_mcp_server_from_fastmcp_server(server: FastMCPServer) -> MCPServer:
+def _internal_pydantic_ai_mcp_server_from_fastmcp_server(server: Any) -> MCPServer:
+    """Converts a FastMCPServer instance to an _FastMCPAdapter instance."""
     return _FastMCPAdapter(server)
+
+
+def attempt_convert_to_pydantic_ai_mcp_server(obj: Any) -> MCPServer | None:
+    """
+    Attempts to convert an object to a pydantic_ai.mcp.MCPServer.
+    If the object is already an MCPServer, it's returned directly.
+    If it appears to be a FastMCP server, and marvin[mcp] is installed,
+    it's converted. Otherwise, None is returned.
+    """
+    global \
+        _LazyFastMCPServerType, \
+        _lazy_fastmcp_converter_func, \
+        _fastmcp_import_attempted_flag
+
+    if isinstance(obj, MCPServer):
+        return obj
+
+    if not _fastmcp_import_attempted_flag:
+        _fastmcp_import_attempted_flag = True
+        try:
+            from fastmcp.server import FastMCP as FastMCPServer_local
+
+            _LazyFastMCPServerType = FastMCPServer_local
+            _lazy_fastmcp_converter_func = (
+                _internal_pydantic_ai_mcp_server_from_fastmcp_server
+            )
+            logger.debug(
+                "Successfully imported FastMCP components for optional Marvin integration."
+            )
+        except ImportError:
+            logger.debug(
+                "marvin[mcp] extra not installed or fastmcp not found. "
+                "FastMCP server instances will not be automatically converted."
+            )
+
+    if (
+        _LazyFastMCPServerType is not None
+        and _lazy_fastmcp_converter_func is not None
+        and isinstance(obj, _LazyFastMCPServerType)
+    ):
+        return _lazy_fastmcp_converter_func(obj)
+
+    return None
