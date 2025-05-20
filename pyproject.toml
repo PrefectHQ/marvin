@@ -47,6 +47,8 @@ audio = ["pyaudio>=0.2.14"]
 
 slackbot = ["pydantic-ai", "prefect", "numpy", "raggy", "turbopuffer==0.1.23"]
 
+mcp = ["fastmcp"]
+
 [project.scripts]
 marvin = "marvin.cli.main:app"
 
@@ -97,6 +99,3 @@ extend-select = ["I"]
 [build-system]
 requires = ["hatchling>=1.21.0", "hatch-vcs>=0.4.0"]
 build-backend = "hatchling.build"
-
-[tool.uv.workspace]
-members = ["examples/fastmcp"]
