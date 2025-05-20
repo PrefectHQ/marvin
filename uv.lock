@@ -2006,6 +2006,9 @@ dependencies = [
 audio = [
     { name = "pyaudio" },
 ]
+mcp = [
+    { name = "fastmcp" },
+]
 slackbot = [
     { name = "numpy" },
     { name = "prefect" },
@@ -2043,6 +2046,7 @@ dev = [
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20.0" },
     { name = "alembic", specifier = ">=1.12.0" },
+    { name = "fastmcp", marker = "extra == 'mcp'" },
     { name = "jinja2", specifier = ">=3.1.4" },
     { name = "numpy", marker = "extra == 'slackbot'" },
     { name = "partial-json-parser", specifier = ">=0.2.1.1.post5" },
@@ -2058,7 +2062,7 @@ requires-dist = [
     { name = "turbopuffer", marker = "extra == 'slackbot'", specifier = "==0.1.23" },
     { name = "typer", specifier = ">=0.15.1" },
 ]
-provides-extras = ["audio", "slackbot"]
+provides-extras = ["audio", "mcp", "slackbot"]
 
 [package.metadata.requires-dev]
 dev = [

@@ -16,6 +16,10 @@ from pydantic_ai.result import ToolOutput
 from pydantic_ai.tools import Tool
 
 import marvin
+
+# from marvin._internal.integrations.fastmcp import ( # Commented out direct import
+#     _pydantic_ai_mcp_server_from_fastmcp_server,
+# )
 from marvin._internal.integrations.mcp import discover_mcp_tools
 from marvin.agents.actor import Actor
 from marvin.agents.names import AGENT_NAMES
@@ -27,6 +31,24 @@ from marvin.utilities.types import issubclass_safe
 
 logger = get_logger(__name__)
 T = TypeVar("T")
+
+# Attempt to import FastMCP and its converter for optional dependency handling
+_FastMCPServerType = None
+_fastmcp_converter = None
+try:
+    from fastmcp.server import FastMCP as FastMCPServer
+
+    _FastMCPServerType = FastMCPServer
+    from marvin._internal.integrations.fastmcp import (
+        _pydantic_ai_mcp_server_from_fastmcp_server,
+    )
+
+    _fastmcp_converter = _pydantic_ai_mcp_server_from_fastmcp_server
+except ImportError:
+    logger.debug(
+        "fastmcp extra not installed. To use FastMCP servers with Marvin, "
+        "install with `pip install marvin[mcp]` or `uv pip install marvin[mcp]`."
+    )
 
 if TYPE_CHECKING:
     from marvin.engine.end_turn import EndTurn
@@ -65,7 +87,7 @@ class Agent(Actor):
         metadata={"description": "List of memory modules available to the agent"},
     )
 
-    mcp_servers: list["MCPServer"] = field(
+    mcp_servers: list[Any] = field(
         default_factory=lambda: [],
         metadata={"description": "List of MCP servers available to the agent"},
         repr=False,
@@ -105,8 +127,42 @@ class Agent(Actor):
     def get_memories(self) -> list[Memory]:
         return list(self.memories)
 
-    def get_mcp_servers(self) -> list["MCPServer"]:
-        return list(self.mcp_servers)
+    def get_mcp_servers(self) -> list[MCPServer]:
+        converted_servers: list[MCPServer] = []
+        for server_instance in self.mcp_servers:
+            if (
+                _FastMCPServerType is not None
+                and _fastmcp_converter is not None
+                and isinstance(server_instance, _FastMCPServerType)
+            ):
+                converted_servers.append(_fastmcp_converter(server_instance))
+            elif isinstance(server_instance, MCPServer):
+                converted_servers.append(server_instance)
+            elif (
+                _FastMCPServerType is None
+                and hasattr(server_instance, "_mcp_server")
+                and type(server_instance).__name__ == "FastMCP"
+            ):  # Heuristic for when FastMCP is passed but not importable at top level
+                logger.warning(
+                    "FastMCP server instance passed, but marvin[mcp] extra seems not to be fully available for type checking. "
+                    "Attempting to proceed, but this may indicate an incomplete installation or environment issue."
+                )
+                # This case is tricky; ideally, the top-level import should succeed if FastMCP is usable.
+                # If we reach here, it means FastMCP was importable where the object was created but not in agent.py's top level.
+                # This might occur in complex setups, but we should rely on the try-except block for typical cases.
+                # For now, we can't convert it without _fastmcp_converter.
+                # So, we log a more specific warning if the primary check fails but it looks like a FastMCP server.
+                logger.error(
+                    f"Encountered an object that appears to be a FastMCP server ({type(server_instance)}), "
+                    "but the `fastmcp` integration is not available. Please install `marvin[mcp]`."
+                )
+
+            else:
+                logger.warning(
+                    f"Unexpected type in mcp_servers list: {type(server_instance)}.\n"
+                    f"Expected FastMCPServer (if marvin[mcp] is installed) or pydantic_ai.mcp.MCPServer."
+                )
+        return converted_servers
 
     def get_model_settings(self) -> ModelSettings:
         defaults: ModelSettings = {}

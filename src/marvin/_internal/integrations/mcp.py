@@ -20,7 +20,6 @@ from marvin.engine.events import ToolResultEvent
 from marvin.utilities.logging import get_logger
 
 if TYPE_CHECKING:
-    import marvin.agents.agent
     import marvin.engine.orchestrator
 
 logger = get_logger(__name__)
