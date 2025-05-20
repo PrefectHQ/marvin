@@ -25,6 +25,10 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _get_server_name(server: MCPServer) -> str:
+    return getattr(server, "name", type(server).__name__)
+
+
 class MCPManager:
     """Manager for MCP server lifecycle, separating concerns from the orchestrator."""
 
@@ -66,26 +70,24 @@ class MCPManager:
         )
 
         for i, server in enumerate(servers_to_manage):
-            logger.debug(
-                f"[MCPManager] Processing server #{i + 1}: {type(server).__name__}"
-            )
+            server_repr = f"#{i + 1} {_get_server_name(server)}"
+
             try:
                 # Set environment variables for stdio servers if not already set
                 if isinstance(server, MCPServerStdio) and server.env is None:
                     logger.debug(
-                        f"[MCPManager] Server #{i + 1} is MCPServerStdio with no env set. Setting env=dict(os.environ)."
+                        f"[MCPManager] Server {server_repr} has no env set. Setting env=dict(os.environ)."
                     )
                     server.env = dict(os.environ)
 
-                logger.debug(f"[MCPManager] Entering context for server #{i + 1}...")
                 await self.exit_stack.enter_async_context(server)
                 self.active_servers.append(server)
                 logger.debug(
-                    f"[MCPManager] Context entered successfully for server #{i + 1}."
+                    f"[MCPManager] Context successfully entered for server {server_repr}."
                 )
             except Exception as e:
                 logger.error(
-                    f"[MCPManager] Failed to start MCP server #{i + 1} ({type(server).__name__}): {e}",
+                    f"[MCPManager] Failed to start/enter context for MCP server {server_repr}: {e}",
                     exc_info=True,
                 )
 
@@ -112,8 +114,9 @@ async def _mcp_tool_wrapper(
 
     tool_call_id = f"mcp-{uuid.uuid4()}"
     tool_name = _tool_def.name
+    server_name = _get_server_name(_mcp_server)
 
-    logger.debug(f"Calling MCP tool '{tool_name}' via {type(_mcp_server).__name__}")
+    logger.debug(f"Calling MCP tool '{tool_name}' via server '{server_name}'")
     try:
         raw_mcp_output: Any = await _mcp_server.call_tool(
             tool_name=tool_name, arguments=kwargs
@@ -204,7 +207,7 @@ async def discover_mcp_tools(
     for i, server in enumerate(mcp_servers):
         if not getattr(server, "is_running", False):
             logger.warning(
-                f"MCP Server {type(server).__name__} is not marked as running, skipping tool discovery."
+                f"MCP Server '{_get_server_name(server)}' is not marked as running, skipping tool discovery."
             )
             continue
         discovery_tasks.append(server.list_tools())
@@ -221,14 +224,14 @@ async def discover_mcp_tools(
         server = server_map[i]
         if isinstance(result, BaseException):
             logger.error(
-                f"Failed to list tools from {type(server).__name__}: {result}",
+                f"Failed to list tools from server '{_get_server_name(server)}': {result}",
                 exc_info=result,
             )
             continue
 
         tool_defs: list[ToolDefinition] = result
         logger.debug(
-            f"Discovered {len(tool_defs)} tool{'' if len(tool_defs) == 1 else 's'} from {type(server).__name__}"
+            f"Discovered {len(tool_defs)} tool{'' if len(tool_defs) == 1 else 's'} from server '{_get_server_name(server)}'"
         )
         for tool_def in tool_defs:
             wrapped_func = partial(

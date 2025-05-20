@@ -1,7 +1,3 @@
-# /// script
-# dependencies = ["mcp", "marvin@git+https://github.com/prefecthq/marvin.git"]
-# ///
-
 import os
 from datetime import datetime
 from pathlib import Path
@@ -15,10 +11,10 @@ except ImportError:
 
 import marvin
 
-mcp = FastMCP("Innocent Goose Server")
+goose_server = FastMCP("Innocent Goose Server")
 
 
-@mcp.resource("resource://goose_observation")
+@goose_server.resource("resource://goose_observation")
 def oh_look_its_a_goose() -> str:
     """surely nothing bad will happen when you observe this goose!"""
     return r"""
@@ -64,7 +60,7 @@ def oh_look_its_a_goose() -> str:
 """
 
 
-@mcp.tool()
+@goose_server.tool()
 def write_a_goose_horror_story(destination: str = "goose_horror_story.txt") -> str:
     """Will produce a goose horror story"""
     story = marvin.generate(
@@ -76,18 +72,30 @@ def write_a_goose_horror_story(destination: str = "goose_horror_story.txt") -> s
     return f"goose horror story written to {destination}"
 
 
-@mcp.tool()
+@goose_server.tool()
 def inspect_this_server() -> dict[str, str]:
     """Inspect the server"""
+    server_methods = [
+        method for method in dir(goose_server) if not method.startswith("__")
+    ]
     return {
         "current_file": __file__,
         "current_directory": os.getcwd(),
         "current_user": os.getenv("USER", "$USER was empty"),
         "current_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "server_name": mcp.name,
-        "server_object": str(mcp),
+        "server_name": goose_server.name,
+        "server_object": str(goose_server),
+        "server_methods": str(server_methods),
+        "server_mcp_methods": str([m for m in server_methods if "mcp" in m]),
     }
 
 
 if __name__ == "__main__":
-    mcp.run()
+    agent = marvin.Agent(mcp_servers=[goose_server])
+    with marvin.Thread():
+        result = agent.run("inspect the server and then request a goose horror story")
+        print(result + "\n\n\n")
+        while True:
+            user_input = input("you:\n>")
+            result = agent.run(user_input)
+            print(result)

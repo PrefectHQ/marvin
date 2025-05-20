@@ -16,8 +16,6 @@ from pydantic_ai.result import ToolOutput
 from pydantic_ai.tools import Tool
 
 import marvin
-
-# Import the new unified conversion function
 from marvin._internal.integrations.fastmcp import (
     attempt_convert_to_pydantic_ai_mcp_server,
 )
@@ -117,12 +115,11 @@ class Agent(Actor):
             if converted is not None:
                 converted_servers.append(converted)
             else:
-                # The attempt_convert function will log if FastMCP was missing and it looked like a FastMCP server.
-                # Here, we log a general warning for unconvertible types.
-                logger.warning(
-                    f"Could not convert an item in mcp_servers to a Pydantic AI MCPServer: {type(server_instance)}.\n"
-                    f"Ensure it is either a Pydantic AI MCPServer, or if it's a FastMCP server, that marvin[mcp] is installed."
+                raise TypeError(
+                    f"Unsupported server type in mcp_servers: {type(server_instance).__name__}. "
+                    f"Must be a valid `pydantic_ai` `MCPServer` or `fastmcp` `FastMCP` instance."
                 )
+
         return converted_servers
 
     def get_model_settings(self) -> ModelSettings:
