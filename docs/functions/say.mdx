@@ -21,24 +21,33 @@ import marvin
 # Create a thread to store the conversation
 thread = marvin.Thread()
 
-# Add a message and get a response
-response = marvin.say(
-    "My name is Alice",
-    thread=thread  # Messages are stored in the thread
-)
-print(response)
-
-# The agent can now reference previous messages
-response = marvin.say(
-    "What's my name?",
+# Get a recommendation with specific instructions
+user_query = "What should I cook for dinner tonight? I'm looking for something quick and healthy."
+chef_recommendation = marvin.say(
+    user_query,
+    instructions="Respond as a professional chef, focusing on quick and healthy options.",
     thread=thread
 )
-print(response)
+print(chef_recommendation)
+# Expected output: A chef-like recommendation, e.g.,
+# "For a quick and healthy dinner, I'd suggest a pan-seared salmon with asparagus and a lemon-dill sauce. It's ready in under 20 minutes!"
+
+# Follow-up question using the same thread
+follow_up_question = "That sounds good. What kind of wine would pair well with salmon?"
+wine_pairing = marvin.say(
+    follow_up_question,
+    instructions="Respond as a sommelier.", # Note: instructions can change per 'say' call
+    thread=thread
+)
+print(wine_pairing)
+# Expected output: A sommelier-like wine pairing suggestion, e.g.,
+# "A crisp Sauvignon Blanc or a light-bodied Pinot Noir would pair beautifully with salmon."
 ```
 
-```python
-"Hello Alice! Nice to meet you."
-"Your name is Alice."
+```text
+# For a quick and healthy dinner, I'd suggest a pan-seared salmon with asparagus and a lemon-dill sauce. It's ready in under 20 minutes!
+# A crisp Sauvignon Blanc or a light-bodied Pinot Noir would pair beautifully with salmon.
+# (Note: Actual LLM output will vary. The lines above are examples of expected responses.)
 ```
 
 ## Parameters
@@ -70,27 +79,82 @@ asyncio.run(main())
 
 ## Examples
 
-### With Instructions
-
-Guide the agent's responses:
-
+### Remembering Context in a Conversation
+The `thread` object automatically keeps track of conversation history, allowing agents to reference earlier messages:
 ```python
-import marvin
+import marvin # Assuming already imported
 
-thread = marvin.Thread()
-response = marvin.say(
-    "What should I cook for dinner?",
-    instructions="Respond as a professional chef",
-    thread=thread
+# Create a thread (or reuse one from previous examples if running sequentially)
+conversation_thread = marvin.Thread()
+
+# Add a message and get a response
+response1 = marvin.say(
+    "My name is Alice",
+    thread=conversation_thread
 )
-print(response)
+print(response1) # "Hello Alice! Nice to meet you."
+
+# The agent can now reference previous messages
+response2 = marvin.say(
+    "What's my name?",
+    thread=conversation_thread
+)
+print(response2) # "Your name is Alice."
 ```
 
+```text
+# Hello Alice! Nice to meet you.
+# Your name is Alice.
+# (Note: Actual LLM output will vary.)
+```
+
+### Using Tools in Conversation
+You can use `say` with an agent that has tools. The agent can decide to use these tools based on the conversation.
 ```python
-"I'd recommend a pan-seared salmon with lemon butter sauce. Start by patting the salmon dry and seasoning with salt and pepper..."
+import marvin # Assuming already imported
+import datetime # Add this import
+
+# Define a simple tool
+def get_current_time() -> str:
+    '''Returns the current time in HH:MM AM/PM format.'''
+    return datetime.datetime.now().strftime("%I:%M %p")
+
+# Create an agent with the tool
+clock_agent = marvin.Agent(
+    name="ClockAgent",
+    instructions="You are helpful and have access to the current time.",
+    tools=[get_current_time]
+)
+
+# Create a thread
+tool_thread = marvin.Thread()
+
+# Ask a question that might use the tool
+time_response = marvin.say(
+    "What time is it right now?",
+    agent=clock_agent,
+    thread=tool_thread
+)
+print(time_response)
+# Expected output: Something like "The current time is 03:45 PM."
+
+# Ask another question where it might not use the tool
+greeting_response = marvin.say(
+    "Good afternoon!",
+    agent=clock_agent,
+    thread=tool_thread
+)
+print(greeting_response)
+# Expected output: Something like "Good afternoon to you too!"
 ```
 
-### With Custom Agent
+```text
+# The current time is 03:45 PM.
+# Good afternoon to you too!
+# (Note: Actual LLM output, especially tool usage, will vary.)
+```
+
+### Using a Custom Agent
 
 Use a specialized agent:
 

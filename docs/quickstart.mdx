@@ -22,24 +22,38 @@ The fastest way to use Marvin is with `marvin.run()`:
 
 ```python
 import marvin
+from pydantic import BaseModel
 
-# Run a simple task
-print(marvin.run("Write a haiku about Python programming"))
+class Category(BaseModel):
+    label: str
+    confidence: float
+
+# Run a simple classification task
+text_to_classify = "This new phone is amazing, I love the camera!"
+classification_result = marvin.run(
+    f"Classify the sentiment of this text: '{text_to_classify}'",
+    result_type=Category
+)
+print(classification_result)
+# Expected output structure: Category(label='positive', confidence=0.95)
+
+class Keyword(BaseModel):
+    word: str
 
 # With a specific result type
-numbers = marvin.run(
-    "Generate five random numbers between 1 and 10",
-    result_type=list[int]
+keywords = marvin.run(
+    "Generate three relevant keywords for 'sustainable energy solutions'",
+    result_type=list[Keyword] # Changed from List[Keyword]
 )
+print(keywords)
+# Expected output structure: [Keyword(word='renewable'), Keyword(word='solar'), Keyword(word='wind')]
 ```
 
 <Accordion title="Output">
 ```text
-Indented lines flow
-Functions dance with elegance
-Code becomes poetry
+label='positive' confidence=0.95
 
-[3, 7, 2, 9, 5]
+[Keyword(word='renewable'), Keyword(word='solar'), Keyword(word='wind')]
 ```
 </Accordion>
 
@@ -56,27 +70,24 @@ writer = Agent(
     instructions="Write clear, engaging content for developers"
 )
 
-# Use the agent directly
-article = writer.run(
-    "Write a short article about Python type hints",
-    result_type=str
-)
+from pydantic import BaseModel # Should be present
 
-print(article)
+class ArticleSummary(BaseModel):
+    title: str
+    summary: str
+
+# Use the agent directly
+article_summary = writer.run(
+    "Write a short article about Python type hints, providing a title and a brief summary.",
+    result_type=ArticleSummary
+)
+print(article_summary)
+# Expected output structure: ArticleSummary(title='Python Type Hints Explained', summary='Type hints in Python improve code clarity and help catch errors early...')
 ```
 
 <Accordion title="Output">
 ```text
-Type Hints in Python: A Clear Path to Better Code
-
-Python's type hints bring clarity and safety to your code without sacrificing its dynamic nature. Introduced in Python 3.5, type hints allow developers to explicitly declare variable and function types, making code more maintainable and easier to understand.
-
-Here's a quick example:
-
-def greet(name: str) -> str:
-    return f"Hello, {name}!"
-
-Type hints help catch errors early, improve IDE support, and make your code self-documenting. While optional, they're becoming an essential tool in modern Python development.
+title='Python Type Hints Explained' summary='Type hints in Python bring clarity and safety to your code without sacrificing its dynamic nature. Introduced in Python 3.5, they allow developers to explicitly declare variable and function types, making code more maintainable and easier to understand, helping catch errors early and improve IDE support.'
 ```
 </Accordion>
 

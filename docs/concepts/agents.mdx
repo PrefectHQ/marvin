@@ -32,15 +32,35 @@ A more complex agent can be created by providing additional configuration. This 
 
 ```python
 import marvin
+import sys # For the new tool
+from marvin.memory import Memory # For explicit Memory definition
+
+# Define a simple concrete tool
+def get_python_version() -> str:
+    '''Returns the current Python version.'''
+    return sys.version
+
+# Define a simple memory instance
+project_docs_memory = Memory(
+    key="project_documentation_summary",
+    instructions="This memory contains a brief summary of the project's purpose."
+    # In a real scenario, you would load content into this memory.
+    # For this example, defining it shows how it's passed to an agent.
+)
+# Example of adding content to memory (optional to show, but good for context)
+# project_docs_memory.add_text_async("Marvin is a Python framework for agentic AI workflows.")
+
 
 agent = marvin.Agent(
-    name="Data Analyst",
-    description="An AI agent specialized in data analysis",
-    instructions="Perform data analysis tasks efficiently and accurately.",
-    tools=[analyze_data, plot_results],
-    model="openai:gpt-4o",
-    memories=[knowledge_base],
+    name="SystemInfoAgent",
+    description="An AI agent that can provide system information.",
+    instructions="You can report on system details using your available tools.",
+    tools=[get_python_version], # Use the concrete tool
+    model="openai:gpt-4o", # Or your preferred model
+    memories=[project_docs_memory], # Use the concrete memory
 )
+# You can then run this agent, e.g.:
+# print(agent.run("What version of Python are we running?"))
 ```
 
 ## Agent properties
@@ -144,7 +164,12 @@ editor = Agent(name="Editor")
 
 team = Swarm(members=[researcher, writer, editor])
 
-result = team.run("Write a report about AI")
+# result = team.run("Write a report about AI") # Old example
+result = team.run(
+    "Brainstorm three novel features for a smart home application "
+    "and list one key benefit for each feature."
+)
+# print(result) # Example of how you might see the output
 ```
 
 <Tip>
@@ -176,12 +201,55 @@ task = marvin.Task(
 
 If no agent is specified, Marvin will use the default agent configured in your settings.
 
+A more practical example with structured output:
+```python
+import marvin
+from pydantic import BaseModel
+
+class Translation(BaseModel):
+    original_text: str
+    translated_text: str
+    language: str
+
+translator_agent = marvin.Agent(
+    name="Translator",
+    instructions="You are a helpful translation assistant. Translate to French by default unless specified."
+)
+translation_task = marvin.Task(
+    instructions="Translate 'Hello, world!' to French.",
+    result_type=Translation, # Example of structured output
+    agents=[translator_agent]
+)
+# output = translation_task.run()
+# print(output)
+```
+
+You can also use the agent's `say` method for simple conversational interactions:
+
 You can also use the agent's `say` method for simple conversational interactions:
 
 ```python
 import marvin
+# Assuming SystemInfoAgent is defined as in the "Creating agents" section
+# If not, define a simple agent here for the example:
+# simple_tool_agent = marvin.Agent(
+# name="Greeter",
+# instructions="You are a polite greeter."
+# )
 
-agent = marvin.Agent(name="Assistant")
-response = agent.say("What is the meaning of life?")
+# Using the SystemInfoAgent if it's easily understandable from context:
+# If SystemInfoAgent was defined earlier with get_python_version tool:
+# Note: For agent.say(), the agent needs to be set up to respond to general queries
+# or the query must specifically trigger its tools/instructions.
+# The default `say` behavior is conversational.
+
+# Let's use a new simple agent for a clear, self-contained example here:
+math_agent = marvin.Agent(
+    name="Calculator",
+    instructions="You can perform simple arithmetic. Clearly state the result."
+)
+query = "What is 15 plus 27?"
+response = math_agent.say(query) # agent.say is syntactic sugar for agent.run(query)
 print(response)
+# Expected output: "15 plus 27 is 42." (or similar, LLM dependent)
 ```

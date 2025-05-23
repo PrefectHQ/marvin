@@ -90,9 +90,21 @@ print(result) # SupportDepartment.SALES
 Generate some number of structured objects from a description:
 ```python
 import marvin
+from pydantic import BaseModel
+from typing import List
 
-primes = marvin.generate(int, 10, "odd primes")
-print(primes) # [3, 5, 7, 11, 13, 17, 19, 23, 29, 31]
+class Idea(BaseModel):
+    name: str
+    description: str
+
+ideas = marvin.generate(
+    Idea, # The type to generate
+    n=3,  # Number of items to generate
+    instructions="Catchy names for a new AI-powered coffee ordering app"
+)
+for idea in ideas:
+    print(f"Idea: {idea.name} - {idea.description}")
+# Expected output: A list of 3 Idea objects with names and descriptions.
 ```
 
 </details>
@@ -105,29 +117,21 @@ A simple way to run a task:
 
 ```python
 import marvin
+from pydantic import BaseModel
 
-poem = marvin.run("Write a short poem about artificial intelligence")
-print(poem)
+class Entity(BaseModel):
+    name: str
+    type: str
+
+text = "Last week, Apple Inc. announced its new Vision Pro headset."
+entity = marvin.run(
+    f"Extract the company and product from the text: {text}",
+    result_type=Entity
+)
+print(entity)
+# Expected output similar to: Entity(name='Apple Inc.', type='company') or Entity(name='Vision Pro', type='product')
+# (LLM output can vary, so the comment should reflect that the exact output isn't guaranteed but structure is)
 ```
-<details>
-<summary>output</summary>
-
-In silicon minds, we dare to dream,
-A world where code and thoughts redeem.
-Intelligence crafted by humankind,
-Yet with its heart, a world to bind.
-
-Neurons of metal, thoughts of light,
-A dance of knowledge in digital night.
-A symphony of zeros and ones,
-Stories of futures not yet begun.
-
-The gears of logic spin and churn,
-Endless potential at every turn.
-A partner, a guide, a vision anew,
-Artificial minds, the dream we pursue.
-
-</details>
 
 You can also ask for structured output:
 ```python
@@ -140,23 +144,31 @@ print(answer) # 42
 Agents are specialized AI agents that can be used to complete tasks:
 ```python
 from marvin import Agent
+from pydantic import BaseModel, Field
+from typing import List
 
-writer = Agent(
-    name="Poet",
-    instructions="Write creative, evocative poetry"
+class Summary(BaseModel):
+    headline: str = Field(description="A concise headline for the text.")
+    key_points: List[str] = Field(description="A few bullet points summarizing the text.")
+
+summarizer = Agent(
+    name="Summarizer",
+    instructions="Summarize the provided text into a headline and key bullet points."
 )
-poem = writer.run("Write a haiku about coding")
-print(poem)
-```
-<details>
-<summary>output</summary>
-There once was a language so neat,
-Whose simplicity could not be beat.
-Python's code was so clear,
-That even beginners would cheer,
-As they danced to its elegant beat.
-</details>
 
+text_to_summarize = (
+    "Marvin is a Python framework for building agentic AI workflows. "
+    "It provides a structured, developer-focused framework for defining workflows "
+    "and delegating work to LLMs, without sacrificing control or transparency."
+)
+summary_output = summarizer.run(
+    text_to_summarize,
+    result_type=Summary
+)
+print(summary_output)
+# Expected output structure:
+# Summary(headline='Marvin: Agentic AI Workflows', key_points=['Python framework for AI workflows', 'Structured and developer-focused', 'Delegates work to LLMs with control'])
+```
 
 #### `marvin.Task`
 You can define a `Task` explicitly, which will be run by a default agent upon calling `.run()`:
@@ -206,12 +218,19 @@ Tasks are the fundamental unit of work in Marvin. Each task represents a clear o
 The simplest way to run a task is with `marvin.run`:
 ```python
 import marvin
-print(marvin.run("Write a haiku about coding"))
-```
-```bash
-Lines of code unfold,
-Digital whispers create
-Virtual landscapes.
+from pydantic import BaseModel
+
+class Sentiment(BaseModel):
+    mood: str
+    intensity: float # e.g. 0.0 to 1.0
+
+text = "I'm absolutely thrilled with the new update!"
+sentiment_output = marvin.run(
+    f"Analyze the sentiment of this text: {text}",
+    result_type=Sentiment
+)
+print(sentiment_output)
+# Expected output structure: Sentiment(mood='positive', intensity=0.9)
 ```
 
 > [!WARNING]
