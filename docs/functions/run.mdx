@@ -18,16 +18,22 @@ While Marvin provides powerful tools for complex AI workflows, many use cases ar
 
 ```python
 import marvin
+from pydantic import BaseModel
 
-# Simple text generation
-poem = marvin.run(
-    "Write a haiku about coding",
-    result_type=str
+class UserInfo(BaseModel):
+    name: str
+    age: int
+
+# Extract structured data
+user_details = marvin.run(
+    "Extract user info from: 'John Doe is 30 years old.'",
+    result_type=UserInfo
 )
-print(poem)
+print(user_details)
+# Expected output structure: UserInfo(name='John Doe', age=30)
 
 # Structured output
-from pydantic import BaseModel
+# from pydantic import BaseModel # BaseModel is already imported
 
 class Recipe(BaseModel):
     name: str
@@ -44,9 +50,9 @@ print(recipe.ingredients)
 
 <Accordion title="Output">
 ```python
-Keys tap in silence,
-Ideas flow through the night air,
-Code becomes my art.
+# UserInfo(name='John Doe', age=30)
+# (LLM output can vary, the above is an example of the expected structure)
+name='John Doe' age=30
 
 Chocolate Chip Cookies
 ['1 cup unsalted butter, softened', '1 cup white sugar', '1 cup packed brown sugar', '2 large eggs', '2 teaspoons vanilla extract', '3 cups all-purpose flour', '1 teaspoon baking soda', '1/2 teaspoon baking powder', '1/2 teaspoon salt', '2 cups semisweet chocolate chips']
@@ -90,37 +96,64 @@ asyncio.run(main()) # bonjour
 
 ```python
 import marvin
+from pydantic import BaseModel # Should be imported already
 
-# Generate text
-story = marvin.run(
-    "Write a short story about a robot learning to paint"
-)
-print(story)
+class EventDetails(BaseModel):
+    event_name: str
+    date: str
+    location: str
 
-# Answer questions
-answer = marvin.run(
-    "What is the capital of France?",
-    result_type=str
+# Extract structured information
+event_info_text = "The Tech Conference 2024 will be held on December 5th in San Francisco."
+event_data = marvin.run(
+    f"Extract event details from: {event_info_text}",
+    result_type=EventDetails
 )
-print(answer)  # "Paris"
+print(event_data)
+# Expected output structure: EventDetails(event_name='Tech Conference 2024', date='December 5th', location='San Francisco')
+
+class MeetingInfo(BaseModel):
+    topic: str
+    attendees: list[str] # Changed from List[str]
+
+# Process a query into structured data
+query = "Schedule a meeting about the Q3 budget with Alice and Bob."
+meeting = marvin.run(
+    f"Extract meeting details from the query: {query}",
+    result_type=MeetingInfo
+)
+print(meeting)
+# Expected output structure: MeetingInfo(topic='Q3 budget', attendees=['Alice', 'Bob'])
 ```
 
 ### Using Tools
 
 ```python
 import marvin
-import random
+import os # Add this import
 
-def roll_die() -> int:
-    return random.randint(1, 6)
+# Define a simple tool
+def file_exists(filepath: str) -> bool:
+    '''Checks if a file exists at the given path.'''
+    return os.path.exists(filepath)
 
-# Let the AI use tools
-result = marvin.run(
-    "Roll a die and tell me if it's higher than 3",
-    result_type=bool,
-    tools=[roll_die]
+# Create a dummy file for the example to succeed
+if not os.path.exists("example_doc.txt"):
+    with open("example_doc.txt", "w") as f:
+        f.write("Hello Marvin!")
+
+# Let the AI use the tool
+file_status = marvin.run(
+    "Is there a file named 'example_doc.txt' in the current directory?",
+    result_type=str, # Or bool, but string allows for more natural LLM response
+    tools=[file_exists]
 )
-print(result)  # True or False depending on the roll
+print(file_status)
+# Expected output could be: "Yes, the file 'example_doc.txt' exists." or similar
+
+# Clean up the dummy file
+if os.path.exists("example_doc.txt"):
+    os.remove("example_doc.txt")
 ```
 
 ### Structured Output
@@ -166,40 +199,46 @@ print(summary)
 The `run_tasks` function allows you to run multiple tasks at once:
 
 ```python
-import marvin
+import marvin # Should be imported
 
-# Create tasks
+# Create practical tasks
 task1 = marvin.Task(
-    instructions="Write a haiku",
+    instructions="Draft a catchy subject line for an email announcing a new feature: 'AI-Powered Analytics'.",
     result_type=str
 )
 task2 = marvin.Task(
-    instructions="Write a limerick",
+    instructions="Based on the subject line from the previous task, write a brief opening sentence for the email.",
+    # This task would typically take context from task1 in a real scenario,
+    # but for simplicity here, we'll keep them independent for run_tasks.
+    # For dependent tasks, see marvin.Thread or sequential marvin.run calls.
     result_type=str
 )
 
 # Run them together
-tasks = marvin.run_tasks([task1, task2])
-print(tasks[0].result)  # Haiku
-print(tasks[1].result)  # Limerick
+task_outputs = marvin.run_tasks([task1, task2])
+print(f"Subject: {task_outputs[0].result}")
+print(f"Opening: {task_outputs[1].result}")
+# Expected output:
+# Subject: Unleash the Power of AI-Powered Analytics!
+# Opening: Get ready to revolutionize your data insights with our brand new AI-Powered Analytics feature.
 ```
 
 ### Async Multiple Tasks
 
 ```python
-import marvin
-import asyncio
+import marvin # Should be imported
+import asyncio # Should be imported
 
 async def main():
     # Run multiple tasks asynchronously
-    tasks = await marvin.run_tasks_async(
+    tasks_async = await marvin.run_tasks_async(
         [
-            marvin.Task("Write a haiku"),
-            marvin.Task("Write a limerick")
+            marvin.Task("Draft a catchy subject line for an email announcing a new feature: 'AI-Powered Analytics'."),
+            marvin.Task("Based on a subject about 'AI-Powered Analytics', write a brief opening sentence for the email.")
         ]
     )
-    for task in tasks:
-        print(task.result)
+    for i, task_output in enumerate(tasks_async):
+        print(f"Output {i+1}: {task_output.result}")
 
-asyncio.run(main())
-``` 
+# asyncio.run(main()) # Comment out or ensure it's handled if run in a script
+```

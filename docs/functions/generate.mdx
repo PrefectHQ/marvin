@@ -84,13 +84,12 @@ Generate complex objects:
 ```python
 import marvin
 from dataclasses import dataclass
-from typing import List
 
 @dataclass
 class Recipe:
     title: str
-    ingredients: List[str]
-    steps: List[str]
+    ingredients: list[str] # Changed from List[str]
+    steps: list[str] # Changed from List[str]
 
 recipe = marvin.generate(Recipe)
 print(f"Recipe: {recipe.title}")
@@ -127,14 +126,13 @@ Generate lists and dictionaries:
 
 ```python
 import marvin
-from typing import List, Dict
 
 # Generate a list of strings
-ingredients = marvin.generate(List[str], instructions="Generate recipe ingredients")
+ingredients = marvin.generate(list[str], instructions="Generate recipe ingredients") # Changed from List[str]
 print(ingredients)
 
 # Generate a dictionary
-menu = marvin.generate(Dict[str, float], instructions="Generate menu items with prices")
+menu = marvin.generate(dict[str, float], instructions="Generate menu items with prices") # Changed from Dict[str, float]
 print(menu)
 ```
 
