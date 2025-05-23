@@ -166,3 +166,33 @@ async def test_manage_mcp_servers_lazy_behavior():
     finally:
         # Restore the original method
         MCPManager.start_servers = original_start_servers
+
+
+async def test_mcp_tools_not_duplicated():
+    """
+    regression for https://github.com/prefecthq/marvin/issues/1142: MCP tools appear to be added twice.
+
+    The issue: Marvin pre-discovered MCP tools AND passed mcp_servers to pydantic-ai.
+    In pydantic-ai's _prepare_request_parameters(), both were processed:
+    - add_tool(ctx.deps.function_tools.values()) - Marvin's pre-discovered tools
+    - add_mcp_server_tools(ctx.deps.mcp_servers) - pydantic-ai's native discovery
+    This caused duplicate tool names sent to the LLM.
+
+    The fix: Remove Marvin's pre-discovery, let pydantic-ai handle MCP servers natively.
+    """
+    from pydantic_ai.mcp import MCPServerStdio
+
+    git_mcp_server = MCPServerStdio(command="uvx", args=["mcp-server-git"])
+    agent = Agent(mcp_servers=[git_mcp_server])
+
+    agent_tools = agent.get_tools()
+    tool_names = [getattr(tool, "__name__", str(tool)) for tool in agent_tools]
+
+    mcp_tool_names = ["git_log", "git_status", "git_diff"]
+    found_mcp_tools = [
+        name for name in tool_names if any(mcp in name for mcp in mcp_tool_names)
+    ]
+
+    assert len(found_mcp_tools) == 0, (
+        f"Agent should not pre-discover MCP tools, found: {found_mcp_tools}"
+    )
