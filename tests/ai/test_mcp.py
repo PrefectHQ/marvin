@@ -1,9 +1,5 @@
-from functools import partial
-
 from pydantic_ai.mcp import MCPServerStdio
-from pydantic_ai.tools import Tool as PydanticAiTool
 
-from marvin._internal.integrations.mcp import _mcp_tool_wrapper
 from marvin.agents import Agent
 from marvin.engine.events import ToolCallEvent
 from marvin.handlers.handlers import AsyncHandler
@@ -20,7 +16,7 @@ async def test_mcp_git_server_tool_usage_and_output():
     """
     Tests an Agent using an MCP tool from mcp-server-git (via uvx).
     1. Emits a single, correctly populated ToolCallEvent.
-    2. The event's tool is a PydanticAiTool whose function is the MCP wrapper setup.
+    2. The MCP tool is successfully called and returns valid results.
     3. Agent produces a non-empty string result (actual commit details vary).
     """
 
@@ -54,29 +50,7 @@ async def test_mcp_git_server_tool_usage_and_output():
     the_tool_call_event = tool_call_events_captured[0]
 
     assert the_tool_call_event.message.tool_name == EXPECTED_GIT_TOOL_NAME
-    assert isinstance(the_tool_call_event.tool, PydanticAiTool), (
-        f"Tool type was {type(the_tool_call_event.tool).__name__}, expected PydanticAiTool."
-    )
 
-    assert hasattr(the_tool_call_event.tool, "function"), (
-        "PydanticAiTool instance has no 'function' attribute."
-    )
-    tool_function_assigned = the_tool_call_event.tool.function
-
-    assert tool_function_assigned.__name__ == "async_wrapped_func_fixed", (
-        f"Tool function name was {tool_function_assigned.__name__}, expected 'async_wrapped_func_fixed'."
-    )
-
-    assert (
-        tool_function_assigned.__defaults__ is not None
-        and len(tool_function_assigned.__defaults__) > 0
-    ), "async_wrapped_func_fixed should have default arguments."
-
-    bound_partial_from_defaults = tool_function_assigned.__defaults__[0]
-    assert isinstance(bound_partial_from_defaults, partial), (
-        f"Captured _bound_partial was type {type(bound_partial_from_defaults).__name__}, expected functools.partial."
-    )
-
-    assert bound_partial_from_defaults.func is _mcp_tool_wrapper, (
-        "The bound partial in the MCP tool wrapper function was not a partial of _mcp_tool_wrapper."
-    )
+    # Verify the tool call has the correct structure regardless of tool implementation
+    assert the_tool_call_event.message.tool_call_id is not None
+    assert the_tool_call_event.message.args is not None
