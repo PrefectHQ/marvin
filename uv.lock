@@ -2094,7 +2094,7 @@ requires-dist = [
     { name = "raggy", marker = "extra == 'slackbot'" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
-    { name = "turbopuffer", marker = "extra == 'slackbot'", specifier = "==0.1.23" },
+    { name = "turbopuffer", marker = "extra == 'slackbot'", specifier = "==0.4.1" },
     { name = "typer", specifier = ">=0.15.1" },
 ]
 provides-extras = ["audio", "mcp", "slackbot"]
@@ -4392,17 +4392,16 @@ wheels = [
 
 [[package]]
 name = "turbopuffer"
-version = "0.1.23"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "iso8601" },
-    { name = "numpy" },
-    { name = "pandas" },
     { name = "requests" },
+    { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d7/20/ee148e82a3f6b7fbbbeb00560ae18d06690b94eebd50e2fc05829a7c6f8c/turbopuffer-0.1.23.tar.gz", hash = "sha256:ce75c763c242d838696b0c333f86ef9e4936c81419dde48fe714cfe5dae4131c", size = 14544, upload-time = "2024-11-21T19:09:37.179Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/26/c0/2fa47f909057716596724110306781f970b61649c46b080e1daf22b335ff/turbopuffer-0.4.1.tar.gz", hash = "sha256:7d6db581505d8cd0e8fa09fa11e6a8d5e28af217169de36684e776dc6893b3b7", size = 15016, upload-time = "2025-05-14T22:21:05.956Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7b/63/ee5f8393a422f319829565af86d7e81ecda2e6fd4d8273644129d614f445/turbopuffer-0.1.23-py3-none-any.whl", hash = "sha256:723f897484e4f9ffed986182e4edfd92ed227e9236234ffff25f7602c7697b0a", size = 16066, upload-time = "2024-11-21T19:09:36.224Z" },
+    { url = "https://files.pythonhosted.org/packages/a2/cb/8a0d9e1ff633e4b01b41b113ea2819d94fec04b6cee86bec63c180e5e85e/turbopuffer-0.4.1-py3-none-any.whl", hash = "sha256:1b7cc7c5555d7759826a5d7915cbff03779d43e237e78271992a1b1d47494ee4", size = 16903, upload-time = "2025-05-14T22:21:04.518Z" },
 ]
 
 [[package]]
