@@ -2048,8 +2048,7 @@ slackbot = [
     { name = "numpy" },
     { name = "prefect" },
     { name = "pydantic-ai" },
-    { name = "raggy" },
-    { name = "turbopuffer" },
+    { name = "raggy", extra = ["tpuf"] },
 ]
 
 [package.dev-dependencies]
@@ -2091,10 +2090,9 @@ requires-dist = [
     { name = "pydantic-ai", specifier = ">=0.0.31" },
     { name = "pydantic-ai", marker = "extra == 'slackbot'" },
     { name = "pydantic-settings", specifier = ">=2.6.1" },
-    { name = "raggy", marker = "extra == 'slackbot'" },
+    { name = "raggy", extras = ["tpuf"], marker = "extra == 'slackbot'", specifier = ">=0.3.0" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
-    { name = "turbopuffer", marker = "extra == 'slackbot'", specifier = "==0.4.1" },
     { name = "typer", specifier = ">=0.15.1" },
 ]
 provides-extras = ["audio", "mcp", "slackbot"]
@@ -3679,7 +3677,7 @@ fastembed = [
 
 [[package]]
 name = "raggy"
-version = "0.2.7"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -3693,12 +3691,18 @@ dependencies = [
     { name = "tenacity" },
     { name = "tiktoken" },
     { name = "trafilatura" },
+    { name = "turbopuffer" },
     { name = "xxhash" },
     { name = "yake" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/be/7d/4b7b84b5dbd9a7cb374549b85db9e289dc3a283abc495b28eeeeabc06c31/raggy-0.2.7.tar.gz", hash = "sha256:7126f5978e678bf04fc596fb3e2b55417917425420e3f6a4028aa6dd8622968b", size = 755367, upload-time = "2025-04-30T06:29:56.12Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/71/d9/b31f91d3daa6c4e5de3eb53ad1175c8dcac2e7a96f10a2b83154e60e7569/raggy-0.3.0.tar.gz", hash = "sha256:8607e92b9a812d33fac43230a98138be54be656bc74c5e65b8e9a6db30536d2e", size = 769201, upload-time = "2025-05-29T18:50:28.904Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/94/c5/d6ccb813b0454f173c64210383e873c2077e18970229aad1197f78b81c0d/raggy-0.2.7-py3-none-any.whl", hash = "sha256:a518fd3cb2ebd22443df915f5b9b50482207998e621f75ec6bbb5c7f96dda2c2", size = 37149, upload-time = "2025-04-30T06:29:55.178Z" },
+    { url = "https://files.pythonhosted.org/packages/a6/a1/b73574a11734c670091d8cd3ef9bed53aff69150e37e84edef4539840d9d/raggy-0.3.0-py3-none-any.whl", hash = "sha256:56471acabd357b13a35fdd21bfc2258ff974c062e663a1197e2103cb42a0e983", size = 37149, upload-time = "2025-05-29T18:50:27.168Z" },
+]
+
+[package.optional-dependencies]
+tpuf = [
+    { name = "turbopuffer" },
 ]
 
 [[package]]
