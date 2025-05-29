@@ -45,7 +45,12 @@ dev = [
 [project.optional-dependencies]
 audio = ["pyaudio>=0.2.14"]
 
-slackbot = ["pydantic-ai", "prefect", "numpy", "raggy[tpuf]>=0.3.2"]
+slackbot = [
+    "pydantic-ai",
+    "prefect",
+    "numpy",
+    "raggy[tpuf]@git+https://github.com/zzstoatzz/raggy.git",
+]
 
 mcp = ["fastmcp"]
 
