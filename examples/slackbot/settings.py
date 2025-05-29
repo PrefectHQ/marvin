@@ -46,6 +46,10 @@ class SlackbotSettings(BaseSettings):
         default="claude-api-key",
         description="Name of the Prefect secret block containing Claude API key",
     )
+    openai_api_key_secret_name: str = Field(
+        default="openai-api-key",
+        description="Name of the Prefect secret block containing OpenAI API key",
+    )
 
     vector_store_type: Literal["turbopuffer"] = Field(
         default="turbopuffer", description="Type of vector store to use"
