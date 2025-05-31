@@ -117,16 +117,18 @@ print(f"{address.street}, {address.city}, {address.country}")
 Use instructions to control how text is interpreted and formatted:
 
 ```python
+from typing import Annotated
 import marvin
+from pydantic import Field
 
 phone = marvin.cast(
-    "call me at 1-800-555-0123",
-    str,
-    instructions="Extract just the phone number in XXX-XXXX format"
+    "call me at 800-555-0123",
+    Annotated[str, Field(pattern=r"\d{1}-\d{3}-\d{3}-\d{4}")],
+    instructions="extract the phone number and assume the country code is 1"
 )
 print(phone)
 ```
 
 ```python
-"555-0123"
+"1-800-555-0123"
 ``` 

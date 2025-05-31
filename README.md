@@ -2,29 +2,21 @@
 
 # Marvin
 
-Marvin is a Python framework for building agentic AI workflows. 
+Marvin is a Python framework for producing structured outputs and building agentic AI workflows.
 
-Marvin provides a structured, developer-focused framework for defining workflows and delegating work to LLMs, without sacrificing control or transparency:
+Marvin provides an intuitive API for defining workflows and delegating work to LLMs:
 
+- Cast, classify, extract, and generate structured data from any inputs.
 - Create discrete, observable **tasks** that describe your objectives.
 - Assign one or more specialized AI **agents** to each task.
 - Combine tasks into a **thread** to orchestrate more complex behaviors.
-
-
-> [!WARNING]
-> 
-> 🚧🚨 Marvin 3.x is under active development, reflected on the `main` branch of this repo. The API may undergo breaking changes, and documentation is still being updated (can be found at [marvin.mintlify.app](https://marvin.mintlify.app)).
 
 ## Installation
 
 Install `marvin`:
 
 ```bash
-# with pip
-pip install marvin
-
-# with uv
-uv add marvin
+uv pip install marvin
 ```
 
 Configure your LLM provider (Marvin uses OpenAI by default but natively supports [all Pydantic AI models](https://ai.pydantic.dev/models/)):
