@@ -127,14 +127,13 @@ Generate lists and dictionaries:
 
 ```python
 import marvin
-from typing import List, Dict
 
 # Generate a list of strings
-ingredients = marvin.generate(List[str], instructions="Generate recipe ingredients")
+ingredients = marvin.generate(list[str], instructions="Generate recipe ingredients")
 print(ingredients)
 
 # Generate a dictionary
-menu = marvin.generate(Dict[str, float], instructions="Generate menu items with prices")
+menu = marvin.generate(dict[str, float], instructions="Generate menu items with prices")
 print(menu)
 ```
 
