@@ -13,7 +13,7 @@ from marvin.memory.memory import Memory
 # public access
 from marvin.instructions import instructions
 from marvin.defaults import defaults
-from marvin.agents.team import Swarm
+from marvin.agents.team import Swarm, Team
 from . import handlers
 
 # marvin fns
@@ -49,6 +49,7 @@ __version__ = _version("marvin")
 __all__ = [
     "Agent",
     "Memory",
+    "Team",
     "Swarm",
     "Task",
     "Thread",
