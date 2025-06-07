@@ -1,3 +1,4 @@
+import asyncio
 import os
 import subprocess
 from datetime import datetime
@@ -6,9 +7,11 @@ from typing import Optional
 import httpx
 import turbopuffer as tpuf
 from modules import ModuleTreeExplorer
+from prefect import task
 from prefect.blocks.system import Secret
 from pydantic import BaseModel, Field, field_validator
 from raggy.vectorstores.tpuf import multi_query_tpuf
+from settings import settings
 from strings import slice_tokens
 
 import marvin
@@ -166,7 +169,7 @@ async def get_token() -> str:
     try:
         from prefect.blocks.system import Secret
 
-        return (await Secret.load(name="github-token")).get()  # type: ignore
+        return (await Secret.aload(name="github-token")).get()
     except (ImportError, ValueError) as exc:
         getattr(get_logger("marvin"), "debug_kv")(
             (
@@ -222,6 +225,25 @@ class GitHubIssue(BaseModel):
         if not v:
             return ""
         return v
+
+
+@task(task_run_name="Reading {n} issues from {repo} given query: {query}")
+def read_github_issues(query: str, repo: str = "prefecthq/prefect", n: int = 3) -> str:
+    """
+    Use the GitHub API to search for issues in a given repository. Do
+    not alter the default value for `n` unless specifically requested by
+    a user.
+
+    For example, to search for open issues about AttributeErrors with the
+    label "bug" in PrefectHQ/prefect:
+        - repo: prefecthq/prefect
+        - query: label:bug is:open AttributeError
+    """
+    # Load GitHub token synchronously
+    github_token = Secret.load(settings.github_token_secret_name, _sync=True).get()  # type: ignore
+    return asyncio.run(
+        search_github_issues(query, repo=repo, n=n, api_token=github_token)
+    )
 
 
 async def search_github_issues(

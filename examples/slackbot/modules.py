@@ -221,7 +221,7 @@ def display_signature(import_path: str) -> str:
     sig = inspect.signature(func)
 
     # Get function name and build header
-    func_name = func.__name__
+    func_name = getattr(func, "name", getattr(func, "__name__", "unknown"))
     lines = [f"📎 {func_name}", "├── Parameters:"]
 
     # Process parameters
