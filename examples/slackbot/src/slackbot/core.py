@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterator, TypedDict, cast
+from typing import AsyncIterator, TypedDict
 
 from prefect import get_run_logger, task
 from prefect.blocks.system import Secret
@@ -17,10 +17,11 @@ from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.settings import ModelSettings
 from raggy.documents import Document
 from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
-from research_agent import research_prefect_topic
-from search import read_github_issues
-from settings import settings
 from turbopuffer.error import NotFoundError
+
+from slackbot.research_agent import research_prefect_topic
+from slackbot.search import read_github_issues
+from slackbot.settings import settings
 
 GITHUB_API_TOKEN = Secret.load(settings.github_token_secret_name, _sync=True).get()  # type: ignore
 
@@ -155,12 +156,11 @@ def create_agent(
     logger = get_run_logger()
     logger.info("Creating new agent")
     ai_model = model or AnthropicModel(
+        model_name=Variable.get(
+            "marvin_bot_model", default=settings.model_name, _sync=True
+        ),
         provider="anthropic",
         api_key=Secret.load(settings.claude_key_secret_name, _sync=True).get(),  # type: ignore
-        model=cast(
-            str,
-            Variable.get("marvin_bot_model", default=settings.model_name, _sync=True),  # type: ignore
-        ),
     )
     agent = Agent[UserContext, str](
         model=ai_model,

@@ -8,7 +8,7 @@ A Slack chatbot powered by Claude with memories and Prefect-specific knowledge.
 ├── api.py         # FastAPI app and Slack event handlers
 ├── core.py        # Database, agent, and memory management
 ├── settings.py    # Configuration management
-└── start.py       # Entry point
+└── __main__.py    # Entry point
 ```
 
 ## Setup

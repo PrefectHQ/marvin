@@ -37,4 +37,4 @@ run-pre-commits: check-uv
     uv run pre-commit run --all-files
 
 run-slackbot: check-uv
-    uv run --extra slackbot examples/slackbot/start.py
+    uv run --extra slackbot -m slackbot

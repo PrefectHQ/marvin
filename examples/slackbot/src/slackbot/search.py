@@ -6,16 +6,16 @@ from typing import Optional
 
 import httpx
 import turbopuffer as tpuf
-from modules import ModuleTreeExplorer
 from prefect import task
 from prefect.blocks.system import Secret
 from pydantic import BaseModel, Field, field_validator
 from raggy.vectorstores.tpuf import multi_query_tpuf
-from settings import settings
-from strings import slice_tokens
 
 import marvin
 from marvin.utilities.logging import get_logger
+from slackbot.modules import ModuleTreeExplorer
+from slackbot.settings import settings
+from slackbot.strings import slice_tokens
 
 
 def verify_import_statements(import_statements: list[str]) -> str:

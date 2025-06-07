@@ -8,6 +8,12 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 
+[manifest]
+members = [
+    "marvin",
+    "slackbot",
+]
+
 [[package]]
 name = "aiofiles"
 version = "24.1.0"
@@ -2080,10 +2086,7 @@ mcp = [
     { name = "fastmcp" },
 ]
 slackbot = [
-    { name = "numpy" },
-    { name = "prefect" },
-    { name = "pydantic-ai" },
-    { name = "raggy", extra = ["tpuf"] },
+    { name = "slackbot" },
 ]
 
 [package.dev-dependencies]
@@ -2117,16 +2120,13 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.12.0" },
     { name = "fastmcp", marker = "extra == 'mcp'" },
     { name = "jinja2", specifier = ">=3.1.4" },
-    { name = "numpy", marker = "extra == 'slackbot'" },
     { name = "partial-json-parser", specifier = ">=0.2.1.1.post5" },
-    { name = "prefect", marker = "extra == 'slackbot'" },
     { name = "pyaudio", marker = "extra == 'audio'", specifier = ">=0.2.14" },
     { name = "pydantic", extras = ["email"], specifier = ">=2.10.6" },
     { name = "pydantic-ai", specifier = ">=0.0.31" },
-    { name = "pydantic-ai", marker = "extra == 'slackbot'" },
     { name = "pydantic-settings", specifier = ">=2.6.1" },
-    { name = "raggy", extras = ["tpuf"], marker = "extra == 'slackbot'", git = "https://github.com/zzstoatzz/raggy.git" },
     { name = "rich", specifier = ">=13.9.4" },
+    { name = "slackbot", marker = "extra == 'slackbot'", editable = "examples/slackbot" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
     { name = "typer", specifier = ">=0.15.1" },
 ]
@@ -3450,14 +3450,14 @@ wheels = [
 
 [[package]]
 name = "pypdf"
-version = "5.5.0"
+version = "5.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e0/c8/543f8ae1cd9e182e9f979d9ab1df18e3445350471abadbdabc0166ae5741/pypdf-5.5.0.tar.gz", hash = "sha256:8ce6a18389f7394fd09a1d4b7a34b097b11c19088a23cfd09e5008f85893e254", size = 5021690, upload-time = "2025-05-11T14:00:42.043Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/40/46/67de1d7a65412aa1c896e6b280829b70b57d203fadae6859b690006b8e0a/pypdf-5.6.0.tar.gz", hash = "sha256:a4b6538b77fc796622000db7127e4e58039ec5e6afd292f8e9bf42e2e985a749", size = 5023749, upload-time = "2025-06-01T12:19:40.101Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a1/4e/931b90b51e3ebc69699be926b3d5bfdabae2d9c84337fd0c9fb98adbf70c/pypdf-5.5.0-py3-none-any.whl", hash = "sha256:2f61f2d32dde00471cd70b8977f98960c64e84dd5ba0d070e953fcb4da0b2a73", size = 303371, upload-time = "2025-05-11T14:00:40.064Z" },
+    { url = "https://files.pythonhosted.org/packages/71/8b/dc3a72d98c22be7a4cbd664ad14c5a3e6295c2dbdf572865ed61e24b5e38/pypdf-5.6.0-py3-none-any.whl", hash = "sha256:ca6bf446bfb0a2d8d71d6d6bb860798d864c36a29b3d9ae8d7fc7958c59f88e7", size = 304208, upload-time = "2025-06-01T12:19:38.003Z" },
 ]
 
 [[package]]
@@ -3732,8 +3732,8 @@ fastembed = [
 
 [[package]]
 name = "raggy"
-version = "0.3.5.dev1+gb0eae24"
-source = { git = "https://github.com/zzstoatzz/raggy.git#b0eae24e1c50cbe9af6c6c2e764077c4f20c9d96" }
+version = "0.3.5.dev6+g5baad82"
+source = { git = "https://github.com/zzstoatzz/raggy.git#5baad82b23117ab392523c0f0674c766d69a9c30" }
 dependencies = [
     { name = "aiofiles" },
     { name = "bs4" },
@@ -3747,6 +3747,7 @@ dependencies = [
     { name = "tiktoken" },
     { name = "trafilatura" },
     { name = "turbopuffer" },
+    { name = "typing-extensions" },
     { name = "xxhash" },
     { name = "yake" },
 ]
@@ -4135,6 +4136,27 @@ sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
 ]
+
+[[package]]
+name = "slackbot"
+source = { editable = "examples/slackbot" }
+dependencies = [
+    { name = "marvin" },
+    { name = "numpy" },
+    { name = "prefect" },
+    { name = "raggy", extra = ["tpuf"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "marvin", editable = "." },
+    { name = "numpy" },
+    { name = "prefect" },
+    { name = "raggy", extras = ["tpuf"], git = "https://github.com/zzstoatzz/raggy.git" },
+]
+
+[package.metadata.requires-dev]
+dev = []
 
 [[package]]
 name = "smmap"

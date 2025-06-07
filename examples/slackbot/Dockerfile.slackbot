@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.13-slim
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -11,8 +11,8 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN uv sync --extra slackbot
+RUN uv sync --extra slackbot --no-dev 
 
 EXPOSE 4200
 
-CMD ["uv", "run", "examples/slackbot/start.py"]
+CMD ["uv", "run", "--no-sync", "-m", "slackbot"]

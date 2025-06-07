@@ -4,7 +4,8 @@ from prefect.blocks.system import Secret
 
 if __name__ == "__main__":
     import uvicorn
-    from settings import settings
+
+    from slackbot.settings import settings
 
     if not (openai_api_key := os.getenv("OPENAI_API_KEY")):
         os.environ["OPENAI_API_KEY"] = Secret.load(
@@ -12,7 +13,7 @@ if __name__ == "__main__":
         ).get()
 
     uvicorn.run(
-        "api:app",
+        "slackbot.api:app",
         host=settings.host,
         port=settings.port,
         # reload=settings.test_mode,
