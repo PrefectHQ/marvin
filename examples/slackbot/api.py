@@ -89,7 +89,7 @@ async def handle_message(payload: SlackPayload, db: Database):
         conversation = await db.get_thread_messages(thread_ts)
 
         user_context = build_user_context(
-            user_id=payload.authorizations[0].user_id,
+            user_id=event.user,  # Use the actual user who sent the message, not the bot
             user_question=cleaned_message,
         )
 
