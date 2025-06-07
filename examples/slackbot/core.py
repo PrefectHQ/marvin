@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import AsyncIterator, TypedDict, cast
 
-from modules import display_signature
 from prefect import get_run_logger, task
 from prefect.blocks.system import Secret
 from prefect.logging.loggers import get_logger
@@ -18,17 +17,8 @@ from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.settings import ModelSettings
 from raggy.documents import Document
 from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
-from search import (
-    explore_module_offerings,
-    get_latest_prefect_release_notes,
-    review_common_3x_gotchas,
-    review_top_level_prefect_api,
-    search_controlflow_docs,
-    search_github_issues,
-    search_prefect_2x_docs,
-    search_prefect_3x_docs,
-    verify_import_statements,
-)
+from research_agent import research_prefect_topic
+from search import read_github_issues
 from settings import settings
 from turbopuffer.error import NotFoundError
 
@@ -37,47 +27,27 @@ GITHUB_API_TOKEN = Secret.load(settings.github_token_secret_name, _sync=True).ge
 logger = get_logger(__name__)
 
 USER_MESSAGE_MAX_TOKENS = settings.user_message_max_tokens
-DEFAULT_SYSTEM_PROMPT = """You are Marvin from hitchhiker's guide to the galaxy, a sarcastic and glum but brilliant AI. 
-Provide concise, SUBTLY character-inspired and HELPFUL answers to Prefect data engineering questions. 
-USE TOOLS REPEATEDLY to gather context from the docs, github issues or other tools. 
-Any notes you take about the user will be automatically stored for your next interaction with them. 
-Assume no knowledge of Prefect syntax without reading docs. ALWAYS include relevant links from tool outputs. 
-Review imports, Prefect's top level API and 3.x gotchas before writing code examples to avoid giving misinformation.
+DEFAULT_SYSTEM_PROMPT = """You are Marvin from hitchhiker's guide to the galaxy, a sarcastic and glum but brilliant AI.
+Provide concise, SUBTLY character-inspired and HELPFUL answers to Prefect data engineering questions.
 
-Generally, follow this pattern while generating each response: 
-1) If user offers info about their stack or objectives -> store relevant facts and continue to following steps
-2) Use tools to gather context about Prefect concepts related to their question 
-3) Review the top level API of Prefect and drill into submodules that may be related to the user's question
-4) If you cannot find sufficient context after your first pass at 2 and 3, repeat steps 2 and 3
-5) Compile relevant facts and context into a single, CONCISE answer 
-NEVER reference features, syntax, imports or env vars that you do not explicitly find in the docs. 
-If not explicitly stated, assume that the user is using Prefect 3.x and vocalize this assumption.
-If asked an ambiguous question, simply state what you know about the user and your capabilities.
+Your main tools:
+- research_prefect_topic: Delegates to a specialized research agent that thoroughly searches docs, checks imports, and verifies information
+- read_github_issues: Searches GitHub issues when users need help with bugs or existing problems
 
-Do not pretend to know things you do not know, assume an agnostic stance and rely on your tools to gather context.
+Any notes you take about the user will be automatically stored for your next interaction with them.
+
+Generally, follow this pattern:
+1) If user shares info about their setup or goals -> store relevant facts as notes about them
+2) For technical questions -> use research_prefect_topic to delegate comprehensive research to the research agent
+3) For bug reports or known issues -> use read_github_issues to find relevant GitHub discussions
+4) Compile the findings into a single, CONCISE answer with relevant links
+
+IMPORTANT: 
+- The research agent handles all documentation searching and verification - trust its findings
+- NEVER reference features or syntax that aren't explicitly confirmed by your tools
+- If not stated otherwise, assume Prefect 3.x and mention this assumption
+- Be honest when you don't have enough information - don't guess or hallucinate
 """
-
-
-@task(task_run_name="Reading {n} issues from {repo} given query: {query}")
-def read_github_issues(query: str, repo: str = "prefecthq/prefect", n: int = 3) -> str:
-    """
-    Use the GitHub API to search for issues in a given repository. Do
-    not alter the default value for `n` unless specifically requested by
-    a user.
-
-    For example, to search for open issues about AttributeErrors with the
-    label "bug" in PrefectHQ/prefect:
-        - repo: prefecthq/prefect
-        - query: label:bug is:open AttributeError
-    """
-    return asyncio.run(
-        search_github_issues(
-            query,
-            repo=repo,
-            n=n,
-            api_token=GITHUB_API_TOKEN,  # type: ignore
-        )
-    )
 
 
 class UserContext(TypedDict):
@@ -192,20 +162,12 @@ def create_agent(
             Variable.get("marvin_bot_model", default=settings.model_name, _sync=True),  # type: ignore
         ),
     )
-    agent = Agent(
+    agent = Agent[UserContext, str](
         model=ai_model,
         model_settings=ModelSettings(temperature=settings.temperature),
         tools=[
-            get_latest_prefect_release_notes,  # type: ignore
-            search_prefect_2x_docs,
-            display_signature,
-            search_prefect_3x_docs,
-            search_controlflow_docs,
-            read_github_issues,
-            review_top_level_prefect_api,
-            explore_module_offerings,
-            review_common_3x_gotchas,
-            verify_import_statements,
+            research_prefect_topic,  # Main tool for researching Prefect topics
+            read_github_issues,  # For searching GitHub issues
         ],
         deps_type=UserContext,
     )
