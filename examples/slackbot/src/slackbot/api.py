@@ -1,5 +1,6 @@
 import asyncio
 import re
+import time
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -24,12 +25,13 @@ from slackbot.core import (
 from slackbot.settings import settings
 from slackbot.slack import (
     SlackPayload,
+    create_progress_message,
     get_channel_name,
     get_workspace_domain,
     post_slack_message,
 )
 from slackbot.strings import count_tokens, slice_tokens
-from slackbot.wrap import WatchToolCalls
+from slackbot.wrap import WatchToolCalls, _progress_message
 
 BOT_MENTION = r"<@(\w+)>"
 
@@ -42,6 +44,8 @@ async def run_agent(
     cleaned_message: str,
     conversation: list[ModelMessage],
     user_context: UserContext,
+    channel_id: str,
+    thread_ts: str,
     decorator_settings: dict[str, Any] | None = None,
 ) -> AgentRunResult[str]:
     if decorator_settings is None:
@@ -51,13 +55,31 @@ async def run_agent(
             "log_prints": True,
         }
 
-    with WatchToolCalls(settings=decorator_settings):
-        result = await create_agent(model=settings.model_name).run(
-            user_prompt=cleaned_message,
-            message_history=conversation,
-            deps=user_context,
+    start_time = time.monotonic()
+    progress = await create_progress_message(
+        channel_id=channel_id, thread_ts=thread_ts, initial_text="🔄 Thinking..."
+    )
+
+    try:
+        token = _progress_message.set(progress)
+
+        try:
+            with WatchToolCalls(settings=decorator_settings):
+                result = await create_agent(model=settings.model_name).run(
+                    user_prompt=cleaned_message,
+                    message_history=conversation,
+                    deps=user_context,
+                )
+        finally:
+            _progress_message.reset(token)
+
+        await progress.update(
+            f"✅ thought for {time.monotonic() - start_time:.1f} seconds"
         )
         return result
+    except Exception as e:
+        await progress.update(f"❌ Error: {str(e)}")
+        raise
 
 
 @flow(name="Handle Slack Message", retries=1)
@@ -113,7 +135,9 @@ async def handle_message(payload: SlackPayload, db: Database):
             bot_id=bot_user_id or "unknown",
         )
 
-        result = await run_agent(cleaned_message, conversation, user_context)  # type: ignore
+        result = await run_agent(
+            cleaned_message, conversation, user_context, event.channel, thread_ts
+        )  # type: ignore
 
         await db.add_thread_messages(thread_ts, result.new_messages())
         conversation.extend(result.new_messages())

@@ -12,7 +12,7 @@ from slackbot.search import (
     get_latest_prefect_release_notes,
     review_common_3x_gotchas,
     review_top_level_prefect_api,
-    search_controlflow_docs,
+    search_marvin_docs,
     search_prefect_2x_docs,
     search_prefect_3x_docs,
     verify_import_statements,
@@ -58,18 +58,18 @@ Your research process:
 4. Focus on Prefect 3.x documentation unless explicitly asked about 2.x or older versions
 5. Review gotchas and release notes for recent changes
 6. Explore relevant modules for deeper understanding
-7. Synthesize ALL findings into structured, confident answers
 
 Remember: You are the research specialist. The main agent relies on you for accurate, comprehensive information.
 Be thorough - use tools repeatedly until you have complete information.
 Default to Prefect 3.x unless the user explicitly asks about 2.x or version compatibility.
+You don't need to use all the tools all the time, but use relevant ones repeatedly if needed.
 """,
         tools=[
             get_latest_prefect_release_notes,
             search_prefect_2x_docs,
             display_signature,
             search_prefect_3x_docs,
-            search_controlflow_docs,
+            search_marvin_docs,
             review_top_level_prefect_api,
             explore_module_offerings,
             review_common_3x_gotchas,
