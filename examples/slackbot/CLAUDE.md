@@ -9,6 +9,8 @@ An intelligent Slack bot built with Marvin that provides AI-powered assistance i
 - **`api.py`**: FastAPI web server for Slack webhooks
 - **`modules.py`**: Modular bot functionality and plugins
 - **`search.py`**: Search capabilities and knowledge retrieval
+- **`assets.py`**: Asset tracking for data lineage
+- **`research_agent.py`**: Research agent for Prefect documentation and GitHub issues
 - **`wrap.py`**: Message formatting and response wrapping
 - **`strings.py`**: String constants and templates
 - **`settings.py`**: Configuration management

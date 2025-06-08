@@ -22,30 +22,24 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Intended Audience :: Developers",
-  "Intended Audience :: Information Technology",
-  "Intended Audience :: System Administrators",
   "License :: OSI Approved :: MIT License",
   "Operating System :: Unix",
   "Operating System :: POSIX :: Linux",
-  "Environment :: Console",
-  "Environment :: MacOS X",
   "Topic :: Software Development :: Libraries :: Python Modules",
-  "Topic :: Internet",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [tool.hatch.metadata.hooks.uv-dynamic-versioning]
 dependencies = [
   "marvin",
-  "prefect",
+  "prefect @ git+https://github.com/PrefectHQ/prefect.git@fix-nested-add-metadata",
   "numpy",
-  "raggy[tpuf]@git+https://github.com/zzstoatzz/raggy.git",
+  "raggy[tpuf] @ git+https://github.com/zzstoatzz/raggy.git",
 ]
 
 
