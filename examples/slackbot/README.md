@@ -8,7 +8,7 @@ A Slack chatbot powered by Claude with memories and Prefect-specific knowledge.
 ├── api.py         # FastAPI app and Slack event handlers
 ├── core.py        # Database, agent, and memory management
 ├── settings.py    # Configuration management
-└── start.py       # Entry point
+└── __main__.py    # Entry point
 ```
 
 ## Setup
@@ -70,7 +70,7 @@ ngrok http 4200  # Or your configured port
 
 2. Start the bot in another terminal:
 ```console
-uv run -m examples.slackbot.start
+uv run --extra slackbot -m slackbot
 ```
 
 ### Testing

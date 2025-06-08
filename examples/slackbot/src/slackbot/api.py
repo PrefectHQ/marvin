@@ -3,12 +3,6 @@ import re
 from contextlib import asynccontextmanager
 from typing import Any
 
-from core import (
-    Database,
-    UserContext,
-    build_user_context,
-    create_agent,
-)
 from fastapi import FastAPI, HTTPException, Request
 from prefect import flow, get_run_logger, task
 from prefect.blocks.notifications import SlackWebhook
@@ -18,10 +12,17 @@ from prefect.states import Completed
 from prefect.variables import Variable
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
-from settings import settings
-from slack import SlackPayload, get_channel_name, post_slack_message
-from strings import count_tokens, slice_tokens
-from wrap import WatchToolCalls
+
+from slackbot.core import (
+    Database,
+    UserContext,
+    build_user_context,
+    create_agent,
+)
+from slackbot.settings import settings
+from slackbot.slack import SlackPayload, get_channel_name, post_slack_message
+from slackbot.strings import count_tokens, slice_tokens
+from slackbot.wrap import WatchToolCalls
 
 BOT_MENTION = r"<@(\w+)>"
 
@@ -120,11 +121,11 @@ app = FastAPI(lifespan=lifespan)
 @app.post("/chat")
 async def chat_endpoint(request: Request) -> dict[str, Any]:
     try:
-        payload = SlackPayload(**await request.json())
+        payload = SlackPayload.model_validate(await request.json())
     except Exception as e:
         logger.error(f"Error parsing Slack payload: {e}")
-        slack_webhook = await SlackWebhook.load("marvin-bot-pager")  # type: ignore
-        await slack_webhook.notify(  # type: ignore
+        slack_webhook = await SlackWebhook.load("marvin-bot-pager")
+        await slack_webhook.notify(
             body=f"Error parsing Slack payload: {e}",
             subject="Slackbot Error",
         )
@@ -155,8 +156,8 @@ async def chat_endpoint(request: Request) -> dict[str, Any]:
             channel_name = await get_channel_name(payload.event.channel)
             if channel_name.startswith("D"):
                 logger.warning(f"Attempted DM in channel: {channel_name}")
-                slack_webhook = await SlackWebhook.load("marvin-bot-pager")  # type: ignore
-                await slack_webhook.notify(  # type: ignore
+                slack_webhook = await SlackWebhook.load("marvin-bot-pager")
+                await slack_webhook.notify(
                     body=f"Attempted DM: {channel_name}",
                     subject="Slackbot DM Warning",
                 )

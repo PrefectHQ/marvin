@@ -1,12 +1,13 @@
 """Research agent for improved information gathering."""
 
-from modules import display_signature
 from prefect import task
 from prefect.cache_policies import INPUTS
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
-from search import (
+
+from slackbot.modules import display_signature
+from slackbot.search import (
     explore_module_offerings,
     get_latest_prefect_release_notes,
     review_common_3x_gotchas,

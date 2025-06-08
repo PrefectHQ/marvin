@@ -5,7 +5,8 @@ from typing import Any, List, Union
 
 import httpx
 from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
-from settings import settings
+
+from slackbot.settings import settings
 
 
 class EventBlockElement(BaseModel):

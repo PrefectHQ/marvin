@@ -37,7 +37,7 @@ An intelligent Slack bot built with Marvin that provides AI-powered assistance i
 uv sync
 
 # Start the bot server
-uv run examples/slackbot/start.py
+uv run --extra slackbot -m slackbot
 
 # Or with Docker
 docker build -f examples/slackbot/Dockerfile.slackbot -t marvin-slackbot .

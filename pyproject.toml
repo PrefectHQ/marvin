@@ -45,12 +45,7 @@ dev = [
 [project.optional-dependencies]
 audio = ["pyaudio>=0.2.14"]
 
-slackbot = [
-    "pydantic-ai",
-    "prefect",
-    "numpy",
-    "raggy[tpuf]@git+https://github.com/zzstoatzz/raggy.git",
-]
+slackbot = ["slackbot"]
 
 mcp = ["fastmcp"]
 
@@ -100,6 +95,12 @@ extend-select = ["I"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "I001", "RUF013"]
+
+[tool.uv.sources]
+slackbot = { workspace = true }
+
+[tool.uv.workspace]
+members = ["examples/slackbot"]
 
 [build-system]
 requires = ["hatchling>=1.21.0", "hatch-vcs>=0.4.0"]
