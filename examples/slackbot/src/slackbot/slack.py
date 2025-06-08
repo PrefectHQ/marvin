@@ -280,3 +280,15 @@ async def get_workspace_info() -> dict[str, Any]:
         )
         response.raise_for_status()
         return response.json().get("team", {})
+
+
+async def get_workspace_domain() -> str:
+    """Get the workspace domain name (e.g., 'stoatllc')."""
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://slack.com/api/team.info",
+            headers={"Authorization": f"Bearer {settings.slack_api_token}"},
+        )
+        response.raise_for_status()
+        team_info = response.json().get("team", {})
+        return team_info.get("domain", "unknown")

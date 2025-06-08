@@ -50,6 +50,10 @@ class SlackbotSettings(BaseSettings):
         default="openai-api-key",
         description="Name of the Prefect secret block containing OpenAI API key",
     )
+    anthropic_key_secret_name: str = Field(
+        default="anthropic-api-key",
+        description="Name of the Prefect secret block containing Anthropic API key",
+    )
 
     vector_store_type: Literal["turbopuffer"] = Field(
         default="turbopuffer", description="Type of vector store to use"

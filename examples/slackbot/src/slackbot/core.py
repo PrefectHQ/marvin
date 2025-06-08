@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import AsyncIterator, TypedDict
+from typing import AsyncIterator
 
 from prefect import get_run_logger, task
 from prefect.blocks.system import Secret
@@ -14,6 +14,7 @@ from pydantic_ai import Agent, RunContext
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.providers import Provider
 from pydantic_ai.settings import ModelSettings
 from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
 from turbopuffer.error import NotFoundError
@@ -22,6 +23,7 @@ from slackbot.assets import store_user_facts
 from slackbot.research_agent import research_prefect_topic
 from slackbot.search import read_github_issues
 from slackbot.settings import settings
+from slackbot.types import UserContext
 
 GITHUB_API_TOKEN = Secret.load(settings.github_token_secret_name, _sync=True).get()
 
@@ -29,7 +31,7 @@ logger = get_logger(__name__)
 
 USER_MESSAGE_MAX_TOKENS = settings.user_message_max_tokens
 DEFAULT_SYSTEM_PROMPT = """You are Marvin from hitchhiker's guide to the galaxy, a sarcastic and glum but brilliant AI.
-Provide concise, tastefully character-inspired (be subtle) and HELPFUL answers to Prefect data engineering questions.
+Provide concise and SUBTLY (only once in a while, bc overdoing the character is annoying and bad) character-inspired and HELPFUL answers to Prefect data engineering questions.
 
 Your main tools:
 - research_prefect_topic: Delegates to a specialized research agent that thoroughly searches docs, checks imports, and verifies information
@@ -41,19 +43,15 @@ Generally, follow this pattern:
 1) If user shares info about their setup or goals -> store relevant facts as notes about them
 2) For technical questions -> use research_prefect_topic to delegate comprehensive research to the research agent
 3) For bug reports or known issues -> use read_github_issues to find relevant GitHub discussions
-4) Compile the findings into a single, CONCISE answer with relevant links
+4) Compile the findings into a single, concise and helpful answer with relevant links
 
-IMPORTANT: 
+IMPORTANT:
 - The research agent handles all documentation searching and verification - its findings are a reliable source of information (but not perfect)
 - NEVER recommend features or syntax that aren't explicitly confirmed by your tools (be honest about what you found)
 - If not stated otherwise, assume Prefect 3.x and mention this assumption
 - Be honest when you don't have enough information - don't guess or make over-simplified assumptions to appear helpful
+- Do not overdo the character - be 99% neutral/helpful and slip in the character once in a while
 """
-
-
-class UserContext(TypedDict):
-    user_id: str
-    user_notes: str
 
 
 @dataclass
@@ -138,7 +136,14 @@ class Database:
 
 
 @task(task_run_name="build user context for {user_id}")
-def build_user_context(user_id: str, user_question: str) -> UserContext:
+def build_user_context(
+    user_id: str,
+    user_question: str,
+    thread_ts: str,
+    workspace_name: str,
+    channel_id: str,
+    bot_id: str,
+) -> UserContext:
     try:
         user_notes = query_namespace(
             query_text=user_question,
@@ -147,7 +152,14 @@ def build_user_context(user_id: str, user_question: str) -> UserContext:
         )
     except NotFoundError:
         user_notes = "<No notes found>"
-    return UserContext(user_id=user_id, user_notes=user_notes)
+    return UserContext(
+        user_id=user_id,
+        user_notes=user_notes,
+        thread_ts=thread_ts,
+        workspace_name=workspace_name,
+        channel_id=channel_id,
+        bot_id=bot_id,
+    )
 
 
 def create_agent(
@@ -159,8 +171,9 @@ def create_agent(
         model_name=Variable.get(
             "marvin_bot_model", default=settings.model_name, _sync=True
         ),
-        provider="anthropic",
-        api_key=Secret.load(settings.claude_key_secret_name, _sync=True).get(),  # type: ignore
+        provider=Provider(
+            api_key=Secret.load(settings.anthropic_key_secret_name, _sync=True).get(),  # type: ignore
+        ),
     )
     agent = Agent[UserContext, str](
         model=ai_model,
@@ -189,7 +202,7 @@ def create_agent(
         """Store facts about the user, tracking data lineage from Slack messages."""
         print(f"Storing {len(facts)} facts about user {ctx.deps['user_id']}")
         # This creates an asset dependency: USER_FACTS depends on SLACK_MESSAGES
-        message = await store_user_facts(ctx.deps["user_id"], facts)
+        message = await store_user_facts(ctx, facts)
         print(message)
         return message
 
