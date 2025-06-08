@@ -16,6 +16,6 @@ if __name__ == "__main__":
         "slackbot.api:app",
         host=settings.host,
         port=settings.port,
-        # reload=settings.test_mode,
-        # reload_dirs=["examples/slackbot"] if settings.test_mode else None,
+        reload=settings.test_mode,
+        reload_dirs=["examples/slackbot"] if settings.test_mode else None,
     )

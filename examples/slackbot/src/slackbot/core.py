@@ -15,21 +15,21 @@ from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.settings import ModelSettings
-from raggy.documents import Document
 from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
 from turbopuffer.error import NotFoundError
 
+from slackbot.assets import store_user_facts
 from slackbot.research_agent import research_prefect_topic
 from slackbot.search import read_github_issues
 from slackbot.settings import settings
 
-GITHUB_API_TOKEN = Secret.load(settings.github_token_secret_name, _sync=True).get()  # type: ignore
+GITHUB_API_TOKEN = Secret.load(settings.github_token_secret_name, _sync=True).get()
 
 logger = get_logger(__name__)
 
 USER_MESSAGE_MAX_TOKENS = settings.user_message_max_tokens
 DEFAULT_SYSTEM_PROMPT = """You are Marvin from hitchhiker's guide to the galaxy, a sarcastic and glum but brilliant AI.
-Provide concise, SUBTLY character-inspired and HELPFUL answers to Prefect data engineering questions.
+Provide concise, tastefully character-inspired (be subtle) and HELPFUL answers to Prefect data engineering questions.
 
 Your main tools:
 - research_prefect_topic: Delegates to a specialized research agent that thoroughly searches docs, checks imports, and verifies information
@@ -44,10 +44,10 @@ Generally, follow this pattern:
 4) Compile the findings into a single, CONCISE answer with relevant links
 
 IMPORTANT: 
-- The research agent handles all documentation searching and verification - trust its findings
-- NEVER reference features or syntax that aren't explicitly confirmed by your tools
+- The research agent handles all documentation searching and verification - its findings are a reliable source of information (but not perfect)
+- NEVER recommend features or syntax that aren't explicitly confirmed by your tools (be honest about what you found)
 - If not stated otherwise, assume Prefect 3.x and mention this assumption
-- Be honest when you don't have enough information - don't guess or hallucinate
+- Be honest when you don't have enough information - don't guess or make over-simplified assumptions to appear helpful
 """
 
 
@@ -173,7 +173,7 @@ def create_agent(
     )
 
     @agent.system_prompt
-    def personality_and_maybe_notes(ctx: RunContext[UserContext]) -> str:  # type: ignore[reportUnusedFunction]
+    def personality_and_maybe_notes(ctx: RunContext[UserContext]) -> str:
         system_prompt = DEFAULT_SYSTEM_PROMPT + (
             f"\n\nUser notes: {ctx.deps['user_notes']}"
             if ctx.deps["user_notes"]
@@ -183,25 +183,25 @@ def create_agent(
         return system_prompt
 
     @agent.tool
-    def store_facts_about_user(ctx: RunContext[UserContext], facts: list[str]) -> str:  # type: ignore[reportUnusedFunction]
+    async def store_facts_about_user(
+        ctx: RunContext[UserContext], facts: list[str]
+    ) -> str:
+        """Store facts about the user, tracking data lineage from Slack messages."""
         print(f"Storing {len(facts)} facts about user {ctx.deps['user_id']}")
-        with TurboPuffer(
-            namespace=f"{settings.user_facts_namespace_prefix}{ctx.deps['user_id']}"
-        ) as tpuf:
-            tpuf.upsert(documents=[Document(text=fact) for fact in facts])
-        message = f"Stored {len(facts)} facts about user {ctx.deps['user_id']}"
+        # This creates an asset dependency: USER_FACTS depends on SLACK_MESSAGES
+        message = await store_user_facts(ctx.deps["user_id"], facts)
         print(message)
         return message
 
     @agent.tool
-    def delete_facts_about_user(ctx: RunContext[UserContext], related_to: str) -> str:  # type: ignore[reportUnusedFunction]
+    def delete_facts_about_user(ctx: RunContext[UserContext], related_to: str) -> str:
         print(f"forgetting stuff about {ctx.deps['user_id']} related to {related_to}")
         user_id = ctx.deps["user_id"]
         with TurboPuffer(
             namespace=f"{settings.user_facts_namespace_prefix}{user_id}"
         ) as tpuf:
             vector_result = tpuf.query(related_to)
-            ids = [str(v.id) for v in vector_result.data or []]
+            ids = [str(v.id) for v in vector_result.rows or []]
             tpuf.delete(ids)
             message = f"Deleted {len(ids)} facts about user {user_id}"
             print(message)
