@@ -199,7 +199,7 @@ def create_agent(
     async def store_facts_about_user(
         ctx: RunContext[UserContext], facts: list[str]
     ) -> str:
-        """Store facts about the user, tracking data lineage from Slack messages."""
+        """Store facts about the user that are useful for answering their questions."""
         print(f"Storing {len(facts)} facts about user {ctx.deps['user_id']}")
         # This creates an asset dependency: USER_FACTS depends on SLACK_MESSAGES
         message = await store_user_facts(ctx, facts)
@@ -208,6 +208,7 @@ def create_agent(
 
     @agent.tool
     def delete_facts_about_user(ctx: RunContext[UserContext], related_to: str) -> str:
+        """Delete facts about the user related to a specific topic."""
         print(f"forgetting stuff about {ctx.deps['user_id']} related to {related_to}")
         user_id = ctx.deps["user_id"]
         with TurboPuffer(
