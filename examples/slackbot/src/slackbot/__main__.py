@@ -11,6 +11,7 @@ if __name__ == "__main__":
     logger = get_logger(__name__)
     logger.debug(f"Starting Slackbot with model: {settings.model_name}")
 
+
     if not (openai_api_key := os.getenv("OPENAI_API_KEY")):  # Needed for embeddings
         os.environ["OPENAI_API_KEY"] = Secret.load(
             settings.openai_api_key_secret_name, _sync=True
