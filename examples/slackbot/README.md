@@ -70,7 +70,7 @@ ngrok http 4200  # Or your configured port
 
 2. Start the bot in another terminal:
 ```console
-uv run -m examples.slackbot.start
+uv run --extra slackbot -m slackbot
 ```
 
 ### Testing
