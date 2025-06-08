@@ -13,6 +13,7 @@ from prefect.variables import Variable
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
 
+from slackbot.assets import summarize_thread
 from slackbot.core import (
     Database,
     UserContext,
@@ -20,7 +21,6 @@ from slackbot.core import (
     create_agent,
 )
 from slackbot.settings import settings
-from slackbot.assets import summarize_thread
 from slackbot.slack import SlackPayload, get_channel_name, post_slack_message
 from slackbot.strings import count_tokens, slice_tokens
 from slackbot.wrap import WatchToolCalls

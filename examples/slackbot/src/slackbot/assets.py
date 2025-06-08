@@ -3,12 +3,12 @@
 from datetime import datetime
 
 from prefect.assets import Asset, AssetProperties, add_asset_metadata, materialize
+from pydantic_ai.messages import ModelMessage
 from raggy.documents import Document
 from raggy.vectorstores.tpuf import TurboPuffer
 
-from slackbot.settings import settings
 from marvin import summarize_async
-from pydantic_ai.messages import ModelMessage
+from slackbot.settings import settings
 
 # Asset representing a Slack conversation/thread
 CONVERSATION = Asset(
