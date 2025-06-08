@@ -1,5 +1,6 @@
 import inspect
 from contextlib import ContextDecorator
+from contextvars import ContextVar
 from functools import wraps
 from typing import Any, Callable, TypeVar
 
@@ -8,6 +9,8 @@ from prefect import task
 from pydantic_ai.tools import Tool
 
 T = TypeVar("T")
+
+_progress_message: ContextVar[Any] = ContextVar("progress_message", default=None)
 
 
 class DecorateMethodContext(ContextDecorator):
@@ -55,15 +58,31 @@ class DecorateMethodContext(ContextDecorator):
 def prefect_wrapped_function(
     func: Callable[..., T],
     decorator: Callable[..., Callable[..., T]] = task,
-    tags: set | None = None,
+    tags: set[str] | None = None,
     settings: dict[str, Any] | None = None,
 ) -> Callable[..., Callable[..., T]]:
     """Decorator for wrapping a function with a prefect decorator."""
-    tags = tags or set()
+    tags = tags or set[str]()
 
     @wraps(func)
     async def wrapper(*args, **kwargs) -> T:
-        wrapped_callable = decorator(**settings or {})(func)  # type: ignore
+        if _progress := _progress_message.get():
+            tool_name = "Unknown Tool"
+            if args and hasattr(args[0], "name"):
+                tool_name = args[0].name
+            elif (
+                args
+                and hasattr(args[0], "function")
+                and hasattr(args[0].function, "__name__")
+            ):
+                tool_name = args[0].function.__name__
+
+            try:
+                await _progress.append(f"🔧 {tool_name}")
+            except Exception:
+                pass
+
+        wrapped_callable = decorator(**settings or {})(func)
         with prefect_tags(*tags):
             result = wrapped_callable(*args, **kwargs)  # type: ignore
             if inspect.isawaitable(result):
