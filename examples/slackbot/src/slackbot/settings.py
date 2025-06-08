@@ -32,7 +32,7 @@ class SlackbotSettings(BaseSettings):
     )
 
     temperature: float = Field(
-        default=0.5, description="Temperature for model inference"
+        default=0.2, description="Temperature for model inference"
     )
     user_message_max_tokens: int = Field(
         default=500, description="Maximum tokens allowed in user messages"
