@@ -20,6 +20,7 @@ from slackbot.core import (
     create_agent,
 )
 from slackbot.settings import settings
+from slackbot.assets import summarize_thread
 from slackbot.slack import SlackPayload, get_channel_name, post_slack_message
 from slackbot.strings import count_tokens, slice_tokens
 from slackbot.wrap import WatchToolCalls
@@ -97,12 +98,15 @@ async def handle_message(payload: SlackPayload, db: Database):
         result = await run_agent(cleaned_message, conversation, user_context)  # type: ignore
 
         await db.add_thread_messages(thread_ts, result.new_messages())
+        conversation.extend(result.new_messages())
         assert event.channel is not None, "No channel found"
         await task(post_slack_message)(
             message=result.data,
             channel_id=event.channel,
             thread_ts=thread_ts,
         )
+        # materialize a running summary of the thread
+        await summarize_thread(thread_ts, conversation)
         return Completed(message="Responded to mention")
 
     return Completed(message="Skipping non-mention", name="SKIPPED")

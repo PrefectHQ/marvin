@@ -78,6 +78,16 @@ FACTS = Asset(key="facts://thread/{thread_ts}")
 # This better represents actual data flow
 ```
 
+As an initial step, the Slackbot now materializes a `THREAD_SUMMARY` asset
+whenever a conversation progresses. The summary depends on the `CONVERSATION`
+asset representing the Slack thread, creating a chain:
+
+```
+CONVERSATION -> THREAD_SUMMARY -> USER_FACTS
+```
+
+This allows future assets to build on the evolving thread summary.
+
 ### 4. Model Outputs as Assets
 ```python
 USER_QUESTION = Asset(key="questions://user/{user_id}/{timestamp}")

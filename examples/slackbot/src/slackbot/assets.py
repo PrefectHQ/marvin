@@ -7,6 +7,8 @@ from raggy.documents import Document
 from raggy.vectorstores.tpuf import TurboPuffer
 
 from slackbot.settings import settings
+from marvin import summarize_async
+from pydantic_ai.messages import ModelMessage
 
 # Asset representing a Slack conversation/thread
 CONVERSATION = Asset(
@@ -14,6 +16,16 @@ CONVERSATION = Asset(
     properties=AssetProperties(
         name="Slack Conversation",
         description="Individual Slack thread or conversation",
+        owners=["slackbot"],
+    ),
+)
+
+# Asset representing a summary of a Slack thread
+THREAD_SUMMARY = Asset(
+    key="summary://slack-thread",
+    properties=AssetProperties(
+        name="Thread Summary",
+        description="Summarized Slack conversation",
         owners=["slackbot"],
     ),
 )
@@ -51,3 +63,21 @@ async def store_user_facts(user_id: str, facts: list[str]) -> str:
     )
 
     return f"Stored {len(facts)} facts about user {user_id}"
+
+
+@materialize(THREAD_SUMMARY, asset_deps=[CONVERSATION])
+async def summarize_thread(thread_ts: str, conversation: list[ModelMessage]) -> str:
+    """Summarize a Slack conversation and store the result."""
+
+    summary = await summarize_async("\n\n".join(m.content for m in conversation))
+
+    add_asset_metadata(
+        THREAD_SUMMARY,
+        {
+            "thread_ts": thread_ts,
+            "message_count": len(conversation),
+            "timestamp": datetime.now().isoformat(),
+        },
+    )
+
+    return summary
