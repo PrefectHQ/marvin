@@ -1,6 +1,5 @@
 import asyncio
 import os
-import subprocess
 from datetime import datetime
 from typing import Optional
 
@@ -8,58 +7,45 @@ import httpx
 import turbopuffer as tpuf
 from prefect import task
 from prefect.blocks.system import Secret
+from pretty_mod import display_signature
+from pretty_mod.explorer import ModuleTreeExplorer
 from pydantic import BaseModel, Field, field_validator
 from raggy.vectorstores.tpuf import multi_query_tpuf
 
 import marvin
 from marvin.utilities.logging import get_logger
-from slackbot.modules import ModuleTreeExplorer
 from slackbot.settings import settings
 from slackbot.strings import slice_tokens
 
 
-def verify_import_statements(import_statements: list[str]) -> str:
+def explore_module_offerings(module_path: str, max_depth: int = 1) -> str:
     """
-    Verify that import statements are valid.
+    Explore and return the public API tree of a specific module and its submodules as a string.
+
+    This is the primary tool for understanding what's available in Python modules.
+    Use different max_depth values based on how deep you want to explore.
 
     Args:
-        import_statements: A list of import statements to verify.
+        module_path: String representing the module path (e.g., 'prefect.runtime', 'json', 'pandas')
+        max_depth: Maximum depth to explore in the module tree (default: 1)
 
     Returns:
-        A string with the results of the verification.
+        str: A formatted string representation of the module tree
 
-    Example:
-        >>> verify_import_statements(["from prefect import flow"])
-        "✅ from prefect import flow"
+    Common Examples:
+        # Get top-level Prefect API overview
+        >>> explore_module_offerings('prefect', max_depth=0)
 
-        >>> verify_import_statements(["from prefect import schleeb", "from prefect import flow"])
-        "❌ from prefect import schleeb: No module named 'schleeb'\n✅ from prefect import flow"
+        # Explore Prefect's runtime module in detail
+        >>> explore_module_offerings('prefect.runtime', max_depth=2)
+
+        # Quick overview of pandas structure
+        >>> explore_module_offerings('pandas', max_depth=1)
+
+        # See what's in a specific submodule
+        >>> explore_module_offerings('prefect.artifacts', max_depth=0)
     """
-    print(f"Verifying import statements: {import_statements}")
-    results: list[str] = []
-    for import_statement in import_statements:
-        try:
-            result = subprocess.run(
-                ["uv", "run", "--no-project", "python", "-c", import_statement],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if result.returncode == 0:
-                results.append(f"✅ {import_statement}")
-            else:
-                error_msg = result.stderr.strip().split("\n")[-1]
-                results.append(f"❌ {import_statement}: {error_msg}")
-        except Exception as e:
-            results.append(f"❌ {import_statement}: {str(e)}")
-    return "\n".join(results)
-
-
-def review_top_level_prefect_api() -> str:
-    """
-    Review the available submodules and the top-level API of Prefect.
-    """
-    explorer = ModuleTreeExplorer("prefect", max_depth=0)
+    explorer = ModuleTreeExplorer(module_path, max_depth=max_depth)
     explorer.explore()
     summary = explorer.get_tree_string()
     print(summary)
@@ -82,27 +68,6 @@ def review_common_3x_gotchas() -> list[str]:
     ]
     print(tips)
     return tips
-
-
-def explore_module_offerings(module_path: str, max_depth: int = 1) -> str:
-    """
-    Explore and return the public API tree of a specific module and its submodules as a string.
-
-    Args:
-        module_path: String representing the module path (e.g., 'prefect.runtime')
-        max_depth: Maximum depth to explore in the module tree (default: 2)
-
-    Returns:
-        str: A formatted string representation of the module tree
-
-    Example:
-        >>> explore_module_tree('prefect.runtime', max_depth=0)
-    """
-    explorer = ModuleTreeExplorer(module_path, max_depth)
-    explorer.explore()
-    summary = explorer.get_tree_string()
-    print(summary)
-    return summary
 
 
 def search_prefect_2x_docs(queries: list[str]) -> str:
@@ -168,7 +133,7 @@ def get_latest_prefect_release_notes() -> str:
         return release_notes
 
 
-async def get_token() -> str:
+async def _get_token() -> str:
     try:
         from prefect.blocks.system import Secret
 
@@ -267,7 +232,7 @@ async def search_github_issues(
     """
     headers = {"Accept": "application/vnd.github.v3+json"}
 
-    headers["Authorization"] = f"Bearer {api_token or await get_token()}"
+    headers["Authorization"] = f"Bearer {api_token or await _get_token()}"
 
     async with httpx.AsyncClient() as client:
         response = await client.get(
@@ -297,3 +262,31 @@ async def search_github_issues(
     if not summary.strip():
         return "No issues found."
     return summary
+
+
+def display_callable_signature(import_path: str) -> str:
+    """
+    Display the signature of any callable (function, class constructor, method) with clear visual organization.
+
+    Works for functions, classes, methods - anything you can call with parentheses.
+
+    Args:
+        import_path: Import path to the callable (e.g., 'fastmcp.server:FastMCP' or 'json:loads')
+
+    Returns:
+        A formatted string showing the callable's signature
+
+    Examples:
+        # Get signature of a class constructor
+        >>> display_callable_signature('fastmcp.server:FastMCP')
+
+        # Get signature of a function
+        >>> display_callable_signature('json:loads')
+
+        # Get signature from a specific module
+        >>> display_callable_signature('pandas.DataFrame:merge')
+
+        # Get signature of a Prefect decorator
+        >>> display_callable_signature('prefect:flow')
+    """
+    return display_signature(import_path)

@@ -40,6 +40,7 @@ dependencies = [
   "prefect @ git+https://github.com/PrefectHQ/prefect.git@fix-nested-add-metadata",
   "numpy",
   "raggy[tpuf] @ git+https://github.com/zzstoatzz/raggy.git",
+  "pretty-mod",
 ]
 
 
