@@ -77,6 +77,7 @@ def review_common_3x_gotchas() -> list[str]:
         "prefect 3.x uses pydantic 2 and server data from prefect 2.x is not compatible with 3.x",
         "Deployment.build_from_flow() is removed in 3.x, use some_flow.from_source(...).deploy(...) instead.",
         "Workers (f.k.a. agents) poll for scheduled runs, whereas task workers are websocket clients that executed backgrounded task runs",
+        "To avoid interactivity in the Prefect CLI, use the TOP LEVEL --no-prompt flag, e.g. `prefect --no-prompt deploy ...`",
     ]
     print(tips)
     return tips
