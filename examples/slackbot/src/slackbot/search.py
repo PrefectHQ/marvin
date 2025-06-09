@@ -264,25 +264,29 @@ async def search_github_issues(
     return summary
 
 
-def display_function_signature(import_path: str) -> str:
+def display_callable_signature(import_path: str) -> str:
     """
-    Display the signature of a function or callable with clear visual organization.
+    Display the signature of any callable (function, class constructor, method) with clear visual organization.
 
+    Works for functions, classes, methods - anything you can call with parentheses.
 
     Args:
-        import_path: Import path to the function (e.g., 'fastmcp.server:FastMCP' or 'json:loads')
+        import_path: Import path to the callable (e.g., 'fastmcp.server:FastMCP' or 'json:loads')
 
     Returns:
-        A formatted string showing the function signature
+        A formatted string showing the callable's signature
 
     Examples:
-        # Get signature of a Prefect function
-        >>> display_function_signature('prefect:flow')
+        # Get signature of a class constructor
+        >>> display_callable_signature('fastmcp.server:FastMCP')
 
-        # Get signature of a standard library function
-        >>> display_function_signature('json:loads')
+        # Get signature of a function
+        >>> display_callable_signature('json:loads')
 
         # Get signature from a specific module
-        >>> display_function_signature('pandas.DataFrame:merge')
+        >>> display_callable_signature('pandas.DataFrame:merge')
+
+        # Get signature of a Prefect decorator
+        >>> display_callable_signature('prefect:flow')
     """
     return display_signature(import_path)

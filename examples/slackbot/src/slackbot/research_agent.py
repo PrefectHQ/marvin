@@ -7,7 +7,7 @@ from pydantic_ai import Agent
 from pydantic_ai.models import Model
 
 from slackbot.search import (
-    display_function_signature,
+    display_callable_signature,
     explore_module_offerings,
     get_latest_prefect_release_notes,
     review_common_3x_gotchas,
@@ -53,7 +53,7 @@ Your research process:
 1. Start with broad documentation searches to understand the topic context
 2. Use multiple search queries with different keywords - don't stop at first result
 3. Use explore_module_offerings to understand what's available in relevant modules
-4. Use display_function_signature to get detailed function/class signatures when needed
+4. Use display_callable_signature to get detailed signatures of functions, classes, and methods when needed
 5. Focus on Prefect 3.x documentation unless explicitly asked about 2.x or older versions
 6. Review gotchas and release notes for recent changes
 
@@ -64,7 +64,7 @@ Default to Prefect 3.x unless the user explicitly asks about 2.x or version comp
         tools=[
             get_latest_prefect_release_notes,
             search_prefect_2x_docs,
-            display_function_signature,
+            display_callable_signature,
             search_prefect_3x_docs,
             search_marvin_docs,
             explore_module_offerings,
