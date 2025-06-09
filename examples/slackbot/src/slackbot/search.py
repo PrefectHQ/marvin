@@ -75,7 +75,8 @@ def review_common_3x_gotchas() -> list[str]:
         "futures must be resolved by passing them to another task, returning them or manually calling .result() or .wait()",
         "agents are replaced by workers in prefect 3.x, work pools replace the infra blocks from prefect.infrastructure",
         "prefect 3.x uses pydantic 2 and server data from prefect 2.x is not compatible with 3.x",
-        "Deployment.build_from_flow() is removed in 3.x, use some_flow.from_source(...).deploy(...) instead.",
+        "Deployment.build_from_flow() IS COMPLETELY REMOVED IN 3.x, use some_flow.from_source(...).deploy(...) instead.",
+        "`prefect deployment build ...`  IS COMPLETELY REMOVED IN 3.x, use `prefect deploy ...` instead",
         "Workers (f.k.a. agents) poll for scheduled runs, whereas task workers are websocket clients that executed backgrounded task runs",
         "To avoid interactivity in the Prefect CLI, use the TOP LEVEL --no-prompt flag, e.g. `prefect --no-prompt deploy ...`",
     ]
