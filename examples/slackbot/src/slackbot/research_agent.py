@@ -2,11 +2,11 @@
 
 from prefect import task
 from prefect.cache_policies import INPUTS
+from pretty_mod import display_signature
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
 
-from slackbot.modules import display_signature
 from slackbot.search import (
     explore_module_offerings,
     get_latest_prefect_release_notes,

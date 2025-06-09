@@ -8,12 +8,12 @@ import httpx
 import turbopuffer as tpuf
 from prefect import task
 from prefect.blocks.system import Secret
+from pretty_mod.explorer import ModuleTreeExplorer
 from pydantic import BaseModel, Field, field_validator
 from raggy.vectorstores.tpuf import multi_query_tpuf
 
 import marvin
 from marvin.utilities.logging import get_logger
-from slackbot.modules import ModuleTreeExplorer
 from slackbot.settings import settings
 from slackbot.strings import slice_tokens
 
@@ -98,7 +98,7 @@ def explore_module_offerings(module_path: str, max_depth: int = 1) -> str:
     Example:
         >>> explore_module_tree('prefect.runtime', max_depth=0)
     """
-    explorer = ModuleTreeExplorer(module_path, max_depth)
+    explorer = ModuleTreeExplorer(module_path, max_depth=max_depth)
     explorer.explore()
     summary = explorer.get_tree_string()
     print(summary)
