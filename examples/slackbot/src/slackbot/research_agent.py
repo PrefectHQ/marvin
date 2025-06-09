@@ -2,20 +2,18 @@
 
 from prefect import task
 from prefect.cache_policies import INPUTS
-from pretty_mod import display_signature
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
 
 from slackbot.search import (
+    display_function_signature,
     explore_module_offerings,
     get_latest_prefect_release_notes,
     review_common_3x_gotchas,
-    review_top_level_prefect_api,
     search_marvin_docs,
     search_prefect_2x_docs,
     search_prefect_3x_docs,
-    verify_import_statements,
 )
 
 
@@ -49,31 +47,28 @@ def create_research_agent(
         deps_type=ResearchContext,
         result_type=ResearchFindings,
         system_prompt="""You are a specialized research agent for Prefect documentation and knowledge.
-Your job is to thoroughly research topics by using ALL available tools to gather comprehensive, accurate information.
+Your job is to thoroughly research topics by using available tools to gather comprehensive, accurate information.
 
 Your research process:
-1. Start with broad searches to understand the topic context
+1. Start with broad documentation searches to understand the topic context
 2. Use multiple search queries with different keywords - don't stop at first result
-3. For code examples: ALWAYS verify imports with verify_import_statements
-4. Focus on Prefect 3.x documentation unless explicitly asked about 2.x or older versions
-5. Review gotchas and release notes for recent changes
-6. Explore relevant modules for deeper understanding
+3. Use explore_module_offerings to understand what's available in relevant modules
+4. Use display_function_signature to get detailed function/class signatures when needed
+5. Focus on Prefect 3.x documentation unless explicitly asked about 2.x or older versions
+6. Review gotchas and release notes for recent changes
 
 Remember: You are the research specialist. The main agent relies on you for accurate, comprehensive information.
 Be thorough - use tools repeatedly until you have complete information.
 Default to Prefect 3.x unless the user explicitly asks about 2.x or version compatibility.
-You don't need to use all the tools all the time, but use relevant ones repeatedly if needed.
 """,
         tools=[
             get_latest_prefect_release_notes,
             search_prefect_2x_docs,
-            display_signature,
+            display_function_signature,
             search_prefect_3x_docs,
             search_marvin_docs,
-            review_top_level_prefect_api,
             explore_module_offerings,
             review_common_3x_gotchas,
-            verify_import_statements,
         ],
     )
 
