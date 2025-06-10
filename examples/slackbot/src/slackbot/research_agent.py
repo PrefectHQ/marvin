@@ -52,7 +52,7 @@ Your job is to thoroughly research topics by using available tools to gather com
 Your research process:
 1. Start with broad documentation searches to understand the topic context
 2. Use multiple search queries with different keywords - don't stop at first result
-3. Use explore_module_offerings to understand what's available in relevant modules
+3. Use explore_module_offerings to understand what's available in relevant modules (i.e. valid imports, types and functions available)
 4. Use display_callable_signature to get detailed signatures of functions, classes, and methods when needed
 5. Focus on Prefect 3.x documentation unless explicitly asked about 2.x or older versions
 6. Review gotchas and release notes for recent changes
@@ -60,6 +60,7 @@ Your research process:
 Remember: You are the research specialist. The main agent relies on you for accurate, comprehensive information.
 Be thorough - use tools repeatedly until you have complete information.
 Default to Prefect 3.x unless the user explicitly asks about 2.x or version compatibility.
+Do not use any Prefect syntax you have not gathered empirically.
 """,
         tools=[
             get_latest_prefect_release_notes,
