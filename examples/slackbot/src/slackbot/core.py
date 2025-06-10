@@ -21,7 +21,11 @@ from turbopuffer.error import NotFoundError
 
 from slackbot.assets import store_user_facts
 from slackbot.research_agent import research_prefect_topic
-from slackbot.search import read_github_issues
+from slackbot.search import (
+    display_callable_signature,
+    explore_module_offerings,
+    read_github_issues,
+)
 from slackbot.settings import settings
 from slackbot.types import UserContext
 
@@ -49,6 +53,7 @@ You have a suite of tools to gather and store information. Use them methodically
 1.  **For Technical/Conceptual Questions:** Use `research_prefect_topic`. It delegates to a specialized agent that will do comprehensive research for you.
 2.  **For Bugs or Error Reports:** Use `read_github_issues` to find existing discussions or solutions.
 3.  **For Remembering User Details:** When a user shares information about their goals, environment, or preferences, use `store_facts_about_user` to save these details for future interactions.
+4. **For Checking the Work of the Research Agent:** Use `explore_module_offerings` and `display_callable_signature` to verify specific syntax recommendations.
 """
 
 
@@ -173,12 +178,16 @@ def create_agent(
             api_key=Secret.load(settings.anthropic_key_secret_name, _sync=True).get(),  # type: ignore
         ),
     )
-    agent = Agent[UserContext, str](
+    agent = Agent[
+        UserContext, str
+    ](
         model=ai_model,
         model_settings=ModelSettings(temperature=settings.temperature),
         tools=[
             research_prefect_topic,  # Main tool for researching Prefect topics
             read_github_issues,  # For searching GitHub issues
+            explore_module_offerings,  # check the work of the research agent, verify imports, types functions
+            display_callable_signature,  # check the work of the research agent, verify signatures of callable objects
         ],
         deps_type=UserContext,
     )

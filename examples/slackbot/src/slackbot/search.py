@@ -1,7 +1,4 @@
 import asyncio
-import os
-from datetime import datetime
-from typing import Optional
 
 import httpx
 import turbopuffer as tpuf
@@ -9,11 +6,9 @@ from prefect import task
 from prefect.blocks.system import Secret
 from pretty_mod import display_signature
 from pretty_mod.explorer import ModuleTreeExplorer
-from pydantic import BaseModel, Field, field_validator
 from raggy.vectorstores.tpuf import multi_query_tpuf
 
-import marvin
-from marvin.utilities.logging import get_logger
+from slackbot.github import GitHubIssue, _get_token
 from slackbot.settings import settings
 from slackbot.strings import slice_tokens
 
@@ -60,6 +55,7 @@ def review_common_3x_gotchas() -> list[str]:
         "futures returned by .map can be resolved together, like integers = double.map(range(10)).result()",
         "futures must be resolved by passing them to another task, returning them or manually calling .result() or .wait()",
         "agents are replaced by workers in prefect 3.x, work pools replace the infra blocks from prefect.infrastructure",
+        "the `prefect.infrastructure` IS COMPLETELY REMOVED IN 3.x, see work pools instead",
         "prefect 3.x uses pydantic 2 and server data from prefect 2.x is not compatible with 3.x",
         "Deployment.build_from_flow() IS COMPLETELY REMOVED IN 3.x, use some_flow.from_source(...).deploy(...) instead.",
         "`prefect deployment build ...`  IS COMPLETELY REMOVED IN 3.x, use `prefect deploy ...` instead",
@@ -133,68 +129,6 @@ def get_latest_prefect_release_notes() -> str:
         return release_notes
 
 
-async def _get_token() -> str:
-    try:
-        from prefect.blocks.system import Secret
-
-        return (await Secret.aload(name="github-token")).get()
-    except (ImportError, ValueError) as exc:
-        getattr(get_logger("marvin"), "debug_kv")(
-            (
-                "Prefect Secret for GitHub token not retrieved. "
-                f"{exc.__class__.__name__}: {exc}"
-                "red"
-            ),
-        )
-
-    try:
-        return getattr(marvin.settings, "github_token")
-    except AttributeError:
-        pass
-
-    if token := os.environ.get("MARVIN_GITHUB_TOKEN", ""):
-        return token
-
-    raise RuntimeError("GitHub token not found")
-
-
-class GitHubUser(BaseModel):
-    """GitHub user."""
-
-    login: Optional[str] = None
-
-
-class GitHubComment(BaseModel):
-    """GitHub comment."""
-
-    body: str = Field(default="")
-    user: GitHubUser = Field(default_factory=GitHubUser)
-
-
-class GitHubLabel(BaseModel):
-    """GitHub label."""
-
-    name: str = Field(default="")
-
-
-class GitHubIssue(BaseModel):
-    """GitHub issue."""
-
-    created_at: datetime = Field(...)
-    html_url: str = Field(...)
-    number: int = Field(...)
-    title: str = Field(default="")
-    body: str | None = Field(default="")
-    labels: list[GitHubLabel] = Field(default_factory=GitHubLabel)
-    user: GitHubUser = Field(default_factory=GitHubUser)
-
-    @field_validator("body")
-    def validate_body(cls, v: str) -> str:
-        if not v:
-            return ""
-        return v
-
-
 @task(task_run_name="Reading {n} issues from {repo} given query: {query}")
 def read_github_issues(query: str, repo: str = "prefecthq/prefect", n: int = 3) -> str:
     """
@@ -207,7 +141,6 @@ def read_github_issues(query: str, repo: str = "prefecthq/prefect", n: int = 3) 
         - repo: prefecthq/prefect
         - query: label:bug is:open AttributeError
     """
-    # Load GitHub token synchronously
     github_token = Secret.load(settings.github_token_secret_name, _sync=True).get()  # type: ignore
     return asyncio.run(
         search_github_issues(query, repo=repo, n=n, api_token=github_token)
@@ -230,6 +163,7 @@ async def search_github_issues(
         - repo: prefecthq/prefect
         - query: label:bug is:open AttributeError
     """
+    TOKEN_LIMIT = 1500
     headers = {"Accept": "application/vnd.github.v3+json"}
 
     headers["Authorization"] = f"Bearer {api_token or await _get_token()}"
@@ -248,11 +182,10 @@ async def search_github_issues(
 
     issues_data = response.json()["items"]
 
-    # enforce 1000 token limit per body
     for issue in issues_data:
         if not issue["body"]:
             continue
-        issue["body"] = slice_tokens(issue["body"], 1000)
+        issue["body"] = slice_tokens(issue["body"], TOKEN_LIMIT)
 
     issues = [GitHubIssue(**issue) for issue in issues_data]
 
