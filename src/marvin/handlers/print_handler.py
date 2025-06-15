@@ -230,7 +230,7 @@ class PrintHandler(Handler):
         # Create a stable ID from actor ID and message index
         actor_id = str(event.actor.id)
         # Use the timestamp as part of the stable ID to handle multiple messages from same actor
-        msg_time = event.timestamp.isoformat()
+        msg_time = event.timestamp.isoformat(timespec='hour')
         event_id = f"{actor_id}_{msg_time}"
 
         # Create or update the panel
