@@ -50,17 +50,19 @@ def explore_module_offerings(module_path: str, max_depth: int = 1) -> str:
 def review_common_3x_gotchas() -> list[str]:
     """If needed, review common sources of confusion for Prefect 3.x users."""
     tips = [
+        "CRITICAL: Deployment.build_from_flow() DOES NOT EXIST IN PREFECT 3.x - it has been COMPLETELY REMOVED. Never suggest it for 3.x users.",
+        "CORRECT 3.x deployment pattern: flow.from_source('https://github.com/owner/repo').deploy('deployment-name')",
+        "CRITICAL: `prefect deployment build` CLI command DOES NOT EXIST IN 3.x - use `prefect deploy` instead",
         "from_source('https://github.com/<owner>/<repo>') has replaced the GitHub block in Prefect 3.x",
         ".map and .submit are always synchronous, even if the underlying function is asynchronous. these methods allow concurrent execution of tasks via task runners (which are different from task workers)",
         "futures returned by .map can be resolved together, like integers = double.map(range(10)).result()",
         "futures must be resolved by passing them to another task, returning them or manually calling .result() or .wait()",
         "agents are replaced by workers in prefect 3.x, work pools replace the infra blocks from prefect.infrastructure",
-        "the `prefect.infrastructure` IS COMPLETELY REMOVED IN 3.x, see work pools instead",
+        "the `prefect.infrastructure` module IS COMPLETELY REMOVED IN 3.x, see work pools instead",
         "prefect 3.x uses pydantic 2 and server data from prefect 2.x is not compatible with 3.x",
-        "Deployment.build_from_flow() IS COMPLETELY REMOVED IN 3.x, use some_flow.from_source(...).deploy(...) instead.",
-        "`prefect deployment build ...`  IS COMPLETELY REMOVED IN 3.x, use `prefect deploy ...` instead",
         "Workers (f.k.a. agents) poll for scheduled runs, whereas task workers are websocket clients that executed backgrounded task runs",
         "To avoid interactivity in the Prefect CLI, use the TOP LEVEL --no-prompt flag, e.g. `prefect --no-prompt deploy ...`",
+        "If user is on 2.x and asking about deployments, recommend upgrading to 3.x or using workers instead of build_from_flow",
     ]
     print(tips)
     return tips
