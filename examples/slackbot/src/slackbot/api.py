@@ -1,6 +1,7 @@
 import asyncio
 import re
 import time
+from collections import defaultdict
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -31,7 +32,7 @@ from slackbot.slack import (
     post_slack_message,
 )
 from slackbot.strings import count_tokens, slice_tokens
-from slackbot.wrap import WatchToolCalls, _progress_message
+from slackbot.wrap import WatchToolCalls, _progress_message, _tool_usage_counts
 
 BOT_MENTION = r"<@(\w+)>"
 
@@ -62,6 +63,8 @@ async def run_agent(
 
     try:
         token = _progress_message.set(progress)
+        # Initialize tool usage counts for this agent run
+        counts_token = _tool_usage_counts.set(defaultdict(int))
 
         try:
             with WatchToolCalls(settings=decorator_settings):
@@ -72,6 +75,7 @@ async def run_agent(
                 )
         finally:
             _progress_message.reset(token)
+            _tool_usage_counts.reset(counts_token)
 
         await progress.update(
             f"✅ thought for {time.monotonic() - start_time:.1f} seconds"

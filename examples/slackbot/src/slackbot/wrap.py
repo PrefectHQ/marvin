@@ -1,4 +1,5 @@
 import inspect
+from collections import defaultdict
 from contextlib import ContextDecorator
 from contextvars import ContextVar
 from functools import wraps
@@ -11,6 +12,10 @@ from pydantic_ai.tools import Tool
 T = TypeVar("T")
 
 _progress_message: ContextVar[Any] = ContextVar("progress_message", default=None)
+_tool_usage_counts: ContextVar[dict[str, int] | None] = ContextVar(
+    "tool_usage_counts", default=None
+)
+_current_tool: ContextVar[str | None] = ContextVar("current_tool", default=None)
 
 
 class DecorateMethodContext(ContextDecorator):
@@ -77,18 +82,44 @@ def prefect_wrapped_function(
             ):
                 tool_name = args[0].function.__name__
 
+            # Update tool usage counts
+            counts = _tool_usage_counts.get()
+            if counts is None:
+                counts = defaultdict(int)
+                _tool_usage_counts.set(counts)
+            counts[tool_name] += 1
+
+            # Set current tool
+            _current_tool_token = _current_tool.set(tool_name)
+
             try:
-                await _progress.append(f"🔧 {tool_name}")
+                # Build the progress message with better formatting
+                lines = []
+                lines.append(f"🔧 Using: `{tool_name}`")
+                lines.append("")  # Empty line for spacing
+
+                # Build summary of all tools used
+                if counts:
+                    lines.append("📊 Tools used:")
+                    for tool, count in sorted(counts.items()):
+                        lines.append(f"  • `{tool}` ({count}x)")
+
+                full_message = "\n".join(lines)
+                await _progress.update(full_message)
             except Exception:
                 pass
 
-        wrapped_callable = decorator(**settings or {})(func)
-        with prefect_tags(*tags):
-            result = wrapped_callable(*args, **kwargs)  # type: ignore
-            if inspect.isawaitable(result):
-                result = await result
+        try:
+            wrapped_callable = decorator(**settings or {})(func)
+            with prefect_tags(*tags):
+                result = wrapped_callable(*args, **kwargs)  # type: ignore
+                if inspect.isawaitable(result):
+                    result = await result
 
-            return result
+                return result
+        finally:
+            if _progress:
+                _current_tool.reset(_current_tool_token)
 
     return wrapper  # type: ignore
 
