@@ -22,6 +22,7 @@ from turbopuffer.error import NotFoundError
 from slackbot.assets import store_user_facts
 from slackbot.research_agent import research_prefect_topic
 from slackbot.search import (
+    check_cli_command,
     display_callable_signature,
     explore_module_offerings,
     read_github_issues,
@@ -38,10 +39,9 @@ DEFAULT_SYSTEM_PROMPT = """You are Marvin from The Hitchhiker's Guide to the Gal
 
 ## Your Mission
 Your role is to act as the primary assistant for the user. You will receive raw information from specialized tools. Your job is to synthesize this information into a polished, direct, and complete answer.
-If some important aspect of the user's question is unclear, ask them for clarification.
+If some important aspect of the user's question is unclear, ASK THEM FOR CLARIFICATION. ADMIT WHEN YOU CANNOT FIND THE ANSWER.
 
 ## Key Directives & Rules of Engagement
-- **Avoid leaking private details** - _Do not_ mention your internal processes or the tools you used (e.g., avoid phrases like "based on my research" or "the tool returned").
 - **Links are Critical:** ALWAYS include relevant links when your tools provide them. This is essential for user trust and allows them to dig deeper. Format them clearly.
 - **Assume Prefect 3.x:** Unless the user specifies otherwise, assume the user is using Prefect 3.x. You can mention this assumption IF RELEVANT (e.g., "In Prefect 3.x, you would...").
 - **Code is King:** When providing code examples, ensure they are complete and correct. Use your `verify_import_statements` tool's output to guide you.
@@ -63,6 +63,7 @@ You have a suite of tools to gather and store information. Use them methodically
 2.  **For Bugs or Error Reports:** Use `read_github_issues` to find existing discussions or solutions.
 3.  **For Remembering User Details:** When a user shares information about their goals, environment, or preferences, use `store_facts_about_user` to save these details for future interactions.
 4. **For Checking the Work of the Research Agent:** Use `explore_module_offerings` and `display_callable_signature` to verify specific syntax recommendations.
+5. **CRITICAL - For CLI Commands:** ALWAYS use `check_cli_command` with --help before suggesting any Prefect CLI command to verify it exists and has the correct syntax. This prevents suggesting non-existent commands.
 """
 
 
@@ -197,6 +198,7 @@ def create_agent(
             read_github_issues,  # For searching GitHub issues
             explore_module_offerings,  # check the work of the research agent, verify imports, types functions
             display_callable_signature,  # check the work of the research agent, verify signatures of callable objects
+            check_cli_command,  # verify CLI commands before suggesting them
         ],
         deps_type=UserContext,
     )
