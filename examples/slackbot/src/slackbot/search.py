@@ -1,4 +1,5 @@
 import asyncio
+import subprocess
 
 import httpx
 import turbopuffer as tpuf
@@ -225,3 +226,69 @@ def display_callable_signature(import_path: str) -> str:
         >>> display_callable_signature('prefect:flow')
     """
     return display_signature(import_path)
+
+
+def check_cli_command(command: str, args: list[str] | None = None) -> str:
+    """
+    Run a CLI command to verify its behavior or check help documentation.
+
+    This tool is specifically designed to help verify Prefect CLI commands before suggesting them to users.
+    Use this to check if a command exists, what its options are, or to verify the correct syntax.
+
+    IMPORTANT USAGE GUIDELINES:
+    - Use this tool BEFORE suggesting any CLI command to a user
+    - Always check with --help first to verify command structure
+    - Common commands to verify: prefect deploy, prefect work-pool, prefect worker, etc.
+    - This helps prevent suggesting non-existent or incorrectly formatted commands
+
+    Args:
+        command: The base command to run (e.g., "prefect", "prefect deploy")
+        args: Additional arguments to pass (e.g., ["--help"], ["work-pool", "create", "--help"])
+
+    Returns:
+        The output of the command or an error message if it fails
+
+    Examples:
+        # Check if a command exists and see its options
+        >>> check_cli_command("prefect deploy", ["--help"])
+
+        # Verify work pool commands
+        >>> check_cli_command("prefect work-pool", ["--help"])
+
+        # Check specific subcommand help
+        >>> check_cli_command("prefect", ["worker", "start", "--help"])
+    """
+    if args is None:
+        args = []
+
+    # Construct the full command
+    full_command = command.split() + args
+
+    try:
+        # Run the command with a timeout
+        result = subprocess.run(
+            full_command,
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,  # Don't raise on non-zero exit codes
+        )
+
+        # Combine stdout and stderr for complete output
+        output = ""
+        if result.stdout:
+            output += result.stdout
+        if result.stderr:
+            output += f"\n[stderr]: {result.stderr}"
+
+        if not output.strip():
+            output = f"Command ran successfully with exit code {result.returncode} but produced no output"
+
+        return output[:2000]  # Limit output length to prevent huge responses
+
+    except subprocess.TimeoutExpired:
+        return "Command timed out after 10 seconds"
+    except FileNotFoundError:
+        return f"Command '{full_command[0]}' not found. Make sure it's installed and in PATH."
+    except Exception as e:
+        return f"Error running command: {str(e)}"
