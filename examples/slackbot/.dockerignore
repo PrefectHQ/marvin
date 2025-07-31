@@ -36,6 +36,9 @@ share/python-wheels/
 pip-log.txt
 pip-delete-this-directory.txt
 
+# Exclude unit tests
+tests/
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
