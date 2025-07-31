@@ -111,26 +111,67 @@ def transform_code_block(text: str) -> str:
     return re.sub(code_block_pattern, r"```\1```", text, flags=re.DOTALL)
 
 
+class SlackMessage:
+    """
+    Handles transformation of Markdown to Slack-formatted messages.
+    """
+
+    _transforms = [
+        convert_md_links_to_slack,
+        transform_code_block,
+    ]
+
+    def __init__(self, text: str, channel_id=None, ts=None, thread_ts=None, attachments=None):
+        self.text = text
+        self.channel = channel_id
+        self.ts = ts
+        self.thread_ts = thread_ts
+        self.attachments = attachments or []
+
+    @staticmethod
+    async def from_message(channel_id: str, ts: str):
+        text = await fetch_current_message_text(channel_id, ts)
+        return SlackMessage(text, channel_id=channel_id, ts=ts)
+
+    def _get_transformed_text(self) -> str:
+        t = self.text
+        for fn in self._transforms:
+            t = fn(t)
+        return t
+
+    def append(self, text, delimiter="\n\n"):
+        self.text = f"{self.text}{delimiter}{text}"
+
+    def json(self):
+        return {
+            k: v for k, v in {
+                "text": self._get_transformed_text(),
+                "channel": self.channel,
+                "ts": self.ts,
+                "thread_ts": self.thread_ts,
+                "attachments": self.attachments or None,
+            }.items() if v is not None
+        }
+
+
 async def post_slack_message(
     message: str,
     channel_id: str,
     attachments: list[dict[str, Any]] | None = None,
     thread_ts: str | None = None,
 ) -> httpx.Response:
-    post_data = {
-        "channel": channel_id,
-        "text": convert_md_links_to_slack(message),
-        "attachments": attachments if attachments else [],
-    }
-
-    if thread_ts:
-        post_data["thread_ts"] = thread_ts
+    message = SlackMessage(
+        message,
+        channel_id=channel_id,
+        attachments=attachments,
+        thread_ts=thread_ts,
+    )
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://slack.com/api/chat.postMessage",
             headers={"Authorization": f"Bearer {settings.slack_api_token}"},
-            json=post_data,
+            json=message.json(),
         )
         response_data = response.json()
 
@@ -217,11 +258,10 @@ async def edit_slack_message(
         httpx.Response: The response from the Slack API.
     """
     if mode == "append":
-        current_text = await fetch_current_message_text(channel_id, thread_ts)
-        delimiter = "\n\n" if delimiter is None else delimiter
-        updated_text = f"{current_text}{delimiter}{convert_md_links_to_slack(new_text)}"
+        message = await SlackMessage.from_message(channel_id, thread_ts)
+        message.append(new_text, delimiter=delimiter)
     elif mode == "replace":
-        updated_text = convert_md_links_to_slack(new_text)
+        message = SlackMessage(new_text)
     else:
         raise ValueError("Invalid mode. Use 'append' or 'replace'.")
 
@@ -229,7 +269,7 @@ async def edit_slack_message(
         response = await client.post(
             "https://slack.com/api/chat.update",
             headers={"Authorization": f"Bearer {settings.slack_api_token}"},
-            json={"channel": channel_id, "ts": thread_ts, "text": updated_text},
+            json=message.json(),
         )
 
     response.raise_for_status()
