@@ -90,6 +90,27 @@ def convert_md_links_to_slack(text: str) -> str:
     )
 
 
+def transform_code_block(text: str) -> str:
+    """
+    Remove the language specifier from a Markdown code block.
+    Slack does not support language-specific code blocks.
+
+    Example:
+        ```python
+        print("Hello, World!")
+        ```
+
+        becomes:
+        ```
+        print("Hello, World!")
+        ```
+    """
+    # Remove the language specifier from the code block
+    code_block_pattern = r"```(?:\w+)?(.*?)```"
+
+    return re.sub(code_block_pattern, r"```\1```", text, flags=re.DOTALL)
+
+
 async def post_slack_message(
     message: str,
     channel_id: str,
