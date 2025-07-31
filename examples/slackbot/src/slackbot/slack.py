@@ -249,10 +249,12 @@ async def edit_slack_message(
     """Edit an existing Slack message by appending new text or replacing it.
 
     Args:
-        channel (str): The Slack channel ID.
-        ts (str): The timestamp of the message to edit.
+        channel_id (str): The Slack channel ID.
+        thread_ts (str): The timestamp of the message to edit.
         new_text (str): The new text to append or replace in the message.
         mode (str): The mode of text editing, 'append' (default) or 'replace'.
+        delimiter (Union[str, None]): The delimiter to use if appending to an
+            existing message.
 
     Returns:
         httpx.Response: The response from the Slack API.
