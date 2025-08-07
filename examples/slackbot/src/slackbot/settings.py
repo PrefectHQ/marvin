@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import ClassVar, Literal
 
 from prefect.variables import Variable
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -69,6 +69,12 @@ class SlackbotSettings(BaseSettings):
     )
 
     slack_api_token: str = Field(default=..., description="Slack API bot user token")
+
+    @model_validator(mode="after")
+    def validate_temperature(self) -> "SlackbotSettings":
+        if "gpt-5" in self.model_name:
+            self.temperature = 1.0
+        return self
 
     @property
     def model_name(self) -> str:
