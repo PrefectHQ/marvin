@@ -144,6 +144,21 @@ uv pip install "marvin[chroma]"
 ```
 </CodeGroup>
 
+Configure Chroma:
+```python
+import marvin
+from marvin.memory.providers import chroma
+
+provider = chroma.ChromaEphemeralMemory()
+# or provider = chroma.ChromaPersistentMemory()
+# or provider = chroma.ChromaCloudMemory()
+
+memory = marvin.Memory(
+    key="knowledge",
+    provider=provider
+)
+```
+
 ### LanceDB
 
 LanceDB provides a fast, efficient vector store with columnar storage:
