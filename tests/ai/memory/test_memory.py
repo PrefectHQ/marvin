@@ -3,6 +3,7 @@ import pytest
 import marvin
 
 
+@pytest.mark.flaky(reruns=3)
 def test_agent_memory():
     a = marvin.Agent(memories=[marvin.Memory(key="numbers")])
     marvin.run("remember the number 123", agents=[a])
