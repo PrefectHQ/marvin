@@ -148,6 +148,9 @@ class TestAnnotations:
         assert get_pi(5) == 3.14159
 
     @pytest.mark.flaky(reruns=3)
+    @pytest.mark.xfail(
+        reason="pydantic-ai 0.6.x generates invalid schema for untyped tuple"
+    )
     def test_tuple_return_type(self):
         @marvin.fn
         def get_fruit(name: str) -> tuple:
