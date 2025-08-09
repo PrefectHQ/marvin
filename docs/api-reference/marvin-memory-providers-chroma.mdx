@@ -8,7 +8,7 @@ title: chroma
 
 ### `ChromaMemory`
 ```python
-class ChromaMemory(client: chromadb.ClientAPI = lambda: chromadb.PersistentClient(path=str(marvin.settings.home_path / 'memory/chroma'))(), collection_name: str = 'memory-{key}')
+class ChromaMemory(client: chromadb.ClientAPI = (lambda: chromadb.PersistentClient(path=(str(marvin.settings.home_path / 'memory/chroma'))))(), collection_name: str = 'memory-{key}')
 ```
 
 **Methods:**

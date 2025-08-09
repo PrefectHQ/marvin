@@ -8,67 +8,67 @@ title: events
 
 ### `ActorEndTurnEvent`
 ```python
-class ActorEndTurnEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)(), actor: Actor)
+class ActorEndTurnEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), actor: Actor)
 ```
 Event for agent turn end.
 
 ### `ActorMessageDeltaEvent`
 ```python
-class ActorMessageDeltaEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)(), actor: Actor, delta: TextPartDelta, snapshot: TextPart)
+class ActorMessageDeltaEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), actor: Actor, delta: TextPartDelta, snapshot: TextPart)
 ```
 Event for delta updates to agent messages during streaming.
 
 ### `ActorMessageEvent`
 ```python
-class ActorMessageEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)(), actor: Actor, message: TextPart)
+class ActorMessageEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), actor: Actor, message: TextPart)
 ```
 Event for complete text messages from an agent.
 
 ### `ActorStartTurnEvent`
 ```python
-class ActorStartTurnEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)(), actor: Actor)
+class ActorStartTurnEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), actor: Actor)
 ```
 Event for agent turn start.
 
 ### `EndTurnToolCallEvent`
 ```python
-class EndTurnToolCallEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)(), actor: Actor, event: FinalResultEvent, tool_call_id: str, tool: EndTurn)
+class EndTurnToolCallEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), actor: Actor, event: FinalResultEvent, tool_call_id: str, tool: EndTurn)
 ```
 Event that fires as soon as we know that an end turn tool call has been made.
 
 ### `EndTurnToolResultEvent`
 ```python
-class EndTurnToolResultEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)(), actor: Actor, result: FinalResult, tool_call_id: str, tool: EndTurn)
+class EndTurnToolResultEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), actor: Actor, result: FinalResult, tool_call_id: str, tool: EndTurn)
 ```
 Event for the final result from an end turn tool.
 
 ### `Event`
 ```python
-class Event(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)())
+class Event(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))())
 ```
 Base class for all events in the system.
 
 ### `OrchestratorEndEvent`
 ```python
-class OrchestratorEndEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)())
+class OrchestratorEndEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))())
 ```
 Event for orchestrator end.
 
 ### `OrchestratorErrorEvent`
 ```python
-class OrchestratorErrorEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)(), error: str)
+class OrchestratorErrorEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), error: str)
 ```
 Event for orchestrator exceptions.
 
 ### `OrchestratorStartEvent`
 ```python
-class OrchestratorStartEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)())
+class OrchestratorStartEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))())
 ```
 Event for orchestrator start.
 
 ### `ToolCallDeltaEvent`
 ```python
-class ToolCallDeltaEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)(), actor: Actor, delta: ToolCallPartDelta, snapshot: ToolCallPart, tool_call_id: str, tool: Callable[..., Any] | None)
+class ToolCallDeltaEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), actor: Actor, delta: ToolCallPartDelta, snapshot: ToolCallPart, tool_call_id: str, tool: Callable[..., Any] | None)
 ```
 Event for delta updates to tool calls during streaming.
 
@@ -82,7 +82,7 @@ Event for delta updates to tool calls during streaming.
 
 ### `ToolCallEvent`
 ```python
-class ToolCallEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)(), actor: Actor, message: ToolCallPart, tool_call_id: str, tool: Callable[..., Any] | None)
+class ToolCallEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), actor: Actor, message: ToolCallPart, tool_call_id: str, tool: Callable[..., Any] | None)
 ```
 Event for complete tool calls ready to be executed.
 
@@ -96,19 +96,19 @@ Event for complete tool calls ready to be executed.
 
 ### `ToolResultEvent`
 ```python
-class ToolResultEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)(), message: ToolReturnPart)
+class ToolResultEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), message: ToolReturnPart)
 ```
 Event for tool return values.
 
 ### `ToolRetryEvent`
 ```python
-class ToolRetryEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)(), message: RetryPromptPart)
+class ToolRetryEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), message: RetryPromptPart)
 ```
 Event for tool retry requests.
 
 ### `UserMessageEvent`
 ```python
-class UserMessageEvent(type: EventType, id: uuid.UUID = lambda: uuid.uuid4()(), timestamp: datetime.datetime = lambda: datetime.datetime.now(datetime.timezone.utc)(), message: UserPromptPart)
+class UserMessageEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), message: UserPromptPart)
 ```
 Event for user messages.
 

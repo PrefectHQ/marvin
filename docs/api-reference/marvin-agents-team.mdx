@@ -8,7 +8,7 @@ title: team
 
 ### `RandomTeam`
 ```python
-class RandomTeam(name: str = lambda: random.choice(TEAM_NAMES)(), instructions: str | None = None, description: str | None = 'A team of agents that randomly selects an agent to act.', verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
+class RandomTeam(name: str = (lambda: random.choice(TEAM_NAMES))(), instructions: str | None = None, description: str | None = 'A team of agents that randomly selects an agent to act.', verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
 ```
 
 **Methods:**
@@ -20,7 +20,7 @@ class RandomTeam(name: str = lambda: random.choice(TEAM_NAMES)(), instructions: 
 
 ### `RoundRobinTeam`
 ```python
-class RoundRobinTeam(name: str = lambda: random.choice(TEAM_NAMES)(), instructions: str | None = None, description: str | None = 'A team of agents that rotate turns.', verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
+class RoundRobinTeam(name: str = (lambda: random.choice(TEAM_NAMES))(), instructions: str | None = None, description: str | None = 'A team of agents that rotate turns.', verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
 ```
 
 **Methods:**
@@ -32,13 +32,13 @@ class RoundRobinTeam(name: str = lambda: random.choice(TEAM_NAMES)(), instructio
 
 ### `Swarm`
 ```python
-class Swarm(name: str = lambda: random.choice(TEAM_NAMES)(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
+class Swarm(name: str = (lambda: random.choice(TEAM_NAMES))(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
 ```
 A swarm is a team that permits all agents to delegate to each other.
 
 ### `Team`
 ```python
-class Team(name: str = lambda: random.choice(TEAM_NAMES)(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
+class Team(name: str = (lambda: random.choice(TEAM_NAMES))(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
 ```
 A team is a container that maintains state for a group of agents.
 
