@@ -58,7 +58,9 @@ async def run_agent(
 
     start_time = time.monotonic()
     progress = await create_progress_message(
-        channel_id=channel_id, thread_ts=thread_ts, initial_text="🔄 Thinking..."
+        channel_id=channel_id,
+        thread_ts=thread_ts,
+        initial_text="🔄 Thinking... this may take a while",
     )
 
     try:

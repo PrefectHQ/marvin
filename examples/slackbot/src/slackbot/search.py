@@ -240,9 +240,11 @@ def check_cli_command(command: str, args: list[str] | None = None) -> str:
     - Always check with --help first to verify command structure
     - Common commands to verify: prefect deploy, prefect work-pool, prefect worker, etc.
     - This helps prevent suggesting non-existent or incorrectly formatted commands
+    - For commands that require optional dependencies, use `uv run --extra <extra>` prefix
+      Examples: `uv run --extra aws`, `uv run --extra docker`, `uv run --extra kubernetes`
 
     Args:
-        command: The base command to run (e.g., "prefect", "prefect deploy")
+        command: The base command to run (e.g., "prefect", "prefect deploy", "uv run --extra docker prefect")
         args: Additional arguments to pass (e.g., ["--help"], ["work-pool", "create", "--help"])
 
     Returns:
@@ -257,6 +259,9 @@ def check_cli_command(command: str, args: list[str] | None = None) -> str:
 
         # Check specific subcommand help
         >>> check_cli_command("prefect", ["worker", "start", "--help"])
+
+        # Check commands that need optional extras
+        >>> check_cli_command("uv run --extra docker", ["prefect", "work-pool", "create", "--help"])
     """
     if args is None:
         args = []
