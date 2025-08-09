@@ -8,7 +8,7 @@ title: lance
 
 ### `LanceMemory`
 ```python
-class LanceMemory(uri: Path = marvin.settings.home_path / 'memory' / 'lancedb', table_name: str = 'memory-{key}', embedding_fn: Callable[..., Any] = lambda: get_registry().get('openai').create(name='text-embedding-ada-002')(), _cached_model: LanceModel | None = None)
+class LanceMemory(uri: Path = marvin.settings.home_path / 'memory' / 'lancedb', table_name: str = 'memory-{key}', embedding_fn: Callable[..., Any] = (lambda: get_registry().get('openai').create(name='text-embedding-ada-002'))(), _cached_model: LanceModel | None = None)
 ```
 
 **Methods:**

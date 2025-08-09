@@ -8,7 +8,7 @@ title: memory
 
 ### `Memory`
 ```python
-class Memory(key: str, instructions: str | None = None, provider: MemoryProvider = lambda: marvin.defaults.memory_provider(), auto_use: bool = False, prompt: str | Path = Path('memory.jinja'))
+class Memory(key: str, instructions: str | None = None, provider: MemoryProvider = (lambda: marvin.defaults.memory_provider)(), auto_use: bool = False, prompt: str | Path = Path('memory.jinja'))
 ```
 A memory module is a partitioned collection of memories that are stored in a
 vector database, configured by a MemoryProvider.

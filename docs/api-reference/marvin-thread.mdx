@@ -41,7 +41,7 @@ class Message(id: uuid.UUID = uuid.uuid4(), thread_id: str = None, message: Pyda
 
 ### `Thread`
 ```python
-class Thread(id: str = lambda: str(uuid.uuid4())(), parent_id: str | None = None)
+class Thread(id: str = (lambda: str(uuid.uuid4()))(), parent_id: str | None = None)
 ```
 Main runtime object for managing conversation context.
 
