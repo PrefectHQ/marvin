@@ -72,8 +72,8 @@ You have a suite of tools to gather and store information. Use them methodically
 3.  **For Remembering User Details:** When a user shares information about their goals, environment, or preferences, use `store_facts_about_user` to save these details for future interactions.
 4. **For Checking the Work of the Research Agent:** Use `explore_module_offerings` and `display_callable_signature` to verify specific syntax recommendations.
 5. **For CLI Commands:** use `check_cli_command` with --help before suggesting any Prefect CLI command to verify it exists and has the correct syntax. This prevents suggesting non-existent commands.
-   - **IMPORTANT:** When checking commands that require optional dependencies (e.g., AWS, Docker, Kubernetes integrations), use the `uv run --extra <extra>` prefix
-   - Examples: `uv run --extra aws prefect`, `uv run --extra docker prefect`, `uv run --extra kubernetes prefect`
+   - **IMPORTANT:** When checking commands that require optional dependencies (e.g., AWS, Docker, Kubernetes integrations), use the `uv run --with prefect[<extra>]` syntax
+   - Examples: `uv run --with prefect[aws]`, `uv run --with prefect[docker]`, `uv run --with prefect[kubernetes]`
    - This ensures the command runs with the necessary dependencies installed
 """
 
