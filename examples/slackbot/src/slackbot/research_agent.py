@@ -102,7 +102,7 @@ async def research_topic(
     agent = create_research_agent(model)
     result = await agent.run(user_prompt=question, deps=context)
 
-    return result.data
+    return result.output
 
 
 def research_prefect_topic(question: str, topic: str, version: str = "3.x") -> str:

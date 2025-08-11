@@ -7,7 +7,6 @@ from typing import Any, Callable, TypeVar
 
 from prefect import tags as prefect_tags
 from prefect import task
-from pydantic_ai.tools import Tool
 
 T = TypeVar("T")
 
@@ -72,15 +71,12 @@ def prefect_wrapped_function(
     @wraps(func)
     async def wrapper(*args, **kwargs) -> T:
         if _progress := _progress_message.get():
-            tool_name = "Unknown Tool"
-            if args and hasattr(args[0], "name"):
-                tool_name = args[0].name
-            elif (
-                args
-                and hasattr(args[0], "function")
-                and hasattr(args[0].function, "__name__")
-            ):
-                tool_name = args[0].function.__name__
+            # For call_tool method: self, name, tool_args, ctx, tool
+            # The tool name is either in kwargs['name'] or args[1]
+            tool_name = kwargs.get("name", "Unknown Tool")
+            if not tool_name or tool_name == "Unknown Tool":
+                if len(args) > 1:
+                    tool_name = args[1]
 
             # Update tool usage counts
             counts = _tool_usage_counts.get()
@@ -129,8 +125,8 @@ class WatchToolCalls(DecorateMethodContext):
 
     def __init__(
         self,
-        patch_cls: type = Tool,
-        patch_method_name: str = "run",
+        patch_cls: type | None = None,
+        patch_method_name: str = "call_tool",
         tags: set[str] | None = None,
         settings: dict[str, Any] | None = None,
     ):
@@ -139,8 +135,11 @@ class WatchToolCalls(DecorateMethodContext):
             tags: Prefect tags to apply to the flow.
             flow_kwargs: Keyword arguments to pass to the flow.
         """
+        # Import here to avoid circular imports
+        from pydantic_ai.toolsets.abstract import AbstractToolset
+
         super().__init__(
-            patch_cls=patch_cls,
+            patch_cls=patch_cls or AbstractToolset,
             patch_method_name=patch_method_name,
             decorator=prefect_wrapped_function,
             tags=tags,

@@ -149,7 +149,7 @@ async def handle_message(payload: SlackPayload, db: Database):
         conversation.extend(result.new_messages())
         assert event.channel is not None, "No channel found"
         await task(post_slack_message)(
-            message=result.data,
+            message=result.output,
             channel_id=event.channel,
             thread_ts=thread_ts,
         )
