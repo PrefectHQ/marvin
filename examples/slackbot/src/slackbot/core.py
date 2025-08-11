@@ -20,11 +20,14 @@ from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
 from turbopuffer import NotFoundError
 
 from slackbot.assets import store_user_facts
-from slackbot.research_agent import research_prefect_topic
+from slackbot.research_agent import (
+    research_prefect_topic,
+)
 from slackbot.search import (
     check_cli_command,
     display_callable_signature,
     explore_module_offerings,
+    get_latest_prefect_release_notes,
     read_github_issues,
 )
 from slackbot.settings import settings
@@ -206,11 +209,12 @@ def create_agent(
         model=ai_model,
         model_settings=ModelSettings(temperature=settings.temperature),
         tools=[
-            research_prefect_topic,  # Main tool for researching Prefect topics
+            research_prefect_topic,  # Tool for researching Prefect topics
             read_github_issues,  # For searching GitHub issues
             explore_module_offerings,  # check the work of the research agent, verify imports, types functions
             display_callable_signature,  # check the work of the research agent, verify signatures of callable objects
             check_cli_command,  # verify CLI commands before suggesting them
+            get_latest_prefect_release_notes,  # get the latest release notes for Prefect
         ],
         deps_type=UserContext,
     )
