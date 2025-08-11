@@ -52,7 +52,7 @@ async def run_agent(
     if decorator_settings is None:
         decorator_settings = {
             "cache_policy": NONE,
-            "task_run_name": "execute {self.function.__name__}",
+            "task_run_name": "execute {tool_name}",
             "log_prints": True,
         }
 

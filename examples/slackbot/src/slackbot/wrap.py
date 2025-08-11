@@ -70,8 +70,18 @@ def prefect_wrapped_function(
 
     @wraps(func)
     async def wrapper(*args, **kwargs) -> T:
-        if _progress := _progress_message.get():
-            # For call_tool method: self, name, tool_args, ctx, tool
+        # For call_tool method signature: self, name, tool_args, ctx, tool
+        # Check if this is an output tool and skip progress tracking if so
+        tool = kwargs.get("tool") or (args[4] if len(args) > 4 else None)
+        is_output_tool = (
+            tool
+            and hasattr(tool, "tool_def")
+            and hasattr(tool.tool_def, "kind")
+            and tool.tool_def.kind == "output"
+        )
+
+        _current_tool_token = None
+        if (_progress := _progress_message.get()) and not is_output_tool:
             # The tool name is either in kwargs['name'] or args[1]
             tool_name = kwargs.get("name", "Unknown Tool")
             if not tool_name or tool_name == "Unknown Tool":
@@ -106,7 +116,22 @@ def prefect_wrapped_function(
                 pass
 
         try:
-            wrapped_callable = decorator(**settings or {})(func)
+            # Update task_run_name with actual tool name if present
+            dynamic_settings = dict(settings or {})
+            if (
+                "task_run_name" in dynamic_settings
+                and "{tool_name}" in dynamic_settings["task_run_name"]
+            ):
+                # Get tool name for task_run_name formatting
+                tool_name = kwargs.get("name", "Unknown Tool")
+                if not tool_name or tool_name == "Unknown Tool":
+                    if len(args) > 1:
+                        tool_name = args[1]
+                dynamic_settings["task_run_name"] = dynamic_settings[
+                    "task_run_name"
+                ].format(tool_name=tool_name)
+
+            wrapped_callable = decorator(**dynamic_settings)(func)
             with prefect_tags(*tags):
                 result = wrapped_callable(*args, **kwargs)  # type: ignore
                 if inspect.isawaitable(result):
@@ -114,7 +139,7 @@ def prefect_wrapped_function(
 
                 return result
         finally:
-            if _progress:
+            if _progress and _current_tool_token is not None:
                 _current_tool.reset(_current_tool_token)
 
     return wrapper  # type: ignore

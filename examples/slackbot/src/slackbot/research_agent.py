@@ -9,7 +9,6 @@ from pydantic_ai.models import Model
 from slackbot.search import (
     display_callable_signature,
     explore_module_offerings,
-    get_latest_prefect_release_notes,
     review_common_3x_gotchas,
     search_marvin_docs,
     search_prefect_2x_docs,
@@ -45,7 +44,7 @@ def create_research_agent(
     agent = Agent[ResearchContext, ResearchFindings](
         model=model or "openai:gpt-4o",
         deps_type=ResearchContext,
-        result_type=ResearchFindings,
+        output_type=ResearchFindings,
         system_prompt="""You are a specialized research agent for Prefect documentation and knowledge.
 Your job is to thoroughly research topics by using available tools to gather comprehensive, accurate information.
 
@@ -55,7 +54,7 @@ Your research process:
 3. Use explore_module_offerings to understand what's available in relevant modules (i.e. valid imports, types and functions available)
 4. Use display_callable_signature to get detailed signatures of functions, classes, and methods when needed
 5. **IMPORTANT**: ONLY use search_prefect_3x_docs unless the user explicitly mentions "2.x", "Prefect 2", or version compatibility
-6. Review gotchas and release notes for recent changes
+6. Review gotchas for recent changes
 
 CRITICAL VERSION-SPECIFIC RULES:
 - **DEFAULT TO PREFECT 3.x**: Do NOT use search_prefect_2x_docs unless user explicitly mentions "2.x", "Prefect 2", or asks about version differences
@@ -71,7 +70,6 @@ Be thorough - use tools repeatedly until you have complete information.
 Do not use any Prefect syntax you have not gathered empirically.
 """,
         tools=[
-            get_latest_prefect_release_notes,
             search_prefect_2x_docs,
             display_callable_signature,
             search_prefect_3x_docs,

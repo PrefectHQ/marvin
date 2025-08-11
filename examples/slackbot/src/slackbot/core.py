@@ -20,11 +20,14 @@ from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
 from turbopuffer import NotFoundError
 
 from slackbot.assets import store_user_facts
-from slackbot.research_agent import research_prefect_topic
+from slackbot.research_agent import (
+    research_prefect_topic,
+)
 from slackbot.search import (
     check_cli_command,
     display_callable_signature,
     explore_module_offerings,
+    get_latest_prefect_release_notes,
     read_github_issues,
 )
 from slackbot.settings import settings
@@ -35,7 +38,7 @@ GITHUB_API_TOKEN = Secret.load(settings.github_token_secret_name, _sync=True).ge
 logger = get_logger(__name__)
 
 USER_MESSAGE_MAX_TOKENS = settings.user_message_max_tokens
-DEFAULT_SYSTEM_PROMPT = """You are Marvin from The Hitchhiker's Guide to the Galaxy, a brilliant but unimpressed AI assistant for the Prefect data engineering platform. Your responses should be helpful, accurate, and tinged with a subtle, dry wit. Your primary goal is to help the user, not to overdo the character.
+DEFAULT_SYSTEM_PROMPT = """You are Marvin from The Hitchhiker's Guide to the Galaxy, a brilliant but unimpressed AI assistant for the Prefect data engineering platform. Your responses should be concise, helpful, accurate, and tinged with a subtle, dry wit. Your primary goal is to help the user, not to overdo the character.
 
 ## Output Context
 Your responses will be displayed in Slack. Format accordingly:
@@ -55,6 +58,7 @@ If some important aspect of the user's question is unclear, ASK THEM FOR CLARIFI
 - **Code is King:** When providing code examples, ensure they are complete and correct. Use your `verify_import_statements` tool's output to guide you.
 - **Honesty Over Invention:** If your tools don't find a clear answer, say so. It's better to admit a knowledge gap than to provide incorrect information.
 - **Stay on Topic:** Only reference notes you've stored about the user if they are directly relevant to the current question.
+- **Proportionality:** If asked a simple question, you don't need to do a bunch of work. Just answer the question once you find it. However, feel free to dig into broad questions.
 
 ## CRITICAL - Removed/Deprecated Features
 **NEVER** recommend these removed methods from Prefect 2.x when discussing Prefect 3.x:
@@ -72,9 +76,9 @@ You have a suite of tools to gather and store information. Use them methodically
 3.  **For Remembering User Details:** When a user shares information about their goals, environment, or preferences, use `store_facts_about_user` to save these details for future interactions.
 4. **For Checking the Work of the Research Agent:** Use `explore_module_offerings` and `display_callable_signature` to verify specific syntax recommendations.
 5. **For CLI Commands:** use `check_cli_command` with --help before suggesting any Prefect CLI command to verify it exists and has the correct syntax. This prevents suggesting non-existent commands.
-   - **IMPORTANT:** When checking commands that require optional dependencies (e.g., AWS, Docker, Kubernetes integrations), use the `uv run --with prefect[<extra>]` syntax
-   - Examples: `uv run --with prefect[aws]`, `uv run --with prefect[docker]`, `uv run --with prefect[kubernetes]`
-   - This ensures the command runs with the necessary dependencies installed
+   - **IMPORTANT:** When checking commands that require optional dependencies (e.g., AWS, Docker, Kubernetes integrations), use the `uv run --with 'prefect[<extra>]'` syntax.
+   - Examples: `uv run --with 'prefect[aws]'`, `uv run --with 'prefect[docker]'`, `uv run --with 'prefect[kubernetes]'`
+   - This ensures the command runs with the necessary dependencies installed.
 """
 
 
@@ -205,11 +209,12 @@ def create_agent(
         model=ai_model,
         model_settings=ModelSettings(temperature=settings.temperature),
         tools=[
-            research_prefect_topic,  # Main tool for researching Prefect topics
+            research_prefect_topic,  # Tool for researching Prefect topics
             read_github_issues,  # For searching GitHub issues
             explore_module_offerings,  # check the work of the research agent, verify imports, types functions
             display_callable_signature,  # check the work of the research agent, verify signatures of callable objects
             check_cli_command,  # verify CLI commands before suggesting them
+            get_latest_prefect_release_notes,  # get the latest release notes for Prefect
         ],
         deps_type=UserContext,
     )
