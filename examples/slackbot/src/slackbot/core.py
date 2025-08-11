@@ -17,7 +17,7 @@ from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.providers import Provider
 from pydantic_ai.settings import ModelSettings
 from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
-from turbopuffer.error import NotFoundError
+from turbopuffer import NotFoundError
 
 from slackbot.assets import store_user_facts
 from slackbot.research_agent import research_prefect_topic
