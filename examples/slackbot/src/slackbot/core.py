@@ -20,6 +20,11 @@ from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
 from turbopuffer import NotFoundError
 
 from slackbot.assets import store_user_facts
+from slackbot.github_discussions import (
+    create_discussion_from_slack,
+    read_discussion,
+    search_discussions,
+)
 from slackbot.research_agent import (
     research_prefect_topic,
 )
@@ -79,6 +84,12 @@ You have a suite of tools to gather and store information. Use them methodically
    - **IMPORTANT:** When checking commands that require optional dependencies (e.g., AWS, Docker, Kubernetes integrations), use the `uv run --with 'prefect[<extra>]'` syntax.
    - Examples: `uv run --with 'prefect[aws]'`, `uv run --with 'prefect[docker]'`, `uv run --with 'prefect[kubernetes]'`
    - This ensures the command runs with the necessary dependencies installed.
+6. **For GitHub Discussions (USE SPARINGLY):** Only for truly valuable knowledge:
+   - Use `search_discussions` to check for existing discussions first
+   - Use `read_discussion` to get full context if needed
+   - Use `create_discussion_from_slack` with require_approval=True to propose
+   - User must explicitly approve before setting require_approval=False
+   - ONLY create discussions for: novel solutions, important patterns, or FAQ-worthy content
 """
 
 
@@ -215,6 +226,9 @@ def create_agent(
             display_callable_signature,  # check the work of the research agent, verify signatures of callable objects
             check_cli_command,  # verify CLI commands before suggesting them
             get_latest_prefect_release_notes,  # get the latest release notes for Prefect
+            search_discussions,  # Search GitHub discussions
+            read_discussion,  # Read a specific discussion
+            create_discussion_from_slack,  # Create discussion (with approval)
         ],
         deps_type=UserContext,
     )
