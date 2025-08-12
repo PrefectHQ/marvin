@@ -20,6 +20,12 @@ from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
 from turbopuffer import NotFoundError
 
 from slackbot.assets import store_user_facts
+from slackbot.discussion_tools import (
+    execute_discussion_creation,
+    propose_discussion_creation,
+    read_discussion,
+    search_discussions,
+)
 from slackbot.research_agent import (
     research_prefect_topic,
 )
@@ -79,6 +85,18 @@ You have a suite of tools to gather and store information. Use them methodically
    - **IMPORTANT:** When checking commands that require optional dependencies (e.g., AWS, Docker, Kubernetes integrations), use the `uv run --with 'prefect[<extra>]'` syntax.
    - Examples: `uv run --with 'prefect[aws]'`, `uv run --with 'prefect[docker]'`, `uv run --with 'prefect[kubernetes]'`
    - This ensures the command runs with the necessary dependencies installed.
+6. **For GitHub Discussions (USE SPARINGLY):** Only when you help clarify something truly valuable that would benefit the entire community:
+   - First use `search_discussions` to check if similar discussions exist
+   - Use `read_discussion` to get full context of relevant existing discussions
+   - Only propose creating a discussion for genuinely valuable, reusable knowledge
+   - Use `propose_discussion_creation` to suggest creating one - requires user approval
+   - Only after explicit user approval, use `execute_discussion_creation` to create it
+   - BE SELECTIVE: Not every conversation needs to become a discussion. Only create for:
+     * Clarified concepts that multiple users would benefit from
+     * Solutions to non-obvious problems
+     * Important patterns or best practices discovered through conversation
+     * FAQ-worthy content that doesn't exist elsewhere
+   - NEVER create discussions for: simple questions, basic how-tos, or anything already well-documented
 """
 
 
@@ -215,6 +233,10 @@ def create_agent(
             display_callable_signature,  # check the work of the research agent, verify signatures of callable objects
             check_cli_command,  # verify CLI commands before suggesting them
             get_latest_prefect_release_notes,  # get the latest release notes for Prefect
+            search_discussions,  # Search existing GitHub discussions
+            read_discussion,  # Read full discussion content
+            propose_discussion_creation,  # Propose creating a new discussion (requires approval)
+            execute_discussion_creation,  # Execute discussion creation after approval
         ],
         deps_type=UserContext,
     )
