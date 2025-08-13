@@ -10,6 +10,13 @@ from prefect import task
 
 T = TypeVar("T")
 
+
+class ToolUseLimitExceeded(Exception):
+    """Raised when tool use limit is exceeded."""
+
+    pass
+
+
 _progress_message: ContextVar[Any] = ContextVar("progress_message", default=None)
 _tool_usage_counts: ContextVar[dict[str, int] | None] = ContextVar(
     "tool_usage_counts", default=None
@@ -64,6 +71,7 @@ def prefect_wrapped_function(
     decorator: Callable[..., Callable[..., T]] = task,
     tags: set[str] | None = None,
     settings: dict[str, Any] | None = None,
+    max_tool_calls: int = 10,  # Default limit per agent run (matches settings)
 ) -> Callable[..., Callable[..., T]]:
     """Decorator for wrapping a function with a prefect decorator."""
     tags = tags or set[str]()
@@ -101,6 +109,14 @@ def prefect_wrapped_function(
                 counts = defaultdict(int)
                 _tool_usage_counts.set(counts)
             counts[tool_name] += 1
+
+            # Check if we've exceeded the limit
+            total_calls = sum(counts.values())
+            if total_calls > max_tool_calls:
+                # Raise an exception to preserve type safety
+                raise ToolUseLimitExceeded(
+                    "I've reached my tool use limit for this response. Please ask a follow-up question if you need more information."
+                )
 
             # Set current tool
             _current_tool_token = _current_tool.set(tool_name)
@@ -161,11 +177,13 @@ class WatchToolCalls(DecorateMethodContext):
         patch_method_name: str = "call_tool",
         tags: set[str] | None = None,
         settings: dict[str, Any] | None = None,
+        max_tool_calls: int = 10,
     ):
         """Initialize the context manager.
         Args:
             tags: Prefect tags to apply to the flow.
-            flow_kwargs: Keyword arguments to pass to the flow.
+            settings: Settings to pass to the decorator.
+            max_tool_calls: Maximum number of tool calls allowed per turn.
         """
         # Import here to avoid circular imports
         from pydantic_ai.toolsets.abstract import AbstractToolset
@@ -176,4 +194,5 @@ class WatchToolCalls(DecorateMethodContext):
             decorator=prefect_wrapped_function,
             tags=tags,
             settings=settings,
+            max_tool_calls=max_tool_calls,
         )
