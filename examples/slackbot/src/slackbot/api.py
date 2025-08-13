@@ -69,7 +69,10 @@ async def run_agent(
         counts_token = _tool_usage_counts.set(defaultdict(int))
 
         try:
-            with WatchToolCalls(settings=decorator_settings):
+            with WatchToolCalls(
+                settings=decorator_settings,
+                max_tool_calls=settings.max_tool_calls_per_turn,
+            ):
                 result = await create_agent(model=settings.model_name).run(
                     user_prompt=cleaned_message,
                     message_history=conversation,

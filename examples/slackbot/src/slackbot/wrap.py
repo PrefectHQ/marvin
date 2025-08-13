@@ -64,6 +64,7 @@ def prefect_wrapped_function(
     decorator: Callable[..., Callable[..., T]] = task,
     tags: set[str] | None = None,
     settings: dict[str, Any] | None = None,
+    max_tool_calls: int = 15,  # Default limit per agent run
 ) -> Callable[..., Callable[..., T]]:
     """Decorator for wrapping a function with a prefect decorator."""
     tags = tags or set[str]()
@@ -101,6 +102,12 @@ def prefect_wrapped_function(
                 counts = defaultdict(int)
                 _tool_usage_counts.set(counts)
             counts[tool_name] += 1
+
+            # Check if we've exceeded the limit
+            total_calls = sum(counts.values())
+            if total_calls > max_tool_calls:
+                # Return a message instead of raising an exception
+                return "I've reached my tool use limit for this response. Please ask a follow-up question if you need more information."
 
             # Set current tool
             _current_tool_token = _current_tool.set(tool_name)
@@ -161,11 +168,13 @@ class WatchToolCalls(DecorateMethodContext):
         patch_method_name: str = "call_tool",
         tags: set[str] | None = None,
         settings: dict[str, Any] | None = None,
+        max_tool_calls: int = 15,
     ):
         """Initialize the context manager.
         Args:
             tags: Prefect tags to apply to the flow.
-            flow_kwargs: Keyword arguments to pass to the flow.
+            settings: Settings to pass to the decorator.
+            max_tool_calls: Maximum number of tool calls allowed per turn.
         """
         # Import here to avoid circular imports
         from pydantic_ai.toolsets.abstract import AbstractToolset
@@ -176,4 +185,5 @@ class WatchToolCalls(DecorateMethodContext):
             decorator=prefect_wrapped_function,
             tags=tags,
             settings=settings,
+            max_tool_calls=max_tool_calls,
         )

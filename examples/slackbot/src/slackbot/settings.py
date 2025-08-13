@@ -78,20 +78,24 @@ class SlackbotSettings(BaseSettings):
         description="Slack user ID to notify when discussions are created (e.g., U1234567890)",
     )
 
-    @model_validator(mode="after")
-    def validate_temperature(self) -> "SlackbotSettings":
-        if "gpt-5" in self.model_name:
-            self.temperature = 1.0
-        return self
+    # Tool use limits
+    max_tool_calls_per_turn: int = Field(
+        default=50,
+        description="Maximum number of tool calls allowed per agent turn to prevent runaway tool use",
+    )
 
     @model_validator(mode="after")
-    def set_turbopuffer_api_key(self) -> "SlackbotSettings":
+    def _apply_post_validation_defaults(self) -> "SlackbotSettings":
+        if "gpt-5" in self.model_name:
+            self.temperature = 1.0
         if not os.getenv("TURBOPUFFER_API_KEY"):
             try:
                 api_key = Secret.load("tpuf-api-key", _sync=True).get()  # type: ignore
                 os.environ["TURBOPUFFER_API_KEY"] = api_key
             except Exception:
                 pass  # If secret doesn't exist, turbopuffer will handle the error
+        if not self.admin_slack_user_id:
+            self.admin_slack_user_id = Variable.get("admin-slack-id", _sync=True)
         return self
 
     @property
