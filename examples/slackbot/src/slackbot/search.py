@@ -4,13 +4,14 @@ import subprocess
 import httpx
 from prefect import task
 from pretty_mod import display_signature
-from pretty_mod.explorer import ModuleTreeExplorer
 from raggy.vectorstores.tpuf import multi_query_tpuf
 
 from slackbot.github import format_issues_summary, search_issues
 
 
-def explore_module_offerings(module_path: str, max_depth: int = 1) -> str:
+def explore_module_offerings(
+    module_path: str, max_depth: int = 1, with_packages: list[str] | None = None
+) -> str:
     """
     Explore and return the public API tree of a specific module and its submodules as a string.
 
@@ -20,6 +21,7 @@ def explore_module_offerings(module_path: str, max_depth: int = 1) -> str:
     Args:
         module_path: String representing the module path (e.g., 'prefect.runtime', 'json', 'pandas')
         max_depth: Maximum depth to explore in the module tree (default: 1)
+        with_packages: Optional list of packages to install for the exploration (e.g., ['prefect[aws]', 'boto3'])
 
     Returns:
         str: A formatted string representation of the module tree
@@ -31,17 +33,47 @@ def explore_module_offerings(module_path: str, max_depth: int = 1) -> str:
         # Explore Prefect's runtime module in detail
         >>> explore_module_offerings('prefect.runtime', max_depth=2)
 
-        # Quick overview of pandas structure
-        >>> explore_module_offerings('pandas', max_depth=1)
+        # Explore AWS integration modules
+        >>> explore_module_offerings('prefect_aws.ecs', max_depth=1, with_packages=['prefect[aws]'])
 
         # See what's in a specific submodule
         >>> explore_module_offerings('prefect.artifacts', max_depth=0)
     """
-    explorer = ModuleTreeExplorer(module_path, max_depth=max_depth)
-    explorer.explore()
-    summary = explorer.get_tree_string()
-    print(summary)
-    return summary
+    # Build the command
+    cmd = ["uvx"]
+    if with_packages:
+        for package in with_packages:
+            cmd.extend(["--with", package])
+    cmd.extend(["pretty-mod", "tree"])
+
+    cmd.extend([module_path, "--depth", str(max_depth)])
+
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+
+        # Check if it failed due to missing module
+        if result.returncode != 0:
+            error_output = result.stderr or result.stdout
+            if "missing dependency" in error_output.lower():
+                # Extract the missing module name if possible
+                if "'" in error_output:
+                    missing = error_output.split("'")[1]
+                    return f"Module '{missing}' not found. Try specifying with_packages parameter with the required package (e.g., 'prefect[aws]', 'prefect-aws', or any PyPI package)."
+            return f"Error exploring module: {error_output}"
+
+        # Return the formatted tree output
+        return result.stdout if result.stdout else "No output from module exploration"
+
+    except subprocess.TimeoutExpired:
+        return "Module exploration timed out after 30 seconds"
+    except Exception as e:
+        return f"Error running pretty-mod: {str(e)}"
 
 
 def review_common_3x_gotchas() -> list[str]:
