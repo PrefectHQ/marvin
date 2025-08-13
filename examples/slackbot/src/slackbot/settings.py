@@ -1,6 +1,8 @@
+import os
 from pathlib import Path
 from typing import ClassVar, Literal
 
+from prefect.blocks.system import Secret
 from prefect.variables import Variable
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -70,10 +72,26 @@ class SlackbotSettings(BaseSettings):
 
     slack_api_token: str = Field(default=..., description="Slack API bot user token")
 
+    # Admin notification settings
+    admin_slack_user_id: str = Field(
+        default="",
+        description="Slack user ID to notify when discussions are created (e.g., U1234567890)",
+    )
+
     @model_validator(mode="after")
     def validate_temperature(self) -> "SlackbotSettings":
         if "gpt-5" in self.model_name:
             self.temperature = 1.0
+        return self
+
+    @model_validator(mode="after")
+    def set_turbopuffer_api_key(self) -> "SlackbotSettings":
+        if not os.getenv("TURBOPUFFER_API_KEY"):
+            try:
+                api_key = Secret.load("tpuf-api-key", _sync=True).get()  # type: ignore
+                os.environ["TURBOPUFFER_API_KEY"] = api_key
+            except Exception:
+                pass  # If secret doesn't exist, turbopuffer will handle the error
         return self
 
     @property

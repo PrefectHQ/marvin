@@ -141,18 +141,33 @@ async def handle_message(payload: SlackPayload, db: Database):
             bot_id=bot_user_id or "unknown",
         )
 
-        result = await run_agent(
-            cleaned_message, conversation, user_context, event.channel, thread_ts
-        )  # type: ignore
+        try:
+            result = await run_agent(
+                cleaned_message, conversation, user_context, event.channel, thread_ts
+            )  # type: ignore
 
-        await db.add_thread_messages(thread_ts, result.new_messages())
-        conversation.extend(result.new_messages())
-        assert event.channel is not None, "No channel found"
-        await task(post_slack_message)(
-            message=result.output,
-            channel_id=event.channel,
-            thread_ts=thread_ts,
-        )
+            await db.add_thread_messages(thread_ts, result.new_messages())
+            conversation.extend(result.new_messages())
+            assert event.channel is not None, "No channel found"
+            await task(post_slack_message)(
+                message=result.output,
+                channel_id=event.channel,
+                thread_ts=thread_ts,
+            )
+        except Exception as e:
+            logger.error(f"Error running agent: {e}")
+            assert event.channel is not None, "No channel found"
+            await task(post_slack_message)(
+                message="Sorry, I encountered an error while processing your request. Please try again.",
+                channel_id=event.channel,
+                thread_ts=thread_ts,
+            )
+            # Still return completed so we don't retry
+            return Completed(
+                message="Error during agent execution",
+                name="ERROR_HANDLED",
+                data=dict(error=str(e), user_context=user_context),
+            )
         return Completed(
             message="Responded to mention",
             data=dict(user_context=user_context, conversation=conversation),
