@@ -9,6 +9,10 @@ from .models import DiscussionCategory, GitHubDiscussion
 # Discussion category preferences (in order of preference)
 PREFERRED_CATEGORIES = ["general", "q&a", "help", "support", "discussion"]
 
+# Content truncation limits
+BODY_TRUNCATE_LENGTH = 1000  # For storing discussion body
+BODY_DISPLAY_LENGTH = 500  # For displaying in summaries
+
 
 async def search_discussions(
     query: str,
@@ -85,7 +89,9 @@ async def search_discussions(
                 id=disc_data["id"],
                 number=disc_data["number"],
                 title=disc_data["title"],
-                body=disc_data.get("body", "")[:1000],  # Limit body length
+                body=disc_data.get("body", "")[
+                    :BODY_TRUNCATE_LENGTH
+                ],  # Limit body length
                 html_url=disc_data["url"],
                 created_at=disc_data["createdAt"],
                 category=disc_data.get("category", {}),
@@ -318,6 +324,6 @@ async def format_discussions_summary(discussions: list[GitHubDiscussion]) -> str
         f"Category: {disc.category.get('name', 'Unknown')}\n"
         f"Author: {disc.author.login or 'Unknown'}\n"
         f"Created: {disc.created_at.strftime('%Y-%m-%d')}\n"
-        f"Body: {disc.body[:500]}{'...' if len(disc.body) > 500 else ''}"
+        f"Body: {disc.body[:BODY_DISPLAY_LENGTH]}{'...' if len(disc.body) > BODY_DISPLAY_LENGTH else ''}"
         for disc in discussions
     )
