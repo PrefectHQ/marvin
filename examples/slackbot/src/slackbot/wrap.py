@@ -10,13 +10,6 @@ from prefect import task
 
 T = TypeVar("T")
 
-
-class ToolUseLimitExceeded(Exception):
-    """Raised when tool use limit is exceeded."""
-
-    pass
-
-
 _progress_message: ContextVar[Any] = ContextVar("progress_message", default=None)
 _tool_usage_counts: ContextVar[dict[str, int] | None] = ContextVar(
     "tool_usage_counts", default=None
@@ -95,30 +88,29 @@ def prefect_wrapped_function(
                 result = await result
             return result
 
+        # Get tool name for tracking
+        tool_name = kwargs.get("name", "Unknown Tool")
+        if not tool_name or tool_name == "Unknown Tool":
+            if len(args) > 1:
+                tool_name = args[1]
+
+        # Always track and enforce tool usage limits
+        counts = _tool_usage_counts.get()
+        if counts is None:
+            counts = defaultdict(int)
+            _tool_usage_counts.set(counts)
+        counts[tool_name] += 1
+
+        # Check if we've exceeded the limit
+        total_calls = sum(counts.values())
+        if total_calls > max_tool_calls:
+            # Return a message that tells the agent to stop using tools and continue
+            # This will be returned as the tool result, which the agent will see
+            return "Tool use limit reached. Please continue with the information you've gathered so far to answer the user's question."
+
         _current_tool_token = None
         if _progress := _progress_message.get():
-            # The tool name is either in kwargs['name'] or args[1]
-            tool_name = kwargs.get("name", "Unknown Tool")
-            if not tool_name or tool_name == "Unknown Tool":
-                if len(args) > 1:
-                    tool_name = args[1]
-
-            # Update tool usage counts
-            counts = _tool_usage_counts.get()
-            if counts is None:
-                counts = defaultdict(int)
-                _tool_usage_counts.set(counts)
-            counts[tool_name] += 1
-
-            # Check if we've exceeded the limit
-            total_calls = sum(counts.values())
-            if total_calls > max_tool_calls:
-                # Raise an exception to preserve type safety
-                raise ToolUseLimitExceeded(
-                    "I've reached my tool use limit for this response. Please ask a follow-up question if you need more information."
-                )
-
-            # Set current tool
+            # Set current tool for progress tracking
             _current_tool_token = _current_tool.set(tool_name)
 
             try:
