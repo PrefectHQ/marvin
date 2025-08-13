@@ -32,7 +32,12 @@ from slackbot.slack import (
     post_slack_message,
 )
 from slackbot.strings import count_tokens, slice_tokens
-from slackbot.wrap import WatchToolCalls, _progress_message, _tool_usage_counts
+from slackbot.wrap import (
+    ToolUseLimitExceeded,
+    WatchToolCalls,
+    _progress_message,
+    _tool_usage_counts,
+)
 
 BOT_MENTION = r"<@(\w+)>"
 
@@ -156,6 +161,19 @@ async def handle_message(payload: SlackPayload, db: Database):
                 message=result.output,
                 channel_id=event.channel,
                 thread_ts=thread_ts,
+            )
+        except ToolUseLimitExceeded as e:
+            logger.warning(f"Tool use limit exceeded: {e}")
+            assert event.channel is not None, "No channel found"
+            await task(post_slack_message)(
+                message=str(e),
+                channel_id=event.channel,
+                thread_ts=thread_ts,
+            )
+            return Completed(
+                message="Tool use limit exceeded",
+                name="LIMIT_EXCEEDED",
+                data=dict(user_context=user_context),
             )
         except Exception as e:
             logger.error(f"Error running agent: {e}")

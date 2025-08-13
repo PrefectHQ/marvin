@@ -10,6 +10,13 @@ from prefect import task
 
 T = TypeVar("T")
 
+
+class ToolUseLimitExceeded(Exception):
+    """Raised when tool use limit is exceeded."""
+
+    pass
+
+
 _progress_message: ContextVar[Any] = ContextVar("progress_message", default=None)
 _tool_usage_counts: ContextVar[dict[str, int] | None] = ContextVar(
     "tool_usage_counts", default=None
@@ -64,7 +71,7 @@ def prefect_wrapped_function(
     decorator: Callable[..., Callable[..., T]] = task,
     tags: set[str] | None = None,
     settings: dict[str, Any] | None = None,
-    max_tool_calls: int = 15,  # Default limit per agent run
+    max_tool_calls: int = 10,  # Default limit per agent run (matches settings)
 ) -> Callable[..., Callable[..., T]]:
     """Decorator for wrapping a function with a prefect decorator."""
     tags = tags or set[str]()
@@ -106,8 +113,10 @@ def prefect_wrapped_function(
             # Check if we've exceeded the limit
             total_calls = sum(counts.values())
             if total_calls > max_tool_calls:
-                # Return a message instead of raising an exception
-                return "I've reached my tool use limit for this response. Please ask a follow-up question if you need more information."
+                # Raise an exception to preserve type safety
+                raise ToolUseLimitExceeded(
+                    "I've reached my tool use limit for this response. Please ask a follow-up question if you need more information."
+                )
 
             # Set current tool
             _current_tool_token = _current_tool.set(tool_name)
@@ -168,7 +177,7 @@ class WatchToolCalls(DecorateMethodContext):
         patch_method_name: str = "call_tool",
         tags: set[str] | None = None,
         settings: dict[str, Any] | None = None,
-        max_tool_calls: int = 15,
+        max_tool_calls: int = 10,
     ):
         """Initialize the context manager.
         Args:
