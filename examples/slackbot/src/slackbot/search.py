@@ -2,16 +2,12 @@ import asyncio
 import subprocess
 
 import httpx
-import turbopuffer as tpuf
 from prefect import task
-from prefect.blocks.system import Secret
 from pretty_mod import display_signature
 from pretty_mod.explorer import ModuleTreeExplorer
 from raggy.vectorstores.tpuf import multi_query_tpuf
 
-from slackbot.github import GitHubIssue, _get_token
-from slackbot.settings import settings
-from slackbot.strings import slice_tokens
+from slackbot.github import format_issues_summary, search_issues
 
 
 def explore_module_offerings(module_path: str, max_depth: int = 1) -> str:
@@ -82,9 +78,6 @@ def search_prefect_2x_docs(queries: list[str]) -> str:
     - "retrieve run metadata dynamically"
 
     """
-    if not tpuf.api_key:
-        tpuf.api_key = Secret.load("tpuf-api-key", _sync=True).get()  # type: ignore
-
     print(f"Searching about {queries} in Prefect 2.x docs")
 
     return multi_query_tpuf(queries, namespace="prefect-2", n_results=5)
@@ -102,9 +95,6 @@ def search_prefect_3x_docs(queries: list[str]) -> str:
     - "retrieve task run id from flow run"
 
     """
-    if not tpuf.api_key:
-        tpuf.api_key = Secret.load("tpuf-api-key", _sync=True).get()  # type: ignore
-
     print(f"Searching about {queries} in Prefect 3.x docs")
 
     return multi_query_tpuf(queries, namespace="prefect-3", n_results=5)
@@ -144,60 +134,13 @@ def read_github_issues(query: str, repo: str = "prefecthq/prefect", n: int = 3) 
         - repo: prefecthq/prefect
         - query: label:bug is:open AttributeError
     """
-    github_token = Secret.load(settings.github_token_secret_name, _sync=True).get()  # type: ignore
-    return asyncio.run(
-        search_github_issues(query, repo=repo, n=n, api_token=github_token)
-    )
+    return asyncio.run(_read_github_issues_async(query, repo, n))
 
 
-async def search_github_issues(
-    query: str,
-    repo: str = "prefecthq/prefect",
-    n: int = 3,
-    api_token: str | None = None,
-) -> str:
-    """
-    Use the GitHub API to search for issues in a given repository. Do
-    not alter the default value for `n` unless specifically requested by
-    a user.
-
-    For example, to search for open issues about AttributeErrors with the
-    label "bug" in PrefectHQ/prefect:
-        - repo: prefecthq/prefect
-        - query: label:bug is:open AttributeError
-    """
-    TOKEN_LIMIT = 1500
-    headers = {"Accept": "application/vnd.github.v3+json"}
-
-    headers["Authorization"] = f"Bearer {api_token or await _get_token()}"
-
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://api.github.com/search/issues",
-            headers=headers,
-            params={
-                "q": query if "repo:" in query else f"repo:{repo} {query}",
-                "order": "desc",
-                "per_page": n,
-            },
-        )
-        response.raise_for_status()
-
-    issues_data = response.json()["items"]
-
-    for issue in issues_data:
-        if not issue["body"]:
-            continue
-        issue["body"] = slice_tokens(issue["body"], TOKEN_LIMIT)
-
-    issues = [GitHubIssue(**issue) for issue in issues_data]
-
-    summary = "\n\n".join(
-        f"{issue.title} ({issue.html_url}):\n{issue.body}" for issue in issues
-    )
-    if not summary.strip():
-        return "No issues found."
-    return summary
+async def _read_github_issues_async(query: str, repo: str, n: int) -> str:
+    """Async helper for reading GitHub issues."""
+    issues = await search_issues(query, repo=repo, n=n)
+    return await format_issues_summary(issues)
 
 
 def display_callable_signature(import_path: str) -> str:

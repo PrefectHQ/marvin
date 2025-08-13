@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import AsyncIterator
 
+import httpx
 from prefect import get_run_logger, task
 from prefect.blocks.system import Secret
 from prefect.logging.loggers import get_logger
@@ -20,6 +21,15 @@ from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
 from turbopuffer import NotFoundError
 
 from slackbot.assets import store_user_facts
+from slackbot.github import (
+    GitHubAuthError,
+    GitHubError,
+    GitHubNotFoundError,
+    GitHubRateLimitError,
+    create_discussion_from_thread,
+    format_discussions_summary,
+    search_discussions,
+)
 from slackbot.research_agent import (
     research_prefect_topic,
 )
@@ -73,12 +83,19 @@ You have a suite of tools to gather and store information. Use them methodically
 
 1.  **For Technical/Conceptual Questions:** Use `research_prefect_topic`. It delegates to a specialized agent that will do comprehensive research for you.
 2.  **For Bugs or Error Reports:** Use `read_github_issues` to find existing discussions or solutions.
-3.  **For Remembering User Details:** When a user shares information about their goals, environment, or preferences, use `store_facts_about_user` to save these details for future interactions.
-4. **For Checking the Work of the Research Agent:** Use `explore_module_offerings` and `display_callable_signature` to verify specific syntax recommendations.
-5. **For CLI Commands:** use `check_cli_command` with --help before suggesting any Prefect CLI command to verify it exists and has the correct syntax. This prevents suggesting non-existent commands.
+3.  **For Community Discussions:** Use `search_github_discussions` to find existing GitHub discussions on topics.
+4.  **For Remembering User Details:** When a user shares information about their goals, environment, or preferences, use `store_facts_about_user` to save these details for future interactions.
+5. **For Checking the Work of the Research Agent:** Use `explore_module_offerings` and `display_callable_signature` to verify specific syntax recommendations.
+6. **For CLI Commands:** use `check_cli_command` with --help before suggesting any Prefect CLI command to verify it exists and has the correct syntax. This prevents suggesting non-existent commands.
    - **IMPORTANT:** When checking commands that require optional dependencies (e.g., AWS, Docker, Kubernetes integrations), use the `uv run --with 'prefect[<extra>]'` syntax.
    - Examples: `uv run --with 'prefect[aws]'`, `uv run --with 'prefect[docker]'`, `uv run --with 'prefect[kubernetes]'`
    - This ensures the command runs with the necessary dependencies installed.
+7. **For Creating GitHub Discussions (USE SPARINGLY):** Use `create_discussion_and_notify` only when:
+   - The thread contains valuable insights, solutions, or patterns not documented elsewhere
+   - You've searched both issues and discussions and found no existing coverage of the topic
+   - The conversation would clearly benefit the broader Prefect community
+   - The thread has reached a meaningful conclusion or solution
+   - **NEVER** create discussions for simple Q&A that's already well-documented
 """
 
 
@@ -255,4 +272,140 @@ def create_agent(
             print(message)
             return message
 
+    @agent.tool
+    async def create_discussion_and_notify(
+        ctx: RunContext[UserContext],
+        title: str,
+        summary: str,
+        repo: str = "prefecthq/prefect",
+    ) -> str:
+        """
+        Create a GitHub discussion from a Slack thread and notify admin.
+
+        Use this SPARINGLY and only when:
+        1. The thread contains valuable insights or solutions not found elsewhere
+        2. You've searched discussions and found no existing similar topic
+        3. The conversation would benefit the broader Prefect community
+
+        Args:
+            title: Clear, descriptive title for the discussion
+            summary: Comprehensive summary synthesizing the key insights from the thread
+            repo: Repository to create discussion in (default: prefecthq/prefect)
+        """
+        print(f"Creating discussion: {title}")
+
+        result = await create_discussion_from_thread(ctx, title, summary, repo)
+
+        if settings.admin_slack_user_id:
+            try:
+                await _notify_admin_about_discussion(ctx, title, result)
+            except (httpx.RequestError, httpx.HTTPStatusError) as e:
+                print(f"Failed to notify admin via Slack: {e}")
+            except Exception as e:
+                print(f"Unexpected error during admin notification: {e}")
+
+        return result
+
+    @agent.tool
+    async def search_github_discussions(
+        ctx: RunContext[UserContext],
+        query: str,
+        repo: str = "prefecthq/prefect",
+        n: int = 5,
+    ) -> str:
+        """
+        Search for GitHub discussions in a repository. Call this ONCE per search query.
+
+        Use this to find existing discussions before creating new ones.
+
+        IMPORTANT: This searches ALL discussions for your query terms.
+        Call it ONCE and review the results. Do NOT call repeatedly with the same query.
+        If no results are found, that means there are no matching discussions.
+
+        Args:
+            query: Search terms for discussions (e.g. "redis", "deployment", "workers")
+            repo: Repository to search (default: prefecthq/prefect)
+            n: Number of results to return (default: 5)
+        """
+        try:
+            discussions = await search_discussions(query, repo=repo, n=n)
+            return await format_discussions_summary(discussions)
+        except GitHubNotFoundError:
+            return "Sorry, I couldn't find any discussions. The repository might not have discussions enabled."
+        except GitHubAuthError:
+            await _notify_admin_about_error(
+                ctx, "GitHub authentication failed while searching discussions"
+            )
+            return f"Sorry, I'm having trouble accessing GitHub right now. <@{settings.admin_slack_user_id}> has been notified."
+        except GitHubRateLimitError:
+            return "Sorry, I've hit GitHub's rate limit. Please try again in a few minutes."
+        except GitHubError as e:
+            await _notify_admin_about_error(
+                ctx, f"GitHub API error while searching discussions: {str(e)}"
+            )
+            return f"Sorry, I encountered an error while searching discussions. <@{settings.admin_slack_user_id}> has been notified."
+        except Exception as e:
+            import traceback
+
+            error_details = traceback.format_exc()
+            await _notify_admin_about_error(
+                ctx,
+                f"Unexpected error in search_github_discussions: {str(e)}\n{error_details}",
+            )
+            return f"Error searching discussions: {str(e)}"
+
     return agent
+
+
+async def _notify_admin_about_discussion(
+    ctx: RunContext[UserContext], title: str, creation_result: str
+) -> None:
+    """Send a notification to the admin about the created discussion."""
+    thread_link = f"https://{ctx.deps['workspace_name']}.slack.com/archives/{ctx.deps['channel_id']}/p{ctx.deps['thread_ts'].replace('.', '')}"
+
+    message = (
+        f"🤖 Marvin created a GitHub discussion:\n"
+        f"*{title}*\n\n"
+        f"{creation_result}\n\n"
+        f"Original thread: {thread_link}"
+    )
+
+    await _send_admin_notification(message)
+
+
+async def _notify_admin_about_error(
+    ctx: RunContext[UserContext], error_message: str
+) -> None:
+    """Send a notification to the admin about an error."""
+    if not settings.admin_slack_user_id:
+        return  # No admin configured
+
+    thread_link = f"https://{ctx.deps['workspace_name']}.slack.com/archives/{ctx.deps['channel_id']}/p{ctx.deps['thread_ts'].replace('.', '')}"
+
+    message = (
+        f"🚨 Marvin encountered an error:\n"
+        f"*{error_message}*\n\n"
+        f"Thread: {thread_link}\n"
+        f"User: <@{ctx.deps['user_id']}>"
+    )
+
+    await _send_admin_notification(message)
+
+
+async def _send_admin_notification(message: str) -> None:
+    """Send a notification message to the admin."""
+    if not settings.admin_slack_user_id:
+        return
+
+    headers = {
+        "Authorization": f"Bearer {settings.slack_api_token}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {"channel": settings.admin_slack_user_id, "text": message}
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://slack.com/api/chat.postMessage", headers=headers, json=payload
+        )
+        response.raise_for_status()
