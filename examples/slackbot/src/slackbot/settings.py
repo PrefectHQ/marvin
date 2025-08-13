@@ -80,7 +80,7 @@ class SlackbotSettings(BaseSettings):
 
     # Tool use limits
     max_tool_calls_per_turn: int = Field(
-        default=5,
+        default=50,
         description="Maximum number of tool calls allowed per agent turn to prevent runaway tool use",
     )
 
