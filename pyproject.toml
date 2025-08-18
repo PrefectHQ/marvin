@@ -9,7 +9,6 @@ dependencies = [
     "aiosqlite>=0.20.0",
     "alembic>=1.12.0",
     "jinja2>=3.1.4",
-    "openai<=1.99.1",  # Pin to avoid Union instantiation bug with pydantic-ai 0.6.x
     "partial-json-parser>=0.2.1.1.post5",
     "pydantic-ai>=0.6.0",
     "pydantic-settings>=2.6.1",
