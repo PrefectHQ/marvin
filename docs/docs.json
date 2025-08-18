@@ -40,7 +40,9 @@
                         "pages": [
                             "concepts/tasks",
                             "concepts/agents",
-                            "concepts/threads"
+                            "concepts/threads",
+                            "concepts/tools-and-context",
+                            "concepts/teams"
                         ]
                     },
                     {
