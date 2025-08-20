@@ -16,7 +16,7 @@ from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
 
 from slackbot._internal.constants import WORKSPACE_TO_CHANNEL_ID
-from slackbot._internal.templates import WELCOME_MESSAGE
+from slackbot._internal.templates import CHANNEL_REDIRECT_MESSAGE, WELCOME_MESSAGE
 from slackbot.assets import summarize_thread
 from slackbot.core import (
     Database,
@@ -149,7 +149,9 @@ async def handle_message(payload: SlackPayload, db: Database):
                     f"Redirecting user from {event.channel} to {designated_channel_id}"
                 )
                 await post_slack_message(
-                    message=f"*sigh* Wrong room. Try <#{designated_channel_id}>.",
+                    message=CHANNEL_REDIRECT_MESSAGE.format(
+                        channel_id=designated_channel_id
+                    ),
                     channel_id=event.channel,
                     thread_ts=thread_ts,
                 )
