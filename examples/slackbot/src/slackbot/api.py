@@ -226,7 +226,7 @@ async def summarize_thread_so_far(flow: Flow, flow_run: FlowRun, state: State[An
     result = await state.result()
 
     # Skip summarization for redirects and other non-conversation states
-    if "conversation" not in result:
+    if not isinstance(result, dict) or "conversation" not in result:
         return
 
     conversation = result["conversation"]
