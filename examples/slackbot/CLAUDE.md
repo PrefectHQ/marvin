@@ -1,6 +1,6 @@
 # Marvin Slackbot
 
-An intelligent Slack bot built with Marvin that provides AI-powered assistance in Slack channels.
+An intelligent Slack bot that provides AI-powered assistance in Slack channels using GPT-5 or Claude models.
 
 ## Architecture
 
@@ -48,7 +48,20 @@ docker run marvin-slackbot
 
 ## Configuration
 
-Set up environment variables or `.env` file:
-- Slack bot token and signing secret
-- AI model configuration  
-- Database settings for memory persistence 
+Key configuration points:
+- **Model Selection**: Configured via `marvin_ai_model` Prefect Variable (GPT-5 or Claude)
+- **Tool Limits**: Max 50 tool calls per turn (configurable via `MARVIN_SLACKBOT_MAX_TOOL_CALLS_PER_TURN`)
+- **Message Limits**: Max 500 tokens per user message (configurable)
+- **Temperature**: Auto-adjusts to 1.0 for GPT-5, 0.2 for others
+
+Required Prefect Secrets:
+- `test-slack-api-token`: Slack bot OAuth token
+- `openai-api-key`: For GPT models
+- `anthropic-api-key`: For Claude models
+- `marvin-slackbot-github-token`: GitHub API access
+- `tpuf-api-key`: TurboPuffer vector storage
+
+Required Prefect Variables:
+- `marvin_ai_model`: Model selection (e.g., "gpt-5", "claude-3-5-sonnet-latest")
+- `admin-slack-id`: Admin user ID for notifications
+- `marvin_welcome_message`: New member welcome message 

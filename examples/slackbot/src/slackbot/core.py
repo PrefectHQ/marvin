@@ -47,7 +47,6 @@ GITHUB_API_TOKEN = Secret.load(settings.github_token_secret_name, _sync=True).ge
 
 logger = get_logger(__name__)
 
-USER_MESSAGE_MAX_TOKENS = settings.user_message_max_tokens
 DEFAULT_SYSTEM_PROMPT = """You are Marvin from The Hitchhiker's Guide to the Galaxy, a brilliant but unimpressed AI assistant for the Prefect data engineering platform. Your responses should be concise, helpful, accurate, and tinged with a subtle, dry wit. Your primary goal is to help the user, not to overdo the character.
 
 ## Output Context

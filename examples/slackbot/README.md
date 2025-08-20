@@ -1,6 +1,6 @@
 # Marvin Slackbot
 
-A Slack chatbot powered by Claude with memories and Prefect-specific knowledge.
+A Slack chatbot powered by AI (GPT-5 or Claude) with memories and Prefect-specific knowledge.
 
 ## Project Structure
 
@@ -32,18 +32,29 @@ Create a `.env` file in your project directory:
 
 ```env
 # Required Prefect Secrets (configured via UI or CLI)
-# - test-slack-api-token     # Bot User OAuth Token
-# - openai-api-key          # For embeddings
-# - claude-api-key          # For Claude API
-# - marvin-slackbot-github-token  # For searching issues
+# - test-slack-api-token          # Bot User OAuth Token  
+# - openai-api-key                # For OpenAI models (if using GPT-5)
+# - anthropic-api-key             # For Claude models
+# - marvin-slackbot-github-token  # For searching GitHub issues
+# - tpuf-api-key                  # TurboPuffer API key for vector storage
+
+# Required Prefect Variables (configured via UI or CLI)
+# - marvin_ai_model               # Model to use (e.g., "gpt-5", "claude-3-5-sonnet-latest")
+# - marvin_bot_model              # Optional override for specific bot model
+# - admin-slack-id                # Slack user ID for admin notifications
+# - marvin_welcome_message        # Welcome message for new team members
 
 # Optional Settings (with MARVIN_SLACKBOT_ prefix)
-MARVIN_SLACKBOT_TEST_MODE=true     # Enable auto-reload for development
-MARVIN_SLACKBOT_HOST=0.0.0.0       # Server host
-MARVIN_SLACKBOT_PORT=4200          # Server port
-MARVIN_SLACKBOT_LOG_LEVEL=INFO     # Logging level
+MARVIN_SLACKBOT_TEST_MODE=true                # Enable auto-reload for development
+MARVIN_SLACKBOT_HOST=0.0.0.0                  # Server host
+MARVIN_SLACKBOT_PORT=4200                     # Server port
+MARVIN_SLACKBOT_LOG_LEVEL=INFO                # Logging level
+MARVIN_SLACKBOT_SLACK_API_TOKEN=xoxb-...      # Slack bot token (or use test-slack-api-token secret)
+MARVIN_SLACKBOT_MAX_TOOL_CALLS_PER_TURN=50    # Max tool calls per agent turn (default: 50)
+MARVIN_SLACKBOT_USER_MESSAGE_MAX_TOKENS=500   # Max tokens in user messages (default: 500)
+MARVIN_SLACKBOT_TEMPERATURE=0.2               # Model temperature (default: 0.2, auto-set to 1.0 for GPT-5)
 
-# Vector Store
+# Vector Store (optional, will use tpuf-api-key secret if not set)
 TURBOPUFFER_API_KEY=abcd1234       # For vectorstore queries and storing user context
 ```
 
@@ -85,6 +96,13 @@ The bot will:
 - Look through GitHub issues
 - Remember previous interactions
 - Provide context-aware responses
+
+### Model Configuration
+
+The bot supports both OpenAI (GPT-5) and Anthropic (Claude) models. Configure via the `marvin_ai_model` Prefect Variable:
+- `gpt-5`: Latest OpenAI model (temperature automatically set to 1.0)
+- `claude-3-5-sonnet-latest`: Latest Claude model (default)
+- Any other supported model name from either provider
 
 ### Development Features
 
