@@ -189,8 +189,14 @@ def _process_pydantic_event(
     tools_map: dict[str, Callable[..., Any]],
     end_turn_tools_map: dict[str, EndTurn],
 ) -> Event | None:
-    def _get_snapshot(index: int) -> ModelResponsePart:
-        return parts_manager.get_parts()[index]
+    def _get_snapshot(index: int) -> ModelResponsePart | None:
+        # Use the internal _parts list directly since event.index refers to that.
+        # get_parts() filters out ToolCallPartDelta objects which causes index mismatch.
+        # Note: _parts can contain both ModelResponsePart and ToolCallPartDelta
+        if index < len(parts_manager._parts):
+            return parts_manager._parts[index]
+        # This should never happen with valid events from pydantic-ai
+        return None
 
     # Handle Part Start Events
     if isinstance(event, PartStartEvent):
@@ -227,7 +233,7 @@ def _process_pydantic_event(
                     tool_call_id=event.part.tool_call_id,
                 ),
                 snapshot=snapshot,
-                tool_call_id=snapshot.tool_call_id,
+                tool_call_id=snapshot.tool_call_id if snapshot else None,
                 tool=tools_map.get(event.part.tool_name),
             )
     # Handle Part Delta Events
