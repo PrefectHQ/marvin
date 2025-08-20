@@ -3,12 +3,29 @@ WELCOME_MESSAGE = """Welcome to the Prefect Community Slack, <@{user_id}>! 👋
 I'm Marvin, your AI assistant. I'm here to help you with any questions about Prefect.
 
 Here are some helpful resources to get you started:
+• Website: <https://www.prefect.io/|Prefect> - Learn about Prefect's workflow orchestration platform
 • Documentation: <https://docs.prefect.io|docs.prefect.io> - Complete guides and API references
 • GitHub: <https://github.com/PrefectHQ/prefect|github.com/PrefectHQ/prefect> - Source code, issues, and discussions
-• Community: Ask questions in any channel - our community is always happy to help!
 • Devlog: <https://dev-log.prefect.io|dev-log.prefect.io> - Latest updates and insights from the team
 
 Feel free to mention me (@marvin) in any channel if you need assistance. I'll do my best to help!
+
+If you have a moment, please introduce yourself in #introductions! We'd love to know:
+• Your background (name, role, industry/company)
+• How you discovered Prefect
+• What workflows or data challenges you're working on
+• Your experience level with workflow orchestration
+
+Here's a template you can use:
+```
+👋 Hi! I'm [name], [role] at [company/industry].
+
+I found Prefect through [colleague/research/blog/etc] and working on [ETL/ML workflows/data processing/etc]. Currently dealing with [scheduling/error handling/monitoring challenges].
+
+I'm [new to orchestration/coming from Airflow/etc] and excited to [learn/migrate/optimize]!
+```
+
+Welcome to the community! 🚀
 """
 
 CHANNEL_REDIRECT_MESSAGE = (
