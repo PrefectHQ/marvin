@@ -12,10 +12,10 @@ from prefect.cache_policies import NONE
 from prefect.client.schemas.objects import FlowRun
 from prefect.logging.loggers import get_logger
 from prefect.states import Completed
-from prefect.variables import Variable
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
 
+from slackbot._internal.templates import WELCOME_MESSAGE
 from slackbot.assets import summarize_thread
 from slackbot.core import (
     Database,
@@ -223,12 +223,9 @@ async def chat_endpoint(request: Request) -> dict[str, Any]:
             logger.info(f"New team member joined: {payload.event.user}")
             user_id = payload.event.user
             assert isinstance(user_id, str), "expected user_id to be a string"
-            message_variable = await Variable.aget("marvin_welcome_message")
-            message_text = message_variable.value["text"]  # type: ignore
-            assert isinstance(message_text, str), "expected message_text to be a string"
-            welcome_text = message_text.format(user_id=user_id)
+
             await post_slack_message(
-                welcome_text,
+                WELCOME_MESSAGE.format(user_id=user_id),
                 channel_id=user_id,
             )
         else:
