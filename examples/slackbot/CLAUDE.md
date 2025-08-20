@@ -63,5 +63,4 @@ Required Prefect Secrets:
 
 Required Prefect Variables:
 - `marvin_ai_model`: Model selection (e.g., "gpt-5", "claude-3-5-sonnet-latest")
-- `admin-slack-id`: Admin user ID for notifications
-- `marvin_welcome_message`: New member welcome message 
+- `admin-slack-id`: Admin user ID for notifications 

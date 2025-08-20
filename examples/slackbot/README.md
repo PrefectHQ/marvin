@@ -42,7 +42,6 @@ Create a `.env` file in your project directory:
 # - marvin_ai_model               # Model to use (e.g., "gpt-5", "claude-3-5-sonnet-latest")
 # - marvin_bot_model              # Optional override for specific bot model
 # - admin-slack-id                # Slack user ID for admin notifications
-# - marvin_welcome_message        # Welcome message for new team members
 
 # Optional Settings (with MARVIN_SLACKBOT_ prefix)
 MARVIN_SLACKBOT_TEST_MODE=true                # Enable auto-reload for development
