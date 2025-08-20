@@ -20,7 +20,7 @@ Here's a template you can use:
 ```
 👋 Hi! I'm [name], [role] at [company/industry].
 
-I found Prefect through [colleague/research/blog/etc] and working on [ETL/ML workflows/data processing/etc]. Currently dealing with [scheduling/error handling/monitoring challenges].
+I found Prefect through [colleague/research/blog/etc] and am working on [ETL/ML workflows/data processing/etc]. Currently dealing with [scheduling/error handling/monitoring challenges].
 
 I'm [new to orchestration/coming from Airflow/etc] and excited to [learn/migrate/optimize]!
 ```
