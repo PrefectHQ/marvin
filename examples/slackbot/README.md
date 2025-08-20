@@ -103,6 +103,18 @@ The bot supports both OpenAI (GPT-5) and Anthropic (Claude) models. Configure vi
 - `claude-3-5-sonnet-latest`: Latest Claude model (default)
 - Any other supported model name from either provider
 
+### Channel Restrictions
+
+The bot can be configured to only respond in designated channels per workspace. Users mentioning the bot in other channels will receive a redirect message. The workspace-to-channel mapping is configured in `_internal/constants.py`:
+
+```python
+WORKSPACE_TO_CHANNEL_ID = {
+    "TL09B008Y": "C04DZJC94DC",  # Prefect Community -> #ask-marvin
+    "TAN3D79AL": "C046WGGKF4P",  # Prefect -> #ask-marvin-tests
+    # Add more workspace mappings as needed
+}
+```
+
 ### Development Features
 
 - Auto-reload in test mode

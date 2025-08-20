@@ -15,7 +15,8 @@ from prefect.states import Completed
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
 
-from slackbot._internal.templates import WELCOME_MESSAGE
+from slackbot._internal.constants import WORKSPACE_TO_CHANNEL_ID
+from slackbot._internal.templates import CHANNEL_REDIRECT_MESSAGE, WELCOME_MESSAGE
 from slackbot.assets import summarize_thread
 from slackbot.core import (
     Database,
@@ -38,6 +39,20 @@ BOT_MENTION = r"<@(\w+)>"
 
 
 logger = get_logger(__name__)
+
+
+def get_designated_channel_for_workspace(team_id: str) -> str | None:
+    """Get the designated channel ID for a given workspace team ID."""
+    return WORKSPACE_TO_CHANNEL_ID.get(team_id)
+
+
+def check_if_designated_channel(channel_id: str, team_id: str) -> bool:
+    """Check if the given channel is the designated channel for the workspace."""
+    designated_channel = get_designated_channel_for_workspace(team_id)
+    if not designated_channel:
+        # If no designated channel is configured, allow all channels
+        return True
+    return channel_id == designated_channel
 
 
 @task(name="run agent loop")
@@ -122,6 +137,33 @@ async def handle_message(payload: SlackPayload, db: Database):
         return Completed(message="Message too long", name="SKIPPED")
 
     if re.search(BOT_MENTION, user_message) and payload.authorizations:
+        # Check if this is the designated channel
+        team_id = payload.team_id or ""
+        is_designated = check_if_designated_channel(event.channel, team_id)
+
+        if not is_designated:
+            # Send redirect message to the designated channel
+            designated_channel_id = get_designated_channel_for_workspace(team_id)
+            if designated_channel_id:
+                logger.info(
+                    f"Redirecting user from {event.channel} to {designated_channel_id}"
+                )
+                await post_slack_message(
+                    message=CHANNEL_REDIRECT_MESSAGE.format(
+                        channel_id=designated_channel_id
+                    ),
+                    channel_id=event.channel,
+                    thread_ts=thread_ts,
+                )
+                return Completed(
+                    message="Redirected to designated channel",
+                    name="REDIRECTED",
+                    data=dict(
+                        from_channel=event.channel,
+                        to_channel=designated_channel_id,
+                    ),
+                )
+
         logger.info(
             f"Processing message in thread {thread_ts}\nUser message: {cleaned_message}"
         )
@@ -182,6 +224,11 @@ async def handle_message(payload: SlackPayload, db: Database):
 @handle_message.on_completion
 async def summarize_thread_so_far(flow: Flow, flow_run: FlowRun, state: State[Any]):
     result = await state.result()
+
+    # Skip summarization for redirects and other non-conversation states
+    if not isinstance(result, dict) or "conversation" not in result:
+        return
+
     conversation = result["conversation"]
 
     if len(conversation) % 4 != 0:  # only summarize thread every 4 messages
