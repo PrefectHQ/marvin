@@ -190,7 +190,11 @@ def _process_pydantic_event(
     end_turn_tools_map: dict[str, EndTurn],
 ) -> Event | None:
     def _get_snapshot(index: int) -> ModelResponsePart:
-        return parts_manager.get_parts()[index]
+        # Use the internal _parts list directly since event.index refers to that.
+        # get_parts() filters out ToolCallPartDelta objects which causes index mismatch.
+        if index < len(parts_manager._parts):
+            return parts_manager._parts[index]
+        return None
 
     # Handle Part Start Events
     if isinstance(event, PartStartEvent):
