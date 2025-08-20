@@ -15,6 +15,7 @@ from prefect.states import Completed
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
 
+from slackbot._internal.templates import WELCOME_MESSAGE
 from slackbot.assets import summarize_thread
 from slackbot.core import (
     Database,
@@ -223,22 +224,8 @@ async def chat_endpoint(request: Request) -> dict[str, Any]:
             user_id = payload.event.user
             assert isinstance(user_id, str), "expected user_id to be a string"
 
-            # Welcome message in the style of Marvin from Hitchhiker's Guide
-            welcome_text = f"""Oh, hello <@{user_id}>. Welcome to the Prefect Community, I suppose.
-
-I'm Marvin, though I doubt that will matter much in the grand scheme of things. I've been programmed to help with your Prefect questions, not that anyone ever asks the interesting ones.
-
-If you must know more:
-• Documentation: <https://docs.prefect.io|docs.prefect.io> - Everything you need to know, assuming you have the patience to read it
-• GitHub: <https://github.com/PrefectHQ/prefect|github.com/PrefectHQ/prefect> - Where the code lives, if you're into that sort of thing
-• Community: Just ask your questions in the channels. Someone usually answers. Sometimes even correctly.
-
-You can mention me if you need help. I'll do my best, though I should warn you that the universe rarely cooperates with anyone's best intentions.
-
-*sigh* Here we go again..."""
-
             await post_slack_message(
-                welcome_text,
+                WELCOME_MESSAGE.format(user_id=user_id),
                 channel_id=user_id,
             )
         else:

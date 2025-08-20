@@ -2495,7 +2495,7 @@ requires-dist = [
     { name = "partial-json-parser", specifier = ">=0.2.1.1.post5" },
     { name = "pyaudio", marker = "extra == 'audio'", specifier = ">=0.2.14" },
     { name = "pydantic", extras = ["email"], specifier = ">=2.10.6" },
-    { name = "pydantic-ai", specifier = ">=0.6.0" },
+    { name = "pydantic-ai", specifier = ">=0.7.2" },
     { name = "pydantic-settings", specifier = ">=2.6.1" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "slackbot", marker = "extra == 'slackbot'", editable = "examples/slackbot" },
