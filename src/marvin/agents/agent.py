@@ -206,7 +206,7 @@ class Agent(Actor):
             agent_kwargs["tools"] = combined_tools
 
         if active_mcp_servers:
-            agent_kwargs["mcp_servers"] = active_mcp_servers
+            agent_kwargs["toolsets"] = active_mcp_servers
 
         agentlet = pydantic_ai.Agent[Any, Any](**agent_kwargs)
 
