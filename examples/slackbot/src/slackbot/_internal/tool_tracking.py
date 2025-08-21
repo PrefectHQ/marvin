@@ -56,13 +56,13 @@ class ToolUsageTracker:
         token = current_tool.set(tool_name)
         try:
             counts = self.get_counts()
-            
+
             lines = [
-                "🔄 Researching your answer... this may take a while", 
+                "🔄 Researching your answer... this may take a while",
                 "",
                 "",
                 f"🔧 Using tool: `{tool_name}`",
-                ""
+                "",
             ]
 
             if counts:
