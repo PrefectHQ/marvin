@@ -56,7 +56,14 @@ class ToolUsageTracker:
         token = current_tool.set(tool_name)
         try:
             counts = self.get_counts()
-            lines = [f"🔧 Using: `{tool_name}`", ""]
+
+            lines = [
+                "🔄 Researching your answer... this may take a while",
+                "",
+                "",
+                f"🔧 Using tool: `{tool_name}`",
+                "",
+            ]
 
             if counts:
                 lines.append("📊 Tools used:")
