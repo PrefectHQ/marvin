@@ -8,9 +8,9 @@ Here are some helpful resources to get you started:
 • GitHub: <https://github.com/PrefectHQ/prefect|github.com/PrefectHQ/prefect> - Source code, issues, and discussions
 • Devlog: <https://dev-log.prefect.io|dev-log.prefect.io> - Latest updates and insights from the team
 
-Feel free to mention me (@Marvin) in any channel if you need assistance. I'll do my best to help!
+Feel free to mention me <@ULVA73B9P|Marvin> in any channel if you need assistance. I'll do my best to help!
 
-If you have a moment, please introduce yourself in #introductions! We'd love to know:
+If you have a moment, please introduce yourself in <#C012PM4MRBM|introductions>! We'd love to know:
 • Your background (name, role, industry/company)
 • How you discovered Prefect
 • What workflows or data challenges you're working on
