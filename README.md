@@ -337,9 +337,6 @@ Marvin includes high-level functions for the most common tasks, like summarizing
 - 🔍 **`marvin.extract`**: Extract structured information from a text
 - 🪄 **`marvin.cast`**: Transform data into a different type
 - ✨ **`marvin.generate`**: Create structured data from a description
-- 💬 **`marvin.say`**: Converse with an LLM
-- 🧠 **`marvin.plan`**: Break down complex objectives into tasks
-- 🦾 **`@marvin.fn`**: Write custom AI functions without source code
 
 All Marvin functions have thread management built-in, meaning they can be composed into chains of tasks that share context and history.
 
@@ -363,27 +360,6 @@ Marvin 3.0 combines the DX of Marvin 2.0 with the powerful agentic engine of [Co
   ```
 - **Database Changes**: Thread/message history is now stored in SQLite. During development:
   - No database migrations are currently available; expect to reset data during updates
-
-### New Features
-- **Swarms**: Use `marvin.Swarm` for OpenAI-style agent swarms:
-  ```python
-  import marvin
-
-  swarm = marvin.Swarm(
-      [
-          marvin.Agent('Agent A'), 
-          marvin.Agent('Agent B'), 
-          marvin.Agent('Agent C'),
-      ]
-  )
-
-  swarm.run('Everybody say hi!')
-  ```
-- **Teams**: A `Team` lets you control how multiple agents (or even nested teams!) work together and delegate to each other. A `Swarm` is actually a type of team in which all agents are allowed to delegate to each other at any time.
-- **Marvin Functions**: Marvin's user-friendly functions have been rewritten to use the ControlFlow engine, which means they can be seamlessly integrated into your workflows. A few new functions have been added, including `summarize` and `say`.
-
-### Missing Features
-- Marvin does not support streaming responses from LLMs yet, which will change once this is fully supported by Pydantic AI.
 
 
 ## Workflow Example
