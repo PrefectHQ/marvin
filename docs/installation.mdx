@@ -7,7 +7,7 @@ icon: download
 ## Requirements
 
 - Python 3.10 or higher
-- An API key from an LLM provider (OpenAI by default)
+- An API key from an LLM provider (OpenAI by default, or [AI/ML API](https://aimlapi.com/))
 
 ## Install `marvin`
 
@@ -38,6 +38,12 @@ By default, Marvin uses OpenAI's models. Set your API key as an environment vari
 
 ```bash
 export OPENAI_API_KEY="your-api-key"
+```
+
+To use AI/ML API, set the `AIML_API_KEY` variable instead:
+
+```bash
+export AIML_API_KEY="your-api-key"
 ```
 
 To use another provider, see the docs on [configuring LLMs](/guides/configure-llms).
