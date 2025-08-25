@@ -19,7 +19,7 @@ Install `marvin`:
 uv pip install marvin
 ```
 
-Configure your LLM provider (Marvin uses OpenAI by default but natively supports [all Pydantic AI models](https://ai.pydantic.dev/models/)):
+Configure your LLM provider (Marvin uses OpenAI by default but also supports providers like [AI/ML API](https://aimlapi.com/) and other [Pydantic AI models](https://ai.pydantic.dev/models/)):
 
 ```bash
 export OPENAI_API_KEY=your-api-key
