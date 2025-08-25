@@ -53,8 +53,8 @@ class AIMLAPIProvider(Provider[AsyncOpenAI]):
         api_key = api_key or os.getenv("AIML_API_KEY")
         if not api_key and openai_client is None:
             raise UserError(
-                "Set the `AIML_API_KEY` environment variable or pass it via `AIMLAPIProvider(api_key=...)` "
-                "to use the AI/ML API provider."
+                "You must provide either an API key (set the `AIML_API_KEY` environment variable or pass it via `AIMLAPIProvider(api_key=...)`) "
+                "or an OpenAI client (pass it via `AIMLAPIProvider(openai_client=...)`) to use the AI/ML API provider."
             )
 
         if openai_client is not None:
