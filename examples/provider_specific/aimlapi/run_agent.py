@@ -22,5 +22,9 @@ writer = marvin.Agent(
     tools=[write_file],
 )
 
-result = marvin.run("how to use pydantic? write haiku to docs.md", agents=[writer])
-print(result)
+async def main():
+    result = await marvin.run("how to use pydantic? write haiku to docs.md", agents=[writer])
+    print(result)
+
+if __name__ == "__main__":
+    asyncio.run(main())
