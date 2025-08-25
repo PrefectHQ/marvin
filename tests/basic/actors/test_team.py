@@ -291,3 +291,39 @@ async def test_team_delegation():
     # Delegation tools when agent1 is active (can delegate to agent2)
     team.active_member = agent1
     assert len(team.get_end_turn_tools()) == 1
+
+
+async def test_team_get_agentlet_with_mcp_servers():
+    """Test that Team.get_agentlet() properly handles active_mcp_servers parameter."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from pydantic_ai.mcp import MCPServer
+
+    # Create agents
+    agent1 = Agent(name="Agent 1")
+    agent2 = Agent(name="Agent 2")
+
+    # Create team
+    team = Team(members=[agent1, agent2])
+
+    # Mock the active member's get_agentlet method to verify it receives mcp_servers
+    mock_agentlet = AsyncMock()
+    team.active_member.get_agentlet = mock_agentlet
+
+    # Create mock MCP server
+    mock_mcp_server = MagicMock(spec=MCPServer)
+
+    # Call get_agentlet with mcp_servers
+    tools = []
+    end_turn_tools = []
+    mcp_servers = [mock_mcp_server]
+
+    await team.get_agentlet(
+        tools=tools, end_turn_tools=end_turn_tools, active_mcp_servers=mcp_servers
+    )
+
+    # Verify the active member's get_agentlet was called with the mcp_servers
+    mock_agentlet.assert_called_once()
+    call_kwargs = mock_agentlet.call_args.kwargs
+    assert "active_mcp_servers" in call_kwargs
+    assert call_kwargs["active_mcp_servers"] == mcp_servers
