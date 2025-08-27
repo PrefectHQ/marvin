@@ -54,7 +54,7 @@ A team is a container that maintains state for a group of agents.
   ```
 - **`get_agentlet`**
   ```python
-  def get_agentlet(self, tools: list[Callable[..., Any]], end_turn_tools: list[EndTurn]) -> pydantic_ai.Agent[Any, Any]
+  def get_agentlet(self, tools: list[Callable[..., Any]], end_turn_tools: list[EndTurn], active_mcp_servers: list[MCPServer] | None = None) -> pydantic_ai.Agent[Any, Any]
   ```
 - **`get_end_turn_tools`**
   ```python

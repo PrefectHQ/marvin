@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Callable
 
 import pydantic_ai
 from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.mcp import MCPServer
 
 from marvin.agents.actor import Actor
 from marvin.agents.names import TEAM_NAMES
@@ -74,10 +75,12 @@ class Team(Actor):
         self,
         tools: list[Callable[..., Any]],
         end_turn_tools: list["EndTurn"],
+        active_mcp_servers: list[MCPServer] | None = None,
     ) -> pydantic_ai.Agent[Any, Any]:
         return await self.active_member.get_agentlet(
             tools=self.get_tools() + tools,
             end_turn_tools=self.get_end_turn_tools() + end_turn_tools,
+            active_mcp_servers=active_mcp_servers,
         )
 
     def friendly_name(self, verbose: bool = True) -> str:
