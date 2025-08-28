@@ -2,6 +2,10 @@
 
 Marvin is a lightweight AI engineering toolkit for building natural language interfaces that are reliable, scalable, and easy to trust.
 
+## Reproductions
+- use the repros folder to reproduce the results (e.g. `uv run repros/1234.py`)
+- this folder is not checked into git
+
 ## Architecture & Design Philosophy
 
 - **Aggressively minimal and elegant**: Keep implementations simple and focused

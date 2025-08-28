@@ -24,3 +24,4 @@ wheels/
 # database files
 **/*.db
 **/*.sqlite
+sandbox/

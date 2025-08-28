@@ -38,6 +38,19 @@ class Team(Actor):
     delegates: dict[Actor, list[Actor]] = field(default_factory=dict, repr=False)
 
     def __post_init__(self):
+        # Show deprecation warning for all Team instantiations
+        import warnings
+
+        from marvin._internal.deprecation import MarvinDeprecationWarning
+
+        warnings.warn(
+            f"{self.__class__.__module__}.{self.__class__.__name__} is deprecated and will be removed after Sep 2025. "
+            "Team functionality is incomplete and does not provide meaningful agent collaboration. "
+            "Consider using individual Agents with explicit coordination instead.",
+            MarvinDeprecationWarning,
+            stacklevel=3,
+        )
+
         if not self.members:
             raise ValueError("Team must have at least one member")
         self.active_member = self.members[0]
