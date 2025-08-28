@@ -4,11 +4,11 @@ description: Coordinate multiple AI agents to solve complex problems
 icon: users
 ---
 
-:::warning Deprecation Notice
-**Teams and Swarms are deprecated as of August 2025** due to known issues with delegation loops and incomplete implementation. These features will be removed after September 2025.
+<Warning>
+**Deprecation Notice:** Teams and Swarms are deprecated as of August 2025 due to known issues with delegation loops and incomplete implementation. These features will be removed after September 2025.
 
 **Recommended alternative:** Use individual Agents with explicit coordination through your application logic.
-:::
+</Warning>
 
 Teams in Marvin allow multiple agents to collaborate on tasks, combining their specialized skills and perspectives to achieve better results than a single agent could alone.
 
@@ -43,9 +43,9 @@ Marvin offers several team configurations:
 
 ### Swarm (Deprecated)
 
-:::caution
+<Warning>
 **Swarm is deprecated** and has known issues with infinite delegation loops. It is not recommended for production use.
-:::
+</Warning>
 
 A Swarm is the simplest type of team, where all agents can freely collaborate and delegate to each other. Any agent in the swarm can ask another agent for help at any time.
 
