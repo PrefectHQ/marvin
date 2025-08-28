@@ -38,6 +38,19 @@ class Team(Actor):
     delegates: dict[Actor, list[Actor]] = field(default_factory=dict, repr=False)
 
     def __post_init__(self):
+        # Show deprecation warning for all Team instantiations
+        import warnings
+
+        from marvin._internal.deprecation import MarvinDeprecationWarning
+
+        warnings.warn(
+            f"{self.__class__.__module__}.{self.__class__.__name__} is deprecated and will be removed after Feb 2026. "
+            "Team functionality is incomplete and does not provide meaningful agent collaboration. "
+            "Consider using individual Agents with explicit coordination instead.",
+            MarvinDeprecationWarning,
+            stacklevel=3,
+        )
+
         if not self.members:
             raise ValueError("Team must have at least one member")
         self.active_member = self.members[0]
@@ -101,7 +114,11 @@ class Team(Actor):
 
 @dataclass(kw_only=True)
 class Swarm(Team):
-    """A swarm is a team that permits all agents to delegate to each other."""
+    """A swarm is a team that permits all agents to delegate to each other.
+
+    .. deprecated:: 3.0
+        Swarm has known issues with infinite delegation loops. Use individual Agents instead.
+    """
 
     def __post_init__(self):
         super().__post_init__()

@@ -4,6 +4,12 @@ description: Coordinate multiple AI agents to solve complex problems
 icon: users
 ---
 
+:::warning Deprecation Notice
+**Teams and Swarms are deprecated as of January 2025** due to known issues with delegation loops and incomplete implementation. These features will be removed in June 2025.
+
+**Recommended alternative:** Use individual Agents with explicit coordination through your application logic.
+:::
+
 Teams in Marvin allow multiple agents to collaborate on tasks, combining their specialized skills and perspectives to achieve better results than a single agent could alone.
 
 ## What are Teams?
@@ -35,7 +41,11 @@ print(article)
 
 Marvin offers several team configurations:
 
-### Swarm
+### Swarm (Deprecated)
+
+:::caution
+**Swarm is deprecated** and has known issues with infinite delegation loops. It is not recommended for production use.
+:::
 
 A Swarm is the simplest type of team, where all agents can freely collaborate and delegate to each other. Any agent in the swarm can ask another agent for help at any time.
 
@@ -125,9 +135,13 @@ class HierarchicalTeam(Team):
     leader: Agent = field(repr=False)
     specialists: list[Agent] = field(repr=False)
     
+    # Override members field to compute it from leader and specialists
+    members: list[Agent] = field(init=False, repr=False, default_factory=list)
+    
     def __post_init__(self):
         self.members = [self.leader] + self.specialists
-        self.active_member = self.leader
+        # Call parent __post_init__ to properly initialize the team
+        super().__post_init__()
         self.delegates = {self.leader: self.specialists}
         
 # Usage

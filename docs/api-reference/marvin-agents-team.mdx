@@ -36,6 +36,9 @@ class Swarm(name: str = (lambda: random.choice(TEAM_NAMES))(), instructions: str
 ```
 A swarm is a team that permits all agents to delegate to each other.
 
+.. deprecated:: 3.0
+    Swarm has known issues with infinite delegation loops. Use individual Agents instead.
+
 ### `Team`
 ```python
 class Team(name: str = (lambda: random.choice(TEAM_NAMES))(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('team.jinja'), members: list[Actor], delegates: dict[Actor, list[Actor]] = dict())
