@@ -28,11 +28,11 @@ def generate_deprecation_message(
 ) -> str:
     """Generate a deprecation warning message."""
     if start_date is None and end_date is None:
-        # Default to 6 months from now
-        end_date = datetime.now() + timedelta(days=180)
+        # Default to 1 month from now
+        end_date = datetime.now() + timedelta(days=30)
     elif start_date and not end_date:
-        # Calculate end date as 6 months after start
-        end_date = start_date + timedelta(days=180)
+        # Calculate end date as 1 month after start
+        end_date = start_date + timedelta(days=30)
 
     end_date_str = end_date.strftime("%b %Y") if end_date else "unknown"
 
