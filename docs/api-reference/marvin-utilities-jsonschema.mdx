@@ -79,7 +79,7 @@ Create a field with simplified default handling.
 
 ### `create_numeric_type`
 ```python
-def create_numeric_type(base: Type[Union[int, float]], schema: Mapping[str, Any]) -> type | Annotated[Any, ...]
+def create_numeric_type(base: Type[int | float], schema: Mapping[str, Any]) -> type | Annotated[Any, ...]
 ```
 Create numeric type with optional constraints.
 

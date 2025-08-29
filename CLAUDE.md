@@ -39,7 +39,7 @@ Marvin is a lightweight AI engineering toolkit for building natural language int
 ### Finding Things
 - Use `rg` for searching, not grep
 - Use `ls` and `tree` for navigation
-- Check git context with `gh` and `git` commands
+- Check git context with using the GitHub MCP server
 - Think like a hacker with good intentions - search in site-packages when needed
 
 ### Linter Philosophy

@@ -17,7 +17,6 @@ from typing import (
     AsyncGenerator,
     Generic,
     Literal,
-    Optional,
     Sequence,
     TypeAlias,
     TypeVar,
@@ -45,7 +44,7 @@ T = TypeVar("T")
 NOTSET: Literal["__NOTSET__"] = "__NOTSET__"
 
 # Global context var for current task
-_current_task: ContextVar[Optional["Task[Any]"]] = ContextVar(
+_current_task: ContextVar["Task[Any] | None"] = ContextVar(
     "current_task",
     default=None,
 )

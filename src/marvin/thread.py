@@ -7,7 +7,7 @@ import uuid
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Optional, Sequence
+from typing import Any, Sequence
 
 from pydantic import TypeAdapter
 from pydantic_ai.messages import UserContent
@@ -95,13 +95,13 @@ class LLMCall:
 
 
 # Global context var for current thread
-_current_thread: ContextVar[Optional["Thread"]] = ContextVar(
+_current_thread: ContextVar["Thread | None"] = ContextVar(
     "current_thread",
     default=None,
 )
 
 # Track the last thread globally
-_last_thread: Optional["Thread"] = None
+_last_thread: "Thread | None" = None
 
 
 @dataclass
@@ -422,7 +422,7 @@ class Thread:
             _current_thread.reset(self._tokens.pop())
 
     @classmethod
-    def get_current(cls) -> Optional["Thread"]:
+    def get_current(cls) -> "Thread | None":
         """Get the current thread from context."""
         return _current_thread.get()
 

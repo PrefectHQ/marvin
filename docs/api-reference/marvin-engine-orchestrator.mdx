@@ -35,7 +35,7 @@ class Orchestrator(tasks: list[Task[Any]], thread: Thread | str | None = None, h
       - ready: tasks that are ready to be run
 - **`get_current`**
   ```python
-  def get_current(cls) -> Optional[Orchestrator]
+  def get_current(cls) -> Orchestrator | None
   ```
   Get the current orchestrator from context.
 - **`handle_event`**

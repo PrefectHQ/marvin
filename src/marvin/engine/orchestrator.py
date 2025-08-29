@@ -4,7 +4,7 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal, Optional, Sequence, TypeVar
+from typing import Any, Literal, Sequence, TypeVar
 
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.mcp import MCPServer
@@ -348,7 +348,7 @@ class Orchestrator:
         return user_prompt, [system_prompt] + message_history
 
     @classmethod
-    def get_current(cls) -> Optional["Orchestrator"]:
+    def get_current(cls) -> "Orchestrator | None":
         """Get the current orchestrator from context."""
         return _current_orchestrator.get()
 

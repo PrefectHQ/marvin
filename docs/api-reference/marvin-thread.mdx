@@ -107,7 +107,7 @@ Main runtime object for managing conversation context.
   Add a user message to the thread.
 - **`get_current`**
   ```python
-  def get_current(cls) -> Optional[Thread]
+  def get_current(cls) -> Thread | None
   ```
   Get the current thread from context.
 - **`get_llm_calls`**

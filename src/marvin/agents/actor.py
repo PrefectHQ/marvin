@@ -4,7 +4,7 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Sequence, TypeVar
+from typing import TYPE_CHECKING, Any, Sequence, TypeVar
 
 import pydantic_ai
 from pydantic_ai.agent import AgentRunResult
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from marvin.handlers.handlers import AsyncHandler, Handler
 T = TypeVar("T")
 # Global context var for current actor
-_current_actor: ContextVar[Optional["Actor"]] = ContextVar(
+_current_actor: ContextVar["Actor | None"] = ContextVar(
     "current_actor",
     default=None,
 )
@@ -79,7 +79,7 @@ class Actor(ABC):
             _current_actor.reset(self._tokens.pop())
 
     @classmethod
-    def get_current(cls) -> Optional["Actor"]:
+    def get_current(cls) -> "Actor | None":
         """Get the current actor from context."""
         return _current_actor.get()
 
