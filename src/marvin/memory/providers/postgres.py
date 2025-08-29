@@ -104,7 +104,7 @@ class PostgresMemory(MemoryProvider):
 
     # We'll store an async engine + session factory:
     _engine: AsyncEngine | None = None
-    _SessionLocal: async_sessionmaker[AsyncSession | None] = None
+    _SessionLocal: async_sessionmaker[AsyncSession] | None = None
 
     # Cache for dynamically generated table classes
     _table_class_cache: Dict[str, Base] = {}
