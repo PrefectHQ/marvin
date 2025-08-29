@@ -417,7 +417,9 @@ def create_dataclass(
         elif is_required:
             fields.append((field_name, field_type, field_def))
         else:
-            fields.append((field_name, field_type | None, field_def))
+            # Use Union[field_type, None] instead of field_type | None
+            # to maintain compatibility with code that expects __origin__
+            fields.append((field_name, Union[field_type, None], field_def))
 
     cls = make_dataclass(sanitized_name, fields, kw_only=True)
 
