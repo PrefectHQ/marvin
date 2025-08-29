@@ -46,7 +46,6 @@ from typing import (
     ForwardRef,
     Literal,
     Mapping,
-    Optional,
     Type,
     Union,
 )
@@ -180,7 +179,7 @@ def create_string_type(schema: Mapping[str, Any]) -> type | Annotated[Any, ...]:
 
 
 def create_numeric_type(
-    base: Type[Union[int, float]], schema: Mapping[str, Any]
+    base: Type[int | float], schema: Mapping[str, Any]
 ) -> type | Annotated[Any, ...]:
     """Create numeric type with optional constraints."""
     if "const" in schema:
@@ -216,6 +215,8 @@ def create_array_type(
     if isinstance(items, list):
         # Handle positional item schemas
         item_types = [schema_to_type(s, schemas) for s in items]
+        from typing import Union
+
         combined = Union[tuple(item_types)]
         base = list[combined]
     else:
@@ -296,7 +297,12 @@ def schema_to_type(
         has_null = type(None) in types
         types = [t for t in types if t is not type(None)]
         if has_null:
-            return Optional[Union[tuple(types)] if len(types) > 1 else types[0]]
+            from typing import Union
+
+            combined = Union[tuple(types)] if len(types) > 1 else types[0]
+            return combined | None
+        from typing import Union
+
         return Union[tuple(types)]
 
     return _get_from_type_handler(schema, schemas)(schema)
@@ -411,7 +417,7 @@ def create_dataclass(
         elif is_required:
             fields.append((field_name, field_type, field_def))
         else:
-            fields.append((field_name, Optional[field_type], field_def))
+            fields.append((field_name, field_type | None, field_def))
 
     cls = make_dataclass(sanitized_name, fields, kw_only=True)
 
@@ -494,7 +500,7 @@ def merge_defaults(
 
 
 class JSONSchema(TypedDict):
-    type: NotRequired[Union[str, list[str]]]
+    type: NotRequired[str | list[str]]
     properties: NotRequired[dict[str, "JSONSchema"]]
     required: NotRequired[list[str]]
     additionalProperties: NotRequired[Union[bool, "JSONSchema"]]
@@ -515,11 +521,11 @@ class JSONSchema(TypedDict):
     pattern: NotRequired[str]
     minLength: NotRequired[int]
     maxLength: NotRequired[int]
-    minimum: NotRequired[Union[int, float]]
-    maximum: NotRequired[Union[int, float]]
-    exclusiveMinimum: NotRequired[Union[int, float]]
-    exclusiveMaximum: NotRequired[Union[int, float]]
-    multipleOf: NotRequired[Union[int, float]]
+    minimum: NotRequired[int | float]
+    maximum: NotRequired[int | float]
+    exclusiveMinimum: NotRequired[int | float]
+    exclusiveMaximum: NotRequired[int | float]
+    multipleOf: NotRequired[int | float]
     uniqueItems: NotRequired[bool]
     minItems: NotRequired[int]
     maxItems: NotRequired[int]

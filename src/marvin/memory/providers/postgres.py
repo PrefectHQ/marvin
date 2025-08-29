@@ -1,5 +1,5 @@
 import uuid
-from typing import Dict, Optional
+from typing import Dict
 
 # async pg
 import anyio
@@ -103,8 +103,8 @@ class PostgresMemory(MemoryProvider):
     )
 
     # We'll store an async engine + session factory:
-    _engine: Optional[AsyncEngine] = None
-    _SessionLocal: Optional[async_sessionmaker[AsyncSession]] = None
+    _engine: AsyncEngine | None = None
+    _SessionLocal: async_sessionmaker[AsyncSession | None] = None
 
     # Cache for dynamically generated table classes
     _table_class_cache: Dict[str, Base] = {}

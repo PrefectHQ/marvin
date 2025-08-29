@@ -285,12 +285,12 @@ class PythonFunction(Generic[P, R]):
         function (Callable): The original function object.
         signature (inspect.Signature): The signature object of the function.
         name (str): The name of the function.
-        docstring (Optional[str]): The docstring of the function.
+        docstring (str | None): The docstring of the function.
         parameters (List[ParameterModel]): The parameters of the function.
-        return_annotation (Optional[Any]): The return annotation of the function.
+        return_annotation (Any | None): The return annotation of the function.
         source_code (str): The source code of the function.
         bound_parameters (dict[str, Any]): The parameters of the function bound with values.
-        return_value (Optional[Any]): The return value of the function call.
+        return_value (Any | None): The return value of the function call.
 
     """
 

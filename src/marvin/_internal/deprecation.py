@@ -7,7 +7,7 @@ Based on Prefect's deprecation patterns but simplified for Marvin's needs.
 import functools
 import warnings
 from datetime import datetime, timedelta
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Callable, TypeVar
 
 from typing_extensions import ParamSpec
 
@@ -22,8 +22,8 @@ class MarvinDeprecationWarning(DeprecationWarning):
 
 def generate_deprecation_message(
     name: str,
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
     help: str = "",
 ) -> str:
     """Generate a deprecation warning message."""
@@ -45,8 +45,8 @@ def generate_deprecation_message(
 
 def deprecated_class(
     *,
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
     stacklevel: int = 2,
     help: str = "",
 ) -> Callable[[type[T]], type[T]]:
@@ -85,8 +85,8 @@ def deprecated_class(
 
 def deprecated_callable(
     *,
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
+    start_date: datetime | None = None,
+    end_date: datetime | None = None,
     stacklevel: int = 2,
     help: str = "",
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:

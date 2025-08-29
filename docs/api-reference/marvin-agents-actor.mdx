@@ -35,7 +35,7 @@ class Actor(name: str, instructions: str | None = None, description: str | None 
   ```
 - **`get_current`**
   ```python
-  def get_current(cls) -> Optional[Actor]
+  def get_current(cls) -> Actor | None
   ```
   Get the current actor from context.
 - **`get_end_turn_tools`**
