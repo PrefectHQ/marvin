@@ -17,6 +17,15 @@ from pydantic_ai.messages import ModelMessage
 
 from slackbot._internal.constants import WORKSPACE_TO_CHANNEL_ID
 from slackbot._internal.templates import CHANNEL_REDIRECT_MESSAGE, WELCOME_MESSAGE
+from slackbot._internal.thread_status import (
+    get_status as get_thread_status,
+)
+from slackbot._internal.thread_status import (
+    mark_completed as mark_thread_completed,
+)
+from slackbot._internal.thread_status import (
+    try_acquire as try_acquire_thread,
+)
 from slackbot.assets import summarize_thread
 from slackbot.core import (
     Database,
@@ -40,8 +49,8 @@ BOT_MENTION = r"<@(\w+)>"
 
 logger = get_logger(__name__)
 
-# In-process thread guard to avoid duplicate handling on edits/rapid events
-_thread_locks: dict[str, asyncio.Lock] = {}
+# Duplicate handling is coordinated via a small SQLite table in
+# _internal.thread_status to work across processes.
 
 
 def get_designated_channel_for_workspace(team_id: str) -> str | None:
@@ -143,11 +152,11 @@ async def handle_message(payload: SlackPayload, db: Database):
         # Use the root thread timestamp as our idempotency key
         root_ts = thread_ts
 
-        # Acquire per-thread lock; if already locked, another handler is running
-        lock = _thread_locks.setdefault(root_ts, asyncio.Lock())
-        if lock.locked():
-            # If this is an edit to the original message, politely ignore
-            if event.subtype == "message_changed":
+        # Cross-process acquire; only one handler should proceed
+        acquired = await try_acquire_thread(db, root_ts)
+        if not acquired:
+            status = await get_thread_status(db, root_ts)
+            if status == "in_progress":
                 assert event.channel is not None, "No channel found"
                 await post_slack_message(
                     message=(
@@ -163,9 +172,8 @@ async def handle_message(payload: SlackPayload, db: Database):
                     name="IGNORED_EDIT",
                     data=dict(thread_ts=root_ts),
                 )
-            # Otherwise, just skip duplicate events while busy
             return Completed(
-                message="Skipped duplicate event while in progress",
+                message="Duplicate event after completion",
                 name="SKIPPED_DUPLICATE",
                 data=dict(thread_ts=root_ts),
             )
@@ -219,49 +227,47 @@ async def handle_message(payload: SlackPayload, db: Database):
             bot_id=bot_user_id or "unknown",
         )
 
-        async with lock:
-            try:
-                result = await run_agent(
-                    cleaned_message,
-                    conversation,
-                    user_context,
-                    event.channel,
-                    thread_ts,
-                )  # type: ignore
+        try:
+            result = await run_agent(
+                cleaned_message,
+                conversation,
+                user_context,
+                event.channel,
+                thread_ts,
+            )  # type: ignore
 
-                await db.add_thread_messages(thread_ts, result.new_messages())
-                conversation.extend(result.new_messages())
-                assert event.channel is not None, "No channel found"
-                await task(post_slack_message)(
-                    message=result.output,
-                    channel_id=event.channel,
-                    thread_ts=thread_ts,
-                )
-            except Exception as e:
-                logger.error(f"Error running agent: {e}")
-                assert event.channel is not None, "No channel found"
-                await task(post_slack_message)(
-                    message="Sorry, I encountered an error while processing your request. Please try again.",
-                    channel_id=event.channel,
-                    thread_ts=thread_ts,
-                )
-                # Still return completed so we don't retry
-                return Completed(
-                    message="Error during agent execution",
-                    name="ERROR_HANDLED",
-                    data=dict(error=str(e), user_context=user_context),
-                )
-            finally:
-                # Clean up lock map to avoid unbounded growth
-                # Only pop if this lock is the same instance
-                current = _thread_locks.get(root_ts)
-                if current is lock:
-                    _thread_locks.pop(root_ts, None)
-
-            return Completed(
-                message="Responded to mention",
-                data=dict(user_context=user_context, conversation=conversation),
+            await db.add_thread_messages(thread_ts, result.new_messages())
+            conversation.extend(result.new_messages())
+            assert event.channel is not None, "No channel found"
+            await task(post_slack_message)(
+                message=result.output,
+                channel_id=event.channel,
+                thread_ts=thread_ts,
             )
+        except Exception as e:
+            logger.error(f"Error running agent: {e}")
+            assert event.channel is not None, "No channel found"
+            await task(post_slack_message)(
+                message="Sorry, I encountered an error while processing your request. Please try again.",
+                channel_id=event.channel,
+                thread_ts=thread_ts,
+            )
+            # Still return completed so we don't retry
+            return Completed(
+                message="Error during agent execution",
+                name="ERROR_HANDLED",
+                data=dict(error=str(e), user_context=user_context),
+            )
+        finally:
+            try:
+                await mark_thread_completed(db, root_ts)
+            except Exception:
+                logger.warning("Failed to mark thread as completed")
+
+        return Completed(
+            message="Responded to mention",
+            data=dict(user_context=user_context, conversation=conversation),
+        )
 
     return Completed(message="Skipping non-mention", name="SKIPPED")
 
