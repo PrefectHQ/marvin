@@ -29,6 +29,7 @@ class EventBlock(BaseModel):
 class SlackEvent(BaseModel):
     client_msg_id: str | None = None
     type: str
+    subtype: str | None = None
     text: str | None = None
     user: str | dict[str, Any] | None = None
     ts: str | None = None

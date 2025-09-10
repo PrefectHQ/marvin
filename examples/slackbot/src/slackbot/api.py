@@ -40,6 +40,9 @@ BOT_MENTION = r"<@(\w+)>"
 
 logger = get_logger(__name__)
 
+# In-process thread guard to avoid duplicate handling on edits/rapid events
+_thread_locks: dict[str, asyncio.Lock] = {}
+
 
 def get_designated_channel_for_workspace(team_id: str) -> str | None:
     """Get the designated channel ID for a given workspace team ID."""
@@ -137,6 +140,36 @@ async def handle_message(payload: SlackPayload, db: Database):
         return Completed(message="Message too long", name="SKIPPED")
 
     if re.search(BOT_MENTION, user_message) and payload.authorizations:
+        # Use the root thread timestamp as our idempotency key
+        root_ts = thread_ts
+
+        # Acquire per-thread lock; if already locked, another handler is running
+        lock = _thread_locks.setdefault(root_ts, asyncio.Lock())
+        if lock.locked():
+            # If this is an edit to the original message, politely ignore
+            if event.subtype == "message_changed":
+                assert event.channel is not None, "No channel found"
+                await post_slack_message(
+                    message=(
+                        "✋ I noticed you edited your original message. "
+                        "I'm already working on your first version — please add any "
+                        "clarifications as new messages in this thread so I don't lose track."
+                    ),
+                    channel_id=event.channel,
+                    thread_ts=root_ts,
+                )
+                return Completed(
+                    message="Ignored edit while in progress",
+                    name="IGNORED_EDIT",
+                    data=dict(thread_ts=root_ts),
+                )
+            # Otherwise, just skip duplicate events while busy
+            return Completed(
+                message="Skipped duplicate event while in progress",
+                name="SKIPPED_DUPLICATE",
+                data=dict(thread_ts=root_ts),
+            )
+
         # Check if this is the designated channel
         team_id = payload.team_id or ""
         is_designated = check_if_designated_channel(event.channel, team_id)
@@ -186,37 +219,49 @@ async def handle_message(payload: SlackPayload, db: Database):
             bot_id=bot_user_id or "unknown",
         )
 
-        try:
-            result = await run_agent(
-                cleaned_message, conversation, user_context, event.channel, thread_ts
-            )  # type: ignore
+        async with lock:
+            try:
+                result = await run_agent(
+                    cleaned_message,
+                    conversation,
+                    user_context,
+                    event.channel,
+                    thread_ts,
+                )  # type: ignore
 
-            await db.add_thread_messages(thread_ts, result.new_messages())
-            conversation.extend(result.new_messages())
-            assert event.channel is not None, "No channel found"
-            await task(post_slack_message)(
-                message=result.output,
-                channel_id=event.channel,
-                thread_ts=thread_ts,
-            )
-        except Exception as e:
-            logger.error(f"Error running agent: {e}")
-            assert event.channel is not None, "No channel found"
-            await task(post_slack_message)(
-                message="Sorry, I encountered an error while processing your request. Please try again.",
-                channel_id=event.channel,
-                thread_ts=thread_ts,
-            )
-            # Still return completed so we don't retry
+                await db.add_thread_messages(thread_ts, result.new_messages())
+                conversation.extend(result.new_messages())
+                assert event.channel is not None, "No channel found"
+                await task(post_slack_message)(
+                    message=result.output,
+                    channel_id=event.channel,
+                    thread_ts=thread_ts,
+                )
+            except Exception as e:
+                logger.error(f"Error running agent: {e}")
+                assert event.channel is not None, "No channel found"
+                await task(post_slack_message)(
+                    message="Sorry, I encountered an error while processing your request. Please try again.",
+                    channel_id=event.channel,
+                    thread_ts=thread_ts,
+                )
+                # Still return completed so we don't retry
+                return Completed(
+                    message="Error during agent execution",
+                    name="ERROR_HANDLED",
+                    data=dict(error=str(e), user_context=user_context),
+                )
+            finally:
+                # Clean up lock map to avoid unbounded growth
+                # Only pop if this lock is the same instance
+                current = _thread_locks.get(root_ts)
+                if current is lock:
+                    _thread_locks.pop(root_ts, None)
+
             return Completed(
-                message="Error during agent execution",
-                name="ERROR_HANDLED",
-                data=dict(error=str(e), user_context=user_context),
+                message="Responded to mention",
+                data=dict(user_context=user_context, conversation=conversation),
             )
-        return Completed(
-            message="Responded to mention",
-            data=dict(user_context=user_context, conversation=conversation),
-        )
 
     return Completed(message="Skipping non-mention", name="SKIPPED")
 

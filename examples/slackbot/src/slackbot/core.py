@@ -129,6 +129,9 @@ class Database:
 
         await self.loop.run_in_executor(self.executor, _insert)
 
+    # Note: Thread status tracking is handled in-process within api.py to keep
+    # persistence minimal for the examples package.
+
 
 @task(task_run_name="build user context for {user_id}")
 def build_user_context(
