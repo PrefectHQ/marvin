@@ -149,36 +149,38 @@ async def handle_message(payload: SlackPayload, db: Database):
         return Completed(message="Message too long", name="SKIPPED")
 
     if re.search(BOT_MENTION, user_message) and payload.authorizations:
-        # Use the root thread timestamp as our idempotency key
+        # Only gate the root message; replies should not be blocked
+        is_root_message = event.thread_ts is None
         root_ts = thread_ts
 
-        # Cross-process acquire; only one handler should proceed
-        acquired = await try_acquire_thread(db, root_ts)
-        if not acquired:
-            status = await get_thread_status(db, root_ts)
-            if status == "in_progress":
-                assert event.channel is not None, (
-                    "Event channel is None when posting edit-ignored notice"
-                )
-                await post_slack_message(
-                    message=(
-                        "✋ I noticed you edited your original message. "
-                        "I'm already working on your first version — please add any "
-                        "clarifications as new messages in this thread so I don't lose track."
-                    ),
-                    channel_id=event.channel,
-                    thread_ts=root_ts,
-                )
+        if is_root_message:
+            # Cross-process acquire; only one handler should proceed for the root
+            acquired = await try_acquire_thread(db, root_ts)
+            if not acquired:
+                status = await get_thread_status(db, root_ts)
+                if status == "in_progress":
+                    assert event.channel is not None, (
+                        "Event channel is None when posting edit-ignored notice"
+                    )
+                    await post_slack_message(
+                        message=(
+                            "✋ I noticed you edited your original message. "
+                            "I'm already working on your first version — please add any "
+                            "clarifications as new messages in this thread so I don't lose track."
+                        ),
+                        channel_id=event.channel,
+                        thread_ts=root_ts,
+                    )
+                    return Completed(
+                        message="Ignored edit while in progress",
+                        name="IGNORED_EDIT",
+                        data=dict(thread_ts=root_ts),
+                    )
                 return Completed(
-                    message="Ignored edit while in progress",
-                    name="IGNORED_EDIT",
+                    message="Duplicate root event after completion",
+                    name="SKIPPED_DUPLICATE",
                     data=dict(thread_ts=root_ts),
                 )
-            return Completed(
-                message="Duplicate event after completion",
-                name="SKIPPED_DUPLICATE",
-                data=dict(thread_ts=root_ts),
-            )
 
         # Check if this is the designated channel
         team_id = payload.team_id or ""
@@ -261,10 +263,12 @@ async def handle_message(payload: SlackPayload, db: Database):
                 data=dict(error=str(e), user_context=user_context),
             )
         finally:
-            try:
-                await mark_thread_completed(db, root_ts)
-            except Exception:
-                logger.warning("Failed to mark thread as completed")
+            # Only mark completion for the root message; do not block replies
+            if "is_root_message" in locals() and is_root_message:
+                try:
+                    await mark_thread_completed(db, root_ts)
+                except Exception:
+                    logger.warning("Failed to mark thread as completed")
 
         return Completed(
             message="Responded to mention",
