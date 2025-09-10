@@ -157,7 +157,9 @@ async def handle_message(payload: SlackPayload, db: Database):
         if not acquired:
             status = await get_thread_status(db, root_ts)
             if status == "in_progress":
-                assert event.channel is not None, "No channel found"
+                assert event.channel is not None, (
+                    "Event channel is None when posting edit-ignored notice"
+                )
                 await post_slack_message(
                     message=(
                         "✋ I noticed you edited your original message. "

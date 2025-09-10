@@ -15,13 +15,12 @@ from slackbot.core import Database
 Status = Literal["in_progress", "completed"]
 
 
-_SCHEMA_CREATED = False
-
-
 async def ensure_schema(db: Database) -> None:
-    global _SCHEMA_CREATED
-    if _SCHEMA_CREATED:
-        return
+    """Ensure the status table exists.
+
+    Using CREATE TABLE IF NOT EXISTS is idempotent and cheap enough to call
+    whenever we touch the status table, avoiding module-level state or locks.
+    """
 
     def _create() -> None:
         db.con.execute(
@@ -36,7 +35,6 @@ async def ensure_schema(db: Database) -> None:
         db.con.commit()
 
     await db.loop.run_in_executor(db.executor, _create)
-    _SCHEMA_CREATED = True
 
 
 async def try_acquire(db: Database, thread_ts: str) -> bool:
