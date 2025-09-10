@@ -17,6 +17,15 @@ from pydantic_ai.messages import ModelMessage
 
 from slackbot._internal.constants import WORKSPACE_TO_CHANNEL_ID
 from slackbot._internal.templates import CHANNEL_REDIRECT_MESSAGE, WELCOME_MESSAGE
+from slackbot._internal.thread_status import (
+    get_status as get_thread_status,
+)
+from slackbot._internal.thread_status import (
+    mark_completed as mark_thread_completed,
+)
+from slackbot._internal.thread_status import (
+    try_acquire as try_acquire_thread,
+)
 from slackbot.assets import summarize_thread
 from slackbot.core import (
     Database,
@@ -39,6 +48,9 @@ BOT_MENTION = r"<@(\w+)>"
 
 
 logger = get_logger(__name__)
+
+# Duplicate handling is coordinated via a small SQLite table in
+# _internal.thread_status to work across processes.
 
 
 def get_designated_channel_for_workspace(team_id: str) -> str | None:
@@ -137,6 +149,37 @@ async def handle_message(payload: SlackPayload, db: Database):
         return Completed(message="Message too long", name="SKIPPED")
 
     if re.search(BOT_MENTION, user_message) and payload.authorizations:
+        # Use the root thread timestamp as our idempotency key
+        root_ts = thread_ts
+
+        # Cross-process acquire; only one handler should proceed
+        acquired = await try_acquire_thread(db, root_ts)
+        if not acquired:
+            status = await get_thread_status(db, root_ts)
+            if status == "in_progress":
+                assert event.channel is not None, (
+                    "Event channel is None when posting edit-ignored notice"
+                )
+                await post_slack_message(
+                    message=(
+                        "✋ I noticed you edited your original message. "
+                        "I'm already working on your first version — please add any "
+                        "clarifications as new messages in this thread so I don't lose track."
+                    ),
+                    channel_id=event.channel,
+                    thread_ts=root_ts,
+                )
+                return Completed(
+                    message="Ignored edit while in progress",
+                    name="IGNORED_EDIT",
+                    data=dict(thread_ts=root_ts),
+                )
+            return Completed(
+                message="Duplicate event after completion",
+                name="SKIPPED_DUPLICATE",
+                data=dict(thread_ts=root_ts),
+            )
+
         # Check if this is the designated channel
         team_id = payload.team_id or ""
         is_designated = check_if_designated_channel(event.channel, team_id)
@@ -188,7 +231,11 @@ async def handle_message(payload: SlackPayload, db: Database):
 
         try:
             result = await run_agent(
-                cleaned_message, conversation, user_context, event.channel, thread_ts
+                cleaned_message,
+                conversation,
+                user_context,
+                event.channel,
+                thread_ts,
             )  # type: ignore
 
             await db.add_thread_messages(thread_ts, result.new_messages())
@@ -213,6 +260,12 @@ async def handle_message(payload: SlackPayload, db: Database):
                 name="ERROR_HANDLED",
                 data=dict(error=str(e), user_context=user_context),
             )
+        finally:
+            try:
+                await mark_thread_completed(db, root_ts)
+            except Exception:
+                logger.warning("Failed to mark thread as completed")
+
         return Completed(
             message="Responded to mention",
             data=dict(user_context=user_context, conversation=conversation),
