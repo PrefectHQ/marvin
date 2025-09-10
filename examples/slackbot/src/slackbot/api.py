@@ -118,6 +118,33 @@ async def run_agent(
         raise
 
 
+def _extract_message_context(event: Any) -> tuple[bool, str | None, str | None, str]:
+    """Return (is_edit, message_ts, thread_ts, text) for Slack events.
+
+    - For `message_changed` events, Slack nests the edited message under `event.message`.
+    - For normal app_mention events, fields are at the top level.
+    """
+    is_edit = getattr(event, "subtype", None) == "message_changed"
+    msg = (getattr(event, "message", None) or {}) if is_edit else {}
+
+    # Prefer the message ts for idempotency; fall back to event_ts if needed
+    message_ts = (
+        msg.get("ts")
+        if is_edit
+        else (getattr(event, "ts", None) or getattr(event, "event_ts", None))
+    )
+    # Thread anchor where we should post replies
+    thread_ts = (
+        (msg.get("thread_ts") or msg.get("ts"))
+        if is_edit
+        else (getattr(event, "thread_ts", None) or getattr(event, "ts", None))
+    )
+    # Text used for bot mention detection
+    text = (msg.get("text") if is_edit else (getattr(event, "text", None) or "")) or ""
+
+    return is_edit, message_ts, thread_ts, text
+
+
 @flow(name="Handle Slack Message", retries=1)
 async def handle_message(payload: SlackPayload, db: Database):
     logger = get_run_logger()
@@ -128,21 +155,7 @@ async def handle_message(payload: SlackPayload, db: Database):
 
     USER_MESSAGE_MAX_TOKENS = settings.user_message_max_tokens
     # Determine message context accommodating edit events
-    is_edit = event.subtype == "message_changed"
-    # The per-message idempotency key: prefer message ts; fallback to event_ts for robustness
-    message_ts = (
-        (event.message or {}).get("ts") if is_edit else (event.ts or event.event_ts)
-    )
-    # Text to inspect for a bot mention
-    user_message = (
-        (event.message or {}).get("text") if is_edit else (event.text or "")
-    ) or ""
-    # Thread anchor where we should respond/append
-    thread_ts = (
-        ((event.message or {}).get("thread_ts") or (event.message or {}).get("ts"))
-        if is_edit
-        else (event.thread_ts or event.ts)
-    )
+    is_edit, message_ts, thread_ts, user_message = _extract_message_context(event)
     assert thread_ts is not None, "No thread_ts found"
     assert message_ts is not None, "No message_ts found"
     cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
