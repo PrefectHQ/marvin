@@ -129,15 +129,17 @@ async def handle_message(payload: SlackPayload, db: Database):
     USER_MESSAGE_MAX_TOKENS = settings.user_message_max_tokens
     # Determine message context accommodating edit events
     is_edit = event.subtype == "message_changed"
-    # The per-message idempotency key: the message timestamp (edited message retains same ts)
-    message_ts = (event.message or {}).get("ts") if is_edit else event.ts
+    # The per-message idempotency key: prefer message ts; fallback to event_ts for robustness
+    message_ts = (
+        (event.message or {}).get("ts") if is_edit else (event.ts or event.event_ts)
+    )
     # Text to inspect for a bot mention
     user_message = (
         (event.message or {}).get("text") if is_edit else (event.text or "")
     ) or ""
     # Thread anchor where we should respond/append
     thread_ts = (
-        (event.message or {}).get("thread_ts")
+        ((event.message or {}).get("thread_ts") or (event.message or {}).get("ts"))
         if is_edit
         else (event.thread_ts or event.ts)
     )
