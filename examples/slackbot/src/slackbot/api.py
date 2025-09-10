@@ -264,7 +264,7 @@ async def handle_message(payload: SlackPayload, db: Database):
             )
         finally:
             # Only mark completion for the root message; do not block replies
-            if "is_root_message" in locals() and is_root_message:
+            if is_root_message:
                 try:
                     await mark_thread_completed(db, root_ts)
                 except Exception:
