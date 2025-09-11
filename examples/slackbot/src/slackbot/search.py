@@ -272,3 +272,20 @@ def check_cli_command(command: str, args: list[str] | None = None) -> str:
         return f"Command '{full_command[0]}' not found. Make sure it's installed and in PATH."
     except Exception as e:
         return f"Error running command: {str(e)}"
+
+
+def get_support_resources() -> dict[str, str]:
+    """
+    Get available support resources and contact information for Prefect users.
+
+    Use this tool when users ask about getting help, support, or contacting Prefect.
+    Prioritizes community resources for open source users, with email support for customers.
+
+    Returns:
+        dict: Available support resources prioritized by user type
+    """
+    return {
+        "github_discussions": "https://github.com/PrefectHQ/prefect/discussions",
+        "github_issues": "https://github.com/PrefectHQ/prefect/issues",
+        "customer_support_email": "help@prefect.io (for existing customers only)",
+    }

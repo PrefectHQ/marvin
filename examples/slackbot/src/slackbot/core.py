@@ -39,6 +39,7 @@ from slackbot.search import (
     display_callable_signature,
     explore_module_offerings,
     get_latest_prefect_release_notes,
+    get_support_resources,
     read_github_issues,
 )
 from slackbot.settings import settings
@@ -185,6 +186,7 @@ def create_agent(
             display_callable_signature,  # check the work of the research agent, verify signatures of callable objects
             check_cli_command,  # verify CLI commands before suggesting them
             get_latest_prefect_release_notes,  # get the latest release notes for Prefect
+            get_support_resources,  # provide official support contact information
         ],
         deps_type=UserContext,
     )
