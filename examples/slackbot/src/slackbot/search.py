@@ -285,9 +285,7 @@ def get_support_resources() -> dict[str, str]:
         dict: Available support resources prioritized by user type
     """
     return {
-        "community_support": "https://github.com/PrefectHQ/prefect/discussions",
+        "github_discussions": "https://github.com/PrefectHQ/prefect/discussions",
         "github_issues": "https://github.com/PrefectHQ/prefect/issues",
-        "documentation": "https://docs.prefect.io",
-        "support_page": "https://www.prefect.io/support",
-        "customer_email": "help@prefect.io (for Prefect Cloud customers and managed execution users)",
+        "customer_support_email": "help@prefect.io (for existing customers only)",
     }
