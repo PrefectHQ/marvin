@@ -32,11 +32,13 @@ def run_stream(instructions: str | Sequence[UserContent], result_type: type[T] =
 ```python
 def run_tasks(tasks: list[Task[Any]], thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> list[Task[Any]]
 ```
+Run tasks either concurrently (if independent) or sequentially.
 
 ### `run_tasks_async`
 ```python
 def run_tasks_async(tasks: list[Task[Any]], thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> list[Task[Any]] | AsyncGenerator[Event, None]
 ```
+Run tasks either concurrently (if independent) or sequentially via orchestrator.
 
 ### `run_tasks_stream`
 ```python
