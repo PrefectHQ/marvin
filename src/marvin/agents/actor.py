@@ -76,7 +76,12 @@ class Actor(ABC):
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
         """Reset the current actor in context."""
         if self._tokens:  # Only reset if we have tokens
-            _current_actor.reset(self._tokens.pop())
+            try:
+                _current_actor.reset(self._tokens.pop())
+            except ValueError:
+                # Token was created in a different context (e.g., asyncio.gather)
+                # This is expected when running tasks concurrently
+                pass
 
     @classmethod
     def get_current(cls) -> "Actor | None":

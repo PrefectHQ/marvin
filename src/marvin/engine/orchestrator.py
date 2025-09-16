@@ -143,7 +143,22 @@ class Orchestrator:
         if actor is None:
             actor = tasks[0].get_actor()
 
-        assigned_tasks = [t for t in tasks if actor is t.get_actor()]
+        # Get tasks assigned to this actor
+        potential_tasks = [t for t in tasks if actor is t.get_actor()]
+
+        # For independent tasks, only assign one per turn to avoid EndTurn conflicts
+        if len(potential_tasks) > 1:
+            # Check if any tasks depend on each other
+            has_deps = any(
+                t2 in t1.depends_on or t1 in t2.depends_on
+                for t1 in potential_tasks
+                for t2 in potential_tasks
+                if t1 != t2
+            )
+            # If independent, process one at a time
+            assigned_tasks = [potential_tasks[0]] if not has_deps else potential_tasks
+        else:
+            assigned_tasks = potential_tasks
 
         # Mark tasks as running if they're pending
         for task in assigned_tasks:
