@@ -78,10 +78,15 @@ class Actor(ABC):
         if self._tokens:  # Only reset if we have tokens
             try:
                 _current_actor.reset(self._tokens.pop())
-            except ValueError:
-                # Token was created in a different context (e.g., asyncio.gather)
-                # This is expected when running tasks concurrently
-                pass
+            except ValueError as e:
+                # Token was created in a different async context (e.g., asyncio.gather)
+                # This happens when tasks run concurrently and is expected behavior
+                if "was created in a different Context" in str(e):
+                    # This is the expected concurrent execution case - ignore safely
+                    pass
+                else:
+                    # Some other ValueError - re-raise it
+                    raise
 
     @classmethod
     def get_current(cls) -> "Actor | None":
