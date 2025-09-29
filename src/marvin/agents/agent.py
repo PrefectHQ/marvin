@@ -179,15 +179,14 @@ class Agent(Actor):
             tool_output_name = getattr(
                 output_type_for_tool_output, "__name__", tool_output_name
             )
+        elif len(final_end_turn_defs) > 1:
+            # For multiple EndTurn tools, use Union to allow model to choose
+            from typing import Union
+
+            output_type_for_tool_output = Union[tuple(final_end_turn_defs)]
         else:
-            # Use None if zero or multiple EndTurn tools are present
-            # This avoids schema issues but might prevent multi-turn scenarios?
-            # TODO: Revisit handling of multiple EndTurn tools / Union[EndTurn]
+            # Use None if no EndTurn tools are present
             output_type_for_tool_output = type(None)
-            if len(final_end_turn_defs) > 1:
-                logger.warning(
-                    "Multiple EndTurn tools detected, output validation might be limited."
-                )
 
         final_tool_output = ToolOutput(
             type_=output_type_for_tool_output,
