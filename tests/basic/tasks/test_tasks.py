@@ -673,3 +673,49 @@ class TestVerbose:
             )
         )
         assert messages[0].message.parts[0].content[1] == ImageUrl("abc")
+
+
+class TestAllowFail:
+    """Test allow_fail functionality with multiple EndTurn tools."""
+
+    async def test_allow_fail_completes_without_infinite_loop(self):
+        """Test that a task with allow_fail=True completes without infinite loop.
+
+        This is a regression test for the bug where multiple EndTurn tools
+        caused the agent to loop indefinitely with "Multiple EndTurn tools detected" warnings.
+        """
+        from marvin.fns.run import run_tasks
+
+        task = Task("say 'hello'", allow_fail=True, result_type=str)
+        run_tasks([task], raise_on_failure=False)
+
+        # Task should complete (either success or failure, doesn't matter)
+        assert task.is_complete()
+
+    async def test_allow_fail_creates_multiple_endturn_tools(self):
+        """Test that allow_fail creates both success and failure EndTurn tools."""
+        task = Task("test task", allow_fail=True)
+        end_turn_tools = task.get_end_turn_tools()
+
+        assert len(end_turn_tools) == 2
+        tool_names = [tool.__name__ for tool in end_turn_tools]
+        assert any("MarkTaskSuccessful" in name for name in tool_names)
+        assert any("MarkTaskFailed" in name for name in tool_names)
+
+    async def test_allow_fail_uses_union_output_type(self):
+        """Test that multiple EndTurn tools result in a Union output type."""
+        from typing import Union, get_args
+
+        task = Task("test task", allow_fail=True)
+        actor = task.get_actor()
+        end_turn_tools = task.get_end_turn_tools()
+
+        agentlet = await actor.get_agentlet(tools=[], end_turn_tools=end_turn_tools)
+
+        # Should be a ToolOutput with a Union type
+        assert hasattr(agentlet._output_type, "output")
+        output_type = agentlet._output_type.output
+        assert hasattr(output_type, "__origin__")
+        assert output_type.__origin__ is Union
+        # Should have 2 types in the union
+        assert len(get_args(output_type)) == 2
