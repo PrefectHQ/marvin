@@ -258,6 +258,13 @@ async def test_task_mark_successful():
     assert task.result == "test result"
 
 
+async def test_task_optional_result_type():
+    """Test that tasks with Optional result types can validate None."""
+    task = Task(instructions="test", result_type=str | None)
+    validated = task.validate_result(None)
+    assert validated is None
+
+
 async def test_task_mark_failed():
     """Test marking task as failed."""
     task = Task(instructions="Test failure")
