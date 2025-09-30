@@ -258,6 +258,20 @@ async def test_task_mark_successful():
     assert task.result == "test result"
 
 
+async def test_task_optional_result_type():
+    """Test that tasks with Optional result types can return None."""
+    task = Task(instructions="Test optional", result_type=str | None)
+    await task.mark_successful(None)
+    assert task.state == TaskState.SUCCESSFUL
+    assert task.result is None
+
+    # Test with actual value too
+    task2 = Task(instructions="Test optional with value", result_type=str | None)
+    await task2.mark_successful("test value")
+    assert task2.state == TaskState.SUCCESSFUL
+    assert task2.result == "test value"
+
+
 async def test_task_mark_failed():
     """Test marking task as failed."""
     task = Task(instructions="Test failure")
