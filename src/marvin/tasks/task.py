@@ -20,6 +20,7 @@ from typing import (
     Sequence,
     TypeAlias,
     TypeVar,
+    get_args,
 )
 
 from pydantic import TypeAdapter
@@ -452,7 +453,10 @@ class Task(Generic[T]):
             else:
                 raise ValueError("Result type is None but result is not None")
         elif raw_result is None:
-            raise ValueError("Result is None but result type is not None")
+            # Check if None is allowed in the type (e.g., Optional[str] = str | None)
+            type_args = get_args(result_type)
+            if type(None) not in type_args:
+                raise ValueError("Result is None but result type is not None")
 
         type_adapter = get_type_adapter(result_type)
         return type_adapter.validate_python(raw_result)
