@@ -260,16 +260,31 @@ async def test_task_mark_successful():
 
 async def test_task_optional_result_type():
     """Test that tasks with Optional result types can return None."""
+    from typing import Optional
+
+    # Test union syntax (str | None)
     task = Task(instructions="Test optional", result_type=str | None)
     await task.mark_successful(None)
     assert task.state == TaskState.SUCCESSFUL
     assert task.result is None
 
-    # Test with actual value too
-    task2 = Task(instructions="Test optional with value", result_type=str | None)
-    await task2.mark_successful("test value")
+    # Test Optional syntax (Optional[str])
+    task2 = Task(instructions="Test optional typing", result_type=Optional[str])
+    await task2.mark_successful(None)
     assert task2.state == TaskState.SUCCESSFUL
-    assert task2.result == "test value"
+    assert task2.result is None
+
+    # Test optional with actual value
+    task3 = Task(instructions="Test optional with value", result_type=str | None)
+    await task3.mark_successful("test value")
+    assert task3.state == TaskState.SUCCESSFUL
+    assert task3.result == "test value"
+
+    # Test optional complex type (list[str] | None)
+    task4 = Task(instructions="Test optional list", result_type=list[str] | None)
+    await task4.mark_successful(None)
+    assert task4.state == TaskState.SUCCESSFUL
+    assert task4.result is None
 
 
 async def test_task_mark_failed():
