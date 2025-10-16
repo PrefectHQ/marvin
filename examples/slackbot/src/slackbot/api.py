@@ -279,12 +279,7 @@ async def handle_message(payload: SlackPayload, db: Database):
                 channel_id=event.channel,
                 thread_ts=thread_ts,
             )
-            # Still return completed so we don't retry
-            return Completed(
-                message="Error during agent execution",
-                name="ERROR_HANDLED",
-                data=dict(error=str(e), user_context=user_context),
-            )
+            raise
         finally:
             try:
                 await mark_thread_completed(db, message_ts)

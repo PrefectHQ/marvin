@@ -18,7 +18,7 @@ class GitHubLabel(BaseModel):
 
     name: str = Field(default="")
     color: str = Field(default="")
-    description: str = Field(default="")
+    description: str | None = Field(default="")
 
 
 class GitHubComment(BaseModel):
