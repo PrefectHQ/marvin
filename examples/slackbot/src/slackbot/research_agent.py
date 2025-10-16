@@ -42,7 +42,7 @@ def create_research_agent(
     """Create a specialized research agent for thorough information gathering."""
 
     agent = Agent[ResearchContext, ResearchFindings](
-        model=model or "openai:gpt-4o",
+        model=model or "anthropic:claude-haiku-4-5",
         deps_type=ResearchContext,
         output_type=ResearchFindings,
         system_prompt="""You are a specialized research agent for Prefect documentation and knowledge.
