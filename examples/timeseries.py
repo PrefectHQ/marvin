@@ -2,9 +2,9 @@ import json
 import re
 from typing import Any, TypedDict
 
-from atproto import Client
+from atproto import Client, models
 from atproto.exceptions import BadRequestError
-from atproto_client.models.app.bsky.feed.defs import ThreadViewPost
+from pydantic import field_validator
 from pydantic_ai import ImageUrl
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,6 +21,15 @@ class Settings(BaseSettings):
 
     bsky_handle: str
     bsky_password: str
+    atproto_pds_url: str = "https://bsky.social"
+
+    @field_validator("atproto_pds_url")
+    @classmethod
+    def ensure_url_protocol(cls, v: str) -> str:
+        """Ensure the PDS URL has a protocol"""
+        if not v.startswith(("http://", "https://")):
+            return f"https://{v}"
+        return v
 
 
 class Snapshot(TypedDict):
@@ -48,7 +57,7 @@ def extract_post_id(bluesky_url: str) -> tuple[str, str]:
     return match.group(1), match.group(2)
 
 
-def build_context(thread: ThreadViewPost) -> dict[str, Any]:
+def build_context(thread: models.AppBskyFeedDefs.ThreadViewPost) -> dict[str, Any]:
     context: dict[str, Any] = {}
     if thread and thread.post:
         context["bsky post"] = {
@@ -65,7 +74,7 @@ def build_context(thread: ThreadViewPost) -> dict[str, Any]:
             image_description_result = visual_extraction_agent.run(
                 [
                     "summarize this image concisely, include direct quotes from the image",
-                    ImageUrl(url=img.fullsize),
+                    ImageUrl(url=img.fullsize, media_type="image/jpeg"),
                 ]
             )
             context["bsky post"]["embed"] = image_description_result
@@ -80,7 +89,10 @@ def build_context(thread: ThreadViewPost) -> dict[str, Any]:
                             "embed": visual_extraction_agent.run(
                                 "summarize this image concisely, include direct quotes from the image",
                                 attachments=[
-                                    ImageUrl(url=reply_post.embed.images[0].fullsize),
+                                    ImageUrl(
+                                        url=reply_post.embed.images[0].fullsize,
+                                        media_type="image/jpeg",
+                                    ),
                                 ],
                             )
                         }
@@ -99,7 +111,7 @@ def build_context(thread: ThreadViewPost) -> dict[str, Any]:
 def explain_bsky_post(
     bsky_post_url: str, details: dict[str, Any] | None = None
 ) -> None:
-    client = Client()
+    client = Client(base_url=settings.atproto_pds_url)
     client.login(settings.bsky_handle, settings.bsky_password)
 
     try:
@@ -111,7 +123,7 @@ def explain_bsky_post(
         logger.error(f"Error fetching thread: {e}")
         return
 
-    assert isinstance(thread, ThreadViewPost)
+    assert isinstance(thread, models.AppBskyFeedDefs.ThreadViewPost)
     context = build_context(thread)
 
     if details:
