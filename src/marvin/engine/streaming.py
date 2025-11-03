@@ -10,6 +10,7 @@ from pydantic_ai.messages import (
     FunctionToolResultEvent,
     ModelResponsePart,
     PartDeltaEvent,
+    PartEndEvent,
     PartStartEvent,
     RetryPromptPart,
     TextPartDelta,
@@ -236,6 +237,13 @@ def _process_pydantic_event(
                 tool_call_id=snapshot.tool_call_id if snapshot else None,
                 tool=tools_map.get(event.part.tool_name),
             )
+    # Handle Part End Events
+    elif isinstance(event, PartEndEvent):
+        # Part end events signal that a part is complete. We don't need to
+        # emit a Marvin event for this since we handle completion via other
+        # events (FunctionToolCallEvent, FinalResultEvent, etc.)
+        return None
+
     # Handle Part Delta Events
     elif isinstance(event, PartDeltaEvent):
         # Process a delta update to an existing part
