@@ -13,10 +13,10 @@ Marvin provides an intuitive API for defining workflows and delegating work to L
 
 ## Installation
 
-Install `marvin`:
+Marvin is available on [PyPI](https://pypi.org/project/marvin/):
 
 ```bash
-uv pip install marvin
+uv add marvin
 ```
 
 Configure your LLM provider (Marvin uses OpenAI by default but natively supports [all Pydantic AI models](https://ai.pydantic.dev/models/)):
