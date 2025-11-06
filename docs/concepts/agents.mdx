@@ -109,21 +109,6 @@ agent = marvin.Agent(
 )
 ```
 
-### Delegates
-
-Agents can be configured with a list of other agents that they can delegate work to. This is particularly useful when working with teams of agents:
-
-```python
-import marvin
-
-researcher = marvin.Agent(name="Researcher")
-writer = marvin.Agent(name="Writer")
-editor = marvin.Agent(
-    name="Editor",
-    delegates=[researcher, writer]
-)
-```
-
 ## Assigning agents to tasks
 
 Agents must be assigned to tasks in order to work on them. You can assign agents by passing them to the `agents` parameter when creating a task:
