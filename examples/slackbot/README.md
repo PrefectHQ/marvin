@@ -18,12 +18,8 @@ The slackbot can be run locally with minimal setup.
 ### Local Development
 
 ```console
-# Create and activate a virtual environment with uv
-uv venv --python 3.12
-source .venv/bin/activate
-
-# Install dependencies
-uv pip install -e ".[slackbot]" -U
+# Install dependencies (from the repo root)
+uv sync --extra slackbot
 ```
 
 ### Configuration
