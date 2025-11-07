@@ -6,10 +6,10 @@ uv run examples/provider_specific/aimlapi/structured_output.py
 from __future__ import annotations
 
 import os
-from typing_extensions import TypedDict
 
 from pydantic_ai.models.openai import OpenAIModel
 from pydantic_ai.providers.openai import OpenAIProvider
+from typing_extensions import TypedDict
 
 import marvin
 
@@ -25,7 +25,9 @@ class LearningResource(TypedDict):
 def get_provider() -> OpenAIProvider:
     api_key = os.getenv("AIML_API_KEY")
     if not api_key:
-        raise RuntimeError("Set AIML_API_KEY environment variable to your AI/ML API key.")
+        raise RuntimeError(
+            "Set AIML_API_KEY environment variable to your AI/ML API key."
+        )
     return OpenAIProvider(api_key=api_key, base_url=AIML_API_URL)
 
 
