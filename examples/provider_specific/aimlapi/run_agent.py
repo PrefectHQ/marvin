@@ -19,7 +19,9 @@ AIML_API_URL = "https://api.aimlapi.com/v1"
 def get_provider() -> OpenAIProvider:
     api_key = os.getenv("AIML_API_KEY")
     if not api_key:
-        raise RuntimeError("Set AIML_API_KEY environment variable to your AI/ML API key.")
+        raise RuntimeError(
+            "Set AIML_API_KEY environment variable to your AI/ML API key."
+        )
     return OpenAIProvider(api_key=api_key, base_url=AIML_API_URL)
 
 
