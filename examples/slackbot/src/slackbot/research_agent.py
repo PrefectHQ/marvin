@@ -27,10 +27,10 @@ async def research_topic_with_code_access(question: str, version: str = "3.x") -
     Returns:
         Research findings as a formatted string
     """
-    # Use /app for both local and Docker (Docker WORKDIR is /app)
-    # Locally when developing: /app/.research_cache/prefect
-    # In Docker: /app/.research_cache/prefect
-    cache_dir = Path("/app/.research_cache")
+    # Use current working directory for cache
+    # Locally: <wherever you run from>/.research_cache/prefect
+    # Docker: /app/.research_cache/prefect (since WORKDIR is /app)
+    cache_dir = Path.cwd() / ".research_cache"
     prefect_repo = cache_dir / "prefect"
 
     version_context = "Prefect 3.x" if version.startswith("3") else "Prefect 2.x"
@@ -68,7 +68,7 @@ Do not use any Prefect syntax you have not verified by reading the actual source
 
     options = ClaudeAgentOptions(
         allowed_tools=["Read", "Grep", "Glob", "Bash"],
-        cwd="/app",
+        cwd=str(Path.cwd()),
         model="claude-haiku-4-5-20251001",
         system_prompt=system_prompt,
     )
