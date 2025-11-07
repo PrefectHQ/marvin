@@ -25,3 +25,4 @@ wheels/
 **/*.db
 **/*.sqlite
 sandbox/
+.research_cache/
