@@ -1,6 +1,7 @@
 FROM python:3.13-slim
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=oven/bun:latest /usr/local/bin/bun /usr/local/bin/bun
 
 WORKDIR /app
 
@@ -8,10 +9,16 @@ COPY . /app
 
 RUN apt-get update && \
     apt-get install -y git build-essential curl && \
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN uv sync --extra slackbot --no-dev 
+RUN uv sync --extra slackbot --no-dev
+
+RUN bun install -g @anthropic-ai/claude-code
+
+ENV PATH="/root/.bun/bin:${PATH}"
 
 EXPOSE 4200
 
