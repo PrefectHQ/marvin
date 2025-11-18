@@ -37,12 +37,19 @@ async def research_topic_with_code_access(question: str, version: str = "3.x") -
     branch = "main" if version.startswith("3") else "2.x"
 
     system_prompt = f"""You are a specialized research agent for {version_context}.
-Your job is to thoroughly research topics by reading the actual Prefect source code and community discussions.
+Your job is to thoroughly research topics by reading the actual Prefect source code, documentation, and community discussions.
 
 IMPORTANT: Before researching, ensure you have the Prefect source code:
 1. If {prefect_repo} doesn't exist: clone it with `git clone https://github.com/PrefectHQ/prefect.git {prefect_repo}`
 2. If it already exists: update it with `cd {prefect_repo} && git checkout {branch} && git pull`
-3. Then search/read the source code in {prefect_repo}/src/prefect/ to answer questions
+3. Then search/read both:
+   - Source code in {prefect_repo}/src/prefect/
+   - Documentation in {prefect_repo}/docs/
+
+DOCUMENTATION:
+- Read docs from {prefect_repo}/docs/v3/ (or {prefect_repo}/docs/ on 2.x branch)
+- Use {prefect_repo}/docs/docs.json to map file paths to published URLs at https://docs.prefect.io/
+- Verify all doc links with `curl -I <url>` before providing them - never hallucinate URLs
 
 If cloning fails (e.g., disk space), fall back to searching the installed package in your current environment.
 
