@@ -1,151 +1,120 @@
-"""Research agent for improved information gathering."""
+"""Research agent for improved information gathering.
 
+Now uses Claude Agent SDK for direct code inspection instead of relying on
+documentation search alone. This prevents hallucination by allowing the agent
+to actually read Prefect source code.
+"""
+
+from pathlib import Path
+
+from claude_agent_sdk import ClaudeAgentOptions, ClaudeSDKClient
+from claude_agent_sdk.types import AssistantMessage, TextBlock
 from prefect import task
 from prefect.cache_policies import INPUTS
-from pydantic import BaseModel, Field
-from pydantic_ai import Agent
-from pydantic_ai.models import Model
-
-from slackbot.search import (
-    display_callable_signature,
-    explore_module_offerings,
-    review_common_3x_gotchas,
-    search_marvin_docs,
-    search_prefect_2x_docs,
-    search_prefect_3x_docs,
-)
 
 
-class ResearchFindings(BaseModel):
-    """Structured findings from research."""
+async def research_topic_with_code_access(question: str, version: str = "3.x") -> str:
+    """
+    Research a Prefect topic using Claude Agent SDK with direct source code access.
 
-    main_findings: list[str] = Field(
-        description="Key findings that answer the question"
-    )
-    supporting_details: list[str] = Field(description="Additional context and details")
-    confidence_level: str = Field(
-        description="high/medium/low confidence in the answer"
-    )
-    knowledge_gaps: list[str] = Field(description="What we still don't know")
-    relevant_links: list[str] = Field(description="Links to documentation or resources")
+    The agent will clone the Prefect repo to .research_cache/prefect if it doesn't exist,
+    or update it if it does. This works consistently in both local and Docker environments.
 
+    Args:
+        question: The research question
+        version: Prefect version ("2.x" or "3.x")
 
-class ResearchContext(BaseModel):
-    """Context for the research agent."""
+    Returns:
+        Research findings as a formatted string
+    """
+    # Use current working directory for cache
+    # Locally: <wherever you run from>/.research_cache/prefect
+    # Docker: /app/.research_cache/prefect (since WORKDIR is /app)
+    cache_dir = Path.cwd() / ".research_cache"
+    prefect_repo = cache_dir / "prefect"
 
-    namespace: str = "prefect-3"  # default to Prefect 3.x docs
+    version_context = "Prefect 3.x" if version.startswith("3") else "Prefect 2.x"
+    branch = "main" if version.startswith("3") else "2.x"
 
+    system_prompt = f"""You are a specialized research agent for {version_context}.
+Your job is to thoroughly research topics by reading the actual Prefect source code and community discussions.
 
-def create_research_agent(
-    model: Model | None = None,
-) -> Agent[ResearchContext, ResearchFindings]:
-    """Create a specialized research agent for thorough information gathering."""
+IMPORTANT: Before researching, ensure you have the Prefect source code:
+1. If {prefect_repo} doesn't exist: clone it with `git clone https://github.com/PrefectHQ/prefect.git {prefect_repo}`
+2. If it already exists: update it with `cd {prefect_repo} && git checkout {branch} && git pull`
+3. Then search/read the source code in {prefect_repo}/src/prefect/ to answer questions
 
-    agent = Agent[ResearchContext, ResearchFindings](
-        model=model or "anthropic:claude-haiku-4-5",
-        deps_type=ResearchContext,
-        output_type=ResearchFindings,
-        system_prompt="""You are a specialized research agent for Prefect documentation and knowledge.
-Your job is to thoroughly research topics by using available tools to gather comprehensive, accurate information.
+If cloning fails (e.g., disk space), fall back to searching the installed package in your current environment.
 
-Your research process:
-1. Start with broad documentation searches to understand the topic context
-2. Use multiple search queries with different keywords - don't stop at first result
-3. Use explore_module_offerings to understand what's available in relevant modules (i.e. valid imports, types and functions available)
-4. Use display_callable_signature to get detailed signatures of functions, classes, and methods when needed
-5. **IMPORTANT**: ONLY use search_prefect_3x_docs unless the user explicitly mentions "2.x", "Prefect 2", or version compatibility
-6. Review gotchas for recent changes
+ADDITIONAL RESEARCH TOOLS:
+- Use `gh` CLI to search GitHub discussions and issues for community-verified solutions
+- Example: `gh search issues --repo PrefectHQ/prefect "custom state event"`
+- This helps find real-world patterns and edge cases that users have discovered
+
+Use your tools to search and read the actual implementation - do not make assumptions.
+Be thorough - verify everything by reading the source.
 
 CRITICAL VERSION-SPECIFIC RULES:
-- **DEFAULT TO PREFECT 3.x**: Do NOT use search_prefect_2x_docs unless user explicitly mentions "2.x", "Prefect 2", or asks about version differences
+- **DEFAULT TO {version_context}**: Do NOT suggest deprecated patterns
 - **NEVER** suggest `Deployment.build_from_flow()` for Prefect 3.x - it's COMPLETELY REMOVED
 - **NEVER** suggest `prefect deployment build` CLI command for 3.x - use `prefect deploy` instead
 - The correct deployment pattern in 3.x is: `flow.from_source(...).deploy(...)`
-- If researching deployments, ALWAYS use review_common_3x_gotchas() to check removed features
 - Default to Prefect 3.x patterns unless user explicitly states they're using 2.x
 - If user is on 2.x, suggest upgrading to 3.x or using workers instead of deprecated patterns
 
 Remember: You are the research specialist. The main agent relies on you for accurate, comprehensive information.
 Be thorough - use tools repeatedly until you have complete information.
-Do not use any Prefect syntax you have not gathered empirically.
-""",
-        tools=[
-            search_prefect_2x_docs,
-            display_callable_signature,
-            search_prefect_3x_docs,
-            search_marvin_docs,
-            explore_module_offerings,
-            review_common_3x_gotchas,
-        ],
+Do not use any Prefect syntax you have not verified by reading the actual source code."""
+
+    options = ClaudeAgentOptions(
+        allowed_tools=["Read", "Grep", "Glob", "Bash"],
+        cwd=str(Path.cwd()),
+        model="claude-haiku-4-5-20251001",
+        system_prompt=system_prompt,
     )
 
-    return agent
+    research_output = []
 
+    async with ClaudeSDKClient(options=options) as client:
+        await client.query(question)
 
-async def research_topic(
-    question: str, namespace: str = "prefect-3", model: Model | None = None
-) -> ResearchFindings:
-    """
-    Thoroughly research a topic using an intelligent agent.
-    Args:
-        question: The question to research
-        namespace: The documentation namespace to search
-        model: Optional model to use for the agent
+        async for message in client.receive_response():
+            if isinstance(message, AssistantMessage):
+                for block in message.content:
+                    if isinstance(block, TextBlock):
+                        research_output.append(block.text)
 
-    Returns:
-        ResearchFindings with comprehensive information
-    """
-    context = ResearchContext(namespace=namespace)
-
-    agent = create_research_agent(model)
-    result = await agent.run(user_prompt=question, deps=context)
-
-    return result.output
+    return "\n".join(research_output)
 
 
 def research_prefect_topic(question: str, topic: str, version: str = "3.x") -> str:
     """
-    Thoroughly research a Prefect topic using an intelligent research agent.
-    This tool performs multiple searches and synthesizes comprehensive findings.
+    Thoroughly research a Prefect topic using Claude Agent SDK with source code access.
+
+    This tool uses Claude Agent SDK to give the research agent direct access to:
+    - Actual Prefect source code via Read tool
+    - Code search via Grep/Bash (rg)
+    - File discovery via Glob
+    - Shell commands for exploration
+
+    This eliminates hallucination by allowing the agent to verify everything
+    against the actual implementation.
 
     Args:
         question: The specific question or topic to research
         topic: A short display name for the topic based on the question (for bookkeeping)
         version: Prefect version ("2.x" or "3.x")
     """
-    namespace = f"prefect-{version[0]}"
-
     try:
-        findings = (
+        result = (
             task(task_run_name=f"Researching {topic}", cache_policy=INPUTS)(
-                research_topic
+                research_topic_with_code_access
             )
-            .submit(question, namespace)
+            .submit(question, version)
             .result()
         )
 
-        result = f"**Research Findings** (Confidence: {findings.confidence_level})\n\n"
-
-        result += "**Main Findings:**\n"
-        for finding in findings.main_findings:
-            result += f"- {finding}\n"
-
-        if findings.supporting_details:
-            result += "\n**Supporting Details:**\n"
-            for detail in findings.supporting_details:
-                result += f"- {detail}\n"
-
-        if findings.relevant_links:
-            result += "\n**Relevant Documentation:**\n"
-            for link in findings.relevant_links:
-                result += f"- {link}\n"
-
-        if findings.knowledge_gaps:
-            result += "\n**Note:** Some aspects could not be fully researched:\n"
-            for gap in findings.knowledge_gaps:
-                result += f"- {gap}\n"
-
-        return result
+        return f"**Research Findings (Code-Verified)**\n\n{result}"
 
     except Exception as e:
-        return f"Research failed: {str(e)}. Falling back to standard search."
+        return f"Research failed: {str(e)}. The agent may not have access to the source code."
