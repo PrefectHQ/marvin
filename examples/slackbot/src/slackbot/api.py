@@ -5,6 +5,7 @@ from collections import defaultdict
 from contextlib import asynccontextmanager
 from typing import Any
 
+from agentic_learning import learning
 from fastapi import FastAPI, HTTPException, Request
 from prefect import Flow, State, flow, get_run_logger, task
 from prefect.blocks.notifications import SlackWebhook
@@ -100,11 +101,13 @@ async def run_agent(
                 settings=decorator_settings,
                 max_tool_calls=settings.max_tool_calls_per_turn,
             ):
-                result = await create_agent(model=settings.model_name).run(
-                    user_prompt=cleaned_message,
-                    message_history=conversation,
-                    deps=user_context,
-                )
+                # wrap agent run with learning context for persistent memory
+                with learning(agent=f"slackbot-{user_context['user_id']}"):
+                    result = await create_agent(model=settings.model_name).run(
+                        user_prompt=cleaned_message,
+                        message_history=conversation,
+                        deps=user_context,
+                    )
         finally:
             _progress_message.reset(token)
             _tool_usage_counts.reset(counts_token)
