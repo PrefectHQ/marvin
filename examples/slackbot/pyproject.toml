@@ -42,6 +42,7 @@ dependencies = [
   "raggy[tpuf] @ git+https://github.com/zzstoatzz/raggy.git",
   "pretty-mod",
   "claude-agent-sdk",
+  "agentic-learning",
 ]
 
 
