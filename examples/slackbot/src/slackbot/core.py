@@ -18,6 +18,7 @@ from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.providers import Provider
 from pydantic_ai.settings import ModelSettings
 
+from slackbot._internal.templates import DEFAULT_SYSTEM_PROMPT
 from slackbot.github import (
     GitHubAuthError,
     GitHubError,
@@ -163,6 +164,7 @@ def create_agent(
         UserContext, str
     ](
         model=ai_model,
+        system_prompt=DEFAULT_SYSTEM_PROMPT,
         model_settings=ModelSettings(temperature=settings.temperature),
         tools=[
             research_prefect_topic,  # Tool for researching Prefect topics
