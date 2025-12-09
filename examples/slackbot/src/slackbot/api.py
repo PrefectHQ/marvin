@@ -102,7 +102,7 @@ async def run_agent(
                 max_tool_calls=settings.max_tool_calls_per_turn,
             ):
                 # wrap agent run with learning context for persistent memory
-                with learning(agent=f"slackbot-{user_context['user_id']}"):
+                async with learning(agent=f"slackbot-{user_context['user_id']}"):
                     result = await create_agent(model=settings.model_name).run(
                         user_prompt=cleaned_message,
                         message_history=conversation,
