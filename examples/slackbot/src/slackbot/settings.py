@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import ClassVar, Literal
+from typing import ClassVar
 
 from prefect.blocks.system import Secret
 from prefect.exceptions import ObjectNotFound
@@ -60,14 +60,6 @@ class SlackbotSettings(BaseSettings):
     letta_api_key_secret_name: str = Field(
         default="letta-api-key",
         description="Name of the Prefect secret block containing Letta API key",
-    )
-
-    vector_store_type: Literal["turbopuffer"] = Field(
-        default="turbopuffer", description="Type of vector store to use"
-    )
-    user_facts_namespace_prefix: str = Field(
-        default="user-facts-",
-        description="Prefix for user facts namespaces in vector store",
     )
 
     # Development settings

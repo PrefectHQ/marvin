@@ -250,7 +250,6 @@ async def handle_message(payload: SlackPayload, db: Database):
 
         user_context = build_user_context(
             user_id=event.user,
-            user_question=cleaned_message,
             thread_ts=thread_ts,
             workspace_name=await get_workspace_domain(),
             channel_id=event.channel or "unknown",

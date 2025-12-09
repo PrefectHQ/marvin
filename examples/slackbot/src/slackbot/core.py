@@ -17,11 +17,7 @@ from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.providers import Provider
 from pydantic_ai.settings import ModelSettings
-from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
-from turbopuffer import NotFoundError
 
-from slackbot._internal.templates import DEFAULT_SYSTEM_PROMPT
-from slackbot.assets import store_user_facts
 from slackbot.github import (
     GitHubAuthError,
     GitHubError,
@@ -136,23 +132,13 @@ class Database:
 @task(task_run_name="build user context for {user_id}")
 def build_user_context(
     user_id: str,
-    user_question: str,
     thread_ts: str,
     workspace_name: str,
     channel_id: str,
     bot_id: str,
 ) -> UserContext:
-    try:
-        user_notes = query_namespace(
-            query_text=user_question,
-            namespace=f"{settings.user_facts_namespace_prefix}{user_id}",
-            top_k=5,
-        )
-    except NotFoundError:
-        user_notes = "<No notes found>"
     return UserContext(
         user_id=user_id,
-        user_notes=user_notes,
         thread_ts=thread_ts,
         workspace_name=workspace_name,
         channel_id=channel_id,
@@ -188,42 +174,6 @@ def create_agent(
         ],
         deps_type=UserContext,
     )
-
-    @agent.system_prompt
-    def personality_and_maybe_notes(ctx: RunContext[UserContext]) -> str:
-        system_prompt = DEFAULT_SYSTEM_PROMPT + (
-            f"\n\nUser notes: {ctx.deps['user_notes']}"
-            if ctx.deps["user_notes"]
-            else ""
-        )
-        print(f"System prompt: {system_prompt}")
-        return system_prompt
-
-    @agent.tool
-    async def store_facts_about_user(
-        ctx: RunContext[UserContext], facts: list[str]
-    ) -> str:
-        """Store facts about the user that are useful for answering their questions."""
-        print(f"Storing {len(facts)} facts about user {ctx.deps['user_id']}")
-        # This creates an asset dependency: USER_FACTS depends on SLACK_MESSAGES
-        message = await store_user_facts(ctx, facts)
-        print(message)
-        return message
-
-    @agent.tool
-    def delete_facts_about_user(ctx: RunContext[UserContext], related_to: str) -> str:
-        """Delete facts about the user related to a specific topic."""
-        print(f"forgetting stuff about {ctx.deps['user_id']} related to {related_to}")
-        user_id = ctx.deps["user_id"]
-        with TurboPuffer(
-            namespace=f"{settings.user_facts_namespace_prefix}{user_id}"
-        ) as tpuf:
-            vector_result = tpuf.query(related_to)
-            ids = [str(v.id) for v in vector_result.rows or []]
-            tpuf.delete(ids)
-            message = f"Deleted {len(ids)} facts about user {user_id}"
-            print(message)
-            return message
 
     @agent.tool
     async def create_discussion_and_notify(
