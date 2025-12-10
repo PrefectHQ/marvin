@@ -1,9 +1,8 @@
 import os
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from prefect.blocks.system import Secret
-from prefect.exceptions import ObjectNotFound
 from prefect.variables import Variable
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -57,9 +56,13 @@ class SlackbotSettings(BaseSettings):
         default="anthropic-api-key",
         description="Name of the Prefect secret block containing Anthropic API key",
     )
-    letta_api_key_secret_name: str = Field(
-        default="letta-api-key",
-        description="Name of the Prefect secret block containing Letta API key",
+
+    vector_store_type: Literal["turbopuffer"] = Field(
+        default="turbopuffer", description="Type of vector store to use"
+    )
+    user_facts_namespace_prefix: str = Field(
+        default="user-facts-",
+        description="Prefix for user facts namespaces in vector store",
     )
 
     # Development settings
@@ -91,12 +94,6 @@ class SlackbotSettings(BaseSettings):
                 os.environ["TURBOPUFFER_API_KEY"] = api_key
             except Exception:
                 pass  # If secret doesn't exist, turbopuffer will handle the error
-        if not os.getenv("LETTA_API_KEY"):
-            try:
-                api_key = Secret.load(self.letta_api_key_secret_name, _sync=True).get()  # type: ignore
-                os.environ["LETTA_API_KEY"] = api_key
-            except ObjectNotFound:
-                pass  # If secret doesn't exist, learning-sdk won't be used
         if not self.admin_slack_user_id:
             self.admin_slack_user_id = Variable.get("admin-slack-id", _sync=True)
         return self
