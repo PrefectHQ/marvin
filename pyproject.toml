@@ -96,9 +96,6 @@ extend-select = ["I"]
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401", "I001", "RUF013"]
 
-[tool.uv]
-prerelease = "allow"
-
 [tool.uv.sources]
 slackbot = { workspace = true }
 
