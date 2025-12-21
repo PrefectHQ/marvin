@@ -416,14 +416,17 @@ def _run_migrations(alembic_log_level: str = "WARNING") -> bool:
         return False
 
 
-async def create_db_and_tables(*, force: bool = False) -> None:
-    """Create all database tables synchronously.
-
-    This is a synchronous alternative to create_db_and_tables() that can be used
-    in contexts where asyncio.run() cannot be called.
+async def create_db_and_tables(
+    *, force: bool = False, dispose_engine: bool = False
+) -> None:
+    """Create all database tables.
 
     Args:
         force: If True, drops all existing tables before creating new ones.
+        dispose_engine: If True, dispose the engine after creating tables.
+            This is useful when called from asyncio.run() to ensure the
+            aiosqlite worker thread is cleaned up and doesn't prevent
+            Python from exiting.
     """
     engine = get_async_engine()
 
@@ -434,6 +437,15 @@ async def create_db_and_tables(*, force: bool = False) -> None:
 
         await conn.run_sync(Base.metadata.create_all)
         logger.debug("Database tables created.")
+
+    if dispose_engine:
+        await engine.dispose()
+        # Remove the engine from the cache since it's disposed
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+        _async_engine_cache.pop(loop, None)
 
 
 def init_database_if_necessary():
@@ -543,7 +555,10 @@ def ensure_db_tables_exist():
     # Create tables synchronously using asyncio.run() if we're not in an async context
     try:
         with _create_tables_lock:
-            asyncio.run(create_db_and_tables())
+            # Use dispose_engine=True to clean up the aiosqlite worker thread
+            # after table creation. Without this, the cached engine's worker
+            # thread could prevent Python from exiting cleanly.
+            asyncio.run(create_db_and_tables(dispose_engine=True))
             logger.debug("Database tables created successfully.")
     except Exception as e:
         logger.error(f"Failed to create database tables: {e}")

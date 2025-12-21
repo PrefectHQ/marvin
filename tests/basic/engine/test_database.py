@@ -1,9 +1,13 @@
+import asyncio
+import threading
+
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from marvin.database import (
     DBMessage,
     DBThread,
+    _async_engine_cache,
     create_db_and_tables,
 )
 
@@ -104,3 +108,40 @@ async def test_relationship_operations(session):
 
     result = await session.execute(select(DBThread).where(DBThread.id == "test-thread"))
     assert result.scalars().first() is None
+
+
+def test_create_db_and_tables_with_dispose_cleans_up_engine():
+    """Test that create_db_and_tables with dispose_engine=True cleans up resources.
+
+    Regression test for issue #1255: process hangs on exit after importing marvin.
+
+    When create_db_and_tables is called with dispose_engine=True (as it is from
+    ensure_db_tables_exist), the engine should be disposed and removed from
+    the cache. This ensures the aiosqlite worker thread is cleaned up and
+    doesn't prevent Python from exiting.
+    """
+
+    def get_non_daemon_threads():
+        """Return non-daemon threads excluding the main thread."""
+        return [
+            t
+            for t in threading.enumerate()
+            if t is not threading.main_thread() and not t.daemon
+        ]
+
+    # record initial state
+    initial_cache_size = len(_async_engine_cache)
+    initial_threads = len(get_non_daemon_threads())
+
+    # run create_db_and_tables with dispose_engine=True
+    asyncio.run(create_db_and_tables(dispose_engine=True))
+
+    # verify engine was removed from cache
+    assert len(_async_engine_cache) == initial_cache_size
+
+    # verify no new non-daemon threads were left behind
+    current_threads = get_non_daemon_threads()
+    assert len(current_threads) == initial_threads, (
+        f"expected {initial_threads} non-daemon threads, "
+        f"found {len(current_threads)}: {[t.name for t in current_threads]}"
+    )
