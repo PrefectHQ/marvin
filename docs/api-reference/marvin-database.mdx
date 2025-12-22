@@ -120,15 +120,16 @@ Custom type for Usage objects that stores them as JSON in the database.
 
 ### `create_db_and_tables`
 ```python
-def create_db_and_tables(force: bool = False)
+def create_db_and_tables(force: bool = False, dispose_engine: bool = False)
 ```
-Create all database tables synchronously.
-
-This is a synchronous alternative to create_db_and_tables() that can be used
-in contexts where asyncio.run() cannot be called.
+Create all database tables.
 
 Args:
     force: If True, drops all existing tables before creating new ones.
+    dispose_engine: If True, dispose the engine after creating tables.
+        This is useful when called from asyncio.run() to ensure the
+        aiosqlite worker thread is cleaned up and doesn't prevent
+        Python from exiting.
 
 ### `ensure_db_tables_exist`
 ```python
