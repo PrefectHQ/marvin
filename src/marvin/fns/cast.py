@@ -5,12 +5,35 @@ into the specified target type, maintaining as much semantic meaning as possible
 
 from typing import Any, TypeVar
 
+from pydantic_ai.messages import UserContent
+
 import marvin
 from marvin.agents.agent import Agent
 from marvin.handlers.handlers import AsyncHandler, Handler
 from marvin.thread import Thread
 from marvin.utilities.asyncio import run_sync
 from marvin.utilities.types import TargetType
+
+
+def _is_user_content(value: Any) -> bool:
+    """Check if a value is a non-string UserContent type (e.g., BinaryContent, ImageUrl).
+
+    These types should be passed as attachments rather than serialized into the context
+    to avoid token explosion issues.
+    """
+    if isinstance(value, str):
+        return False
+    # Check against UserContent types from pydantic_ai
+    from pydantic_ai.messages import (
+        AudioUrl,
+        BinaryContent,
+        DocumentUrl,
+        ImageUrl,
+        VideoUrl,
+    )
+
+    return isinstance(value, (ImageUrl, AudioUrl, DocumentUrl, VideoUrl, BinaryContent))
+
 
 T = TypeVar("T")
 
@@ -83,7 +106,15 @@ async def cast_async(
         raise ValueError("Instructions are required when casting to string values.")
 
     task_context = context or {}
-    task_context["Data to transform"] = data
+    attachments: list[UserContent] = []
+
+    # Handle UserContent types (images, audio, etc.) as attachments to avoid
+    # token explosion from serializing binary data into the context string
+    if _is_user_content(data):
+        attachments.append(data)
+    else:
+        task_context["Data to transform"] = data
+
     prompt = prompt or DEFAULT_PROMPT
     if instructions:
         prompt += f"\n\nYou must follow these instructions for your transformation:\n{instructions}"
@@ -91,6 +122,7 @@ async def cast_async(
     task = marvin.Task[target](
         name="Cast Task",
         instructions=prompt,
+        attachments=attachments,
         context=task_context,
         result_type=target,
         agents=[agent] if agent else None,
