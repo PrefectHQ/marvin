@@ -414,12 +414,36 @@ class Thread:
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
-        """Reset the current thread in context and store it as the last thread."""
+        """Reset the current thread in context, clean up MCP servers, and store as last thread."""
         global _last_thread
+
+        # Clean up any MCP servers that were started during this thread's context
+        self._cleanup_mcp_servers()
+
         # Store this thread as the last thread before resetting current
         _last_thread = self
         if self._tokens:  # Only reset if we have tokens
             _current_thread.reset(self._tokens.pop())
+
+    def _cleanup_mcp_servers(self) -> None:
+        """Clean up MCP servers that were started in this thread context."""
+        from marvin._internal.integrations.mcp import (
+            cleanup_thread_mcp_servers,
+            get_thread_mcp_manager,
+        )
+
+        # Only attempt cleanup if there's an active MCP manager
+        manager = get_thread_mcp_manager()
+        if manager is not None and manager.active_servers:
+            try:
+                run_sync(cleanup_thread_mcp_servers())
+            except Exception as e:
+                # Log but don't re-raise - we don't want MCP cleanup failures
+                # to prevent thread context from exiting properly
+                from marvin.utilities.logging import get_logger
+
+                logger = get_logger(__name__)
+                logger.warning(f"Failed to clean up MCP servers: {e}")
 
     @classmethod
     def get_current(cls) -> "Thread | None":
