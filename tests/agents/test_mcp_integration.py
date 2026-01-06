@@ -1,10 +1,18 @@
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from pydantic_ai.mcp import MCPServer
 from pydantic_ai.tools import ToolDefinition
 
-from marvin._internal.integrations.mcp import discover_mcp_tools
+from marvin._internal.integrations.mcp import (
+    MCPManager,
+    cleanup_thread_mcp_servers,
+    discover_mcp_tools,
+    get_thread_mcp_manager,
+    manage_mcp_servers,
+    set_thread_mcp_manager,
+)
 from marvin.agents import Agent
+from marvin.thread import Thread
 
 
 class TestAgentMCPInstantiation:
@@ -196,3 +204,149 @@ async def test_mcp_tools_not_duplicated():
     assert len(found_mcp_tools) == 0, (
         f"Agent should not pre-discover MCP tools, found: {found_mcp_tools}"
     )
+
+
+class TestMCPServerLifecycleInThreadContext:
+    """
+    Regression tests for https://github.com/prefecthq/marvin/issues/1259:
+    MCP servers restart for each agent.run() call instead of staying alive for session.
+    """
+
+    async def test_mcp_servers_reused_within_thread_context(self):
+        """MCP servers should be started once and reused across multiple manage_mcp_servers calls."""
+        # Setup: Create a mock server
+        mock_server = MagicMock(spec=MCPServer)
+        mock_server.is_running = True
+
+        # Create an agent with the mock server
+        mock_agent = MagicMock(spec=Agent)
+        mock_agent.name = "TestAgent"
+        mock_agent.get_mcp_servers.return_value = [mock_server]
+
+        # Clear any existing thread MCP manager
+        set_thread_mcp_manager(None)
+
+        try:
+            # Patch MCPManager.start_servers to track calls without actually starting servers
+            start_call_count = 0
+
+            async def mock_start_servers(self, actor):
+                nonlocal start_call_count
+                start_call_count += 1
+                # Track that we "started" this server
+                server_id = id(mock_server)
+                if server_id not in self._started_server_ids:
+                    self._started_server_ids.add(server_id)
+                    self.active_servers.append(mock_server)
+                return self.active_servers
+
+            with patch.object(MCPManager, "start_servers", mock_start_servers):
+                # First call to manage_mcp_servers should create a new manager
+                async with manage_mcp_servers(mock_agent) as servers1:
+                    assert len(servers1) == 1
+                    manager1 = get_thread_mcp_manager()
+                    assert manager1 is not None
+
+                    # Second call within same thread context should reuse the manager
+                    async with manage_mcp_servers(mock_agent) as servers2:
+                        assert len(servers2) == 1
+                        manager2 = get_thread_mcp_manager()
+                        # Same manager instance should be reused
+                        assert manager1 is manager2
+                        # Server should be reused (start only called once per new server)
+                        assert (
+                            start_call_count == 2
+                        )  # Called twice, but server only added once
+
+                    # Third call should still reuse
+                    async with manage_mcp_servers(mock_agent) as servers3:
+                        assert len(servers3) == 1
+                        manager3 = get_thread_mcp_manager()
+                        assert manager1 is manager3
+        finally:
+            # Cleanup
+            await cleanup_thread_mcp_servers()
+
+    async def test_mcp_manager_tracks_started_servers_by_id(self):
+        """MCPManager should track servers by id to avoid restarting the same server."""
+        manager = MCPManager()
+
+        mock_server = MagicMock(spec=MCPServer)
+        server_id = id(mock_server)
+
+        # Simulate starting the server
+        manager._started_server_ids.add(server_id)
+        manager.active_servers.append(mock_server)
+
+        # The server should be considered already started
+        assert server_id in manager._started_server_ids
+        assert mock_server in manager.active_servers
+
+        # Cleanup should clear the tracking
+        manager.active_servers = []
+        manager._started_server_ids.clear()
+        assert server_id not in manager._started_server_ids
+
+    async def test_thread_context_cleans_up_mcp_servers_on_exit(self):
+        """Thread context should clean up MCP servers when exiting."""
+        # Setup: Create a mock MCP manager with a server
+        mock_server = MagicMock(spec=MCPServer)
+        mock_server.is_running = True
+
+        manager = MCPManager()
+        manager.active_servers = [mock_server]
+        manager._started_server_ids.add(id(mock_server))
+
+        # Mock the cleanup method
+        manager.cleanup = AsyncMock()
+
+        # Set as the thread's MCP manager
+        set_thread_mcp_manager(manager)
+
+        # Create a thread and enter/exit its context
+        thread = Thread()
+        with thread:
+            # Manager should still be set inside the context
+            assert get_thread_mcp_manager() is manager
+
+        # After exiting, cleanup should have been called
+        manager.cleanup.assert_called_once()
+
+        # Clean up test state
+        set_thread_mcp_manager(None)
+
+    async def test_manage_mcp_servers_no_servers_no_manager_created(self):
+        """When an agent has no MCP servers, no manager should be created."""
+        mock_agent = MagicMock(spec=Agent)
+        mock_agent.name = "NoMCPAgent"
+        mock_agent.get_mcp_servers.return_value = []
+
+        # Clear any existing manager
+        set_thread_mcp_manager(None)
+
+        async with manage_mcp_servers(mock_agent) as servers:
+            assert servers == []
+            # No manager should be created for empty servers
+            assert get_thread_mcp_manager() is None
+
+    async def test_mcp_manager_contextvar_isolation(self):
+        """MCPManager ContextVar should be isolated between different async contexts."""
+        # This test verifies that the ContextVar behaves correctly
+        manager1 = MCPManager()
+        manager2 = MCPManager()
+
+        # Initially no manager
+        set_thread_mcp_manager(None)
+        assert get_thread_mcp_manager() is None
+
+        # Set manager1
+        set_thread_mcp_manager(manager1)
+        assert get_thread_mcp_manager() is manager1
+
+        # Set manager2 (overwrites manager1 in this context)
+        set_thread_mcp_manager(manager2)
+        assert get_thread_mcp_manager() is manager2
+
+        # Cleanup
+        set_thread_mcp_manager(None)
+        assert get_thread_mcp_manager() is None

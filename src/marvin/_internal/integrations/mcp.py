@@ -6,6 +6,7 @@ import asyncio
 import os
 import uuid
 from contextlib import AsyncExitStack, asynccontextmanager
+from contextvars import ContextVar
 from functools import partial
 from typing import TYPE_CHECKING, Any, AsyncIterator, Coroutine
 
@@ -24,21 +25,40 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# Context variable to store the active MCP manager for the current thread context.
+# This allows MCP servers to persist across multiple orchestrator runs within
+# the same marvin.Thread() context.
+_thread_mcp_manager: ContextVar["MCPManager | None"] = ContextVar(
+    "thread_mcp_manager",
+    default=None,
+)
+
 
 def _get_server_name(server: MCPServer) -> str:
     return getattr(server, "name", type(server).__name__)
 
 
 class MCPManager:
-    """Manager for MCP server lifecycle, separating concerns from the orchestrator."""
+    """Manager for MCP server lifecycle, separating concerns from the orchestrator.
+
+    The manager tracks servers by their object id, allowing the same server instance
+    to be reused across multiple orchestrator runs. This is important because
+    pydantic-ai's MCPServer uses reference counting - if we enter the same server's
+    context multiple times, it just increments the count and only stops when it hits 0.
+    """
 
     def __init__(self):
         """Initialize the MCP manager."""
         self.exit_stack = AsyncExitStack()
         self.active_servers: list[MCPServer] = []
+        # Track which server instances (by id) have been started
+        self._started_server_ids: set[int] = set()
 
     async def start_servers(self, actor: "Actor") -> list[MCPServer]:
         """Start MCP servers for the given actor.
+
+        If a server is already running (from a previous orchestrator run in the same
+        thread context), it will be reused rather than started again.
 
         Args:
             actor: The actor that potentially has MCP servers
@@ -49,7 +69,6 @@ class MCPManager:
         from marvin.agents.agent import Agent
 
         logger.debug(f"[MCPManager] Preparing MCP servers for {actor.name}...")
-        self.active_servers = []
 
         if not isinstance(actor, Agent) or not hasattr(actor, "get_mcp_servers"):
             logger.debug(
@@ -70,7 +89,17 @@ class MCPManager:
         )
 
         for i, server in enumerate(servers_to_manage):
+            server_id = id(server)
             server_repr = f"#{i + 1} {_get_server_name(server)}"
+
+            # Check if this server instance is already started
+            if server_id in self._started_server_ids:
+                logger.debug(
+                    f"[MCPManager] Server {server_repr} is already running, reusing."
+                )
+                if server not in self.active_servers:
+                    self.active_servers.append(server)
+                continue
 
             try:
                 # Set environment variables for stdio servers if not already set
@@ -82,6 +111,7 @@ class MCPManager:
 
                 await self.exit_stack.enter_async_context(server)
                 self.active_servers.append(server)
+                self._started_server_ids.add(server_id)
                 logger.debug(
                     f"[MCPManager] Context successfully entered for server {server_repr}."
                 )
@@ -91,7 +121,9 @@ class MCPManager:
                     exc_info=True,
                 )
 
-        logger.debug(f"[MCPManager] Started {len(self.active_servers)} active servers.")
+        logger.debug(
+            f"[MCPManager] {len(self.active_servers)} active servers available."
+        )
         return self.active_servers
 
     async def cleanup(self):
@@ -99,6 +131,7 @@ class MCPManager:
         logger.debug("[MCPManager] Cleaning up MCP servers...")
         await self.exit_stack.aclose()
         self.active_servers = []
+        self._started_server_ids.clear()
         logger.debug("[MCPManager] MCP server cleanup complete.")
 
 
@@ -261,9 +294,38 @@ async def discover_mcp_tools(
     return mcp_tools
 
 
+def get_thread_mcp_manager() -> "MCPManager | None":
+    """Get the current thread's MCP manager from context."""
+    return _thread_mcp_manager.get()
+
+
+def set_thread_mcp_manager(manager: "MCPManager | None") -> None:
+    """Set the MCP manager for the current thread context."""
+    _thread_mcp_manager.set(manager)
+
+
+async def cleanup_thread_mcp_servers() -> None:
+    """Clean up MCP servers for the current thread context.
+
+    This should be called when the Thread context exits to properly
+    shut down any MCP servers that were started.
+    """
+    manager = get_thread_mcp_manager()
+    if manager is not None:
+        await manager.cleanup()
+        set_thread_mcp_manager(None)
+
+
 @asynccontextmanager
 async def manage_mcp_servers(actor: "Actor") -> AsyncIterator[list[MCPServer]]:
-    """Context manager to start and stop MCP servers for a given actor.
+    """Context manager to manage MCP servers for a given actor.
+
+    MCP servers are persisted across multiple orchestrator runs within the same
+    Thread context. This avoids the overhead of starting/stopping servers for
+    each agent.run() call when multiple runs happen within the same Thread.
+
+    The servers are only cleaned up when the Thread context exits (via
+    cleanup_thread_mcp_servers()).
 
     Args:
         actor: The actor that may have MCP servers
@@ -285,11 +347,19 @@ async def manage_mcp_servers(actor: "Actor") -> AsyncIterator[list[MCPServer]]:
         yield []
         return
 
-    # Only create and use the manager if we actually have MCP servers
-    manager = MCPManager()
+    # Get or create the manager for this thread context
+    manager = get_thread_mcp_manager()
+    if manager is None:
+        manager = MCPManager()
+        set_thread_mcp_manager(manager)
+        logger.debug("[manage_mcp_servers] Created new MCPManager for thread context")
+    else:
+        logger.debug(
+            "[manage_mcp_servers] Reusing existing MCPManager from thread context"
+        )
+
+    # Start servers (MCPManager will skip already-running servers)
     active_servers = await manager.start_servers(actor)
 
-    try:
-        yield active_servers
-    finally:
-        await manager.cleanup()
+    # Yield the servers - don't clean up on exit, let the Thread handle it
+    yield active_servers
