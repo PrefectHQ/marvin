@@ -11,7 +11,10 @@ from pydantic_ai.mcp import MCPServer
 from pydantic_ai.messages import UserContent
 
 import marvin
-from marvin._internal.integrations.mcp import manage_mcp_servers
+from marvin._internal.integrations.mcp import (
+    cleanup_thread_mcp_servers,
+    manage_mcp_servers,
+)
 from marvin.agents.actor import Actor
 from marvin.agents.agent import Agent
 from marvin.database import DBLLMCall
@@ -31,7 +34,7 @@ from marvin.instructions import get_instructions
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.tasks.task import Task
-from marvin.thread import Message, Thread, get_thread
+from marvin.thread import Message, Thread, get_current_thread, get_thread
 from marvin.utilities.logging import get_logger
 
 T = TypeVar("T")
@@ -303,6 +306,10 @@ class Orchestrator:
                         await self.handle_event(OrchestratorEndEvent())
         finally:
             _current_orchestrator.reset(token)
+            # Clean up MCP servers if this was the outermost Thread context.
+            # After Thread.__exit__, get_current_thread() returns None if no outer Thread exists.
+            if get_current_thread() is None:
+                await cleanup_thread_mcp_servers()
 
         return results
 
