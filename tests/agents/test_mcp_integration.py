@@ -287,8 +287,12 @@ class TestMCPServerLifecycleInThreadContext:
         manager._started_server_ids.clear()
         assert server_id not in manager._started_server_ids
 
-    async def test_thread_context_cleans_up_mcp_servers_on_exit(self):
-        """Thread context should clean up MCP servers when exiting."""
+    async def test_mcp_cleanup_happens_in_orchestrator_not_thread(self):
+        """MCP cleanup should happen in orchestrator's finally block, not Thread.__exit__.
+
+        This is important because Thread.__exit__ is sync but MCP cleanup is async.
+        The orchestrator handles cleanup after the Thread context exits.
+        """
         # Setup: Create a mock MCP manager with a server
         mock_server = MagicMock(spec=MCPServer)
         mock_server.is_running = True
@@ -309,7 +313,15 @@ class TestMCPServerLifecycleInThreadContext:
             # Manager should still be set inside the context
             assert get_thread_mcp_manager() is manager
 
-        # After exiting, cleanup should have been called
+        # After Thread exits, cleanup should NOT have been called yet
+        # (cleanup now happens in orchestrator.run(), not Thread.__exit__)
+        manager.cleanup.assert_not_called()
+
+        # Manager should still be set (orchestrator would clean it up)
+        assert get_thread_mcp_manager() is manager
+
+        # Manual cleanup to simulate what orchestrator does
+        await cleanup_thread_mcp_servers()
         manager.cleanup.assert_called_once()
 
         # Clean up test state
@@ -349,4 +361,35 @@ class TestMCPServerLifecycleInThreadContext:
 
         # Cleanup
         set_thread_mcp_manager(None)
+        assert get_thread_mcp_manager() is None
+
+    async def test_cleanup_from_async_context_works(self):
+        """MCP cleanup should work correctly when called from async context.
+
+        This is a regression test for the issue where calling run_sync() from
+        Thread.__exit__ while already in an async context caused problems.
+        The fix moves cleanup to orchestrator.run() which is already async.
+        """
+        mock_server = MagicMock(spec=MCPServer)
+        mock_server.is_running = True
+
+        manager = MCPManager()
+        manager.active_servers = [mock_server]
+        manager._started_server_ids.add(id(mock_server))
+        manager.cleanup = AsyncMock()
+
+        set_thread_mcp_manager(manager)
+
+        # Simulate what orchestrator.run() does: enter Thread, do work, exit Thread, then cleanup
+        thread = Thread()
+        with thread:
+            # Work happens here
+            pass
+
+        # After Thread.__exit__, we're still in async context
+        # Cleanup should work without issues (no run_sync needed)
+        await cleanup_thread_mcp_servers()
+
+        # Verify cleanup was called
+        manager.cleanup.assert_called_once()
         assert get_thread_mcp_manager() is None
