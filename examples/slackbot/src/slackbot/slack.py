@@ -367,7 +367,7 @@ async def create_progress_message(
     return progress
 
 
-# --- Slack Snippet Upload (files.upload with content parameter) ---
+# --- Slack Snippet Upload (using new API with snippet_type parameter) ---
 
 
 async def upload_snippet(
@@ -378,14 +378,15 @@ async def upload_snippet(
     title: str | None = None,
     filetype: str | None = None,
 ) -> dict[str, Any]:
-    """Upload a code snippet using files.upload with content parameter.
+    """Upload a code snippet using the new external upload API with snippet_type.
 
-    This creates an actual Slack snippet (with line numbers and collapsible UI),
-    not just a file attachment. Uses the `content` parameter which creates
-    editable snippets.
+    The snippet_type parameter tells Slack to create a proper code snippet
+    (with syntax highlighting and line numbers) rather than a plain file.
 
-    Note: files.upload is deprecated but still works. The new external upload API
-    (files.getUploadURLExternal) doesn't create proper snippets with line numbers.
+    Uses the three-step process:
+    1. files.getUploadURLExternal - get upload URL, passing snippet_type
+    2. POST content to that URL
+    3. files.completeUploadExternal - finalize and share in channel
 
     Args:
         content: The snippet content to upload
@@ -393,40 +394,89 @@ async def upload_snippet(
         channel_id: Channel to share the snippet in
         thread_ts: Thread timestamp to share in (optional)
         title: Display title for the snippet (optional, defaults to filename)
-        filetype: File type hint (e.g., "python", "yaml") - Slack auto-detects if not provided
+        filetype: Syntax type for the snippet (e.g., "python", "javascript", "yaml")
 
     Returns:
         dict with file info from Slack API
     """
-    # Build form data for multipart upload
-    # Using `content` parameter (not `file`) creates an editable snippet
-    form_data: dict[str, Any] = {
-        "content": content,
-        "filename": filename,
-        "channels": channel_id,
-    }
-    if title:
-        form_data["title"] = title
-    if filetype:
-        form_data["filetype"] = filetype
-    if thread_ts:
-        form_data["thread_ts"] = thread_ts
+    content_bytes = content.encode("utf-8")
+    length = len(content_bytes)
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://slack.com/api/files.upload",
+        # Step 1: Get upload URL with snippet_type parameter
+        # snippet_type is the key - it tells Slack to create a code snippet
+        # with syntax highlighting and line numbers, not just a plain file
+        get_url_params: dict[str, Any] = {
+            "filename": filename,
+            "length": length,
+        }
+        if filetype:
+            get_url_params["snippet_type"] = filetype
+
+        response = await client.get(
+            "https://slack.com/api/files.getUploadURLExternal",
             headers={"Authorization": f"Bearer {settings.slack_api_token}"},
-            data=form_data,
+            params=get_url_params,
         )
         response.raise_for_status()
-        result = response.json()
+        url_data = response.json()
 
-        if not result.get("ok"):
+        if not url_data.get("ok"):
             raise ValueError(
-                f"Failed to upload snippet: {result.get('error', 'unknown error')}"
+                f"Failed to get upload URL: {url_data.get('error', 'unknown error')}"
             )
 
-        return result
+        upload_url = url_data["upload_url"]
+        file_id = url_data["file_id"]
+
+        logger.info(f"Got upload URL for file_id={file_id}, snippet_type={filetype}")
+
+        # Step 2: Upload content to the provided URL
+        upload_response = await client.post(
+            upload_url,
+            content=content_bytes,
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        if upload_response.status_code != 200:
+            raise ValueError(
+                f"Failed to upload file content: {upload_response.status_code}"
+            )
+
+        # Step 3: Complete the upload and share in channel
+        complete_payload: dict[str, Any] = {
+            "files": [{"id": file_id, "title": title or filename}],
+            "channel_id": channel_id,
+        }
+        if thread_ts:
+            complete_payload["thread_ts"] = thread_ts
+
+        complete_response = await client.post(
+            "https://slack.com/api/files.completeUploadExternal",
+            headers={
+                "Authorization": f"Bearer {settings.slack_api_token}",
+                "Content-Type": "application/json",
+            },
+            json=complete_payload,
+        )
+        complete_response.raise_for_status()
+        complete_data = complete_response.json()
+
+        if not complete_data.get("ok"):
+            raise ValueError(
+                f"Failed to complete upload: {complete_data.get('error', 'unknown error')}"
+            )
+
+        # Log the resulting file mode to verify snippet creation
+        files = complete_data.get("files", [])
+        if files:
+            file_info = files[0]
+            logger.info(
+                f"Uploaded file - mode: {file_info.get('mode')}, "
+                f"filetype: {file_info.get('filetype')}, "
+                f"editable: {file_info.get('editable')}"
+            )
+
+        return complete_data
 
 
 # Language to file extension mapping for snippet filenames
