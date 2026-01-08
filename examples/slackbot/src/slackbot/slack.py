@@ -376,7 +376,7 @@ async def upload_snippet(
 ) -> dict[str, Any]:
     """Upload a code snippet as a Slack file using the new external upload API.
 
-    Uses the two-step process:
+    Uses the three-step process:
     1. files.getUploadURLExternal - get upload URL and file ID
     2. POST content to that URL
     3. files.completeUploadExternal - finalize and share in channel
