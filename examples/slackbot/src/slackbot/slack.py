@@ -426,6 +426,14 @@ async def upload_snippet(
                 f"Failed to upload snippet: {result.get('error', 'unknown error')}"
             )
 
+        # Log the file mode to debug snippet vs file attachment behavior
+        file_info = result.get("file", {})
+        logger.info(
+            f"Uploaded file - mode: {file_info.get('mode')}, "
+            f"filetype: {file_info.get('filetype')}, "
+            f"editable: {file_info.get('editable')}"
+        )
+
         return result
 
 
