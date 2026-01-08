@@ -1,7 +1,12 @@
 """Module for Slack-related utilities."""
 
+from __future__ import annotations
+
 import re
-from typing import Any, List, Union
+from typing import TYPE_CHECKING, Any, List, Union
+
+if TYPE_CHECKING:
+    from slackbot.types import StructuredResponse
 
 import httpx
 from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
@@ -356,3 +361,223 @@ async def create_progress_message(
     progress = ProgressMessage(channel_id, thread_ts)
     await progress.start(initial_text)
     return progress
+
+
+# --- Slack File Upload API (files.getUploadURLExternal + completeUploadExternal) ---
+
+
+async def upload_snippet(
+    content: str,
+    filename: str,
+    channel_id: str,
+    thread_ts: str | None = None,
+    title: str | None = None,
+    filetype: str | None = None,
+) -> dict[str, Any]:
+    """Upload a code snippet as a Slack file using the new external upload API.
+
+    Uses the two-step process:
+    1. files.getUploadURLExternal - get upload URL and file ID
+    2. POST content to that URL
+    3. files.completeUploadExternal - finalize and share in channel
+
+    Args:
+        content: The snippet content to upload
+        filename: Filename for the snippet (e.g., "example.py")
+        channel_id: Channel to share the snippet in
+        thread_ts: Thread timestamp to share in (optional)
+        title: Display title for the snippet (optional, defaults to filename)
+        filetype: File type hint (e.g., "python", "yaml") - Slack auto-detects if not provided
+
+    Returns:
+        dict with file info from Slack API
+    """
+    content_bytes = content.encode("utf-8")
+    length = len(content_bytes)
+
+    async with httpx.AsyncClient() as client:
+        # Step 1: Get upload URL
+        get_url_params: dict[str, Any] = {
+            "filename": filename,
+            "length": length,
+        }
+        if filetype:
+            get_url_params["snippet_type"] = filetype
+
+        response = await client.get(
+            "https://slack.com/api/files.getUploadURLExternal",
+            headers={"Authorization": f"Bearer {settings.slack_api_token}"},
+            params=get_url_params,
+        )
+        response.raise_for_status()
+        url_data = response.json()
+
+        if not url_data.get("ok"):
+            raise ValueError(
+                f"Failed to get upload URL: {url_data.get('error', 'unknown error')}"
+            )
+
+        upload_url = url_data["upload_url"]
+        file_id = url_data["file_id"]
+
+        # Step 2: Upload content to the provided URL
+        upload_response = await client.post(
+            upload_url,
+            content=content_bytes,
+            headers={"Content-Type": "application/octet-stream"},
+        )
+        if upload_response.status_code != 200:
+            raise ValueError(
+                f"Failed to upload file content: {upload_response.status_code}"
+            )
+
+        # Step 3: Complete the upload and share in channel
+        complete_payload: dict[str, Any] = {
+            "files": [{"id": file_id, "title": title or filename}],
+            "channel_id": channel_id,
+        }
+        if thread_ts:
+            complete_payload["thread_ts"] = thread_ts
+
+        complete_response = await client.post(
+            "https://slack.com/api/files.completeUploadExternal",
+            headers={
+                "Authorization": f"Bearer {settings.slack_api_token}",
+                "Content-Type": "application/json",
+            },
+            json=complete_payload,
+        )
+        complete_response.raise_for_status()
+        complete_data = complete_response.json()
+
+        if not complete_data.get("ok"):
+            raise ValueError(
+                f"Failed to complete upload: {complete_data.get('error', 'unknown error')}"
+            )
+
+        return complete_data
+
+
+# Language to file extension mapping for snippet filenames
+LANGUAGE_EXTENSIONS: dict[str, str] = {
+    "python": "py",
+    "py": "py",
+    "javascript": "js",
+    "js": "js",
+    "typescript": "ts",
+    "ts": "ts",
+    "yaml": "yaml",
+    "yml": "yaml",
+    "json": "json",
+    "bash": "sh",
+    "sh": "sh",
+    "shell": "sh",
+    "sql": "sql",
+    "html": "html",
+    "css": "css",
+    "go": "go",
+    "rust": "rs",
+    "java": "java",
+    "c": "c",
+    "cpp": "cpp",
+    "c++": "cpp",
+    "ruby": "rb",
+    "php": "php",
+    "swift": "swift",
+    "kotlin": "kt",
+    "scala": "scala",
+    "r": "r",
+    "dockerfile": "dockerfile",
+    "docker": "dockerfile",
+    "toml": "toml",
+    "ini": "ini",
+    "xml": "xml",
+    "markdown": "md",
+    "md": "md",
+    "text": "txt",
+    "txt": "txt",
+    "plaintext": "txt",
+}
+
+
+def get_extension_for_language(language: str | None) -> str:
+    """Get file extension for a language identifier."""
+    if not language:
+        return "txt"
+    return LANGUAGE_EXTENSIONS.get(language.lower(), "txt")
+
+
+async def post_structured_response(
+    response: StructuredResponse,
+    channel_id: str,
+    thread_ts: str | None = None,
+    snippet_line_threshold: int = 15,
+) -> None:
+    """Post a structured response to Slack, uploading long code blocks as snippets.
+
+    This renders the response by:
+    1. Collecting text and short code into messages
+    2. Uploading long code blocks as Slack file snippets
+    3. Maintaining the order of sections for readability
+
+    Args:
+        response: The structured response to post
+        channel_id: Slack channel ID
+        thread_ts: Thread timestamp (optional)
+        snippet_line_threshold: Code blocks with more lines than this are uploaded as snippets
+    """
+
+    accumulated_text: list[str] = []
+    snippet_counter = 0
+
+    async def flush_text() -> None:
+        """Post accumulated text as a message."""
+        nonlocal accumulated_text
+        if accumulated_text:
+            text = "\n\n".join(accumulated_text)
+            await post_slack_message(
+                message=text,
+                channel_id=channel_id,
+                thread_ts=thread_ts,
+            )
+            accumulated_text = []
+
+    for section in response.sections:
+        if section.type == "text":
+            accumulated_text.append(section.content)
+        elif section.type == "code":
+            code_lines = section.content.count("\n") + 1
+
+            if code_lines <= snippet_line_threshold:
+                # Short code: inline it in the text
+                # Slack doesn't support language identifiers in code blocks
+                accumulated_text.append(f"```\n{section.content}\n```")
+            else:
+                # Long code: flush text first, then upload as snippet
+                await flush_text()
+
+                snippet_counter += 1
+                ext = get_extension_for_language(section.language)
+                filename = (
+                    section.title
+                    if section.title and "." in section.title
+                    else f"snippet_{snippet_counter}.{ext}"
+                )
+                title = section.title or f"Code snippet {snippet_counter}"
+
+                try:
+                    await upload_snippet(
+                        content=section.content,
+                        filename=filename,
+                        channel_id=channel_id,
+                        thread_ts=thread_ts,
+                        title=title,
+                        filetype=section.language,
+                    )
+                except Exception as e:
+                    # Fallback: post as regular code block if upload fails
+                    print(f"Failed to upload snippet, falling back to inline: {e}")
+                    accumulated_text.append(f"*{title}*\n```\n{section.content}\n```")
+
+    # Flush any remaining text
+    await flush_text()
