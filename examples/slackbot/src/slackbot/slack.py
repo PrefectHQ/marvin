@@ -9,9 +9,13 @@ if TYPE_CHECKING:
     from slackbot.types import StructuredResponse
 
 import httpx
+from prefect.logging.loggers import get_logger
 from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
 
 from slackbot.settings import settings
+from slackbot.types import SNIPPET_LINE_THRESHOLD
+
+logger = get_logger(__name__)
 
 
 class EventBlockElement(BaseModel):
@@ -511,7 +515,7 @@ async def post_structured_response(
     response: StructuredResponse,
     channel_id: str,
     thread_ts: str | None = None,
-    snippet_line_threshold: int = 15,
+    snippet_line_threshold: int = SNIPPET_LINE_THRESHOLD,
 ) -> None:
     """Post a structured response to Slack, uploading long code blocks as snippets.
 
@@ -558,9 +562,20 @@ async def post_structured_response(
 
                 snippet_counter += 1
                 ext = get_extension_for_language(section.language)
+
+                # Use title as filename only if it looks like a valid filename
+                # (ends with .ext pattern, no spaces, reasonable length)
+                title_is_filename = (
+                    section.title
+                    and "." in section.title
+                    and section.title.rsplit(".", 1)[-1].lower()
+                    in LANGUAGE_EXTENSIONS.values()
+                    and " " not in section.title
+                    and len(section.title) < 100
+                )
                 filename = (
                     section.title
-                    if section.title and "." in section.title
+                    if title_is_filename
                     else f"snippet_{snippet_counter}.{ext}"
                 )
                 title = section.title or f"Code snippet {snippet_counter}"
@@ -574,9 +589,11 @@ async def post_structured_response(
                         title=title,
                         filetype=section.language,
                     )
-                except Exception as e:
+                except (httpx.HTTPError, ValueError, KeyError) as e:
                     # Fallback: post as regular code block if upload fails
-                    print(f"Failed to upload snippet, falling back to inline: {e}")
+                    logger.warning(
+                        f"Failed to upload snippet '{title}', falling back to inline: {e}"
+                    )
                     accumulated_text.append(f"*{title}*\n```\n{section.content}\n```")
 
     # Flush any remaining text

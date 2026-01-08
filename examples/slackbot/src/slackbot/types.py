@@ -46,7 +46,8 @@ class StructuredResponse(BaseModel):
     """
 
     sections: list[TextSection | CodeSection] = Field(
-        description="Ordered list of text and code sections that make up the response"
+        description="Ordered list of text and code sections that make up the response",
+        min_length=1,
     )
 
     def to_plain_text(self) -> str:
