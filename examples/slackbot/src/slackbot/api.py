@@ -29,6 +29,7 @@ from slackbot._internal.thread_status import (
 from slackbot.assets import summarize_thread
 from slackbot.core import (
     Database,
+    UserContext,
     build_user_context,
     create_agent,
 )
@@ -39,10 +40,8 @@ from slackbot.slack import (
     get_channel_name,
     get_workspace_domain,
     post_slack_message,
-    post_structured_response,
 )
 from slackbot.strings import count_tokens, slice_tokens
-from slackbot.types import StructuredResponse, UserContext
 from slackbot.wrap import WatchToolCalls, _progress_message, _tool_usage_counts
 
 BOT_MENTION = r"<@(\w+)>"
@@ -76,7 +75,7 @@ async def run_agent(
     channel_id: str,
     thread_ts: str,
     decorator_settings: dict[str, Any] | None = None,
-) -> AgentRunResult[StructuredResponse]:
+) -> AgentRunResult[str]:
     if decorator_settings is None:
         decorator_settings = {
             "cache_policy": NONE,
@@ -267,8 +266,8 @@ async def handle_message(payload: SlackPayload, db: Database):
             await db.add_thread_messages(thread_ts, result.new_messages())
             conversation.extend(result.new_messages())
             assert event.channel is not None, "No channel found"
-            await post_structured_response(
-                response=result.output,
+            await task(post_slack_message)(
+                message=result.output,
                 channel_id=event.channel,
                 thread_ts=thread_ts,
             )

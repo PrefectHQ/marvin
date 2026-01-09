@@ -42,7 +42,7 @@ from slackbot.search import (
     read_github_issues,
 )
 from slackbot.settings import settings
-from slackbot.types import StructuredResponse, UserContext
+from slackbot.types import UserContext
 
 GITHUB_API_TOKEN = Secret.load(settings.github_token_secret_name, _sync=True).get()
 
@@ -162,7 +162,7 @@ def build_user_context(
 
 def create_agent(
     model: KnownModelName | Model | None = None,
-) -> Agent[UserContext, StructuredResponse]:
+) -> Agent[UserContext, str]:
     logger = get_run_logger()
     logger.info("Creating new agent")
     ai_model = model or AnthropicModel(
@@ -174,11 +174,10 @@ def create_agent(
         ),
     )
     agent = Agent[
-        UserContext, StructuredResponse
+        UserContext, str
     ](
         model=ai_model,
         model_settings=ModelSettings(temperature=settings.temperature),
-        output_type=StructuredResponse,
         tools=[
             research_prefect_topic,  # Tool for researching Prefect topics
             read_github_issues,  # For searching GitHub issues
