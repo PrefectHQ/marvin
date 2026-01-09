@@ -187,16 +187,16 @@ def main():
         sys.exit(1)
 
     # Get assets needing embeddings
-    limit_clause = f"LIMIT {args.limit}" if args.limit > 0 else ""
-    assets = turso_query(
-        settings,
-        f"""
+    sql = """
         SELECT key, name, searchable_text
         FROM assets
         WHERE embedding IS NULL
-        {limit_clause}
-        """,
-    )
+    """
+    params: list | None = None
+    if args.limit > 0:
+        sql += " LIMIT ?"
+        params = [args.limit]
+    assets = turso_query(settings, sql, params)
 
     if not assets:
         print("no assets need embeddings")
@@ -220,7 +220,7 @@ def main():
             text = asset.get("searchable_text") or ""
             if not text.strip():
                 text = f"{asset.get('name', '')} {asset['key']}"
-            # Truncate to reasonable length for embedding
+            # Truncate to 8000 chars - well within Voyage API's input limits
             texts.append(text[:8000])
 
         embeddings = voyage_embed(settings, texts)

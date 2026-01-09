@@ -126,21 +126,24 @@ def turso_query(settings: Settings, sql: str, args: list | None = None) -> list[
     response.raise_for_status()
     data = response.json()
 
-    result = data["results"][0]
-    if result["type"] == "error":
-        raise Exception(f"Turso error: {result['error']}")
+    try:
+        result = data["results"][0]
+        if result["type"] == "error":
+            raise Exception(f"Turso error: {result['error']}")
 
-    cols = [c["name"] for c in result["response"]["result"]["cols"]]
-    rows = result["response"]["result"]["rows"]
+        cols = [c["name"] for c in result["response"]["result"]["cols"]]
+        rows = result["response"]["result"]["rows"]
 
-    def extract_value(cell):
-        if cell is None:
-            return None
-        if isinstance(cell, dict):
-            return cell.get("value")
-        return cell
+        def extract_value(cell):
+            if cell is None:
+                return None
+            if isinstance(cell, dict):
+                return cell.get("value")
+            return cell
 
-    return [dict(zip(cols, [extract_value(cell) for cell in row])) for row in rows]
+        return [dict(zip(cols, [extract_value(cell) for cell in row])) for row in rows]
+    except (KeyError, IndexError, TypeError) as e:
+        raise ValueError(f"malformed Turso response: {e}") from e
 
 
 def turso_exec(
@@ -377,7 +380,9 @@ def cmd_search(settings: Settings, query: str, asset_type: str | None = None):
     FROM assets
     WHERE searchable_text LIKE ?
     """
-    args = [f"%{query}%"]
+    # Escape SQL LIKE special characters
+    escaped_query = query.replace("%", r"\%").replace("_", r"\_")
+    args = [f"%{escaped_query}%"]
 
     if asset_type:
         sql += " AND type = ?"
@@ -443,7 +448,8 @@ def cmd_similar(
         sql += " AND type = ?"
         args.append(asset_type)
 
-    sql += f" ORDER BY distance LIMIT {limit}"
+    sql += " ORDER BY distance LIMIT ?"
+    args.append(limit)
 
     rows = turso_query(settings, sql, args)
 

@@ -14,7 +14,6 @@ Usage:
 import argparse
 import json
 import os
-import subprocess
 import sys
 from collections import Counter
 from datetime import datetime
@@ -90,7 +89,7 @@ def generate_report(settings: Settings) -> str:
             try:
                 meta = json.loads(row["metadata"])
             except Exception:
-                pass
+                pass  # malformed metadata, treat as empty
 
         # Only include if has actual data
         msg_count = meta.get("message_count")
@@ -148,7 +147,7 @@ def generate_report(settings: Settings) -> str:
                     dt = datetime.fromisoformat(ts)
                 monthly[dt.strftime("%Y-%m")] += 1
             except Exception:
-                pass
+                pass  # malformed timestamp, skip
 
     # Channel distribution
     channels = Counter(t["channel_id"] for t in threads if t["channel_id"])
@@ -504,7 +503,9 @@ def main():
     print(f"wrote {args.output}")
 
     if args.open:
-        subprocess.run(["open", args.output])
+        import webbrowser
+
+        webbrowser.open(args.output)
 
 
 if __name__ == "__main__":
