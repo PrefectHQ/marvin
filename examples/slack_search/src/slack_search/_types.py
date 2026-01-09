@@ -16,10 +16,11 @@ class ThreadSummary(BaseModel):
     @property
     def channel_id(self) -> str:
         """Extract channel ID from key."""
-        # key format: slack://workspace/bot/BOT_ID/summary/CHANNEL_ID/THREAD_TS
+        # key: slack://workspace/bot/BOT_ID/summary/CHANNEL_ID/THREAD_TS
+        # idx:   0  1      2      3    4       5        6          7
         parts = self.key.split("/")
-        if len(parts) >= 6:
-            return parts[5]
+        if len(parts) >= 7:
+            return parts[6]
         return ""
 
     @computed_field
@@ -27,8 +28,20 @@ class ThreadSummary(BaseModel):
     def thread_ts(self) -> str:
         """Extract thread timestamp from key."""
         parts = self.key.split("/")
-        if len(parts) >= 7:
-            return parts[6]
+        if len(parts) >= 8:
+            return parts[7]
+        return ""
+
+    @computed_field
+    @property
+    def url(self) -> str:
+        """Slack thread URL."""
+        parts = self.key.split("/")
+        if len(parts) >= 8:
+            workspace = parts[2]
+            channel = parts[6]
+            ts = parts[7].replace(".", "")
+            return f"https://{workspace}.slack.com/archives/{channel}/p{ts}"
         return ""
 
 
@@ -88,6 +101,16 @@ class ThreadDetail(BaseModel):
     def workspace(self) -> str:
         """Slack workspace name."""
         return self.metadata.get("workspace_name", "")
+
+    @computed_field
+    @property
+    def url(self) -> str:
+        """Slack thread URL."""
+        if self.channel_id and self.thread_ts:
+            ws = self.workspace or "prefect-community"
+            ts = self.thread_ts.replace(".", "")
+            return f"https://{ws}.slack.com/archives/{self.channel_id}/p{ts}"
+        return ""
 
 
 class Stats(BaseModel):
