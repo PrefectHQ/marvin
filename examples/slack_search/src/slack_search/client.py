@@ -27,25 +27,22 @@ async def turso_query(sql: str, args: list | None = None) -> list[dict[str, Any]
     if args:
         stmt["args"] = [{"type": "text", "value": str(a)} for a in args]
 
-    payload = {
-        "baton": None,
-        "requests": [{"type": "execute", "stmt": stmt}, {"type": "close"}],
-    }
+    payload = {"requests": [{"type": "execute", "stmt": stmt}, {"type": "close"}]}
     url = f"https://{_get_turso_host()}/v2/pipeline"
 
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            url,
-            headers={
-                "Authorization": f"Bearer {TURSO_TOKEN}",
-                "Content-Type": "application/json",
-            },
-            json=payload,
-            timeout=30,
-        )
-        if response.status_code >= 400:
-            raise RuntimeError(f"Turso HTTP {response.status_code} for {url}: {response.text}")
-        data = response.json()
+    # Use sync httpx.post like the working scripts do
+    response = httpx.post(
+        url,
+        headers={
+            "Authorization": f"Bearer {TURSO_TOKEN}",
+            "Content-Type": "application/json",
+        },
+        json=payload,
+        timeout=30,
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(f"Turso HTTP {response.status_code} for {url}: {response.text}")
+    data = response.json()
 
     result = data["results"][0]
     if result["type"] == "error":

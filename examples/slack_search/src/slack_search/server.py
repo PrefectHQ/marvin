@@ -38,7 +38,6 @@ def _load_categories() -> dict[str, list[str]]:
                 "Content-Type": "application/json",
             },
             json={
-                "baton": None,
                 "requests": [
                     {
                         "type": "execute",
@@ -51,7 +50,7 @@ def _load_categories() -> dict[str, list[str]]:
                         },
                     },
                     {"type": "close"},
-                ],
+                ]
             },
             timeout=30,
         )
