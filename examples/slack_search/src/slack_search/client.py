@@ -27,7 +27,10 @@ async def turso_query(sql: str, args: list | None = None) -> list[dict[str, Any]
     if args:
         stmt["args"] = [{"type": "text", "value": str(a)} for a in args]
 
-    payload = {"requests": [{"type": "execute", "stmt": stmt}, {"type": "close"}]}
+    payload = {
+        "baton": None,
+        "requests": [{"type": "execute", "stmt": stmt}, {"type": "close"}],
+    }
     url = f"https://{_get_turso_host()}/v2/pipeline"
 
     async with httpx.AsyncClient() as client:
