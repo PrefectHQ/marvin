@@ -4,7 +4,7 @@ from functools import lru_cache
 from typing import Any
 
 import httpx
-from pydantic import computed_field
+from pydantic import computed_field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     turso_url: str = ""
     turso_token: str = ""
     voyage_api_key: str = ""
+
+    @field_validator("turso_url", "turso_token", "voyage_api_key", mode="before")
+    @classmethod
+    def strip_quotes(cls, v: str) -> str:
+        if isinstance(v, str):
+            return v.strip().strip('"').strip("'")
+        return v
 
     @computed_field
     @property
