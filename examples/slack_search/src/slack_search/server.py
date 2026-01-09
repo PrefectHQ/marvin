@@ -19,8 +19,8 @@ from slack_search.client import turso_query, voyage_embed
 
 def _load_categories() -> dict[str, list[str]]:
     """Synchronously load categories from Turso at import time."""
-    turso_url = os.environ.get("TURSO_URL", "").strip()
-    turso_token = os.environ.get("TURSO_TOKEN", "").strip()
+    turso_url = os.environ.get("TURSO_URL", "").strip().strip('"').strip("'")
+    turso_token = os.environ.get("TURSO_TOKEN", "").strip().strip('"').strip("'")
 
     if not turso_url or not turso_token:
         return {"topics": [], "channels": []}

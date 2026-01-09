@@ -5,9 +5,9 @@ from typing import Any
 
 import httpx
 
-TURSO_URL = os.environ.get("TURSO_URL", "").strip()
-TURSO_TOKEN = os.environ.get("TURSO_TOKEN", "").strip()
-VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY", "").strip()
+TURSO_URL = os.environ.get("TURSO_URL", "").strip().strip('"').strip("'")
+TURSO_TOKEN = os.environ.get("TURSO_TOKEN", "").strip().strip('"').strip("'")
+VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY", "").strip().strip('"').strip("'")
 
 
 def _get_turso_host() -> str:
