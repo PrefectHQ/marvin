@@ -37,7 +37,8 @@ async def turso_query(sql: str, args: list | None = None) -> list[dict[str, Any]
             json={"requests": [{"type": "execute", "stmt": stmt}, {"type": "close"}]},
             timeout=30,
         )
-        response.raise_for_status()
+        if response.status_code >= 400:
+            raise RuntimeError(f"Turso HTTP {response.status_code}: {response.text}")
         data = response.json()
 
     result = data["results"][0]
