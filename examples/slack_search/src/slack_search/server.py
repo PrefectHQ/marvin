@@ -19,8 +19,8 @@ from slack_search.client import turso_query, voyage_embed
 
 def _load_categories() -> dict[str, list[str]]:
     """Synchronously load categories from Turso at import time."""
-    turso_url = os.environ.get("TURSO_URL", "")
-    turso_token = os.environ.get("TURSO_TOKEN", "")
+    turso_url = os.environ.get("TURSO_URL", "").strip()
+    turso_token = os.environ.get("TURSO_TOKEN", "").strip()
 
     if not turso_url or not turso_token:
         return {"topics": [], "channels": []}
@@ -54,7 +54,8 @@ def _load_categories() -> dict[str, list[str]]:
             },
             timeout=30,
         )
-        resp.raise_for_status()
+        if resp.status_code >= 400:
+            raise RuntimeError(f"Turso HTTP {resp.status_code}: {resp.text}")
         data = resp.json()
 
         # extract topics from metadata
@@ -87,7 +88,10 @@ def _load_categories() -> dict[str, list[str]]:
             "channels": [c for c, _ in channels.most_common(10)],
         }
     except Exception as e:
+        import traceback
+
         print(f"warning: failed to load categories: {e}")
+        traceback.print_exc()
         return {"topics": [], "channels": []}
 
 
