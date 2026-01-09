@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from collections import Counter
 from typing import Literal
 
@@ -11,6 +12,9 @@ from fastmcp import FastMCP
 
 from slack_search._types import SlackMessage, Stats, ThreadContent, ThreadDetail, ThreadSummary
 from slack_search.client import get_settings, slack_get_thread, turso_query, voyage_embed
+
+# slack retention policy - threads older than this are deleted
+RETENTION_DAYS = 90
 
 # -----------------------------------------------------------------------------
 # load categories at import time for dynamic type generation
@@ -149,6 +153,11 @@ channels: {len(_categories["channels"])} available
 # -----------------------------------------------------------------------------
 
 
+def _retention_cutoff() -> float:
+    """Unix timestamp for retention cutoff (now - RETENTION_DAYS)."""
+    return time.time() - (RETENTION_DAYS * 24 * 60 * 60)
+
+
 @mcp.tool
 async def search(
     query: str,
@@ -160,6 +169,7 @@ async def search(
 
     searches for exact text matches in thread names and content.
     optionally filter by topic or channel.
+    excludes threads older than 90 days (Slack retention policy).
 
     args:
         query: text to search for
@@ -173,14 +183,17 @@ async def search(
     if not query:
         return []
 
+    cutoff = _retention_cutoff()
+
     # build query with optional filters
     sql = """
         SELECT key, name, description, metadata,
                SUBSTR(searchable_text, 1, 300) as preview
         FROM assets
         WHERE searchable_text LIKE ?
+          AND CAST(json_extract(metadata, '$.thread_ts') AS REAL) > ?
     """
-    args: list = [f"%{query}%"]
+    args: list = [f"%{query}%", cutoff]
 
     if topic:
         sql += " AND metadata LIKE ?"
@@ -218,6 +231,7 @@ async def similar(
     uses AI embeddings to find threads related to your query,
     even if they don't contain the exact words.
     optionally filter by topic or channel.
+    excludes threads older than 90 days (Slack retention policy).
 
     args:
         query: what you're looking for (question or concept)
@@ -231,6 +245,8 @@ async def similar(
     if not query:
         return []
 
+    cutoff = _retention_cutoff()
+
     # get query embedding
     embedding = await voyage_embed(query)
     embedding_json = json.dumps(embedding)
@@ -242,8 +258,9 @@ async def similar(
                vector_distance_cos(embedding, vector32(?)) as distance
         FROM assets
         WHERE embedding IS NOT NULL
+          AND CAST(json_extract(metadata, '$.thread_ts') AS REAL) > ?
     """
-    args: list = [embedding_json]
+    args: list = [embedding_json, cutoff]
 
     if topic:
         sql += " AND metadata LIKE ?"
