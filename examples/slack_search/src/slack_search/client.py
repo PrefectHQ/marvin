@@ -1,26 +1,39 @@
 """Turso client for slack thread search."""
 
-import os
+from functools import lru_cache
 from typing import Any
 
 import httpx
-
-TURSO_URL = os.environ.get("TURSO_URL", "").strip().strip('"').strip("'")
-TURSO_TOKEN = os.environ.get("TURSO_TOKEN", "").strip().strip('"').strip("'")
-VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY", "").strip().strip('"').strip("'")
+from pydantic import computed_field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-def _get_turso_host() -> str:
-    """Strip libsql:// prefix if present."""
-    url = TURSO_URL
-    if url.startswith("libsql://"):
-        url = url[len("libsql://") :]
-    return url
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    turso_url: str = ""
+    turso_token: str = ""
+    voyage_api_key: str = ""
+
+    @computed_field
+    @property
+    def turso_host(self) -> str:
+        """Strip libsql:// prefix if present."""
+        url = self.turso_url
+        if url.startswith("libsql://"):
+            url = url[len("libsql://") :]
+        return url
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
 
 
 async def turso_query(sql: str, args: list | None = None) -> list[dict[str, Any]]:
     """Execute a query against Turso and return rows."""
-    if not TURSO_URL or not TURSO_TOKEN:
+    settings = get_settings()
+    if not settings.turso_url or not settings.turso_token:
         raise RuntimeError("TURSO_URL and TURSO_TOKEN must be set")
 
     stmt: dict[str, Any] = {"sql": sql}
@@ -28,13 +41,12 @@ async def turso_query(sql: str, args: list | None = None) -> list[dict[str, Any]
         stmt["args"] = [{"type": "text", "value": str(a)} for a in args]
 
     payload = {"requests": [{"type": "execute", "stmt": stmt}, {"type": "close"}]}
-    url = f"https://{_get_turso_host()}/v2/pipeline"
+    url = f"https://{settings.turso_host}/v2/pipeline"
 
-    # Use sync httpx.post like the working scripts do
     response = httpx.post(
         url,
         headers={
-            "Authorization": f"Bearer {TURSO_TOKEN}",
+            "Authorization": f"Bearer {settings.turso_token}",
             "Content-Type": "application/json",
         },
         json=payload,
@@ -63,14 +75,15 @@ async def turso_query(sql: str, args: list | None = None) -> list[dict[str, Any]
 
 async def voyage_embed(text: str) -> list[float]:
     """Generate embedding for a query using Voyage AI."""
-    if not VOYAGE_API_KEY:
+    settings = get_settings()
+    if not settings.voyage_api_key:
         raise RuntimeError("VOYAGE_API_KEY must be set for semantic search")
 
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://api.voyageai.com/v1/embeddings",
             headers={
-                "Authorization": f"Bearer {VOYAGE_API_KEY}",
+                "Authorization": f"Bearer {settings.voyage_api_key}",
                 "Content-Type": "application/json",
             },
             json={

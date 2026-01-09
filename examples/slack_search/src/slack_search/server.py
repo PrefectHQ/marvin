@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import json
-import os
+from collections import Counter
 from typing import Literal
 
 import httpx
 from fastmcp import FastMCP
 
 from slack_search._types import Stats, ThreadDetail, ThreadSummary
-from slack_search.client import turso_query, voyage_embed
+from slack_search.client import get_settings, turso_query, voyage_embed
 
 # -----------------------------------------------------------------------------
 # load categories at import time for dynamic type generation
@@ -19,22 +19,16 @@ from slack_search.client import turso_query, voyage_embed
 
 def _load_categories() -> dict[str, list[str]]:
     """Synchronously load categories from Turso at import time."""
-    turso_url = os.environ.get("TURSO_URL", "").strip().strip('"').strip("'")
-    turso_token = os.environ.get("TURSO_TOKEN", "").strip().strip('"').strip("'")
+    settings = get_settings()
 
-    if not turso_url or not turso_token:
+    if not settings.turso_url or not settings.turso_token:
         return {"topics": [], "channels": []}
 
-    host = turso_url
-    if host.startswith("libsql://"):
-        host = host[len("libsql://") :]
-
     try:
-        # query for top topics
         resp = httpx.post(
-            f"https://{host}/v2/pipeline",
+            f"https://{settings.turso_host}/v2/pipeline",
             headers={
-                "Authorization": f"Bearer {turso_token}",
+                "Authorization": f"Bearer {settings.turso_token}",
                 "Content-Type": "application/json",
             },
             json={
@@ -57,9 +51,6 @@ def _load_categories() -> dict[str, list[str]]:
         if resp.status_code >= 400:
             raise RuntimeError(f"Turso HTTP {resp.status_code}: {resp.text}")
         data = resp.json()
-
-        # extract topics from metadata
-        from collections import Counter
 
         topics: Counter[str] = Counter()
         channels: Counter[str] = Counter()
@@ -88,10 +79,7 @@ def _load_categories() -> dict[str, list[str]]:
             "channels": [c for c, _ in channels.most_common(10)],
         }
     except Exception as e:
-        import traceback
-
         print(f"warning: failed to load categories: {e}")
-        traceback.print_exc()
         return {"topics": [], "channels": []}
 
 
