@@ -26,3 +26,4 @@ wheels/
 **/*.sqlite
 sandbox/
 .research_cache/
+report.html

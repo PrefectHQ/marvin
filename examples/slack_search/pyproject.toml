@@ -1,0 +1,45 @@
+[project]
+name = "slack-search"
+description = "MCP server for searching Prefect Slack thread summaries"
+license = "MIT"
+authors = [{ name = "Prefect" }]
+requires-python = ">=3.10"
+dynamic = ["version"]
+
+dependencies = [
+    "fastmcp>=2.0",
+    "httpx>=0.28",
+    "pydantic>=2.0",
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+[project.scripts]
+slack-search = "slack_search.server:main"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.uv-dynamic-versioning]
+enable = true
+style = "pep440"
+fallback-version = "0.0.0"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/slack_search"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
