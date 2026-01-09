@@ -10,6 +10,7 @@ dependencies = [
     "fastmcp>=2.0",
     "httpx>=0.28",
     "pydantic>=2.0",
+    "pydantic-settings>=2.0",
 ]
 
 classifiers = [

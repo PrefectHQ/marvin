@@ -1506,6 +1506,7 @@ dependencies = [
     { name = "fastmcp" },
     { name = "httpx" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
 ]
 
 [package.metadata]
@@ -1513,6 +1514,7 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=2.0" },
     { name = "httpx", specifier = ">=0.28" },
     { name = "pydantic", specifier = ">=2.0" },
+    { name = "pydantic-settings", specifier = ">=2.0" },
 ]
 
 [[package]]
