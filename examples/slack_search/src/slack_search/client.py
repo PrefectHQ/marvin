@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     turso_url: str = ""
     turso_token: str = ""
     voyage_api_key: str = ""
+    slack_api_token: str = ""
 
-    @field_validator("turso_url", "turso_token", "voyage_api_key", mode="before")
+    @field_validator("turso_url", "turso_token", "voyage_api_key", "slack_api_token", mode="before")
     @classmethod
     def strip_quotes(cls, v: str) -> str:
         if isinstance(v, str):
@@ -104,3 +105,25 @@ async def voyage_embed(text: str) -> list[float]:
         data = response.json()
 
     return data["data"][0]["embedding"]
+
+
+async def slack_get_thread(channel: str, thread_ts: str) -> list[dict[str, Any]]:
+    """Fetch all messages from a Slack thread."""
+    settings = get_settings()
+    if not settings.slack_api_token:
+        raise RuntimeError("SLACK_API_TOKEN must be set to fetch thread content")
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            "https://slack.com/api/conversations.replies",
+            headers={"Authorization": f"Bearer {settings.slack_api_token}"},
+            params={"channel": channel, "ts": thread_ts},
+            timeout=30,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    if not data.get("ok"):
+        raise RuntimeError(f"Slack API error: {data.get('error', 'unknown')}")
+
+    return data.get("messages", [])

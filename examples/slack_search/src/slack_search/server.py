@@ -9,8 +9,8 @@ from typing import Literal
 import httpx
 from fastmcp import FastMCP
 
-from slack_search._types import Stats, ThreadDetail, ThreadSummary
-from slack_search.client import get_settings, turso_query, voyage_embed
+from slack_search._types import SlackMessage, Stats, ThreadContent, ThreadDetail, ThreadSummary
+from slack_search.client import get_settings, slack_get_thread, turso_query, voyage_embed
 
 # -----------------------------------------------------------------------------
 # load categories at import time for dynamic type generation
@@ -307,6 +307,46 @@ async def get_thread(key: str) -> ThreadDetail | None:
         description=row["description"] or "",
         last_seen=row.get("last_seen", ""),
         metadata=metadata,
+    )
+
+
+@mcp.tool
+async def get_thread_messages(key: str) -> ThreadContent | None:
+    """fetch actual messages from a Slack thread.
+
+    retrieves the full conversation content from Slack's API,
+    not just the AI summary. requires SLACK_API_TOKEN.
+
+    args:
+        key: the thread key (from search/similar results)
+
+    returns:
+        thread content with all messages, or None if not found
+    """
+    # parse key to get channel and thread_ts
+    # key: slack://workspace/bot/BOT_ID/summary/CHANNEL_ID/THREAD_TS
+    parts = key.split("/")
+    if len(parts) < 8:
+        return None
+
+    workspace = parts[2]
+    channel = parts[6]
+    thread_ts = parts[7]
+
+    messages = await slack_get_thread(channel, thread_ts)
+
+    ts_clean = thread_ts.replace(".", "")
+    url = f"https://{workspace}.slack.com/archives/{channel}/p{ts_clean}"
+
+    return ThreadContent(
+        channel_id=channel,
+        thread_ts=thread_ts,
+        url=url,
+        messages=[
+            SlackMessage(user=m.get("user", ""), text=m.get("text", ""), ts=m.get("ts", ""))
+            for m in messages
+        ],
+        message_count=len(messages),
     )
 
 

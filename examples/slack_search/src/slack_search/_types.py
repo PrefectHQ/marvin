@@ -113,6 +113,38 @@ class ThreadDetail(BaseModel):
         return ""
 
 
+class SlackMessage(BaseModel):
+    """A message from a Slack thread."""
+
+    user: str = ""
+    text: str = ""
+    ts: str = ""
+
+    @computed_field
+    @property
+    def timestamp(self) -> str:
+        """Human-readable timestamp."""
+        if self.ts:
+            from datetime import datetime
+
+            try:
+                dt = datetime.fromtimestamp(float(self.ts))
+                return dt.strftime("%Y-%m-%d %H:%M")
+            except (ValueError, OSError):
+                pass
+        return ""
+
+
+class ThreadContent(BaseModel):
+    """Full thread content from Slack API."""
+
+    channel_id: str
+    thread_ts: str
+    url: str
+    messages: list[SlackMessage]
+    message_count: int
+
+
 class Stats(BaseModel):
     """Index statistics."""
 
