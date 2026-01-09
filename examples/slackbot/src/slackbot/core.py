@@ -12,6 +12,7 @@ from prefect.blocks.system import Secret
 from prefect.logging.loggers import get_logger
 from prefect.variables import Variable
 from pydantic_ai import Agent, RunContext
+from pydantic_ai.mcp import MCPServerHTTP
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.models.anthropic import AnthropicModel
@@ -45,6 +46,10 @@ from slackbot.settings import settings
 from slackbot.types import UserContext
 
 GITHUB_API_TOKEN = Secret.load(settings.github_token_secret_name, _sync=True).get()
+
+slack_search_mcp = MCPServerHTTP(
+    url="https://marvin-slack-thread-assets.fastmcp.app/mcp",
+)
 
 logger = get_logger(__name__)
 
@@ -186,6 +191,7 @@ def create_agent(
             check_cli_command,  # verify CLI commands before suggesting them
             get_latest_prefect_release_notes,  # get the latest release notes for Prefect
         ],
+        toolsets=[slack_search_mcp],  # search Prefect community Slack threads
         deps_type=UserContext,
     )
 
