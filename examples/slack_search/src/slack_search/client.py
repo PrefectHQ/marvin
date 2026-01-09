@@ -5,9 +5,9 @@ from typing import Any
 
 import httpx
 
-TURSO_URL = os.environ.get("TURSO_URL", "")
-TURSO_TOKEN = os.environ.get("TURSO_TOKEN", "")
-VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY", "")
+TURSO_URL = os.environ.get("TURSO_URL", "").strip()
+TURSO_TOKEN = os.environ.get("TURSO_TOKEN", "").strip()
+VOYAGE_API_KEY = os.environ.get("VOYAGE_API_KEY", "").strip()
 
 
 def _get_turso_host() -> str:
@@ -27,18 +27,21 @@ async def turso_query(sql: str, args: list | None = None) -> list[dict[str, Any]
     if args:
         stmt["args"] = [{"type": "text", "value": str(a)} for a in args]
 
+    payload = {"requests": [{"type": "execute", "stmt": stmt}, {"type": "close"}]}
+    url = f"https://{_get_turso_host()}/v2/pipeline"
+
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            f"https://{_get_turso_host()}/v2/pipeline",
+            url,
             headers={
                 "Authorization": f"Bearer {TURSO_TOKEN}",
                 "Content-Type": "application/json",
             },
-            json={"requests": [{"type": "execute", "stmt": stmt}, {"type": "close"}]},
+            json=payload,
             timeout=30,
         )
         if response.status_code >= 400:
-            raise RuntimeError(f"Turso HTTP {response.status_code}: {response.text}")
+            raise RuntimeError(f"Turso HTTP {response.status_code} for {url}: {response.text}")
         data = response.json()
 
     result = data["results"][0]
