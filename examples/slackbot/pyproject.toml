@@ -37,7 +37,7 @@ requires-python = ">=3.10"
 [tool.hatch.metadata.hooks.uv-dynamic-versioning]
 dependencies = [
   "marvin",
-  "prefect @ git+https://github.com/PrefectHQ/prefect.git@fix-nested-add-metadata",
+  "prefect>=3.6.12",
   "numpy",
   "raggy[tpuf] @ git+https://github.com/zzstoatzz/raggy.git",
   "pretty-mod",

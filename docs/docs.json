@@ -100,7 +100,10 @@
                     },
                     {
                         "group": "beta",
-                        "pages": []
+                        "pages": [
+                            "api-reference/marvin-beta-observability",
+                            "api-reference/marvin-beta-observability-openai"
+                        ]
                     },
                     {
                         "group": "cli",
