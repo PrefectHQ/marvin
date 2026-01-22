@@ -49,7 +49,7 @@ slackbot = ["slackbot"]
 
 mcp = ["fastmcp"]
 
-prefect = ["prefect>=3.0.0"]
+prefect = ["prefect>=3.6.11"]
 
 [project.scripts]
 marvin = "marvin.cli.main:app"
@@ -100,6 +100,7 @@ extend-select = ["I"]
 
 [tool.uv.sources]
 slackbot = { workspace = true }
+fastmcp = { git = "https://github.com/jlowin/fastmcp.git" }
 
 [tool.uv.workspace]
 members = ["examples/slackbot"]
