@@ -2923,7 +2923,7 @@ requires-dist = [
     { name = "fastmcp", marker = "extra == 'mcp'" },
     { name = "jinja2", specifier = ">=3.1.4" },
     { name = "partial-json-parser", specifier = ">=0.2.1.1.post5" },
-    { name = "prefect", marker = "extra == 'prefect'", specifier = ">=3.1.0" },
+    { name = "prefect", marker = "extra == 'prefect'", specifier = ">=3.4.0" },
     { name = "pyaudio", marker = "extra == 'audio'", specifier = ">=0.2.14" },
     { name = "pydantic", extras = ["email"], specifier = ">=2.10.6" },
     { name = "pydantic-ai", specifier = ">=1.9.0" },

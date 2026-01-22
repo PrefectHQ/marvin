@@ -1,5 +1,5 @@
 """
-Tests for the Prefect integration module.
+Tests for the Prefect + OpenAI observability integration module.
 """
 
 from prefect import flow, task
