@@ -49,7 +49,7 @@ slackbot = ["slackbot"]
 
 mcp = ["fastmcp"]
 
-prefect = ["prefect>=3.4.0"]
+prefect = ["prefect>=3.6.11"]
 
 [project.scripts]
 marvin = "marvin.cli.main:app"
