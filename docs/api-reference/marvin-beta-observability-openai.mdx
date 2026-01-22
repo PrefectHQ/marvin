@@ -91,7 +91,7 @@ Most users should just use `observable()` instead.
 
 ### `observable`
 ```python
-def observable(agent: 'Agent', **metadata: str) -> 'Agent'
+def observable(agent: 'Agent', **metadata: str = {}) -> 'Agent'
 ```
 Enable OpenAI observability for this agent.
 
@@ -119,7 +119,7 @@ Note:
 
 ### `openai_request_kwargs`
 ```python
-def openai_request_kwargs(**metadata: str) -> dict[str, Any]
+def openai_request_kwargs(**metadata: str = {}) -> dict[str, Any]
 ```
 Build kwargs for direct OpenAI SDK calls (without Marvin).
 
