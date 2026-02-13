@@ -47,10 +47,6 @@ from slackbot.types import UserContext
 
 GITHUB_API_TOKEN = Secret.load(settings.github_token_secret_name, _sync=True).get()
 
-slack_search_mcp = MCPServerStreamableHTTP(
-    url="https://marvin-slack-thread-assets.fastmcp.app/mcp",
-)
-
 logger = get_logger(__name__)
 
 
@@ -177,6 +173,9 @@ def create_agent(
         provider=Provider(
             api_key=Secret.load(settings.anthropic_key_secret_name, _sync=True).get(),  # type: ignore
         ),
+    )
+    slack_search_mcp = MCPServerStreamableHTTP(
+        url="https://marvin-slack-thread-assets.fastmcp.app/mcp",
     )
     agent = Agent[
         UserContext, str
