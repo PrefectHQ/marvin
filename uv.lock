@@ -5175,14 +5175,14 @@ crypto = [
 
 [[package]]
 name = "pypdf"
-version = "6.1.3"
+version = "6.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/13/3d/b6ead84ee437444f96862beb68f9796da8c199793bed08e9397b77579f23/pypdf-6.1.3.tar.gz", hash = "sha256:8d420d1e79dc1743f31a57707cabb6dcd5b17e8b9a302af64b30202c5700ab9d", size = 5076271, upload-time = "2025-10-22T16:13:46.061Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ff/63/3437c4363483f2a04000a48f1cd48c40097f69d580363712fa8b0b4afe45/pypdf-6.7.1.tar.gz", hash = "sha256:6b7a63be5563a0a35d54c6d6b550d75c00b8ccf36384be96365355e296e6b3b0", size = 5302208, upload-time = "2026-02-17T17:00:48.88Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fa/ed/494fd0cc1190a7c335e6958eeaee6f373a281869830255c2ed4785dac135/pypdf-6.1.3-py3-none-any.whl", hash = "sha256:eb049195e46f014fc155f566fa20e09d70d4646a9891164ac25fa0cbcfcdbcb5", size = 323863, upload-time = "2025-10-22T16:13:44.174Z" },
+    { url = "https://files.pythonhosted.org/packages/68/77/38bd7744bb9e06d465b0c23879e6d2c187d93a383f8fa485c862822bb8a3/pypdf-6.7.1-py3-none-any.whl", hash = "sha256:a02ccbb06463f7c334ce1612e91b3e68a8e827f3cee100b9941771e6066b094e", size = 331048, upload-time = "2026-02-17T17:00:46.991Z" },
 ]
 
 [[package]]
