@@ -1,3 +1,4 @@
+import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from pydantic_ai.mcp import MCPServer
@@ -266,6 +267,59 @@ class TestMCPServerLifecycleInThreadContext:
         finally:
             # Cleanup
             await cleanup_thread_mcp_servers()
+
+    async def test_mcp_manager_merges_env_with_os_environ(self):
+        """MCPServerStdio with custom env should still inherit os.environ.
+
+        Regression test: when a user sets env={"FOO": "bar"} on an MCPServerStdio,
+        the subprocess needs PATH, HOME, etc. to function. The manager should
+        merge user env on top of os.environ, not use it as-is.
+        """
+        from pydantic_ai.mcp import MCPServerStdio
+
+        custom_env = {"HUE_BRIDGE_IP": "192.168.1.100", "HUE_BRIDGE_USERNAME": "test"}
+        server = MCPServerStdio(command="echo", args=["hello"], env=custom_env)
+        agent = MagicMock(spec=Agent)
+        agent.name = "TestAgent"
+        agent.get_mcp_servers.return_value = [server]
+
+        manager = MCPManager()
+
+        # Patch enter_async_context to avoid actually starting the server
+        manager.exit_stack.enter_async_context = AsyncMock()
+
+        with patch.dict(
+            os.environ, {"PATH": "/usr/bin", "HOME": "/home/test"}, clear=True
+        ):
+            await manager.start_servers(agent)
+
+        # The server's env should have both os.environ and custom vars
+        assert server.env is not None
+        assert server.env["PATH"] == "/usr/bin"
+        assert server.env["HOME"] == "/home/test"
+        # Custom vars should take precedence
+        assert server.env["HUE_BRIDGE_IP"] == "192.168.1.100"
+        assert server.env["HUE_BRIDGE_USERNAME"] == "test"
+
+    async def test_mcp_manager_sets_env_when_none(self):
+        """MCPServerStdio with env=None should get os.environ."""
+        from pydantic_ai.mcp import MCPServerStdio
+
+        server = MCPServerStdio(command="echo", args=["hello"])
+        assert server.env is None
+
+        agent = MagicMock(spec=Agent)
+        agent.name = "TestAgent"
+        agent.get_mcp_servers.return_value = [server]
+
+        manager = MCPManager()
+        manager.exit_stack.enter_async_context = AsyncMock()
+
+        with patch.dict(os.environ, {"PATH": "/usr/bin"}, clear=True):
+            await manager.start_servers(agent)
+
+        assert server.env is not None
+        assert server.env["PATH"] == "/usr/bin"
 
     async def test_mcp_manager_tracks_started_servers_by_id(self):
         """MCPManager should track servers by id to avoid restarting the same server."""
