@@ -102,12 +102,21 @@ class MCPManager:
                 continue
 
             try:
-                # Set environment variables for stdio servers if not already set
-                if isinstance(server, MCPServerStdio) and server.env is None:
-                    logger.debug(
-                        f"[MCPManager] Server {server_repr} has no env set. Setting env=dict(os.environ)."
-                    )
-                    server.env = dict(os.environ)
+                # Ensure stdio servers inherit the full environment,
+                # merging any user-specified env vars on top of os.environ.
+                # Without this, a server with env={"FOO": "bar"} would lose
+                # PATH, HOME, etc., causing the subprocess to fail.
+                if isinstance(server, MCPServerStdio):
+                    if server.env is None:
+                        logger.debug(
+                            f"[MCPManager] Server {server_repr} has no env set. Setting env=dict(os.environ)."
+                        )
+                        server.env = dict(os.environ)
+                    else:
+                        logger.debug(
+                            f"[MCPManager] Server {server_repr} has custom env. Merging with os.environ."
+                        )
+                        server.env = {**os.environ, **server.env}
 
                 await self.exit_stack.enter_async_context(server)
                 self.active_servers.append(server)
