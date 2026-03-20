@@ -155,7 +155,7 @@ def openai_request_kwargs(**metadata: str) -> dict[str, Any]:
         from openai import AsyncOpenAI
         from marvin.beta.observability.openai import openai_request_kwargs
 
-        client = AsyncOpenAI()
+        client = AsyncOpenAI(timeout=60.0)
 
         @task
         async def generate(prompt: str) -> str:
