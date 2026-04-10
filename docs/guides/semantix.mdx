@@ -3,7 +3,7 @@ title: Semantic Validation with semantix-ai
 description: Validate agent outputs against natural language intents
 ---
 
-Marvin agents produce flexible, natural-language outputs — but flexibility can mean drift. semantix-ai lets you validate that an agent's response actually satisfies a given intent, using local NLI models with no API cost and ~15ms latency per check.
+Marvin agents produce flexible, natural-language outputs — but flexibility can mean drift. semantix-ai lets you validate that an agent's response actually satisfies a given intent, using local NLI models with no API cost and ~15 ms latency per check.
 
 ## What is semantix-ai?
 
@@ -17,68 +17,88 @@ pip install semantix-ai
 
 No additional configuration is required. semantix downloads a small NLI model on first use and caches it locally.
 
-## Validating Marvin Agent Outputs
+## Inline Assertion
 
-You can use semantix to validate agent outputs post-hoc — after `agent.run()` returns, pass the result string to `validate_output` with a natural language intent:
+The quickest way to validate a Marvin agent's output is `assert_semantic`. It raises `AssertionError` (with score and reason) when the output fails the check:
 
 ```python
 import marvin
-from semantix import validate_output
+from semantix.testing import assert_semantic
 
 agent = marvin.Agent(
     name="SupportBot",
     instructions="You are a helpful customer support agent. Be polite and concise.",
 )
 
-result = agent.run("The customer is asking why their order is delayed.")
+output = agent.run("The customer is asking why their order is delayed.")
 
-# Validate that the agent's response meets the intent
-validation = validate_output(
-    output=result,
-    intent="must be polite, empathetic, and not make promises about delivery dates",
+# Raises AssertionError with score and reason if it fails
+assert_semantic(str(output), "must be polite, empathetic, and professional")
+```
+
+## Intent Classes and `@validate_intent`
+
+For reusable constraints, define an `Intent` subclass — the docstring is the constraint — and decorate your agent call with `@validate_intent`:
+
+```python
+import marvin
+from semantix import Intent, validate_intent
+
+class Polite(Intent):
+    """The text must be polite, empathetic, and professional."""
+
+agent = marvin.Agent(
+    name="SupportBot",
+    instructions="You are a helpful customer support agent.",
 )
 
-if validation.is_valid:
-    print("Response approved:", result)
-else:
-    print(f"Response rejected — reason: {validation.reason}")
+@validate_intent
+def support_reply(question: str) -> Polite:
+    return agent.run(question)
+
+# Returns the agent output; raises if the Polite intent is not satisfied
+reply = support_reply("Why is my order late?")
 ```
+
+## Self-Healing Retries
+
+When `retries` is set, semantix automatically re-invokes the function on failure, injecting feedback into the optional `semantix_feedback` parameter so the agent can correct itself:
+
+```python
+from typing import Optional
+from semantix import Intent, NLIJudge, validate_intent
+
+class Polite(Intent):
+    """The text must be polite, empathetic, and professional."""
+
+@validate_intent(judge=NLIJudge(), retries=2)
+def support_reply(question: str, semantix_feedback: Optional[str] = None) -> Polite:
+    prompt = question
+    if semantix_feedback:
+        prompt += f"\n\nFeedback from previous attempt:\n{semantix_feedback}"
+    return agent.run(prompt)
+```
+
+If all retries are exhausted the final validation error is raised.
 
 ## Composite Intents
 
-You can combine multiple constraints into a list. semantix checks all of them and returns a single pass/fail with an explanation:
+Combine multiple intent classes with `&`. Every constraint must pass:
 
 ```python
-from semantix import validate_output
+from semantix import Intent
 
-result = agent.run("Summarize our refund policy for the customer.")
+class Polite(Intent):
+    """The text must be polite, empathetic, and professional."""
 
-validation = validate_output(
-    output=result,
-    intent=[
-        "must mention the 30-day return window",
-        "must use clear, non-technical language",
-        "must not include legal disclaimers",
-    ],
-)
+class Concise(Intent):
+    """The response must be concise — no more than three sentences."""
 
-print(validation.is_valid)
-print(validation.reason)
-```
+PoliteAndConcise = Polite & Concise
 
-## Semantic Types
-
-For reusable intent constraints, semantix provides `Semantic` — a typed annotation that carries intent alongside the type:
-
-```python
-from semantix import Semantic, validate_output
-
-# Reusable semantic type
-PoliteSummary = Semantic[str, "must be a concise, professional summary with no speculation"]
-
-result = agent.run("What are the main points of the product review?")
-validation = validate_output(output=result, intent=PoliteSummary)
-print(validation.is_valid, validation.reason)
+@validate_intent
+def support_reply(question: str) -> PoliteAndConcise:
+    return agent.run(question)
 ```
 
 ## Useful Links
