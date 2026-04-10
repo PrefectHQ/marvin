@@ -1,0 +1,88 @@
+---
+title: Semantic Validation with semantix-ai
+description: Validate agent outputs against natural language intents
+---
+
+Marvin agents produce flexible, natural-language outputs — but flexibility can mean drift. semantix-ai lets you validate that an agent's response actually satisfies a given intent, using local NLI models with no API cost and ~15ms latency per check.
+
+## What is semantix-ai?
+
+[semantix-ai](https://github.com/labrat-akhona/semantix-ai) is a semantic type system for AI outputs. Where schema validation checks structure ("is this a string?"), semantix validates meaning ("is this polite and professional?"). It runs entirely on-device via a small NLI model, so there are no external API calls and no data leaves your environment.
+
+## Installation
+
+```sh
+pip install semantix-ai
+```
+
+No additional configuration is required. semantix downloads a small NLI model on first use and caches it locally.
+
+## Validating Marvin Agent Outputs
+
+You can use semantix to validate agent outputs post-hoc — after `agent.run()` returns, pass the result string to `validate_output` with a natural language intent:
+
+```python
+import marvin
+from semantix import validate_output
+
+agent = marvin.Agent(
+    name="SupportBot",
+    instructions="You are a helpful customer support agent. Be polite and concise.",
+)
+
+result = agent.run("The customer is asking why their order is delayed.")
+
+# Validate that the agent's response meets the intent
+validation = validate_output(
+    output=result,
+    intent="must be polite, empathetic, and not make promises about delivery dates",
+)
+
+if validation.is_valid:
+    print("Response approved:", result)
+else:
+    print(f"Response rejected — reason: {validation.reason}")
+```
+
+## Composite Intents
+
+You can combine multiple constraints into a list. semantix checks all of them and returns a single pass/fail with an explanation:
+
+```python
+from semantix import validate_output
+
+result = agent.run("Summarize our refund policy for the customer.")
+
+validation = validate_output(
+    output=result,
+    intent=[
+        "must mention the 30-day return window",
+        "must use clear, non-technical language",
+        "must not include legal disclaimers",
+    ],
+)
+
+print(validation.is_valid)
+print(validation.reason)
+```
+
+## Semantic Types
+
+For reusable intent constraints, semantix provides `Semantic` — a typed annotation that carries intent alongside the type:
+
+```python
+from semantix import Semantic, validate_output
+
+# Reusable semantic type
+PoliteSummary = Semantic[str, "must be a concise, professional summary with no speculation"]
+
+result = agent.run("What are the main points of the product review?")
+validation = validate_output(output=result, intent=PoliteSummary)
+print(validation.is_valid, validation.reason)
+```
+
+## Useful Links
+
+- [semantix-ai on PyPI](https://pypi.org/project/semantix-ai/)
+- [semantix-ai on GitHub](https://github.com/labrat-akhona/semantix-ai)
+- [Marvin Agents docs](https://www.askmarvin.ai/concepts/agents)
