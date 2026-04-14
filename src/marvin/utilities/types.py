@@ -14,6 +14,7 @@ from typing import (
     TypeVar,
     get_args,
     get_origin,
+    get_type_hints,
 )
 
 from marvin.utilities.asyncio import run_sync
@@ -270,6 +271,15 @@ def issubclass_safe(x: Any, cls: type | tuple[type, ...]) -> bool:
     return False
 
 
+def _resolve_return_annotation(func: Callable[..., Any], sig: inspect.Signature) -> Any:
+    """Resolve return annotation, handling PEP 563 stringified annotations."""
+    try:
+        hints = get_type_hints(func)
+        return hints["return"]
+    except (KeyError, NameError, AttributeError, TypeError):
+        return sig.return_annotation
+
+
 @dataclass
 class ParameterModel:
     name: str
@@ -362,7 +372,7 @@ class PythonFunction(Generic[P, R]):
             "name": name,
             "docstring": inspect.cleandoc(docstring) if docstring else None,
             "parameters": parameters,
-            "return_annotation": sig.return_annotation,
+            "return_annotation": _resolve_return_annotation(func, sig),
             "source_code": source_code,
         }
 

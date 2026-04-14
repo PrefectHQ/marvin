@@ -1,12 +1,19 @@
 import enum
+import inspect
 from typing import Literal
 
 import pytest
+from pydantic import BaseModel
 
 from marvin.utilities.types import (
     Labels,
+    PythonFunction,
     as_classifier,
     is_classifier,
+)
+from tests.basic.utilities._future_annotations_helper import (
+    FutureModel,
+    build_future_model,
 )
 
 
@@ -132,3 +139,35 @@ class TestClassification:
             1: "42",
             2: "True",
         }
+
+
+class TestPythonFunctionAnnotations:
+    def test_resolves_string_return_annotations(self):
+        python_function = PythonFunction.from_function(build_future_model)
+        assert python_function.return_annotation is FutureModel
+
+    def test_works_normally_without_future_annotations(self):
+        class PlainModel(BaseModel): ...
+
+        def build_plain_model() -> PlainModel:
+            return PlainModel()
+
+        python_function = PythonFunction.from_function(build_plain_model)
+        assert python_function.return_annotation is PlainModel
+
+    def test_no_return_annotation_returns_empty(self):
+        def no_return_annotation():
+            pass
+
+        python_function = PythonFunction.from_function(no_return_annotation)
+        assert python_function.return_annotation is inspect.Signature.empty
+
+    def test_unresolvable_forward_ref_falls_back(self):
+        """When get_type_hints cannot resolve a forward ref, fall back to sig.return_annotation."""
+        # Simulate a function with a string annotation that cannot be resolved
+        def unresolvable() -> "NonExistentType":  # noqa: F821
+            pass
+
+        python_function = PythonFunction.from_function(unresolvable)
+        # Should fall back to the string annotation rather than crashing
+        assert python_function.return_annotation == "NonExistentType"
