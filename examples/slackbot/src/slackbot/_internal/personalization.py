@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from prefect.blocks.system import Secret
+from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.providers import Provider
@@ -18,7 +19,13 @@ class PersonalizationSnapshot:
     memory_warning: str
 
 
-_personalization_synth_agent: Agent[None, str] | None = None
+class PersonalizationSynthesis(BaseModel):
+    recurring_profile: list[str] = Field(default_factory=list)
+    relevant_to_query: list[str] = Field(default_factory=list)
+    uncertainties: list[str] = Field(default_factory=list)
+
+
+_personalization_synth_agent: Agent[None, PersonalizationSynthesis] | None = None
 
 
 def load_personalization_snapshot(
@@ -41,33 +48,39 @@ def load_personalization_snapshot(
             max_tokens=500,
         )
     )
-    if _has_version_conflict(all_facts):
-        relevant_facts = [
-            fact
-            for fact in relevant_facts
-            if _categorize_fact(fact) != "prefect_version"
-        ]
-    selected_profile_facts = _select_profile_facts(all_facts, relevant_facts)
-    memory_warning = _build_memory_warning(all_facts)
-    synthesized_profile = _synthesize_profile_summary(
+    base_memory_warning = _build_memory_warning(all_facts)
+    synthesis = _synthesize_personalization(
         query=user_question,
-        candidate_facts=selected_profile_facts,
-        memory_warning=memory_warning,
+        all_facts=all_facts,
+        relevant_facts=relevant_facts,
+        memory_warning=base_memory_warning,
+    )
+
+    profile_facts = _clean_synthesized_facts(synthesis.recurring_profile)
+    if not profile_facts:
+        profile_facts = _fallback_profile_facts(all_facts)
+
+    relevant_note_facts = _clean_synthesized_facts(synthesis.relevant_to_query)
+    if not relevant_note_facts:
+        relevant_note_facts = _fallback_relevant_facts(relevant_facts, all_facts)
+
+    memory_warning = _combine_memory_warnings(
+        base_memory_warning,
+        _clean_synthesized_facts(synthesis.uncertainties),
     )
 
     return PersonalizationSnapshot(
         seen_before=True,
-        profile_summary=synthesized_profile
-        or _format_fact_block(selected_profile_facts),
-        relevant_notes=_format_fact_block(relevant_facts),
+        profile_summary=_format_fact_block(profile_facts),
+        relevant_notes=_format_fact_block(relevant_note_facts),
         memory_warning=memory_warning,
     )
 
 
-def _get_personalization_synth_agent() -> Agent[None, str]:
+def _get_personalization_synth_agent() -> Agent[None, PersonalizationSynthesis]:
     global _personalization_synth_agent
     if _personalization_synth_agent is None:
-        _personalization_synth_agent = Agent[None, str](
+        _personalization_synth_agent = Agent[None, PersonalizationSynthesis](
             model=AnthropicModel(
                 model_name=settings.memory_synthesis_model_name,
                 provider=Provider(
@@ -78,36 +91,44 @@ def _get_personalization_synth_agent() -> Agent[None, str]:
                 ),
             ),
             system_prompt=(
-                "You are helping Marvin prepare a concise personalization block "
+                "You are helping Marvin prepare structured personalization context "
                 "for a returning Slack user.\n\n"
-                "You will receive the current question, a small set of candidate "
-                "facts retrieved from memory, and possibly a warning that the "
-                "stored memory is inconsistent.\n\n"
-                "Write only short bullet points that help personalize the current "
-                "answer. Prefer durable environment details, recurring topics, and "
-                "clear user preferences. Compress multiple raw facts into a more "
-                "useful higher-level summary when possible instead of repeating "
-                "every detail verbatim. Dedupe near-identical facts. If memory is "
-                "conflicting, do not restate the conflicting claim as if it is true. "
-                "Keep it to at most 4 bullets. If nothing is useful, return an empty string."
+                "You will receive the current question, all stored facts for the "
+                "user, the subset retrieved as relevant to the current query, and "
+                "possibly a warning that memory may be inconsistent.\n\n"
+                "Return structured output with three fields:\n"
+                "- recurring_profile: durable context that is broadly useful for "
+                "future answers about this user\n"
+                "- relevant_to_query: prior notes that are especially relevant to "
+                "the current question\n"
+                "- uncertainties: stale or conflicting items that should not be "
+                "treated as current truth\n\n"
+                "Do not categorize by fixed labels. Synthesize from the evidence "
+                "you were given. Dedupe near-identical facts. Prefer durable, "
+                "high-signal context over trivia. If memory is conflicting, put "
+                "the uncertainty in uncertainties instead of asserting the claim "
+                "as true. Each list should be short and may be empty."
             ),
-            output_type=str,
+            output_type=PersonalizationSynthesis,
         )
     return _personalization_synth_agent
 
 
-def _synthesize_profile_summary(
+def _synthesize_personalization(
     query: str,
-    candidate_facts: list[str],
+    all_facts: list[str],
+    relevant_facts: list[str],
     memory_warning: str,
-) -> str:
-    if not candidate_facts:
-        return ""
+) -> PersonalizationSynthesis:
+    if not all_facts and not relevant_facts:
+        return PersonalizationSynthesis()
 
     payload = [
         f"Current question:\n{query}",
-        "Candidate personalization facts:",
-        "\n".join(f"- {fact}" for fact in candidate_facts),
+        "All stored facts for this user:",
+        "\n".join(f"- {fact}" for fact in all_facts) or "(none)",
+        "Facts retrieved as relevant to this question:",
+        "\n".join(f"- {fact}" for fact in relevant_facts) or "(none)",
     ]
     if memory_warning:
         payload.append(f"Memory warning:\n{memory_warning}")
@@ -115,9 +136,9 @@ def _synthesize_profile_summary(
     try:
         result = _get_personalization_synth_agent().run_sync("\n\n".join(payload))
     except Exception:
-        return ""
+        return PersonalizationSynthesis()
 
-    return (result.output or "").strip()
+    return result.output or PersonalizationSynthesis()
 
 
 def _load_all_facts(namespace: str) -> list[str]:
@@ -147,79 +168,6 @@ def _load_all_facts(namespace: str) -> list[str]:
             if str(getattr(row, "text", "")).strip()
         ]
     )
-
-
-def _select_profile_facts(all_facts: list[str], relevant_facts: list[str]) -> list[str]:
-    selected: list[str] = []
-
-    for fact in relevant_facts:
-        if fact not in selected:
-            selected.append(fact)
-
-    categories = (
-        "prefect_version",
-        "environment",
-        "workload",
-        "preference",
-        "other",
-    )
-    for category in categories:
-        for fact in all_facts:
-            if fact in selected:
-                continue
-            if _categorize_fact(fact) != category:
-                continue
-            if category == "prefect_version" and _has_version_conflict(all_facts):
-                continue
-            selected.append(fact)
-            if len(selected) >= 6:
-                return selected
-
-    return selected[:6]
-
-
-def _categorize_fact(fact: str) -> str:
-    lowered = fact.lower()
-    if "prefect 2" in lowered or "prefect 3" in lowered:
-        return "prefect_version"
-    if any(
-        token in lowered
-        for token in (
-            "cloud",
-            "server",
-            "docker",
-            "kubernetes",
-            "helm",
-            "ecs",
-            "eks",
-            "gcp",
-            "aws",
-            "artifact registry",
-            "poetry",
-            "postgres",
-        )
-    ):
-        return "environment"
-    if any(
-        token in lowered
-        for token in (
-            "etl",
-            "workflow",
-            "orchestration",
-            "deploy",
-            "deployment",
-            "data pipeline",
-            "ml",
-            "airflow",
-        )
-    ):
-        return "workload"
-    if any(
-        token in lowered
-        for token in ("prefers", "wants", "likes", "appreciates", "new to")
-    ):
-        return "preference"
-    return "other"
 
 
 def _build_memory_warning(all_facts: list[str]) -> str:
@@ -252,6 +200,38 @@ def _format_fact_block(facts: list[str]) -> str:
     if not facts:
         return ""
     return "\n".join(f"- {fact}" for fact in facts)
+
+
+def _combine_memory_warnings(base_warning: str, synthesized_warnings: list[str]) -> str:
+    warnings = []
+    if base_warning:
+        warnings.append(base_warning)
+    warnings.extend(synthesized_warnings)
+    if not warnings:
+        return ""
+    return "\n".join(f"- {warning}" for warning in _dedupe_facts(warnings))
+
+
+def _clean_synthesized_facts(facts: list[str], limit: int = 4) -> list[str]:
+    return _dedupe_facts([fact for fact in facts if fact.strip()])[:limit]
+
+
+def _fallback_profile_facts(all_facts: list[str]) -> list[str]:
+    if _has_version_conflict(all_facts):
+        return [fact for fact in all_facts if not _extract_prefect_versions(fact)][:4]
+    return all_facts[:4]
+
+
+def _fallback_relevant_facts(
+    relevant_facts: list[str], all_facts: list[str]
+) -> list[str]:
+    if not relevant_facts:
+        return []
+    if _has_version_conflict(all_facts):
+        return [fact for fact in relevant_facts if not _extract_prefect_versions(fact)][
+            :4
+        ]
+    return relevant_facts[:4]
 
 
 def _split_facts(notes: str) -> list[str]:
