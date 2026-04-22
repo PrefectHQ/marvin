@@ -8,17 +8,13 @@ from typing import AsyncIterator
 
 import httpx
 from prefect import get_run_logger, task
-from prefect.blocks.system import Secret
 from prefect.logging.loggers import get_logger
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 from pydantic_ai.models import KnownModelName, Model
-from pydantic_ai.models.anthropic import AnthropicModel
-from pydantic_ai.providers import Provider
 from pydantic_ai.settings import ModelSettings
-from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
-from turbopuffer import NotFoundError
+from raggy.vectorstores.tpuf import TurboPuffer
 
 from slackbot._internal.personalization import load_personalization_snapshot
 from slackbot._internal.prompting import build_system_prompt
@@ -144,17 +140,9 @@ def build_user_context(
 ) -> UserContext:
     namespace = f"{settings.user_facts_namespace_prefix}{user_id}"
     personalization = load_personalization_snapshot(namespace, user_question)
-    try:
-        user_notes = query_namespace(
-            query_text=user_question,
-            namespace=namespace,
-            top_k=5,
-        )
-    except NotFoundError:
-        user_notes = ""
     return UserContext(
         user_id=user_id,
-        user_notes=personalization.relevant_notes or user_notes,
+        user_notes=personalization.relevant_notes,
         seen_before=personalization.seen_before,
         user_profile=personalization.profile_summary,
         memory_warning=personalization.memory_warning,
@@ -170,12 +158,7 @@ def create_agent(
 ) -> Agent[UserContext, str]:
     logger = get_run_logger()
     logger.info("Creating new agent")
-    ai_model = model or AnthropicModel(
-        model_name=settings.bot_model_name,
-        provider=Provider(
-            api_key=Secret.load(settings.anthropic_key_secret_name, _sync=True).get(),  # type: ignore
-        ),
-    )
+    ai_model = model or settings.bot_model_name
     slack_search_mcp = MCPServerStreamableHTTP(
         url="https://marvin-slack-thread-assets.fastmcp.app/mcp",
     )
