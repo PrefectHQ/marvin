@@ -35,8 +35,9 @@ Create a `.env` file in your project directory:
 # - tpuf-api-key                  # TurboPuffer API key for vector storage
 
 # Required Prefect Variables (configured via UI or CLI)
-# - marvin_ai_model               # Model to use (e.g., "gpt-5", "claude-3-5-sonnet-latest")
-# - marvin_bot_model              # Optional override for specific bot model
+# - marvin_ai_model               # Default model to use (e.g., "gpt-5", "claude-sonnet-4-6")
+# - marvin_bot_model              # Optional override for the Slackbot response model
+# - marvin_memory_synthesis_model # Optional override for memory/profile synthesis (default: claude-haiku-4-5-20251001)
 # - admin-slack-id                # Slack user ID for admin notifications
 
 # Optional Settings (with MARVIN_SLACKBOT_ prefix)
@@ -96,7 +97,7 @@ The bot will:
 
 The bot supports both OpenAI (GPT-5) and Anthropic (Claude) models. Configure via the `marvin_ai_model` Prefect Variable:
 - `gpt-5`: Latest OpenAI model (temperature automatically set to 1.0)
-- `claude-3-5-sonnet-latest`: Latest Claude model (default)
+- `claude-sonnet-4-6`: Current default Claude model
 - Any other supported model name from either provider
 
 ### Channel Restrictions

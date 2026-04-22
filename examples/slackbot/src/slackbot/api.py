@@ -94,13 +94,23 @@ async def run_agent(
         token = _progress_message.set(progress)
         # Initialize tool usage counts for this agent run
         counts_token = _tool_usage_counts.set(defaultdict(int))
+        logger = get_run_logger()
+        logger.info(
+            "Agent config: response_model=%s memory_synthesis_model=%s temperature=%s max_tool_calls=%s seen_before=%s workspace=%s",
+            settings.bot_model_name,
+            settings.memory_synthesis_model_name,
+            settings.temperature,
+            settings.max_tool_calls_per_turn,
+            user_context["seen_before"],
+            user_context["workspace_name"],
+        )
 
         try:
             with WatchToolCalls(
                 settings=decorator_settings,
                 max_tool_calls=settings.max_tool_calls_per_turn,
             ):
-                result = await create_agent(model=settings.model_name).run(
+                result = await create_agent().run(
                     user_prompt=cleaned_message,
                     message_history=conversation,
                     deps=user_context,

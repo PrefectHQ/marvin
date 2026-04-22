@@ -10,7 +10,6 @@ import httpx
 from prefect import get_run_logger, task
 from prefect.blocks.system import Secret
 from prefect.logging.loggers import get_logger
-from prefect.variables import Variable
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
@@ -21,6 +20,8 @@ from pydantic_ai.settings import ModelSettings
 from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
 from turbopuffer import NotFoundError
 
+from slackbot._internal.personalization import load_personalization_snapshot
+from slackbot._internal.prompting import build_system_prompt
 from slackbot._internal.templates import DEFAULT_SYSTEM_PROMPT
 from slackbot.assets import store_user_facts
 from slackbot.github import (
@@ -44,8 +45,6 @@ from slackbot.search import (
 )
 from slackbot.settings import settings
 from slackbot.types import UserContext
-
-GITHUB_API_TOKEN = Secret.load(settings.github_token_secret_name, _sync=True).get()
 
 logger = get_logger(__name__)
 
@@ -143,17 +142,22 @@ def build_user_context(
     channel_id: str,
     bot_id: str,
 ) -> UserContext:
+    namespace = f"{settings.user_facts_namespace_prefix}{user_id}"
+    personalization = load_personalization_snapshot(namespace, user_question)
     try:
         user_notes = query_namespace(
             query_text=user_question,
-            namespace=f"{settings.user_facts_namespace_prefix}{user_id}",
+            namespace=namespace,
             top_k=5,
         )
     except NotFoundError:
-        user_notes = "<No notes found>"
+        user_notes = ""
     return UserContext(
         user_id=user_id,
-        user_notes=user_notes,
+        user_notes=personalization.relevant_notes or user_notes,
+        seen_before=personalization.seen_before,
+        user_profile=personalization.profile_summary,
+        memory_warning=personalization.memory_warning,
         thread_ts=thread_ts,
         workspace_name=workspace_name,
         channel_id=channel_id,
@@ -167,9 +171,7 @@ def create_agent(
     logger = get_run_logger()
     logger.info("Creating new agent")
     ai_model = model or AnthropicModel(
-        model_name=Variable.get(
-            "marvin_bot_model", default=settings.model_name, _sync=True
-        ),
+        model_name=settings.bot_model_name,
         provider=Provider(
             api_key=Secret.load(settings.anthropic_key_secret_name, _sync=True).get(),  # type: ignore
         ),
@@ -196,12 +198,8 @@ def create_agent(
 
     @agent.system_prompt
     def personality_and_maybe_notes(ctx: RunContext[UserContext]) -> str:
-        system_prompt = DEFAULT_SYSTEM_PROMPT + (
-            f"\n\nUser notes: {ctx.deps['user_notes']}"
-            if ctx.deps["user_notes"]
-            else ""
-        )
-        print(f"System prompt: {system_prompt}")
+        system_prompt = build_system_prompt(DEFAULT_SYSTEM_PROMPT, ctx.deps)
+        logger.debug("Built system prompt with contextual sections")
         return system_prompt
 
     @agent.tool

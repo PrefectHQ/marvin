@@ -102,7 +102,23 @@ class SlackbotSettings(BaseSettings):
     def model_name(self) -> str:
         return Variable.get(
             "marvin_ai_model",
-            default="claude-3-5-sonnet-latest",
+            default="claude-sonnet-4-6",
+            _sync=True,  # type: ignore
+        )
+
+    @property
+    def bot_model_name(self) -> str:
+        return Variable.get(
+            "marvin_bot_model",
+            default=self.model_name,
+            _sync=True,  # type: ignore
+        )
+
+    @property
+    def memory_synthesis_model_name(self) -> str:
+        return Variable.get(
+            "marvin_memory_synthesis_model",
+            default="claude-haiku-4-5-20251001",
             _sync=True,  # type: ignore
         )
 
