@@ -19,6 +19,7 @@ from raggy.vectorstores.tpuf import TurboPuffer
 from slackbot._internal.personalization import load_personalization_snapshot
 from slackbot._internal.prompting import build_system_prompt
 from slackbot._internal.templates import DEFAULT_SYSTEM_PROMPT
+from slackbot._internal.tolerant_toolset import TolerantToolset
 from slackbot.assets import store_user_facts
 from slackbot.github import (
     GitHubAuthError,
@@ -162,6 +163,14 @@ def create_agent(
     slack_search_mcp = MCPServerStreamableHTTP(
         url="https://marvin-slack-thread-assets.fastmcp.app/mcp",
     )
+    tolerant_slack_search = TolerantToolset(
+        slack_search_mcp,
+        on_error=lambda e: logger.warning(
+            "slack-search MCP unavailable for this run: %s: %s",
+            type(e).__name__,
+            e,
+        ),
+    )
     agent = Agent[
         UserContext, str
     ](
@@ -175,7 +184,7 @@ def create_agent(
             check_cli_command,  # verify CLI commands before suggesting them
             get_latest_prefect_release_notes,  # get the latest release notes for Prefect
         ],
-        toolsets=[slack_search_mcp],  # search Prefect community Slack threads
+        toolsets=[tolerant_slack_search],  # search Prefect community Slack threads
         deps_type=UserContext,
     )
 
