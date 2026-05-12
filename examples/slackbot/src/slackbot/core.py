@@ -11,7 +11,6 @@ from prefect import get_run_logger, task
 from prefect.logging.loggers import get_logger
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.mcp import MCPServerStreamableHTTP
-from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.settings import ModelSettings
 from raggy.vectorstores.tpuf import TurboPuffer
@@ -48,7 +47,12 @@ logger = get_logger(__name__)
 
 @dataclass
 class Database:
-    """Minimal async wrapper for a SQLite DB storing Slack thread conversations."""
+    """Minimal async wrapper around a SQLite connection.
+
+    Used by `_internal/thread_status.py` for cross-process dedup state
+    (the `slack_thread_status` table). Thread message history lives in a
+    `WritableFileSystem` block — see `_internal/message_store.py`.
+    """
 
     con: sqlite3.Connection
     loop: asyncio.AbstractEventLoop
@@ -62,18 +66,7 @@ class Database:
         executor = ThreadPoolExecutor(max_workers=1)
 
         def init_db():
-            con = sqlite3.connect(str(file))
-            con.execute(
-                """
-                CREATE TABLE IF NOT EXISTS slack_thread_messages (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    thread_ts TEXT NOT NULL,
-                    message_list TEXT NOT NULL
-                );
-                """
-            )
-            con.commit()
-            return con
+            return sqlite3.connect(str(file))
 
         con = await loop.run_in_executor(executor, init_db)
         logger.debug("Database initialized")
@@ -88,46 +81,6 @@ class Database:
             await loop.run_in_executor(executor, cleanup)
             executor.shutdown(wait=True)
             logger.debug("Database connection closed")
-
-    async def get_thread_messages(self, thread_ts: str) -> list[ModelMessage]:
-        def _query():
-            c = self.con.cursor()
-            c.execute(
-                """
-                SELECT message_list FROM slack_thread_messages
-                WHERE thread_ts = ?
-                ORDER BY id ASC
-                """,
-                (thread_ts,),
-            )
-            return c.fetchall()
-
-        rows = await self.loop.run_in_executor(self.executor, _query)
-        conversation: list[ModelMessage] = []
-        for (message_json,) in rows:
-            conversation.extend(ModelMessagesTypeAdapter.validate_json(message_json))
-        return conversation
-
-    async def add_thread_messages(
-        self, thread_ts: str, messages: list[ModelMessage]
-    ) -> None:
-        dumped = ModelMessagesTypeAdapter.dump_json(messages)
-
-        def _insert():
-            cur = self.con.cursor()
-            cur.execute(
-                """
-                INSERT INTO slack_thread_messages (thread_ts, message_list)
-                VALUES (?, ?)
-                """,
-                (thread_ts, dumped),
-            )
-            self.con.commit()
-
-        await self.loop.run_in_executor(self.executor, _insert)
-
-    # Note: Thread status tracking is handled in-process within api.py to keep
-    # persistence minimal for the examples package.
 
 
 @task(task_run_name="build user context for {user_id}")
