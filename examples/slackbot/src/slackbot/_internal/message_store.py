@@ -24,6 +24,17 @@ from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 
 logger = get_logger(__name__)
 
+# Backends raise their own "not found" exception types — collect them so
+# `MessageStore.get` can treat a missing thread uniformly as []. Imported
+# defensively so this module doesn't hard-require any particular backend.
+_NOT_FOUND_EXCEPTIONS: tuple[type[BaseException], ...] = (FileNotFoundError,)
+try:
+    from google.api_core.exceptions import NotFound as _GcsNotFound
+
+    _NOT_FOUND_EXCEPTIONS = (*_NOT_FOUND_EXCEPTIONS, _GcsNotFound)
+except ImportError:
+    pass
+
 # Slack thread_ts is always `<seconds>.<microseconds>`, e.g. "1778543248.702039".
 # We use it directly as a filesystem path key — validate strictly so a caller
 # can't supply `../...` or absolute paths and influence what the store
@@ -81,7 +92,7 @@ class MessageStore:
         key = _thread_key(thread_ts)
         try:
             data = await self._fs.aread_path(key)  # type: ignore[attr-defined]
-        except FileNotFoundError:
+        except _NOT_FOUND_EXCEPTIONS:
             return []
         except ValueError as e:
             # LocalFileSystem signals missing files with `ValueError("Path ...

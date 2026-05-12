@@ -118,6 +118,15 @@ class SlackbotSettings(BaseSettings):
                 pass  # If secret doesn't exist, turbopuffer will handle the error
         if not self.admin_slack_user_id:
             self.admin_slack_user_id = Variable.get("admin-slack-id", _sync=True)
+        if self.message_store_block is None:
+            # Allow the message-store block slug to be configured via a Prefect
+            # Variable so we don't have to round-trip through Cloud Run env-var
+            # changes for it.
+            self.message_store_block = Variable.get(
+                "marvin_message_store_block",
+                default=None,
+                _sync=True,  # type: ignore
+            )
         return self
 
     @property
