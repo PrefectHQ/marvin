@@ -8,16 +8,13 @@ in thread X?") required shelling into a running container.
 This module replaces that with a `WritableFileSystem`-backed store. Each
 thread's full `ModelMessage` list lives in a single JSON object keyed by
 thread_ts. Writes overwrite the whole object, protected by an in-process
-per-thread `asyncio.Lock` to keep concurrent turns in the same thread from
-clobbering each other (the bot is currently single-instance, so an in-process
-lock is sufficient — if we move to multiple replicas this needs to become a
-distributed lock or compare-and-swap, but that's not today's problem).
+lock that guards the read-modify-write — see `MessageStore.append`.
 """
 
 from __future__ import annotations
 
 import asyncio
-from collections import defaultdict
+import re
 from pathlib import Path
 
 from prefect.blocks.core import Block
@@ -26,6 +23,13 @@ from prefect.logging.loggers import get_logger
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 
 logger = get_logger(__name__)
+
+# Slack thread_ts is always `<seconds>.<microseconds>`, e.g. "1778543248.702039".
+# We use it directly as a filesystem path key — validate strictly so a caller
+# can't supply `../...` or absolute paths and influence what the store
+# reads/writes. The `/chat` endpoint does not verify Slack signatures, so
+# treating thread_ts as untrusted input is the right default.
+_THREAD_TS_RE = re.compile(r"^\d+\.\d+$")
 
 
 async def load_message_store(block_slug: str | None, local_dir: Path) -> "MessageStore":
@@ -52,26 +56,40 @@ async def load_message_store(block_slug: str | None, local_dir: Path) -> "Messag
 
 
 def _thread_key(thread_ts: str) -> str:
+    if not _THREAD_TS_RE.match(thread_ts):
+        raise ValueError(f"invalid thread_ts: {thread_ts!r}")
     return f"threads/{thread_ts}.json"
 
 
 class MessageStore:
-    """A thin per-thread message archive over a `WritableFileSystem` block."""
+    """A thin per-thread message archive over a `WritableFileSystem` block.
+
+    A single asyncio lock guards all read-modify-write transactions. With
+    the bot's traffic profile (low QPS, single Cloud Run instance) the
+    serialization cost is negligible, and it sidesteps the unbounded
+    per-thread lock dict that a finer-grained scheme would require. If
+    we ever go multi-replica or hit real contention, this becomes a
+    distributed primitive (CAS or external lock).
+    """
 
     def __init__(self, fs: WritableFileSystem) -> None:
         self._fs = fs
-        self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        self._write_lock = asyncio.Lock()
 
     async def get(self, thread_ts: str) -> list[ModelMessage]:
         """Return the full message history for a thread, or [] if none stored."""
+        key = _thread_key(thread_ts)
         try:
-            data = await self._fs.aread_path(_thread_key(thread_ts))  # type: ignore[attr-defined]
-        except (FileNotFoundError, ValueError):
-            # LocalFileSystem raises ValueError("Path ... does not exist."),
-            # cloud impls typically raise FileNotFoundError. Treat both as "empty".
+            data = await self._fs.aread_path(key)  # type: ignore[attr-defined]
+        except FileNotFoundError:
             return []
-        except Exception:
-            logger.exception("Failed to read message history for thread %s", thread_ts)
+        except ValueError as e:
+            # LocalFileSystem signals missing files with `ValueError("Path ...
+            # does not exist.")`. Match only that case; re-raise anything else
+            # (e.g. "Path ... is not a file") so real failures don't get
+            # silently swallowed as empty history.
+            if "does not exist" in str(e):
+                return []
             raise
         if not data:
             return []
@@ -82,13 +100,13 @@ class MessageStore:
     ) -> list[ModelMessage]:
         """Append `new_messages` to the thread's history and return the full list.
 
-        Read-modify-write under a per-thread lock so two overlapping turns
-        in the same thread don't clobber each other.
+        Read-modify-write under `self._write_lock` so two overlapping turns
+        don't clobber each other's writes.
         """
         if not new_messages:
             return await self.get(thread_ts)
 
-        async with self._locks[thread_ts]:
+        async with self._write_lock:
             existing = await self.get(thread_ts)
             combined = existing + list(new_messages)
             dumped = ModelMessagesTypeAdapter.dump_json(combined)
