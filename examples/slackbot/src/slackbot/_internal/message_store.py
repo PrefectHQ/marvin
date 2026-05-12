@@ -1,110 +1,98 @@
 """Durable per-thread storage for pydantic-ai `ModelMessage` history.
 
-The bot used to persist conversation history in a SQLite file on the
-container's local disk. On Cloud Run that disk is ephemeral — every revision
-deploy wiped the history, and ad-hoc retrieval ("what did marvin actually say
-in thread X?") required shelling into a running container.
+Conversation history lives in the Prefect workspace as block documents —
+one per thread, named `chat-history-<sanitized_thread_ts>`. The bot
+already authenticates to the workspace, so this needs no extra infra
+(no bucket, no service account grant, no env-var dance).
 
-This module replaces that with a `WritableFileSystem`-backed store. Each
-thread's full `ModelMessage` list lives in a single JSON object keyed by
-thread_ts. Writes overwrite the whole object, protected by an in-process
-lock that guards the read-modify-write — see `MessageStore.append`.
+Why block documents (not Variables, not artifacts, not files):
+
+- Variables cap at 5000 chars per value — a single agent turn with tool
+  calls blows that.
+- Artifacts are version-chained on each `create_*_artifact(key=...)`
+  call, so they don't naturally support "overwrite latest" semantics
+  and accumulate records per turn.
+- Block documents store arbitrary JSON in their `data` column (no
+  practical size limit for our use case), support atomic upserts via
+  `block.save(name, overwrite=True)`, and are looked up by name in O(1).
+
+Reads use `ChatHistoryBlock.aload(name)` which raises `ValueError` on
+miss — the natural empty-thread path. Writes are guarded by a single
+in-process `asyncio.Lock` to keep concurrent turns from clobbering each
+other's read-modify-write (the bot is single-instance on Cloud Run; if
+we go multi-replica this needs a distributed primitive).
 """
 
 from __future__ import annotations
 
 import asyncio
 import re
-from pathlib import Path
 
 from prefect.blocks.core import Block
-from prefect.filesystems import LocalFileSystem, WritableFileSystem
 from prefect.logging.loggers import get_logger
+from pydantic import Field
 from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
 
 logger = get_logger(__name__)
 
-# Backends raise their own "not found" exception types — collect them so
-# `MessageStore.get` can treat a missing thread uniformly as []. Imported
-# defensively so this module doesn't hard-require any particular backend.
-_NOT_FOUND_EXCEPTIONS: tuple[type[BaseException], ...] = (FileNotFoundError,)
-try:
-    from google.api_core.exceptions import NotFound as _GcsNotFound
-
-    _NOT_FOUND_EXCEPTIONS = (*_NOT_FOUND_EXCEPTIONS, _GcsNotFound)
-except ImportError:
-    pass
-
 # Slack thread_ts is always `<seconds>.<microseconds>`, e.g. "1778543248.702039".
-# We use it directly as a filesystem path key — validate strictly so a caller
-# can't supply `../...` or absolute paths and influence what the store
-# reads/writes. The `/chat` endpoint does not verify Slack signatures, so
-# treating thread_ts as untrusted input is the right default.
+# Validate strictly so a caller can't supply arbitrary characters — the value
+# becomes part of a Prefect block-document name and Slack signature
+# verification isn't in place on the `/chat` endpoint.
 _THREAD_TS_RE = re.compile(r"^\d+\.\d+$")
 
 
-async def load_message_store(block_slug: str | None, local_dir: Path) -> "MessageStore":
-    """Construct a `MessageStore` from settings.
+class ChatHistoryBlock(Block):
+    """Per-thread chat history as a Prefect block document.
 
-    If `block_slug` is set, load that `WritableFileSystem` block from the
-    Prefect workspace (e.g. `gcs-bucket/marvin-chat-history` in prod/stg).
-    Otherwise fall back to a `LocalFileSystem` rooted at `local_dir` — fine
-    for local dev, not durable in Cloud Run.
+    The `messages_json` field holds the full `ModelMessage[]` serialized
+    by `pydantic_ai.messages.ModelMessagesTypeAdapter`. We keep it as a
+    string (rather than a structured field) so the block schema doesn't
+    have to track every pydantic-ai message variant.
     """
-    if block_slug:
-        block = await Block.aload(block_slug)
-        if not isinstance(block, WritableFileSystem):
-            raise TypeError(
-                f"Block {block_slug!r} is not a WritableFileSystem "
-                f"(got {type(block).__name__})"
-            )
-        logger.info("Using message store block %s", block_slug)
-        return MessageStore(block)
 
-    local_dir.mkdir(parents=True, exist_ok=True)
-    logger.info("Using local message store at %s", local_dir)
-    return MessageStore(LocalFileSystem(basepath=str(local_dir)))
+    _block_type_name = "Chat History"
+    _logo_url = "https://avatars.githubusercontent.com/u/39270919"  # PrefectHQ
+
+    messages_json: str = Field(
+        default="[]",
+        description="pydantic-ai ModelMessage[] serialized via ModelMessagesTypeAdapter",
+    )
 
 
-def _thread_key(thread_ts: str) -> str:
+def _block_name(thread_ts: str) -> str:
     if not _THREAD_TS_RE.match(thread_ts):
         raise ValueError(f"invalid thread_ts: {thread_ts!r}")
-    return f"threads/{thread_ts}.json"
+    # Block document names must be alphanumeric + dashes only — replace `.`
+    # with `-` to keep round-tripping unambiguous.
+    return f"chat-history-{thread_ts.replace('.', '-')}"
 
 
 class MessageStore:
-    """A thin per-thread message archive over a `WritableFileSystem` block.
+    """Per-thread message archive over Prefect `ChatHistoryBlock` documents.
 
-    A single asyncio lock guards all read-modify-write transactions. With
-    the bot's traffic profile (low QPS, single Cloud Run instance) the
-    serialization cost is negligible, and it sidesteps the unbounded
-    per-thread lock dict that a finer-grained scheme would require. If
-    we ever go multi-replica or hit real contention, this becomes a
-    distributed primitive (CAS or external lock).
+    A single store-wide `asyncio.Lock` guards all read-modify-write
+    transactions. Bot traffic is low enough that the serialization is
+    free; if we ever go multi-replica this becomes a distributed
+    primitive (CAS or external lock).
     """
 
-    def __init__(self, fs: WritableFileSystem) -> None:
-        self._fs = fs
+    def __init__(self) -> None:
         self._write_lock = asyncio.Lock()
 
     async def get(self, thread_ts: str) -> list[ModelMessage]:
         """Return the full message history for a thread, or [] if none stored."""
-        key = _thread_key(thread_ts)
+        name = _block_name(thread_ts)
         try:
-            data = await self._fs.aread_path(key)  # type: ignore[attr-defined]
-        except _NOT_FOUND_EXCEPTIONS:
+            block = await ChatHistoryBlock.aload(name)
+        except ValueError:
+            # Block.aload raises ValueError when the document doesn't exist.
+            # That's the empty-thread case — any other ValueError shape would
+            # be unexpected and is fine to propagate.
             return []
-        except ValueError as e:
-            # LocalFileSystem signals missing files with `ValueError("Path ...
-            # does not exist.")`. Match only that case; re-raise anything else
-            # (e.g. "Path ... is not a file") so real failures don't get
-            # silently swallowed as empty history.
-            if "does not exist" in str(e):
-                return []
-            raise
-        if not data:
+        if not block.messages_json:
             return []
-        return list(ModelMessagesTypeAdapter.validate_json(data))
+        return list(ModelMessagesTypeAdapter.validate_json(block.messages_json))
 
     async def append(
         self, thread_ts: str, new_messages: list[ModelMessage]
@@ -120,6 +108,7 @@ class MessageStore:
         async with self._write_lock:
             existing = await self.get(thread_ts)
             combined = existing + list(new_messages)
-            dumped = ModelMessagesTypeAdapter.dump_json(combined)
-            await self._fs.awrite_path(_thread_key(thread_ts), dumped)  # type: ignore[attr-defined]
+            dumped = ModelMessagesTypeAdapter.dump_json(combined).decode()
+            block = ChatHistoryBlock(messages_json=dumped)
+            await block.save(_block_name(thread_ts), overwrite=True)
             return combined

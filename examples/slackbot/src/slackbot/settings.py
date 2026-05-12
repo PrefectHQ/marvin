@@ -28,31 +28,12 @@ class SlackbotSettings(BaseSettings):
     def validate_log_level(cls, v: str) -> str:
         return v.upper()
 
-    # Existing settings...
+    # Used for ephemeral thread_status dedup state only; durable thread
+    # message history lives in Prefect block documents — see
+    # `_internal/message_store.py`.
     db_file: Path = Field(
         default=Path("marvin_chat.sqlite"),
-        description=(
-            "Path to SQLite database file. Used for ephemeral thread_status dedup "
-            "state only; durable thread message history is stored via "
-            "`message_store_block` (see below)."
-        ),
-    )
-
-    message_store_block: str | None = Field(
-        default=None,
-        description=(
-            "Slug of a Prefect `WritableFileSystem` block used to persist "
-            "thread message history (e.g. 'gcs-bucket/marvin-chat-history'). "
-            "If unset, falls back to a `LocalFileSystem` rooted at "
-            "`message_store_local_dir` — fine for dev, not durable in Cloud Run."
-        ),
-    )
-    message_store_local_dir: Path = Field(
-        default=Path("./marvin_chat_storage"),
-        description=(
-            "Local directory used as the message-store fallback when "
-            "`message_store_block` is unset."
-        ),
+        description="Path to SQLite database file used for thread dedup state.",
     )
 
     temperature: float = Field(
@@ -118,15 +99,6 @@ class SlackbotSettings(BaseSettings):
                 pass  # If secret doesn't exist, turbopuffer will handle the error
         if not self.admin_slack_user_id:
             self.admin_slack_user_id = Variable.get("admin-slack-id", _sync=True)
-        if self.message_store_block is None:
-            # Allow the message-store block slug to be configured via a Prefect
-            # Variable so we don't have to round-trip through Cloud Run env-var
-            # changes for it.
-            self.message_store_block = Variable.get(
-                "marvin_message_store_block",
-                default=None,
-                _sync=True,  # type: ignore
-            )
         return self
 
     @property

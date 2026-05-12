@@ -16,18 +16,6 @@ RUN apt-get update && \
 
 RUN uv sync --extra slackbot --no-dev
 
-# Install prefect-gcp into the synced venv so the bot can load `gcs-bucket/...`
-# blocks at runtime for thread-message persistence. Kept out of pyproject.toml
-# because adding it there triggers a transitive resolution conflict with
-# pydantic-ai-slim's quarantined `[mistral]` extra. The upper bound pins to
-# the last release compatible with our locked `prefect==3.6.12`; 0.6.17+
-# requires prefect>=3.6.17 / 3.7.0+ which the workspace lock doesn't satisfy.
-# Pin `prefect==3.6.12` in the same command so the resolver can't silently
-# upgrade prefect out from under uv.lock.
-RUN uv pip install --python /app/.venv/bin/python \
-    "prefect==3.6.12" \
-    "prefect-gcp>=0.6.10,<0.6.17"
-
 RUN bun install -g @anthropic-ai/claude-code
 
 ENV PATH="/root/.bun/bin:${PATH}"

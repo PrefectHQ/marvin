@@ -16,7 +16,7 @@ from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
 
 from slackbot._internal.constants import WORKSPACE_TO_CHANNEL_ID
-from slackbot._internal.message_store import MessageStore, load_message_store
+from slackbot._internal.message_store import MessageStore
 from slackbot._internal.templates import CHANNEL_REDIRECT_MESSAGE, WELCOME_MESSAGE
 from slackbot._internal.thread_status import (
     get_status as get_thread_status,
@@ -325,12 +325,9 @@ async def summarize_thread_so_far(flow: Flow, flow_run: FlowRun, state: State[An
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    message_store = await load_message_store(
-        settings.message_store_block, settings.message_store_local_dir
-    )
     async with Database.connect(settings.db_file) as db:
         app.state.db = db
-        app.state.message_store = message_store
+        app.state.message_store = MessageStore()
         yield
 
 
