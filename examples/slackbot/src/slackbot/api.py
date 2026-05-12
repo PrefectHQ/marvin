@@ -16,6 +16,7 @@ from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
 
 from slackbot._internal.constants import WORKSPACE_TO_CHANNEL_ID
+from slackbot._internal.message_store import MessageStore, load_message_store
 from slackbot._internal.templates import CHANNEL_REDIRECT_MESSAGE, WELCOME_MESSAGE
 from slackbot._internal.thread_status import (
     get_status as get_thread_status,
@@ -155,7 +156,9 @@ def _extract_message_context(event: Any) -> tuple[bool, str | None, str | None, 
 
 
 @flow(name="Handle Slack Message", retries=1)
-async def handle_message(payload: SlackPayload, db: Database):
+async def handle_message(
+    payload: SlackPayload, db: Database, message_store: MessageStore
+):
     logger = get_run_logger()
     event = payload.event
     if not event or not all([event.text, event.channel, (event.thread_ts or event.ts)]):
@@ -244,7 +247,7 @@ async def handle_message(payload: SlackPayload, db: Database):
         logger.info(
             f"Processing message in thread {thread_ts}\nUser message: {cleaned_message}"
         )
-        conversation = await db.get_thread_messages(thread_ts)
+        conversation = await message_store.get(thread_ts)
 
         bot_user_id = None
         if payload.authorizations:
@@ -272,8 +275,9 @@ async def handle_message(payload: SlackPayload, db: Database):
                 thread_ts,
             )  # type: ignore
 
-            await db.add_thread_messages(thread_ts, result.new_messages())
-            conversation.extend(result.new_messages())
+            conversation = await message_store.append(
+                thread_ts, list(result.new_messages())
+            )
             assert event.channel is not None, "No channel found"
             await task(post_slack_message)(
                 message=result.output,
@@ -321,8 +325,12 @@ async def summarize_thread_so_far(flow: Flow, flow_run: FlowRun, state: State[An
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    message_store = await load_message_store(
+        settings.message_store_block, settings.message_store_local_dir
+    )
     async with Database.connect(settings.db_file) as db:
         app.state.db = db
+        app.state.message_store = message_store
         yield
 
 
@@ -343,6 +351,7 @@ async def chat_endpoint(request: Request) -> dict[str, Any]:
         raise HTTPException(400, "Invalid event type")
 
     db: Database = request.app.state.db
+    message_store: MessageStore = request.app.state.message_store
 
     if payload.type == "event_callback":
         if not payload.event:
@@ -377,7 +386,9 @@ async def chat_endpoint(request: Request) -> dict[str, Any]:
                 flow_run_name=f"respond in {channel_name}/{ts}",
             )
 
-            asyncio.create_task(handle_message.with_options(**flow_opts)(payload, db))
+            asyncio.create_task(
+                handle_message.with_options(**flow_opts)(payload, db, message_store)
+            )
     elif payload.type == "url_verification":
         return {"challenge": payload.challenge}
     else:

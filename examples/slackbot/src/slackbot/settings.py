@@ -30,7 +30,29 @@ class SlackbotSettings(BaseSettings):
 
     # Existing settings...
     db_file: Path = Field(
-        default=Path("marvin_chat.sqlite"), description="Path to SQLite database file"
+        default=Path("marvin_chat.sqlite"),
+        description=(
+            "Path to SQLite database file. Used for ephemeral thread_status dedup "
+            "state only; durable thread message history is stored via "
+            "`message_store_block` (see below)."
+        ),
+    )
+
+    message_store_block: str | None = Field(
+        default=None,
+        description=(
+            "Slug of a Prefect `WritableFileSystem` block used to persist "
+            "thread message history (e.g. 'gcs-bucket/marvin-chat-history'). "
+            "If unset, falls back to a `LocalFileSystem` rooted at "
+            "`message_store_local_dir` — fine for dev, not durable in Cloud Run."
+        ),
+    )
+    message_store_local_dir: Path = Field(
+        default=Path("./marvin_chat_storage"),
+        description=(
+            "Local directory used as the message-store fallback when "
+            "`message_store_block` is unset."
+        ),
     )
 
     temperature: float = Field(
