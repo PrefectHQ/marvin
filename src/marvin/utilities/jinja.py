@@ -1,12 +1,10 @@
-import inspect
-import os
 from datetime import datetime
 from functools import partial
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from jinja2 import Environment as JinjaEnvironment
 from jinja2 import PackageLoader, StrictUndefined, select_autoescape
+from jinja2.sandbox import ImmutableSandboxedEnvironment as JinjaEnvironment
 from pydantic_core import to_json
 
 
@@ -28,8 +26,6 @@ def _pretty_print(x: object) -> str:
 
 global_fns: dict[str, Any] = {
     "now": partial(datetime.now, tz=ZoneInfo("UTC")),
-    "inspect": inspect,
-    "getcwd": os.getcwd,
     "zip": zip,
     "is_agent": _is_agent,
     "is_team": _is_team,
