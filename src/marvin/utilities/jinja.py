@@ -5,7 +5,7 @@ from functools import partial
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from jinja2 import Environment as JinjaEnvironment
+from jinja2.sandbox import SandboxedEnvironment as JinjaEnvironment
 from jinja2 import PackageLoader, StrictUndefined, select_autoescape
 from pydantic_core import to_json
 
