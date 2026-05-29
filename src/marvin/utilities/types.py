@@ -14,6 +14,7 @@ from typing import (
     TypeVar,
     get_args,
     get_origin,
+    get_type_hints,
 )
 
 from marvin.utilities.asyncio import run_sync
@@ -356,13 +357,27 @@ class PythonFunction(Generic[P, R]):
             else:
                 raise
 
+        # `inspect.signature` returns string annotations when the module that
+        # defined `func` uses `from __future__ import annotations` (PEP 563).
+        # `typing.get_type_hints` resolves those forward references back to the
+        # actual types, so the downstream LLM call receives a real type object
+        # (e.g. `Recipe`) rather than the raw string `'Recipe'`.
+        # Fall back to `sig.return_annotation` if resolution fails (e.g. the
+        # type is not importable in the current scope).
+        # See https://github.com/PrefectHQ/marvin/issues/950
+        try:
+            hints = get_type_hints(func)
+            resolved_return = hints.get("return", sig.return_annotation)
+        except Exception:
+            resolved_return = sig.return_annotation
+
         function_dict: dict[str, Any] = {
             "function": func,
             "signature": sig,
             "name": name,
             "docstring": inspect.cleandoc(docstring) if docstring else None,
             "parameters": parameters,
-            "return_annotation": sig.return_annotation,
+            "return_annotation": resolved_return,
             "source_code": source_code,
         }
 
