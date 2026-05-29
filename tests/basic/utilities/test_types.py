@@ -132,3 +132,54 @@ class TestClassification:
             1: "42",
             2: "True",
         }
+
+
+class TestPythonFunctionFromFutureAnnotations:
+    """Regression test for https://github.com/PrefectHQ/marvin/issues/950
+
+    When a module uses `from __future__ import annotations` (PEP 563), all
+    annotations are stored as strings rather than the actual types.
+    `PythonFunction.from_function` must resolve them with `typing.get_type_hints`
+    so that downstream LLM calls receive a real type, not the string 'Recipe'.
+    """
+
+    def test_string_annotation_is_resolved_to_type(self):
+        """A string return annotation must resolve to the actual type class."""
+        from pydantic import BaseModel
+        from marvin.utilities.types import PythonFunction
+
+        class Dish(BaseModel):
+            name: str
+
+        # Mimic what `from __future__ import annotations` does: the annotation
+        # stored on the function is a string, not the type object.
+        def make_dish(ingredients: list[str]) -> "Dish":
+            """Return a dish made from the given ingredients."""
+
+        model = PythonFunction.from_function(make_dish)
+
+        # Before the fix: return_annotation was the string 'Dish'
+        # After the fix: it must be the actual Dish class
+        assert model.return_annotation is Dish, (
+            f"Expected return_annotation to be the Dish class, got {model.return_annotation!r}. "
+            "Hint: 'from __future__ import annotations' converts annotations to strings; "
+            "PythonFunction.from_function must resolve them via typing.get_type_hints()."
+        )
+
+    def test_non_string_annotation_still_works(self):
+        """A normal (non-string) annotation must continue to work unchanged."""
+        from pydantic import BaseModel
+        from marvin.utilities.types import PythonFunction
+
+        class Ingredient(BaseModel):
+            name: str
+
+        # Normal annotation without PEP 563 — sig.return_annotation is already
+        # the class object.
+        def list_ingredients(query: str) -> list[Ingredient]:
+            """List ingredients matching the query."""
+
+        model = PythonFunction.from_function(list_ingredients)
+        import typing
+        # The origin must be list (list[Ingredient])
+        assert typing.get_origin(model.return_annotation) is list
