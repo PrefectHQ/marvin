@@ -215,10 +215,13 @@ def create_array_type(
     if isinstance(items, list):
         # Handle positional item schemas
         item_types = [schema_to_type(s, schemas) for s in items]
-        from typing import Union
+        if not item_types:
+            base = list[Any]
+        else:
+            from typing import Union
 
-        combined = Union[tuple(item_types)]
-        base = list[combined]
+            combined = Union[tuple(item_types)] if len(item_types) > 1 else item_types[0]
+            base = list[combined]
     else:
         # Handle single item schema
         item_type = schema_to_type(items, schemas)
