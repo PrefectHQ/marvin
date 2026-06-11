@@ -217,7 +217,7 @@ def create_array_type(
         item_types = [schema_to_type(s, schemas) for s in items]
         from typing import Union
 
-        combined = Union[tuple(item_types)]
+        combined = Union[tuple(item_types)] if item_types else Any
         base = list[combined]
     else:
         # Handle single item schema
@@ -296,6 +296,8 @@ def schema_to_type(
             types.append(schema_to_type(type_schema, schemas))
         has_null = type(None) in types
         types = [t for t in types if t is not type(None)]
+        if not types:
+            return type(None)
         if has_null:
             from typing import Union
 
