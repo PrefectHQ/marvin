@@ -2,6 +2,8 @@
 
 # Marvin
 
+[![Listed on TakoAPI](https://img.shields.io/badge/Listed%20on-TakoAPI-7c3aed)](https://takoapi.com/agents/prefecthq-marvin)
+
 Marvin is a Python framework for producing structured outputs and building agentic AI workflows.
 
 Marvin provides an intuitive API for defining workflows and delegating work to LLMs:
