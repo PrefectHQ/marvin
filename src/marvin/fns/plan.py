@@ -174,7 +174,7 @@ async def plan_async(
     agent_map = {i: a for i, a in enumerate(available_agents or [])}
     tool_map = {i: t for i, t in enumerate(tools or [])}
 
-    task_context = context or {}
+    task_context = dict(context) if context else {}
     task_context["Available agents"] = agent_map
     task_context["Available tools"] = tool_map
     prompt = (
