@@ -119,3 +119,22 @@ writer = marvin.Agent(
 result = marvin.run("how to use pydantic? write haiku to docs.md", agents=[writer])
 print(result)
 ```
+
+## DaoXE (OpenAI-compatible gateway)
+
+[DaoXE](https://daoxe.com) is a multi-model multi-protocol API gateway. Marvin can use it through Pydantic AI's OpenAI-compatible provider with a custom base URL. Model IDs are account-scoped (use an exact ID from your DaoXE dashboard or `GET /v1/models`). Not available in mainland China.
+
+```bash
+export OPENAI_API_KEY="YOUR_DAOXE_API_KEY"
+export OPENAI_BASE_URL="https://daoxe.com/v1"
+```
+
+```python
+import marvin
+
+# Replace YOUR_DAOXE_MODEL_ID with an exact model ID from your DaoXE account
+agent = marvin.Agent(model="openai:YOUR_DAOXE_MODEL_ID")
+```
+
+If your environment requires an explicit base URL for OpenAI-compatible providers, set `OPENAI_BASE_URL` (or the equivalent Pydantic AI OpenAI provider setting) to `https://daoxe.com/v1`. DaoXE also exposes Anthropic Messages and other protocols for clients that speak those APIs; this Marvin path uses Chat Completions.
+
