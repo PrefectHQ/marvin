@@ -103,3 +103,21 @@ async def test_cast_keeps_other_values_in_context(
     assert len(capture.calls) == 1
     assert capture.calls[0]["attachments"] == []
     assert capture.calls[0]["context"]["Data to transform"] is data
+
+
+async def test_cast_preserves_empty_context_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    capture = _TaskCapture()
+    capture.install(monkeypatch)
+    context: dict[str, Any] = {}
+
+    await cast_async(
+        "plain text",
+        target=str,
+        instructions="Transform the value",
+        context=context,
+    )
+
+    assert capture.calls[0]["context"] is context
+    assert context == {"Data to transform": "plain text"}

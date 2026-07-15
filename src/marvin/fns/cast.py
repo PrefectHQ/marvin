@@ -8,6 +8,7 @@ from typing import Any, TypeVar
 from pydantic_ai.messages import (
     AudioUrl,
     BinaryContent,
+    BinaryImage,
     DocumentUrl,
     ImageUrl,
     VideoUrl,
@@ -22,7 +23,14 @@ from marvin.utilities.types import TargetType
 
 T = TypeVar("T")
 
-_ATTACHMENT_TYPES = (ImageUrl, AudioUrl, DocumentUrl, VideoUrl, BinaryContent)
+_ATTACHMENT_TYPES = (
+    ImageUrl,
+    AudioUrl,
+    DocumentUrl,
+    VideoUrl,
+    BinaryContent,
+    BinaryImage,
+)
 
 DEFAULT_PROMPT = """
 You are an expert data converter that always maintains as much semantic
@@ -92,7 +100,7 @@ async def cast_async(
     if target is str and instructions is None:
         raise ValueError("Instructions are required when casting to string values.")
 
-    task_context = context or {}
+    task_context = context if context is not None else {}
     attachments = [data] if isinstance(data, _ATTACHMENT_TYPES) else []
     if not attachments:
         task_context["Data to transform"] = data
