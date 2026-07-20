@@ -3,7 +3,7 @@ import re
 import time
 from collections import defaultdict
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, Sequence
 
 from fastapi import FastAPI, HTTPException, Request
 from prefect import Flow, State, flow, get_run_logger, task
@@ -12,6 +12,7 @@ from prefect.cache_policies import NONE
 from prefect.client.schemas.objects import FlowRun
 from prefect.logging.loggers import get_logger
 from prefect.states import Completed
+from pydantic_ai import BinaryContent
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
 
@@ -36,8 +37,10 @@ from slackbot.core import (
 )
 from slackbot.settings import settings
 from slackbot.slack import (
+    SlackFile,
     SlackPayload,
     create_progress_message,
+    fetch_shared_images,
     get_channel_name,
     get_workspace_domain,
     post_slack_message,
@@ -70,7 +73,7 @@ def check_if_designated_channel(channel_id: str, team_id: str) -> bool:
 
 @task(name="run agent loop")
 async def run_agent(
-    cleaned_message: str,
+    user_prompt: str | Sequence[str | BinaryContent],
     conversation: list[ModelMessage],
     user_context: UserContext,
     channel_id: str,
@@ -111,7 +114,7 @@ async def run_agent(
                 max_tool_calls=settings.max_tool_calls_per_turn,
             ):
                 result = await create_agent().run(
-                    user_prompt=cleaned_message,
+                    user_prompt=user_prompt,
                     message_history=conversation,
                     deps=user_context,
                 )
@@ -128,8 +131,10 @@ async def run_agent(
         raise
 
 
-def _extract_message_context(event: Any) -> tuple[bool, str | None, str | None, str]:
-    """Return (is_edit, message_ts, thread_ts, text) for Slack events.
+def _extract_message_context(
+    event: Any,
+) -> tuple[bool, str | None, str | None, str, list[SlackFile]]:
+    """Return (is_edit, message_ts, thread_ts, text, files) for Slack events.
 
     - For `message_changed` events, Slack nests the edited message under `event.message`.
     - For normal app_mention events, fields are at the top level.
@@ -152,7 +157,12 @@ def _extract_message_context(event: Any) -> tuple[bool, str | None, str | None, 
     # Text used for bot mention detection
     text = (msg.get("text") if is_edit else (getattr(event, "text", None) or "")) or ""
 
-    return is_edit, message_ts, thread_ts, text
+    if is_edit:
+        files = [SlackFile.model_validate(f) for f in (msg.get("files") or [])]
+    else:
+        files = getattr(event, "files", None) or []
+
+    return is_edit, message_ts, thread_ts, text, files
 
 
 @flow(name="Handle Slack Message", retries=1)
@@ -167,7 +177,9 @@ async def handle_message(
 
     USER_MESSAGE_MAX_TOKENS = settings.user_message_max_tokens
     # Determine message context accommodating edit events
-    is_edit, message_ts, thread_ts, user_message = _extract_message_context(event)
+    is_edit, message_ts, thread_ts, user_message, files = _extract_message_context(
+        event
+    )
     assert thread_ts is not None, "No thread_ts found"
     assert message_ts is not None, "No message_ts found"
     cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
@@ -266,9 +278,17 @@ async def handle_message(
             bot_id=bot_user_id or "unknown",
         )
 
+        images = await fetch_shared_images(files) if files else []
+        if images:
+            logger.info(f"Including {len(images)} shared image(s) in prompt")
+
+        user_prompt: str | Sequence[str | BinaryContent] = (
+            [cleaned_message, *images] if images else cleaned_message
+        )
+
         try:
             result = await run_agent(
-                cleaned_message,
+                user_prompt,
                 conversation,
                 user_context,
                 event.channel,

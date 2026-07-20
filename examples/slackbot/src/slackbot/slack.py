@@ -4,9 +4,16 @@ import re
 from typing import Any, List, Union
 
 import httpx
+from prefect.logging.loggers import get_logger
 from pydantic import BaseModel, ValidationInfo, field_validator, model_validator
+from pydantic_ai import BinaryContent
 
 from slackbot.settings import settings
+
+logger = get_logger(__name__)
+
+MAX_IMAGES_PER_MESSAGE = 4
+MAX_IMAGE_BYTES = 5 * 1024 * 1024  # Anthropic's per-image limit
 
 
 class EventBlockElement(BaseModel):
@@ -26,6 +33,18 @@ class EventBlock(BaseModel):
     elements: List[Union[EventBlockElement, EventBlockElementGroup]]
 
 
+class SlackFile(BaseModel):
+    id: str
+    name: str | None = None
+    mimetype: str | None = None
+    size: int | None = None
+    url_private: str | None = None
+
+    @property
+    def is_image(self) -> bool:
+        return bool(self.mimetype and self.mimetype.startswith("image/"))
+
+
 class SlackEvent(BaseModel):
     client_msg_id: str | None = None
     type: str
@@ -41,6 +60,7 @@ class SlackEvent(BaseModel):
     thread_ts: str | None = None
     parent_user_id: str | None = None
     blocks: list[EventBlock] | None = None
+    files: list[SlackFile] | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -78,6 +98,65 @@ class SlackPayload(BaseModel):
         if v is None and info.data.get("type") != "url_verification":
             raise ValueError("event is required")
         return v
+
+
+async def fetch_shared_images(files: list[SlackFile]) -> list[BinaryContent]:
+    """Download images shared in a Slack message as `BinaryContent`.
+
+    Slack file URLs are private and require bot-token auth, so the model
+    provider can't fetch them itself — we download the bytes here. Requires
+    the `files:read` OAuth scope. Non-image files, oversized images, and
+    failed downloads are skipped rather than failing the whole message.
+    """
+    images: list[BinaryContent] = []
+    candidates = [f for f in files if f.is_image and f.url_private]
+    if len(candidates) > MAX_IMAGES_PER_MESSAGE:
+        logger.warning(
+            "Message has %d images; only including the first %d",
+            len(candidates),
+            MAX_IMAGES_PER_MESSAGE,
+        )
+        candidates = candidates[:MAX_IMAGES_PER_MESSAGE]
+
+    async with httpx.AsyncClient() as client:
+        for file in candidates:
+            if file.size and file.size > MAX_IMAGE_BYTES:
+                logger.warning(
+                    "Skipping oversized image %s (%s bytes)", file.id, file.size
+                )
+                continue
+            try:
+                assert file.url_private is not None
+                response = await client.get(
+                    file.url_private,
+                    headers={"Authorization": f"Bearer {settings.slack_api_token}"},
+                    follow_redirects=True,
+                )
+                response.raise_for_status()
+            except httpx.HTTPError as e:
+                logger.warning("Failed to download image %s: %s", file.id, e)
+                continue
+            # Slack returns an HTML login page (not an error status) when the
+            # token lacks the files:read scope — don't feed that to the model.
+            content_type = response.headers.get("content-type", "")
+            if not content_type.startswith("image/"):
+                logger.warning(
+                    "Unexpected content-type %r for image %s (missing files:read scope?)",
+                    content_type,
+                    file.id,
+                )
+                continue
+            if len(response.content) > MAX_IMAGE_BYTES:
+                logger.warning("Skipping oversized image %s after download", file.id)
+                continue
+            images.append(
+                BinaryContent(
+                    data=response.content,
+                    media_type=file.mimetype or content_type,
+                    identifier=file.name or file.id,
+                )
+            )
+    return images
 
 
 def convert_md_links_to_slack(text: str) -> str:
