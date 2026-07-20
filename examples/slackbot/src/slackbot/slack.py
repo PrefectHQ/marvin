@@ -100,6 +100,28 @@ class SlackPayload(BaseModel):
         return v
 
 
+async def get_message_files(
+    channel: str, thread_ts: str, message_ts: str
+) -> list[SlackFile]:
+    """Recover the `files` array for a message by re-fetching it from Slack.
+
+    `app_mention` event payloads omit `files` even when the message has
+    attachments — only `message` events carry them — so we look the message
+    up in its thread via `conversations.replies`.
+    """
+    try:
+        messages = await get_thread_messages(
+            channel, thread_ts, settings.slack_api_token
+        )
+    except httpx.HTTPError as e:
+        logger.warning("Failed to fetch thread messages for files: %s", e)
+        return []
+    for msg in messages:
+        if msg.get("ts") == message_ts:
+            return [SlackFile.model_validate(f) for f in msg.get("files") or []]
+    return []
+
+
 async def fetch_shared_images(files: list[SlackFile]) -> list[BinaryContent]:
     """Download images shared in a Slack message as `BinaryContent`.
 

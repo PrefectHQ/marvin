@@ -15,6 +15,7 @@ from slackbot.slack import (
     SlackFile,
     SlackPayload,
     fetch_shared_images,
+    get_message_files,
 )
 
 PNG_BYTES = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
@@ -197,6 +198,65 @@ class TestFetchSharedImages:
         self.transport = httpx.MockTransport(handler)
         files = [SlackFile(id="F1", mimetype="image/png", url_private="https://x")]
         assert await fetch_shared_images(files) == []
+
+
+class TestGetMessageFiles:
+    """app_mention event payloads omit `files`; we recover them from the thread."""
+
+    @pytest.fixture(autouse=True)
+    def patch_httpx(self, monkeypatch: pytest.MonkeyPatch):
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert "conversations.replies" in str(request.url)
+            return httpx.Response(
+                200,
+                json={
+                    "ok": True,
+                    "messages": [
+                        {"ts": "1784560875.892419", "text": "parent, no files"},
+                        {
+                            "ts": "1784560880.000001",
+                            "text": "<@U123BOT> what is in this image?",
+                            "files": [
+                                {
+                                    "id": "F123",
+                                    "name": "image.png",
+                                    "mimetype": "image/png",
+                                    "url_private": "https://files.slack.com/x",
+                                }
+                            ],
+                        },
+                    ],
+                },
+            )
+
+        transport = httpx.MockTransport(handler)
+        original_init = httpx.AsyncClient.__init__
+
+        def patched_init(client, **kwargs):
+            kwargs["transport"] = transport
+            original_init(client, **kwargs)
+
+        monkeypatch.setattr(httpx.AsyncClient, "__init__", patched_init)
+
+    async def test_recovers_files_for_message(self):
+        files = await get_message_files(
+            "C789", "1784560875.892419", "1784560880.000001"
+        )
+        assert len(files) == 1
+        assert files[0].id == "F123"
+        assert files[0].is_image
+
+    async def test_message_without_files(self):
+        files = await get_message_files(
+            "C789", "1784560875.892419", "1784560875.892419"
+        )
+        assert files == []
+
+    async def test_unknown_message_ts(self):
+        files = await get_message_files(
+            "C789", "1784560875.892419", "9999999999.000000"
+        )
+        assert files == []
 
 
 class TestStripBinaryContent:

@@ -42,6 +42,7 @@ from slackbot.slack import (
     create_progress_message,
     fetch_shared_images,
     get_channel_name,
+    get_message_files,
     get_workspace_domain,
     post_slack_message,
 )
@@ -278,6 +279,9 @@ async def handle_message(
             bot_id=bot_user_id or "unknown",
         )
 
+        if not files:
+            # app_mention events omit `files` — recover them from the thread
+            files = await get_message_files(event.channel, thread_ts, message_ts)
         images = await fetch_shared_images(files) if files else []
         if images:
             logger.info(f"Including {len(images)} shared image(s) in prompt")
