@@ -12,6 +12,9 @@ from claude_agent_sdk.types import AssistantMessage, TextBlock
 from prefect import task
 from prefect.cache_policies import INPUTS
 
+SLACKBOT_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[4]
+
 
 async def research_topic_with_code_access(question: str, version: str = "3.x") -> str:
     """
@@ -30,7 +33,7 @@ async def research_topic_with_code_access(question: str, version: str = "3.x") -
     # Use current working directory for cache
     # Locally: <wherever you run from>/.research_cache/prefect
     # Docker: /app/.research_cache/prefect (since WORKDIR is /app)
-    cache_dir = Path.cwd() / ".research_cache"
+    cache_dir = SLACKBOT_ROOT / ".research_cache"
     prefect_repo = cache_dir / "prefect"
 
     version_context = "Prefect 3.x" if version.startswith("3") else "Prefect 2.x"
@@ -71,12 +74,15 @@ CRITICAL VERSION-SPECIFIC RULES:
 
 Remember: You are the research specialist. The main agent relies on you for accurate, comprehensive information.
 Be thorough - use tools repeatedly until you have complete information.
-Do not use any Prefect syntax you have not verified by reading the actual source code."""
+Do not use any Prefect syntax you have not verified by reading the actual source code.
+Use relevant Claude Code skills when they match the task, especially for behavior-vs-bug reproduction."""
 
     options = ClaudeAgentOptions(
-        allowed_tools=["Read", "Grep", "Glob", "Bash"],
-        cwd=str(Path.cwd()),
+        allowed_tools=["Skill", "Read", "Grep", "Glob", "Bash"],
+        cwd=str(SLACKBOT_ROOT),
+        add_dirs=[str(REPO_ROOT)],
         model="claude-haiku-4-5-20251001",
+        setting_sources=["project"],
         system_prompt=system_prompt,
     )
 
