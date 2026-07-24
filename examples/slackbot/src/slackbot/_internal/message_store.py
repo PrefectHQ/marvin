@@ -27,11 +27,18 @@ from __future__ import annotations
 
 import asyncio
 import re
+from dataclasses import replace
 
 from prefect.blocks.core import Block
 from prefect.logging.loggers import get_logger
 from pydantic import Field
-from pydantic_ai.messages import ModelMessage, ModelMessagesTypeAdapter
+from pydantic_ai.messages import (
+    BinaryContent,
+    ModelMessage,
+    ModelMessagesTypeAdapter,
+    ModelRequest,
+    UserPromptPart,
+)
 
 logger = get_logger(__name__)
 
@@ -58,6 +65,34 @@ class ChatHistoryBlock(Block):
         default="[]",
         description="pydantic-ai ModelMessage[] serialized via ModelMessagesTypeAdapter",
     )
+
+
+def strip_binary_content(messages: list[ModelMessage]) -> list[ModelMessage]:
+    """Replace binary parts (e.g. shared images) with a text placeholder.
+
+    Images are seen by the model on the turn they're shared, but persisting
+    raw bytes would balloon block-document size and re-bill every image as
+    input tokens on each subsequent turn in the thread.
+    """
+    stripped: list[ModelMessage] = []
+    for message in messages:
+        if isinstance(message, ModelRequest):
+            new_parts = []
+            for part in message.parts:
+                if isinstance(part, UserPromptPart) and not isinstance(
+                    part.content, str
+                ):
+                    new_content = [
+                        f"[image {item.identifier or 'attachment'} shared here — not retained in history]"
+                        if isinstance(item, BinaryContent)
+                        else item
+                        for item in part.content
+                    ]
+                    part = replace(part, content=new_content)
+                new_parts.append(part)
+            message = replace(message, parts=new_parts)
+        stripped.append(message)
+    return stripped
 
 
 def _block_name(thread_ts: str) -> str:
@@ -107,7 +142,7 @@ class MessageStore:
 
         async with self._write_lock:
             existing = await self.get(thread_ts)
-            combined = existing + list(new_messages)
+            combined = existing + strip_binary_content(list(new_messages))
             dumped = ModelMessagesTypeAdapter.dump_json(combined).decode()
             block = ChatHistoryBlock(messages_json=dumped)
             await block.save(_block_name(thread_ts), overwrite=True)
