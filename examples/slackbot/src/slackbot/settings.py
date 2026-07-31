@@ -60,6 +60,19 @@ class SlackbotSettings(BaseSettings):
         description="Name of the Prefect secret block containing Anthropic API key",
     )
 
+    logfire_token_secret_name: str = Field(
+        default="logfire-write-token",
+        description="Name of the Prefect secret block containing the Logfire write token",
+    )
+    logfire_service_name: str = Field(
+        default="marvin-slackbot",
+        description="Service name reported to Logfire",
+    )
+    logfire_environment: str = Field(
+        default="production",
+        description="Environment reported to Logfire",
+    )
+
     vector_store_type: Literal["turbopuffer"] = Field(
         default="turbopuffer", description="Type of vector store to use"
     )
