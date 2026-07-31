@@ -18,6 +18,7 @@ from pydantic_ai.messages import ModelMessage
 
 from slackbot._internal.constants import WORKSPACE_TO_CHANNEL_ID
 from slackbot._internal.message_store import MessageStore
+from slackbot._internal.observability import configure_observability
 from slackbot._internal.templates import CHANNEL_REDIRECT_MESSAGE, WELCOME_MESSAGE
 from slackbot._internal.thread_status import (
     get_status as get_thread_status,
@@ -356,6 +357,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+configure_observability(app)
 
 
 @app.post("/chat")

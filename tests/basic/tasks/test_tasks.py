@@ -668,7 +668,7 @@ class TestVerbose:
     async def test_mark_task_with_attachments_running(self, thread: Thread):
         """Test that tasks with attachments add a message to the thread when marked running."""
         task = Task(
-            instructions="Test running", verbose=True, attachments=[ImageUrl("abc")]
+            instructions="Test running", verbose=True, attachments=[ImageUrl("https://example.com/image.png")]
         )
         await task.mark_running(thread=thread)
         messages = await thread.get_messages_async()
@@ -679,4 +679,4 @@ class TestVerbose:
                 flags=re.DOTALL,
             )
         )
-        assert messages[0].message.parts[0].content[1] == ImageUrl("abc")
+        assert messages[0].message.parts[0].content[1] == ImageUrl("https://example.com/image.png")
