@@ -1163,3 +1163,25 @@ class TestNameHandling:
         assert result.name == "parent"
         assert result.child.name == "child"
         assert result.child.child is None
+
+
+class TestEnumTypes:
+    def test_string_enum_case_variants_preserved(self):
+        from pydantic import TypeAdapter
+
+        va = TypeAdapter(jsonschema_to_type({"enum": ["yes", "YES"]}))
+        assert va.validate_python("YES").value == "YES"
+        assert va.validate_python("yes").value == "yes"
+
+    def test_string_enum_empty_value_allowed(self):
+        from pydantic import TypeAdapter
+
+        va = TypeAdapter(jsonschema_to_type({"enum": ["", "nonempty"]}))
+        assert va.validate_python("").value == ""
+        assert va.validate_python("nonempty").value == "nonempty"
+
+    def test_string_enum_normal_still_works(self):
+        from pydantic import TypeAdapter
+
+        va = TypeAdapter(jsonschema_to_type({"enum": ["positive", "negative", "neutral"]}))
+        assert va.validate_python("neutral").value == "neutral"
