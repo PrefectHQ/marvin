@@ -6,7 +6,10 @@ from marvin.handlers.handlers import AsyncHandler
 
 git_mcp_server = MCPServerStdio(
     command="uvx",
-    args=["mcp-server-git"],
+    # mcp-server-git still uses the pre-2.0 Server API, so an unconstrained
+    # resolve picks up mcp 2.0 and fails with 'Server' object has no attribute
+    # 'list_tools' before the server ever starts.
+    args=["--with", "mcp<2", "mcp-server-git"],
 )
 
 EXPECTED_GIT_TOOL_NAME = "git_log"
