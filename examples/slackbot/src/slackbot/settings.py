@@ -61,7 +61,7 @@ class SlackbotSettings(BaseSettings):
     )
 
     logfire_token_secret_name: str = Field(
-        default="marvin-slackbot-logfire-token",
+        default="logfire-write-token",
         description="Name of the Prefect secret block containing the Logfire write token",
     )
     logfire_service_name: str = Field(
