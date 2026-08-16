@@ -112,7 +112,7 @@ def create_agent(
 ) -> Agent[UserContext, str]:
     logger = get_run_logger()
     logger.info("Creating new agent")
-    ai_model = model or settings.bot_model_name
+    ai_model = model or settings.bot_model
     slack_search_mcp = MCPServerStreamableHTTP(
         url="https://marvin-slack-thread-assets.fastmcp.app/mcp",
     )

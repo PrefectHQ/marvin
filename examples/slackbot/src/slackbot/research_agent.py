@@ -12,6 +12,8 @@ from claude_agent_sdk.types import AssistantMessage, TextBlock
 from prefect import task
 from prefect.cache_policies import INPUTS
 
+from slackbot.settings import bare_model_name, settings
+
 
 async def research_topic_with_code_access(question: str, version: str = "3.x") -> str:
     """
@@ -76,7 +78,7 @@ Do not use any Prefect syntax you have not verified by reading the actual source
     options = ClaudeAgentOptions(
         allowed_tools=["Read", "Grep", "Glob", "Bash"],
         cwd=str(Path.cwd()),
-        model="claude-haiku-4-5-20251001",
+        model=bare_model_name(settings.research_model),
         system_prompt=system_prompt,
     )
 

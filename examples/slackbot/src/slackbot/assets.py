@@ -9,6 +9,7 @@ from pydantic_ai.messages import ModelMessage, SystemPromptPart
 from raggy.documents import Document
 from raggy.vectorstores.tpuf import TurboPuffer
 
+import marvin
 from marvin import cast_async
 from slackbot.settings import settings
 from slackbot.slack import get_channel_name
@@ -141,6 +142,7 @@ async def summarize_thread(
         conversation_text,
         target=ThreadSummary,
         instructions="Summarize this slack thread - give a concise but descriptive title.",
+        agent=marvin.Agent(model=settings.utility_model),
     )
 
     slack_thread = await slack_thread_asset(user_context)

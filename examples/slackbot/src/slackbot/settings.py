@@ -7,6 +7,35 @@ from prefect.variables import Variable
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_PROVIDER_PREFIXES = {"claude": "anthropic", "gpt": "openai"}
+
+
+def _ensure_provider(model: str) -> str:
+    """Normalize a model name to pydantic-ai's `provider:model` format.
+
+    Prefect Variables may hold bare legacy names like "claude-sonnet-4-6".
+    """
+    if ":" in model:
+        return model
+    for prefix, provider in _PROVIDER_PREFIXES.items():
+        if model.startswith(prefix):
+            return f"{provider}:{model}"
+    return model
+
+
+def bare_model_name(model: str) -> str:
+    """Strip the provider prefix for consumers that want a bare model name
+    (Claude Agent SDK, explicit `AnthropicModel(...)` construction)."""
+    return model.split(":", 1)[-1]
+
+
+def _model_from_variables(names: list[str], default: str) -> str:
+    for name in names:
+        value = Variable.get(name, default=None, _sync=True)  # type: ignore
+        if value:
+            return _ensure_provider(value)
+    return default
+
 
 class SlackbotSettings(BaseSettings):
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
@@ -102,7 +131,7 @@ class SlackbotSettings(BaseSettings):
 
     @model_validator(mode="after")
     def _apply_post_validation_defaults(self) -> "SlackbotSettings":
-        if "gpt-5" in self.model_name:
+        if "gpt-5" in self.bot_model:
             self.temperature = 1.0
         if not os.getenv("TURBOPUFFER_API_KEY"):
             try:
@@ -114,28 +143,34 @@ class SlackbotSettings(BaseSettings):
             self.admin_slack_user_id = Variable.get("admin-slack-id", _sync=True)
         return self
 
+    # Model tiers. All values are full pydantic-ai `provider:model` strings,
+    # overridable at runtime via Prefect Variables (legacy variable names kept
+    # as fallbacks). The bot model is the product-facing voice and stays on the
+    # strong tier; everything structured and non-voice runs on the utility tier.
+
     @property
-    def model_name(self) -> str:
-        return Variable.get(
-            "marvin_ai_model",
-            default="claude-sonnet-4-6",
-            _sync=True,  # type: ignore
+    def bot_model(self) -> str:
+        """Main answering agent."""
+        return _model_from_variables(
+            ["marvin_bot_model", "marvin_ai_model"],
+            default="anthropic:claude-sonnet-4-6",
         )
 
     @property
-    def bot_model_name(self) -> str:
-        return Variable.get(
-            "marvin_bot_model",
-            default=self.model_name,
-            _sync=True,  # type: ignore
+    def utility_model(self) -> str:
+        """Cheap tier for structured non-voice work: memory/profile synthesis,
+        thread summarization."""
+        return _model_from_variables(
+            ["marvin_utility_model", "marvin_memory_synthesis_model"],
+            default="anthropic:claude-haiku-4-5-20251001",
         )
 
     @property
-    def memory_synthesis_model_name(self) -> str:
-        return Variable.get(
-            "marvin_memory_synthesis_model",
-            default="claude-haiku-4-5-20251001",
-            _sync=True,  # type: ignore
+    def research_model(self) -> str:
+        """Claude Agent SDK subagent that reads Prefect source."""
+        return _model_from_variables(
+            ["marvin_research_model"],
+            default="anthropic:claude-haiku-4-5-20251001",
         )
 
 

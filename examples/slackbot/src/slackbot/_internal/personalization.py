@@ -8,7 +8,7 @@ from pydantic_ai.providers import Provider
 from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
 from turbopuffer import NotFoundError
 
-from slackbot.settings import settings
+from slackbot.settings import bare_model_name, settings
 
 
 @dataclass(frozen=True)
@@ -82,7 +82,7 @@ def _get_personalization_synth_agent() -> Agent[None, PersonalizationSynthesis]:
     if _personalization_synth_agent is None:
         _personalization_synth_agent = Agent[None, PersonalizationSynthesis](
             model=AnthropicModel(
-                model_name=settings.memory_synthesis_model_name,
+                model_name=bare_model_name(settings.utility_model),
                 provider=Provider(
                     api_key=Secret.load(
                         settings.anthropic_key_secret_name,
