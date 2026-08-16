@@ -7,7 +7,9 @@ from prefect.variables import Variable
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_PROVIDER_PREFIXES = {"claude": "anthropic", "gpt": "openai"}
+# gpt-* must route to the responses api: openai reasoning models reject
+# function tools + reasoning on /v1/chat/completions
+_PROVIDER_PREFIXES = {"claude": "anthropic", "gpt": "openai-responses"}
 
 
 def _ensure_provider(model: str) -> str:
