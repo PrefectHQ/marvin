@@ -1,14 +1,18 @@
+import logging
 from dataclasses import dataclass
 
 from prefect.blocks.system import Secret
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models.anthropic import AnthropicModel
-from pydantic_ai.providers import Provider
-from raggy.vectorstores.tpuf import TurboPuffer, query_namespace
+from pydantic_ai.providers.anthropic import AnthropicProvider
+from raggy.vectorstores.tpuf import TurboPuffer
 from turbopuffer import NotFoundError
 
+from slackbot._internal.vectors import RELEVANCE_MAX_DISTANCE, row_distance
 from slackbot.settings import bare_model_name, settings
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -40,14 +44,7 @@ def load_personalization_snapshot(
             memory_warning="",
         )
 
-    relevant_facts = _split_facts(
-        query_namespace(
-            query_text=user_question,
-            namespace=namespace,
-            top_k=5,
-            max_tokens=500,
-        )
-    )
+    relevant_facts = _query_relevant_facts(namespace, user_question)
     base_memory_warning = _build_memory_warning(all_facts)
     synthesis = _synthesize_personalization(
         query=user_question,
@@ -83,7 +80,7 @@ def _get_personalization_synth_agent() -> Agent[None, PersonalizationSynthesis]:
         _personalization_synth_agent = Agent[None, PersonalizationSynthesis](
             model=AnthropicModel(
                 model_name=bare_model_name(settings.utility_model),
-                provider=Provider(
+                provider=AnthropicProvider(
                     api_key=Secret.load(
                         settings.anthropic_key_secret_name,
                         _sync=True,
@@ -135,10 +132,25 @@ def _synthesize_personalization(
 
     try:
         result = _get_personalization_synth_agent().run_sync("\n\n".join(payload))
-    except Exception:
+    except Exception as exc:
+        logger.warning(
+            "Personalization synthesis failed; falling back to raw facts: %s: %s",
+            type(exc).__name__,
+            exc,
+        )
         return PersonalizationSynthesis()
 
     return result.output or PersonalizationSynthesis()
+
+
+def _annotate_row(row: object) -> str:
+    text = str(getattr(row, "text", "")).strip()
+    if not text:
+        return ""
+    created_at = str(getattr(row, "created_at", "") or "")
+    if created_at:
+        return f"{text} (stored {created_at[:10]})"
+    return text
 
 
 def _load_all_facts(namespace: str) -> list[str]:
@@ -146,6 +158,7 @@ def _load_all_facts(namespace: str) -> list[str]:
         try:
             metadata = tpuf.ns.metadata()
         except NotFoundError:
+            logger.debug("No user-facts namespace %s; treating as new user", namespace)
             return []
 
         row_count = min(metadata.approx_row_count, 25)
@@ -156,18 +169,50 @@ def _load_all_facts(namespace: str) -> list[str]:
             tpuf.ns.query(
                 rank_by=("id", "asc"),
                 top_k=row_count,
-                include_attributes=["text"],
+                # True, not a list: naming attributes that predate a namespace's
+                # schema (e.g. created_at on legacy rows) is a 400
+                include_attributes=True,
             ).rows
             or []
         )
 
-    return _dedupe_facts(
-        [
-            str(getattr(row, "text", "")).strip()
-            for row in rows
-            if str(getattr(row, "text", "")).strip()
-        ]
+    facts = _dedupe_facts(
+        [annotated for annotated in (_annotate_row(row) for row in rows) if annotated]
     )
+    if rows and not facts:
+        logger.warning(
+            "User-facts namespace %s returned %d rows but no usable text",
+            namespace,
+            len(rows),
+        )
+    return facts
+
+
+def _query_relevant_facts(
+    namespace: str, user_question: str, top_k: int = 5
+) -> list[str]:
+    with TurboPuffer(namespace=namespace) as tpuf:
+        try:
+            rows = (
+                tpuf.query(
+                    user_question,
+                    top_k=top_k,
+                    include_attributes=True,  # type: ignore[arg-type]  # see _load_all_facts
+                ).rows
+                or []
+            )
+        except NotFoundError:
+            return []
+
+    relevant: list[str] = []
+    for row in rows:
+        distance = row_distance(row)
+        if distance is not None and distance > RELEVANCE_MAX_DISTANCE:
+            continue
+        annotated = _annotate_row(row)
+        if annotated:
+            relevant.append(annotated)
+    return _dedupe_facts(relevant)
 
 
 def _build_memory_warning(all_facts: list[str]) -> str:
@@ -232,10 +277,6 @@ def _fallback_relevant_facts(
             :4
         ]
     return relevant_facts[:4]
-
-
-def _split_facts(notes: str) -> list[str]:
-    return _dedupe_facts([line.strip() for line in notes.splitlines() if line.strip()])
 
 
 def _dedupe_facts(facts: list[str]) -> list[str]:

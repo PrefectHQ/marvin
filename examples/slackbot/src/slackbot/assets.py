@@ -1,6 +1,6 @@
 """Asset tracking for Slackbot - tracking data lineage."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from prefect.assets import Asset, AssetProperties, add_asset_metadata, materialize
 from pydantic import BaseModel
@@ -8,10 +8,12 @@ from pydantic_ai import RunContext
 from pydantic_ai.messages import ModelMessage, SystemPromptPart
 from raggy.documents import Document
 from raggy.vectorstores.tpuf import TurboPuffer
+from turbopuffer import NotFoundError
 
 import marvin
 from marvin import cast_async
 from slackbot.settings import settings
+from slackbot._internal.vectors import WRITE_DEDUP_MAX_DISTANCE, row_distance
 from slackbot.slack import get_channel_name
 from slackbot.types import UserContext
 
@@ -92,10 +94,35 @@ def user_facts_asset(user_context: UserContext) -> Asset:
 async def store_user_facts(ctx: RunContext[UserContext], facts: list[str]) -> str:
     """Store facts extracted from a Slack thread using context for namespacing."""
 
+    new_facts: list[str] = []
+    duplicates: list[str] = []
     with TurboPuffer(
         namespace=f"{settings.user_facts_namespace_prefix}{ctx.deps['user_id']}"
     ) as tpuf:
-        tpuf.upsert(documents=[Document(text=fact) for fact in facts])
+        for fact in facts:
+            normalized = " ".join(fact.split())
+            if not normalized or normalized in new_facts:
+                continue
+            try:
+                rows = tpuf.query(normalized, top_k=1).rows or []
+            except NotFoundError:
+                rows = []
+            nearest = row_distance(rows[0]) if rows else None
+            if nearest is not None and nearest <= WRITE_DEDUP_MAX_DISTANCE:
+                duplicates.append(normalized)
+                continue
+            new_facts.append(normalized)
+        if new_facts:
+            stored_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            documents = [Document(text=fact) for fact in new_facts]
+            tpuf.upsert(
+                documents=documents,
+                attributes={
+                    "created_at": [stored_at] * len(documents),
+                    "thread_ts": [ctx.deps["thread_ts"]] * len(documents),
+                    "channel_id": [ctx.deps["channel_id"]] * len(documents),
+                },
+            )
 
     user_facts = user_facts_asset(ctx.deps)
 
@@ -108,17 +135,24 @@ async def store_user_facts(ctx: RunContext[UserContext], facts: list[str]) -> st
             user_facts,
             {
                 "user_id": ctx.deps["user_id"],
-                "fact_count": len(facts),
+                "fact_count": len(new_facts),
+                "duplicate_count": len(duplicates),
                 "timestamp": datetime.now().isoformat(),
                 "namespace": f"{settings.user_facts_namespace_prefix}{ctx.deps['user_id']}",
                 "thread_ts": ctx.deps["thread_ts"],
                 "workspace_name": ctx.deps["workspace_name"],
                 "channel_id": ctx.deps["channel_id"],
                 "bot_id": ctx.deps["bot_id"],
-                "facts": facts,
+                "facts": new_facts,
             },
         )
-        return f"Stored {len(facts)} facts about user {ctx.deps['user_id']} from thread {ctx.deps['thread_ts']}"
+        message = (
+            f"Stored {len(new_facts)} facts about user {ctx.deps['user_id']} "
+            f"from thread {ctx.deps['thread_ts']}"
+        )
+        if duplicates:
+            message += f" ({len(duplicates)} near-duplicates skipped)"
+        return message
 
     return await materialize_user_facts()
 

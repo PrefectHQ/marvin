@@ -14,11 +14,13 @@ from pydantic_ai.mcp import MCPServerStreamableHTTP
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.settings import ModelSettings
 from raggy.vectorstores.tpuf import TurboPuffer
+from turbopuffer import NotFoundError
 
 from slackbot._internal.personalization import load_personalization_snapshot
 from slackbot._internal.prompting import build_system_prompt
 from slackbot._internal.templates import DEFAULT_SYSTEM_PROMPT
 from slackbot._internal.tolerant_toolset import TolerantToolset
+from slackbot._internal.vectors import select_rows_to_delete
 from slackbot.assets import store_user_facts
 from slackbot.github import (
     GitHubAuthError,
@@ -152,26 +154,41 @@ def create_agent(
         ctx: RunContext[UserContext], facts: list[str]
     ) -> str:
         """Store facts about the user that are useful for answering their questions."""
-        print(f"Storing {len(facts)} facts about user {ctx.deps['user_id']}")
+        user_id = ctx.deps["user_id"]
+        if not user_id or user_id == "unknown" or user_id == ctx.deps["bot_id"]:
+            logger.warning(
+                "Refusing to store facts: no reliable human user (user_id=%s)",
+                user_id,
+            )
+            return "Not storing facts: could not attribute them to a human user."
+        logger.info("Storing %d facts about user %s", len(facts), user_id)
         # This creates an asset dependency: USER_FACTS depends on SLACK_MESSAGES
         message = await store_user_facts(ctx, facts)
-        print(message)
+        logger.info(message)
         return message
 
     @agent.tool
     def delete_facts_about_user(ctx: RunContext[UserContext], related_to: str) -> str:
         """Delete facts about the user related to a specific topic."""
-        print(f"forgetting stuff about {ctx.deps['user_id']} related to {related_to}")
         user_id = ctx.deps["user_id"]
+        logger.info("Deleting facts about %s related to %r", user_id, related_to)
         with TurboPuffer(
             namespace=f"{settings.user_facts_namespace_prefix}{user_id}"
         ) as tpuf:
-            vector_result = tpuf.query(related_to)
-            ids = [str(v.id) for v in vector_result.rows or []]
-            tpuf.delete(ids)
-            message = f"Deleted {len(ids)} facts about user {user_id}"
-            print(message)
-            return message
+            try:
+                rows = tpuf.query(related_to).rows or []
+            except NotFoundError:
+                return f"No facts are stored for user {user_id}."
+            to_delete = select_rows_to_delete(rows)
+            if not to_delete:
+                return f"No stored facts matched {related_to!r}; nothing was deleted."
+            tpuf.delete([row_id for row_id, _ in to_delete])
+        deleted_lines = "\n".join(f"- {text}" for _, text in to_delete)
+        logger.info("Deleted %d facts for user %s", len(to_delete), user_id)
+        return (
+            f"Deleted {len(to_delete)} facts related to {related_to!r}:\n"
+            f"{deleted_lines}"
+        )
 
     @agent.tool
     async def create_discussion_and_notify(
