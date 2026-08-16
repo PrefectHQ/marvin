@@ -16,7 +16,10 @@ from pydantic_ai.settings import ModelSettings
 from raggy.vectorstores.tpuf import TurboPuffer
 from turbopuffer import NotFoundError
 
-from slackbot._internal.personalization import load_personalization_snapshot
+from slackbot._internal.personalization import (
+    PersonalizationSnapshot,
+    load_personalization_snapshot,
+)
 from slackbot._internal.prompting import build_system_prompt
 from slackbot._internal.templates import DEFAULT_SYSTEM_PROMPT
 from slackbot._internal.tolerant_toolset import TolerantToolset
@@ -94,8 +97,15 @@ def build_user_context(
     channel_id: str,
     bot_id: str,
 ) -> UserContext:
-    namespace = f"{settings.user_facts_namespace_prefix}{user_id}"
-    personalization = load_personalization_snapshot(namespace, user_question)
+    if user_id == "unknown":
+        # no reliable human author this turn — don't read (or ever seed) a
+        # shared user-facts-unknown namespace
+        personalization = PersonalizationSnapshot(
+            seen_before=False, profile_summary="", relevant_notes="", memory_warning=""
+        )
+    else:
+        namespace = f"{settings.user_facts_namespace_prefix}{user_id}"
+        personalization = load_personalization_snapshot(namespace, user_question)
     return UserContext(
         user_id=user_id,
         user_notes=personalization.relevant_notes,

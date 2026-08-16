@@ -137,7 +137,7 @@ async def store_user_facts(ctx: RunContext[UserContext], facts: list[str]) -> st
                 "user_id": ctx.deps["user_id"],
                 "fact_count": len(new_facts),
                 "duplicate_count": len(duplicates),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "namespace": f"{settings.user_facts_namespace_prefix}{ctx.deps['user_id']}",
                 "thread_ts": ctx.deps["thread_ts"],
                 "workspace_name": ctx.deps["workspace_name"],
@@ -200,7 +200,7 @@ async def summarize_thread(
                 "bot_id": user_context["bot_id"],
                 "key_topics": thread_summary.key_topics,
                 "participant_count": thread_summary.participant_count,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         )
         return thread_summary
