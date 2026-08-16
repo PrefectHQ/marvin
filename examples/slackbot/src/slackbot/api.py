@@ -102,9 +102,9 @@ async def run_agent(
         counts_token = _tool_usage_counts.set(defaultdict(int))
         logger = get_run_logger()
         logger.info(
-            "Agent config: response_model=%s memory_synthesis_model=%s temperature=%s max_tool_calls=%s seen_before=%s",
-            settings.bot_model_name,
-            settings.memory_synthesis_model_name,
+            "Agent config: bot_model=%s utility_model=%s temperature=%s max_tool_calls=%s seen_before=%s",
+            settings.bot_model,
+            settings.utility_model,
             settings.temperature,
             settings.max_tool_calls_per_turn,
             user_context["seen_before"],
@@ -135,14 +135,16 @@ async def run_agent(
 
 def _extract_message_context(
     event: Any,
-) -> tuple[bool, str | None, str | None, str, list[SlackFile]]:
-    """Return (is_edit, message_ts, thread_ts, text, files) for Slack events.
+) -> tuple[bool, str | None, str | None, str, list[SlackFile], str | None]:
+    """Return (is_edit, message_ts, thread_ts, text, files, author) for Slack events.
 
-    - For `message_changed` events, Slack nests the edited message under `event.message`.
+    - For `message_changed` events, Slack nests the edited message under `event.message`,
+      and the author lives on the nested message — the outer `event.user` is unreliable.
     - For normal app_mention events, fields are at the top level.
     """
     is_edit = getattr(event, "subtype", None) == "message_changed"
     msg = (getattr(event, "message", None) or {}) if is_edit else {}
+    author = msg.get("user") if is_edit else getattr(event, "user", None)
 
     # Prefer the message ts for idempotency; fall back to event_ts if needed
     message_ts = (
@@ -164,7 +166,7 @@ def _extract_message_context(
     else:
         files = getattr(event, "files", None) or []
 
-    return is_edit, message_ts, thread_ts, text, files
+    return is_edit, message_ts, thread_ts, text, files, author
 
 
 @flow(name="Handle Slack Message", retries=1)
@@ -179,8 +181,8 @@ async def handle_message(
 
     USER_MESSAGE_MAX_TOKENS = settings.user_message_max_tokens
     # Determine message context accommodating edit events
-    is_edit, message_ts, thread_ts, user_message, files = _extract_message_context(
-        event
+    is_edit, message_ts, thread_ts, user_message, files, author = (
+        _extract_message_context(event)
     )
     assert thread_ts is not None, "No thread_ts found"
     assert message_ts is not None, "No message_ts found"
@@ -271,8 +273,16 @@ async def handle_message(
             if bot_auth:
                 bot_user_id = bot_auth.user_id
 
+        if not author or author == bot_user_id:
+            logger.warning(
+                "Could not attribute message %s to a human user (author=%s); "
+                "personalization will be skipped for this turn",
+                message_ts,
+                author,
+            )
+
         user_context = build_user_context(
-            user_id=event.user,
+            user_id=(author if author and author != bot_user_id else "unknown"),
             user_question=cleaned_message,
             thread_ts=thread_ts,
             workspace_name=await get_workspace_domain(),

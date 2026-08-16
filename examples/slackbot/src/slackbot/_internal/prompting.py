@@ -1,7 +1,5 @@
 from slackbot.types import UserContext
 
-NO_NOTES_PLACEHOLDER = "<No notes found>"
-
 
 def build_system_prompt(base_prompt: str, user_context: UserContext) -> str:
     sections = [base_prompt]
@@ -18,10 +16,7 @@ def build_system_prompt(base_prompt: str, user_context: UserContext) -> str:
 
 
 def _normalize_user_notes(user_notes: str) -> str:
-    normalized = user_notes.strip()
-    if not normalized or normalized == NO_NOTES_PLACEHOLDER:
-        return ""
-    return normalized
+    return user_notes.strip()
 
 
 def _build_personalization_section(user_context: UserContext) -> str:
