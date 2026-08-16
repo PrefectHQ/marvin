@@ -9,6 +9,7 @@ from typing import AsyncIterator
 import httpx
 from prefect import get_run_logger, task
 from prefect.logging.loggers import get_logger
+from prefect.variables import Variable
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 from pydantic_ai.models import KnownModelName, Model
@@ -119,6 +120,20 @@ def build_user_context(
     )
 
 
+def _base_system_prompt() -> str:
+    """The base system prompt, hot-swappable via the `marvin_system_prompt`
+    Prefect Variable so prompt changes don't require a redeploy."""
+    try:
+        override = Variable.get("marvin_system_prompt", default=None, _sync=True)  # type: ignore
+    except Exception as exc:
+        logger.warning("Could not read marvin_system_prompt variable: %s", exc)
+        return DEFAULT_SYSTEM_PROMPT
+    if override:
+        logger.info("Using system prompt from marvin_system_prompt variable")
+        return str(override)
+    return DEFAULT_SYSTEM_PROMPT
+
+
 def create_agent(
     model: KnownModelName | Model | None = None,
 ) -> Agent[UserContext, str]:
@@ -153,9 +168,12 @@ def create_agent(
         deps_type=UserContext,
     )
 
+    # read once per agent (i.e. per message), not per model request
+    base_prompt = _base_system_prompt()
+
     @agent.system_prompt
     def personality_and_maybe_notes(ctx: RunContext[UserContext]) -> str:
-        system_prompt = build_system_prompt(DEFAULT_SYSTEM_PROMPT, ctx.deps)
+        system_prompt = build_system_prompt(base_prompt, ctx.deps)
         logger.debug("Built system prompt with contextual sections")
         return system_prompt
 
