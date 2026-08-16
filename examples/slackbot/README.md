@@ -39,6 +39,7 @@ Create a `.env` file in your project directory:
 # - marvin_bot_model              # Main answering agent (default: anthropic:claude-sonnet-5; falls back to marvin_ai_model)
 # - marvin_utility_model          # Structured non-voice work: memory synthesis, thread summarization (default: anthropic:claude-haiku-4-5; falls back to marvin_memory_synthesis_model)
 # - marvin_research_model         # Claude Agent SDK research subagent (default: anthropic:claude-haiku-4-5)
+# - marvin_system_prompt          # Optional override of the base system prompt (default: DEFAULT_SYSTEM_PROMPT in _internal/templates.py); read per message, so edits apply without a redeploy
 # - admin-slack-id                # Slack user ID for admin notifications
 
 # Optional Settings (with MARVIN_SLACKBOT_ prefix)
