@@ -20,15 +20,21 @@ def test_bare_model_name():
 
 
 def test_model_from_variables_prefers_first_set_variable():
-    variables = {"marvin_utility_model": None, "marvin_memory_synthesis_model": "claude-haiku-4-5-20251001"}
+    variables = {
+        "marvin_utility_model": None,
+        "marvin_memory_synthesis_model": "claude-haiku-4-5-20251001",
+    }
     with patch(
         "slackbot.settings.Variable.get",
         side_effect=lambda name, default=None, _sync=True: variables.get(name, default),
     ):
-        assert _model_from_variables(
-            ["marvin_utility_model", "marvin_memory_synthesis_model"],
-            default="anthropic:claude-haiku-4-5-20251001",
-        ) == "anthropic:claude-haiku-4-5-20251001"
+        assert (
+            _model_from_variables(
+                ["marvin_utility_model", "marvin_memory_synthesis_model"],
+                default="anthropic:claude-haiku-4-5-20251001",
+            )
+            == "anthropic:claude-haiku-4-5-20251001"
+        )
 
 
 def test_model_from_variables_falls_back_to_default():
@@ -36,6 +42,9 @@ def test_model_from_variables_falls_back_to_default():
         "slackbot.settings.Variable.get",
         side_effect=lambda name, default=None, _sync=True: default,
     ):
-        assert _model_from_variables(
-            ["marvin_research_model"], default="anthropic:claude-haiku-4-5-20251001"
-        ) == "anthropic:claude-haiku-4-5-20251001"
+        assert (
+            _model_from_variables(
+                ["marvin_research_model"], default="anthropic:claude-haiku-4-5-20251001"
+            )
+            == "anthropic:claude-haiku-4-5-20251001"
+        )

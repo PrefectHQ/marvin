@@ -1,5 +1,6 @@
 from slackbot.types import UserContext
 
+
 def build_system_prompt(base_prompt: str, user_context: UserContext) -> str:
     sections = [base_prompt]
 
