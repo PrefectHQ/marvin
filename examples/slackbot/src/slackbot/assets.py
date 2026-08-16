@@ -12,8 +12,8 @@ from turbopuffer import NotFoundError
 
 import marvin
 from marvin import cast_async
-from slackbot.settings import settings
 from slackbot._internal.vectors import WRITE_DEDUP_MAX_DISTANCE, row_distance
+from slackbot.settings import settings
 from slackbot.slack import get_channel_name
 from slackbot.types import UserContext
 
