@@ -191,6 +191,9 @@ def _load_all_facts(namespace: str) -> list[str]:
 def _query_relevant_facts(
     namespace: str, user_question: str, top_k: int = 5
 ) -> list[str]:
+    if not user_question.strip():
+        # image-only or mention-only messages have no text to embed
+        return []
     with TurboPuffer(namespace=namespace) as tpuf:
         try:
             rows = (

@@ -94,3 +94,32 @@ class TestAuthorExtraction:
         )
         *_, author = _extract_message_context(event)
         assert author is None
+
+
+class TestPersonalizationResilience:
+    def test_empty_question_skips_vector_query(self):
+        from slackbot._internal.personalization import _query_relevant_facts
+
+        # must return without touching the vector store (no client, no network)
+        assert _query_relevant_facts("user-facts-U1", "") == []
+        assert _query_relevant_facts("user-facts-U1", "   ") == []
+
+    def test_build_user_context_survives_personalization_failure(self):
+        from unittest.mock import patch
+
+        from slackbot.core import build_user_context
+
+        with patch(
+            "slackbot.core.load_personalization_snapshot",
+            side_effect=RuntimeError("store down"),
+        ):
+            ctx = build_user_context.fn(
+                user_id="U123",
+                user_question="",
+                thread_ts="1.0",
+                workspace_name="w",
+                channel_id="C1",
+                bot_id="B1",
+            )
+        assert ctx["seen_before"] is False
+        assert ctx["user_profile"] == ""
