@@ -12,14 +12,19 @@ from prefect.cache_policies import NONE
 from prefect.client.schemas.objects import FlowRun
 from prefect.logging.loggers import get_logger
 from prefect.states import Completed
-from pydantic_ai import BinaryContent
+from pydantic_ai import Agent, BinaryContent
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import ModelMessage
 
 from slackbot._internal.constants import WORKSPACE_TO_CHANNEL_ID
 from slackbot._internal.message_store import MessageStore
 from slackbot._internal.observability import configure_observability
-from slackbot._internal.templates import CHANNEL_REDIRECT_MESSAGE, WELCOME_MESSAGE
+from slackbot._internal.templates import (
+    CHANNEL_REDIRECT_MESSAGE,
+    PROGRESS_BLURB_PROMPT,
+    PROGRESS_PLACEHOLDER,
+    WELCOME_MESSAGE,
+)
 from slackbot._internal.thread_status import (
     get_status as get_thread_status,
 )
@@ -38,6 +43,7 @@ from slackbot.core import (
 )
 from slackbot.settings import settings
 from slackbot.slack import (
+    ProgressMessage,
     SlackFile,
     SlackPayload,
     create_progress_message,
@@ -73,6 +79,32 @@ def check_if_designated_channel(channel_id: str, team_id: str) -> bool:
     return channel_id == designated_channel
 
 
+def _question_text(user_prompt: str | Sequence[str | BinaryContent]) -> str:
+    if isinstance(user_prompt, str):
+        return user_prompt
+    return " ".join(part for part in user_prompt if isinstance(part, str))
+
+
+async def _personality_blurb(progress: "ProgressMessage", question: str) -> None:
+    """Rewrite the progress header in Marvin's voice once the cheap model has
+    read the question. Best-effort: any failure keeps the static line."""
+    if not question.strip():
+        return
+    try:
+        agent = Agent(model=settings.utility_model, system_prompt=PROGRESS_BLURB_PROMPT)
+        result = await asyncio.wait_for(agent.run(question[:500]), timeout=10)
+        blurb = result.output.strip().strip('"')
+        if not blurb:
+            return
+        progress.header = f"🔄 {blurb}"
+        # tool updates re-render around the header; only push an immediate
+        # edit if no tool has rendered the tally yet
+        if not _tool_usage_counts.get():
+            await progress.update(progress.header)
+    except Exception:
+        logger.debug("personality blurb failed; keeping static line", exc_info=True)
+
+
 @task(name="run agent loop")
 async def run_agent(
     user_prompt: str | Sequence[str | BinaryContent],
@@ -93,13 +125,17 @@ async def run_agent(
     progress = await create_progress_message(
         channel_id=channel_id,
         thread_ts=thread_ts,
-        initial_text="🔄 Thinking... this may take a while",
+        initial_text=PROGRESS_PLACEHOLDER,
     )
 
     try:
         token = _progress_message.set(progress)
         # Initialize tool usage counts for this agent run
         counts_token = _tool_usage_counts.set(defaultdict(int))
+        blurb_task = asyncio.create_task(
+            _personality_blurb(progress, _question_text(user_prompt))
+        )
+        blurb_task.add_done_callback(lambda _: None)
         logger = get_run_logger()
         logger.info(
             "Agent config: bot_model=%s utility_model=%s research_model=%s temperature=%s max_tool_calls=%s seen_before=%s",
