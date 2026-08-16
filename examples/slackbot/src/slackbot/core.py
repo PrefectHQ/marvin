@@ -98,15 +98,26 @@ def build_user_context(
     channel_id: str,
     bot_id: str,
 ) -> UserContext:
+    empty = PersonalizationSnapshot(
+        seen_before=False, profile_summary="", relevant_notes="", memory_warning=""
+    )
     if user_id == "unknown":
         # no reliable human author this turn — don't read (or ever seed) a
         # shared user-facts-unknown namespace
-        personalization = PersonalizationSnapshot(
-            seen_before=False, profile_summary="", relevant_notes="", memory_warning=""
-        )
+        personalization = empty
     else:
         namespace = f"{settings.user_facts_namespace_prefix}{user_id}"
-        personalization = load_personalization_snapshot(namespace, user_question)
+        try:
+            personalization = load_personalization_snapshot(namespace, user_question)
+        except Exception as exc:
+            # a dead memory store means a thinner prompt, never a dead reply
+            logger.warning(
+                "Personalization failed for %s; continuing without it: %s: %s",
+                user_id,
+                type(exc).__name__,
+                exc,
+            )
+            personalization = empty
     return UserContext(
         user_id=user_id,
         user_notes=personalization.relevant_notes,
