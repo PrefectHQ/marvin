@@ -25,21 +25,23 @@ def _registered_tool_names() -> set[str]:
         entry = line.split("#")[0].strip().rstrip(",")
         if entry:
             names.add(entry)
-    names.update(
-        re.findall(r"@agent\.tool\n    (?:async )?def (\w+)", CORE_SOURCE)
-    )
+    names.update(re.findall(r"@agent\.tool\s+(?:async )?def (\w+)", CORE_SOURCE))
     return names
 
 
 def test_prompt_only_references_real_tools():
     registered = _registered_tool_names()
     assert registered, "no tools found on the agent"
-    referenced = set(re.findall(r"`(\w+)`", DEFAULT_SYSTEM_PROMPT))
+    # scan every word, not just backticked ones — a plain-text mention of a
+    # nonexistent tool is just as misleading to the model
+    referenced = set(re.findall(r"\w+", DEFAULT_SYSTEM_PROMPT))
     tool_like = {
         name
         for name in referenced
-        if name in registered
-        or re.fullmatch(r"(?:store|delete|search|read|check|create|display|explore|research|verify|get)_\w+", name)
+        if re.fullmatch(
+            r"(?:store|delete|search|read|check|create|display|explore|research|verify|get)_\w+",
+            name,
+        )
     }
     dangling = tool_like - registered
     assert not dangling, (
