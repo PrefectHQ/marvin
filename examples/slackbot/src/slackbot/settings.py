@@ -153,7 +153,7 @@ class SlackbotSettings(BaseSettings):
         """Main answering agent."""
         return _model_from_variables(
             ["marvin_bot_model", "marvin_ai_model"],
-            default="anthropic:claude-sonnet-4-6",
+            default="anthropic:claude-sonnet-5",
         )
 
     @property
@@ -162,7 +162,7 @@ class SlackbotSettings(BaseSettings):
         thread summarization."""
         return _model_from_variables(
             ["marvin_utility_model", "marvin_memory_synthesis_model"],
-            default="anthropic:claude-haiku-4-5-20251001",
+            default="anthropic:claude-haiku-4-5",
         )
 
     @property
@@ -170,7 +170,7 @@ class SlackbotSettings(BaseSettings):
         """Claude Agent SDK subagent that reads Prefect source."""
         return _model_from_variables(
             ["marvin_research_model"],
-            default="anthropic:claude-haiku-4-5-20251001",
+            default="anthropic:claude-haiku-4-5",
         )
 
 

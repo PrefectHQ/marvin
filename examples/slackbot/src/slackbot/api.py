@@ -102,9 +102,10 @@ async def run_agent(
         counts_token = _tool_usage_counts.set(defaultdict(int))
         logger = get_run_logger()
         logger.info(
-            "Agent config: bot_model=%s utility_model=%s temperature=%s max_tool_calls=%s seen_before=%s",
+            "Agent config: bot_model=%s utility_model=%s research_model=%s temperature=%s max_tool_calls=%s seen_before=%s",
             settings.bot_model,
             settings.utility_model,
+            settings.research_model,
             settings.temperature,
             settings.max_tool_calls_per_turn,
             user_context["seen_before"],

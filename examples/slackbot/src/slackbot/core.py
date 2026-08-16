@@ -163,7 +163,17 @@ def create_agent(
     async def store_facts_about_user(
         ctx: RunContext[UserContext], facts: list[str]
     ) -> str:
-        """Store facts about the user that are useful for answering their questions."""
+        """Store durable facts about the user for future conversations.
+
+        Call this when the user shares context that will still be true next
+        week — their environment (versions, cloud, infrastructure), goals, or
+        preferences. Don't store thread-scoped debugging state ("flow X is
+        currently stuck"); that belongs to this conversation only.
+
+        Facts are deduplicated against near-identical existing facts at write
+        time and timestamped, so restating known context is cheap but adds
+        nothing.
+        """
         user_id = ctx.deps["user_id"]
         if not user_id or user_id == "unknown" or user_id == ctx.deps["bot_id"]:
             logger.warning(
@@ -179,7 +189,13 @@ def create_agent(
 
     @agent.tool
     def delete_facts_about_user(ctx: RunContext[UserContext], related_to: str) -> str:
-        """Delete facts about the user related to a specific topic."""
+        """Delete stored facts about the user related to a specific topic.
+
+        Only facts semantically close to `related_to` are deleted; the
+        response lists exactly what was removed so you can report it
+        honestly. Use when the user asks you to forget something or when
+        stored facts are clearly obsolete.
+        """
         user_id = ctx.deps["user_id"]
         logger.info("Deleting facts about %s related to %r", user_id, related_to)
         with TurboPuffer(
@@ -210,10 +226,15 @@ def create_agent(
         """
         Create a GitHub discussion from a Slack thread and notify admin.
 
-        Use this SPARINGLY and only when:
-        1. The thread contains valuable insights or solutions not found elsewhere
-        2. You've searched discussions and found no existing similar topic
-        3. The conversation would benefit the broader Prefect community
+        Use this sparingly, and only when all of these hold:
+        1. The thread contains valuable insights, solutions, or patterns not
+           documented elsewhere
+        2. You've searched both issues and discussions and found no existing
+           coverage of the topic
+        3. The conversation would clearly benefit the broader Prefect community
+        4. The thread has reached a meaningful conclusion or solution
+
+        Never create discussions for simple Q&A that's already well-documented.
 
         Args:
             title: Clear, descriptive title for the discussion
