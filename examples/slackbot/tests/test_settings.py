@@ -5,7 +5,7 @@ from slackbot.settings import _ensure_provider, _model_from_variables, bare_mode
 
 def test_ensure_provider_normalizes_bare_names():
     assert _ensure_provider("claude-sonnet-4-6") == "anthropic:claude-sonnet-4-6"
-    assert _ensure_provider("gpt-5") == "openai:gpt-5"
+    assert _ensure_provider("gpt-5") == "openai-responses:gpt-5"
     assert _ensure_provider("anthropic:claude-sonnet-4-6") == (
         "anthropic:claude-sonnet-4-6"
     )
@@ -48,3 +48,12 @@ def test_model_from_variables_falls_back_to_default():
             )
             == "anthropic:claude-haiku-4-5-20251001"
         )
+
+
+def test_bare_gpt_names_route_to_responses_api():
+    from slackbot.settings import _ensure_provider
+
+    # openai reasoning models 400 on chat/completions with function tools;
+    # a bare name in a prefect variable must land on the responses api
+    assert _ensure_provider("gpt-5.6-sol") == "openai-responses:gpt-5.6-sol"
+    assert _ensure_provider("openai:gpt-4o") == "openai:gpt-4o"  # explicit wins
