@@ -1063,6 +1063,17 @@ class TestEdgeCases:
         result = validator.validate_python(["test", 123, True])
         assert result == ["test", 123, True]
 
+    def test_null_only_type_list_returns_none_type(self):
+        # {"type": ["null"]} previously raised IndexError after filtering out NoneType
+        result = jsonschema_to_type({"type": ["null"]})
+        assert result is type(None)
+
+    def test_array_with_empty_items_list_does_not_crash(self):
+        # {"type": "array", "items": []} previously raised TypeError in Union
+        result = jsonschema_to_type({"type": "array", "items": []})
+        validator = TypeAdapter(result)
+        assert validator.validate_python([]) == []
+
 
 class TestNameHandling:
     """Test suite for schema name handling."""
