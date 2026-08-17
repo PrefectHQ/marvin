@@ -1,5 +1,5 @@
 import enum
-from typing import Literal
+from typing import List, Literal
 
 import pytest
 
@@ -106,6 +106,12 @@ class TestClassification:
             labels.validate(0)  # Wrong type
         with pytest.raises(ValueError):
             labels.validate([3])  # Out of range
+
+    def test_is_classifier_bare_list_no_indexerror(self):
+        """Bare List (no type parameter) must return False, not raise IndexError."""
+        assert not is_classifier(List)
+        with pytest.raises(ValueError, match="unparameterised"):
+            as_classifier(List)
 
     def test_labels_indexed_labels(self):
         """Test getting indexed labels."""
