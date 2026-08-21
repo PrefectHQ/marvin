@@ -82,7 +82,7 @@ async def cast_async(
     if target is str and instructions is None:
         raise ValueError("Instructions are required when casting to string values.")
 
-    task_context = context or {}
+    task_context = dict(context) if context else {}
     task_context["Data to transform"] = data
     prompt = prompt or DEFAULT_PROMPT
     if instructions:

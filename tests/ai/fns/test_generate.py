@@ -1,8 +1,11 @@
+import pydantic_ai.models
 import pytest
 from dirty_equals import IsPartialDict
 from pydantic import BaseModel, Field, TypeAdapter, ValidationError
+from pydantic_ai.models.test import TestModel
 
 import marvin
+from marvin.defaults import override_defaults
 from marvin.utilities.jsonschema import jsonschema_to_type
 from marvin.utilities.testing import assert_llm_equal
 
@@ -167,3 +170,21 @@ class TestGenerateSchema:
             "minItems": 4,
             "maxItems": 6,
         }
+
+
+class TestContextIsolation:
+    def test_generate_does_not_mutate_caller_context(self):
+        """A caller-supplied `context` dict must not be mutated in place.
+
+        `generate_async` used to do `task_context = context or {}` and then
+        write into `task_context` directly, which aliases (rather than
+        copies) any non-empty caller-supplied dict.
+        """
+        with pydantic_ai.models.override_allow_model_requests(False):
+            with override_defaults(model=TestModel()):
+                my_context = {"user_supplied_key": "should not change"}
+                before = dict(my_context)
+
+                marvin.generate(str, n=1, instructions="one word", context=my_context)
+
+                assert my_context == before
