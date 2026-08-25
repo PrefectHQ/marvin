@@ -77,8 +77,9 @@ Marvin supports any model provider that is compatible with Pydantic AI. Common p
 - Anthropic
 - Azure OpenAI
 - Google
+- MiniMax
 
-Each provider may require its own API key and configuration. Refer to the provider's [documentation](https://ai.pydantic.dev/models/) for specific setup instructions. 
+Each provider may require its own API key and configuration. Refer to the provider's [documentation](https://ai.pydantic.dev/models/) for specific setup instructions.
 
 ### Passing Configuration to Models
 For more control, you may pass `pydantic-ai` models when creating an agent.
@@ -119,3 +120,35 @@ writer = marvin.Agent(
 result = marvin.run("how to use pydantic? write haiku to docs.md", agents=[writer])
 print(result)
 ```
+
+### Using MiniMax Models
+
+[MiniMax](https://www.minimax.io) provides OpenAI-compatible models with 204K context windows. Available models include `MiniMax-M2.7` (peak performance) and `MiniMax-M2.7-highspeed` (faster, more agile).
+
+```bash
+export MINIMAX_API_KEY="your-api-key"
+```
+
+```python
+import os
+
+from pydantic_ai.models.openai import OpenAIModel
+from pydantic_ai.providers.openai import OpenAIProvider
+import marvin
+
+provider = OpenAIProvider(
+    api_key=os.environ["MINIMAX_API_KEY"],
+    base_url="https://api.minimax.io/v1",
+)
+
+agent = marvin.Agent(
+    model=OpenAIModel("MiniMax-M2.7", provider=provider),
+    name="MiniMax Agent",
+    instructions="You are a helpful assistant",
+)
+
+result = marvin.run("Write a haiku about AI", agents=[agent])
+print(result)
+```
+
+See the `examples/provider_specific/minimax/` directory for more examples including structured output and tool usage.
