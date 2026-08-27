@@ -3035,7 +3035,7 @@ requires-dist = [
     { name = "prefect", marker = "extra == 'prefect'", specifier = ">=3.6.11" },
     { name = "pyaudio", marker = "extra == 'audio'", specifier = ">=0.2.14" },
     { name = "pydantic", extras = ["email"], specifier = ">=2.10.6" },
-    { name = "pydantic-ai", specifier = ">=1.32.0" },
+    { name = "pydantic-ai", specifier = ">=1.32.0,<2" },
     { name = "pydantic-settings", specifier = ">=2.6.1" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "slackbot", marker = "extra == 'slackbot'", editable = "examples/slackbot" },
