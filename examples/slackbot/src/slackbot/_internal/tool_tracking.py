@@ -58,7 +58,7 @@ class ToolUsageTracker:
             counts = self.get_counts()
 
             lines = [
-                "🔄 Researching your answer... this may take a while",
+                progress.header,
                 "",
                 "",
                 f"🔧 Using tool: `{tool_name}`",

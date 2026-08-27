@@ -86,7 +86,9 @@ class TestSlackFileParsing:
                 ]
             )["event"]
         )
-        is_edit, message_ts, thread_ts, text, files = _extract_message_context(event)
+        is_edit, message_ts, thread_ts, text, files, author = _extract_message_context(
+            event
+        )
         assert not is_edit
         assert len(files) == 1
         assert files[0].id == "F1"
@@ -113,7 +115,9 @@ class TestSlackFileParsing:
                 },
             }
         )
-        is_edit, message_ts, thread_ts, text, files = _extract_message_context(event)
+        is_edit, message_ts, thread_ts, text, files, author = _extract_message_context(
+            event
+        )
         assert is_edit
         assert len(files) == 1
         assert files[0].id == "F2"

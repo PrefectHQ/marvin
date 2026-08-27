@@ -405,9 +405,14 @@ class ProgressMessage:
         self.channel_id = channel_id
         self.thread_ts = thread_ts
         self.message_ts: str | None = None
+        # first line of the rendered message; the tool tracker re-renders the
+        # message around this, so replacing it (e.g. with a personality blurb)
+        # survives subsequent tool-tally updates
+        self.header: str = "🔄 Working..."
 
     async def start(self, initial_text: str = "🔄 Working...") -> "ProgressMessage":
         """Create the initial progress message and return its timestamp."""
+        self.header = initial_text
         response = await post_slack_message(
             message=initial_text,
             channel_id=self.channel_id,

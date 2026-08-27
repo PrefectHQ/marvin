@@ -5,7 +5,6 @@ import httpx
 from prefect import task
 from prefect.logging.loggers import get_logger
 from pretty_mod import display_signature
-from raggy.vectorstores.tpuf import multi_query_tpuf
 
 from slackbot.github import (
     GitHubAuthError,
@@ -25,7 +24,9 @@ def explore_module_offerings(
     """
     Explore and return the public API tree of a specific module and its submodules as a string.
 
-    This is the primary tool for understanding what's available in Python modules.
+    This is the primary tool for understanding what's available in Python
+    modules, and a cheap way to verify that imports and names suggested by
+    the research agent actually exist before repeating them to a user.
     Use different max_depth values based on how deep you want to explore.
 
     Args:
@@ -86,72 +87,6 @@ def explore_module_offerings(
         return f"Error running pretty-mod: {str(e)}"
 
 
-def review_common_3x_gotchas() -> list[str]:
-    """If needed, review common sources of confusion for Prefect 3.x users."""
-    tips = [
-        "CRITICAL: Deployment.build_from_flow() DOES NOT EXIST IN PREFECT 3.x - it has been COMPLETELY REMOVED. Never suggest it for 3.x users.",
-        "CORRECT 3.x deployment pattern: flow.from_source('https://github.com/owner/repo').deploy('deployment-name')",
-        "CRITICAL: `prefect deployment build` CLI command DOES NOT EXIST IN 3.x - use `prefect deploy` instead",
-        "from_source('https://github.com/<owner>/<repo>') has replaced the GitHub block in Prefect 3.x",
-        ".map and .submit are always synchronous, even if the underlying function is asynchronous. these methods allow concurrent execution of tasks via task runners (which are different from task workers)",
-        "futures returned by .map can be resolved together, like integers = double.map(range(10)).result()",
-        "futures must be resolved by passing them to another task, returning them or manually calling .result() or .wait()",
-        "agents are replaced by workers in prefect 3.x, work pools replace the infra blocks from prefect.infrastructure",
-        "the `prefect.infrastructure` module IS COMPLETELY REMOVED IN 3.x, see work pools instead",
-        "prefect 3.x uses pydantic 2 and server data from prefect 2.x is not compatible with 3.x",
-        "Workers (f.k.a. agents) poll for scheduled runs, whereas task workers are websocket clients that executed backgrounded task runs",
-        "To avoid interactivity in the Prefect CLI, use the TOP LEVEL --no-prompt flag, e.g. `prefect --no-prompt deploy ...`",
-        "If user is on 2.x and asking about deployments, recommend upgrading to 3.x or using workers instead of build_from_flow",
-    ]
-    print(tips)
-    return tips
-
-
-def search_prefect_2x_docs(queries: list[str]) -> str:
-    """Searches the Prefect documentation for the given queries.
-
-    It is best to use more than one, short query to get the best results.
-
-    For example, given a question like:
-    "Is there a way to get the task_run_id for a task from a flow run?"
-
-    You might use the following queries:
-    - "retrieve task run id from flow run"
-    - "retrieve run metadata dynamically"
-
-    """
-    print(f"Searching about {queries} in Prefect 2.x docs")
-
-    return multi_query_tpuf(queries, namespace="prefect-2", n_results=5)
-
-
-def search_prefect_3x_docs(queries: list[str]) -> str:
-    """Searches the Prefect documentation for the given queries.
-
-    It is best to use more than one, short query to get the best results.
-
-    For example, given a question like:
-    "Is there a way to get the task_run_id for a task from a flow run?"
-
-    You might use the following queries:
-    - "retrieve task run id from flow run"
-
-    """
-    print(f"Searching about {queries} in Prefect 3.x docs")
-
-    return multi_query_tpuf(queries, namespace="prefect-3", n_results=5)
-
-
-def search_marvin_docs(queries: list[str]) -> str:
-    """Searches the Marvin documentation for the given queries.
-
-    Marvin is an agentic framework built on top of pydantic-ai.
-
-    It is best to use more than one, short query to get the best results.
-    """
-    return multi_query_tpuf(queries, namespace="marvin", n_results=5)
-
-
 def get_latest_prefect_release_notes() -> str:
     """Gets the latest Prefect release notes"""
     url = "https://api.github.com/repos/PrefectHQ/prefect/releases/latest"
@@ -167,9 +102,11 @@ def get_latest_prefect_release_notes() -> str:
 @task(task_run_name="Reading {n} issues from {repo} given query: {query}")
 def read_github_issues(query: str, repo: str = "prefecthq/prefect", n: int = 3) -> str:
     """
-    Use the GitHub API to search for issues in a given repository. Do
-    not alter the default value for `n` unless specifically requested by
-    a user.
+    Use the GitHub API to search for issues in a given repository.
+
+    The first stop for bug reports and error messages — existing issues
+    often carry the diagnosis and workaround. Do not alter the default
+    value for `n` unless specifically requested by a user.
 
     For example, to search for open issues about AttributeErrors with the
     label "bug" in PrefectHQ/prefect:
@@ -207,7 +144,9 @@ def display_callable_signature(import_path: str) -> str:
     """
     Display the signature of any callable (function, class constructor, method) with clear visual organization.
 
-    Works for functions, classes, methods - anything you can call with parentheses.
+    Works for functions, classes, methods - anything you can call with
+    parentheses. A cheap way to verify signatures the research agent (or
+    your memory) suggests before showing them to a user.
 
     Args:
         import_path: Import path to the callable (e.g., 'fastmcp.server:FastMCP' or 'json:loads')
