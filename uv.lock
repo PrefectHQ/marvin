@@ -2982,6 +2982,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "rich" },
     { name = "sqlalchemy", extra = ["asyncio"] },
+    { name = "tzdata", marker = "sys_platform == 'win32'" },
     { name = "typer" },
 ]
 
@@ -3040,6 +3041,7 @@ requires-dist = [
     { name = "rich", specifier = ">=13.9.4" },
     { name = "slackbot", marker = "extra == 'slackbot'", editable = "examples/slackbot" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36" },
+    { name = "tzdata", marker = "sys_platform == 'win32'" },
     { name = "typer", specifier = ">=0.15.1" },
 ]
 provides-extras = ["audio", "mcp", "prefect", "slackbot"]
