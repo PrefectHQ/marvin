@@ -296,6 +296,9 @@ def schema_to_type(
             types.append(schema_to_type(type_schema, schemas))
         has_null = type(None) in types
         types = [t for t in types if t is not type(None)]
+        if not types:
+            # {"type": ["null"]} (or only-null unions) previously hit types[0] IndexError.
+            return type(None)
         if has_null:
             from typing import Union
 
