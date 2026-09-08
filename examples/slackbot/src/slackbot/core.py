@@ -14,8 +14,6 @@ from pydantic_ai import Agent, RunContext
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.settings import ModelSettings
-from raggy.vectorstores.tpuf import TurboPuffer
-from turbopuffer import NotFoundError
 
 from slackbot._internal.personalization import (
     PersonalizationSnapshot,
@@ -24,8 +22,12 @@ from slackbot._internal.personalization import (
 from slackbot._internal.prompting import build_system_prompt
 from slackbot._internal.templates import DEFAULT_SYSTEM_PROMPT
 from slackbot._internal.tolerant_toolset import TolerantToolset
-from slackbot._internal.vectors import select_rows_to_delete
-from slackbot.assets import store_user_facts
+from slackbot.assets import (
+    correct_user_fact,
+    delete_user_facts,
+    read_user_fact,
+    store_user_facts,
+)
 from slackbot.github import (
     GitHubAuthError,
     GitHubError,
@@ -217,6 +219,36 @@ def create_agent(
         return message
 
     @agent.tool
+    def read_fact_about_user(ctx: RunContext[UserContext], fact_id: str) -> dict | None:
+        """Read an exact stored fact and its provenance, including superseded facts.
+
+        Use IDs from the personalization context or a correction result. A
+        `supersedes` link opens the previous account; it is not current truth.
+        Reads are restricted to the person asking the current question.
+        """
+        return read_user_fact(ctx.deps, fact_id)
+
+    @agent.tool
+    async def correct_fact_about_user(
+        ctx: RunContext[UserContext],
+        fact_id: str,
+        corrected_fact: str,
+        reason: str,
+    ) -> dict:
+        """Correct a specific stored fact when the user explicitly updates it.
+
+        Use the exact fact ID from personalization or read_fact_about_user.
+        Preserve the user's qualification in corrected_fact and explain the
+        correction in reason. The previous text and source remain available
+        as superseded evidence. This does not verify either account. To honor
+        a request to forget something, use delete_facts_about_user instead.
+        """
+        user_id = ctx.deps["user_id"]
+        if not user_id or user_id in ("unknown", ctx.deps["bot_id"]):
+            return {"status": "invalid_user", "message": "No reliable human author."}
+        return await correct_user_fact(ctx.deps, fact_id, corrected_fact, reason)
+
+    @agent.tool
     def delete_facts_about_user(ctx: RunContext[UserContext], related_to: str) -> str:
         """Delete stored facts about the user related to a specific topic.
 
@@ -226,18 +258,14 @@ def create_agent(
         stored facts are clearly obsolete.
         """
         user_id = ctx.deps["user_id"]
+        if not user_id or user_id in ("unknown", ctx.deps["bot_id"]):
+            return (
+                "Not deleting facts: could not attribute this request to a human user."
+            )
         logger.info("Deleting facts about %s related to %r", user_id, related_to)
-        with TurboPuffer(
-            namespace=f"{settings.user_facts_namespace_prefix}{user_id}"
-        ) as tpuf:
-            try:
-                rows = tpuf.query(related_to).rows or []
-            except NotFoundError:
-                return f"No facts are stored for user {user_id}."
-            to_delete = select_rows_to_delete(rows)
-            if not to_delete:
-                return f"No stored facts matched {related_to!r}; nothing was deleted."
-            tpuf.delete([row_id for row_id, _ in to_delete])
+        to_delete = delete_user_facts(ctx.deps, related_to)
+        if not to_delete:
+            return f"No stored facts matched {related_to!r}; nothing was deleted."
         deleted_lines = "\n".join(f"- {text}" for _, text in to_delete)
         logger.info("Deleted %d facts for user %s", len(to_delete), user_id)
         return (

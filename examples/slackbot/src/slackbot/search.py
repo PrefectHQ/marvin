@@ -1,10 +1,15 @@
 import asyncio
+import shlex
 import subprocess
+from functools import lru_cache
 
+import click
 import httpx
 from prefect import task
+from prefect.cli import app as prefect_cli
 from prefect.logging.loggers import get_logger
 from pretty_mod import display_signature
+from typer.main import get_command
 
 from slackbot.github import (
     GitHubAuthError,
@@ -170,9 +175,32 @@ def display_callable_signature(import_path: str) -> str:
     return display_signature(import_path)
 
 
+@lru_cache(maxsize=128)
+def _prefect_help(path: tuple[str, ...]) -> str:
+    """Render installed command definitions without invoking CLI callbacks."""
+    current = get_command(prefect_cli)
+    context = click.Context(current, info_name="prefect")
+    for name in path:
+        child = (
+            current.get_command(context, name)
+            if isinstance(current, click.Group)
+            else None
+        )
+        if child is None:
+            return f"Unknown Prefect command: {' '.join(('prefect', *path))}"
+        current = child
+        context = click.Context(current, info_name=name, parent=context)
+
+    formatter = click.HelpFormatter(width=100)
+    # Typer's rich formatter writes to stdout; Click's formatter returns the
+    # complete help as text, including options beyond the old 2,000-char cap.
+    click.Command.format_help(current, context, formatter)
+    return formatter.getvalue().strip()
+
+
 def check_cli_command(command: str, args: list[str] | None = None) -> str:
     """
-    Run a CLI command to verify its behavior or check help documentation.
+    Inspect Prefect CLI help, or check another program's CLI behavior.
 
     This tool is specifically designed to help verify Prefect CLI commands before suggesting them to users.
     Use this to check if a command exists, what its options are, or to verify the correct syntax.
@@ -205,13 +233,20 @@ def check_cli_command(command: str, args: list[str] | None = None) -> str:
         # Check commands that need optional extras
         >>> check_cli_command("uv run --with prefect[docker]", ["prefect", "work-pool", "create", "--help"])
     """
-    if args is None:
-        args = []
-
-    # Construct the full command
-    full_command = command.split() + args
-
     try:
+        full_command = shlex.split(command) + (args or [])
+        if not full_command:
+            return "Provide a command to inspect."
+        if full_command[0] == "prefect":
+            path = tuple(full_command[1:])
+            if path and path[-1] == "--help":
+                path = path[:-1]
+            if any(part.startswith("-") for part in path):
+                return (
+                    "Inspect a Prefect command with its command path and --help only."
+                )
+            return _prefect_help(path)
+
         # Run the command with a timeout
         result = subprocess.run(
             full_command,
