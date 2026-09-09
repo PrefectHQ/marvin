@@ -2,7 +2,7 @@ import asyncio
 import re
 import time
 from collections import defaultdict
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import Any, Sequence
 
 from fastapi import FastAPI, HTTPException, Request
@@ -135,7 +135,6 @@ async def run_agent(
         blurb_task = asyncio.create_task(
             _personality_blurb(progress, _question_text(user_prompt))
         )
-        blurb_task.add_done_callback(lambda _: None)
         logger = get_run_logger()
         logger.info(
             "Agent config: bot_model=%s utility_model=%s research_model=%s temperature=%s max_tool_calls=%s seen_before=%s",
@@ -158,6 +157,11 @@ async def run_agent(
                     deps=user_context,
                 )
         finally:
+            # The interstitial must never overwrite the completed/error status.
+            # Cancel instead of waiting for its model call to finish.
+            blurb_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await blurb_task
             _progress_message.reset(token)
             _tool_usage_counts.reset(counts_token)
 

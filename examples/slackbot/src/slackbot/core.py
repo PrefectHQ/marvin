@@ -155,13 +155,16 @@ def create_agent(
     ai_model = model or settings.bot_model
     slack_search_mcp = MCPServerStreamableHTTP(
         url="https://marvin-slack-thread-assets.fastmcp.app/mcp",
+        # Horizon can need more than the SDK's five seconds on a cold start.
+        # This is a ceiling, not a delay: warm connections still return promptly.
+        timeout=15,
     )
     tolerant_slack_search = TolerantToolset(
         slack_search_mcp,
         on_error=lambda e: logger.warning(
             "slack-search MCP unavailable for this run: %s: %s",
             type(e).__name__,
-            e,
+            repr(e),
         ),
     )
     agent = Agent[
