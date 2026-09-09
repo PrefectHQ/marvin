@@ -51,15 +51,16 @@ async def turso_query(sql: str, args: list | None = None) -> list[dict[str, Any]
     payload = {"requests": [{"type": "execute", "stmt": stmt}, {"type": "close"}]}
     url = f"https://{settings.turso_host}/v2/pipeline"
 
-    response = httpx.post(
-        url,
-        headers={
-            "Authorization": f"Bearer {settings.turso_token}",
-            "Content-Type": "application/json",
-        },
-        json=payload,
-        timeout=30,
-    )
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {settings.turso_token}",
+                "Content-Type": "application/json",
+            },
+            json=payload,
+            timeout=30,
+        )
     if response.status_code >= 400:
         raise RuntimeError(f"Turso HTTP {response.status_code} for {url}: {response.text}")
     data = response.json()
