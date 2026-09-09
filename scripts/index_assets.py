@@ -14,7 +14,8 @@ querying via SQL or semantic search (embeddings can be backfilled separately).
 - uv must be installed
 - You must be authenticated to Prefect Cloud
 - You must have a workspace selected
-- Turso database credentials (TURSO_URL, TURSO_TOKEN)
+- Turso database credentials (TURSO_URL, TURSO_TOKEN); the token must allow writes
+  for init, sync, or refresh. The search server can use a separate read-only token.
 
 ## Setup
 
@@ -43,6 +44,18 @@ querying via SQL or semantic search (embeddings can be backfilled separately).
 ./scripts/index_assets.py sync --limit 100        # sync first 100 assets
 ./scripts/index_assets.py sync --dry-run          # preview what would be synced
 ```
+
+### Keep Slack search current
+```bash
+./scripts/index_assets.py refresh --dry-run  # read Prefect only
+./scripts/index_assets.py refresh            # sync the last 90 days, then embed changes
+./scripts/index_assets.py serve-refresh      # long-running Prefect runner, hourly refresh
+```
+
+The runner needs the bot workspace's PREFECT_API_URL/PREFECT_API_KEY plus the
+Turso and Voyage environment variables below. Credentials are read inside the
+flow, never passed as deployment or flow parameters. Run this on a persistent
+worker host; a one-off refresh alone will eventually age out again.
 
 ### Query assets
 ```bash
@@ -80,10 +93,11 @@ import asyncio
 import json
 import os
 import sys
+import time
 from typing import Any
 
 import httpx
-from prefect import get_client
+from prefect import flow, get_client
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -248,7 +262,7 @@ def build_searchable_text(asset: dict) -> str:
         parts.append(props["description"])
 
     # Metadata from latest materialization
-    meta = asset.get("latest_materialization", {}).get("metadata", {})
+    meta = (asset.get("latest_materialization") or {}).get("metadata") or {}
     if meta.get("title"):
         parts.append(meta["title"])
     if meta.get("summary"):
@@ -264,7 +278,7 @@ def asset_to_row(asset: dict) -> tuple:
     key = asset.get("key", "")
     asset_type = extract_asset_type(key)
     props = asset.get("properties", {})
-    meta = asset.get("latest_materialization", {}).get("metadata", {})
+    meta = (asset.get("latest_materialization") or {}).get("metadata") or {}
 
     return (
         key,
@@ -310,12 +324,55 @@ def cmd_init(settings: Settings):
     print("done!")
 
 
-def cmd_sync(settings: Settings, limit: int = 0, dry_run: bool = False):
+def current_summary(asset: dict, cutoff: float) -> bool:
+    """Select dated thread summaries, excluding raw threads and user facts."""
+    if "/summary/" not in asset.get("key", ""):
+        return False
+    metadata = (asset.get("latest_materialization") or {}).get("metadata") or {}
+    try:
+        return float(metadata.get("thread_ts", "")) > cutoff and bool(
+            metadata.get("summary")
+        )
+    except (TypeError, ValueError):
+        return False
+
+
+@flow(name="Refresh Slack search index", log_prints=True)
+def refresh_search_index():
+    """Scheduled entrypoint; keep credentials out of Prefect run parameters."""
+    cmd_refresh(Settings())
+
+
+def cmd_refresh(settings: Settings, dry_run: bool = False):
+    """Refresh the searchable retention window and its missing embeddings."""
+    from backfill_asset_embeddings import backfill_embeddings
+
+    cmd_sync(settings, dry_run=dry_run, retention_days=90)
+    if dry_run:
+        print("Would embed new or changed current summaries after sync.")
+        return
+    backfill_embeddings(settings, min_thread_ts=time.time() - 90 * 86400)
+
+
+def cmd_sync(
+    settings: Settings,
+    limit: int = 0,
+    dry_run: bool = False,
+    *,
+    retention_days: int | None = None,
+):
     """Sync assets from Prefect Cloud to Turso."""
 
     async def _sync():
         print("fetching assets from Prefect Cloud...")
         assets = await list_assets(limit=limit)
+        if retention_days is not None:
+            cutoff = time.time() - retention_days * 86400
+            assets = [a for a in assets if current_summary(a, cutoff)]
+            if not assets:
+                raise RuntimeError(
+                    "Prefect returned no current thread summaries; index was not changed."
+                )
         print(f"found {len(assets)} assets")
 
         if dry_run:
@@ -343,9 +400,16 @@ def cmd_sync(settings: Settings, limit: int = 0, dry_run: bool = False):
                 statements.append(
                     (
                         """
-                    INSERT OR REPLACE INTO assets
+                    INSERT INTO assets
                     (key, type, name, description, owners, last_seen, metadata, searchable_text)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(key) DO UPDATE SET
+                        type=excluded.type, name=excluded.name,
+                        description=excluded.description, owners=excluded.owners,
+                        last_seen=excluded.last_seen, metadata=excluded.metadata,
+                        embedding=CASE WHEN assets.searchable_text IS excluded.searchable_text
+                                       THEN assets.embedding ELSE NULL END,
+                        searchable_text=excluded.searchable_text
                     """,
                         list(row),
                     )
@@ -513,6 +577,20 @@ def main():
         "--dry-run", action="store_true", help="Preview without syncing"
     )
 
+    refresh_parser = subparsers.add_parser(
+        "refresh", help="Sync current Slack summaries and embed new/changed text"
+    )
+    refresh_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Read Prefect only; write no index data or embeddings",
+    )
+
+    subparsers.add_parser(
+        "serve-refresh",
+        help="Serve an hourly Prefect index refresh (requires a persistent process)",
+    )
+
     # query
     query_parser = subparsers.add_parser("query", help="Run SQL query")
     query_parser.add_argument("sql", help="SQL query to execute")
@@ -543,6 +621,10 @@ def main():
         parser.print_help()
         return
 
+    if args.command == "serve-refresh":
+        refresh_search_index.serve(name="slack-search-index", interval=3600)
+        return
+
     try:
         settings = Settings()  # type: ignore
     except Exception as e:
@@ -556,6 +638,8 @@ def main():
         cmd_init(settings)
     elif args.command == "sync":
         cmd_sync(settings, args.limit, args.dry_run)
+    elif args.command == "refresh":
+        cmd_refresh(settings, args.dry_run)
     elif args.command == "query":
         cmd_query(settings, args.sql)
     elif args.command == "search":

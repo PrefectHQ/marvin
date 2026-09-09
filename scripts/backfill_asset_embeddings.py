@@ -186,16 +186,34 @@ def main():
         )
         sys.exit(1)
 
+    backfill_embeddings(
+        settings, limit=args.limit, batch_size=args.batch_size, dry_run=args.dry_run
+    )
+
+
+def backfill_embeddings(
+    settings: Settings,
+    limit: int = 0,
+    batch_size: int = 20,
+    dry_run: bool = False,
+    min_thread_ts: float | None = None,
+):
+    """Embed pending rows; don't attach an old vector to concurrently changed text."""
+    if batch_size < 1 or limit < 0:
+        raise ValueError("batch_size must be positive and limit non-negative")
     # Get assets needing embeddings
     sql = """
         SELECT key, name, searchable_text
         FROM assets
         WHERE embedding IS NULL
     """
-    params: list | None = None
-    if args.limit > 0:
+    params: list = []
+    if min_thread_ts is not None:
+        sql += " AND key LIKE '%/summary/%' AND CAST(json_extract(metadata, '$.thread_ts') AS REAL) > ?"
+        params.append(min_thread_ts)
+    if limit > 0:
         sql += " LIMIT ?"
-        params = [args.limit]
+        params.append(limit)
     assets = turso_query(settings, sql, params)
 
     if not assets:
@@ -204,7 +222,7 @@ def main():
 
     print(f"found {len(assets)} assets needing embeddings")
 
-    if args.dry_run:
+    if dry_run:
         for asset in assets[:10]:
             name = asset.get("name") or asset["key"][:60]
             print(f"  - {name}")
@@ -224,21 +242,23 @@ def main():
             texts.append(text[:8000])
 
         embeddings = voyage_embed(settings, texts)
+        if len(embeddings) != len(batch):
+            raise RuntimeError("Embedding provider returned an incomplete batch.")
         statements = []
         for asset, embedding in zip(batch, embeddings):
             embedding_json = json.dumps(embedding)
             statements.append(
                 (
-                    "UPDATE assets SET embedding = vector32(?) WHERE key = ?",
-                    [embedding_json, asset["key"]],
+                    "UPDATE assets SET embedding = vector32(?) WHERE key = ? AND searchable_text = ?",
+                    [embedding_json, asset["key"], asset["searchable_text"]],
                 )
             )
         turso_batch_exec(settings, statements)
         return batch_num, len(batch)
 
     batches = [
-        (i // args.batch_size + 1, assets[i : i + args.batch_size])
-        for i in range(0, len(assets), args.batch_size)
+        (i // batch_size + 1, assets[i : i + batch_size])
+        for i in range(0, len(assets), batch_size)
     ]
 
     processed = 0

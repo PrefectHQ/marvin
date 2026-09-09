@@ -3,15 +3,22 @@
 thresholds are empirical, measured with text-embedding-3-small (cosine
 distance): identical ~= 0.0, paraphrases ~= 0.12-0.15, contradictions
 ("Prefect 2.x" vs "Prefect 3.x") ~= 0.06 — *closer* than paraphrases, so
-write-time dedup must be near-exact and contradiction handling stays with
-the synthesis model. related question<->fact ~= 0.3, unrelated >= 0.68.
+write-time dedup must be near-exact. Corrections use explicit fact IDs,
+not similarity. related question<->fact ~= 0.3, unrelated >= 0.68.
 """
 
 from typing import Any
 
+from turbopuffer.types import Filter
+
 WRITE_DEDUP_MAX_DISTANCE = 0.03
 DELETE_MAX_DISTANCE = 0.5
 RELEVANCE_MAX_DISTANCE = 0.65
+
+
+def active_fact_filter(schema: dict[str, Any]) -> Filter | None:
+    """Legacy rows have no successor; only filter once the field exists."""
+    return ("superseded_by", "Eq", None) if "superseded_by" in schema else None
 
 
 def row_distance(row: Any) -> float | None:
