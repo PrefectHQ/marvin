@@ -60,8 +60,16 @@ async def test_interstitial_receives_summary_in_one_call(monkeypatch):
     )
     monkeypatch.setattr(api, "Agent", lambda **kwargs: SimpleNamespace(run=run))
     progress = SimpleNamespace(update=AsyncMock())
-    await api._personality_blurb(progress, "hello", "Maintains Prefect")
-    assert json.loads(run.call_args.args[0])["person_summary"] == "Maintains Prefect"
+    await api._personality_blurb(
+        progress, "hello", "Maintains Prefect", "mountain pika " * 300
+    )
+    payload = json.loads(run.call_args.args[0])
+    assert payload["person_summary"] == "Maintains Prefect"
+    assert payload["previous_answer"].startswith("mountain pika")
+    assert (
+        len(tiktoken.get_encoding("cl100k_base").encode(payload["previous_answer"]))
+        <= 200
+    )
     assert run.await_count == 1
 
 

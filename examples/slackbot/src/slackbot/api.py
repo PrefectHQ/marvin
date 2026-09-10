@@ -15,7 +15,7 @@ from prefect.logging.loggers import get_logger
 from prefect.states import Completed
 from pydantic_ai import Agent, BinaryContent
 from pydantic_ai.agent import AgentRunResult
-from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
 
 from slackbot._internal.constants import WORKSPACE_TO_CHANNEL_ID
 from slackbot._internal.message_store import MessageStore
@@ -92,7 +92,10 @@ def _question_text(user_prompt: str | Sequence[str | BinaryContent]) -> str:
 
 
 async def _personality_blurb(
-    progress: "ProgressMessage", question: str, summary: str = ""
+    progress: "ProgressMessage",
+    question: str,
+    summary: str = "",
+    previous_answer: str = "",
 ) -> None:
     """Rewrite the progress header in Marvin's voice once the cheap model has
     read the question. Best-effort: any failure keeps the static line."""
@@ -102,7 +105,13 @@ async def _personality_blurb(
         agent = Agent(model=settings.utility_model, system_prompt=PROGRESS_BLURB_PROMPT)
         result = await asyncio.wait_for(
             agent.run(
-                json.dumps({"question": question[:500], "person_summary": summary})
+                json.dumps(
+                    {
+                        "question": question[:500],
+                        "person_summary": summary,
+                        "previous_answer": bounded_context(previous_answer, 200),
+                    }
+                )
             ),
             timeout=10,
         )
@@ -151,6 +160,17 @@ async def run_agent(
                 progress,
                 _question_text(user_prompt),
                 user_context.get("person_summary", ""),
+                next(
+                    (
+                        "\n".join(
+                            p.content for p in message.parts if isinstance(p, TextPart)
+                        )
+                        for message in reversed(conversation)
+                        if isinstance(message, ModelResponse)
+                        and any(isinstance(p, TextPart) for p in message.parts)
+                    ),
+                    "",
+                ),
             )
         )
         logger = get_run_logger()
