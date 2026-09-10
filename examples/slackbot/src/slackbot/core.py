@@ -187,7 +187,7 @@ def create_agent(
     # read once per agent (i.e. per message), not per model request
     base_prompt = _base_system_prompt()
 
-    @agent.system_prompt
+    @agent.instructions
     def personality_and_maybe_notes(ctx: RunContext[UserContext]) -> str:
         system_prompt = build_system_prompt(base_prompt, ctx.deps)
         logger.debug("Built system prompt with contextual sections")

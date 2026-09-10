@@ -6125,6 +6125,7 @@ dependencies = [
     { name = "prefect" },
     { name = "pretty-mod" },
     { name = "raggy", extra = ["tpuf"] },
+    { name = "tiktoken" },
 ]
 
 [package.metadata]
@@ -6136,6 +6137,7 @@ requires-dist = [
     { name = "prefect", specifier = ">=3.6.12" },
     { name = "pretty-mod" },
     { name = "raggy", extras = ["tpuf"], git = "https://github.com/zzstoatzz/raggy.git" },
+    { name = "tiktoken", specifier = ">=0.7" },
 ]
 
 [package.metadata.requires-dev]
