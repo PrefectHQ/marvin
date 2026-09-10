@@ -1,11 +1,12 @@
 """Asset tracking for Slackbot - tracking data lineage."""
 
+import json
 from datetime import datetime, timezone
 
 from prefect.assets import Asset, AssetProperties, add_asset_metadata, materialize
 from pydantic import BaseModel
 from pydantic_ai import RunContext
-from pydantic_ai.messages import ModelMessage, SystemPromptPart
+from pydantic_ai.messages import ModelMessage, TextPart, ToolReturnPart, UserPromptPart
 from raggy.documents import Document
 from raggy.utilities.embeddings import create_openai_embeddings
 from raggy.vectorstores.tpuf import TurboPuffer
@@ -14,6 +15,7 @@ from turbopuffer import NotFoundError
 import marvin
 from marvin import cast_async
 from slackbot._internal.personalization import fact_record
+from slackbot._internal.templates import THREAD_SUMMARY_PROMPT
 from slackbot._internal.vectors import (
     WRITE_DEDUP_MAX_DISTANCE,
     active_fact_filter,
@@ -275,25 +277,41 @@ def delete_user_facts(
         return list(selected.items())
 
 
+def thread_summary_evidence(conversation: list[ModelMessage]) -> str:
+    """Keep speaker roles and returned evidence without replaying instructions."""
+    rows = []
+    for message in conversation:
+        for part in message.parts:
+            if isinstance(part, UserPromptPart):
+                text = (
+                    part.content
+                    if isinstance(part.content, str)
+                    else "\n".join(
+                        item if isinstance(item, str) else "[attachment omitted]"
+                        for item in part.content
+                    )
+                )
+                rows.append({"role": "user", "text": text})
+            elif isinstance(part, TextPart):
+                rows.append({"role": "assistant", "text": part.content})
+            elif isinstance(part, ToolReturnPart):
+                rows.append(
+                    {"role": "tool", "tool": part.tool_name, "result": part.content}
+                )
+    return json.dumps(rows, ensure_ascii=False, default=str)
+
+
 async def summarize_thread(
     user_context: UserContext, conversation: list[ModelMessage]
 ) -> ThreadSummary:
     """Extract structured summary from a Slack thread using context for namespacing."""
 
-    conversation_parts: list[str] = []
-    for message in conversation:
-        for part in message.parts:
-            if isinstance(part, SystemPromptPart):
-                continue
-            if hasattr(part, "content"):
-                conversation_parts.append(str(part.content))
-
-    conversation_text = "\n\n".join(conversation_parts)
+    conversation_text = thread_summary_evidence(conversation)
 
     thread_summary = await cast_async(
         conversation_text,
         target=ThreadSummary,
-        instructions="Summarize this slack thread - give a concise but descriptive title.",
+        instructions=THREAD_SUMMARY_PROMPT,
         agent=marvin.Agent(model=settings.utility_model),
     )
 
