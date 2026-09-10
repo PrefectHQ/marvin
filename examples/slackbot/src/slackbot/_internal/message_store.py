@@ -37,6 +37,7 @@ from pydantic_ai.messages import (
     ModelMessage,
     ModelMessagesTypeAdapter,
     ModelRequest,
+    SystemPromptPart,
     UserPromptPart,
 )
 
@@ -127,7 +128,20 @@ class MessageStore:
             return []
         if not block.messages_json:
             return []
-        return list(ModelMessagesTypeAdapter.validate_json(block.messages_json))
+        messages = list(ModelMessagesTypeAdapter.validate_json(block.messages_json))
+        # Context now arrives through per-run instructions. Legacy stored system
+        # prompts describe an earlier user/turn and must not override fresh context.
+        return [
+            replace(message, parts=parts)
+            if isinstance(message, ModelRequest)
+            else message
+            for message in messages
+            if (
+                parts := [
+                    p for p in message.parts if not isinstance(p, SystemPromptPart)
+                ]
+            )
+        ]
 
     async def append(
         self, thread_ts: str, new_messages: list[ModelMessage]
