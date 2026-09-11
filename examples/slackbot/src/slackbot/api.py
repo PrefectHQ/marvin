@@ -207,8 +207,8 @@ async def run_agent(
             f"✅ thought for {time.monotonic() - start_time:.1f} seconds"
         )
         return result
-    except Exception as e:
-        await progress.update(f"❌ Error: {str(e)}")
+    except Exception:
+        await progress.update("⚠️ I couldn’t finish this reply.")
         raise
 
 
