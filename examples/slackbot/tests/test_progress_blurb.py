@@ -25,7 +25,7 @@ async def test_slow_blurb_never_delays_or_overwrites_final_status(monkeypatch, f
     async def answer(**kwargs):
         await started.wait()
         if fails:
-            raise ValueError("answer failed")
+            raise ValueError("provider_secret_detail")
         return result
 
     monkeypatch.setattr(api, "_personality_blurb", blurb)
@@ -48,10 +48,11 @@ async def test_slow_blurb_never_delays_or_overwrites_final_status(monkeypatch, f
     )
     call = api.run_agent.fn("hello", [], {"seen_before": True}, "C1", "1.0")
     if fails:
-        with pytest.raises(ValueError, match="answer failed"):
+        with pytest.raises(ValueError, match="provider_secret_detail"):
             await asyncio.wait_for(call, 1)
     else:
         assert await asyncio.wait_for(call, 1) is result
     assert cancelled.is_set()
     final = progress.update.call_args.args[0]
-    assert final.startswith("❌" if fails else "✅")
+    assert final.startswith("⚠️" if fails else "✅")
+    assert "provider_secret_detail" not in final

@@ -20,6 +20,7 @@ from slackbot._internal.personalization import (
     load_personalization_snapshot,
 )
 from slackbot._internal.prompting import build_system_prompt
+from slackbot._internal.retrying_model import RetryingModel
 from slackbot._internal.templates import DEFAULT_SYSTEM_PROMPT
 from slackbot._internal.tolerant_toolset import TolerantToolset
 from slackbot.assets import (
@@ -170,7 +171,7 @@ def create_agent(
     agent = Agent[
         UserContext, str
     ](
-        model=ai_model,
+        model=RetryingModel(ai_model),
         model_settings=ModelSettings(temperature=settings.temperature),
         tools=[
             research_prefect_topic,  # Tool for researching Prefect topics
