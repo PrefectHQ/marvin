@@ -125,5 +125,5 @@ WORKSPACE_TO_CHANNEL_ID = {
 ### Production Deployment
 
 For deploying to Cloud Run or similar services, refer to:
-- [Dockerfile.slackbot](/examples/slackbot/Dockerfile.slackbot)
-- [CI/CD Configuration](/.github/workflows/image-build-and-push-community.yaml)
+- [Dockerfile.slackbot](./Dockerfile.slackbot)
+- [CI/CD Configuration](../../.github/workflows/image-build-and-push-community.yaml)
