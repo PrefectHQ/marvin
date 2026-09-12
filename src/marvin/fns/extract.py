@@ -67,7 +67,7 @@ async def extract_async(
     if target is str and instructions is None:
         raise ValueError("Instructions are required when extracting string values.")
 
-    task_context = context or {}
+    task_context = dict(context) if context else {}
     task_context["Data to extract"] = data
     prompt = prompt or PROMPT
     if instructions:

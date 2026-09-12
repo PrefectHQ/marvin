@@ -130,7 +130,7 @@ async def classify_async(
         True
 
     """
-    task_context = context or {}
+    task_context = dict(context) if context else {}
     task_context.update({"Data to classify": data})
 
     prompt = prompt or PROMPT
