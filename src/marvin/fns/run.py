@@ -41,7 +41,14 @@ async def run_tasks_async(
     # If we have multiple independent tasks, run them concurrently
     if len(tasks) > 1 and _tasks_are_independent(tasks):
         # Run independent tasks concurrently using asyncio.gather
-        await asyncio.gather(*[task.run_async() for task in tasks])
+        await asyncio.gather(
+            *[
+                task.run_async(
+                    thread=thread, raise_on_failure=raise_on_failure, handlers=handlers
+                )
+                for task in tasks
+            ]
+        )
         return tasks
     else:
         # Use orchestrator for dependent tasks or single tasks
