@@ -47,7 +47,8 @@
                     {
                         "group": "Integrations",
                         "pages": [
-                            "guides/mcp"
+                            "guides/mcp",
+                            "guides/semantix"
                         ]
                     },
                     {
