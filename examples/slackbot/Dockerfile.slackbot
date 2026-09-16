@@ -16,6 +16,10 @@ RUN apt-get update && \
 
 RUN uv sync --extra slackbot --no-dev
 
+# Prepare the context tokenizer at build time, not on the first Slack request.
+ENV TIKTOKEN_CACHE_DIR=/app/.cache/tiktoken
+RUN uv run --no-sync python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
+
 RUN bun install -g @anthropic-ai/claude-code
 
 ENV PATH="/root/.bun/bin:${PATH}"

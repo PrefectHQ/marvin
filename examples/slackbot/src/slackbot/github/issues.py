@@ -34,6 +34,10 @@ async def search_issues(
         # Add repo to query if not already present
         search_query = query if "repo:" in query else f"repo:{repo} {query}"
 
+        # github's search API rejects queries without an is: qualifier
+        if "is:issue" not in search_query and "is:pull-request" not in search_query:
+            search_query = f"is:issue {search_query}"
+
         response = await client.get(
             "https://api.github.com/search/issues",
             params={

@@ -9,17 +9,26 @@ from typing import AsyncIterator
 import httpx
 from prefect import get_run_logger, task
 from prefect.logging.loggers import get_logger
+from prefect.variables import Variable
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 from pydantic_ai.models import KnownModelName, Model
 from pydantic_ai.settings import ModelSettings
-from raggy.vectorstores.tpuf import TurboPuffer
 
-from slackbot._internal.personalization import load_personalization_snapshot
+from slackbot._internal.personalization import (
+    PersonalizationSnapshot,
+    load_personalization_snapshot,
+)
 from slackbot._internal.prompting import build_system_prompt
+from slackbot._internal.retrying_model import RetryingModel
 from slackbot._internal.templates import DEFAULT_SYSTEM_PROMPT
 from slackbot._internal.tolerant_toolset import TolerantToolset
-from slackbot.assets import store_user_facts
+from slackbot.assets import (
+    correct_user_fact,
+    delete_user_facts,
+    read_user_fact,
+    store_user_facts,
+)
 from slackbot.github import (
     GitHubAuthError,
     GitHubError,
@@ -92,8 +101,26 @@ def build_user_context(
     channel_id: str,
     bot_id: str,
 ) -> UserContext:
-    namespace = f"{settings.user_facts_namespace_prefix}{user_id}"
-    personalization = load_personalization_snapshot(namespace, user_question)
+    empty = PersonalizationSnapshot(
+        seen_before=False, profile_summary="", relevant_notes="", memory_warning=""
+    )
+    if user_id == "unknown":
+        # no reliable human author this turn — don't read (or ever seed) a
+        # shared user-facts-unknown namespace
+        personalization = empty
+    else:
+        namespace = f"{settings.user_facts_namespace_prefix}{user_id}"
+        try:
+            personalization = load_personalization_snapshot(namespace, user_question)
+        except Exception as exc:
+            # a dead memory store means a thinner prompt, never a dead reply
+            logger.warning(
+                "Personalization failed for %s; continuing without it: %s: %s",
+                user_id,
+                type(exc).__name__,
+                exc,
+            )
+            personalization = empty
     return UserContext(
         user_id=user_id,
         user_notes=personalization.relevant_notes,
@@ -107,27 +134,44 @@ def build_user_context(
     )
 
 
+def _base_system_prompt() -> str:
+    """The base system prompt, hot-swappable via the `marvin_system_prompt`
+    Prefect Variable so prompt changes don't require a redeploy."""
+    try:
+        override = Variable.get("marvin_system_prompt", default=None, _sync=True)  # type: ignore
+    except Exception as exc:
+        logger.warning("Could not read marvin_system_prompt variable: %s", exc)
+        return DEFAULT_SYSTEM_PROMPT
+    if override:
+        logger.info("Using system prompt from marvin_system_prompt variable")
+        return str(override)
+    return DEFAULT_SYSTEM_PROMPT
+
+
 def create_agent(
     model: KnownModelName | Model | None = None,
 ) -> Agent[UserContext, str]:
     logger = get_run_logger()
     logger.info("Creating new agent")
-    ai_model = model or settings.bot_model_name
+    ai_model = model or settings.bot_model
     slack_search_mcp = MCPServerStreamableHTTP(
         url="https://marvin-slack-thread-assets.fastmcp.app/mcp",
+        # Horizon can need more than the SDK's five seconds on a cold start.
+        # This is a ceiling, not a delay: warm connections still return promptly.
+        timeout=15,
     )
     tolerant_slack_search = TolerantToolset(
         slack_search_mcp,
         on_error=lambda e: logger.warning(
             "slack-search MCP unavailable for this run: %s: %s",
             type(e).__name__,
-            e,
+            repr(e),
         ),
     )
     agent = Agent[
         UserContext, str
     ](
-        model=ai_model,
+        model=RetryingModel(ai_model),
         model_settings=ModelSettings(temperature=settings.temperature),
         tools=[
             research_prefect_topic,  # Tool for researching Prefect topics
@@ -141,9 +185,12 @@ def create_agent(
         deps_type=UserContext,
     )
 
-    @agent.system_prompt
+    # read once per agent (i.e. per message), not per model request
+    base_prompt = _base_system_prompt()
+
+    @agent.instructions
     def personality_and_maybe_notes(ctx: RunContext[UserContext]) -> str:
-        system_prompt = build_system_prompt(DEFAULT_SYSTEM_PROMPT, ctx.deps)
+        system_prompt = build_system_prompt(base_prompt, ctx.deps)
         logger.debug("Built system prompt with contextual sections")
         return system_prompt
 
@@ -151,27 +198,84 @@ def create_agent(
     async def store_facts_about_user(
         ctx: RunContext[UserContext], facts: list[str]
     ) -> str:
-        """Store facts about the user that are useful for answering their questions."""
-        print(f"Storing {len(facts)} facts about user {ctx.deps['user_id']}")
+        """Store durable facts about the user for future conversations.
+
+        Call this when the user shares context that will still be true next
+        week — their environment (versions, cloud, infrastructure), goals, or
+        preferences. Don't store thread-scoped debugging state ("flow X is
+        currently stuck"); that belongs to this conversation only.
+
+        Facts are deduplicated against near-identical existing facts at write
+        time and timestamped, so restating known context is cheap but adds
+        nothing.
+        """
+        user_id = ctx.deps["user_id"]
+        if not user_id or user_id == "unknown" or user_id == ctx.deps["bot_id"]:
+            logger.warning(
+                "Refusing to store facts: no reliable human user (user_id=%s)",
+                user_id,
+            )
+            return "Not storing facts: could not attribute them to a human user."
+        logger.info("Storing %d facts about user %s", len(facts), user_id)
         # This creates an asset dependency: USER_FACTS depends on SLACK_MESSAGES
         message = await store_user_facts(ctx, facts)
-        print(message)
+        logger.info(message)
         return message
 
     @agent.tool
-    def delete_facts_about_user(ctx: RunContext[UserContext], related_to: str) -> str:
-        """Delete facts about the user related to a specific topic."""
-        print(f"forgetting stuff about {ctx.deps['user_id']} related to {related_to}")
+    def read_fact_about_user(ctx: RunContext[UserContext], fact_id: str) -> dict | None:
+        """Read an exact stored fact and its provenance, including superseded facts.
+
+        Use IDs from the personalization context or a correction result. A
+        `supersedes` link opens the previous account; it is not current truth.
+        Reads are restricted to the person asking the current question.
+        """
+        return read_user_fact(ctx.deps, fact_id)
+
+    @agent.tool
+    async def correct_fact_about_user(
+        ctx: RunContext[UserContext],
+        fact_id: str,
+        corrected_fact: str,
+        reason: str,
+    ) -> dict:
+        """Correct a specific stored fact when the user explicitly updates it.
+
+        Use the exact fact ID from personalization or read_fact_about_user.
+        Preserve the user's qualification in corrected_fact and explain the
+        correction in reason. The previous text and source remain available
+        as superseded evidence. This does not verify either account. To honor
+        a request to forget something, use delete_facts_about_user instead.
+        """
         user_id = ctx.deps["user_id"]
-        with TurboPuffer(
-            namespace=f"{settings.user_facts_namespace_prefix}{user_id}"
-        ) as tpuf:
-            vector_result = tpuf.query(related_to)
-            ids = [str(v.id) for v in vector_result.rows or []]
-            tpuf.delete(ids)
-            message = f"Deleted {len(ids)} facts about user {user_id}"
-            print(message)
-            return message
+        if not user_id or user_id in ("unknown", ctx.deps["bot_id"]):
+            return {"status": "invalid_user", "message": "No reliable human author."}
+        return await correct_user_fact(ctx.deps, fact_id, corrected_fact, reason)
+
+    @agent.tool
+    def delete_facts_about_user(ctx: RunContext[UserContext], related_to: str) -> str:
+        """Delete stored facts about the user related to a specific topic.
+
+        Only facts semantically close to `related_to` are deleted; the
+        response lists exactly what was removed so you can report it
+        honestly. Use when the user asks you to forget something or when
+        stored facts are clearly obsolete.
+        """
+        user_id = ctx.deps["user_id"]
+        if not user_id or user_id in ("unknown", ctx.deps["bot_id"]):
+            return (
+                "Not deleting facts: could not attribute this request to a human user."
+            )
+        logger.info("Deleting facts about %s related to %r", user_id, related_to)
+        to_delete = delete_user_facts(ctx.deps, related_to)
+        if not to_delete:
+            return f"No stored facts matched {related_to!r}; nothing was deleted."
+        deleted_lines = "\n".join(f"- {text}" for _, text in to_delete)
+        logger.info("Deleted %d facts for user %s", len(to_delete), user_id)
+        return (
+            f"Deleted {len(to_delete)} facts related to {related_to!r}:\n"
+            f"{deleted_lines}"
+        )
 
     @agent.tool
     async def create_discussion_and_notify(
@@ -183,10 +287,15 @@ def create_agent(
         """
         Create a GitHub discussion from a Slack thread and notify admin.
 
-        Use this SPARINGLY and only when:
-        1. The thread contains valuable insights or solutions not found elsewhere
-        2. You've searched discussions and found no existing similar topic
-        3. The conversation would benefit the broader Prefect community
+        Use this sparingly, and only when all of these hold:
+        1. The thread contains valuable insights, solutions, or patterns not
+           documented elsewhere
+        2. You've searched both issues and discussions and found no existing
+           coverage of the topic
+        3. The conversation would clearly benefit the broader Prefect community
+        4. The thread has reached a meaningful conclusion or solution
+
+        Never create discussions for simple Q&A that's already well-documented.
 
         Args:
             title: Clear, descriptive title for the discussion

@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import json
-import os
+import time
+from collections import Counter
 from typing import Literal
 
 import httpx
 from fastmcp import FastMCP
 
-from slack_search._types import Stats, ThreadDetail, ThreadSummary
-from slack_search.client import turso_query, voyage_embed
+from slack_search._types import SlackMessage, Stats, ThreadContent, ThreadDetail, ThreadSummary
+from slack_search.client import get_settings, slack_get_thread, turso_query, voyage_embed
+
+# slack retention policy - threads older than this are deleted
+RETENTION_DAYS = 90
 
 # -----------------------------------------------------------------------------
 # load categories at import time for dynamic type generation
@@ -19,22 +23,16 @@ from slack_search.client import turso_query, voyage_embed
 
 def _load_categories() -> dict[str, list[str]]:
     """Synchronously load categories from Turso at import time."""
-    turso_url = os.environ.get("TURSO_URL", "")
-    turso_token = os.environ.get("TURSO_TOKEN", "")
+    settings = get_settings()
 
-    if not turso_url or not turso_token:
+    if not settings.turso_url or not settings.turso_token:
         return {"topics": [], "channels": []}
 
-    host = turso_url
-    if host.startswith("libsql://"):
-        host = host[len("libsql://") :]
-
     try:
-        # query for top topics
         resp = httpx.post(
-            f"https://{host}/v2/pipeline",
+            f"https://{settings.turso_host}/v2/pipeline",
             headers={
-                "Authorization": f"Bearer {turso_token}",
+                "Authorization": f"Bearer {settings.turso_token}",
                 "Content-Type": "application/json",
             },
             json={
@@ -54,11 +52,9 @@ def _load_categories() -> dict[str, list[str]]:
             },
             timeout=30,
         )
-        resp.raise_for_status()
+        if resp.status_code >= 400:
+            raise RuntimeError(f"Turso HTTP {resp.status_code}: {resp.text}")
         data = resp.json()
-
-        # extract topics from metadata
-        from collections import Counter
 
         topics: Counter[str] = Counter()
         channels: Counter[str] = Counter()
@@ -157,6 +153,11 @@ channels: {len(_categories["channels"])} available
 # -----------------------------------------------------------------------------
 
 
+def _retention_cutoff() -> float:
+    """Unix timestamp for retention cutoff (now - RETENTION_DAYS)."""
+    return time.time() - (RETENTION_DAYS * 24 * 60 * 60)
+
+
 @mcp.tool
 async def search(
     query: str,
@@ -168,6 +169,7 @@ async def search(
 
     searches for exact text matches in thread names and content.
     optionally filter by topic or channel.
+    excludes threads older than 90 days (Slack retention policy).
 
     args:
         query: text to search for
@@ -181,27 +183,35 @@ async def search(
     if not query:
         return []
 
+    cutoff = _retention_cutoff()
+
     # build query with optional filters
     sql = """
         SELECT key, name, description, metadata,
                SUBSTR(searchable_text, 1, 300) as preview
         FROM assets
         WHERE searchable_text LIKE ?
+          AND CAST(json_extract(metadata, '$.thread_ts') AS REAL) > ?
     """
-    args: list = [f"%{query}%"]
+    args: list = [f"%{query}%", cutoff]
 
     if topic:
-        sql += " AND metadata LIKE ?"
-        args.append(f'%"{topic}"%')
+        sql += (
+            " AND EXISTS (SELECT 1 FROM json_each(assets.metadata, '$.key_topics')"
+            " WHERE lower(value) = lower(?))"
+        )
+        args.append(topic)
 
     if channel:
-        sql += " AND metadata LIKE ?"
-        args.append(f'%"channel_id":"{channel}"%')
+        sql += " AND json_extract(metadata, '$.channel_id') = ?"
+        args.append(channel)
 
     sql += " LIMIT ?"
     args.append(limit)
 
     rows = await turso_query(sql, args)
+    if not rows:
+        await _check_index(semantic=False)
 
     return [
         ThreadSummary(
@@ -226,6 +236,7 @@ async def similar(
     uses AI embeddings to find threads related to your query,
     even if they don't contain the exact words.
     optionally filter by topic or channel.
+    excludes threads older than 90 days (Slack retention policy).
 
     args:
         query: what you're looking for (question or concept)
@@ -239,6 +250,8 @@ async def similar(
     if not query:
         return []
 
+    cutoff = _retention_cutoff()
+
     # get query embedding
     embedding = await voyage_embed(query)
     embedding_json = json.dumps(embedding)
@@ -250,21 +263,27 @@ async def similar(
                vector_distance_cos(embedding, vector32(?)) as distance
         FROM assets
         WHERE embedding IS NOT NULL
+          AND CAST(json_extract(metadata, '$.thread_ts') AS REAL) > ?
     """
-    args: list = [embedding_json]
+    args: list = [embedding_json, cutoff]
 
     if topic:
-        sql += " AND metadata LIKE ?"
-        args.append(f'%"{topic}"%')
+        sql += (
+            " AND EXISTS (SELECT 1 FROM json_each(assets.metadata, '$.key_topics')"
+            " WHERE lower(value) = lower(?))"
+        )
+        args.append(topic)
 
     if channel:
-        sql += " AND metadata LIKE ?"
-        args.append(f'%"channel_id":"{channel}"%')
+        sql += " AND json_extract(metadata, '$.channel_id') = ?"
+        args.append(channel)
 
     sql += " ORDER BY distance LIMIT ?"
     args.append(limit)
 
     rows = await turso_query(sql, args)
+    if not rows:
+        await _check_index(semantic=True)
 
     return [
         ThreadSummary(
@@ -319,19 +338,90 @@ async def get_thread(key: str) -> ThreadDetail | None:
 
 
 @mcp.tool
+async def get_thread_messages(key: str) -> ThreadContent | None:
+    """fetch actual messages from a Slack thread.
+
+    retrieves the full conversation content from Slack's API,
+    not just the AI summary. requires SLACK_API_TOKEN.
+
+    args:
+        key: the thread key (from search/similar results)
+
+    returns:
+        thread content with all messages, or None if not found
+    """
+    # parse key to get channel and thread_ts
+    # key: slack://workspace/bot/BOT_ID/summary/CHANNEL_ID/THREAD_TS
+    parts = key.split("/")
+    if len(parts) < 8:
+        return None
+
+    workspace = parts[2]
+    channel = parts[6]
+    thread_ts = parts[7]
+
+    messages = await slack_get_thread(channel, thread_ts)
+
+    ts_clean = thread_ts.replace(".", "")
+    url = f"https://{workspace}.slack.com/archives/{channel}/p{ts_clean}"
+
+    return ThreadContent(
+        channel_id=channel,
+        thread_ts=thread_ts,
+        url=url,
+        messages=[
+            SlackMessage(user=m.get("user", ""), text=m.get("text", ""), ts=m.get("ts", ""))
+            for m in messages
+        ],
+        message_count=len(messages),
+    )
+
+
+@mcp.tool
 async def get_stats() -> Stats:
     """get index statistics.
 
     returns:
-        total thread count and embedding coverage
+        total and searchable thread counts, embedding coverage, and newest thread timestamp.
+        A populated index with zero searchable_threads needs a refresh.
     """
-    total = await turso_query("SELECT COUNT(*) as count FROM assets")
-    with_emb = await turso_query("SELECT COUNT(*) as count FROM assets WHERE embedding IS NOT NULL")
+    return await _index_stats()
 
-    return Stats(
-        total_threads=total[0]["count"],
-        with_embeddings=with_emb[0]["count"],
+
+async def _index_stats() -> Stats:
+    rows = await turso_query(
+        """SELECT COUNT(*) AS total_threads,
+                  COUNT(embedding) AS with_embeddings,
+                  COALESCE(SUM(CASE
+                      WHEN CAST(json_extract(metadata, '$.thread_ts') AS REAL) > ?
+                      THEN 1 ELSE 0 END), 0) AS searchable_threads,
+                  COALESCE(SUM(CASE
+                      WHEN CAST(json_extract(metadata, '$.thread_ts') AS REAL) > ?
+                      AND embedding IS NOT NULL
+                      THEN 1 ELSE 0 END), 0) AS searchable_with_embeddings,
+                  MAX(CAST(json_extract(metadata, '$.thread_ts') AS REAL)) AS latest_thread_ts
+           FROM assets""",
+        [_retention_cutoff(), _retention_cutoff()],
     )
+    row = rows[0]
+    if row["latest_thread_ts"] is not None:
+        row["latest_thread_ts"] = str(row["latest_thread_ts"])
+    return Stats(**row)
+
+
+async def _check_index(*, semantic: bool) -> None:
+    """Don't report a broken/stale corpus as an absence of relevant discussions."""
+    stats = await _index_stats()
+    if stats.searchable_threads == 0:
+        raise RuntimeError(
+            "Community search is unavailable: no indexed threads are inside the retention window. "
+            "The index needs a refresh."
+        )
+    if semantic and stats.searchable_with_embeddings == 0:
+        raise RuntimeError(
+            "Semantic community search is unavailable: current threads have no embeddings. "
+            "Text search may still work; embedding refresh is required."
+        )
 
 
 @mcp.tool

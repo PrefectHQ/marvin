@@ -1,9 +1,10 @@
 import asyncio
+import json
 import re
 import time
 from collections import defaultdict
-from contextlib import asynccontextmanager
-from typing import Any
+from contextlib import asynccontextmanager, suppress
+from typing import Any, Sequence
 
 from fastapi import FastAPI, HTTPException, Request
 from prefect import Flow, State, flow, get_run_logger, task
@@ -12,12 +13,24 @@ from prefect.cache_policies import NONE
 from prefect.client.schemas.objects import FlowRun
 from prefect.logging.loggers import get_logger
 from prefect.states import Completed
+from pydantic_ai import Agent, BinaryContent
 from pydantic_ai.agent import AgentRunResult
-from pydantic_ai.messages import ModelMessage
+from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
 
 from slackbot._internal.constants import WORKSPACE_TO_CHANNEL_ID
 from slackbot._internal.message_store import MessageStore
-from slackbot._internal.templates import CHANNEL_REDIRECT_MESSAGE, WELCOME_MESSAGE
+from slackbot._internal.observability import configure_observability
+from slackbot._internal.person_summary import (
+    bounded_context,
+    load_person_summary,
+    update_person_summary,
+)
+from slackbot._internal.templates import (
+    CHANNEL_REDIRECT_MESSAGE,
+    PROGRESS_BLURB_PROMPT,
+    PROGRESS_PLACEHOLDER,
+    WELCOME_MESSAGE,
+)
 from slackbot._internal.thread_status import (
     get_status as get_thread_status,
 )
@@ -36,10 +49,14 @@ from slackbot.core import (
 )
 from slackbot.settings import settings
 from slackbot.slack import (
+    ProgressMessage,
+    SlackFile,
     SlackPayload,
     create_progress_message,
+    fetch_shared_images,
     get_channel_name,
     get_workspace_domain,
+    load_slack_context,
     post_slack_message,
 )
 from slackbot.strings import count_tokens, slice_tokens
@@ -68,14 +85,57 @@ def check_if_designated_channel(channel_id: str, team_id: str) -> bool:
     return channel_id == designated_channel
 
 
+def _question_text(user_prompt: str | Sequence[str | BinaryContent]) -> str:
+    if isinstance(user_prompt, str):
+        return user_prompt
+    return " ".join(part for part in user_prompt if isinstance(part, str))
+
+
+async def _personality_blurb(
+    progress: "ProgressMessage",
+    question: str,
+    summary: str = "",
+    previous_answer: str = "",
+) -> None:
+    """Rewrite the progress header in Marvin's voice once the cheap model has
+    read the question. Best-effort: any failure keeps the static line."""
+    if not question.strip():
+        return
+    try:
+        agent = Agent(model=settings.utility_model, system_prompt=PROGRESS_BLURB_PROMPT)
+        result = await asyncio.wait_for(
+            agent.run(
+                json.dumps(
+                    {
+                        "question": question[:500],
+                        "person_summary": summary,
+                        "previous_answer": bounded_context(previous_answer, 200),
+                    }
+                )
+            ),
+            timeout=10,
+        )
+        blurb = result.output.strip().strip('"')
+        if not blurb:
+            return
+        progress.header = f"🔄 {blurb}"
+        # tool updates re-render around the header; only push an immediate
+        # edit if no tool has rendered the tally yet
+        if not _tool_usage_counts.get():
+            await progress.update(progress.header)
+    except Exception:
+        logger.debug("personality blurb failed; keeping static line", exc_info=True)
+
+
 @task(name="run agent loop")
 async def run_agent(
-    cleaned_message: str,
+    user_prompt: str | Sequence[str | BinaryContent],
     conversation: list[ModelMessage],
     user_context: UserContext,
     channel_id: str,
     thread_ts: str,
     decorator_settings: dict[str, Any] | None = None,
+    progress: ProgressMessage | None = None,
 ) -> AgentRunResult[str]:
     if decorator_settings is None:
         decorator_settings = {
@@ -85,21 +145,40 @@ async def run_agent(
         }
 
     start_time = time.monotonic()
-    progress = await create_progress_message(
+    progress = progress or await create_progress_message(
         channel_id=channel_id,
         thread_ts=thread_ts,
-        initial_text="🔄 Thinking... this may take a while",
+        initial_text=PROGRESS_PLACEHOLDER,
     )
 
     try:
         token = _progress_message.set(progress)
         # Initialize tool usage counts for this agent run
         counts_token = _tool_usage_counts.set(defaultdict(int))
+        blurb_task = asyncio.create_task(
+            _personality_blurb(
+                progress,
+                _question_text(user_prompt),
+                user_context.get("person_summary", ""),
+                next(
+                    (
+                        "\n".join(
+                            p.content for p in message.parts if isinstance(p, TextPart)
+                        )
+                        for message in reversed(conversation)
+                        if isinstance(message, ModelResponse)
+                        and any(isinstance(p, TextPart) for p in message.parts)
+                    ),
+                    "",
+                ),
+            )
+        )
         logger = get_run_logger()
         logger.info(
-            "Agent config: response_model=%s memory_synthesis_model=%s temperature=%s max_tool_calls=%s seen_before=%s",
-            settings.bot_model_name,
-            settings.memory_synthesis_model_name,
+            "Agent config: bot_model=%s utility_model=%s research_model=%s temperature=%s max_tool_calls=%s seen_before=%s",
+            settings.bot_model,
+            settings.utility_model,
+            settings.research_model,
             settings.temperature,
             settings.max_tool_calls_per_turn,
             user_context["seen_before"],
@@ -111,11 +190,16 @@ async def run_agent(
                 max_tool_calls=settings.max_tool_calls_per_turn,
             ):
                 result = await create_agent().run(
-                    user_prompt=cleaned_message,
+                    user_prompt=user_prompt,
                     message_history=conversation,
                     deps=user_context,
                 )
         finally:
+            # The interstitial must never overwrite the completed/error status.
+            # Cancel instead of waiting for its model call to finish.
+            blurb_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await blurb_task
             _progress_message.reset(token)
             _tool_usage_counts.reset(counts_token)
 
@@ -123,19 +207,23 @@ async def run_agent(
             f"✅ thought for {time.monotonic() - start_time:.1f} seconds"
         )
         return result
-    except Exception as e:
-        await progress.update(f"❌ Error: {str(e)}")
+    except Exception:
+        await progress.update("⚠️ I couldn’t finish this reply.")
         raise
 
 
-def _extract_message_context(event: Any) -> tuple[bool, str | None, str | None, str]:
-    """Return (is_edit, message_ts, thread_ts, text) for Slack events.
+def _extract_message_context(
+    event: Any,
+) -> tuple[bool, str | None, str | None, str, list[SlackFile], str | None]:
+    """Return (is_edit, message_ts, thread_ts, text, files, author) for Slack events.
 
-    - For `message_changed` events, Slack nests the edited message under `event.message`.
+    - For `message_changed` events, Slack nests the edited message under `event.message`,
+      and the author lives on the nested message — the outer `event.user` is unreliable.
     - For normal app_mention events, fields are at the top level.
     """
     is_edit = getattr(event, "subtype", None) == "message_changed"
     msg = (getattr(event, "message", None) or {}) if is_edit else {}
+    author = msg.get("user") if is_edit else getattr(event, "user", None)
 
     # Prefer the message ts for idempotency; fall back to event_ts if needed
     message_ts = (
@@ -152,7 +240,12 @@ def _extract_message_context(event: Any) -> tuple[bool, str | None, str | None, 
     # Text used for bot mention detection
     text = (msg.get("text") if is_edit else (getattr(event, "text", None) or "")) or ""
 
-    return is_edit, message_ts, thread_ts, text
+    if is_edit:
+        files = [SlackFile.model_validate(f) for f in (msg.get("files") or [])]
+    else:
+        files = getattr(event, "files", None) or []
+
+    return is_edit, message_ts, thread_ts, text, files, author
 
 
 @flow(name="Handle Slack Message", retries=1)
@@ -167,7 +260,9 @@ async def handle_message(
 
     USER_MESSAGE_MAX_TOKENS = settings.user_message_max_tokens
     # Determine message context accommodating edit events
-    is_edit, message_ts, thread_ts, user_message = _extract_message_context(event)
+    is_edit, message_ts, thread_ts, user_message, files, author = (
+        _extract_message_context(event)
+    )
     assert thread_ts is not None, "No thread_ts found"
     assert message_ts is not None, "No message_ts found"
     cleaned_message = re.sub(BOT_MENTION, "", user_message).strip()
@@ -247,6 +342,9 @@ async def handle_message(
         logger.info(
             f"Processing message in thread {thread_ts}\nUser message: {cleaned_message}"
         )
+        progress = await create_progress_message(
+            event.channel, thread_ts, PROGRESS_PLACEHOLDER
+        )
         conversation = await message_store.get(thread_ts)
 
         bot_user_id = None
@@ -257,8 +355,16 @@ async def handle_message(
             if bot_auth:
                 bot_user_id = bot_auth.user_id
 
+        if not author or author == bot_user_id:
+            logger.warning(
+                "Could not attribute message %s to a human user (author=%s); "
+                "personalization will be skipped for this turn",
+                message_ts,
+                author,
+            )
+
         user_context = build_user_context(
-            user_id=event.user,
+            user_id=(author if author and author != bot_user_id else "unknown"),
             user_question=cleaned_message,
             thread_ts=thread_ts,
             workspace_name=await get_workspace_domain(),
@@ -266,13 +372,32 @@ async def handle_message(
             bot_id=bot_user_id or "unknown",
         )
 
+        summary, (slack_context, recovered_files) = await asyncio.gather(
+            load_person_summary(team_id, user_context["user_id"]),
+            load_slack_context(event.channel, thread_ts, message_ts),
+        )
+        if summary is None:
+            summary = bounded_context(user_context["user_profile"], 400)
+        user_context["person_summary"] = summary
+        user_context["slack_context"] = slack_context
+        if not files:
+            files = recovered_files
+        images = await fetch_shared_images(files) if files else []
+        if images:
+            logger.info(f"Including {len(images)} shared image(s) in prompt")
+
+        user_prompt: str | Sequence[str | BinaryContent] = (
+            [cleaned_message, *images] if images else cleaned_message
+        )
+
         try:
             result = await run_agent(
-                cleaned_message,
+                user_prompt,
                 conversation,
                 user_context,
                 event.channel,
                 thread_ts,
+                progress=progress,
             )  # type: ignore
 
             conversation = await message_store.append(
@@ -299,6 +424,14 @@ async def handle_message(
             except Exception:
                 logger.warning("Failed to mark message as completed")
 
+        await update_person_summary(
+            team_id,
+            user_context["user_id"],
+            event.channel,
+            message_ts,
+            summary,
+            cleaned_message,
+        )
         return Completed(
             message="Responded to mention",
             data=dict(user_context=user_context, conversation=conversation),
@@ -332,6 +465,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+configure_observability(app)
 
 
 @app.post("/chat")

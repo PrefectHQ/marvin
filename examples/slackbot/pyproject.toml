@@ -39,9 +39,11 @@ dependencies = [
   "marvin",
   "prefect>=3.6.12",
   "numpy",
+  "tiktoken>=0.7",
   "raggy[tpuf] @ git+https://github.com/zzstoatzz/raggy.git",
   "pretty-mod",
   "claude-agent-sdk",
+  "logfire[fastapi]>=4.39.0",
 ]
 
 

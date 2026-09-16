@@ -1,15 +1,27 @@
 """Asset tracking for Slackbot - tracking data lineage."""
 
-from datetime import datetime
+import json
+from datetime import datetime, timezone
 
 from prefect.assets import Asset, AssetProperties, add_asset_metadata, materialize
 from pydantic import BaseModel
 from pydantic_ai import RunContext
-from pydantic_ai.messages import ModelMessage, SystemPromptPart
+from pydantic_ai.messages import ModelMessage, TextPart, ToolReturnPart, UserPromptPart
 from raggy.documents import Document
+from raggy.utilities.embeddings import create_openai_embeddings
 from raggy.vectorstores.tpuf import TurboPuffer
+from turbopuffer import NotFoundError
 
+import marvin
 from marvin import cast_async
+from slackbot._internal.personalization import fact_record
+from slackbot._internal.templates import THREAD_SUMMARY_PROMPT
+from slackbot._internal.vectors import (
+    WRITE_DEDUP_MAX_DISTANCE,
+    active_fact_filter,
+    row_distance,
+    select_rows_to_delete,
+)
 from slackbot.settings import settings
 from slackbot.slack import get_channel_name
 from slackbot.types import UserContext
@@ -91,10 +103,40 @@ def user_facts_asset(user_context: UserContext) -> Asset:
 async def store_user_facts(ctx: RunContext[UserContext], facts: list[str]) -> str:
     """Store facts extracted from a Slack thread using context for namespacing."""
 
+    new_facts: list[str] = []
+    duplicates: list[str] = []
     with TurboPuffer(
         namespace=f"{settings.user_facts_namespace_prefix}{ctx.deps['user_id']}"
     ) as tpuf:
-        tpuf.upsert(documents=[Document(text=fact) for fact in facts])
+        try:
+            filters = active_fact_filter(tpuf.ns.metadata().schema_ or {})
+        except NotFoundError:
+            filters = None
+        for fact in facts:
+            normalized = " ".join(fact.split())
+            if not normalized or normalized in new_facts:
+                continue
+            try:
+                rows = tpuf.query(normalized, top_k=1, filters=filters).rows or []
+            except NotFoundError:
+                rows = []
+            nearest = row_distance(rows[0]) if rows else None
+            if nearest is not None and nearest <= WRITE_DEDUP_MAX_DISTANCE:
+                duplicates.append(normalized)
+                continue
+            new_facts.append(normalized)
+        if new_facts:
+            stored_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            documents = [Document(text=fact) for fact in new_facts]
+            tpuf.upsert(
+                documents=documents,
+                attributes={
+                    "created_at": [stored_at] * len(documents),
+                    "thread_ts": [ctx.deps["thread_ts"]] * len(documents),
+                    "channel_id": [ctx.deps["channel_id"]] * len(documents),
+                    "workspace_name": [ctx.deps["workspace_name"]] * len(documents),
+                },
+            )
 
     user_facts = user_facts_asset(ctx.deps)
 
@@ -107,19 +149,156 @@ async def store_user_facts(ctx: RunContext[UserContext], facts: list[str]) -> st
             user_facts,
             {
                 "user_id": ctx.deps["user_id"],
-                "fact_count": len(facts),
-                "timestamp": datetime.now().isoformat(),
+                "fact_count": len(new_facts),
+                "duplicate_count": len(duplicates),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "namespace": f"{settings.user_facts_namespace_prefix}{ctx.deps['user_id']}",
                 "thread_ts": ctx.deps["thread_ts"],
                 "workspace_name": ctx.deps["workspace_name"],
                 "channel_id": ctx.deps["channel_id"],
                 "bot_id": ctx.deps["bot_id"],
-                "facts": facts,
+                "facts": new_facts,
             },
         )
-        return f"Stored {len(facts)} facts about user {ctx.deps['user_id']} from thread {ctx.deps['thread_ts']}"
+        message = (
+            f"Stored {len(new_facts)} facts about user {ctx.deps['user_id']} "
+            f"from thread {ctx.deps['thread_ts']}"
+        )
+        if duplicates:
+            message += f" ({len(duplicates)} near-duplicates skipped)"
+        return message
 
     return await materialize_user_facts()
+
+
+def read_user_fact(user_context: UserContext, fact_id: str) -> dict | None:
+    """Read exact evidence, including a superseded version, for this user."""
+    with TurboPuffer(
+        namespace=f"{settings.user_facts_namespace_prefix}{user_context['user_id']}"
+    ) as tpuf:
+        try:
+            rows = (
+                tpuf.ns.query(
+                    rank_by=("id", "asc"),
+                    filters=("id", "Eq", fact_id),
+                    top_k=1,
+                    include_attributes=True,
+                ).rows
+                or []
+            )
+        except NotFoundError:
+            return None
+    return fact_record(rows[0]) if rows else None
+
+
+async def correct_user_fact(
+    user_context: UserContext,
+    fact_id: str,
+    corrected_fact: str,
+    reason: str,
+) -> dict:
+    """Store an explicit successor and retain the original as dated evidence."""
+    if not corrected_fact.strip() or not reason.strip():
+        return {
+            "status": "invalid",
+            "message": "A correction and its reason are required.",
+        }
+    original = read_user_fact(user_context, fact_id)
+    if original is None:
+        return {
+            "status": "not_found",
+            "message": "No such fact is stored for this user.",
+        }
+    if original.get("superseded_by"):
+        return {"status": "superseded", "fact": original}
+    if original["text"] == corrected_fact:
+        return {"status": "unchanged", "fact": original}
+
+    vector = await create_openai_embeddings(corrected_fact)
+    # An embedding request yields to other turns. Re-read before replacing so
+    # a correction made during that request isn't silently overwritten.
+    if read_user_fact(user_context, fact_id) != original:
+        return {
+            "status": "changed",
+            "message": "The fact changed; read it again before correcting.",
+        }
+    replacement = {
+        "id": Document(text=corrected_fact).id,
+        "text": corrected_fact,
+        "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "thread_ts": user_context["thread_ts"],
+        "channel_id": user_context["channel_id"],
+        "workspace_name": user_context["workspace_name"],
+        "supersedes": fact_id,
+        "correction_reason": reason,
+    }
+    with TurboPuffer(
+        namespace=f"{settings.user_facts_namespace_prefix}{user_context['user_id']}"
+    ) as tpuf:
+        # Both the new text/vector and the old row's successor link commit in
+        # one namespace write. Old text, dates, and source links stay intact.
+        tpuf.ns.write(
+            upsert_rows=[{**replacement, "vector": vector}],
+            patch_rows=[{"id": fact_id, "superseded_by": replacement["id"]}],
+            schema={"superseded_by": {"type": "string", "filterable": True}},
+            distance_metric="cosine_distance",
+        )
+    return {"status": "corrected", "fact": replacement, "previous": original}
+
+
+def delete_user_facts(
+    user_context: UserContext, related_to: str
+) -> list[tuple[str, str]]:
+    """Forget matched facts and their correction chains, not just active text."""
+    with TurboPuffer(
+        namespace=f"{settings.user_facts_namespace_prefix}{user_context['user_id']}"
+    ) as tpuf:
+        try:
+            rows = tpuf.query(related_to).rows or []
+        except NotFoundError:
+            return []
+        selected = dict(select_rows_to_delete(rows))
+        pending = list(selected)
+        visited = set()
+        while pending:
+            fact_id = pending.pop()
+            if fact_id in visited:
+                continue
+            visited.add(fact_id)
+            fact = read_user_fact(user_context, fact_id)
+            if fact is None:
+                continue
+            selected[fact_id] = fact["text"]
+            for link in ("supersedes", "superseded_by"):
+                if fact.get(link) and fact[link] not in visited:
+                    pending.append(fact[link])
+        if selected:
+            tpuf.delete(list(selected))
+        return list(selected.items())
+
+
+def thread_summary_evidence(conversation: list[ModelMessage]) -> str:
+    """Keep speaker roles and returned evidence without replaying instructions."""
+    rows = []
+    for message in conversation:
+        for part in message.parts:
+            if isinstance(part, UserPromptPart):
+                text = (
+                    part.content
+                    if isinstance(part.content, str)
+                    else "\n".join(
+                        item if isinstance(item, str) else "[attachment omitted]"
+                        for item in part.content
+                    )
+                )
+                rows.append({"role": "user", "text": text})
+            elif isinstance(part, TextPart):
+                rows.append({"role": "assistant", "text": part.content})
+            elif isinstance(part, ToolReturnPart):
+                rows.append(
+                    {"role": "tool", "tool": part.tool_name, "result": part.content}
+                )
+    return json.dumps(rows, ensure_ascii=False, default=str)
 
 
 async def summarize_thread(
@@ -127,20 +306,13 @@ async def summarize_thread(
 ) -> ThreadSummary:
     """Extract structured summary from a Slack thread using context for namespacing."""
 
-    conversation_parts: list[str] = []
-    for message in conversation:
-        for part in message.parts:
-            if isinstance(part, SystemPromptPart):
-                continue
-            if hasattr(part, "content"):
-                conversation_parts.append(str(part.content))
-
-    conversation_text = "\n\n".join(conversation_parts)
+    conversation_text = thread_summary_evidence(conversation)
 
     thread_summary = await cast_async(
         conversation_text,
         target=ThreadSummary,
-        instructions="Summarize this slack thread - give a concise but descriptive title.",
+        instructions=THREAD_SUMMARY_PROMPT,
+        agent=marvin.Agent(model=settings.utility_model),
     )
 
     slack_thread = await slack_thread_asset(user_context)
@@ -164,7 +336,7 @@ async def summarize_thread(
                 "bot_id": user_context["bot_id"],
                 "key_topics": thread_summary.key_topics,
                 "participant_count": thread_summary.participant_count,
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
             },
         )
         return thread_summary

@@ -35,9 +35,11 @@ Create a `.env` file in your project directory:
 # - tpuf-api-key                  # TurboPuffer API key for vector storage
 
 # Required Prefect Variables (configured via UI or CLI)
-# - marvin_ai_model               # Default model to use (e.g., "gpt-5", "claude-sonnet-4-6")
-# - marvin_bot_model              # Optional override for the Slackbot response model
-# - marvin_memory_synthesis_model # Optional override for memory/profile synthesis (default: claude-haiku-4-5-20251001)
+# Model tiers (full pydantic-ai "provider:model" strings; bare legacy names still work)
+# - marvin_bot_model              # Main answering agent (default: anthropic:claude-sonnet-5; falls back to marvin_ai_model)
+# - marvin_utility_model          # Structured non-voice work: memory synthesis, thread summarization (default: anthropic:claude-haiku-4-5; falls back to marvin_memory_synthesis_model)
+# - marvin_research_model         # Claude Agent SDK research subagent (default: anthropic:claude-haiku-4-5)
+# - marvin_system_prompt          # Optional override of the base system prompt (default: DEFAULT_SYSTEM_PROMPT in _internal/templates.py); read per message, so edits apply without a redeploy
 # - admin-slack-id                # Slack user ID for admin notifications
 
 # Optional Settings (with MARVIN_SLACKBOT_ prefix)
@@ -97,7 +99,7 @@ The bot will:
 
 The bot supports both OpenAI (GPT-5) and Anthropic (Claude) models. Configure via the `marvin_ai_model` Prefect Variable:
 - `gpt-5`: Latest OpenAI model (temperature automatically set to 1.0)
-- `claude-sonnet-4-6`: Current default Claude model
+- `claude-sonnet-5`: Current default Claude model
 - Any other supported model name from either provider
 
 ### Channel Restrictions
