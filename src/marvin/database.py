@@ -416,9 +416,104 @@ def _run_migrations(alembic_log_level: str = "WARNING") -> bool:
         return False
 
 
+def _alembic_config():
+    """Alembic config pointing at the packaged migration directory."""
+    from alembic.config import Config
+
+    return Config(str(ALEMBIC_INI))
+
+
+def _head_revision() -> str | None:
+    """The head revision recorded in the migrations directory."""
+    from alembic.script import ScriptDirectory
+
+    try:
+        return ScriptDirectory.from_config(_alembic_config()).get_current_head()
+    except Exception as e:
+        logger.warning(f"Could not read the Alembic head revision: {e}")
+        return None
+
+
+def _has_table(connection, name: str) -> bool:
+    """True if ``connection`` already has a table called ``name``."""
+    from sqlalchemy import inspect
+
+    return inspect(connection).has_table(name)
+
+
+def _is_stamped_at_head(connection) -> bool:
+    """True if the version table already records the head revision.
+
+    Never raises: a database that cannot be inspected is simply not stamped.
+    """
+    from sqlalchemy import text
+
+    try:
+        head = _head_revision()
+        if head is None:
+            return True  # Unknown head: leave the database alone.
+        if not _has_table(connection, "alembic_version"):
+            return False
+        stamped = (
+            connection.execute(text("select version_num from alembic_version"))
+            .scalars()
+            .all()
+        )
+        return stamped == [head]
+    except Exception as e:
+        logger.warning(f"Could not read the recorded Alembic revision: {e}")
+        return False
+
+
+def _schema_matches_models(connection) -> bool:
+    """True if the database schema already matches the models.
+
+    Checked before stamping a database that was created outside Alembic:
+    stamping one that has drifted from the models would skip the migrations
+    that account for the difference. Never raises: an unreadable schema is
+    treated as a mismatch so nothing is stamped on its behalf.
+    """
+    from alembic.autogenerate import compare_metadata
+    from alembic.migration import MigrationContext
+
+    try:
+        migration_context = MigrationContext.configure(connection)
+        return not compare_metadata(migration_context, Base.metadata)
+    except Exception as e:
+        logger.warning(f"Could not compare the database schema with the models: {e}")
+        return False
+
+
+def _stamp_head(connection) -> bool:
+    """Record the current schema as Alembic head using ``connection``.
+
+    Tables created here come from the models, which match head, but without a
+    stamp Alembic treats the database as empty and `marvin db upgrade` fails on
+    the initial revision with "table threads already exists" -- leaving every
+    later migration unappliable.
+
+    Alembic runs its own event loop when it has to open a connection, so the
+    existing connection is handed to it through the config instead.
+
+    Returns:
+        True if the stamp was written, False otherwise.
+    """
+    from alembic import command
+
+    alembic_cfg = _alembic_config()
+    alembic_cfg.attributes["connection"] = connection
+    try:
+        command.stamp(alembic_cfg, "head")
+        logger.debug("Stamped database at Alembic head.")
+        return True
+    except Exception as e:
+        logger.warning(f"Could not stamp the database at Alembic head: {e}")
+        return False
+
+
 async def create_db_and_tables(
     *, force: bool = False, dispose_engine: bool = False
-) -> None:
+) -> bool:
     """Create all database tables.
 
     Args:
@@ -427,16 +522,44 @@ async def create_db_and_tables(
             This is useful when called from asyncio.run() to ensure the
             aiosqlite worker thread is cleaned up and doesn't prevent
             Python from exiting.
+
+    Returns:
+        True if this call created the schema, False if it already existed.
     """
     engine = get_async_engine()
+    created = False
 
     async with engine.begin() as conn:
         if force:
             await conn.run_sync(Base.metadata.drop_all)
             logger.debug("Database tables dropped.")
 
+        try:
+            created = not await conn.run_sync(_has_table, DBThread.__tablename__)
+        except Exception as e:
+            # Never fail initialization over an inspection error, and never stamp
+            # a database whose state could not be read.
+            logger.warning(f"Could not check for existing database tables: {e}")
+            created = False
         await conn.run_sync(Base.metadata.create_all)
         logger.debug("Database tables created.")
+
+        if created:
+            # Record the revision the freshly created schema corresponds to.
+            await conn.run_sync(_stamp_head)
+        elif not await conn.run_sync(_is_stamped_at_head):
+            # Databases created before this stamp existed have tables but no
+            # revision, which makes `marvin db upgrade` fail on the initial
+            # migration. Only record head when the schema really matches the
+            # models, so a drifted database is reported rather than hidden.
+            if await conn.run_sync(_schema_matches_models):
+                await conn.run_sync(_stamp_head)
+            else:
+                logger.warning(
+                    "Database tables exist but neither match the current models nor "
+                    "carry an Alembic revision; reconcile the schema before running "
+                    "`marvin db upgrade` (see docs/guides/database-migrations.mdx)."
+                )
 
     if dispose_engine:
         await engine.dispose()
@@ -446,6 +569,8 @@ async def create_db_and_tables(
         except RuntimeError:
             loop = None
         _async_engine_cache.pop(loop, None)
+
+    return created
 
 
 def init_database_if_necessary():
