@@ -13,7 +13,6 @@ from prefect.variables import Variable
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.mcp import MCPServerStreamableHTTP
 from pydantic_ai.models import KnownModelName, Model
-from pydantic_ai.settings import ModelSettings
 
 from slackbot._internal.personalization import (
     PersonalizationSnapshot,
@@ -172,7 +171,6 @@ def create_agent(
         UserContext, str
     ](
         model=RetryingModel(ai_model),
-        model_settings=ModelSettings(temperature=settings.temperature),
         tools=[
             research_prefect_topic,  # Tool for researching Prefect topics
             read_github_issues,  # For searching GitHub issues

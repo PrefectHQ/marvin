@@ -42,7 +42,6 @@ async def test_slow_blurb_never_delays_or_overwrites_final_status(monkeypatch, f
             bot_model="test",
             utility_model="test",
             research_model="test",
-            temperature=0,
             max_tool_calls_per_turn=5,
         ),
     )

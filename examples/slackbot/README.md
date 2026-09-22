@@ -50,7 +50,6 @@ MARVIN_SLACKBOT_LOG_LEVEL=INFO                # Logging level
 MARVIN_SLACKBOT_SLACK_API_TOKEN=xoxb-...      # Slack bot token (or use test-slack-api-token secret)
 MARVIN_SLACKBOT_MAX_TOOL_CALLS_PER_TURN=50    # Max tool calls per agent turn (default: 50)
 MARVIN_SLACKBOT_USER_MESSAGE_MAX_TOKENS=500   # Max tokens in user messages (default: 500)
-MARVIN_SLACKBOT_TEMPERATURE=0.2               # Model temperature (default: 0.2, auto-set to 1.0 for GPT-5)
 
 # Vector Store (optional, will use tpuf-api-key secret if not set)
 TURBOPUFFER_API_KEY=abcd1234       # For vectorstore queries and storing user context
@@ -98,7 +97,7 @@ The bot will:
 ### Model Configuration
 
 The bot supports both OpenAI (GPT-5) and Anthropic (Claude) models. Configure via the `marvin_ai_model` Prefect Variable:
-- `gpt-5`: Latest OpenAI model (temperature automatically set to 1.0)
+- `gpt-5`: OpenAI model (routed through the Responses API)
 - `claude-sonnet-5`: Current default Claude model
 - Any other supported model name from either provider
 
