@@ -181,16 +181,20 @@ async def fetch_shared_images(files: list[SlackFile]) -> list[BinaryContent]:
     return images
 
 
+_CODE_PATTERN = re.compile(r"(```.*?(?:```|\Z)|`[^`\n]*`)", re.DOTALL)
+_MD_LINK_PATTERN = re.compile(r"\[(?P<text>[^\]]+)]\((?P<url>[^\s)]+)\)")
+
+
+def _convert_prose(text: str) -> str:
+    text = _MD_LINK_PATTERN.sub(r"<\g<url>|\g<text>>", text)
+    return re.sub(r"\*\*(.*?)\*\*", r"*\1*", text)
+
+
 def convert_md_links_to_slack(text: str) -> str:
-    md_link_pattern = r"\[(?P<text>[^\]]+)]\((?P<url>[^\)]+)\)"
-
-    # converting Markdown links to Slack-style links
-    def to_slack_link(match: re.Match[str]) -> str:
-        return f"<{match.group('url')}|{match.group('text')}>"
-
-    # Replace Markdown links with Slack-style links
-    return re.sub(
-        r"\*\*(.*?)\*\*", r"*\1*", re.sub(md_link_pattern, to_slack_link, text)
+    """Convert Markdown links and bold to Slack mrkdwn, leaving code untouched."""
+    parts = _CODE_PATTERN.split(text)
+    return "".join(
+        part if i % 2 else _convert_prose(part) for i, part in enumerate(parts)
     )
 
 

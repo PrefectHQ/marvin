@@ -52,7 +52,6 @@ Key configuration points:
 - **Model Selection**: Three tiers via Prefect Variables — `marvin_bot_model` (answering agent, falls back to `marvin_ai_model`), `marvin_utility_model` (thread summarization, falls back to `marvin_memory_synthesis_model`), `marvin_research_model` (research subagent). Full `provider:model` strings preferred; bare names normalized. User memory is recalled verbatim without a synthesis model.
 - **Tool Limits**: Max 50 tool calls per turn (configurable via `MARVIN_SLACKBOT_MAX_TOOL_CALLS_PER_TURN`)
 - **Message Limits**: Max 500 tokens per user message (configurable)
-- **Temperature**: Auto-adjusts to 1.0 for GPT-5, 0.2 for others
 
 Required Prefect Secrets:
 - `test-slack-api-token`: Slack bot OAuth token
