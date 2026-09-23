@@ -12,6 +12,7 @@ from claude_agent_sdk.types import AssistantMessage, TextBlock
 from prefect import task
 from prefect.cache_policies import INPUTS
 
+from slackbot._internal.doc_links import load_published_pages, surface_doc_links
 from slackbot.settings import bare_model_name, settings
 
 
@@ -50,8 +51,8 @@ IMPORTANT: Before researching, ensure you have the Prefect source code:
 
 DOCUMENTATION:
 - Read docs from {prefect_repo}/docs/v3/ (or {prefect_repo}/docs/ on 2.x branch)
-- Use {prefect_repo}/docs/docs.json to map file paths to published URLs at https://docs.prefect.io/
-- Verify all doc links with `curl -I <url>` before providing them - never hallucinate URLs
+- Cite every doc page you rely on by its published URL: {prefect_repo}/docs/v3/concepts/flows.mdx is https://docs.prefect.io/v3/concepts/flows
+- Only pages listed in {prefect_repo}/docs/docs.json are published. Your links are checked against it after you finish and unlisted pages are dropped, so never guess URLs (docs.prefect.io returns 200 for missing pages, so curl can't verify them)
 
 If cloning fails (e.g., disk space), fall back to searching the installed package in your current environment.
 
@@ -123,7 +124,10 @@ def research_prefect_topic(question: str, topic: str, version: str = "3.x") -> s
             .result()
         )
 
-        return f"**Research Findings (Code-Verified)**\n\n{result}"
+        published = load_published_pages(
+            Path.cwd() / ".research_cache" / "prefect" / "docs" / "docs.json"
+        )
+        return f"**Research Findings (Code-Verified)**\n\n{surface_doc_links(result, published)}"
 
     except Exception as e:
         return f"Research failed: {str(e)}. The agent may not have access to the source code."
