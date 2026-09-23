@@ -64,7 +64,7 @@ async def summarize_async(
         'Major API updates include...'
 
     """
-    task_context = context or {}
+    task_context = dict(context) if context else {}
     task_context["Data to summarize"] = data
     prompt = prompt or DEFAULT_PROMPT
     if instructions:

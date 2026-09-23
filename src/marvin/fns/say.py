@@ -37,7 +37,7 @@ async def say_async(
     Returns:
         str: The assistant's response to the user's message.
     """
-    task_context = context or {}
+    task_context = dict(context) if context else {}
     if instructions:
         task_context["Additional instructions"] = instructions
 
