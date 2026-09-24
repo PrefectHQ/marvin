@@ -1,5 +1,5 @@
 import enum
-from typing import Literal
+from typing import List, Literal
 
 import pytest
 
@@ -47,6 +47,8 @@ class TestClassification:
         assert not is_classifier(list[str])
         assert not is_classifier(list[int])
         assert not is_classifier(dict[str, int])
+        # Bare List without type parameter must not crash
+        assert not is_classifier(List)
 
     def test_as_classifier_with_raw_types(self):
         """Test converting raw types to Labels."""
@@ -87,6 +89,11 @@ class TestClassification:
         assert isinstance(labels, Labels)
         assert labels.many
         assert labels.labels == ("alpha", "beta")
+
+    def test_as_classifier_with_bare_list(self):
+        """Bare List must raise ValueError, not IndexError."""
+        with pytest.raises(ValueError):
+            as_classifier(List)
 
     def test_labels_validation(self):
         """Test validation of Labels."""
