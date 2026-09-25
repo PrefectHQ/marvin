@@ -88,12 +88,10 @@ class Memory:
                     underlying vector database. No provider was passed as an
                     argument, and no default value has been configured. 
                     
-                    For more information on configuring a memory provider, see
-                    the [Memory
-                    documentation](https://controlflow.ai/patterns/memory), and
-                    please review the [default provider
-                    guide](https://controlflow.ai/guides/default-memory) for
-                    information on configuring a default provider.
+                    For more information on configuring a memory provider, see the
+                    [Memory documentation](https://github.com/PrefectHQ/ControlFlow/blob/main/docs/patterns/memory.mdx),
+                    and please review the [default provider guide](https://github.com/PrefectHQ/ControlFlow/blob/main/docs/guides/default-memory.mdx)
+                    for information on configuring a default provider.
                     
                     Please note that if you are using ControlFlow for the first
                     time, this error is expected because ControlFlow does not include
