@@ -38,10 +38,17 @@ def run_sync(coro: Coroutine[Any, Any, T]) -> T:
     except RuntimeError:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+
+    # A loop that is closed or belongs to a running loop cannot run the
+    # coroutine, and the error raised for a closed loop ("Event loop is
+    # closed") does not match the check below, so decide before trying.
+    if loop.is_closed() or loop.is_running():
+        return run_sync_in_thread(coro)
+
     try:
         return ctx.run(loop.run_until_complete, coro)
     except RuntimeError as e:
-        if "event loop" in str(e):
+        if "event loop" in str(e).lower():
             return run_sync_in_thread(coro)
         raise e
 
