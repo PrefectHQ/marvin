@@ -74,7 +74,7 @@ async def generate_async(
     if _target is str and instructions is None:
         raise ValueError("Instructions are required when generating string values.")
 
-    task_context = context or {}
+    task_context = dict(context) if context else {}
     task_context["Number to generate"] = n
 
     prompt = prompt or DEFAULT_PROMPT
