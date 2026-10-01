@@ -47,7 +47,7 @@ class TolerantToolset(AbstractToolset[AgentDepsT]):
         try:
             await self._inner.__aenter__()
             self._available = True
-        except BaseException as e:  # includes ExceptionGroup from anyio task groups
+        except Exception as e:  # includes ordinary ExceptionGroups, not cancellation
             self._available = False
             if self._on_error is not None:
                 self._on_error(e)
@@ -58,7 +58,7 @@ class TolerantToolset(AbstractToolset[AgentDepsT]):
             return None
         try:
             return await self._inner.__aexit__(*args)
-        except BaseException as e:
+        except Exception as e:
             if self._on_error is not None:
                 self._on_error(e)
             return None
@@ -70,7 +70,7 @@ class TolerantToolset(AbstractToolset[AgentDepsT]):
             return {}
         try:
             return await self._inner.get_tools(ctx)
-        except BaseException as e:
+        except Exception as e:
             if self._on_error is not None:
                 self._on_error(e)
             return {}

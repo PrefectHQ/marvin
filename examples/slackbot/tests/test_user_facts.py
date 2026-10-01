@@ -1,5 +1,9 @@
 """Regression tests for the user-facts pipeline fixes."""
 
+import json
+from types import SimpleNamespace
+from unittest.mock import patch
+
 from slackbot._internal.personalization import _annotate_row
 from slackbot._internal.vectors import (
     DELETE_MAX_DISTANCE,
@@ -47,12 +51,19 @@ class TestSelectRowsToDelete:
 class TestAnnotateRow:
     def test_appends_stored_date(self):
         row = FakeRow("a", "user uses Prefect 3.x", None, "2026-08-15T01:02:03+00:00")
-        assert _annotate_row(row) == "user uses Prefect 3.x (stored 2026-08-15)"
+        assert json.loads(_annotate_row(row)) == {
+            "id": "a",
+            "text": row.text,
+            "created_at": row.created_at,
+        }
 
     def test_no_created_at(self):
-        assert _annotate_row(FakeRow("a", "user uses Prefect 3.x", None)) == (
-            "user uses Prefect 3.x"
-        )
+        assert json.loads(
+            _annotate_row(FakeRow("a", "user uses Prefect 3.x", None))
+        ) == {
+            "id": "a",
+            "text": "user uses Prefect 3.x",
+        }
 
     def test_empty_text(self):
         assert _annotate_row(FakeRow("a", "  ", None, "2026-08-15")) == ""
@@ -98,11 +109,20 @@ class TestAuthorExtraction:
 
 class TestPersonalizationResilience:
     def test_empty_question_skips_vector_query(self):
-        from slackbot._internal.personalization import _query_relevant_facts
+        from slackbot._internal.personalization import load_personalization_snapshot
 
-        # must return without touching the vector store (no client, no network)
-        assert _query_relevant_facts("user-facts-U1", "") == []
-        assert _query_relevant_facts("user-facts-U1", "   ") == []
+        # Even a profile larger than the context limit must not embed an
+        # image-only or mention-only message.
+        with patch("slackbot._internal.personalization.TurboPuffer") as factory:
+            store = factory.return_value.__enter__.return_value
+            store.ns.metadata.return_value = SimpleNamespace(schema_={})
+            store.ns.query.return_value = SimpleNamespace(
+                rows=[FakeRow(str(i), "fact", None) for i in range(26)]
+            )
+            for question in ("", "   "):
+                snapshot = load_personalization_snapshot("user-facts-U1", question)
+                assert snapshot.relevant_notes == ""
+            store.query.assert_not_called()
 
     def test_build_user_context_survives_personalization_failure(self):
         from unittest.mock import patch

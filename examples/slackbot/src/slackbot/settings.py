@@ -67,9 +67,6 @@ class SlackbotSettings(BaseSettings):
         description="Path to SQLite database file used for thread dedup state.",
     )
 
-    temperature: float = Field(
-        default=0.2, description="Temperature for model inference"
-    )
     user_message_max_tokens: int = Field(
         default=500, description="Maximum tokens allowed in user messages"
     )
@@ -133,8 +130,6 @@ class SlackbotSettings(BaseSettings):
 
     @model_validator(mode="after")
     def _apply_post_validation_defaults(self) -> "SlackbotSettings":
-        if "gpt-5" in self.bot_model:
-            self.temperature = 1.0
         if not os.getenv("TURBOPUFFER_API_KEY"):
             try:
                 api_key = Secret.load("tpuf-api-key", _sync=True).get()  # type: ignore
