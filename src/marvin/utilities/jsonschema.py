@@ -203,7 +203,17 @@ def create_numeric_type(
 def create_enum(name: str, values: list[Any]) -> type | Enum:
     """Create enum type from list of values."""
     if all(isinstance(v, str) for v in values):
-        return Enum(name, {v.upper(): v for v in values})
+        # Derive a valid, unique member name for each value. Using ``v.upper()``
+        # directly is not injective (e.g. "yes"/"YES" collide, silently dropping a
+        # value) and can produce invalid member names (e.g. "" -> ValueError), so
+        # sanitize and de-duplicate to preserve every declared value.
+        members: dict[str, str] = {}
+        for i, value in enumerate(values):
+            key = sanitize_name(value).upper() or f"VALUE_{i}"
+            while key in members:
+                key = f"{key}_{i}"
+            members[key] = value
+        return Enum(name, members)
     return Literal[tuple(values)]  # type: ignore
 
 
