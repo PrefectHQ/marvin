@@ -637,6 +637,51 @@ class TestFormatTypes:
         assert isinstance(result.ref_uri, str)
 
 
+class TestReferences:
+    @pytest.mark.parametrize("definitions_key", ["definitions", "$defs"])
+    @pytest.mark.parametrize(
+        "definition_name, reference_token",
+        [
+            ("plain", "plain"),
+            ("a/b", "a~1b"),
+            ("m~n", "m~0n"),
+            ("a~/b", "a~0~1b"),
+            ("a~1b", "a~01b"),
+        ],
+    )
+    def test_reference_tokens_preserve_constraints(
+        self, definitions_key, definition_name, reference_token
+    ):
+        schema = {
+            "type": "object",
+            definitions_key: {definition_name: {"type": "integer", "minimum": 1}},
+            "properties": {"value": {"$ref": f"#/{definitions_key}/{reference_token}"}},
+            "required": ["value"],
+        }
+        validator = TypeAdapter(jsonschema_to_type(schema))
+
+        assert validator.validate_python({"value": 2}).value == 2
+        for invalid_value in ["not-an-integer", 0]:
+            with pytest.raises(ValidationError):
+                validator.validate_python({"value": invalid_value})
+
+    def test_decodes_each_reference_token(self):
+        schema = {
+            "$defs": {
+                "a/b": {
+                    "type": "object",
+                    "properties": {"m~n": {"type": "integer", "minimum": 1}},
+                }
+            },
+            "$ref": "#/$defs/a~1b/properties/m~0n",
+        }
+        validator = TypeAdapter(jsonschema_to_type(schema))
+
+        assert validator.validate_python(2) == 2
+        with pytest.raises(ValidationError):
+            validator.validate_python(0)
+
+
 class TestCircularReferences:
     """Test suite for circular reference handling."""
 
