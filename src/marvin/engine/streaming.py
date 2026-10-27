@@ -2,7 +2,6 @@ from collections.abc import Callable
 from typing import Any
 
 import pydantic_ai
-from pydantic_ai._parts_manager import ModelResponsePartsManager
 from pydantic_ai.agent import AgentRun
 from pydantic_ai.messages import (
     FinalResultEvent,
@@ -13,6 +12,7 @@ from pydantic_ai.messages import (
     PartEndEvent,
     PartStartEvent,
     RetryPromptPart,
+    TextPart,
     TextPartDelta,
     ToolCallPart,
     ToolCallPartDelta,
@@ -72,8 +72,7 @@ async def handle_agentlet_events(
     Yields:
         Marvin events derived from PydanticAI events
     """
-    # Create a parts manager to accumulate delta events for this run
-    parts_manager = ModelResponsePartsManager()
+    parts: dict[int, ModelResponsePart | ToolCallPartDelta] = {}
     tools_map = {}
     for t_tool_obj in agentlet._marvin_tools:
         if isinstance(t_tool_obj, Tool):
@@ -108,6 +107,8 @@ async def handle_agentlet_events(
                 ):
                     yield ToolRetryEvent(message=part)
 
+            parts.clear()
+
             # Model request node - stream tokens from the model's request
             async with node.stream(run.ctx) as request_stream:
                 async for event in request_stream:
@@ -115,7 +116,7 @@ async def handle_agentlet_events(
                         event = _process_pydantic_event(
                             event=event,
                             actor=actor,
-                            parts_manager=parts_manager,
+                            parts=parts,
                             tools_map=tools_map,
                             end_turn_tools_map=end_turn_tools_map,
                         )
@@ -139,7 +140,7 @@ async def handle_agentlet_events(
                         event = _process_pydantic_event(
                             event=event,
                             actor=actor,
-                            parts_manager=parts_manager,
+                            parts=parts,
                             tools_map=tools_map,
                             end_turn_tools_map=end_turn_tools_map,
                         )
@@ -158,7 +159,7 @@ async def handle_agentlet_events(
         # Check if we've reached the final End node
         elif pydantic_ai.Agent.is_end_node(node):
             tool_call_part = None
-            for part in parts_manager.get_parts():
+            for part in parts.values():
                 if (
                     isinstance(part, ToolCallPart)
                     and part.tool_name == node.data.tool_name
@@ -182,50 +183,22 @@ async def handle_agentlet_events(
             logger.warning(f"Unknown node type: {type(node)}")
 
 
-# Private helper function to process PydanticAI events
 def _process_pydantic_event(
     event,
     actor: Actor,
-    parts_manager: ModelResponsePartsManager,
+    parts: dict[int, ModelResponsePart | ToolCallPartDelta],
     tools_map: dict[str, Callable[..., Any]],
     end_turn_tools_map: dict[str, EndTurn],
 ) -> Event | None:
-    def _get_snapshot(index: int) -> ModelResponsePart | None:
-        # Use the internal _parts list directly since event.index refers to that.
-        # get_parts() filters out ToolCallPartDelta objects which causes index mismatch.
-        # Note: _parts can contain both ModelResponsePart and ToolCallPartDelta
-        if index < len(parts_manager._parts):
-            return parts_manager._parts[index]
-        # This should never happen with valid events from pydantic-ai
-        return None
-
-    # Handle Part Start Events
     if isinstance(event, PartStartEvent):
-        # Process a new part starting
-        if event.part.part_kind == "text":
-            # For text parts, update the parts manager
-            parts_manager.handle_text_delta(
-                vendor_part_id=event.index, content=event.part.content
-            )
-
-            # Only emit delta events for streaming updates
+        parts[event.index] = event.part
+        if isinstance(event.part, TextPart):
             return ActorMessageDeltaEvent(
                 actor=actor,
                 delta=TextPartDelta(content_delta=event.part.content),
-                snapshot=_get_snapshot(event.index),
+                snapshot=event.part,
             )
-
-        elif event.part.part_kind == "tool-call":
-            # For tool call parts
-            parts_manager.handle_tool_call_part(
-                vendor_part_id=event.index,
-                tool_name=event.part.tool_name,
-                args=event.part.args,
-                tool_call_id=event.part.tool_call_id,
-            )
-
-            # Always emit delta events for streaming updates
-            snapshot = _get_snapshot(event.index)
+        if isinstance(event.part, ToolCallPart):
             return ToolCallDeltaEvent(
                 actor=actor,
                 delta=ToolCallPartDelta(
@@ -233,93 +206,52 @@ def _process_pydantic_event(
                     args_delta=event.part.args,
                     tool_call_id=event.part.tool_call_id,
                 ),
-                snapshot=snapshot,
-                tool_call_id=snapshot.tool_call_id if snapshot else None,
+                snapshot=event.part,
+                tool_call_id=event.part.tool_call_id,
                 tool=tools_map.get(event.part.tool_name),
             )
-    # Handle Part End Events
     elif isinstance(event, PartEndEvent):
-        # Part end events signal that a part is complete. We don't need to
-        # emit a Marvin event for this since we handle completion via other
-        # events (FunctionToolCallEvent, FinalResultEvent, etc.)
-        return None
-
-    # Handle Part Delta Events
+        parts[event.index] = event.part
     elif isinstance(event, PartDeltaEvent):
-        # Process a delta update to an existing part
+        part = parts[event.index]
         if isinstance(event.delta, TextPartDelta):
-            # Handle text delta
-            parts_manager.handle_text_delta(
-                vendor_part_id=event.index, content=event.delta.content_delta
-            )
-
-            # Emit delta event for streaming
+            snapshot = event.delta.apply(part)
+            parts[event.index] = snapshot
             return ActorMessageDeltaEvent(
-                actor=actor,
-                delta=event.delta,
-                snapshot=_get_snapshot(event.index),
+                actor=actor, delta=event.delta, snapshot=snapshot
             )
-
-        elif isinstance(event.delta, ToolCallPartDelta):
-            # Handle tool call delta
-            parts_manager.handle_tool_call_delta(
-                vendor_part_id=event.index,
-                tool_name=event.delta.tool_name_delta,
-                args=event.delta.args_delta,
-                tool_call_id=event.delta.tool_call_id,
-            )
-            # Emit delta event for streaming
+        if isinstance(event.delta, ToolCallPartDelta):
+            snapshot = event.delta.apply(part)
+            parts[event.index] = snapshot
             return ToolCallDeltaEvent(
                 actor=actor,
                 delta=event.delta,
-                snapshot=_get_snapshot(event.index),
-                tool_call_id=event.delta.tool_call_id,
-                tool=tools_map.get(event.delta.tool_name_delta),
+                snapshot=snapshot,
+                tool_call_id=snapshot.tool_call_id,
+                tool=tools_map.get(getattr(snapshot, "tool_name", None)),
             )
-
-    # Handle Function Tool Call Events
     elif isinstance(event, FunctionToolCallEvent):
-        # This is the signal that a tool call is complete and ready to be executed
-        # Emit tool call complete event
-        resolved_tool = tools_map.get(event.part.tool_name)
         return ToolCallEvent(
             actor=actor,
             message=event.part,
             tool_call_id=event.part.tool_call_id,
-            tool=resolved_tool,
+            tool=tools_map.get(event.part.tool_name),
         )
-
-    # Handle Function Tool Result Events
     elif isinstance(event, FunctionToolResultEvent):
-        # Emit tool result event
-        if isinstance(event.result, ToolReturnPart):
-            return ToolResultEvent(message=event.result)
-        elif isinstance(event.result, RetryPromptPart):
-            return ToolRetryEvent(message=event.result)
-        else:
-            pass
-
-    # Handle Final Result Event
-    # This fires as soon as Pydantic AI recognizes that the tool call is an end turn tool
-    # (i.e. as soon as the name is recognized, but before the args are returned)
+        part = getattr(event, "part", None)
+        if part is None:
+            part = event.result
+        if isinstance(part, ToolReturnPart):
+            return ToolResultEvent(message=part)
+        if isinstance(part, RetryPromptPart):
+            return ToolRetryEvent(message=part)
     elif isinstance(event, FinalResultEvent):
-        tool_call_part = None
-        for part in parts_manager.get_parts():
-            if isinstance(part, ToolCallPart) and part.tool_name == event.tool_name:
-                tool_call_part = part
-                break
-        if tool_call_part is None:
-            raise ValueError(
-                f"No tool call part found for {event.tool_name}. This is unexpected."
-            )
-
         return EndTurnToolCallEvent(
             actor=actor,
             event=event,
-            tool_call_id=tool_call_part.tool_call_id,
+            tool_call_id=event.tool_call_id,
             tool=end_turn_tools_map.get(event.tool_name),
         )
-
-    else:
+    elif event.event_kind not in {"output_tool_call", "output_tool_result"}:
         logger.warning(f"Unknown event type: {type(event)}")
-        return None
+    return None

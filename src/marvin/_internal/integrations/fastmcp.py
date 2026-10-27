@@ -2,9 +2,9 @@ from typing import Any, Callable
 
 from mcp.types import CallToolResult
 from mcp.types import Tool as MCPToolType
-from pydantic_ai.mcp import MCPServer
 from pydantic_ai.tools import ToolDefinition
 
+from marvin._internal.pydantic_ai import MCPServer, MCPServerStdio
 from marvin.utilities.logging import get_logger
 
 logger = get_logger(__name__)
@@ -28,7 +28,9 @@ class _FastMCPImportState:
             from fastmcp.server import FastMCP as FastMCPServer_local  # type: ignore
 
             self.server_type = FastMCPServer_local
-            self.converter_func = lambda server: _FastMCPAdapter(server)
+            self.converter_func = (
+                _FastMCPAdapter if MCPServerStdio is not None else MCPServer
+            )
 
             logger.debug(
                 "Successfully imported FastMCP components for optional Marvin integration."

@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Sequence, TypeVar
 
 import pydantic_ai
-from pydantic_ai.mcp import MCPServer
 from pydantic_ai.models import KnownModelName, Model, ModelSettings
 from pydantic_ai.result import ToolOutput
 
@@ -18,6 +17,7 @@ import marvin
 from marvin._internal.integrations.fastmcp import (
     attempt_convert_to_pydantic_ai_mcp_server,
 )
+from marvin._internal.pydantic_ai import MCPServer
 from marvin.agents.actor import Actor
 from marvin.agents.names import AGENT_NAMES
 from marvin.memory.memory import Memory

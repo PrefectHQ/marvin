@@ -8,11 +8,11 @@ from typing import TYPE_CHECKING, Any, Sequence, TypeVar
 
 import pydantic_ai
 from pydantic_ai.agent import AgentRunResult
-from pydantic_ai.mcp import MCPServer
 from pydantic_ai.messages import UserContent
 
 import marvin
 import marvin.utilities.asyncio
+from marvin._internal.pydantic_ai import MCPServer
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.thread import Thread

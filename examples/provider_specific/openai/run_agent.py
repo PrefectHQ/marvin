@@ -2,7 +2,11 @@ import os
 from pathlib import Path
 
 import httpx
-from pydantic_ai.models.openai import OpenAIModel
+
+try:
+    from pydantic_ai.models.openai import OpenAIChatModel
+except ImportError:
+    from pydantic_ai.models.openai import OpenAIModel as OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 import marvin
@@ -15,7 +19,7 @@ def write_file(path: str, content: str):
 
 
 writer = marvin.Agent(
-    model=OpenAIModel(
+    model=OpenAIChatModel(
         "gpt-4o",
         provider=OpenAIProvider(
             api_key=os.getenv("OPENAI_API_KEY"),

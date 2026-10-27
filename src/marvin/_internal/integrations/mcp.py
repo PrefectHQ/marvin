@@ -11,11 +11,11 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, AsyncIterator, Coroutine
 
 from mcp.types import CallToolResult
-from pydantic_ai.mcp import MCPServer, MCPServerStdio
 from pydantic_ai.messages import ToolReturnPart
 from pydantic_ai.tools import Tool, ToolDefinition
 
 import marvin
+from marvin._internal.pydantic_ai import MCPServer, MCPServerStdio
 from marvin.agents.actor import Actor
 from marvin.engine.events import ToolResultEvent
 from marvin.utilities.logging import get_logger
@@ -106,7 +106,7 @@ class MCPManager:
                 # merging any user-specified env vars on top of os.environ.
                 # Without this, a server with env={"FOO": "bar"} would lose
                 # PATH, HOME, etc., causing the subprocess to fail.
-                if isinstance(server, MCPServerStdio):
+                if MCPServerStdio is not None and isinstance(server, MCPServerStdio):
                     if server.env is None:
                         logger.debug(
                             f"[MCPManager] Server {server_repr} has no env set. Setting env=dict(os.environ)."

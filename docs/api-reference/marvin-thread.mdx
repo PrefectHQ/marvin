@@ -12,7 +12,7 @@ This module provides the Thread class for managing conversation context.
 
 ### `LLMCall`
 ```python
-class LLMCall(id: uuid.UUID, thread_id: str, usage: Usage, timestamp: datetime)
+class LLMCall(id: uuid.UUID, thread_id: str, usage: RunUsage, timestamp: datetime)
 ```
 Represents an LLM call.
 
@@ -164,7 +164,7 @@ Main runtime object for managing conversation context.
       List of messages in chronological order
 - **`get_usage`**
   ```python
-  def get_usage(self, before: datetime | None = None, after: datetime | None = None) -> Usage
+  def get_usage(self, before: datetime | None = None, after: datetime | None = None) -> RunUsage
   ```
   Get the usage for this thread.
   
@@ -176,7 +176,7 @@ Main runtime object for managing conversation context.
       Total usage for the specified time range
 - **`get_usage_async`**
   ```python
-  def get_usage_async(self, before: datetime | None = None, after: datetime | None = None) -> Usage
+  def get_usage_async(self, before: datetime | None = None, after: datetime | None = None) -> RunUsage
   ```
   Get the usage for this thread.
   
