@@ -65,5 +65,8 @@ jobs:
       - name: Install Marvin
         run: uv sync
 
+      - name: Download Chroma embedding model before starting parallel workers
+        run: uv run --frozen python -c 'from chromadb.utils.embedding_functions import DefaultEmbeddingFunction; DefaultEmbeddingFunction()(["initialize embedding model"])'
+
       - name: Run tests
         run: uv run --frozen pytest -v -n auto

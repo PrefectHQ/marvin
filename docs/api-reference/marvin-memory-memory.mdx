@@ -8,7 +8,7 @@ title: memory
 
 ### `Memory`
 ```python
-class Memory(key: str, instructions: str | None = None, provider: MemoryProvider = (lambda: marvin.defaults.memory_provider)(), auto_use: bool = False, prompt: str | Path = Path('memory.jinja'))
+class Memory(*, key: str, instructions: str | None = None, provider: MemoryProvider = (lambda: marvin.defaults.memory_provider)(), auto_use: bool = False, prompt: str | Path = Path('memory.jinja'))
 ```
 A memory module is a partitioned collection of memories that are stored in a
 vector database, configured by a MemoryProvider.
@@ -17,11 +17,11 @@ vector database, configured by a MemoryProvider.
 
 - **`add`**
   ```python
-  def add(self, content: str) -> str
+  async def add(self, content: str) -> str
   ```
 - **`delete`**
   ```python
-  def delete(self, memory_id: str)
+  async def delete(self, memory_id: str)
   ```
 - **`friendly_name`**
   ```python
@@ -37,7 +37,7 @@ vector database, configured by a MemoryProvider.
   ```
 - **`search`**
   ```python
-  def search(self, query: str, n: int = 20) -> dict[str, str]
+  async def search(self, query: str, n: int = 20) -> dict[str, str]
   ```
 
 ### `MemoryProvider`
@@ -49,7 +49,7 @@ class MemoryProvider()
 
 - **`add`**
   ```python
-  def add(self, memory_key: str, content: str) -> str
+  async def add(self, memory_key: str, content: str) -> str
   ```
   Create a new memory and return its ID.
 - **`configure`**
@@ -59,12 +59,12 @@ class MemoryProvider()
   Configure the provider for a specific memory.
 - **`delete`**
   ```python
-  def delete(self, memory_key: str, memory_id: str)
+  async def delete(self, memory_key: str, memory_id: str)
   ```
   Delete a memory by its ID.
 - **`search`**
   ```python
-  def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]
+  async def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]
   ```
   Search for n memories using a string query.
 

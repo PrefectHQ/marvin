@@ -41,13 +41,8 @@
                             "concepts/tasks",
                             "concepts/agents",
                             "concepts/threads",
-                            "concepts/tools-and-context"
-                        ]
-                    },
-                    {
-                        "group": "Integrations",
-                        "pages": [
-                            "guides/mcp"
+                            "concepts/tools-and-context",
+                            "concepts/memory"
                         ]
                     },
                     {
@@ -58,8 +53,10 @@
                             "functions/classify",
                             "functions/extract",
                             "functions/generate",
+                            "functions/fn",
                             "functions/say",
-                            "functions/summarize"
+                            "functions/summarize",
+                            "functions/plan"
                         ]
                     },
                     {
@@ -67,9 +64,22 @@
                         "pages": [
                             "patterns/task-results",
                             "patterns/running-tasks",
-                            "patterns/memory",
                             "patterns/tools",
+                            "patterns/instructions",
                             "patterns/interactivity"
+                        ]
+                    },
+                    {
+                        "group": "Guides",
+                        "pages": [
+                            "guides/configure-llms",
+                            "guides/configuration",
+                            "guides/multi-step-workflow",
+                            "guides/building-a-chatbot",
+                            "guides/mcp",
+                            "guides/cli",
+                            "guides/database-migrations",
+                            "guides/migration-guide"
                         ]
                     },
                     {
@@ -92,6 +102,7 @@
                     {
                         "group": "agents",
                         "pages": [
+                            "api-reference/marvin-agents",
                             "api-reference/marvin-agents-actor",
                             "api-reference/marvin-agents-agent",
                             "api-reference/marvin-agents-names",
@@ -101,6 +112,7 @@
                     {
                         "group": "beta",
                         "pages": [
+                            "api-reference/marvin-beta",
                             "api-reference/marvin-beta-observability",
                             "api-reference/marvin-beta-observability-openai"
                         ]
@@ -108,6 +120,7 @@
                     {
                         "group": "cli",
                         "pages": [
+                            "api-reference/marvin-cli",
                             "api-reference/marvin-cli-config",
                             "api-reference/marvin-cli-dev",
                             "api-reference/marvin-cli-main",
@@ -116,15 +129,20 @@
                     },
                     {
                         "group": "database",
-                        "pages": []
+                        "pages": [
+                            "api-reference/marvin-database"
+                        ]
                     },
                     {
                         "group": "defaults",
-                        "pages": []
+                        "pages": [
+                            "api-reference/marvin-defaults"
+                        ]
                     },
                     {
                         "group": "engine",
                         "pages": [
+                            "api-reference/marvin-engine",
                             "api-reference/marvin-engine-end_turn",
                             "api-reference/marvin-engine-events",
                             "api-reference/marvin-engine-llm",
@@ -135,6 +153,7 @@
                     {
                         "group": "fns",
                         "pages": [
+                            "api-reference/marvin-fns",
                             "api-reference/marvin-fns-cast",
                             "api-reference/marvin-fns-classify",
                             "api-reference/marvin-fns-extract",
@@ -149,6 +168,7 @@
                     {
                         "group": "handlers",
                         "pages": [
+                            "api-reference/marvin-handlers",
                             "api-reference/marvin-handlers-handlers",
                             "api-reference/marvin-handlers-print_handler",
                             "api-reference/marvin-handlers-queue_handler"
@@ -156,11 +176,14 @@
                     },
                     {
                         "group": "instructions",
-                        "pages": []
+                        "pages": [
+                            "api-reference/marvin-instructions"
+                        ]
                     },
                     {
                         "group": "memory",
                         "pages": [
+                            "api-reference/marvin-memory",
                             "api-reference/marvin-memory-memory",
                             "api-reference/marvin-memory-providers",
                             "api-reference/marvin-memory-providers-chroma",
@@ -171,31 +194,40 @@
                     },
                     {
                         "group": "prompts",
-                        "pages": []
+                        "pages": [
+                            "api-reference/marvin-prompts"
+                        ]
                     },
                     {
                         "group": "settings",
-                        "pages": []
+                        "pages": [
+                            "api-reference/marvin-settings"
+                        ]
                     },
                     {
                         "group": "tasks",
                         "pages": [
+                            "api-reference/marvin-tasks",
                             "api-reference/marvin-tasks-task"
                         ]
                     },
                     {
                         "group": "thread",
-                        "pages": []
+                        "pages": [
+                            "api-reference/marvin-thread"
+                        ]
                     },
                     {
                         "group": "tools",
                         "pages": [
+                            "api-reference/marvin-tools",
                             "api-reference/marvin-tools-thread"
                         ]
                     },
                     {
                         "group": "utilities",
                         "pages": [
+                            "api-reference/marvin-utilities",
                             "api-reference/marvin-utilities-asyncio",
                             "api-reference/marvin-utilities-jinja",
                             "api-reference/marvin-utilities-jsonschema",

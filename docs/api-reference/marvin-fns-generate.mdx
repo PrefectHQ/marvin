@@ -4,18 +4,6 @@ title: generate
 
 # `marvin.fns.generate`
 
-## Constants
-
-### `DEFAULT_PROMPT`
-```python
-DEFAULT_PROMPT = "'\nYou are an expert data generator that always creates high-quality, random\nexamples of a description or type. The data you produce is relied on for\ntesting, examples, demonstrations, and more. You use inference or deduction\nwhenever necessary to supply missing or omitted data. You will be given\ninstructions or a type format, as well as a number of entities to generate. \n\nUnless the user explicitly says otherwise, assume they are request a VARIED and\nREALISTIC selection of useful outputs that meet their criteria. However, you\nshould prefer common responses to uncommon ones.\n\nIf the user provides additional instructions or a description, assume they are\nlooking for examples that satisfy the description. Do not provide more\ninformation than the user requests. For example, if they ask for various\ntechnologies, give their names but do not explain what each technology is.\n'"
-```
-
-### `T`
-```python
-T = TypeVar('T')
-```
-
 ## Functions
 
 ### `generate`
@@ -46,7 +34,7 @@ Returns:
 
 ### `generate_async`
 ```python
-def generate_async(target: TargetType[T] | None = None, n: int = 1, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, handlers: list[Handler | AsyncHandler] | None = None, prompt: str | None = None) -> list[T]
+async def generate_async(target: TargetType[T] | None = None, n: int = 1, instructions: str | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, handlers: list[Handler | AsyncHandler] | None = None, prompt: str | None = None) -> list[T]
 ```
 Generates examples of a specific type or matching a description asynchronously.
 
@@ -78,7 +66,7 @@ Generates a JSON schema from a description.
 
 ### `generate_schema_async`
 ```python
-def generate_schema_async(instructions: str, base_schema: JSONSchema | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, handlers: list[Handler | AsyncHandler] | None = None, prompt: str | None = None) -> JSONSchema
+async def generate_schema_async(instructions: str, base_schema: JSONSchema | None = None, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, handlers: list[Handler | AsyncHandler] | None = None, prompt: str | None = None) -> JSONSchema
 ```
 Generates a JSON schema from a description.
 

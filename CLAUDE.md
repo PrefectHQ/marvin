@@ -1,48 +1,23 @@
-# Marvin - AI Engineering Toolkit
+# Working on Marvin
 
-Marvin is a lightweight AI engineering toolkit for building natural language interfaces that are reliable, scalable, and easy to trust.
+Use `uv` for dependencies and Python commands. Use `X | Y`, built-in collection types, and type annotations for new Python code.
 
-## Reproductions
-- use the repros folder to reproduce the results (e.g. `uv run repros/1234.py`)
-- this folder is not checked into git
+```bash
+uv sync
+uv run pytest tests/basic
+uv run pre-commit run --all-files
+```
 
-## Architecture & Design Philosophy
+`tests/basic` does not call LLM providers. `tests/ai` makes real model requests. Set `MARVIN_HOME_PATH` to a temporary directory when testing so database and memory tests do not use local data.
 
-- **Aggressively minimal and elegant**: Keep implementations simple and focused
-- **Functional first**: Prefer functional approaches, use classes where justified  
-- **Type-safe**: Full type annotations, modern Python syntax (3.10+)
-- **Private internals**: Keep implementation details "private" (e.g. `def _impl`)
+The Slack bot is a separate workspace package under `examples/slackbot`; read its instructions before changing it. Library work should not require bot dependencies or changes to its deployment.
 
-## Key Components
+Edit handwritten documentation in `docs/`. API reference pages are generated from Python signatures and docstrings:
 
-- **Engine**: Core AI interaction layer
-- **Tasks**: Structured AI task definitions and execution
-- **Tools**: Extensible function calling capabilities
-- **Agents**: AI agents with tool access and memory
-- **Memory**: Persistent conversation and context storage
-- **Handlers**: Event processing and routing
-- **CLI**: Command-line interface for common operations
+```bash
+uv run scripts/create_mintlify_api_ref.py
+```
 
-## Development Guidelines
+Run the generator after source documentation changes. Keep examples executable, describe actual return types, and check claims against the implementation. Generated examples are not evidence that an API exists.
 
-### Type Hints
-- Use `X | Y` instead of `Union[X, Y]`
-- Use builtins like `list`, `dict` instead of `typing.List`, `typing.Dict`
-- Use `T | None` instead of `Optional`
-
-### Dependencies & Running
-- Use `uv` for dependency management and script execution
-- Install deps: `uv sync` or `uv sync --extra foo`
-- Run scripts: `uv run some/script.py` or `uv run --with pandas script.py`
-- Testing: `uv run pytest` or `uv run pytest -n3` for parallel
-
-### Finding Things
-- Use `rg` for searching, not grep
-- Use `ls` and `tree` for navigation
-- Check git context with using the GitHub MCP server
-- Think like a hacker with good intentions - search in site-packages when needed
-
-### Linter Philosophy
-- Empirically understand by running code
-- Linter tells basic truths but may be orthogonal to goals
-- Don't obsess over upstream linter errors, use as clues when relevant 
+Use the ignored `repros/` directory for issue reproductions. Public API changes, dependency migrations, and release procedures need their own review; keep cleanup changes focused.

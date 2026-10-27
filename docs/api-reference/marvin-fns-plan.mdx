@@ -4,23 +4,11 @@ title: plan
 
 # `marvin.fns.plan`
 
-## Constants
-
-### `PROMPT`
-```python
-PROMPT = "'\nYou are a task planner. You have been given some instructions about your\nobjectives and must produce at least one Marvin Task that, when completed, will\nallow you or other AI agents achieve the objective. Each task should represent a\ndiscrete, observable goal, neither too small to be a nuisance or lead to\nrepetivite work, nor too large to be difficult to manage.\n\nThese tasks will be executed by AI agents, like you. Create tasks appropriately.\nDo not create tasks like "Validate results" unless a separate validation step is\nactually required or helpful. Do not create tasks that require tools that are\nnot available.\n'"
-```
-
-### `T`
-```python
-T = TypeVar('T')
-```
-
 ## Classes
 
 ### `PlanTask`
 ```python
-class PlanTask(id: int, instructions: str, name: str | None = None, allow_fail: bool = False, allow_skip: bool = False, parent_id: int | None = None, depends_on_ids: list[int] | None = None, agent_ids: list[int] | None = None, tool_ids: list[int] | None = None)
+class PlanTask(*, id: int, instructions: str, name: str | None = None, allow_fail: bool = False, allow_skip: bool = False, parent_id: int | None = None, depends_on_ids: list[int] | None = None, agent_ids: list[int] | None = None, tool_ids: list[int] | None = None)
 ```
 
 ## Functions
@@ -49,12 +37,14 @@ Returns:
 
 
 Examples:
-    >>> tasks = marvin.plan("Create a new blog post about the latest AI trends.")
-    >>> marvin.run_tasks(tasks)
+```python
+>>> tasks = marvin.plan("Create a new blog post about the latest AI trends.")
+>>> marvin.run_tasks(tasks)
+```
 
 ### `plan_async`
 ```python
-def plan_async(instructions: str, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, available_agents: list[Agent] | None = None, tools: list[Callable[..., Any]] | None = None, parent_task: Task | None = None) -> list[Task]
+async def plan_async(instructions: str, agent: Agent | None = None, thread: Thread | str | None = None, context: dict[str, Any] | None = None, available_agents: list[Agent] | None = None, tools: list[Callable[..., Any]] | None = None, parent_task: Task | None = None) -> list[Task]
 ```
 Generate a series of new tasks in order to achieve a goal.
 
@@ -70,8 +60,10 @@ Returns:
     A list of Marvin Tasks that will allow you or other AI agents to achieve the objective.
 
 Examples:
-    >>> tasks = await marvin.plan_async("Create a new blog post about the latest AI trends.")
-    >>> await marvin.run_tasks_async(tasks)
+```python
+>>> tasks = await marvin.plan_async("Create a new blog post about the latest AI trends.")
+>>> await marvin.run_tasks_async(tasks)
+```
 
 ---
 

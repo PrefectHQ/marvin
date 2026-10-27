@@ -4,27 +4,13 @@ description: "Tasks for Marvin."
 ---
 
 # `marvin.tasks.task`
-Tasks for Marvin.
-
 A Task is a container for a prompt and its associated state.
-
-## Constants
-
-### `NOTSET`
-```python
-NOTSET = "'__NOTSET__'"
-```
-
-### `T`
-```python
-T = TypeVar('T')
-```
 
 ## Classes
 
 ### `Task`
 ```python
-class Task(instructions: str | Sequence[UserContent], attachments: Sequence[UserContent] | None = None, result_type: ResultType[T] = NOTSET, name: str | None = None, prompt_template: str | Path = Path('task.jinja'), agents: Actor | Sequence[Actor] | None = None, context: dict[str, Any] | None = None, tools: list[Callable[..., Any]] | None = None, memories: list[Memory] | None = None, result_validator: Callable[..., Any] | None = None, parent: Task[Any] | None | Literal['__NOTSET__'] = NOTSET, depends_on: Sequence[Task[Any]] | None = None, allow_fail: bool = False, allow_skip: bool = False, verbose: bool = False, cli: bool = False, plan: bool = False)
+class Task(instructions: str | Sequence[UserContent], attachments: Sequence[UserContent] | None = None, result_type: ResultType[T] = NOTSET, *, name: str | None = None, prompt_template: str | Path = Path('task.jinja'), agents: Actor | Sequence[Actor] | None = None, context: dict[str, Any] | None = None, tools: list[Callable[..., Any]] | None = None, memories: list[Memory] | None = None, result_validator: Callable[..., Any] | None = None, parent: Task[Any] | None | Literal['__NOTSET__'] = NOTSET, depends_on: Sequence[Task[Any]] | None = None, allow_fail: bool = False, allow_skip: bool = False, verbose: bool = False, cli: bool = False, plan: bool = False)
 ```
 A task is a container for a prompt and its associated state.
 
@@ -119,7 +105,7 @@ A task is a container for a prompt and its associated state.
   Check if the task is successful.
 - **`mark_failed`**
   ```python
-  def mark_failed(self, error: str, thread: Thread | None = None)
+  async def mark_failed(self, error: str, thread: Thread | None = None)
   ```
   Mark the task as failed with an error message.
 - **`mark_failed_tool`**
@@ -128,12 +114,12 @@ A task is a container for a prompt and its associated state.
   ```
 - **`mark_running`**
   ```python
-  def mark_running(self, thread: Thread | None = None)
+  async def mark_running(self, thread: Thread | None = None)
   ```
   Mark the task as running.
 - **`mark_skipped`**
   ```python
-  def mark_skipped(self, thread: Thread | None = None)
+  async def mark_skipped(self, thread: Thread | None = None)
   ```
   Mark the task as skipped.
 - **`mark_skipped_tool`**
@@ -142,7 +128,7 @@ A task is a container for a prompt and its associated state.
   ```
 - **`mark_successful`**
   ```python
-  def mark_successful(self, result: T = None, validate_result: bool = True, thread: Thread | None = None)
+  async def mark_successful(self, result: T = None, validate_result: bool = True, thread: Thread | None = None)
   ```
   Mark the task as successful with an optional result.
 - **`mark_successful_tool`**
@@ -151,15 +137,15 @@ A task is a container for a prompt and its associated state.
   ```
 - **`run`**
   ```python
-  def run(self, thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> T
+  def run(self, *, thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> T
   ```
 - **`run_async`**
   ```python
-  def run_async(self, thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> T
+  async def run_async(self, *, thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> T
   ```
 - **`run_stream`**
   ```python
-  def run_stream(self, thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> AsyncGenerator[Event, None]
+  def run_stream(self, *, thread: Thread | str | None = None, raise_on_failure: bool = True, handlers: list[Handler | AsyncHandler] | None = None) -> AsyncGenerator[Event, None]
   ```
 - **`validate_result`**
   ```python

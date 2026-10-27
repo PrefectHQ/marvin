@@ -1,69 +1,37 @@
 ---
 title: Installation
-description: Get started with Marvin in under a minute
+description: Install Marvin and configure a model provider
 icon: download
 ---
 
-## Requirements
-
-- Python 3.10 or higher
-- An API key from an LLM provider (OpenAI by default)
-
-## Install `marvin`
-
-The easiest way to install Marvin is a package manager like `pip` or [`uv`](https://docs.astral.sh/uv/):
+Marvin requires Python 3.10 or later.
 
 <CodeGroup>
-
 ```bash uv
-# add marvin to your project
 uv add marvin
-# add marvin to your script
-uv add --script some_script.py marvin
-# run a python process with marvin installed ephemerally
-uv run --with marvin some_script.py
 ```
-
 ```bash pip
-pip install marvin
+python -m pip install marvin
 ```
 </CodeGroup>
 
-
-## Configure your LLM provider
-
-By default, Marvin uses OpenAI's models. Set your API key as an environment variable:
+Export credentials for your provider before running a model request. OpenAI is the default:
 
 ```bash
 export OPENAI_API_KEY="your-api-key"
 ```
 
-To use another provider, see the docs on [configuring LLMs](/guides/configure-llms).
+See [model configuration](/guides/configure-llms) for other providers. Vector-memory providers have separate dependencies; see [memory](/concepts/memory).
 
-## Development Installation
+## Development
 
-For development, install Marvin with development dependencies:
-
-<CodeGroup>
-
-```bash uv
-git clone https://github.com/prefecthq/marvin.git
+```bash
+git clone https://github.com/PrefectHQ/marvin.git
 cd marvin
-uv venv && source .venv/bin/activate
-uv sync --dev
+uv sync
+uv run pytest tests/basic
 ```
 
-```bash pip
-git clone https://github.com/prefecthq/marvin.git
-cd marvin
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-```
-</CodeGroup>
+Development dependencies are a dependency group, not a `dev` package extra. The Slack bot has its own workspace package under `examples/slackbot`.
 
-## What's Next?
-
-- Follow the [Quickstart](/quickstart) guide to build your first AI application
-- Learn about [Tasks](/concepts/tasks), the building blocks of AI workflows
-- Explore [Agents](/concepts/agents) to create specialized AI workers
-- Read about [Threads](/concepts/threads) for managing conversation context 
+Continue with the [quickstart](/quickstart).

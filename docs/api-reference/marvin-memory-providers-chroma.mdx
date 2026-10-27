@@ -8,18 +8,18 @@ title: chroma
 
 ### `ChromaMemory`
 ```python
-class ChromaMemory(client: chromadb.ClientAPI = (lambda: chromadb.PersistentClient(path=(str(marvin.settings.home_path / 'memory/chroma'))))(), collection_name: str = 'memory-{key}')
+class ChromaMemory(*, client: chromadb.ClientAPI = (lambda: chromadb.PersistentClient(path=(str(marvin.settings.home_path / 'memory/chroma'))))(), collection_name: str = 'memory-{key}')
 ```
 
 **Methods:**
 
 - **`add`**
   ```python
-  def add(self, memory_key: str, content: str) -> str
+  async def add(self, memory_key: str, content: str) -> str
   ```
 - **`delete`**
   ```python
-  def delete(self, memory_key: str, memory_id: str)
+  async def delete(self, memory_key: str, memory_id: str)
   ```
 - **`get_collection`**
   ```python
@@ -27,24 +27,24 @@ class ChromaMemory(client: chromadb.ClientAPI = (lambda: chromadb.PersistentClie
   ```
 - **`search`**
   ```python
-  def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]
+  async def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]
   ```
 
 ## Functions
 
 ### `ChromaCloudMemory`
 ```python
-def ChromaCloudMemory(tenant: str | None = None, database: str | None = None, api_key: str | None = None, **kwargs: Any = {}) -> ChromaMemory
+def ChromaCloudMemory(tenant: str | None = None, database: str | None = None, api_key: str | None = None, **kwargs: Any) -> ChromaMemory
 ```
 
 ### `ChromaEphemeralMemory`
 ```python
-def ChromaEphemeralMemory(**kwargs: Any = {}) -> ChromaMemory
+def ChromaEphemeralMemory(**kwargs: Any) -> ChromaMemory
 ```
 
 ### `ChromaPersistentMemory`
 ```python
-def ChromaPersistentMemory(path: str | None = None, **kwargs: Any = {}) -> ChromaMemory
+def ChromaPersistentMemory(path: str | None = None, **kwargs: Any) -> ChromaMemory
 ```
 
 ---

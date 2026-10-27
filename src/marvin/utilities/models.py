@@ -4,12 +4,7 @@ from pydantic import BaseModel, ConfigDict
 
 
 class MarvinModel(BaseModel):
-    """Base model for all Marvin models.
-
-    This model:
-    - Is strict (no extra fields allowed)
-    - Uses modern Pydantic v2 features
-    """
+    """Pydantic base model that forbids extra fields and validates assignments."""
 
     model_config = ConfigDict(
         extra="forbid",  # no extra fields allowed

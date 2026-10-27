@@ -4,8 +4,6 @@ description: "Prompt system for Marvin."
 ---
 
 # `marvin.prompts`
-Prompt system for Marvin.
-
 This module provides a flexible prompt system that supports:
 1. Prompts defined as strings or paths to template files
 2. Static type checking of prompt variables
@@ -37,20 +35,22 @@ Additional attributes can be added by subclassing and will be type-checked.
           attributes.
   
   Example:
-      def greet(name: str, age: int):
-          '''
-          SYSTEM: You are a friendly assistant.
-          USER: Hi {{ name }}, how old are you?
-          ASSISTANT: I'm an AI, but you're {{ age }} years old!
-          '''
-          pass
+  ```python
+  def greet(name: str, age: int):
+      '''
+      SYSTEM: You are a friendly assistant.
+      USER: Hi {{ name }}, how old are you?
+      ASSISTANT: I'm an AI, but you're {{ age }} years old!
+      '''
+      pass
   
-      GreetPrompt = Prompt.from_fn(greet)
-      prompt = GreetPrompt(name="Alice", age=30)
-      messages = prompt.to_messages()
+  GreetPrompt = Prompt.from_fn(greet)
+  prompt = GreetPrompt(name="Alice", age=30)
+  messages = prompt.to_messages()
+  ```
 - **`to_messages`**
   ```python
-  def to_messages(self, **kwargs: Any = {}) -> list[PydanticAIMessage]
+  def to_messages(self, **kwargs: Any) -> list[PydanticAIMessage]
   ```
   Convert the prompt to a list of messages with roles.
   
@@ -61,13 +61,13 @@ Additional attributes can be added by subclassing and will be type-checked.
   Example template:
       '''
       SYSTEM: You are a helpful assistant.
-      USER: Hi {{ name }}!
-      ASSISTANT: Hello {{ name }}! How can I help you?
+      USER: Hi &#123;&#123; name &#125;&#125;!
+      ASSISTANT: Hello &#123;&#123; name &#125;&#125;! How can I help you?
       '''
 
 ### `Template`
 ```python
-class Template(source: str | Path)
+class Template(*, source: str | Path)
 ```
 A template for generating prompts.
 
@@ -78,7 +78,7 @@ Args:
 
 - **`render`**
   ```python
-  def render(self, **kwargs: Any = {}) -> str
+  def render(self, **kwargs: Any) -> str
   ```
   Render the template with variables.
 

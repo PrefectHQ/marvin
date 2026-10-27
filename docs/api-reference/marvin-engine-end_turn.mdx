@@ -20,7 +20,7 @@ class EndTurn()
 
 - **`run`**
   ```python
-  def run(self, thread: Thread, actor: Actor)
+  async def run(self, thread: Thread, actor: Actor)
   ```
 
 ### `MarkTask`
@@ -50,7 +50,7 @@ class PlanSubtasks()
 
 ### `PostMessage`
 ```python
-class PostMessage(message: str)
+class PostMessage(*, message: str)
 ```
 Post a message to the thread.
 
@@ -58,7 +58,7 @@ Post a message to the thread.
 
 - **`run`**
   ```python
-  def run(self, thread: Thread, actor: Actor)
+  async def run(self, thread: Thread, actor: Actor)
   ```
 
 ## Functions

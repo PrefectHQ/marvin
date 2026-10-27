@@ -4,7 +4,6 @@ description: "Base models for Marvin."
 ---
 
 # `marvin.utilities.models`
-Base models for Marvin.
 
 ## Classes
 
@@ -12,11 +11,7 @@ Base models for Marvin.
 ```python
 class MarvinModel()
 ```
-Base model for all Marvin models.
-
-This model:
-- Is strict (no extra fields allowed)
-- Uses modern Pydantic v2 features
+Pydantic base model that forbids extra fields and validates assignments.
 
 ---
 

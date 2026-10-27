@@ -1,160 +1,60 @@
 ---
 title: Quickstart
-description: Build your first AI application in less than a minute
+description: Extract data, use a tool, and share conversation history
 icon: rocket
 ---
 
-Welcome to Marvin! This quickstart guide will walk you through the three main ways to use Marvin to create AI-powered applications.
+[Install Marvin and configure a provider](/installation) before running these examples.
 
-You'll learn how to:
-1. [Use quick one-liners](#quick-one-liners) with `marvin.run()`
-2. [Work with specialized agents](#specialized-agents) using `agent.run()`
-3. [Control tasks directly](#task-control) with `task.run()`
-4. [Add advanced features](#advanced-features) like context and threads
-
-<Warning>
-This guide assumes you have already installed `marvin`. See the [installation docs](/installation) for instructions.
-</Warning>
-
-## Quick One-Liners
-
-The fastest way to use Marvin is with `marvin.run()`:
+## Extract structured data
 
 ```python
 import marvin
-
-# Run a simple task
-print(marvin.run("Write a haiku about Python programming"))
-
-# With a specific result type
-numbers = marvin.run(
-    "Generate five random numbers between 1 and 10",
-    result_type=list[int]
-)
-```
-
-<Accordion title="Output">
-```text
-Indented lines flow
-Functions dance with elegance
-Code becomes poetry
-
-[3, 7, 2, 9, 5]
-```
-</Accordion>
-
-## Specialized Agents
-
-Create and use specialized agents for specific types of tasks:
-
-```python
-from marvin import Agent
-
-# Create a specialized agent
-writer = Agent(
-    name="Technical Writer",
-    instructions="Write clear, engaging content for developers"
-)
-
-# Use the agent directly
-article = writer.run(
-    "Write a short article about Python type hints",
-    result_type=str
-)
-
-print(article)
-```
-
-<Accordion title="Output">
-```text
-Type Hints in Python: A Clear Path to Better Code
-
-Python's type hints bring clarity and safety to your code without sacrificing its dynamic nature. Introduced in Python 3.5, type hints allow developers to explicitly declare variable and function types, making code more maintainable and easier to understand.
-
-Here's a quick example:
-
-def greet(name: str) -> str:
-    return f"Hello, {name}!"
-
-Type hints help catch errors early, improve IDE support, and make your code self-documenting. While optional, they're becoming an essential tool in modern Python development.
-```
-</Accordion>
-
-## Task Control
-
-For full control over your AI workflows, create and run tasks directly:
-
-```python
-import httpx
-from marvin import Task
 from pydantic import BaseModel
 
-def check_weather(location: str) -> str:
-    url = f"https://wttr.in/{location}?format=%C+%t"
-    return httpx.get(url).text
+class Contact(BaseModel):
+    name: str
+    email: str
 
-# Define a structured output type
-class WeatherForecast(BaseModel):
-    temperature: float
-    conditions: str
-    precipitation_chance: float | str = "unknown"
-
-# Create a task with specific requirements
-task = Task(
-    instructions="Get the weather for San Francisco",
-    result_type=WeatherForecast,
-    tools=[check_weather]  # Custom tools
-)
-
-# Run the task
-forecast = task.run()
-print(forecast)
+contacts = marvin.extract("Email Ada at ada@example.com", Contact)
+print(contacts)
 ```
 
-<Accordion title="Output">
-```text
-temperature=50.0 conditions='Partly cloudy' precipitation_chance='unknown'
-```
-</Accordion>
+`extract` returns a list of `Contact` objects. Use `cast` when you want one value, or `run` for instructions with an explicit `result_type`.
 
-## Advanced Features
-
-All three approaches support advanced features like context, threads, and tools:
+## Give an agent a tool
 
 ```python
 import marvin
-from marvin import Agent, Task
 
-# Context improves results
-data = "The patient reports mild fever and fatigue."
-diagnosis = marvin.run(
-    "Suggest possible conditions",
-    context={"medical_notes": data}
+def stock_level(product: str) -> int:
+    """Return the number of units in stock."""
+    return {"notebook": 12, "pen": 30}[product]
+
+agent = marvin.Agent(
+    name="Inventory",
+    instructions="Use stock_level to answer inventory questions.",
+    tools=[stock_level],
 )
-
-# Threads maintain conversation history
-with marvin.Thread() as thread:
-    # Ask multiple related questions
-    marvin.run("What is quantum computing?")
-    marvin.run("How does that relate to classical computing?")
-    marvin.run("What are its practical applications?")
-
-# Teams of agents can collaborate
-researcher = Agent("Researcher")
-writer = Agent("Technical Writer")
-editor = Agent("Editor")
-
-with marvin.Thread() as thread:
-    research = researcher.run("Research quantum computing")
-    draft = writer.run("Write an article", context={"research": research})
-    final = editor.run("Edit the article", context={"draft": draft})
+count = agent.run("How many notebooks are in stock?", result_type=int)
+print(count)
 ```
 
-## What's Next?
+The model chooses when to call a tool. Marvin validates its arguments and returns the tool's result to the model.
 
-You've seen the main ways to work with Marvin. To learn more:
+## Share history across calls
 
-- Read about [Tasks](/concepts/tasks) to understand how to structure AI workflows
-- Learn about [Agents](/concepts/agents) to create specialized AI workers
-- Explore [Threads](/concepts/threads) for managing conversation context
-- Check out [Models](/concepts/models) to work with structured data
+```python
+import marvin
+
+with marvin.Thread() as thread:
+    marvin.say("My order number is 12345.")
+    order_number = marvin.run("What is my order number?", result_type=int)
+
+print(order_number)
+print(thread.id)
+```
+
+Save the thread ID to resume the same history later. See [threads](/concepts/threads) for persistence and [tasks](/concepts/tasks) for explicit task objects and dependencies.
+
+In async code, use functions such as `await marvin.extract_async(...)` or `await agent.run_async(...)`.

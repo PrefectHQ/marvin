@@ -27,3 +27,8 @@ wheels/
 sandbox/
 .research_cache/
 report.html
+
+# Local development output
+.pytest_cache/
+.ruff_cache/
+repros/
