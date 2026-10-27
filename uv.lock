@@ -2920,6 +2920,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
     { name = "alembic" },
+    { name = "anthropic" },
     { name = "jinja2" },
     { name = "partial-json-parser" },
     { name = "pydantic", extra = ["email"] },
@@ -2973,13 +2974,14 @@ dev = [
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20.0" },
     { name = "alembic", specifier = ">=1.12.0" },
+    { name = "anthropic", specifier = "<1" },
     { name = "fastmcp", marker = "extra == 'mcp'", git = "https://github.com/jlowin/fastmcp.git" },
     { name = "jinja2", specifier = ">=3.1.4" },
     { name = "partial-json-parser", specifier = ">=0.2.1.1.post5" },
     { name = "prefect", marker = "extra == 'prefect'", specifier = ">=3.6.11" },
     { name = "pyaudio", marker = "extra == 'audio'", specifier = ">=0.2.14" },
     { name = "pydantic", extras = ["email"], specifier = ">=2.10.6" },
-    { name = "pydantic-ai", specifier = ">=1.9.0" },
+    { name = "pydantic-ai", specifier = ">=1.9.0,<1.95" },
     { name = "pydantic-settings", specifier = ">=2.6.1" },
     { name = "rich", specifier = ">=13.9.4" },
     { name = "slackbot", marker = "extra == 'slackbot'", editable = "examples/slackbot" },
