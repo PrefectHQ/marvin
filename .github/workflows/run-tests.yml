@@ -34,9 +34,13 @@ jobs:
           python-version: "3.11"
       - run: >-
           uv pip install . pydantic-ai anthropic openai fastmcp
-          chromadb dirty-equals pytest pytest-asyncio pytest-env
+          chromadb "qdrant-client[fastembed]" dirty-equals pytest pytest-asyncio pytest-env
           pytest-xdist pytest-timeout
-      - run: .venv/bin/python -m pytest tests/basic --ignore=tests/basic/memory -q
+      - name: Download embedding models before running memory tests
+        run: |
+          .venv/bin/python -c 'from chromadb.utils.embedding_functions import DefaultEmbeddingFunction; DefaultEmbeddingFunction()(["initialize embedding model"])'
+          .venv/bin/python -c 'from fastembed import TextEmbedding; next(TextEmbedding(model_name="BAAI/bge-small-en").embed(["initialize embedding model"]))'
+      - run: .venv/bin/python -m pytest tests/basic -q
 
   run_tests:
     # Skip the entire job for fork PRs
@@ -65,8 +69,10 @@ jobs:
       - name: Install Marvin
         run: uv sync
 
-      - name: Download Chroma embedding model before starting parallel workers
-        run: uv run --frozen python -c 'from chromadb.utils.embedding_functions import DefaultEmbeddingFunction; DefaultEmbeddingFunction()(["initialize embedding model"])'
+      - name: Download embedding models before starting parallel workers
+        run: |
+          uv run --frozen python -c 'from chromadb.utils.embedding_functions import DefaultEmbeddingFunction; DefaultEmbeddingFunction()(["initialize embedding model"])'
+          uv run --frozen python -c 'from fastembed import TextEmbedding; next(TextEmbedding(model_name="BAAI/bge-small-en").embed(["initialize embedding model"]))'
 
       - name: Run tests
         run: uv run --frozen pytest -v -n auto
