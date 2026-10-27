@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any, Literal, Sequence, TypeVar
 
 from pydantic_ai.agent import AgentRunResult
-from pydantic_ai.mcp import MCPServer
 from pydantic_ai.messages import UserContent
 
 import marvin
@@ -15,6 +14,7 @@ from marvin._internal.integrations.mcp import (
     cleanup_thread_mcp_servers,
     manage_mcp_servers,
 )
+from marvin._internal.pydantic_ai import MCPServer
 from marvin.agents.actor import Actor
 from marvin.agents.agent import Agent
 from marvin.database import DBLLMCall
@@ -214,9 +214,10 @@ class Orchestrator:
             new_messages[1:]
         )
 
+        usage = run.usage
         await DBLLMCall.create(
             thread_id=self.thread.id,
-            usage=run.usage(),
+            usage=usage() if callable(usage) else usage,
             prompt_messages=prompt_messages,
             completion_messages=completion_messages,
         )

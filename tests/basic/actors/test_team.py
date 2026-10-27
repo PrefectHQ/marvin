@@ -297,7 +297,7 @@ async def test_team_get_agentlet_with_mcp_servers():
     """Test that Team.get_agentlet() properly handles active_mcp_servers parameter."""
     from unittest.mock import AsyncMock, MagicMock
 
-    from pydantic_ai.mcp import MCPServer
+    from marvin._internal.pydantic_ai import MCPServer
 
     # Create agents
     agent1 = Agent(name="Agent 1")

@@ -11,7 +11,7 @@ from typing import Any, Sequence
 
 from pydantic import TypeAdapter
 from pydantic_ai.messages import UserContent
-from pydantic_ai.usage import Usage
+from pydantic_ai.usage import RunUsage
 from sqlalchemy import select
 
 from marvin.database import (
@@ -53,7 +53,7 @@ class LLMCall:
 
     id: uuid.UUID
     thread_id: str
-    usage: Usage
+    usage: RunUsage
     timestamp: datetime
 
     def get_messages(self) -> LLMCallMessages:
@@ -371,7 +371,7 @@ class Thread:
         self,
         before: datetime | None = None,
         after: datetime | None = None,
-    ) -> Usage:
+    ) -> RunUsage:
         """Get the usage for this thread.
 
         Args:
@@ -383,7 +383,7 @@ class Thread:
         """
         await self._ensure_thread_exists()
 
-        usage = Usage()
+        usage = RunUsage()
 
         llm_calls = await self.get_llm_calls_async(before=before, after=after)
         for llm_call in llm_calls:
@@ -395,7 +395,7 @@ class Thread:
         self,
         before: datetime | None = None,
         after: datetime | None = None,
-    ) -> Usage:
+    ) -> RunUsage:
         """Get the usage for this thread.
 
         Args:
