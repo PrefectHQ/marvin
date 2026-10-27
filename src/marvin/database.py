@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 
 from pydantic import ConfigDict, TypeAdapter
 from pydantic_ai.messages import RetryPromptPart
-from pydantic_ai.usage import Usage
+from pydantic_ai.usage import RunUsage
 from sqlalchemy import (
     JSON,
     TIMESTAMP,
@@ -53,7 +53,7 @@ message_adapter: TypeAdapter[PydanticAIMessage] = TypeAdapter(
     PydanticAIMessage,
     config=ConfigDict(ser_json_bytes="base64", val_json_bytes="base64"),
 )
-usage_adapter: TypeAdapter[Usage] = TypeAdapter(Usage)
+usage_adapter: TypeAdapter[RunUsage] = TypeAdapter(RunUsage)
 
 # Module-level cache for engines and sessionmakers
 _async_engine_cache: dict[Any, AsyncEngine] = {}
@@ -244,26 +244,33 @@ class DBMessage(Base):
         )
 
 
-class UsageType(TypeDecorator[Usage]):
-    """Custom type for Usage objects that stores them as JSON in the database."""
+class UsageType(TypeDecorator[RunUsage]):
+    """Custom type for RunUsage objects that stores them as JSON in the database."""
 
     impl = JSON
     cache_ok = True
 
     def process_bind_param(
-        self, value: Usage | None, dialect: Any
+        self, value: RunUsage | None, dialect: Any
     ) -> dict[str, Any] | None:
-        """Convert Usage to JSON before storing in DB."""
+        """Convert RunUsage to JSON before storing in DB."""
         if value is None:
             return None
         return usage_adapter.dump_python(value, mode="json")
 
     def process_result_value(
         self, value: dict[str, Any] | None, dialect: Any
-    ) -> Usage | None:
-        """Convert JSON back to Usage when loading from DB."""
+    ) -> RunUsage | None:
+        """Convert JSON back to RunUsage when loading from DB."""
         if value is None:
             return None
+        value = {
+            **value,
+            "input_tokens": value.get("input_tokens", value.get("request_tokens")) or 0,
+            "output_tokens": value.get("output_tokens", value.get("response_tokens"))
+            or 0,
+        }
+        value["details"] = value.get("details") or {}
         return usage_adapter.validate_python(value)
 
 
@@ -272,7 +279,7 @@ class DBLLMCall(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     thread_id: Mapped[str] = mapped_column(ForeignKey("threads.id"), index=True)
-    usage: Mapped[Usage] = mapped_column(UsageType)
+    usage: Mapped[RunUsage] = mapped_column(UsageType)
     timestamp: Mapped[datetime] = mapped_column(
         TIMESTAMP(timezone=True), default=utc_now
     )
@@ -286,7 +293,7 @@ class DBLLMCall(Base):
     async def create(
         cls,
         thread_id: str,
-        usage: Usage,
+        usage: RunUsage,
         prompt_messages: list["DBMessage | Message"] | None = None,
         completion_messages: list["DBMessage | Message"] | None = None,
         session: AsyncSession | None = None,
@@ -295,7 +302,7 @@ class DBLLMCall(Base):
 
         Args:
             thread_id: ID of the thread this call belongs to
-            usage: Usage information from the model
+            usage: RunUsage information from the model
             session: Optional database session. If not provided, a new one will be created.
 
         Returns:

@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING, Any, Callable
 
 import pydantic_ai
 from pydantic_ai.agent import AgentRunResult
-from pydantic_ai.mcp import MCPServer
 
+from marvin._internal.pydantic_ai import MCPServer
 from marvin.agents.actor import Actor
 from marvin.agents.names import TEAM_NAMES
 from marvin.memory.memory import Memory

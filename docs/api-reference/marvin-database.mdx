@@ -42,13 +42,13 @@ class DBLLMCall()
 
 - **`create`**
   ```python
-  def create(cls, thread_id: str, usage: Usage, prompt_messages: list[DBMessage | Message] | None = None, completion_messages: list[DBMessage | Message] | None = None, session: AsyncSession | None = None) -> DBLLMCall
+  def create(cls, thread_id: str, usage: RunUsage, prompt_messages: list[DBMessage | Message] | None = None, completion_messages: list[DBMessage | Message] | None = None, session: AsyncSession | None = None) -> DBLLMCall
   ```
   Create a new LLM call record.
   
   Args:
       thread_id: ID of the thread this call belongs to
-      usage: Usage information from the model
+      usage: RunUsage information from the model
       session: Optional database session. If not provided, a new one will be created.
   
   Returns:
@@ -101,20 +101,20 @@ class DBThread()
 ```python
 class UsageType()
 ```
-Custom type for Usage objects that stores them as JSON in the database.
+Custom type for RunUsage objects that stores them as JSON in the database.
 
 **Methods:**
 
 - **`process_bind_param`**
   ```python
-  def process_bind_param(self, value: Usage | None, dialect: Any) -> dict[str, Any] | None
+  def process_bind_param(self, value: RunUsage | None, dialect: Any) -> dict[str, Any] | None
   ```
-  Convert Usage to JSON before storing in DB.
+  Convert RunUsage to JSON before storing in DB.
 - **`process_result_value`**
   ```python
-  def process_result_value(self, value: dict[str, Any] | None, dialect: Any) -> Usage | None
+  def process_result_value(self, value: dict[str, Any] | None, dialect: Any) -> RunUsage | None
   ```
-  Convert JSON back to Usage when loading from DB.
+  Convert JSON back to RunUsage when loading from DB.
 
 ## Functions
 

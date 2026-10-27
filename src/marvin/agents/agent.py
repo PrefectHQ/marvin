@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Sequence, TypeVar
 
 import pydantic_ai
-from pydantic_ai.mcp import MCPServer
 from pydantic_ai.models import KnownModelName, Model, ModelSettings
 from pydantic_ai.result import ToolOutput
 
@@ -18,6 +17,7 @@ import marvin
 from marvin._internal.integrations.fastmcp import (
     attempt_convert_to_pydantic_ai_mcp_server,
 )
+from marvin._internal.pydantic_ai import MCPServer
 from marvin.agents.actor import Actor
 from marvin.agents.names import AGENT_NAMES
 from marvin.memory.memory import Memory
@@ -93,6 +93,10 @@ class Agent(Actor):
         repr=False,
     )
 
+    _mcp_server_cache: dict[int, tuple[Any, MCPServer]] = field(
+        default_factory=dict, init=False, repr=False, compare=False
+    )
+
     def __hash__(self) -> int:
         return super().__hash__()
 
@@ -108,16 +112,24 @@ class Agent(Actor):
 
     def get_mcp_servers(self) -> list[MCPServer]:
         converted_servers: list[MCPServer] = []
+        cache: dict[int, tuple[Any, MCPServer]] = {}
         for server_instance in self.mcp_servers:
-            converted = attempt_convert_to_pydantic_ai_mcp_server(server_instance)
+            cached = self._mcp_server_cache.get(id(server_instance))
+            converted = (
+                cached[1]
+                if cached is not None and cached[0] is server_instance
+                else attempt_convert_to_pydantic_ai_mcp_server(server_instance)
+            )
             if converted is not None:
                 converted_servers.append(converted)
+                cache[id(server_instance)] = (server_instance, converted)
             else:
                 raise TypeError(
                     f"Unsupported server type in mcp_servers: {type(server_instance).__name__}. "
                     f"Must be a valid `pydantic_ai` `MCPServer` or `fastmcp` `FastMCP` instance."
                 )
 
+        self._mcp_server_cache = cache
         return converted_servers
 
     def get_model_settings(self) -> ModelSettings:

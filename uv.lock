@@ -2974,7 +2974,6 @@ source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
     { name = "alembic" },
-    { name = "anthropic" },
     { name = "jinja2" },
     { name = "partial-json-parser" },
     { name = "pydantic", extra = ["email"] },
@@ -3028,7 +3027,6 @@ dev = [
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.20.0" },
     { name = "alembic", specifier = ">=1.12.0" },
-    { name = "anthropic", specifier = "<1" },
     { name = "fastmcp", marker = "extra == 'mcp'", git = "https://github.com/jlowin/fastmcp.git" },
     { name = "jinja2", specifier = ">=3.1.4" },
     { name = "partial-json-parser", specifier = ">=0.2.1.1.post5" },
