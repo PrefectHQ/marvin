@@ -22,7 +22,7 @@ check-uv:
 
 # Build and serve documentation
 serve-docs: check-uv
-    cd docs && mintlify dev
+    cd docs && npx mint dev
 
 # Install development dependencies
 install: check-uv

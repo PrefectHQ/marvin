@@ -4,8 +4,6 @@ description: "Convert JSON Schema to Python types with validation."
 ---
 
 # `marvin.utilities.jsonschema`
-Convert JSON Schema to Python types with validation.
-
 The jsonschema_to_type function converts a JSON Schema into a Python type that can be used
 for validation with Pydantic. It supports:
 
@@ -36,13 +34,6 @@ Example:
     Person = jsonschema_to_type(schema)
     # Creates a validated dataclass with name, age, and optional email fields
     ```
-
-## Constants
-
-### `FORMAT_TYPES`
-```python
-FORMAT_TYPES = {'date-time': datetime, 'email': EmailStr, 'uri': AnyUrl, 'json': Json}
-```
 
 ## Classes
 

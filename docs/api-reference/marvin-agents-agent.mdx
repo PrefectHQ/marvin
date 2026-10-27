@@ -4,22 +4,13 @@ description: "Agents for Marvin."
 ---
 
 # `marvin.agents.agent`
-Agents for Marvin.
-
 An Agent is an entity that can process tasks and maintain state across interactions.
-
-## Constants
-
-### `T`
-```python
-T = TypeVar('T')
-```
 
 ## Classes
 
 ### `Agent`
 ```python
-class Agent(name: str = (lambda: random.choice(AGENT_NAMES))(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('agent.jinja'), tools: list[Callable[..., Any]] = (lambda: [])(), memories: list[Memory] = (lambda: [])(), mcp_servers: list[Any] = (lambda: [])(), model: KnownModelName | Model | None = None, model_settings: ModelSettings = ModelSettings())
+class Agent(*, name: str = (lambda: random.choice(AGENT_NAMES))(), instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path = Path('agent.jinja'), tools: list[Callable[..., Any]] = (lambda: [])(), memories: list[Memory] = (lambda: [])(), mcp_servers: list[Any] = (lambda: [])(), model: KnownModelName | Model | None = None, model_settings: ModelSettings = ModelSettings())
 ```
 An agent that can process tasks and maintain state.
 
@@ -27,7 +18,7 @@ An agent that can process tasks and maintain state.
 
 - **`get_agentlet`**
   ```python
-  def get_agentlet(self, tools: Sequence[Callable[..., Any]], end_turn_tools: Sequence[EndTurn], active_mcp_servers: list[MCPServer] | None = None) -> pydantic_ai.Agent[Any, Any]
+  async def get_agentlet(self, tools: Sequence[Callable[..., Any]], end_turn_tools: Sequence[EndTurn], active_mcp_servers: list[MCPServer] | None = None) -> pydantic_ai.Agent[Any, Any]
   ```
 - **`get_mcp_servers`**
   ```python
@@ -58,7 +49,7 @@ An agent that can process tasks and maintain state.
 
 ### `handle_event`
 ```python
-def handle_event(event: Event, handlers: list[Handler | AsyncHandler] | None = None)
+async def handle_event(event: Event, handlers: list[Handler | AsyncHandler] | None = None)
 ```
 Handle an event by passing it to all registered handlers.
 

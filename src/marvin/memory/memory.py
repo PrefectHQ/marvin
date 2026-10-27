@@ -84,20 +84,9 @@ class Memory:
             raise ValueError(
                 inspect.cleandoc(
                     """
-                    Memory modules require a MemoryProvider to configure the
-                    underlying vector database. No provider was passed as an
-                    argument, and no default value has been configured. 
-                    
-                    For more information on configuring a memory provider, see
-                    the [Memory
-                    documentation](https://controlflow.ai/patterns/memory), and
-                    please review the [default provider
-                    guide](https://controlflow.ai/guides/default-memory) for
-                    information on configuring a default provider.
-                    
-                    Please note that if you are using ControlFlow for the first
-                    time, this error is expected because ControlFlow does not include
-                    vector dependencies by default.
+                    Memory requires a vector-database provider. Pass provider=... or
+                    configure marvin.defaults.memory_provider. Provider dependencies
+                    are installed separately; see https://askmarvin.ai/concepts/memory.
                     """,
                 ),
             )

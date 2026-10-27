@@ -17,13 +17,13 @@ using SQLAlchemy + pg_vector, but with full async support.
 
 - **`add`**
   ```python
-  def add(self, memory_key: str, content: str) -> str
+  async def add(self, memory_key: str, content: str) -> str
   ```
   Insert a new record with an embedding vector.
   Returns the inserted record's UUID.
 - **`configure`**
   ```python
-  def configure(self, memory_key: str)
+  async def configure(self, memory_key: str)
   ```
   1) Create an async engine.
   2) Optionally create the DB if it doesn't exist (requires sync workaround).
@@ -32,15 +32,15 @@ using SQLAlchemy + pg_vector, but with full async support.
   5) Initialize the async sessionmaker.
 - **`delete`**
   ```python
-  def delete(self, memory_key: str, memory_id: str)
+  async def delete(self, memory_key: str, memory_id: str)
   ```
   Delete a record by UUID.
 - **`search`**
   ```python
-  def search(self, memory_key: str, query: str, n: int = 20) -> Dict[str, str]
+  async def search(self, memory_key: str, query: str, n: int = 20) -> Dict[str, str]
   ```
-  Async nearest-neighbor search via pgvector <-> operator or .l2_distance(),
-  returning up to N results as {id: text}.
+  Async nearest-neighbor search via pgvector &lt;-> operator or .l2_distance(),
+  returning up to N results as &#123;id: text&#125;.
 
 ### `SQLMemoryTable`
 ```python

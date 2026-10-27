@@ -4,25 +4,18 @@ title: actor
 
 # `marvin.agents.actor`
 
-## Constants
-
-### `T`
-```python
-T = TypeVar('T')
-```
-
 ## Classes
 
 ### `Actor`
 ```python
-class Actor(name: str, instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path)
+class Actor(*, name: str, instructions: str | None = None, description: str | None = None, verbose: bool = False, prompt: str | Path)
 ```
 
 **Methods:**
 
 - **`end_turn`**
   ```python
-  def end_turn(self, thread: Thread, result: AgentRunResult)
+  async def end_turn(self, thread: Thread, result: AgentRunResult)
   ```
   Called when the actor ends its turn.
 - **`friendly_name`**
@@ -31,7 +24,7 @@ class Actor(name: str, instructions: str | None = None, description: str | None 
   ```
 - **`get_agentlet`**
   ```python
-  def get_agentlet(self, tools: Sequence[Callable[..., Any]], end_turn_tools: Sequence[EndTurn], active_mcp_servers: list[MCPServer] | None = None) -> pydantic_ai.Agent[Any, Any]
+  async def get_agentlet(self, tools: Sequence[Callable[..., Any]], end_turn_tools: Sequence[EndTurn], active_mcp_servers: list[MCPServer] | None = None) -> pydantic_ai.Agent[Any, Any]
   ```
 - **`get_current`**
   ```python
@@ -59,11 +52,11 @@ class Actor(name: str, instructions: str | None = None, description: str | None 
   A list of tools that this actor can use during its turn.
 - **`run`**
   ```python
-  def run(self, instructions: str | Sequence[UserContent], result_type: type[T] = str, tools: list[Callable[..., Any]] = [], thread: Thread | str | None = None, handlers: list[Handler | AsyncHandler] | None = None, raise_on_failure: bool = True, **kwargs: Any = {}) -> Any
+  def run(self, instructions: str | Sequence[UserContent], result_type: type[T] = str, tools: list[Callable[..., Any]] = [], thread: Thread | str | None = None, handlers: list[Handler | AsyncHandler] | None = None, raise_on_failure: bool = True, **kwargs: Any) -> Any
   ```
 - **`run_async`**
   ```python
-  def run_async(self, instructions: str | Sequence[UserContent], result_type: type[T] = str, tools: list[Callable[..., Any]] = [], thread: Thread | str | None = None, handlers: list[Handler | AsyncHandler] | None = None, raise_on_failure: bool = True, **kwargs: Any = {}) -> Any
+  async def run_async(self, instructions: str | Sequence[UserContent], result_type: type[T] = str, tools: list[Callable[..., Any]] = [], thread: Thread | str | None = None, handlers: list[Handler | AsyncHandler] | None = None, raise_on_failure: bool = True, **kwargs: Any) -> Any
   ```
 - **`say`**
   ```python
@@ -72,12 +65,12 @@ class Actor(name: str, instructions: str | None = None, description: str | None 
   Responds to a user message in a conversational way.
 - **`say_async`**
   ```python
-  def say_async(self, message: str, instructions: str | None = None, thread: Thread | str | None = None)
+  async def say_async(self, message: str, instructions: str | None = None, thread: Thread | str | None = None)
   ```
   Responds to a user message in a conversational way.
 - **`start_turn`**
   ```python
-  def start_turn(self, thread: Thread)
+  async def start_turn(self, thread: Thread)
   ```
   Called when the actor starts its turn.
 

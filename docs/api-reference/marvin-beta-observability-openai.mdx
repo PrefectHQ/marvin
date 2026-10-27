@@ -4,8 +4,6 @@ description: "OpenAI observability integration."
 ---
 
 # `marvin.beta.observability.openai`
-OpenAI observability integration.
-
 This module enables tracing Marvin agent calls to OpenAI's observability dashboard.
 When running inside Prefect flows/tasks, it automatically captures runtime context
 (flow_run_id, task_run_id, etc.) and sends it as request metadata.
@@ -23,20 +21,22 @@ Or with pip:
 The main function is `observable()`. Call it on an agent inside a Prefect task
 to automatically capture the current runtime context:
 
-    from prefect import flow, task
-    import marvin
-    from marvin.beta.observability.openai import observable
+```python
+from prefect import flow, task
+import marvin
+from marvin.beta.observability.openai import observable
 
-    agent = marvin.Agent(name="analyst", model="openai:gpt-4o")
+agent = marvin.Agent(name="analyst", model="openai:gpt-4o")
 
-    @task
-    async def summarize(text: str) -> str:
-        return await observable(agent).run_async(f"Summarize: {text}")
+@task
+async def summarize(text: str) -> str:
+    return await observable(agent).run_async(f"Summarize: {text}")
 
-    @flow
-    async def my_pipeline(document: str):
-        return await summarize(document)
+@flow
+async def my_pipeline(document: str):
+    return await summarize(document)
 
+```
 ## What gets captured
 
 When you call `observable(agent)` inside a Prefect run, the following metadata
@@ -64,10 +64,12 @@ Filter by any of the metadata fields above, e.g.:
 
 If you need to add additional metadata beyond what Prefect provides:
 
-    @task
-    async def process(customer_id: str, text: str) -> str:
-        return await observable(agent, customer_id=customer_id).run_async(text)
+```python
+@task
+async def process(customer_id: str, text: str) -> str:
+    return await observable(agent, customer_id=customer_id).run_async(text)
 
+```
 Custom metadata is merged with the Prefect context. All values must be strings.
 
 ## Note
@@ -91,7 +93,7 @@ Most users should just use `observable()` instead.
 
 ### `observable`
 ```python
-def observable(agent: 'Agent', **metadata: str = {}) -> 'Agent'
+def observable(agent: 'Agent', **metadata: str) -> 'Agent'
 ```
 Enable OpenAI observability for this agent.
 
@@ -101,10 +103,12 @@ observability logs.
 
 Call this inside a Prefect task or flow to capture the current context:
 
-    @task
-    async def my_task():
-        return await observable(agent).run_async("hello")
+```python
+@task
+async def my_task():
+    return await observable(agent).run_async("hello")
 
+```
 Args:
     agent: The Marvin agent to make observable.
     **metadata: Optional extra metadata to include (e.g., customer_id="abc").
@@ -119,26 +123,28 @@ Note:
 
 ### `openai_request_kwargs`
 ```python
-def openai_request_kwargs(**metadata: str = {}) -> dict[str, Any]
+def openai_request_kwargs(**metadata: str) -> dict[str, Any]
 ```
 Build kwargs for direct OpenAI SDK calls (without Marvin).
 
 Use this if you're calling the OpenAI SDK directly:
 
-    from openai import AsyncOpenAI
-    from marvin.beta.observability.openai import openai_request_kwargs
+```python
+from openai import AsyncOpenAI
+from marvin.beta.observability.openai import openai_request_kwargs
 
-    client = AsyncOpenAI()
+client = AsyncOpenAI()
 
-    @task
-    async def generate(prompt: str) -> str:
-        response = await client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            **openai_request_kwargs(),
-        )
-        return response.choices[0].message.content
+@task
+async def generate(prompt: str) -> str:
+    response = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        **openai_request_kwargs(),
+    )
+    return response.choices[0].message.content
 
+```
 Args:
     **metadata: Optional extra metadata to include.
 

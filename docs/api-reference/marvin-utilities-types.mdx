@@ -4,23 +4,6 @@ title: types
 
 # `marvin.utilities.types`
 
-## Constants
-
-### `P`
-```python
-P = ParamSpec('P')
-```
-
-### `R`
-```python
-R = TypeVar('R')
-```
-
-### `T`
-```python
-T = TypeVar('T')
-```
-
 ## Classes
 
 ### `Labels`
@@ -39,29 +22,31 @@ Args:
         multiple values).
 
 Examples:
-    >>> # Single-label classification with raw values
-    >>> labels = Labels(["red", "green", "blue"])
-    >>> labels.values
-    ("red", "green", "blue")
+```python
+>>> # Single-label classification with raw values
+>>> labels = Labels(["red", "green", "blue"])
+>>> labels.values
+("red", "green", "blue")
 
-    >>> # Multi-label classification with raw values
-    >>> labels = Labels(["red", "green", "blue"], many=True)
-    >>> labels.values
-    ("red", "green", "blue")
+>>> # Multi-label classification with raw values
+>>> labels = Labels(["red", "green", "blue"], many=True)
+>>> labels.values
+("red", "green", "blue")
 
-    >>> # Single-label classification with enum
-    >>> class Colors(enum.Enum):
-    ...     RED = "red"
-    ...     GREEN = "green"
-    ...     BLUE = "blue"
-    >>> labels = Labels(Colors)
-    >>> labels.values  # Returns enum members
-    (<Colors.RED: 'red'>, <Colors.GREEN: 'green'>, <Colors.BLUE: 'blue'>)
+>>> # Single-label classification with enum
+>>> class Colors(enum.Enum):
+...     RED = "red"
+...     GREEN = "green"
+...     BLUE = "blue"
+>>> labels = Labels(Colors)
+>>> labels.values  # Returns enum members
+(<Colors.RED: 'red'>, <Colors.GREEN: 'green'>, <Colors.BLUE: 'blue'>)
 
-    >>> # Multi-label classification with enum
-    >>> labels = Labels(Colors, many=True)
-    >>> labels.values  # Returns enum members
-    (<Colors.RED: 'red'>, <Colors.GREEN: 'green'>, <Colors.BLUE: 'blue'>)
+>>> # Multi-label classification with enum
+>>> labels = Labels(Colors, many=True)
+>>> labels.values  # Returns enum members
+(<Colors.RED: 'red'>, <Colors.GREEN: 'green'>, <Colors.BLUE: 'blue'>)
+```
 
 **Methods:**
 
@@ -107,7 +92,7 @@ Attributes:
 
 - **`from_function`**
   ```python
-  def from_function(cls, func: Callable[P, R], **kwargs: Any = {}) -> PythonFunction[P, R]
+  def from_function(cls, func: Callable[P, R], **kwargs: Any) -> PythonFunction[P, R]
   ```
   Create a PythonFunction instance from a function.
   
@@ -119,7 +104,7 @@ Attributes:
       PythonFunction: The created PythonFunction instance.
 - **`from_function_call`**
   ```python
-  def from_function_call(cls, func: Callable[P, R], *args: P.args = (), **kwargs: P.kwargs = {}) -> PythonFunction[P, R]
+  def from_function_call(cls, func: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> PythonFunction[P, R]
   ```
   Create a PythonFunction instance from a function call.
   
@@ -159,23 +144,25 @@ This includes:
 - Multi-label: list[Enum], list[Literal], or list[list]
 
 Examples:
-    >>> class Colors(enum.Enum):
-    ...     RED = "red"
-    ...     GREEN = "green"
-    >>> is_classifier(Colors)  # enum
-    True
-    >>> is_classifier(Literal["a", "b"])  # literal
-    True
-    >>> is_classifier(["a", "b"])  # list of values
-    True
-    >>> is_classifier([1, "red", MyClass()])  # mixed values
-    True
-    >>> is_classifier(list[Colors])  # multi-label enum
-    True
-    >>> is_classifier(list[Literal["a", "b"]])  # multi-label literal
-    True
-    >>> is_classifier(list[["a", 1, MyClass()]])  # multi-label shorthand
-    True
+```python
+>>> class Colors(enum.Enum):
+...     RED = "red"
+...     GREEN = "green"
+>>> is_classifier(Colors)  # enum
+True
+>>> is_classifier(Literal["a", "b"])  # literal
+True
+>>> is_classifier(["a", "b"])  # list of values
+True
+>>> is_classifier([1, "red", MyClass()])  # mixed values
+True
+>>> is_classifier(list[Colors])  # multi-label enum
+True
+>>> is_classifier(list[Literal["a", "b"]])  # multi-label literal
+True
+>>> is_classifier(list[["a", 1, MyClass()]])  # multi-label shorthand
+True
+```
 
 ### `issubclass_safe`
 ```python
@@ -194,12 +181,14 @@ Returns:
     bool: True if x is a type and is a subclass of cls, False otherwise
 
 Example:
-    >>> issubclass_safe(str, object)  # type is subclass
-    True
-    >>> issubclass_safe(42, object)  # not a type
-    False
-    >>> issubclass_safe(str, (int, float))  # not a subclass
-    False
+```python
+>>> issubclass_safe(str, object)  # type is subclass
+True
+>>> issubclass_safe(42, object)  # not a type
+False
+>>> issubclass_safe(str, (int, float))  # not a subclass
+False
+```
 
 ---
 

@@ -4,13 +4,6 @@ title: orchestrator
 
 # `marvin.engine.orchestrator`
 
-## Constants
-
-### `T`
-```python
-T = TypeVar('T')
-```
-
 ## Classes
 
 ### `Orchestrator`
@@ -22,7 +15,7 @@ class Orchestrator(tasks: list[Task[Any]], thread: Thread | str | None = None, h
 
 - **`end_turn`**
   ```python
-  def end_turn(self, result: AgentRunResult, actor: Actor)
+  async def end_turn(self, result: AgentRunResult, actor: Actor)
   ```
 - **`get_all_tasks`**
   ```python
@@ -40,24 +33,24 @@ class Orchestrator(tasks: list[Task[Any]], thread: Thread | str | None = None, h
   Get the current orchestrator from context.
 - **`handle_event`**
   ```python
-  def handle_event(self, event: Event)
+  async def handle_event(self, event: Event)
   ```
 - **`run`**
   ```python
-  def run(self, raise_on_failure: bool = True, max_turns: int | float | None = None) -> list[AgentRunResult]
+  async def run(self, raise_on_failure: bool = True, max_turns: int | float | None = None) -> list[AgentRunResult]
   ```
 - **`run_once`**
   ```python
-  def run_once(self, actor: Actor | None = None, active_mcp_servers: list[MCPServer] | None = None) -> AgentRunResult
+  async def run_once(self, actor: Actor | None = None, active_mcp_servers: list[MCPServer] | None = None) -> AgentRunResult
   ```
 - **`start_turn`**
   ```python
-  def start_turn(self, actor: Actor)
+  async def start_turn(self, actor: Actor)
   ```
 
 ### `SystemPrompt`
 ```python
-class SystemPrompt(source: str | Path = Path('system.jinja'), actor: Actor, instructions: list[str], tasks: list[Task])
+class SystemPrompt(*, source: str | Path = Path('system.jinja'), actor: Actor, instructions: list[str], tasks: list[Task])
 ```
 
 ## Functions

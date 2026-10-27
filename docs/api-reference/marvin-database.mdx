@@ -4,26 +4,7 @@ description: "Database management for persistence."
 ---
 
 # `marvin.database`
-Database management for persistence.
-
 This module provides utilities for managing database sessions and migrations.
-
-## Constants
-
-### `ALEMBIC_DIR`
-```python
-ALEMBIC_DIR = MARVIN_DIR / 'migrations'
-```
-
-### `ALEMBIC_INI`
-```python
-ALEMBIC_INI = MARVIN_DIR / 'alembic.ini'
-```
-
-### `MARVIN_DIR`
-```python
-MARVIN_DIR = Path(marvin.__file__).parent.parent.parent
-```
 
 ## Classes
 
@@ -42,7 +23,7 @@ class DBLLMCall()
 
 - **`create`**
   ```python
-  def create(cls, thread_id: str, usage: RunUsage, prompt_messages: list[DBMessage | Message] | None = None, completion_messages: list[DBMessage | Message] | None = None, session: AsyncSession | None = None) -> DBLLMCall
+  async def create(cls, thread_id: str, usage: RunUsage, prompt_messages: list[DBMessage | Message] | None = None, completion_messages: list[DBMessage | Message] | None = None, session: AsyncSession | None = None) -> DBLLMCall
   ```
   Create a new LLM call record.
   
@@ -85,7 +66,7 @@ class DBThread()
 
 - **`create`**
   ```python
-  def create(cls, session: AsyncSession | None = None, id: str | None = None, parent_thread_id: str | None = None) -> DBThread
+  async def create(cls, session: AsyncSession | None = None, id: str | None = None, parent_thread_id: str | None = None) -> DBThread
   ```
   Create a new thread record.
   
@@ -120,7 +101,7 @@ Custom type for RunUsage objects that stores them as JSON in the database.
 
 ### `create_db_and_tables`
 ```python
-def create_db_and_tables(force: bool = False, dispose_engine: bool = False)
+async def create_db_and_tables(*, force: bool = False, dispose_engine: bool = False)
 ```
 Create all database tables.
 
@@ -153,7 +134,7 @@ The engine is cached by asyncio event loop to maintain compatibility with run_sy
 
 ### `get_async_session`
 ```python
-def get_async_session(session: AsyncSession | None = None) -> AsyncGenerator[AsyncSession, None]
+async def get_async_session(session: AsyncSession | None = None) -> AsyncGenerator[AsyncSession, None]
 ```
 Get an async database session.
 

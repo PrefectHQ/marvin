@@ -1,14 +1,9 @@
-"""
-Complete API Documentation Generator using Griffe
-
-Extracts Python module structures and generates well-formatted Markdown documentation
-for all modules, submodules, and individual Python files.
-"""
+"""Generate API reference pages and navigation from Python source with Griffe."""
 
 import argparse
-import importlib
+import inspect
 import json
-import pkgutil
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -26,72 +21,115 @@ from griffe import (
 
 
 def trim_docstring(docstring: str | None) -> str:
-    if not docstring or not docstring.strip():
+    if not docstring:
         return ""
 
-    lines = docstring.expandtabs().splitlines()
-    stripped_lines = [line for line in lines if line.strip()]
+    lines = inspect.cleandoc(docstring).splitlines()
+    result: list[str] = []
+    fenced = False
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.lstrip()
+        if stripped.startswith("```"):
+            fenced = not fenced
+            result.append(line)
+            i += 1
+            continue
+        if fenced:
+            result.append(line)
+            i += 1
+            continue
 
-    if not stripped_lines:
-        return ""
+        indent = len(line) - len(stripped)
+        is_example = stripped.startswith(
+            (">>>", "import ", "from ", "def ", "async def ", "class ", "@")
+        )
+        if indent >= 4 and is_example:
+            result.append("```python")
+            while i < len(lines):
+                example = lines[i]
+                if example.strip() and len(example) - len(example.lstrip()) < indent:
+                    break
+                result.append(example[indent:] if example.strip() else "")
+                i += 1
+            result.append("```")
+            continue
 
-    indent = min((len(line) - len(line.lstrip()) for line in stripped_lines), default=0)
-    trimmed = [lines[0].lstrip()] + [line[indent:].rstrip() for line in lines[1:]]
-
-    return "\n".join(trimmed).strip()
+        spans = re.split(r"(`[^`]*`)", line)
+        result.append(
+            "".join(
+                span
+                if span.startswith("`")
+                else span.replace("<", "&lt;")
+                .replace("{", "&#123;")
+                .replace("}", "&#125;")
+                for span in spans
+            )
+        )
+        i += 1
+    return "\n".join(result).strip()
 
 
 def format_signature(obj: Function | Class) -> str:
-    kind = "class" if isinstance(obj, Class) else "def"
+    kind = (
+        "class"
+        if isinstance(obj, Class)
+        else "async def"
+        if "async" in obj.labels
+        else "def"
+    )
     name = obj.name
     param_strs: list[str] = []
 
     parameters: list[Parameter] = []
     if isinstance(obj, Function):
-        parameters = obj.parameters  # type: ignore
+        parameters = list(obj.parameters)
     elif hasattr(obj, "members"):
         init_method = obj.members.get("__init__")
         if init_method and isinstance(init_method, Function):
-            parameters = init_method.parameters  # type: ignore
+            parameters = list(init_method.parameters)
 
-    skip_init_self = isinstance(obj, Class)
+    if isinstance(obj, Class):
+        parameters = parameters[1:]
 
+    keyword_marker = False
     for i, param in enumerate(parameters):
-        if skip_init_self and i == 0:
-            continue
-
+        if param.kind == ParameterKind.keyword_only and not keyword_marker:
+            param_strs.append("*")
+            keyword_marker = True
         param_str = param.name
 
         if param.annotation:
-            annotation_str = (
-                str(param.annotation).replace("<", "&lt;").replace(">", "&gt;")
-            )
+            annotation_str = str(param.annotation)
             param_str += f": {annotation_str}"
 
-        if param.default:
+        if param.default and param.kind not in {
+            ParameterKind.var_positional,
+            ParameterKind.var_keyword,
+        }:
             param_str += f" = {param.default}"
 
         if param.kind == ParameterKind.var_positional:
             param_str = f"*{param_str}"
+            keyword_marker = True
         elif param.kind == ParameterKind.var_keyword:
             param_str = f"**{param_str}"
 
         param_strs.append(param_str)
+        if param.kind == ParameterKind.positional_only and (
+            i == len(parameters) - 1
+            or parameters[i + 1].kind != ParameterKind.positional_only
+        ):
+            param_strs.append("/")
 
     return_annotation = ""
     if isinstance(obj, Function) and obj.returns:
-        ret_ann_str = str(obj.returns).replace("<", "&lt;").replace(">", "&gt;")
+        ret_ann_str = str(obj.returns)
         if ret_ann_str != "None":
             return_annotation = f" -> {ret_ann_str}"
 
     return f"{kind} {name}({', '.join(param_strs)}){return_annotation}"
-
-
-def get_module_file_type(module_path: str) -> str:
-    parts = module_path.split(".")
-    if parts[-1] == "__init__":
-        return "package"
-    return "file"
 
 
 def get_parent_module(module_path: str) -> str:
@@ -103,39 +141,29 @@ def get_parent_module(module_path: str) -> str:
     return ".".join(parts[:-1])
 
 
-def find_all_modules(package_name: str) -> list[str]:
-    """
-    Find all modules in the package including both submodules and direct files.
-    Uses pkgutil.walk_packages to discover all submodules recursively.
-    Also explicitly checks for standalone .py files in the top-level package directory.
-    """
-    try:
-        package = importlib.import_module(package_name)
-        modules: list[str] = []
+def find_all_modules(package_name: str, src_dir: Path = Path("src")) -> list[str]:
+    package_dir = src_dir.joinpath(*package_name.split("."))
+    if not package_dir.is_dir():
+        raise FileNotFoundError(f"Package source not found: {package_dir}")
 
-        # Get the package path
-        if hasattr(package, "__path__"):
-            package_path = package.__path__
-        else:
-            return []
-
-        # Find all modules recursively using pkgutil
-        for _, module_name, _ in pkgutil.walk_packages(
-            package_path, package_name + "."
+    modules = set()
+    for path in package_dir.rglob("*.py"):
+        relative = path.relative_to(package_dir)
+        if any(part.startswith("_") for part in relative.parts[:-1]):
+            continue
+        if any(
+            not package_dir.joinpath(*relative.parts[:i], "__init__.py").is_file()
+            for i in range(1, len(relative.parts))
         ):
-            if "._" in module_name or module_name.startswith("_"):
-                continue
-
-            modules.append(module_name)
-
-        # Always include the base package itself
-        if package_name not in modules:
-            modules.append(package_name)
-
-        return sorted(modules)
-    except Exception as e:
-        print(f"Error finding modules: {e}")
-        return []
+            continue
+        if path.name == "__init__.py":
+            suffix = relative.parts[:-1]
+        elif path.stem.startswith("_"):
+            continue
+        else:
+            suffix = relative.with_suffix("").parts
+        modules.add(".".join((package_name, *suffix)))
+    return sorted(modules)
 
 
 def get_module_title(module_path: str, default_package_name: str) -> str:
@@ -190,7 +218,9 @@ def generate_module_docs(
 
     content_sections: list[str] = []
     if module_doc:
-        content_sections.append(module_doc)
+        body = "\n".join(module_doc.splitlines()[1:]).strip()
+        if body:
+            content_sections.append(body)
 
     # Find direct submodules (not just immediate children)
     submodules: list[str] = []
@@ -229,7 +259,7 @@ def generate_module_docs(
         elif member.kind == ObjectKind.FUNCTION:
             functions.append(cast(Function, member))
         # Check for constants (uppercase variables)
-        elif name.isupper():
+        elif name.isupper() and member.docstring:
             # Try to get the value directly
             try:
                 value = getattr(member, "value", None)
@@ -246,9 +276,7 @@ def generate_module_docs(
             # Format the value as code
             try:
                 # Try to format the value neatly
-                if isinstance(value, str):
-                    value_str = f'"{value}"'
-                elif value is not None:
+                if value is not None:
                     value_str = str(value)
                 else:
                     value_str = "None"
@@ -328,6 +356,10 @@ def generate_module_docs(
     frontmatter = f"""---
 title: {page_title}
 """
+    if (
+        module.is_package or module.is_subpackage
+    ) and module_path != default_package_name:
+        frontmatter += "sidebarTitle: Overview\n"
     if page_description:
         frontmatter += f'description: "{page_description}"\n'
     frontmatter += "---"
@@ -336,7 +368,10 @@ title: {page_title}
     if display_module_path.endswith(".__init__"):
         display_module_path = display_module_path[:-9]
 
-    final_content = [frontmatter, f"\n# `{display_module_path}`"] + content_sections
+    heading = (
+        [] if display_module_path == page_title else [f"\n# `{display_module_path}`"]
+    )
+    final_content = [frontmatter, *heading, *content_sections]
 
     md_path.write_text("\n".join(final_content) + "\n", encoding="utf-8")
     return md_path.relative_to(output_dir.parent).as_posix()
@@ -345,69 +380,20 @@ title: {page_title}
 def organize_navigation(
     generated_files: list[str], package_name: str
 ) -> list[dict[str, Any]]:
-    """
-    Organize files into navigation groups by their top-level module.
-    Each top-level module gets its own group with all its submodules.
-    """
-    path_to_module: dict[str, str] = {}
+    groups: dict[str, list[str]] = defaultdict(list)
+    for file_path in sorted(set(generated_files)):
+        parts = Path(file_path).stem.split("-")
+        group = parts[1] if len(parts) > 1 else "top level"
+        groups[group].append(file_path.removesuffix(".mdx"))
 
-    for file_path in sorted(generated_files):
-        path_obj = Path(file_path)
-        module_path = path_obj.stem.replace("-", ".")
-        path_to_module[file_path] = module_path
-
-    top_level_groups: dict[str, list[str]] = defaultdict(list)
-
-    for file_path, module_path in path_to_module.items():
-        parts = module_path.split(".")
-
-        if len(parts) > 1:
-            # For marvin.X.Y.Z, the group is X
-            group_name = parts[1]
-            # Convert to file path without extension
-            page_path = file_path.replace(".mdx", "")
-            top_level_groups[group_name].append(page_path)
-        elif len(parts) == 1 and parts[0] == package_name:
-            # The main module goes to "top level"
-            top_level_groups["top level"].append(file_path.replace(".mdx", ""))
-
-    # Clean up the navigation structure to avoid duplicates
-    result: list[dict[str, Any]] = []
-
-    # First add the "top level" group if it exists
-    if "top level" in top_level_groups:
-        filtered_pages: list[str] = []
-        for page in sorted(top_level_groups["top level"]):
-            page_module = Path(page).stem.replace("-", ".")
-            parts = page_module.split(".")
-
-            # Skip if this page is the parent module itself (shouldn't happen for top level)
-            if len(parts) == 2 and parts[1] == "top level":
-                continue
-
-            filtered_pages.append(page)
-
-        result.append({"group": "top level", "pages": filtered_pages})
-
-        # Remove the top level group so it's not added again
-        top_level_groups.pop("top level")
-
-    # Then add all other groups in alphabetical order
-    for group_name, pages in sorted(top_level_groups.items()):
-        filtered_pages: list[str] = []
-        for page in sorted(pages):
-            page_module = Path(page).stem.replace("-", ".")
-            parts = page_module.split(".")
-
-            # Skip if this page is the parent module itself
-            if len(parts) == 2 and parts[1] == group_name:
-                continue
-
-            filtered_pages.append(page)
-
-        result.append({"group": group_name, "pages": filtered_pages})
-
-    return result
+    names = sorted(groups, key=lambda name: (name != "top level", name))
+    return [
+        {
+            "group": name,
+            "pages": sorted(groups[name], key=lambda page: (page.count("-"), page)),
+        }
+        for name in names
+    ]
 
 
 def update_navigation(
@@ -504,20 +490,20 @@ def main() -> None:
         sys.path.insert(0, str(src_dir.absolute()))
 
     try:
-        all_module_paths = find_all_modules(package_name)
+        all_module_paths = find_all_modules(package_name, src_dir)
         print(f"Found {len(all_module_paths)} modules")
 
         modules_data: dict[str, Module] = {}
 
         for module_path in all_module_paths:
             try:
-                module_obj = griffe.load(module_path)
+                module_obj = griffe.load(module_path, search_paths=[src_dir])
                 if hasattr(module_obj, "kind") and module_obj.kind == ObjectKind.MODULE:
                     modules_data[module_path] = cast(Module, module_obj)
             except Exception:
                 init_path = f"{module_path}.__init__"
                 try:
-                    init_module = griffe.load(init_path)
+                    init_module = griffe.load(init_path, search_paths=[src_dir])
                     if (
                         hasattr(init_module, "kind")
                         and init_module.kind == ObjectKind.MODULE

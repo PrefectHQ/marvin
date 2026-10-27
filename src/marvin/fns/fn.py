@@ -102,7 +102,11 @@ def fn(
     thread: Thread | str | None = None,
     prompt: str | None = None,
 ) -> Callable[P, T]:
-    """A decorator that predicts the output of a Python function without executing it.
+    """A decorator that uses a function signature and arguments to define an AI task.
+
+    The function body executes to provide additional context. Its return value is
+    context for the model, not the generated result. Use an ellipsis body when
+    no additional context is needed.
 
     Can be used with or without parameters:
         @fn
@@ -129,7 +133,7 @@ def fn(
         prompt: Optional prompt to use for the task. If not provided, the default
             prompt will be used.
     Returns:
-        A wrapped function that predicts output instead of executing
+        A wrapped function that returns the model-generated result
 
     """
 

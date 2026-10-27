@@ -1,3 +1,9 @@
+"""Deprecated team orchestration retained for compatibility.
+
+All classes in this module are deprecated. Coordinate individual agents with
+Python calls or task dependencies instead.
+"""
+
 import random
 from dataclasses import dataclass, field
 from pathlib import Path

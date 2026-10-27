@@ -4,13 +4,6 @@ title: tools
 
 # `marvin.utilities.tools`
 
-## Constants
-
-### `T`
-```python
-T = TypeVar('T')
-```
-
 ## Classes
 
 ### `ResultTool`
@@ -29,7 +22,7 @@ class ResultTool(type: Literal['result-tool'] = 'result-tool')
 
 ### `update_fn`
 ```python
-def update_fn(func: Callable[..., T] | None = None, name: str | None = None, description: str | None = None) -> Callable[[Callable[..., T]], Callable[..., T]] | Callable[..., T]
+def update_fn(func: Callable[..., T] | None = None, /, *, name: str | None = None, description: str | None = None) -> Callable[[Callable[..., T]], Callable[..., T]] | Callable[..., T]
 ```
 Update a function's name and optionally set its docstring.
 
@@ -43,29 +36,31 @@ Args:
 
 Example:
     # As a function:
-    def my_fn(x):
-        return x
-    updated_fn = update_fn(my_fn, name='hello_there')
+```python
+def my_fn(x):
+    return x
+updated_fn = update_fn(my_fn, name='hello_there')
 
-    # As a decorator with name:
-    @update_fn(name='hello_there')
-    def my_fn(x):
-        return x
+# As a decorator with name:
+@update_fn(name='hello_there')
+def my_fn(x):
+    return x
 
-    # As a decorator with name and description:
-    @update_fn(name='hello_there', description='Says hello')
-    def my_fn(x):
-        return x
+# As a decorator with name and description:
+@update_fn(name='hello_there', description='Says hello')
+def my_fn(x):
+    return x
 
-    # As a decorator with no arguments:
-    @update_fn()
-    def my_fn(x):
-        return x
+# As a decorator with no arguments:
+@update_fn()
+def my_fn(x):
+    return x
 
-    # Works with async functions too:
-    @update_fn(name='async_hello')
-    async def my_async_fn(x):
-        return x
+# Works with async functions too:
+@update_fn(name='async_hello')
+async def my_async_fn(x):
+    return x
+```
 
 ### `wrap_tool_errors`
 ```python
