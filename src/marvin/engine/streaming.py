@@ -237,12 +237,18 @@ def _process_pydantic_event(
             tool_call_id=event.part.tool_call_id,
             tool=tools_map.get(event.part.tool_name),
         )
-    elif isinstance(event, FunctionToolResultEvent):
+    elif (
+        isinstance(event, FunctionToolResultEvent)
+        or event.event_kind == "output_tool_result"
+    ):
         part = getattr(event, "part", None)
         if part is None:
             part = event.result
         if isinstance(part, ToolReturnPart):
-            return ToolResultEvent(message=part)
+            if getattr(part, "outcome", None) == "retried":
+                return ToolRetryEvent(message=part)
+            if event.event_kind != "output_tool_result":
+                return ToolResultEvent(message=part)
         if isinstance(part, RetryPromptPart):
             return ToolRetryEvent(message=part)
     elif isinstance(event, FinalResultEvent):

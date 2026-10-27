@@ -102,7 +102,7 @@ Event for tool return values.
 
 ### `ToolRetryEvent`
 ```python
-class ToolRetryEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), message: RetryPromptPart)
+class ToolRetryEvent(type: EventType, id: uuid.UUID = (lambda: uuid.uuid4())(), timestamp: datetime.datetime = (lambda: datetime.datetime.now(datetime.timezone.utc))(), message: RetryPromptPart | ToolReturnPart)
 ```
 Event for tool retry requests.
 

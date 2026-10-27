@@ -73,7 +73,7 @@ class ToolRetryEvent(Event):
     """Event for tool retry requests."""
 
     type: EventType = field(default="tool-retry", init=False)
-    message: RetryPromptPart
+    message: RetryPromptPart | ToolReturnPart
 
 
 @dataclass(kw_only=True)

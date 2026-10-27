@@ -266,11 +266,11 @@ class UsageType(TypeDecorator[RunUsage]):
             return None
         value = {
             **value,
-            "input_tokens": value.get("input_tokens", value.get("request_tokens", 0)),
-            "output_tokens": value.get(
-                "output_tokens", value.get("response_tokens", 0)
-            ),
+            "input_tokens": value.get("input_tokens", value.get("request_tokens")) or 0,
+            "output_tokens": value.get("output_tokens", value.get("response_tokens"))
+            or 0,
         }
+        value["details"] = value.get("details") or {}
         return usage_adapter.validate_python(value)
 
 

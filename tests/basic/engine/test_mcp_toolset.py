@@ -18,8 +18,8 @@ async def test_fastmcp_tool_calls_and_cleanup():
     async def divide(a: int, b: int) -> float:
         return a / b
 
-    toolset = Agent(mcp_servers=[server]).get_mcp_servers()[0]
-    agent = Agent(mcp_servers=[toolset])
+    agent = Agent(mcp_servers=[server])
+    toolset = agent.get_mcp_servers()[0]
     manager = MCPManager()
     try:
         assert await manager.start_servers(agent) == [toolset]
@@ -28,6 +28,8 @@ async def test_fastmcp_tool_calls_and_cleanup():
         with pytest.raises(ToolError):
             await toolset.client.call_tool("divide", {"a": 84, "b": 0})
         assert await manager.start_servers(agent) == [toolset]
+        assert len(manager.active_servers) == 1
+        assert agent.get_mcp_servers()[0] is toolset
         result = await toolset.client.call_tool("divide", {"a": 30, "b": 2})
         assert result.data == 15
     finally:
