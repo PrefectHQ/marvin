@@ -32,7 +32,6 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: "3.11"
-      - run: uv venv --python 3.11
       - run: >-
           uv pip install . pydantic-ai anthropic openai fastmcp
           chromadb dirty-equals pytest pytest-asyncio pytest-env
