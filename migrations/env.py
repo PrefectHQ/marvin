@@ -78,8 +78,11 @@ async def run_async_migrations():
 
 def run_migrations_online():
     """Run migrations in 'online' mode."""
-    # Get the connection from config attributes if it was provided
-    connectable = config.attributes.get("connection", None)
+    # Get the connection from config attributes if it was provided. Alembic hands
+    # env.py the config the caller passed, which is where a connection attached by
+    # the application (for example while creating tables from the models) lives;
+    # the module-level config above always has empty attributes.
+    connectable = context.config.attributes.get("connection", None)
 
     if connectable is None:
         # If no connection provided, run the async migrations
