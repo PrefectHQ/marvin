@@ -281,6 +281,11 @@ class TestArrayTypes:
         result = validator.validate_python(["a", "a", "b"])
         assert result == {"a", "b"}
 
+    def test_empty_items_list_does_not_crash(self):
+        # items=[] (empty tuple schema) must not raise TypeError from Union[()]
+        result = jsonschema_to_type({"type": "array", "items": []})
+        assert TypeAdapter(result).validate_python([1, "x", None]) == [1, "x", None]
+
 
 class TestObjectTypes:
     """Test suite for object validation."""
