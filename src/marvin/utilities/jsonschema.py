@@ -149,6 +149,7 @@ def resolve_ref(ref: str, schemas: Mapping[str, Any]) -> Mapping[str, Any]:
     path = ref.replace("#/", "").split("/")
     current = schemas
     for part in path:
+        part = part.replace("~1", "/").replace("~0", "~")
         current = current.get(part, {})
     return current
 
