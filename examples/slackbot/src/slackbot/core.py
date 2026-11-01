@@ -35,7 +35,9 @@ from slackbot.github import (
     GitHubRateLimitError,
     create_discussion_from_thread,
     format_discussions_summary,
+    format_issues_summary,
     search_discussions,
+    search_issues,
 )
 from slackbot.research_agent import (
     research_prefect_topic,
@@ -45,7 +47,6 @@ from slackbot.search import (
     display_callable_signature,
     explore_module_offerings,
     get_latest_prefect_release_notes,
-    read_github_issues,
 )
 from slackbot.settings import settings
 from slackbot.types import UserContext
@@ -173,7 +174,6 @@ def create_agent(
         model=RetryingModel(ai_model),
         tools=[
             research_prefect_topic,  # Tool for researching Prefect topics
-            read_github_issues,  # For searching GitHub issues
             explore_module_offerings,  # check the work of the research agent, verify imports, types functions
             display_callable_signature,  # check the work of the research agent, verify signatures of callable objects
             check_cli_command,  # verify CLI commands before suggesting them
@@ -362,6 +362,46 @@ def create_agent(
             )
             return f"Error searching discussions: {str(e)}"
 
+    @agent.tool
+    async def read_github_issues(
+        ctx: RunContext[UserContext],
+        query: str,
+        repo: str = "prefecthq/prefect",
+        n: int = 3,
+    ) -> str:
+        """
+        Use the GitHub API to search for issues in a given repository.
+
+        The first stop for bug reports and error messages — existing issues
+        often carry the diagnosis and workaround. Do not alter the default
+        value for `n` unless specifically requested by a user.
+
+        For example, to search for open issues about AttributeErrors with the
+        label "bug" in PrefectHQ/prefect:
+            - repo: prefecthq/prefect
+            - query: label:bug is:open AttributeError
+        """
+        try:
+            issues = await search_issues(query, repo=repo, n=n)
+            return await format_issues_summary(issues)
+        except GitHubNotFoundError:
+            return (
+                "GitHub issue search could not find that repository. "
+                "Check the repo name and try again."
+            )
+        except GitHubAuthError as e:
+            await _notify_admin_about_error(
+                ctx, f"GitHub authentication failed while searching issues: {e}"
+            )
+            return f"Sorry, I'm having trouble accessing GitHub right now. <@{settings.admin_slack_user_id}> has been notified."
+        except GitHubRateLimitError:
+            return "GitHub issue search is temporarily unavailable because the rate limit was exceeded."
+        except GitHubError as e:
+            await _notify_admin_about_error(
+                ctx, f"GitHub API error while searching issues: {e}"
+            )
+            return f"Sorry, I encountered an error while searching issues. <@{settings.admin_slack_user_id}> has been notified."
+
     return agent
 
 
@@ -397,7 +437,11 @@ async def _notify_admin_about_error(
         f"User: <@{ctx.deps['user_id']}>"
     )
 
-    await _send_admin_notification(message)
+    logger.error("Notifying admin: %s", error_message)
+    try:
+        await _send_admin_notification(message)
+    except Exception as e:
+        logger.error("Failed to notify admin about error: %r", e)
 
 
 async def _send_admin_notification(message: str) -> None:
@@ -417,3 +461,5 @@ async def _send_admin_notification(message: str) -> None:
             "https://slack.com/api/chat.postMessage", headers=headers, json=payload
         )
         response.raise_for_status()
+        if not (body := response.json()).get("ok"):
+            raise RuntimeError(f"Slack chat.postMessage failed: {body.get('error')}")
