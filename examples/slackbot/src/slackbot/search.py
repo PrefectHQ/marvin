@@ -1,26 +1,12 @@
-import asyncio
 import shlex
 import subprocess
 from functools import lru_cache
 
 import click
 import httpx
-from prefect import task
 from prefect.cli import app as prefect_cli
-from prefect.logging.loggers import get_logger
 from pretty_mod import display_signature
 from typer.main import get_command
-
-from slackbot.github import (
-    GitHubAuthError,
-    GitHubError,
-    GitHubNotFoundError,
-    GitHubRateLimitError,
-    format_issues_summary,
-    search_issues,
-)
-
-logger = get_logger(__name__)
 
 
 def explore_module_offerings(
@@ -102,47 +88,6 @@ def get_latest_prefect_release_notes() -> str:
         response = client.get(url)
         release_notes = response.json().get("body")
         return release_notes
-
-
-@task(task_run_name="Reading {n} issues from {repo} given query: {query}")
-def read_github_issues(query: str, repo: str = "prefecthq/prefect", n: int = 3) -> str:
-    """
-    Use the GitHub API to search for issues in a given repository.
-
-    The first stop for bug reports and error messages — existing issues
-    often carry the diagnosis and workaround. Do not alter the default
-    value for `n` unless specifically requested by a user.
-
-    For example, to search for open issues about AttributeErrors with the
-    label "bug" in PrefectHQ/prefect:
-        - repo: prefecthq/prefect
-        - query: label:bug is:open AttributeError
-    """
-    return asyncio.run(_read_github_issues_async(query, repo, n))
-
-
-async def _read_github_issues_async(query: str, repo: str, n: int) -> str:
-    """Async helper for reading GitHub issues."""
-    try:
-        issues = await search_issues(query, repo=repo, n=n)
-        return await format_issues_summary(issues)
-    except GitHubNotFoundError:
-        return (
-            "GitHub issue search could not find that repository. "
-            "Check the repo name and try again."
-        )
-    except GitHubAuthError:
-        return (
-            "GitHub issue search is temporarily unavailable because authentication "
-            "failed."
-        )
-    except GitHubRateLimitError:
-        return "GitHub issue search is temporarily unavailable because the rate limit was exceeded."
-    except GitHubError as exc:
-        logger.warning("GitHub issue search failed: %s", exc)
-        return (
-            "GitHub issue search is temporarily unavailable due to a GitHub API error."
-        )
 
 
 def display_callable_signature(import_path: str) -> str:
