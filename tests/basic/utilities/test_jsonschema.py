@@ -849,6 +849,38 @@ class TestConstantValues:
 class TestSchemaCaching:
     """Test suite for schema caching behavior."""
 
+    @pytest.mark.parametrize("definitions_key", ["$defs", "definitions"])
+    @pytest.mark.parametrize("reverse_order", [False, True])
+    def test_nested_references_use_their_own_root(
+        self, definitions_key: str, reverse_order: bool
+    ) -> None:
+        cases = [("integer", 42, "hello"), ("string", "hello", 42)]
+        if reverse_order:
+            cases.reverse()
+
+        validators = []
+        for value_type, valid, invalid in cases:
+            schema = {
+                "type": "object",
+                definitions_key: {"Value": {"type": value_type}},
+                "properties": {
+                    "nested": {
+                        "type": "object",
+                        "title": f"ContextSpecificValue{reverse_order}",
+                        "properties": {"value": {"$ref": f"#/{definitions_key}/Value"}},
+                        "required": ["value"],
+                    }
+                },
+                "required": ["nested"],
+            }
+            validators.append((TypeAdapter(jsonschema_to_type(schema)), valid, invalid))
+
+        for validator, valid, invalid in validators:
+            result = validator.validate_python({"nested": {"value": valid}})
+            assert result.nested.value == valid
+            with pytest.raises(ValidationError):
+                validator.validate_python({"nested": {"value": invalid}})
+
     def test_identical_schemas_reuse_class(self):
         schema = {"type": "object", "properties": {"name": {"type": "string"}}}
 
