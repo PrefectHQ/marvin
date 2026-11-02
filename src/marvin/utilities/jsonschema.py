@@ -360,7 +360,8 @@ def create_dataclass(
     name = name or schema.get("title", "Root")
     # Sanitize name for class creation
     sanitized_name = sanitize_name(name)
-    schema_hash = hash_schema(schema)
+    # Identical nested schemas can resolve $ref differently in different roots.
+    schema_hash = hash_schema({"schema": schema, "root": schemas})
     cache_key = (schema_hash, sanitized_name)
     original_schema = dict(schema)  # Store copy for validator
 
