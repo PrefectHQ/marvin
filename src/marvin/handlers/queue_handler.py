@@ -69,7 +69,7 @@ class QueueHandler(AsyncHandler):
         """
         # if an include filter is set, only include events that match the filter
         if self.include and (
-            event.__class__ not in self.include or event.type not in self.include
+            event.__class__ not in self.include and event.type not in self.include
         ):
             return
         # if an exclude filter is set, exclude events that match the filter
