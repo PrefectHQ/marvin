@@ -94,7 +94,7 @@ async def main(model: str | None = None) -> int:
         agent = Agent(
             name="deepseek assistant",
             model=OpenAIModel(
-                model or "deepseek-chat",
+                model or "deepseek-flash",
                 provider=DeepSeekProvider(
                     api_key=settings.deepseek_api_key.get_secret_value(),
                 ),
