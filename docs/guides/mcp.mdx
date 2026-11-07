@@ -46,4 +46,5 @@ answer = agent.run("Use add to calculate 23 + 19", result_type=int)
 
 Existing `MCPServerStdio` and HTTP server instances remain supported when using Pydantic AI 1.x. Those classes were replaced by `MCPToolset` in 2.x; use the API that matches your installed Pydantic AI version.
 
-A `Thread` context keeps managed server connections available across calls and closes them on exit. See [threads](/concepts/threads).
+A `Thread` context keeps managed server connections available across calls, but exiting that context does not close them.
+The orchestrator performs automatic cleanup only when no enclosing `Thread` context remains. See [threads](/concepts/threads).
