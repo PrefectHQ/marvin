@@ -12,12 +12,54 @@ from typing import TYPE_CHECKING, Any, cast
 import griffe
 from griffe import (
     Class,
+    ExprCall,
+    ExprKeyword,
     Function,
     Module,
     ObjectKind,
     Parameter,
     ParameterKind,
 )
+
+
+def dataclass_parameters(obj: Class, init: Function) -> list[Parameter]:
+    """Apply explicit field keyword overrides to Griffe's generated constructor."""
+    parameters = list(init.parameters)
+    if "dataclass" not in obj.labels or init.lineno != 0:
+        return parameters
+
+    # Griffe's synthesized initializer can miss field(kw_only=...) overrides,
+    # including inherited fields. Resolve these from source without importing it.
+    for i, param in enumerate(parameters):
+        member = obj.all_members.get(param.name)
+        value = getattr(member, "value", None)
+        if not isinstance(value, ExprCall) or (
+            value.function.canonical_path != "dataclasses.field"
+        ):
+            continue
+        for argument in value.arguments:
+            if (
+                isinstance(argument, ExprKeyword)
+                and argument.name == "kw_only"
+                and argument.value in ("True", "False")
+            ):
+                parameters[i] = Parameter(
+                    param.name,
+                    annotation=param.annotation,
+                    default=param.default,
+                    docstring=param.docstring,
+                    kind=(
+                        ParameterKind.keyword_only
+                        if argument.value == "True"
+                        else ParameterKind.positional_or_keyword
+                    ),
+                )
+
+    # Python dataclasses place positional fields before keyword-only fields,
+    # retaining declaration order within each group.
+    return [p for p in parameters if p.kind != ParameterKind.keyword_only] + [
+        p for p in parameters if p.kind == ParameterKind.keyword_only
+    ]
 
 
 def trim_docstring(docstring: str | None) -> str:
@@ -88,7 +130,7 @@ def format_signature(obj: Function | Class) -> str:
     elif hasattr(obj, "members"):
         init_method = obj.members.get("__init__")
         if init_method and isinstance(init_method, Function):
-            parameters = list(init_method.parameters)
+            parameters = dataclass_parameters(obj, init_method)
 
     if isinstance(obj, Class):
         parameters = parameters[1:]
