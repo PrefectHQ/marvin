@@ -100,3 +100,29 @@ def test_thread_messages():
 def test_uuid_thread_id():
     with pytest.raises(ValueError):
         Thread(id=uuid.uuid4())
+
+
+async def test_stream_history_across_batches():
+    thread = Thread()
+    await thread.add_messages_async(
+        [
+            UserMessage("one"),
+            SystemMessage("a"),
+            SystemMessage("b"),
+            UserMessage("two"),
+            SystemMessage("c"),
+            SystemMessage("d"),
+        ]
+    )
+    history = [m async for m in thread.iter_messages_async(batch_size=1)]
+    assert [m.message.parts[0].content for m in history] == ["one", "two"]
+    assert await thread.get_messages_async(limit=2) == history
+    assert await thread.get_messages_async(limit=0) == []
+    reverse = [m async for m in thread.iter_messages_async(newest_first=True)]
+    assert reverse == history[::-1]
+    all_messages = [
+        m async for m in thread.iter_messages_async(include_system_messages=True)
+    ]
+    assert len(all_messages) == 6
+    after = [m async for m in thread.iter_messages_async(after=history[0].created_at)]
+    assert after == history[1:]
