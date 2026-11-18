@@ -1,4 +1,5 @@
 import enum
+from types import GenericAlias
 from typing import Literal
 
 import pytest
@@ -87,6 +88,25 @@ class TestClassification:
         assert isinstance(labels, Labels)
         assert labels.many
         assert labels.labels == ("alpha", "beta")
+
+    @pytest.mark.parametrize(
+        "values",
+        [["red", 42, None], ("red", 42, None), {"red", 42, None}],
+        ids=["list", "tuple", "set"],
+    )
+    def test_as_classifier_with_collection_type_argument(
+        self, values: list[object] | tuple[object, ...] | set[object]
+    ) -> None:
+        """Collections inside list type arguments remain multi-label classifiers."""
+        classifier_type = GenericAlias(list, (values,))
+        assert is_classifier(classifier_type)
+
+        labels = as_classifier(classifier_type)
+
+        assert labels.many
+        assert labels.labels == tuple(values)
+        assert labels.get_type() == list[int]
+        assert labels.validate([0, 2]) == [tuple(values)[0], tuple(values)[2]]
 
     def test_labels_validation(self):
         """Test validation of Labels."""
