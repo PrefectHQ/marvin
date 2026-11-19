@@ -114,9 +114,11 @@ class Settings(BaseSettings):
 
     # ------------ Agent settings ------------
 
-    agent_model: KnownModelName = Field(
+    # pydantic-ai adds and removes `KnownModelName` entries between releases,
+    # so a literal-only type rejects valid model names, including this default.
+    agent_model: KnownModelName | str = Field(
         default="openai:gpt-4o",
-        description="The default model for agents.",
+        description="The default model for agents, as a `provider:model` string.",
     )
 
     agent_temperature: float | None = Field(
