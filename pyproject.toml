@@ -39,7 +39,7 @@ dev = [
     "pandas",
     "prefect",
     "qdrant-client[fastembed]",
-    "fastmcp>=3,<4",
+    "fastmcp",
 ]
 
 [project.optional-dependencies]
