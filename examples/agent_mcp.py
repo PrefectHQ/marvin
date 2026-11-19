@@ -2,8 +2,9 @@ import asyncio
 from pathlib import Path
 from typing import Annotated, TypedDict
 
+from fastmcp.client.transports import StdioTransport
 from pydantic import Field
-from pydantic_ai.mcp import MCPServerStdio
+from pydantic_ai.mcp import MCPToolset
 from rich import print as pprint
 
 import marvin
@@ -15,16 +16,15 @@ class Reflection(TypedDict):
 
 
 # Requires Deno: `deno install -A ... jsr:@pydantic/mcp-run-python`
-run_python_server = MCPServerStdio(
-    command="deno",
-    args=["run", "-A", "jsr:@pydantic/mcp-run-python", "stdio"],
+run_python_server = MCPToolset(
+    StdioTransport(
+        command="deno",
+        args=["run", "-A", "jsr:@pydantic/mcp-run-python", "stdio"],
+    )
 )
 
 # Requires uv: `uvx mcp-server-git`
-git_server = MCPServerStdio(
-    command="uvx",
-    args=["mcp-server-git"],
-)
+git_server = MCPToolset(StdioTransport(command="uvx", args=["mcp-server-git"]))
 
 
 def write_summary_of_work(description: str, file_path: str) -> str:

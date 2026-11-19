@@ -1,6 +1,6 @@
 # MCP integration
 
-Agents accept MCP connections through `mcp_servers`. Pydantic AI 2.x uses its native `MCPToolset`; the older integration adapts FastMCP servers for Pydantic AI 1.x.
+Agents accept MCP connections through `mcp_servers`. Each entry must be a Pydantic AI `MCPToolset` or a FastMCP server. `Agent.get_mcp_servers` wraps a FastMCP server in an `MCPToolset`.
 
 `MCPManager` owns connection startup and cleanup. A thread context keeps its manager available across orchestrator calls. Agents pass the active connections to Pydantic AI as toolsets.
 

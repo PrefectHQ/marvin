@@ -8,10 +8,10 @@ from pydantic_ai.messages import (
     FunctionToolCallEvent,
     FunctionToolResultEvent,
     ModelResponsePart,
+    OutputToolResultEvent,
     PartDeltaEvent,
     PartEndEvent,
     PartStartEvent,
-    RetryPromptPart,
     TextPart,
     TextPartDelta,
     ToolCallPart,
@@ -95,18 +95,6 @@ async def handle_agentlet_events(
             )
 
         elif pydantic_ai.Agent.is_model_request_node(node):
-            # EndTurnTool retries do not get processed as normal
-            # FunctionToolResultEvents, but can be detected by checking for
-            # RetryPromptPart that match the end turn tool names. Here, we
-            # yield a ToolRetryEvent for each RetryPromptPart that matches an
-            # end turn tool name.
-            for part in node.request.parts:
-                if (
-                    isinstance(part, RetryPromptPart)
-                    and part.tool_name in end_turn_tools_map
-                ):
-                    yield ToolRetryEvent(message=part)
-
             parts.clear()
 
             # Model request node - stream tokens from the model's request
@@ -237,20 +225,13 @@ def _process_pydantic_event(
             tool_call_id=event.part.tool_call_id,
             tool=tools_map.get(event.part.tool_name),
         )
-    elif (
-        isinstance(event, FunctionToolResultEvent)
-        or event.event_kind == "output_tool_result"
-    ):
-        part = getattr(event, "part", None)
-        if part is None:
-            part = event.result
+    elif isinstance(event, FunctionToolResultEvent | OutputToolResultEvent):
+        part = event.part
         if isinstance(part, ToolReturnPart):
-            if getattr(part, "outcome", None) == "retried":
+            if part.outcome == "retried":
                 return ToolRetryEvent(message=part)
-            if event.event_kind != "output_tool_result":
+            if isinstance(event, FunctionToolResultEvent):
                 return ToolResultEvent(message=part)
-        if isinstance(part, RetryPromptPart):
-            return ToolRetryEvent(message=part)
     elif isinstance(event, FinalResultEvent):
         return EndTurnToolCallEvent(
             actor=actor,

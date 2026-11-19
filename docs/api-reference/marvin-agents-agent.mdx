@@ -18,11 +18,11 @@ An agent that can process tasks and maintain state.
 
 - **`get_agentlet`**
   ```python
-  async def get_agentlet(self, tools: Sequence[Callable[..., Any]], end_turn_tools: Sequence[EndTurn], active_mcp_servers: list[MCPServer] | None = None) -> pydantic_ai.Agent[Any, Any]
+  async def get_agentlet(self, tools: Sequence[Callable[..., Any]], end_turn_tools: Sequence[EndTurn], active_mcp_servers: list[MCPToolset] | None = None) -> pydantic_ai.Agent[Any, Any]
   ```
 - **`get_mcp_servers`**
   ```python
-  def get_mcp_servers(self) -> list[MCPServer]
+  def get_mcp_servers(self) -> list[MCPToolset]
   ```
 - **`get_memories`**
   ```python

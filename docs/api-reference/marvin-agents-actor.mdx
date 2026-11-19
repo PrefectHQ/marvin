@@ -24,7 +24,7 @@ class Actor(*, name: str, instructions: str | None = None, description: str | No
   ```
 - **`get_agentlet`**
   ```python
-  async def get_agentlet(self, tools: Sequence[Callable[..., Any]], end_turn_tools: Sequence[EndTurn], active_mcp_servers: list[MCPServer] | None = None) -> pydantic_ai.Agent[Any, Any]
+  async def get_agentlet(self, tools: Sequence[Callable[..., Any]], end_turn_tools: Sequence[EndTurn], active_mcp_servers: list[MCPToolset] | None = None) -> pydantic_ai.Agent[Any, Any]
   ```
 - **`get_current`**
   ```python

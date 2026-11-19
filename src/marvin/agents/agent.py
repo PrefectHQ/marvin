@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Sequence, TypeVar
 
 import pydantic_ai
+from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.models import KnownModelName, Model, ModelSettings
 from pydantic_ai.result import ToolOutput
 
@@ -17,7 +18,6 @@ import marvin
 from marvin._internal.integrations.fastmcp import (
     attempt_convert_to_pydantic_ai_mcp_server,
 )
-from marvin._internal.pydantic_ai import MCPServer
 from marvin.agents.actor import Actor
 from marvin.agents.names import AGENT_NAMES
 from marvin.memory.memory import Memory
@@ -93,7 +93,7 @@ class Agent(Actor):
         repr=False,
     )
 
-    _mcp_server_cache: dict[int, tuple[Any, MCPServer]] = field(
+    _mcp_server_cache: dict[int, tuple[Any, MCPToolset]] = field(
         default_factory=dict, init=False, repr=False, compare=False
     )
 
@@ -110,9 +110,9 @@ class Agent(Actor):
     def get_memories(self) -> list[Memory]:
         return list(self.memories)
 
-    def get_mcp_servers(self) -> list[MCPServer]:
-        converted_servers: list[MCPServer] = []
-        cache: dict[int, tuple[Any, MCPServer]] = {}
+    def get_mcp_servers(self) -> list[MCPToolset]:
+        converted_servers: list[MCPToolset] = []
+        cache: dict[int, tuple[Any, MCPToolset]] = {}
         for server_instance in self.mcp_servers:
             cached = self._mcp_server_cache.get(id(server_instance))
             converted = (
@@ -126,7 +126,7 @@ class Agent(Actor):
             else:
                 raise TypeError(
                     f"Unsupported server type in mcp_servers: {type(server_instance).__name__}. "
-                    f"Must be a valid `pydantic_ai` `MCPServer` or `fastmcp` `FastMCP` instance."
+                    f"Must be a valid `pydantic_ai` `MCPToolset` or `fastmcp` `FastMCP` instance."
                 )
 
         self._mcp_server_cache = cache
@@ -152,7 +152,7 @@ class Agent(Actor):
         self,
         tools: Sequence[Callable[..., Any]],
         end_turn_tools: Sequence["EndTurn"],
-        active_mcp_servers: list[MCPServer] | None = None,
+        active_mcp_servers: list[MCPToolset] | None = None,
     ) -> pydantic_ai.Agent[Any, Any]:
         from marvin.engine.end_turn import EndTurn
 
