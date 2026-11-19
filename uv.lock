@@ -6398,6 +6398,7 @@ dependencies = [
     { name = "pretty-mod" },
     { name = "raggy", extra = ["tpuf"] },
     { name = "tiktoken" },
+    { name = "turbopuffer" },
 ]
 
 [package.metadata]
@@ -6410,6 +6411,7 @@ requires-dist = [
     { name = "pretty-mod" },
     { name = "raggy", extras = ["tpuf"], git = "https://github.com/zzstoatzz/raggy.git" },
     { name = "tiktoken", specifier = ">=0.7" },
+    { name = "turbopuffer", specifier = ">=3.1" },
 ]
 
 [package.metadata.requires-dev]
@@ -6790,21 +6792,22 @@ wheels = [
 
 [[package]]
 name = "turbopuffer"
-version = "1.5.0"
+version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
     { name = "anyio" },
     { name = "distro" },
-    { name = "httpx" },
+    { name = "httpx2" },
+    { name = "orjson" },
     { name = "pybase64" },
     { name = "pydantic" },
     { name = "sniffio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/72/0e/bbe80ab87523a140fbcf07d9b86d908952538e09c07e0dc03fcba30d971e/turbopuffer-1.5.0.tar.gz", hash = "sha256:270559bb59767764e28104a805cd18ea3a314d9a69bf8b52ef5cd3059a51815d", size = 144278, upload-time = "2025-10-22T11:10:06.421Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/d1/28dd2b0f655f0c89e44a4f5e9e0a87f5a940f6854e8cdd004e0177be39af/turbopuffer-3.1.0.tar.gz", hash = "sha256:8ae6e7229063814e556026c79d0abebda0e2e5d9a833214bcefc709f64bfcf70", size = 349736, upload-time = "2026-10-28T22:27:20.703Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/45/2d/d6a18d7ef2c34cff3848e9ac90b5a541bc7f3de8c5cf0f1460a145bb1bd1/turbopuffer-1.5.0-py3-none-any.whl", hash = "sha256:db344b94b97dc4368e9ec1ab963a3001b4eac237c208e5ae4c8a32ddf6c9a28b", size = 110430, upload-time = "2025-10-22T11:10:05.357Z" },
+    { url = "https://files.pythonhosted.org/packages/05/90/baf12c9cd88bb44da43fa968aeda756fe313b028f68a190ce485e70a43fb/turbopuffer-3.1.0-py3-none-any.whl", hash = "sha256:f5e44b540902f58e8201a62d0df0e98e8fe04987c41efec4bf8a83ea35254389", size = 162059, upload-time = "2026-10-28T22:27:19.115Z" },
 ]
 
 [[package]]

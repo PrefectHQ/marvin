@@ -20,6 +20,8 @@ def test_small_profile_preserves_qualifications_and_legacy_rows_without_embeddin
                 "created_at": "2026-09-08T00:00:00Z",
                 "updated_at": "2026-09-08T00:00:00Z",
                 "schema": {"text": {"type": "string"}},
+                "encryption": {"mode": "default"},
+                "index": {"status": "up-to-date"},
             }
         )
         store.ns.query.return_value = SimpleNamespace(

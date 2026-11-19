@@ -40,6 +40,7 @@ dependencies = [
   "numpy",
   "tiktoken>=0.7",
   "raggy[tpuf] @ git+https://github.com/zzstoatzz/raggy.git",
+  "turbopuffer>=3.1",
   "pretty-mod",
   "claude-agent-sdk",
   "logfire[fastapi]>=4.39.0",
