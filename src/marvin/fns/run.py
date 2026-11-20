@@ -91,6 +91,8 @@ async def run_tasks_stream(
         while not queue_handler.queue.empty():
             yield queue_handler.queue.get_nowait()
 
+        await orchestrator_task
+
     finally:
         # Optionally, cancel the orchestrator if needed.
         if not orchestrator_task.done():
