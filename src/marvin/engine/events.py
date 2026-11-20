@@ -7,7 +7,6 @@ import partial_json_parser
 from pydantic_ai.messages import (
     FinalResultEvent,
     ModelResponsePart,
-    RetryPromptPart,
     TextPart,
     TextPartDelta,
     ToolCallPart,
@@ -73,7 +72,7 @@ class ToolRetryEvent(Event):
     """Event for tool retry requests."""
 
     type: EventType = field(default="tool-retry", init=False)
-    message: RetryPromptPart | ToolReturnPart
+    message: ToolReturnPart
 
 
 @dataclass(kw_only=True)

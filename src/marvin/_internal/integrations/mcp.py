@@ -3,7 +3,6 @@ Experimental module for integrating Model Context Protocol (MCP) servers with Ma
 """
 
 import asyncio
-import os
 import uuid
 from contextlib import AsyncExitStack, asynccontextmanager
 from contextvars import ContextVar
@@ -11,11 +10,11 @@ from functools import partial
 from typing import TYPE_CHECKING, Any, AsyncIterator, Coroutine
 
 from mcp.types import CallToolResult
+from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.messages import ToolReturnPart
 from pydantic_ai.tools import Tool, ToolDefinition
 
 import marvin
-from marvin._internal.pydantic_ai import MCPServer, MCPServerStdio
 from marvin.agents.actor import Actor
 from marvin.engine.events import ToolResultEvent
 from marvin.utilities.logging import get_logger
@@ -34,7 +33,7 @@ _thread_mcp_manager: ContextVar["MCPManager | None"] = ContextVar(
 )
 
 
-def _get_server_name(server: MCPServer) -> str:
+def _get_server_name(server: MCPToolset) -> str:
     return getattr(server, "name", type(server).__name__)
 
 
@@ -43,18 +42,18 @@ class MCPManager:
 
     The manager tracks servers by their object id, allowing the same server instance
     to be reused across multiple orchestrator runs. This is important because
-    pydantic-ai's MCPServer uses reference counting - if we enter the same server's
+    pydantic-ai's MCPToolset uses reference counting - if we enter the same server's
     context multiple times, it just increments the count and only stops when it hits 0.
     """
 
     def __init__(self):
         """Initialize the MCP manager."""
         self.exit_stack = AsyncExitStack()
-        self.active_servers: list[MCPServer] = []
+        self.active_servers: list[MCPToolset] = []
         # Track which server instances (by id) have been started
         self._started_server_ids: set[int] = set()
 
-    async def start_servers(self, actor: "Actor") -> list[MCPServer]:
+    async def start_servers(self, actor: "Actor") -> list[MCPToolset]:
         """Start MCP servers for the given actor.
 
         If a server is already running (from a previous orchestrator run in the same
@@ -102,22 +101,6 @@ class MCPManager:
                 continue
 
             try:
-                # Ensure stdio servers inherit the full environment,
-                # merging any user-specified env vars on top of os.environ.
-                # Without this, a server with env={"FOO": "bar"} would lose
-                # PATH, HOME, etc., causing the subprocess to fail.
-                if MCPServerStdio is not None and isinstance(server, MCPServerStdio):
-                    if server.env is None:
-                        logger.debug(
-                            f"[MCPManager] Server {server_repr} has no env set. Setting env=dict(os.environ)."
-                        )
-                        server.env = dict(os.environ)
-                    else:
-                        logger.debug(
-                            f"[MCPManager] Server {server_repr} has custom env. Merging with os.environ."
-                        )
-                        server.env = {**os.environ, **server.env}
-
                 await self.exit_stack.enter_async_context(server)
                 self.active_servers.append(server)
                 self._started_server_ids.add(server_id)
@@ -146,7 +129,7 @@ class MCPManager:
 
 async def _mcp_tool_wrapper(
     *,
-    _mcp_server: MCPServer,
+    _mcp_server: MCPToolset,
     _tool_def: ToolDefinition,
     _orchestrator: "marvin.engine.orchestrator.Orchestrator | None",
     **kwargs: Any,
@@ -236,7 +219,7 @@ async def _mcp_tool_wrapper(
 
 
 async def discover_mcp_tools(
-    mcp_servers: list[MCPServer],
+    mcp_servers: list[MCPToolset],
     orchestrator: "marvin.engine.orchestrator.Orchestrator | None",
 ) -> list[Tool]:
     mcp_tools: list[Tool] = []
@@ -244,7 +227,7 @@ async def discover_mcp_tools(
         return mcp_tools
 
     discovery_tasks: list[Coroutine[Any, Any, list[ToolDefinition]]] = []
-    server_map: dict[int, MCPServer] = {}
+    server_map: dict[int, MCPToolset] = {}
 
     for i, server in enumerate(mcp_servers):
         if not getattr(server, "is_running", False):
@@ -326,7 +309,7 @@ async def cleanup_thread_mcp_servers() -> None:
 
 
 @asynccontextmanager
-async def manage_mcp_servers(actor: "Actor") -> AsyncIterator[list[MCPServer]]:
+async def manage_mcp_servers(actor: "Actor") -> AsyncIterator[list[MCPToolset]]:
     """Context manager to manage MCP servers for a given actor.
 
     MCP servers are persisted across multiple orchestrator runs within the same

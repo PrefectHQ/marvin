@@ -3,9 +3,9 @@ title: Using MCP Servers
 description: Expose MCP tools to a Marvin agent
 ---
 
-Pass an MCP connection through `Agent(mcp_servers=[...])`. Pydantic AI provides the client integration.
+Pass an MCP connection through `Agent(mcp_servers=[...])`. Pydantic AI provides the client integration through `MCPToolset`.
 
-## Pydantic AI 2.x
+## HTTP servers
 
 Use `MCPToolset` for an HTTP MCP server:
 
@@ -18,7 +18,22 @@ agent = marvin.Agent(mcp_servers=[server])
 answer = agent.run("List the tools you can use")
 ```
 
-The server must already be running. To connect a subprocess, pass a FastMCP `StdioTransport` to `MCPToolset`; see [Pydantic AI's MCP client documentation](https://ai.pydantic.dev/mcp/client/).
+The server must already be running.
+
+## Subprocess servers
+
+Pass a FastMCP `StdioTransport` to `MCPToolset` to start a server as a subprocess:
+
+```python
+import marvin
+from fastmcp.client.transports import StdioTransport
+from pydantic_ai.mcp import MCPToolset
+
+git = MCPToolset(StdioTransport(command="uvx", args=["mcp-server-git"]))
+agent = marvin.Agent(mcp_servers=[git])
+```
+
+The subprocess receives `PATH`, `HOME`, and the variables in `env`. See [Pydantic AI's MCP client documentation](https://ai.pydantic.dev/mcp/client/).
 
 ## In-process FastMCP
 
@@ -41,9 +56,5 @@ async def add(a: int, b: int) -> int:
 agent = marvin.Agent(mcp_servers=[server])
 answer = agent.run("Use add to calculate 23 + 19", result_type=int)
 ```
-
-## Pydantic AI 1.x
-
-Existing `MCPServerStdio` and HTTP server instances remain supported when using Pydantic AI 1.x. Those classes were replaced by `MCPToolset` in 2.x; use the API that matches your installed Pydantic AI version.
 
 A `Thread` context keeps managed server connections available across calls and closes them on exit. See [threads](/concepts/threads).

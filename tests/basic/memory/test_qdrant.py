@@ -1,7 +1,6 @@
 import uuid
 
-import pytest
-from qdrant_client import AsyncQdrantClient
+from qdrant_client import AsyncQdrantClient, models
 
 from marvin.memory.providers.qdrant import QdrantMemory
 
@@ -36,20 +35,34 @@ async def test_persistent_qdrant_memory_isolation_and_limits(tmp_path):
         await client.close()
 
 
-@pytest.mark.skipif(
-    not hasattr(AsyncQdrantClient, "add"), reason="requires legacy seeding API"
-)
 async def test_existing_legacy_collection(tmp_path):
+    """Read a collection in the layout that `AsyncQdrantClient.add` wrote before 1.20."""
     path = str(tmp_path / "qdrant")
     client = AsyncQdrantClient(path=path)
     memory_id = str(uuid.uuid4())
     content = "The number is 42."
     try:
-        await client.add(
+        await client.create_collection(
             collection_name="memory-legacy",
-            documents=[content],
-            metadata=[{"id": memory_id}],
-            ids=[memory_id],
+            vectors_config={
+                "fast-bge-small-en": models.VectorParams(
+                    size=384, distance=models.Distance.COSINE
+                )
+            },
+        )
+        await client.upsert(
+            collection_name="memory-legacy",
+            points=[
+                models.PointStruct(
+                    id=memory_id,
+                    vector={
+                        "fast-bge-small-en": models.Document(
+                            text=content, model="BAAI/bge-small-en"
+                        )
+                    },
+                    payload={"document": content, "id": memory_id},
+                )
+            ],
         )
     finally:
         await client.close()

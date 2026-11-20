@@ -2,12 +2,8 @@ import pytest
 
 from marvin import Agent
 from marvin._internal.integrations.mcp import MCPManager
-from marvin._internal.pydantic_ai import MCPServerStdio
 
 
-@pytest.mark.skipif(
-    MCPServerStdio is not None, reason="requires current MCPToolset API"
-)
 async def test_fastmcp_tool_calls_and_cleanup():
     from fastmcp import FastMCP
     from fastmcp.exceptions import ToolError

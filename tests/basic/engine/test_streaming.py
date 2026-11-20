@@ -1,5 +1,3 @@
-import inspect
-
 import pydantic_ai.messages as messages
 import pytest
 from pydantic_ai.messages import (
@@ -44,10 +42,6 @@ def test_interleaved_streaming_parts():
     assert results[3].tool_call_id == "call-1"
 
 
-@pytest.mark.skipif(
-    not hasattr(messages, "OutputToolResultEvent"),
-    reason="requires current tool outcome events",
-)
 @pytest.mark.parametrize(
     "event_name", ["FunctionToolResultEvent", "OutputToolResultEvent"]
 )
@@ -71,20 +65,3 @@ def test_current_tool_result_events(event_name, outcome):
     else:
         assert isinstance(result, ToolResultEvent)
         assert result.message is part
-
-
-def test_legacy_retry_event():
-    from marvin.engine.events import ToolRetryEvent
-
-    part = messages.RetryPromptPart(
-        tool_name="lookup", content="try again", tool_call_id="call-1"
-    )
-    parameter = (
-        "part"
-        if "part" in inspect.signature(messages.FunctionToolResultEvent).parameters
-        else "result"
-    )
-    event = messages.FunctionToolResultEvent(**{parameter: part})
-    result = _process_pydantic_event(event, Agent(), {}, {}, {})
-    assert isinstance(result, ToolRetryEvent)
-    assert result.message is part

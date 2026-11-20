@@ -11,8 +11,8 @@ from typing import TYPE_CHECKING, Any, Callable
 
 import pydantic_ai
 from pydantic_ai.agent import AgentRunResult
+from pydantic_ai.mcp import MCPToolset
 
-from marvin._internal.pydantic_ai import MCPServer
 from marvin.agents.actor import Actor
 from marvin.agents.names import TEAM_NAMES
 from marvin.memory.memory import Memory
@@ -94,7 +94,7 @@ class Team(Actor):
         self,
         tools: list[Callable[..., Any]],
         end_turn_tools: list["EndTurn"],
-        active_mcp_servers: list[MCPServer] | None = None,
+        active_mcp_servers: list[MCPToolset] | None = None,
     ) -> pydantic_ai.Agent[Any, Any]:
         return await self.active_member.get_agentlet(
             tools=self.get_tools() + tools,

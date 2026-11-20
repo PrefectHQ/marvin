@@ -44,20 +44,14 @@ class QdrantMemory(MemoryProvider):
         return await self.client.get_collection(collection_name=collection_name)
 
     def _embedding_model(self) -> tuple[str, str]:
-        model = getattr(self.client, "embedding_model_name", "BAAI/bge-small-en")
-        return model, f"fast-{model.split('/')[-1].lower()}"
+        # Collections written by `AsyncQdrantClient.add` in qdrant-client
+        # before 1.20 use this model and vector name. Reusing them keeps
+        # those collections searchable.
+        return "BAAI/bge-small-en", "fast-bge-small-en"
 
     async def add(self, memory_key: str, content: str) -> str:
         memory_id = str(uuid.uuid4())
         collection_name = self.collection_name.format(key=memory_key)
-        if hasattr(self.client, "add"):
-            await self.client.add(
-                collection_name=collection_name,
-                documents=[content],
-                metadata=[{"id": memory_id}],
-                ids=[memory_id],
-            )
-            return memory_id
         model, vector_name = self._embedding_model()
         if not await self.client.collection_exists(collection_name):
             await self.client.create_collection(
@@ -90,11 +84,6 @@ class QdrantMemory(MemoryProvider):
 
     async def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
         collection_name = self.collection_name.format(key=memory_key)
-        if hasattr(self.client, "query"):
-            results = await self.client.query(
-                collection_name=collection_name, query_text=query, limit=n
-            )
-            return {r.id: r.document for r in results}
         model, vector_name = self._embedding_model()
         results = await self.client.query_points(
             collection_name=collection_name,
