@@ -72,11 +72,11 @@ class Agent(Actor):
         repr=False,
     )
 
-    model: KnownModelName | Model | None = field(
+    model: KnownModelName | str | Model | None = field(
         default=None,
         metadata={
             "description": "The language model configuration for the agent."
-            " Can be a known model name, a Pydantic AI Model instance,"
+            " Can be a `provider:model` string, a Pydantic AI Model instance,"
             " or None to use the default."
         },
     )
@@ -100,7 +100,7 @@ class Agent(Actor):
     def __hash__(self) -> int:
         return super().__hash__()
 
-    def get_model(self) -> Model | KnownModelName:
+    def get_model(self) -> Model | KnownModelName | str:
         return self.model or marvin.defaults.model
 
     def get_tools(self) -> list[Callable[..., Any]]:

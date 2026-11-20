@@ -11,14 +11,14 @@ from marvin import Agent
 
 class _Defaults(TypedDict):
     agent: NotRequired[Agent]
-    model: NotRequired[KnownModelName | Model]
+    model: NotRequired[KnownModelName | str | Model]
     memory_provider: NotRequired[str]
 
 
 @dataclass
 class Defaults:
     agent: Agent
-    model: KnownModelName | Model
+    model: KnownModelName | str | Model
     memory_provider: str
 
 
