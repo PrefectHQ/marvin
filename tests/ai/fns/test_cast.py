@@ -1,10 +1,13 @@
 import json
 from typing import Any
 
+import pydantic_ai.models
 import pytest
 from pydantic import BaseModel, Field
+from pydantic_ai.models.test import TestModel
 
 import marvin
+from marvin.defaults import override_defaults
 
 
 class Location(BaseModel):
@@ -121,3 +124,26 @@ class TestAsync:
     async def test_cast_text_to_int(self):
         result = await marvin.cast_async("one", int)
         assert result == 1
+
+
+class TestContextIsolation:
+    def test_cast_does_not_mutate_caller_context(self):
+        """A caller-supplied `context` dict must not be mutated in place.
+
+        `cast_async` used to do `task_context = context or {}` and then
+        write into `task_context` directly, which aliases (rather than
+        copies) any non-empty caller-supplied dict.
+        """
+        with pydantic_ai.models.override_allow_model_requests(False):
+            with override_defaults(model=TestModel()):
+                my_context = {"user_supplied_key": "should not change"}
+                before = dict(my_context)
+
+                marvin.cast(
+                    "one",
+                    int,
+                    instructions="the arabic numeral for the provided word",
+                    context=my_context,
+                )
+
+                assert my_context == before
