@@ -1,28 +1,25 @@
 FROM python:3.13-slim
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
-COPY --from=oven/bun:latest /usr/local/bin/bun /usr/local/bin/bun
+COPY --from=ghcr.io/astral-sh/uv:0.13.9 /uv /uvx /bin/
 
 WORKDIR /app
 
 COPY . /app
 
 RUN apt-get update && \
-    apt-get install -y git build-essential curl && \
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
+    apt-get install -y --no-install-recommends git build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN uv sync --extra slackbot --no-dev
+# The image never reuses the uv cache, so do not write one into the layer.
+RUN UV_NO_CACHE=1 uv sync --locked --extra slackbot --no-dev
 
 # Prepare the context tokenizer at build time, not on the first Slack request.
 ENV TIKTOKEN_CACHE_DIR=/app/.cache/tiktoken
 RUN uv run --no-sync python -c "import tiktoken; tiktoken.get_encoding('cl100k_base')"
 
-RUN bun install -g @anthropic-ai/claude-code
-
-ENV PATH="/root/.bun/bin:${PATH}"
+# The research agent runs the Claude Code binary bundled in the claude-agent-sdk wheel.
+RUN test -x "$(uv run --no-sync python -c 'import claude_agent_sdk, pathlib; print(pathlib.Path(claude_agent_sdk.__file__).parent / "_bundled" / "claude")')"
 
 EXPOSE 4200
 
