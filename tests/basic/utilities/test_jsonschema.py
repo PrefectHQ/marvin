@@ -756,6 +756,36 @@ class TestIdentifierNormalization:
         )  # 2nd_address -> field_2nd_address
         assert result.field_ref == "12345"  # $ref -> field_ref
 
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_preserves_properties_with_colliding_normalized_names(
+        self, reverse: bool
+    ) -> None:
+        property_types = [
+            ("task-name", {"type": "string"}),
+            ("task_name", {"type": "integer"}),
+            ("task_name_2", {"type": "boolean"}),
+        ]
+        if reverse:
+            property_types.reverse()
+        properties = dict(property_types)
+        schema = {
+            "type": "object",
+            "title": f"CollidingProperties{reverse}",
+            "properties": properties,
+            "required": list(properties),
+        }
+        adapter = TypeAdapter(jsonschema_to_type(schema))
+        payload = {"task-name": "review", "task_name": 7, "task_name_2": True}
+        result = adapter.validate_python(payload)
+
+        assert result.task_name == 7
+        assert result.task_name_2 is True
+        assert result.task_name_3 == "review"
+        assert adapter.dump_python(result, by_alias=True) == payload
+        assert set(adapter.json_schema()["properties"]) == properties.keys()
+        with pytest.raises(ValidationError, match="task-name"):
+            adapter.validate_python({"task_name": 7, "task_name_2": True})
+
 
 class TestConstantValues:
     """Test suite for constant value validation."""

@@ -383,9 +383,30 @@ def create_dataclass(
     properties = schema.get("properties", {})
     required = schema.get("required", [])
 
+    field_names = {prop_name: sanitize_name(prop_name) for prop_name in properties}
+    reserved_names = set(field_names.values())
+    used_names = {
+        name for name, normalized in field_names.items() if name == normalized
+    }
+    next_suffix: dict[str, int] = {}
+    # Give unmodified names priority, then resolve collisions in a stable order.
+    for prop_name in sorted(field_names):
+        normalized = field_names[prop_name]
+        if prop_name == normalized:
+            continue
+        if normalized not in used_names:
+            used_names.add(normalized)
+            continue
+        suffix = next_suffix.get(normalized, 2)
+        while (candidate := f"{normalized}_{suffix}") in reserved_names:
+            suffix += 1
+        field_names[prop_name] = candidate
+        reserved_names.add(candidate)
+        next_suffix[normalized] = suffix + 1
+
     fields: list[tuple[Any, ...]] = []
     for prop_name, prop_schema in properties.items():
-        field_name = sanitize_name(prop_name)
+        field_name = field_names[prop_name]
 
         # Check for self-reference in property
         if prop_schema.get("$ref") == "#":
