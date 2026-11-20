@@ -18,7 +18,10 @@ def test_deployment_help_keeps_scheduling_options(capsys):
 def test_concurrent_help_checks_do_not_invoke_callbacks():
     commands = ["deploy", "worker start", "work-pool create", "server start"]
     with (
-        patch("click.Command.invoke", side_effect=AssertionError("invoked command")),
+        patch(
+            "prefect.cli._app._setup_and_run",
+            side_effect=AssertionError("invoked command"),
+        ),
         patch(
             "slackbot.search.subprocess.run",
             side_effect=AssertionError("spawned process"),

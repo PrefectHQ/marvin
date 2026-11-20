@@ -6,7 +6,7 @@ Marvin is a Python library for extracting structured data and running tasks with
 
 ## Install
 
-Requires Python 3.10 or later and credentials for your model provider.
+Requires Python 3.11 or later and credentials for your model provider.
 
 ```bash
 uv add marvin

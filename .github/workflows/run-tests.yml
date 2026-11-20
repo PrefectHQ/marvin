@@ -24,16 +24,19 @@ permissions:
 jobs:
   current-dependencies:
     if: ${{ !(github.event.pull_request.head.repo.fork) }}
-    name: Current AI dependencies
+    name: Current AI dependencies on Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python-version }}
       - run: >-
           uv pip install . pydantic-ai anthropic openai fastmcp
           chromadb "qdrant-client[fastembed]" dirty-equals pytest pytest-asyncio pytest-env

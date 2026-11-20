@@ -22,7 +22,6 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
@@ -32,12 +31,12 @@ classifiers = [
   "Operating System :: POSIX :: Linux",
   "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [tool.hatch.metadata.hooks.uv-dynamic-versioning]
 dependencies = [
   "marvin",
-  "prefect>=3.6.12",
+  "prefect>=3.9",
   "numpy",
   "tiktoken>=0.7",
   "raggy[tpuf] @ git+https://github.com/zzstoatzz/raggy.git",

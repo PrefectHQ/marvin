@@ -1,15 +1,18 @@
 import asyncio
+import io
 import shlex
 import subprocess
 from functools import lru_cache
 
-import click
 import httpx
 from prefect import task
-from prefect.cli import app as prefect_cli
+
+# `prefect.cli.app` is the console-script entry function; `_app` is the
+# `cyclopts.App` it dispatches to, and the only object that renders help.
+from prefect.cli._app import _app as prefect_cli
 from prefect.logging.loggers import get_logger
 from pretty_mod import display_signature
-from typer.main import get_command
+from rich.console import Console
 
 from slackbot.github import (
     GitHubAuthError,
@@ -178,24 +181,14 @@ def display_callable_signature(import_path: str) -> str:
 @lru_cache(maxsize=128)
 def _prefect_help(path: tuple[str, ...]) -> str:
     """Render installed command definitions without invoking CLI callbacks."""
-    current = get_command(prefect_cli)
-    context = click.Context(current, info_name="prefect")
-    for name in path:
-        child = (
-            current.get_command(context, name)
-            if isinstance(current, click.Group)
-            else None
-        )
-        if child is None:
-            return f"Unknown Prefect command: {' '.join(('prefect', *path))}"
-        current = child
-        context = click.Context(current, info_name=name, parent=context)
+    _, _, unused = prefect_cli.parse_commands(list(path))
+    if unused:
+        return f"Unknown Prefect command: {' '.join(('prefect', *path))}"
 
-    formatter = click.HelpFormatter(width=100)
-    # Typer's rich formatter writes to stdout; Click's formatter returns the
-    # complete help as text, including options beyond the old 2,000-char cap.
-    click.Command.format_help(current, context, formatter)
-    return formatter.getvalue().strip()
+    output = io.StringIO()
+    console = Console(file=output, width=100, color_system=None, force_terminal=False)
+    prefect_cli.help_print(list(path), console=console)
+    return "\n".join(line.rstrip() for line in output.getvalue().splitlines()).strip()
 
 
 def check_cli_command(command: str, args: list[str] | None = None) -> str:

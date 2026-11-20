@@ -3,7 +3,7 @@ name = "marvin"
 description = "a simple and powerful tool to get things done with AI"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dynamic = ["version"]
 dependencies = [
     "aiosqlite>=0.20.0",
@@ -39,7 +39,7 @@ dev = [
     "pandas",
     "prefect",
     "qdrant-client[fastembed]",
-    "fastmcp@git+https://github.com/jlowin/fastmcp.git",
+    "fastmcp>=3,<4",
 ]
 
 [project.optional-dependencies]
@@ -100,7 +100,6 @@ extend-select = ["I"]
 
 [tool.uv.sources]
 slackbot = { workspace = true }
-fastmcp = { git = "https://github.com/jlowin/fastmcp.git" }
 
 [tool.uv.workspace]
 members = ["examples/slackbot"]
