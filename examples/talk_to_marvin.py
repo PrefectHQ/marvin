@@ -55,7 +55,7 @@ def talk_to_agent(agent_name: str, instructions: str, speaking_time: int):
 
     agent = marvin.Agent(
         name=agent_name,
-        model="openai:gpt-4o-audio-preview",
+        model="openai-chat:gpt-audio-1.5",
         instructions=instructions,
     )
     with marvin.Thread(str(uuid4())):
