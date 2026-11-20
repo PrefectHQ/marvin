@@ -227,10 +227,23 @@ async def test_task_initialization():
     assert task.verbose is False
 
 
-async def test_task_with_agent():
+@pytest.mark.parametrize("form", ["direct", "list", "tuple"])
+async def test_task_with_agent(form):
     """Test task with custom agent."""
     agent = Agent()
-    task = Task(instructions="Test with agent", agents=[agent])
+    agents = {"direct": agent, "list": [agent], "tuple": (agent,)}[form]
+    task = Task(instructions="Test with agent", agents=agents)
+    assert task.get_actor() is agent
+
+
+async def test_task_with_direct_agent_runs(test_model):
+    """The direct Actor form works through the normal task execution path."""
+    agent = Agent(model=test_model)
+    task = Task("Return the result", result_type=str, agents=agent)
+    test_model.custom_output_args = {"result": "ready"}
+
+    assert await task.run_async() == "ready"
+    assert task.is_successful()
     assert task.get_actor() is agent
 
 

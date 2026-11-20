@@ -29,7 +29,7 @@ from pydantic_ai.messages import UserContent
 import marvin
 import marvin.thread
 from marvin.agents.actor import Actor
-from marvin.agents.team import Swarm, Team
+from marvin.agents.team import Swarm
 from marvin.memory.memory import Memory
 from marvin.prompts import Template
 from marvin.thread import Thread
@@ -303,7 +303,7 @@ class Task(Generic[T]):
         self._tokens = []
 
         if agents:
-            if isinstance(agents, Team):
+            if isinstance(agents, Actor):
                 self.actor = agents
             else:
                 if len(agents) == 1:
