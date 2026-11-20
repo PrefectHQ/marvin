@@ -296,7 +296,7 @@ class Orchestrator:
                                 t for t in self.tasks if t.is_incomplete()
                             }
 
-                        if max_turns and turns >= max_turns:
+                        if incomplete_tasks and max_turns and turns >= max_turns:
                             raise ValueError("Max agent turns reached")
 
                     except (Exception, KeyboardInterrupt, CancelledError) as e:
