@@ -132,7 +132,11 @@ def create_tasks(
             ),
             allow_fail=plan_task.allow_fail,
             allow_skip=plan_task.allow_skip,
-            parent=(tasks[plan_task.parent_id] if plan_task.parent_id else parent_task),
+            parent=(
+                tasks[plan_task.parent_id]
+                if plan_task.parent_id is not None
+                else parent_task
+            ),
             depends_on=(
                 [tasks[id] for id in plan_task.depends_on_ids]
                 if plan_task.depends_on_ids
