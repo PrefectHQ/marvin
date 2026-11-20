@@ -1,7 +1,10 @@
+import json
 from dataclasses import dataclass
 
 import pytest
 from dirty_equals import IsPartialDataclass
+from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
+from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
 from pydantic_ai.models.test import TestModel
 
 import marvin
@@ -74,3 +77,35 @@ def test_tool_call_events():
         IsPartialDataclass(type="actor-end-turn"),
         IsPartialDataclass(type="orchestrator-end"),
     ]
+
+
+def test_end_turn_tool_retry_event():
+    calls = 0
+
+    def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        nonlocal calls
+        calls += 1
+        x = "not a number" if calls == 1 else 1
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    tool_name=info.output_tools[0].name, args={"result": {"x": x}}
+                )
+            ]
+        )
+
+    async def stream(messages: list[ModelMessage], info: AgentInfo):
+        part = respond(messages, info).parts[0]
+        yield {0: DeltaToolCall(name=part.tool_name, json_args=json.dumps(part.args))}
+
+    collector = EventCollector()
+    result = marvin.run(
+        "",
+        agents=[marvin.Agent(model=FunctionModel(respond, stream_function=stream))],
+        result_type=Foo,
+        handlers=[collector],
+    )
+
+    assert result == Foo(x=1)
+    assert calls == 2
+    assert [e.type for e in collector.events].count("tool-retry") >= 1

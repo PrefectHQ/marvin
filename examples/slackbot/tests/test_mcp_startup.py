@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import httpx
 import pytest
-from pydantic_ai.mcp import MCPServerStreamableHTTP
+from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.models.test import TestModel
 from slackbot import core
 from slackbot._internal.tolerant_toolset import TolerantToolset
@@ -32,19 +32,19 @@ async def test_cold_start_exceeds_default_but_fits_bot_deadline(monkeypatch):
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(endpoint)) as http:
         old = TolerantToolset(
-            MCPServerStreamableHTTP("https://search.invalid/mcp", http_client=http)
+            MCPToolset("https://search.invalid/mcp", http_client=http)
         )
         async with old:
             assert not old._available
 
         servers = []
 
-        def server_factory(**kwargs):
-            server = MCPServerStreamableHTTP(**kwargs, http_client=http)
+        def server_factory(*args, **kwargs):
+            server = MCPToolset(*args, **kwargs, http_client=http)
             servers.append(server)
             return server
 
-        monkeypatch.setattr(core, "MCPServerStreamableHTTP", server_factory)
+        monkeypatch.setattr(core, "MCPToolset", server_factory)
         monkeypatch.setattr(core, "get_run_logger", Mock())
         monkeypatch.setattr(core, "_base_system_prompt", lambda: "")
         core.create_agent(model=TestModel())

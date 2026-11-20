@@ -11,7 +11,7 @@ from prefect import get_run_logger, task
 from prefect.logging.loggers import get_logger
 from prefect.variables import Variable
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.mcp import MCPServerStreamableHTTP
+from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.models import KnownModelName, Model
 
 from slackbot._internal.personalization import (
@@ -153,11 +153,11 @@ def create_agent(
     logger = get_run_logger()
     logger.info("Creating new agent")
     ai_model = model or settings.bot_model
-    slack_search_mcp = MCPServerStreamableHTTP(
-        url="https://marvin-slack-thread-assets.fastmcp.app/mcp",
+    slack_search_mcp = MCPToolset(
+        "https://marvin-slack-thread-assets.fastmcp.app/mcp",
         # Horizon can need more than the SDK's five seconds on a cold start.
         # This is a ceiling, not a delay: warm connections still return promptly.
-        timeout=15,
+        init_timeout=15,
     )
     tolerant_slack_search = TolerantToolset(
         slack_search_mcp,

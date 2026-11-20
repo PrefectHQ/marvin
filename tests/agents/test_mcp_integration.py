@@ -1,7 +1,7 @@
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from pydantic_ai.mcp import MCPServer
+import pytest
 from pydantic_ai.tools import ToolDefinition
 
 from marvin._internal.integrations.mcp import (
@@ -12,8 +12,14 @@ from marvin._internal.integrations.mcp import (
     manage_mcp_servers,
     set_thread_mcp_manager,
 )
+from marvin._internal.pydantic_ai import MCPServer, MCPServerStdio
 from marvin.agents import Agent
 from marvin.thread import Thread
+
+requires_mcp_server_stdio = pytest.mark.skipif(
+    MCPServerStdio is None,
+    reason="pydantic-ai 2 removed MCPServerStdio; MCPToolset builds stdio transports",
+)
 
 
 class TestAgentMCPInstantiation:
@@ -177,6 +183,7 @@ async def test_manage_mcp_servers_lazy_behavior():
         MCPManager.start_servers = original_start_servers
 
 
+@requires_mcp_server_stdio
 async def test_mcp_tools_not_duplicated():
     """
     regression for https://github.com/prefecthq/marvin/issues/1142: MCP tools appear to be added twice.
@@ -189,8 +196,6 @@ async def test_mcp_tools_not_duplicated():
 
     The fix: Remove Marvin's pre-discovery, let pydantic-ai handle MCP servers natively.
     """
-    from pydantic_ai.mcp import MCPServerStdio
-
     git_mcp_server = MCPServerStdio(command="uvx", args=["mcp-server-git"])
     agent = Agent(mcp_servers=[git_mcp_server])
 
@@ -268,6 +273,7 @@ class TestMCPServerLifecycleInThreadContext:
             # Cleanup
             await cleanup_thread_mcp_servers()
 
+    @requires_mcp_server_stdio
     async def test_mcp_manager_merges_env_with_os_environ(self):
         """MCPServerStdio with custom env should still inherit os.environ.
 
@@ -275,8 +281,6 @@ class TestMCPServerLifecycleInThreadContext:
         the subprocess needs PATH, HOME, etc. to function. The manager should
         merge user env on top of os.environ, not use it as-is.
         """
-        from pydantic_ai.mcp import MCPServerStdio
-
         custom_env = {"HUE_BRIDGE_IP": "192.168.1.100", "HUE_BRIDGE_USERNAME": "test"}
         server = MCPServerStdio(command="echo", args=["hello"], env=custom_env)
         agent = MagicMock(spec=Agent)
@@ -301,10 +305,9 @@ class TestMCPServerLifecycleInThreadContext:
         assert server.env["HUE_BRIDGE_IP"] == "192.168.1.100"
         assert server.env["HUE_BRIDGE_USERNAME"] == "test"
 
+    @requires_mcp_server_stdio
     async def test_mcp_manager_sets_env_when_none(self):
         """MCPServerStdio with env=None should get os.environ."""
-        from pydantic_ai.mcp import MCPServerStdio
-
         server = MCPServerStdio(command="echo", args=["hello"])
         assert server.env is None
 

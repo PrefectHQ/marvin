@@ -8,6 +8,7 @@ from typing import Any, Literal, Sequence, TypeVar
 
 from pydantic_ai.agent import AgentRunResult
 from pydantic_ai.messages import UserContent
+from pydantic_ai.usage import RunUsage
 
 import marvin
 from marvin._internal.integrations.mcp import (
@@ -214,10 +215,14 @@ class Orchestrator:
             new_messages[1:]
         )
 
+        # pydantic-ai 1 exposes `usage` as a method. pydantic-ai 2 exposes a
+        # `RunUsage` property that warns when called.
         usage = run.usage
+        if not isinstance(usage, RunUsage):
+            usage = usage()
         await DBLLMCall.create(
             thread_id=self.thread.id,
-            usage=usage() if callable(usage) else usage,
+            usage=usage,
             prompt_messages=prompt_messages,
             completion_messages=completion_messages,
         )
