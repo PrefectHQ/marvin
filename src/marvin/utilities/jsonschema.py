@@ -34,6 +34,7 @@ Example:
 
 import hashlib
 import json
+import keyword
 import re
 from copy import deepcopy
 from dataclasses import MISSING, field, make_dataclass
@@ -319,6 +320,8 @@ def sanitize_name(name: str) -> str:
         cleaned = f"field_{cleaned}"
     # Step 4: deduplicate again and strip trailing underscores
     cleaned = re.sub(r"__+", "_", cleaned).strip("_")
+    if keyword.iskeyword(cleaned):
+        cleaned += "_"
     return cleaned
 
 
