@@ -14,15 +14,16 @@ Prerequisites:
 
 import asyncio
 
-from prefect import flow, task
-
 import marvin
 from marvin.beta.observability.openai import get_prefect_context, observable
+from prefect import flow, task
+from pydantic_ai.models.openai import OpenAIResponsesModelSettings
 
 # Define your agent once, use it everywhere
 analyst = marvin.Agent(
     name="analyst",
-    model="openai:gpt-4o-mini",
+    model="openai:gpt-6-luna",
+    model_settings=OpenAIResponsesModelSettings(openai_reasoning_effort="none"),
     instructions="You are a helpful analyst. Be concise.",
 )
 
