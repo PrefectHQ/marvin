@@ -722,6 +722,29 @@ class TestCircularReferences:
 class TestIdentifierNormalization:
     """Test suite for handling non-standard property names."""
 
+    @pytest.mark.parametrize(
+        "property_name", ["class", "from", "await", "match", "case", "type"]
+    )
+    def test_keyword_property_names(self, property_name):
+        schema = {
+            "type": "object",
+            "title": "KeywordProperty_" + property_name,
+            "properties": {property_name: {"type": "string", "minLength": 2}},
+            "required": [property_name],
+        }
+        validator = TypeAdapter(jsonschema_to_type(schema))
+
+        result = validator.validate_python({property_name: "example"})
+
+        assert validator.dump_python(result, by_alias=True) == {
+            property_name: "example"
+        }
+        assert property_name in validator.json_schema()["properties"]
+        with pytest.raises(ValidationError):
+            validator.validate_python({property_name: "x"})
+        with pytest.raises(ValidationError):
+            validator.validate_python({})
+
     @pytest.fixture
     def special_chars(self):
         return jsonschema_to_type(
