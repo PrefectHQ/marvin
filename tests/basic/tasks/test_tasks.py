@@ -88,6 +88,18 @@ class TestClassification:
         assert task2.result == [Colors.RED, Colors.BLUE]
         assert [v.value for v in task2.result] == ["red", "blue"]
 
+    def test_collection_type_argument_classifier(self) -> None:
+        """A list type with explicit labels works through the task API."""
+        choices = ["red", "green", "blue"]
+        task = Task("Choose colors", result_type=list[choices])
+
+        assert task.is_classifier()
+        assert task.get_result_type() == list[int]
+        assert task.validate_result([0, 2]) == ["red", "blue"]
+        assert task.get_result_type_str().endswith(
+            str({0: "'red'", 1: "'green'", 2: "'blue'"})
+        )
+
     async def test_labels_classifier(self):
         """Test using list[list] syntax for multi-label classification."""
         # Test single-label with raw list

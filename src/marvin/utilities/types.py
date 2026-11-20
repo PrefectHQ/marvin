@@ -172,6 +172,8 @@ def as_classifier(type_: type[T]) -> Labels:
             if TYPE_CHECKING:  # TODO: revisit this
                 assert isinstance(arg, type)
             return Labels(arg, many=True)
+        if isinstance(arg, (list, tuple, set)):
+            return Labels(arg, many=True)
 
     # Handle double-nested list shorthand
     if (
