@@ -105,6 +105,15 @@ class TestSimpleTypes:
 class TestStringConstraints:
     """Test suite for string constraint validation."""
 
+    @pytest.mark.parametrize("fmt", ["uri-reference", "ticket-id"])
+    def test_plain_string_formats_keep_length_and_pattern(self, fmt: str):
+        schema = {"type": "string", "format": fmt, "minLength": 3, "pattern": "^A"}
+        validator = TypeAdapter(jsonschema_to_type(schema))
+        assert validator.validate_python("ABC") == "ABC"
+        for value in ("A", "BCD"):
+            with pytest.raises(ValidationError):
+                validator.validate_python(value)
+
     @pytest.fixture
     def min_length_string(self):
         return jsonschema_to_type({"type": "string", "minLength": 3})

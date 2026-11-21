@@ -158,12 +158,9 @@ def create_string_type(schema: Mapping[str, Any]) -> type | Annotated[Any, ...]:
     if "const" in schema:
         return Literal[schema["const"]]  # type: ignore
 
-    if fmt := schema.get("format"):
-        if fmt == "uri":
-            return AnyUrl
-        elif fmt == "uri-reference":
-            return str
-        return FORMAT_TYPES.get(fmt, str)
+    fmt = schema.get("format")
+    if fmt in FORMAT_TYPES:
+        return FORMAT_TYPES[fmt]
 
     constraints = {
         k: v
