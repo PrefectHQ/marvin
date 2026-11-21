@@ -260,12 +260,13 @@ class Task(Generic[T]):
             plan: Whether to enable a tool for planning subtasks
 
         """
+        attachments = list(attachments) if attachments is not None else []
+
         # required fields
         if isinstance(instructions, str):
             self.instructions = instructions
         else:
             str_instructions = []
-            attachments = attachments or []
             for i in instructions:
                 if isinstance(i, str):
                     str_instructions.append(i)
