@@ -1,10 +1,16 @@
+from copy import deepcopy
 from datetime import datetime
 from typing import Union
 
 import pytest
 from pydantic import AnyUrl, TypeAdapter, ValidationError
 
-from marvin.utilities.jsonschema import hash_schema, jsonschema_to_type, merge_defaults
+from marvin.utilities.jsonschema import (
+    create_dataclass,
+    hash_schema,
+    jsonschema_to_type,
+    merge_defaults,
+)
 
 
 class TestSimpleTypes:
@@ -694,6 +700,109 @@ class TestCircularReferences:
         assert result.name == "grandparent"
         assert result.child.name == "parent"
         assert result.child.child.name == "child"
+
+    @pytest.mark.parametrize(
+        ("title", "name", "expected_name"),
+        [
+            ("Tree", None, "Tree"),
+            ("My Tree!", None, "My_Tree"),
+            ("Original", "CustomTree", "CustomTree"),
+            (None, "Custom Tree!", "Custom_Tree"),
+            (None, None, "Root"),
+        ],
+    )
+    def test_root_ref_in_array(self, title, name, expected_name):
+        schema = {
+            "type": "object",
+            "properties": {
+                "value": {"type": "integer", "minimum": 0},
+                "children": {"type": "array", "items": {"$ref": "#"}},
+            },
+            "required": ["value", "children"],
+        }
+        if title is not None:
+            schema["title"] = title
+        original_schema = deepcopy(schema)
+
+        node_type = jsonschema_to_type(schema, name=name)
+        validator = TypeAdapter(node_type)
+        result = validator.validate_python(
+            {
+                "value": 1,
+                "children": [{"value": 2, "children": [{"value": 3, "children": []}]}],
+            }
+        )
+
+        assert node_type.__name__ == expected_name
+        assert type(result.children[0]) is node_type
+        assert type(result.children[0].children[0]) is node_type
+        assert result.children[0].children[0].value == 3
+        assert schema == original_schema
+        with pytest.raises(ValidationError):
+            validator.validate_python(
+                {"value": 1, "children": [{"value": -1, "children": []}]}
+            )
+
+    def test_create_dataclass_with_explicit_name_and_root_ref(self):
+        schema = {
+            "type": "object",
+            "title": "Original",
+            "properties": {
+                "value": {"type": "integer"},
+                "child": {"$ref": "#"},
+            },
+            "required": ["value"],
+        }
+        original_schema = deepcopy(schema)
+        node_type = create_dataclass(schema, name="Custom")
+        result = TypeAdapter(node_type).validate_python(
+            {"value": 1, "child": {"value": 2}}
+        )
+
+        assert node_type.__name__ == "Custom"
+        assert type(result.child) is node_type
+        assert result.child.value == 2
+        assert schema == original_schema
+
+    def test_nested_object_root_ref(self):
+        schema = {
+            "type": "object",
+            "title": "NestedRoot",
+            "properties": {
+                "value": {"type": "integer"},
+                "branch": {
+                    "type": "object",
+                    "title": "BranchMetadata",
+                    "properties": {"parent": {"$ref": "#"}},
+                    "required": ["parent"],
+                },
+            },
+            "required": ["value"],
+        }
+        node_type = jsonschema_to_type(schema)
+        result = TypeAdapter(node_type).validate_python(
+            {"value": 1, "branch": {"parent": {"value": 2}}}
+        )
+
+        assert type(result.branch).__name__ == "BranchMetadata"
+        assert type(result.branch.parent) is node_type
+        assert result.branch.parent.value == 2
+
+    def test_root_ref_without_explicit_object_type(self):
+        schema = {
+            "properties": {
+                "value": {"type": "integer"},
+                "child": {"$ref": "#"},
+            },
+            "required": ["value"],
+        }
+        node_type = jsonschema_to_type(schema)
+        result = TypeAdapter(node_type).validate_python(
+            {"value": 1, "child": {"value": 2}}
+        )
+
+        assert type(result.child) is node_type
+        assert result.child.value == 2
 
     def test_mutual_recursion_single_level(self, mutually_recursive):
         validator = TypeAdapter(mutually_recursive)

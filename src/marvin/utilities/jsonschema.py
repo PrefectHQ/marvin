@@ -274,7 +274,7 @@ def schema_to_type(
         ref = schema["$ref"]
         # Handle self-reference
         if ref == "#":
-            return ForwardRef(schema.get("title", "Root"))
+            return ForwardRef(sanitize_name(schemas.get("title", "Root")))
         return schema_to_type(resolve_ref(ref, schemas), schemas)
 
     if "const" in schema:
@@ -358,6 +358,8 @@ def create_dataclass(
 ) -> type:
     """Create dataclass from object schema."""
     name = name or schema.get("title", "Root")
+    if schemas is None or schemas is schema:
+        schemas = {**schema, "title": name}
     # Sanitize name for class creation
     sanitized_name = sanitize_name(name)
     schema_hash = hash_schema(schema)
@@ -387,11 +389,7 @@ def create_dataclass(
     for prop_name, prop_schema in properties.items():
         field_name = sanitize_name(prop_name)
 
-        # Check for self-reference in property
-        if prop_schema.get("$ref") == "#":
-            field_type = ForwardRef(sanitized_name)
-        else:
-            field_type = schema_to_type(prop_schema, schemas)
+        field_type = schema_to_type(prop_schema, schemas)
 
         default_val = prop_schema.get("default", MISSING)
         is_required = prop_name in required
