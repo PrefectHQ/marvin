@@ -75,6 +75,8 @@ class Prompt:
         if name in ["source", "_extra_fields"]:
             super().__setattr__(name, value)
         else:
+            if name in self.__dataclass_fields__:
+                super().__setattr__(name, value)
             self._extra_fields[name] = value
 
     def __getattr__(self, name: str) -> Any:
