@@ -1,8 +1,36 @@
 import uuid
 
+import pytest
+from pydantic_ai.models.test import TestModel
 from qdrant_client import AsyncQdrantClient, models
 
+from marvin import Agent, Memory
 from marvin.memory.providers.qdrant import QdrantMemory
+
+
+@pytest.mark.parametrize("collection_name", ["memory-{key}", "notes-{key}"])
+async def test_search_before_first_write(collection_name: str) -> None:
+    client = AsyncQdrantClient(":memory:")
+    provider = QdrantMemory(client=client, collection_name=collection_name)
+    memory = Memory("preferences", provider=provider)
+    try:
+        assert await memory.search("Preferred answer length") == {}
+        assert (await client.get_collections()).collections == []
+    finally:
+        await client.close()
+
+
+async def test_auto_use_before_first_write() -> None:
+    client = AsyncQdrantClient(":memory:")
+    memory = Memory("preferences", provider=QdrantMemory(client=client), auto_use=True)
+    agent = Agent(
+        model=TestModel(call_tools=[], custom_output_args={"result": "Ready"}),
+        memories=[memory],
+    )
+    try:
+        assert await agent.run_async("Say ready", result_type=str) == "Ready"
+    finally:
+        await client.close()
 
 
 async def test_persistent_qdrant_memory_isolation_and_limits(tmp_path):
