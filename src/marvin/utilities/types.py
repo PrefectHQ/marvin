@@ -14,6 +14,7 @@ from typing import (
     TypeVar,
     get_args,
     get_origin,
+    get_type_hints,
 )
 
 from marvin.utilities.asyncio import run_sync
@@ -332,6 +333,12 @@ class PythonFunction(Generic[P, R]):
         name = kwargs.pop("name", func.__name__)
         docstring = kwargs.pop("docstring", func.__doc__)
         sig = inspect.signature(func)
+        try:
+            return_annotation = get_type_hints(func, include_extras=True).get(
+                "return", sig.return_annotation
+            )
+        except (NameError, TypeError):
+            return_annotation = sig.return_annotation
         parameters = [
             ParameterModel(
                 name=name,
@@ -362,7 +369,7 @@ class PythonFunction(Generic[P, R]):
             "name": name,
             "docstring": inspect.cleandoc(docstring) if docstring else None,
             "parameters": parameters,
-            "return_annotation": sig.return_annotation,
+            "return_annotation": return_annotation,
             "source_code": source_code,
         }
 
