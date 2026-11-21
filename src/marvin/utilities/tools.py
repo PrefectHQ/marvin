@@ -1,7 +1,7 @@
 import inspect
 from collections.abc import Callable
 from dataclasses import dataclass
-from functools import wraps
+from functools import partial, wraps
 from typing import Any, Literal, TypeVar
 
 import pydantic_ai
@@ -11,6 +11,12 @@ from marvin.utilities.logging import get_logger
 
 T = TypeVar("T")
 logger = get_logger(__name__)
+
+
+def _unwrap_callable_instance(fn: Callable[..., T]) -> Callable[..., T]:
+    if not (inspect.isroutine(fn) or inspect.isclass(fn) or isinstance(fn, partial)):
+        return fn.__call__
+    return fn
 
 
 def update_fn(
@@ -60,6 +66,7 @@ def update_fn(
         raise ValueError("name cannot be empty if provided")
 
     def decorator(fn: Callable[..., T]) -> Callable[..., T]:
+        fn = _unwrap_callable_instance(fn)
         if inspect.iscoroutinefunction(fn):
 
             @wraps(fn)
@@ -98,6 +105,7 @@ def wrap_tool_errors(tool_fn: Callable[..., Any]):
     Pydantic AI doesn't catch errors except for ModelRetry, so we need to make
     sure we catch them ourselves and raise a ModelRetry instead.
     """
+    tool_fn = _unwrap_callable_instance(tool_fn)
     if inspect.iscoroutinefunction(tool_fn):
 
         @wraps(tool_fn)
