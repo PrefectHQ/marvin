@@ -41,6 +41,8 @@ def run_sync(coro: Coroutine[Any, Any, T]) -> T:
     try:
         return ctx.run(loop.run_until_complete, coro)
     except RuntimeError as e:
+        if not loop.is_running():
+            raise
         if "event loop" in str(e):
             return run_sync_in_thread(coro)
         raise e
