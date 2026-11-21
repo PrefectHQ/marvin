@@ -49,3 +49,12 @@ usage = thread.get_usage()
 Use `get_messages_async` and `get_usage_async` in async code. Database configuration is described in [configuration](/guides/configuration).
 
 Threads keep conversation history. [Memory](/concepts/memory) stores facts that agents can retrieve by semantic search; its persistence depends on the provider.
+
+## Streaming a long conversation
+
+```python
+async for message in thread.iter_messages_async(batch_size=128):
+    await archive.write(message)
+```
+
+The iterator reads in chronological order from a single database cursor. Use `before` and `after` for a time range or `newest_first=True` to scan backward. If you break out of the loop early, wrap the iterator in `async with contextlib.aclosing(...)` to close the cursor immediately.

@@ -4,10 +4,11 @@ This module provides the Thread class for managing conversation context.
 """
 
 import uuid
+from contextlib import aclosing
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Sequence
+from typing import Any, AsyncIterator, Sequence
 
 from pydantic import TypeAdapter
 from pydantic_ai.messages import UserContent
@@ -272,38 +273,69 @@ class Thread:
         Returns:
             List of messages in chronological order
         """
+        if limit == 0:
+            return []
+        messages = []
+        async with aclosing(
+            self.iter_messages_async(
+                before=before,
+                after=after,
+                include_system_messages=include_system_messages,
+                newest_first=True,
+                batch_size=min(limit, 100) if limit is not None and limit > 0 else 100,
+            )
+        ) as history:
+            async for message in history:
+                messages.append(message)
+                if limit is not None and len(messages) == limit:
+                    break
+        messages.reverse()
+        return messages
+
+    async def iter_messages_async(
+        self,
+        *,
+        before: datetime | None = None,
+        after: datetime | None = None,
+        include_system_messages: bool = False,
+        newest_first: bool = False,
+        batch_size: int = 100,
+    ) -> AsyncIterator[Message]:
+        """Stream this thread's history in batches using a single database cursor.
+
+        Messages are chronological by default. When stopping early, use
+        `contextlib.aclosing` to release the cursor immediately.
+        """
+        if batch_size < 1:
+            raise ValueError("batch_size must be positive")
         await self._ensure_thread_exists()
+        order = (DBMessage.created_at, DBMessage.id)
+        if newest_first:
+            order = tuple(column.desc() for column in order)
+        query = select(DBMessage).where(DBMessage.thread_id == self.id).order_by(*order)
+        if before is not None:
+            query = query.where(DBMessage.created_at < before)
+        if after is not None:
+            query = query.where(DBMessage.created_at > after)
 
         async with get_async_session() as session:
-            query = (
-                select(DBMessage)
-                .where(DBMessage.thread_id == self.id)
-                .order_by(DBMessage.created_at.desc())
+            result = await session.stream_scalars(
+                query.execution_options(yield_per=batch_size)
             )
-
-            if before is not None:
-                query = query.where(DBMessage.created_at < before)
-            if after is not None:
-                query = query.where(DBMessage.created_at > after)
-
-            if limit is not None:
-                query = query.limit(limit)
-
-            result = await session.execute(query)
-
-            db_messages = list(result.scalars().all())
-            db_messages.reverse()
-
-            messages = [db_m.to_message() for db_m in db_messages]
-
-            if not include_system_messages:
-                for m in messages:
-                    if isinstance(m.message, ModelRequest) and any(
-                        p.part_kind == "system-prompt" for p in m.message.parts
+            try:
+                async for record in result:
+                    message = record.to_message()
+                    if not include_system_messages and isinstance(
+                        message.message, ModelRequest
                     ):
-                        messages.remove(m)
-
-            return messages
+                        if any(
+                            p.part_kind == "system-prompt"
+                            for p in message.message.parts
+                        ):
+                            continue
+                    yield message
+            finally:
+                await result.close()
 
     async def get_llm_calls_async(
         self,
