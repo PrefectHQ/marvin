@@ -10,7 +10,7 @@ This module provides a flexible prompt system that supports:
 import inspect
 import re
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, make_dataclass
 from pathlib import Path
 from typing import Any, get_type_hints
 
@@ -201,20 +201,28 @@ class Prompt:
         if not _template:
             raise ValueError(f"Function {fn.__name__} must have a docstring")
 
-        # Create the dynamic prompt class
-        @dataclass
-        class DynamicPrompt(cls):
-            source: str | Path = field(default=_template)
-            __qualname__ = f"{fn.__name__.title()}Prompt"  # Set the class name
-
-            # Add the function parameters as fields
-            for name, param in sig.parameters.items():
-                default = param.default if param.default is not param.empty else None
-                locals()[name] = field(
-                    default=default,
-                    metadata={"description": f"Parameter from function {fn.__name__}"},
+        fields = [("source", str | Path, field(default=_template))]
+        for name, param in sig.parameters.items():
+            default = param.default if param.default is not param.empty else None
+            fields.append(
+                (
+                    name,
+                    hints.get(name, Any),
+                    field(
+                        default=default,
+                        metadata={
+                            "description": f"Parameter from function {fn.__name__}"
+                        },
+                    ),
                 )
-                if name in hints:
-                    __annotations__[name] = hints[name]
+            )
 
-        return DynamicPrompt
+        return make_dataclass(
+            "DynamicPrompt",
+            fields,
+            bases=(cls,),
+            namespace={
+                "__qualname__": f"{fn.__name__.title()}Prompt",
+                "__module__": __name__,
+            },
+        )
