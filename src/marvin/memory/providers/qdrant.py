@@ -84,6 +84,8 @@ class QdrantMemory(MemoryProvider):
 
     async def search(self, memory_key: str, query: str, n: int = 20) -> dict[str, str]:
         collection_name = self.collection_name.format(key=memory_key)
+        if not await self.client.collection_exists(collection_name):
+            return {}
         model, vector_name = self._embedding_model()
         results = await self.client.query_points(
             collection_name=collection_name,
