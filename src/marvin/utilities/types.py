@@ -164,7 +164,11 @@ def as_classifier(type_: type[T]) -> Labels:
     # Handle list[T] case for type-level classifiers
     origin = get_origin(typ)
     if origin is list:
-        arg = get_args(typ)[0]
+        args = get_args(typ)
+        if not args:
+            # Bare typing.List has origin list but empty args; Labels raises ValueError.
+            return Labels(typ)
+        arg = args[0]
         # Handle list[Enum] or list[Literal]
         if (isinstance(arg, type) and issubclass(arg, enum.Enum)) or get_origin(
             arg,
@@ -222,7 +226,11 @@ def is_classifier(type_: type[T]) -> bool:
     # Handle list[T] case
     origin = get_origin(typ)
     if origin is list:
-        arg = get_args(typ)[0]
+        args = get_args(typ)
+        if not args:
+            # Bare typing.List is not a valid classifier.
+            return False
+        arg = args[0]
         # Check for list[Enum], list[Literal], or list[list]
         return (
             issubclass_safe(arg, enum.Enum)
