@@ -1,8 +1,11 @@
+import asyncio
 import uuid
 
 import pytest
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from marvin.database import DBThread
 from marvin.engine.llm import AgentMessage, SystemMessage, UserMessage
 from marvin.thread import Message, Thread
 
@@ -84,6 +87,39 @@ def test_thread_persistence():
     assert isinstance(loaded_messages[1].message, ModelResponse)
     assert loaded_messages[0].message.parts[0].content == "Save this message"
     assert loaded_messages[1].message.parts[0].content == "Message saved"
+
+
+@pytest.mark.parametrize("same_instance", [True, False], ids=["shared", "separate"])
+async def test_concurrent_first_appends_preserve_both_messages(
+    monkeypatch: pytest.MonkeyPatch, same_instance: bool
+) -> None:
+    left = Thread()
+    right = left if same_instance else Thread(id=left.id)
+    both_read_missing = asyncio.Barrier(2)
+    original_get = AsyncSession.get
+
+    async def get_after_both_read_missing(
+        session: AsyncSession, entity: type, ident: object, **kwargs: object
+    ) -> object | None:
+        row = await original_get(session, entity, ident, **kwargs)
+        if entity is DBThread and ident == left.id and row is None:
+            await asyncio.wait_for(both_read_missing.wait(), timeout=5)
+        return row
+
+    monkeypatch.setattr(AsyncSession, "get", get_after_both_read_missing)
+
+    appended = await asyncio.gather(
+        left.add_user_message_async("alpha"),
+        right.add_user_message_async("beta"),
+        return_exceptions=True,
+    )
+    history = await Thread(id=left.id).get_messages_async()
+
+    assert all(isinstance(result, Message) for result in appended), appended
+    assert sorted(message.message.parts[0].content for message in history) == [
+        "alpha",
+        "beta",
+    ]
 
 
 def test_thread_messages():

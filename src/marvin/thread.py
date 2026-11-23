@@ -13,6 +13,7 @@ from pydantic import TypeAdapter
 from pydantic_ai.messages import UserContent
 from pydantic_ai.usage import RunUsage
 from sqlalchemy import select
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from marvin.database import (
     DBLLMCall,
@@ -136,16 +137,21 @@ class Thread:
         # Now we can safely create the thread
         try:
             async with get_async_session() as session:
-                db_thread = await session.get(DBThread, self.id)
-                if db_thread is not None:
-                    self._db_thread = True
-                else:
-                    await DBThread.create(
-                        session=session,
-                        id=self.id,
-                        parent_thread_id=self.parent_id,
-                    )
-                    self._db_thread = True
+                if await session.get(DBThread, self.id) is None:
+                    if session.get_bind().dialect.name == "sqlite":
+                        # Another session may insert this thread after our read.
+                        await session.execute(
+                            sqlite_insert(DBThread)
+                            .values(id=self.id, parent_thread_id=self.parent_id)
+                            .on_conflict_do_nothing(index_elements=[DBThread.id])
+                        )
+                    else:
+                        await DBThread.create(
+                            session=session,
+                            id=self.id,
+                            parent_thread_id=self.parent_id,
+                        )
+            self._db_thread = True
         except Exception as e:
             from marvin.utilities.logging import get_logger
 
