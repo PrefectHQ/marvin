@@ -1,5 +1,4 @@
 import asyncio
-from contextlib import nullcontext
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
@@ -33,7 +32,6 @@ async def test_slow_blurb_never_delays_or_overwrites_final_status(monkeypatch, f
         api, "create_progress_message", AsyncMock(return_value=progress)
     )
     monkeypatch.setattr(api, "create_agent", lambda: SimpleNamespace(run=answer))
-    monkeypatch.setattr(api, "WatchToolCalls", lambda **kwargs: nullcontext())
     monkeypatch.setattr(api, "get_run_logger", Mock())
     monkeypatch.setattr(
         api,

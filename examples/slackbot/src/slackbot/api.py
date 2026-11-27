@@ -2,7 +2,6 @@ import asyncio
 import json
 import re
 import time
-from collections import defaultdict
 from contextlib import asynccontextmanager, suppress
 from typing import Any, Sequence
 
@@ -40,6 +39,7 @@ from slackbot._internal.thread_status import (
 from slackbot._internal.thread_status import (
     try_acquire as try_acquire_thread,
 )
+from slackbot._internal.tool_tracking import ToolCallWatcher
 from slackbot.assets import summarize_thread
 from slackbot.core import (
     Database,
@@ -60,7 +60,6 @@ from slackbot.slack import (
     post_slack_message,
 )
 from slackbot.strings import count_tokens, slice_tokens
-from slackbot.wrap import WatchToolCalls, _progress_message, _tool_usage_counts
 
 BOT_MENTION = r"<@(\w+)>"
 
@@ -96,6 +95,7 @@ async def _personality_blurb(
     question: str,
     summary: str = "",
     previous_answer: str = "",
+    watcher: ToolCallWatcher | None = None,
 ) -> None:
     """Rewrite the progress header in Marvin's voice once the cheap model has
     read the question. Best-effort: any failure keeps the static line."""
@@ -121,7 +121,7 @@ async def _personality_blurb(
         progress.header = f"🔄 {blurb}"
         # tool updates re-render around the header; only push an immediate
         # edit if no tool has rendered the tally yet
-        if not _tool_usage_counts.get():
+        if not (watcher and watcher.counts):
             await progress.update(progress.header)
     except Exception:
         logger.debug("personality blurb failed; keeping static line", exc_info=True)
@@ -151,10 +151,14 @@ async def run_agent(
         initial_text=PROGRESS_PLACEHOLDER,
     )
 
+    # Owned by this run alone: concurrent turns each count and limit their own tools.
+    watcher = ToolCallWatcher(
+        max_tool_calls=settings.max_tool_calls_per_turn,
+        progress=progress,
+        task_settings=decorator_settings,
+    )
+
     try:
-        token = _progress_message.set(progress)
-        # Initialize tool usage counts for this agent run
-        counts_token = _tool_usage_counts.set(defaultdict(int))
         blurb_task = asyncio.create_task(
             _personality_blurb(
                 progress,
@@ -171,6 +175,7 @@ async def run_agent(
                     ),
                     "",
                 ),
+                watcher,
             )
         )
         logger = get_run_logger()
@@ -184,23 +189,18 @@ async def run_agent(
         )
 
         try:
-            with WatchToolCalls(
-                settings=decorator_settings,
-                max_tool_calls=settings.max_tool_calls_per_turn,
-            ):
-                result = await create_agent().run(
-                    user_prompt=user_prompt,
-                    message_history=conversation,
-                    deps=user_context,
-                )
+            result = await create_agent().run(
+                user_prompt=user_prompt,
+                message_history=conversation,
+                deps=user_context,
+                capabilities=[watcher.capability()],
+            )
         finally:
             # The interstitial must never overwrite the completed/error status.
             # Cancel instead of waiting for its model call to finish.
             blurb_task.cancel()
             with suppress(asyncio.CancelledError):
                 await blurb_task
-            _progress_message.reset(token)
-            _tool_usage_counts.reset(counts_token)
 
         await progress.update(
             f"✅ thought for {time.monotonic() - start_time:.1f} seconds"

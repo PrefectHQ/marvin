@@ -11,7 +11,7 @@ An intelligent Slack bot that provides AI-powered assistance in Slack channels u
 - **`search.py`**: Search capabilities and knowledge retrieval
 - **`assets.py`**: Asset tracking for data lineage
 - **`research_agent.py`**: Research agent for Prefect documentation and GitHub issues
-- **`wrap.py`**: Message formatting and response wrapping
+- **`_internal/tool_tracking.py`**: Per-run tool call counting, limits, and progress updates
 - **`strings.py`**: String constants and templates
 - **`settings.py`**: Configuration management
 

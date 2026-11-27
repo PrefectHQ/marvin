@@ -1,77 +1,91 @@
-"""Tool usage tracking and limiting for pydantic-ai agents."""
+"""Per-run tool call tracking for the answering agent.
+
+A `ToolCallWatcher` belongs to one agent run. It is attached to that run as a
+pydantic-ai `Hooks` capability, so concurrent Slack turns never share a tally,
+a limit, or a progress message.
+"""
 
 from collections import defaultdict
-from contextvars import ContextVar
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, Protocol
 
-# Context variables for tracking tool usage
-tool_usage_counts: ContextVar[dict[str, int] | None] = ContextVar(
-    "tool_usage_counts", default=None
+from prefect import task
+from pydantic_ai import RunContext
+from pydantic_ai.capabilities import Hooks, WrapToolExecuteHandler
+from pydantic_ai.exceptions import ToolFailed
+from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.tools import ToolDefinition
+
+TOOL_LIMIT_MESSAGE = (
+    "Tool use limit reached. Please continue with the information "
+    "you've gathered so far to answer the user's question."
 )
-current_tool: ContextVar[str | None] = ContextVar("current_tool", default=None)
-progress_message: ContextVar[Any] = ContextVar("progress_message", default=None)
 
 
-class ToolUsageTracker:
-    """Tracks and limits tool usage for agents."""
+class Progress(Protocol):
+    header: str
 
-    def __init__(self, max_calls: int = 50):
-        self.max_calls = max_calls
+    async def update(self, text: str) -> Any: ...
 
-    def track_call(self, tool_name: str) -> str | None:
-        """Track a tool call and return error message if limit exceeded.
 
-        Args:
-            tool_name: Name of the tool being called
+@dataclass
+class ToolCallWatcher:
+    """Count, limit, and report the tool calls of a single agent run.
 
-        Returns:
-            Error message if limit exceeded, None otherwise
-        """
-        counts = tool_usage_counts.get()
-        if counts is None:
-            counts = defaultdict(int)
-            tool_usage_counts.set(counts)
+    Each allowed call runs as a Prefect task and updates the progress message.
+    Calls past `max_tool_calls` are not executed: the model receives a failed
+    tool result telling it to answer with what it has.
+    """
 
-        counts[tool_name] += 1
-        total_calls = sum(counts.values())
+    max_tool_calls: int = 50
+    progress: Progress | None = None
+    task_settings: dict[str, Any] = field(default_factory=dict)
+    counts: dict[str, int] = field(default_factory=lambda: defaultdict(int))
 
-        if total_calls > self.max_calls:
-            return (
-                "Tool use limit reached. Please continue with the information "
-                "you've gathered so far to answer the user's question."
-            )
-        return None
+    def capability(self) -> Hooks[Any]:
+        """The capability to pass to `agent.run(capabilities=[...])`."""
+        return Hooks(tool_execute=self._execute)
 
-    def get_counts(self) -> dict[str, int]:
-        """Get current tool usage counts."""
-        counts = tool_usage_counts.get()
-        return dict(counts) if counts else {}
+    async def _execute(
+        self,
+        ctx: RunContext[Any],
+        *,
+        call: ToolCallPart,
+        tool_def: ToolDefinition,
+        args: dict[str, Any],
+        handler: WrapToolExecuteHandler,
+    ) -> Any:
+        tool_name = call.tool_name
+        if sum(self.counts.values()) >= self.max_tool_calls:
+            raise ToolFailed(TOOL_LIMIT_MESSAGE)
+        self.counts[tool_name] += 1
+        await self._update_progress(tool_name)
 
-    async def update_progress(self, tool_name: str):
-        """Update progress message if available."""
-        progress = progress_message.get()
-        if not progress:
+        async def execute_tool(args: dict[str, Any]) -> Any:
+            return await handler(args)
+
+        settings = dict(self.task_settings)
+        if run_name := settings.get("task_run_name"):
+            settings["task_run_name"] = run_name.replace("{tool_name}", tool_name)
+        return await task(**settings)(execute_tool)(args)
+
+    async def _update_progress(self, tool_name: str) -> None:
+        if self.progress is None:
             return
-
-        token = current_tool.set(tool_name)
+        lines = [
+            self.progress.header,
+            "",
+            "",
+            f"🔧 Using tool: `{tool_name}`",
+            "",
+            "📊 Tools used:",
+            *(
+                f"  • `{tool}` ({count}x)"
+                for tool, count in sorted(self.counts.items())
+            ),
+        ]
         try:
-            counts = self.get_counts()
-
-            lines = [
-                progress.header,
-                "",
-                "",
-                f"🔧 Using tool: `{tool_name}`",
-                "",
-            ]
-
-            if counts:
-                lines.append("📊 Tools used:")
-                for tool, count in sorted(counts.items()):
-                    lines.append(f"  • `{tool}` ({count}x)")
-
-            await progress.update("\n".join(lines))
+            await self.progress.update("\n".join(lines))
         except Exception:
+            # a failed progress edit must never fail the tool call
             pass
-        finally:
-            current_tool.reset(token)
