@@ -39,6 +39,36 @@ async def test_agent_with_tools():
     assert agent.get_tools() == [my_tool]
 
 
+async def test_shared_memory_registers_one_set_of_tools():
+    from pydantic_ai.exceptions import UserError
+    from pydantic_ai.models.test import TestModel
+
+    from marvin.memory.memory import MemoryProvider
+
+    class LocalMemory(MemoryProvider):
+        async def add(self, memory_key, content):
+            raise AssertionError("Unexpected write")
+
+        async def delete(self, memory_key, memory_id):
+            raise AssertionError("Unexpected delete")
+
+        async def search(self, memory_key, query, n=20):
+            calls.append(memory_key)
+            return {}
+
+    calls = []
+    memory = Memory("shared", provider=LocalMemory())
+    agent = Agent(
+        model=TestModel(call_tools=["search_memories__shared"]), memories=[memory]
+    )
+    await marvin.run_async("Search memory", agents=[agent], memories=[memory])
+    assert calls == ["shared"]
+
+    other = Memory("shared", provider=LocalMemory())
+    with pytest.raises(UserError, match="Tool name conflicts with existing tool"):
+        await marvin.run_async("Search memory", agents=[agent], memories=[other])
+
+
 async def test_agent_with_memories():
     """Test agent with memories."""
     memory = Memory(key="test_memory")

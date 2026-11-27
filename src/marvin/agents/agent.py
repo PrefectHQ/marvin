@@ -165,9 +165,16 @@ class Agent(Actor):
         )
         marvin_tool_callables: list[Callable[..., Any]] = []
         final_end_turn_defs: list[type[EndTurn] | EndTurn] = []
-        processed_ids: set[int] = set()
+        processed_ids: set[int | tuple[int, str, str]] = set()
         for item in all_potential_items:
-            item_id = id(item)
+            # Memory.get_tools creates a fresh wrapper for each bound operation.
+            method = getattr(item, "__wrapped__", None)
+            memory = getattr(method, "__self__", None)
+            item_id = (
+                (id(memory), method.__name__, item.__name__)
+                if isinstance(memory, Memory)
+                else id(item)
+            )
             if item_id in processed_ids:
                 continue
             processed_ids.add(item_id)
