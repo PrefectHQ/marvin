@@ -19,7 +19,7 @@ class SpecialCode(BaseModel):
         return v
 
 
-# Set custom retry limit (default is 10)
+# Limit validation retries (default is 10); read when the task runs
 marvin.settings.agent_retries = 3
 
 # Use a thread to maintain conversation history across retries
