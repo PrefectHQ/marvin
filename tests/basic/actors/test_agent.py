@@ -1,10 +1,17 @@
+from dataclasses import dataclass
+
 import pytest
 from dirty_equals import IsStr
+from pydantic_ai import ModelRetry
+from pydantic_ai.exceptions import UnexpectedModelBehavior
+from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
+from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 import marvin
 from marvin import Thread
 from marvin.agents.actor import get_current_actor
 from marvin.agents.agent import Agent
+from marvin.engine.end_turn import EndTurn
 from marvin.memory.memory import Memory
 
 
@@ -244,3 +251,53 @@ async def test_agent_equality():
 
     assert agent1 == agent1_copy
     assert agent1 != agent2
+
+
+@pytest.mark.parametrize("retries", [0, 2])
+async def test_agent_retries_setting_limits_invalid_results(
+    monkeypatch: pytest.MonkeyPatch, retries: int
+):
+    @dataclass
+    class Result(EndTurn):
+        value: int
+
+    requests = 0
+
+    def always_invalid(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        nonlocal requests
+        requests += 1
+        return ModelResponse(
+            parts=[ToolCallPart(info.output_tools[0].name, {"value": "not a number"})]
+        )
+
+    monkeypatch.setattr(marvin.settings, "agent_retries", retries)
+    agentlet = await Agent(model=FunctionModel(always_invalid)).get_agentlet(
+        tools=[], end_turn_tools=[Result]
+    )
+
+    with pytest.raises(UnexpectedModelBehavior):
+        await agentlet.run("return a number")
+    assert requests == retries + 1
+
+
+async def test_agent_result_retries_preserve_tool_retry_budget(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    calls = 0
+
+    def retrying_tool() -> str:
+        nonlocal calls
+        calls += 1
+        raise ModelRetry("try again")
+
+    def call_tool(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        return ModelResponse(parts=[ToolCallPart("retrying_tool", {})])
+
+    monkeypatch.setattr(marvin.settings, "agent_retries", 4)
+    agentlet = await Agent(model=FunctionModel(call_tool)).get_agentlet(
+        tools=[retrying_tool], end_turn_tools=[]
+    )
+
+    with pytest.raises(UnexpectedModelBehavior, match="retries count of 1"):
+        await agentlet.run("call the tool")
+    assert calls == 2

@@ -212,6 +212,7 @@ class Agent(Actor):
             "model_settings": self.get_model_settings(),
             "output_type": final_tool_output,  # Use the constructed ToolOutput
             "name": self.name,
+            "retries": {"output": marvin.settings.agent_retries},
         }
 
         if combined_tools:
