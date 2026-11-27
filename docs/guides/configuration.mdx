@@ -31,8 +31,7 @@ Database URLs must use an async driver. Vector [memory](/concepts/memory) is con
 | `MARVIN_LOG_EVENTS` | Log runtime events at debug level |
 | `MARVIN_ENABLE_DEFAULT_PRINT_HANDLER` | Show agent activity on the console |
 | `MARVIN_MAX_AGENT_TURNS` | Turn limit for an orchestrator run |
-
-`MARVIN_AGENT_RETRIES` is exposed in settings but is not currently passed to the model agent; changing it does not configure validation retries.
+| `MARVIN_AGENT_RETRIES` | Retries allowed for each tool call or result that fails validation (default `10`) |
 
 See the [settings API](/api-reference/marvin-settings) for the complete set of fields and defaults.
 

@@ -128,7 +128,7 @@ class Settings(BaseSettings):
 
     agent_retries: int = Field(
         default=10,
-        description="The number of times the agent is allowed to retry when it generates an invalid result.",
+        description="The number of times the model may retry a tool call or a result that fails validation.",
     )
 
     max_agent_turns: int | None = Field(

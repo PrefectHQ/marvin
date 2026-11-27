@@ -244,3 +244,32 @@ async def test_agent_equality():
 
     assert agent1 == agent1_copy
     assert agent1 != agent2
+
+
+@pytest.mark.parametrize("retries", [0, 2])
+async def test_agent_retries_setting_limits_invalid_tool_calls(
+    monkeypatch: pytest.MonkeyPatch, retries: int
+):
+    """`settings.agent_retries` is the retry budget of the underlying agent."""
+    from pydantic_ai.exceptions import UnexpectedModelBehavior
+    from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
+    from pydantic_ai.models.function import AgentInfo, FunctionModel
+
+    def add_one(x: int) -> int:
+        return x + 1
+
+    requests = 0
+
+    def always_invalid(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        nonlocal requests
+        requests += 1
+        return ModelResponse(parts=[ToolCallPart("add_one", {"x": "not a number"})])
+
+    monkeypatch.setattr(marvin.settings, "agent_retries", retries)
+    agentlet = await Agent(model=FunctionModel(always_invalid)).get_agentlet(
+        tools=[add_one], end_turn_tools=[]
+    )
+
+    with pytest.raises(UnexpectedModelBehavior, match=f"retries count of {retries}"):
+        await agentlet.run("add one to something")
+    assert requests == retries + 1
