@@ -118,7 +118,9 @@ class Prompt:
         for match in pattern.finditer(text):
             # If there's text before this marker, it's content without a role
             if match.start() > last_end:
-                chunks.append(("user", text[last_end : match.start()].strip()))
+                content = text[last_end : match.start()].strip()
+                if content:
+                    chunks.append(("user", content))
 
             # Get the role from the marker
             role = match.group(1).lower().rstrip(":")
