@@ -129,8 +129,8 @@ class MessageStore:
         if not block.messages_json:
             return []
         messages = list(ModelMessagesTypeAdapter.validate_json(block.messages_json))
-        # Context now arrives through per-run instructions. Legacy stored system
-        # prompts describe an earlier user/turn and must not override fresh context.
+        # Context is supplied fresh on each run. Legacy stored system prompts
+        # describe an earlier user/turn and must not override it.
         return [
             replace(message, parts=parts)
             if isinstance(message, ModelRequest)

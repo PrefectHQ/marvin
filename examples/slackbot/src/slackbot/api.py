@@ -25,6 +25,7 @@ from slackbot._internal.person_summary import (
     load_person_summary,
     update_person_summary,
 )
+from slackbot._internal.prompting import with_slack_context, without_slack_context
 from slackbot._internal.templates import (
     CHANNEL_REDIRECT_MESSAGE,
     PROGRESS_BLURB_PROMPT,
@@ -137,6 +138,9 @@ async def run_agent(
     decorator_settings: dict[str, Any] | None = None,
     progress: ProgressMessage | None = None,
 ) -> AgentRunResult[str]:
+    question = _question_text(user_prompt)
+    user_prompt = with_slack_context(user_prompt, user_context.get("slack_context", ""))
+
     if decorator_settings is None:
         decorator_settings = {
             "cache_policy": NONE,
@@ -158,7 +162,7 @@ async def run_agent(
         blurb_task = asyncio.create_task(
             _personality_blurb(
                 progress,
-                _question_text(user_prompt),
+                question,
                 user_context.get("person_summary", ""),
                 next(
                     (
@@ -400,7 +404,8 @@ async def handle_message(
             )  # type: ignore
 
             conversation = await message_store.append(
-                thread_ts, list(result.new_messages())
+                thread_ts,
+                without_slack_context(result.new_messages(), slack_context),
             )
             assert event.channel is not None, "No channel found"
             await task(post_slack_message)(
