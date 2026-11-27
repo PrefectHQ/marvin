@@ -24,6 +24,7 @@ from slackbot._internal.person_summary import (
     load_person_summary,
     update_person_summary,
 )
+from slackbot._internal.prompting import with_slack_context, without_slack_context
 from slackbot._internal.templates import (
     CHANNEL_REDIRECT_MESSAGE,
     PROGRESS_BLURB_PROMPT,
@@ -190,7 +191,9 @@ async def run_agent(
 
         try:
             result = await create_agent().run(
-                user_prompt=user_prompt,
+                user_prompt=with_slack_context(
+                    user_prompt, user_context.get("slack_context", "")
+                ),
                 message_history=conversation,
                 deps=user_context,
                 capabilities=[watcher.capability()],
@@ -400,7 +403,8 @@ async def handle_message(
             )  # type: ignore
 
             conversation = await message_store.append(
-                thread_ts, list(result.new_messages())
+                thread_ts,
+                without_slack_context(result.new_messages(), slack_context),
             )
             assert event.channel is not None, "No channel found"
             await task(post_slack_message)(

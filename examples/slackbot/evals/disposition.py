@@ -39,6 +39,7 @@ async def sample_disposition(base_prompt=DEFAULT_SYSTEM_PROMPT):
     # Slack or memory access; only the model providers use real credentials.
     os.environ["MARVIN_SLACKBOT_SLACK_API_TOKEN"] = "offline-eval-no-slack"
     os.environ["TURBOPUFFER_API_KEY"] = "offline-eval-no-memory"
+    from slackbot._internal.prompting import SLACK_CONTEXT_NOTICE, with_slack_context
     from slackbot.assets import ThreadSummary, thread_summary_evidence
     from slackbot.slack import render_slack_context
 
@@ -80,9 +81,9 @@ async def sample_disposition(base_prompt=DEFAULT_SYSTEM_PROMPT):
         )
         result = await Agent(
             "openai-responses:gpt-5.6-sol",
-            instructions=base_prompt + "\nCurrent Slack user: U1\n" + context,
+            instructions=f"{base_prompt}\nCurrent Slack user: U1\n{SLACK_CONTEXT_NOTICE}",
         ).run(
-            question,
+            with_slack_context(question, context),
             message_history=[]
             if label in {"ordinary", "technical"}
             else dessert_history(),
