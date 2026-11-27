@@ -51,6 +51,7 @@ from typing import (
 )
 
 from pydantic import (
+    AfterValidator,
     AnyUrl,
     EmailStr,
     Field,
@@ -58,6 +59,7 @@ from pydantic import (
     StringConstraints,
     model_validator,
 )
+from pydantic.json_schema import SkipJsonSchema
 from typing_extensions import NotRequired, TypedDict
 
 __all__ = ["jsonschema_to_type", "JSONSchema"]
@@ -207,24 +209,19 @@ def create_enum(name: str, values: list[Any]) -> type | Enum:
     return Literal[tuple(values)]  # type: ignore
 
 
+def _unique_items(items: list[Any]) -> list[Any]:
+    unique: list[Any] = []
+    for item in items:
+        if item not in unique:
+            unique.append(item)
+    return unique
+
+
 def create_array_type(
     schema: Mapping[str, Any], schemas: Mapping[str, Any]
 ) -> type | Annotated[Any, ...]:
     """Create list/set type with optional constraints."""
     items = schema.get("items", {})
-    if isinstance(items, list):
-        # Handle positional item schemas
-        item_types = [schema_to_type(s, schemas) for s in items]
-        from typing import Union
-
-        combined = Union[tuple(item_types)]
-        base = list[combined]
-    else:
-        # Handle single item schema
-        item_type = schema_to_type(items, schemas)
-        base = set if schema.get("uniqueItems") else list
-        base = base[item_type]
-
     constraints = {
         k: v
         for k, v in {
@@ -233,7 +230,24 @@ def create_array_type(
         }.items()
         if v is not None
     }
+    if isinstance(items, list):
+        # Handle positional item schemas
+        item_types = [schema_to_type(s, schemas) for s in items]
+        item_type = Union[tuple(item_types)]
+    else:
+        item_type = schema_to_type(items, schemas)
 
+    base = list[item_type]
+    if schema.get("uniqueItems"):
+        # Keep set results for hashable items and compare structured items by value.
+        unique_set = Annotated[set[item_type], Field(**constraints)]
+        unique_list = Annotated[
+            base, AfterValidator(_unique_items), Field(**constraints)
+        ]
+        return Annotated[
+            unique_set | SkipJsonSchema[unique_list],
+            Field(union_mode="left_to_right"),
+        ]
     return Annotated[base, Field(**constraints)] if constraints else base
 
 

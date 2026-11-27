@@ -281,6 +281,50 @@ class TestArrayTypes:
         result = validator.validate_python(["a", "a", "b"])
         assert result == {"a", "b"}
 
+    def test_unique_nested_arrays(self):
+        adapter = TypeAdapter(
+            jsonschema_to_type(
+                {
+                    "type": "array",
+                    "uniqueItems": True,
+                    "minItems": 2,
+                    "maxItems": 3,
+                    "items": {"type": "array", "items": {"type": "integer"}},
+                }
+            )
+        )
+        values = adapter.validate_json("[[1], [2], [1]]")
+        assert values == [[1], [2]]
+        assert adapter.dump_json(values) == b"[[1],[2]]"
+        with pytest.raises(ValidationError):
+            adapter.validate_python([[1], [1]])
+        with pytest.raises(ValidationError):
+            adapter.validate_python([[1], [2], [3], [4]])
+        schema = adapter.json_schema()
+        assert (
+            schema["uniqueItems"]
+            and schema["minItems"] == 2
+            and schema["maxItems"] == 3
+        )
+
+    def test_unique_objects(self):
+        adapter = TypeAdapter(
+            jsonschema_to_type(
+                {
+                    "type": "array",
+                    "uniqueItems": True,
+                    "items": {
+                        "type": "object",
+                        "properties": {"id": {"type": "integer"}},
+                        "required": ["id"],
+                    },
+                }
+            )
+        )
+        values = adapter.validate_json('[{"id": 2}, {"id": 1}, {"id": 2}]')
+        assert [item.id for item in values] == [2, 1]
+        assert adapter.dump_json(values) == b'[{"id":2},{"id":1}]'
+
 
 class TestObjectTypes:
     """Test suite for object validation."""
